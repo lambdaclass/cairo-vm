@@ -31,8 +31,8 @@ fn u8_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -43,8 +43,8 @@ fn u8_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -55,8 +55,8 @@ fn u8_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -67,8 +67,8 @@ fn u8_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -79,8 +79,8 @@ fn u16_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -91,8 +91,8 @@ fn u16_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -103,8 +103,8 @@ fn u16_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -115,8 +115,8 @@ fn u16_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -127,8 +127,8 @@ fn u32_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -139,8 +139,8 @@ fn u32_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -151,8 +151,8 @@ fn u32_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -163,8 +163,8 @@ fn u32_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -175,8 +175,8 @@ fn u64_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -187,8 +187,8 @@ fn u64_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -199,8 +199,8 @@ fn u64_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -211,8 +211,8 @@ fn u64_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -223,8 +223,8 @@ fn u128_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -235,8 +235,8 @@ fn u128_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -247,8 +247,8 @@ fn u128_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -259,8 +259,8 @@ fn u128_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -271,8 +271,8 @@ fn u256_sqrt_9() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![9_usize.into()],
-        &vec![3_usize.into()],
+        &[9_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -283,8 +283,8 @@ fn u256_sqrt_10() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![3_usize.into()],
+        &[10_usize.into()],
+        &[3_usize.into()],
     );
 }
 
@@ -295,8 +295,8 @@ fn u256_sqrt_one() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![1_usize.into()],
-        &vec![1_usize.into()],
+        &[1_usize.into()],
+        &[1_usize.into()],
     );
 }
 
@@ -307,8 +307,8 @@ fn u256_sqrt_zero() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![0_usize.into()],
-        &vec![0_usize.into()],
+        &[0_usize.into()],
+        &[0_usize.into()],
     );
 }
 
@@ -319,8 +319,8 @@ fn u256_sqrt_big_num() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         144,
-        &vec![],
-        &vec![1125899906842624_usize.into()],
+        &[],
+        &[1125899906842624_usize.into()],
     );
 }
 
