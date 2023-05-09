@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+    * `Cairo1HintProcessor` can now run the following hints:
+        * Felt252DictEntryInit
+        * Felt252DictEntryUpdate
+        * GetCurrentAccessDelta
+        * InitSquashData
+        * AllocConstantSize
+        * GetCurrentAccessIndex
+        * ShouldContinueSquashLoop
+        * FieldSqrt
+
 * Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
