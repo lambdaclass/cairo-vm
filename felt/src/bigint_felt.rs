@@ -23,7 +23,7 @@ use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zer
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-    static ref CAIRO_PRIME_BIGUINT: BigUint =
+    pub static ref CAIRO_PRIME_BIGUINT: BigUint =
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
     pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
@@ -655,11 +655,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
 impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn abs(&self) -> Self {
-        if self.is_negative() {
-            self.neg()
-        } else {
-            self.clone()
-        }
+        self.clone()
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
@@ -673,15 +669,13 @@ impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn signum(&self) -> Self {
         if self.is_zero() {
             FeltBigInt::zero()
-        } else if self.is_positive() {
-            FeltBigInt::one()
         } else {
-            FeltBigInt::max_value()
+            FeltBigInt::one()
         }
     }
 
     fn is_positive(&self) -> bool {
-        !self.is_zero() && self.val < *SIGNED_FELT_MAX
+        !self.is_zero()
     }
 
     fn is_negative(&self) -> bool {

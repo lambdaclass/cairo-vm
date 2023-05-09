@@ -206,10 +206,42 @@ impl Felt252 {
         self.value.to_biguint()
     }
     pub fn sqrt(&self) -> Self {
+        // Based on Tonelli-Shanks' algorithm for finding square roots
+        // and sympy's library implementation of said algorithm.
+        // if self.value.is_zero() || self.value.is_one() {
+        //     return self.clone();
+        // }
+
+        // let max_felt = Felt252::max_value();
+        // let trailing_prime = (Felt252::max_value() >> 192).to_u32(); // 0x800000000000011
+
+        // let a = self.value.pow(&trailing_prime);
+        // let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+        // let mut m = Felt252::zero();
+        // let mut exponent = Felt252::one() << 191_u32;
+        // let mut adm;
+        // for i in 0..192_u32 {
+        //     adm = &a * &(&d).pow(&m);
+        //     adm = (&adm).pow(&exponent);
+        //     exponent >>= 1;
+        //     // if adm ≡ -1 (mod CAIRO_PRIME)
+        //     if adm == max_felt {
+        //         m += Felt252::one() << i;
+        //     }
+        // }
+        // let root_1 = self.value.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+        // let root_2 = &max_felt - &root_1 + 1_usize;
+        // if root_1 < root_2 {
+        //     root_1
+        // } else {
+        //     root_2
+        // }
+
         Self {
             value: self.value.sqrt(),
         }
     }
+
     pub fn bits(&self) -> u64 {
         self.value.bits()
     }
@@ -878,8 +910,7 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::arbitrary::{negative_felt252, nonzero_felt252, positive_felt252};
-    use core::cmp;
+    use crate::arbitrary;
     use proptest::prelude::*;
 
     proptest! {
@@ -1273,27 +1304,17 @@ mod test {
         }
 
         #[test]
-        fn positive_felt_is_always_positive(x in positive_felt252()) {
+        fn felt_is_always_positive(x in any::<Felt252>()) {
             prop_assert!(x.is_positive())
         }
 
         #[test]
-        fn positive_felt_is_never_negative(x in positive_felt252()) {
+        fn felt_is_never_negative(x in any::<Felt252>()) {
             prop_assert!(!x.is_negative())
         }
 
         #[test]
-        fn negative_felt_is_always_negative(x in negative_felt252()) {
-            prop_assert!(x.is_negative())
-        }
-
-        #[test]
-        fn negative_felt_is_never_positive(x in negative_felt252()) {
-            prop_assert!(!x.is_positive())
-        }
-
-        #[test]
-        fn positive_felt_signum_is_always_one(ref x in positive_felt252()) {
+        fn felt_signum_is_always_one(ref x in any::<Felt252>()) {
             let one = Felt252::one();
             prop_assert_eq!(x.signum(), one)
         }
@@ -1306,15 +1327,8 @@ mod test {
         }
 
         #[test]
-        fn positive_abs(x in positive_felt252()) {
+        fn abs(x in any::<Felt252>()) {
             prop_assert_eq!(&x, &x.abs())
-        }
-
-        #[test]
-        fn negative_abs(x in negative_felt252()){
-            let xpos = x.clone().neg();
-
-            prop_assert_eq!(&x.abs(), &xpos)
         }
 
         #[test]
