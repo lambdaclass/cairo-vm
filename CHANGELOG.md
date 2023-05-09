@@ -13,6 +13,8 @@
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
 
+* Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
+
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
   * Ignore Casm and Sierra files
