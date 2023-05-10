@@ -202,6 +202,7 @@ pub(self) fn run_cairo_1_entrypoint(
     assert_eq!(expected_retdata, &retdata);
 }
 
+#[cfg(feature = "cairo-1-hints")]
 fn get_casm_contract_builtins(
     contract_class: &CasmContractClass,
     entrypoint_offset: usize,
