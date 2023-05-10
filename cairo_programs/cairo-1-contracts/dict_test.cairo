@@ -23,7 +23,6 @@ mod DictTest {
         dict.insert(KEY4, 4);
         dict.insert(KEY5, 5);
 
-        // TODO(spapini): Use indexing operator.
         assert(dict.index(KEY1) == 1, 'KEY1');
         assert(dict.index(KEY2) == 2, 'KEY2');
         assert(dict.index(KEY3) == 3, 'KEY3');
