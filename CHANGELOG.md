@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* Implement test for LinearSplit hint [#1118](https://github.com/lambdaclass/cairo-rs/pull/1118)
-
 * Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
 * Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
