@@ -9,8 +9,8 @@ fn test_init_squash_data() {
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
-        &vec![10_usize.into()],
-        &vec![10_usize.into()],
+        &[10_usize.into()],
+        &[10_usize.into()],
     );
 }
 
