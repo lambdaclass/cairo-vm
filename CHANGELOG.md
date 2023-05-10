@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* Make the VM able to run `CasmContractClass` files [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
-
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
     * `Cairo1HintProcessor` can now run the following hints:
@@ -17,7 +15,6 @@
         * FieldSqrt
 
 * Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
->>>>>>> main
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
