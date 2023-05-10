@@ -149,14 +149,10 @@ impl CairoRunner {
             BuiltinName::keccak,
             BuiltinName::poseidon,
         ];
-        if !is_subsequence(
-            &self.program.shared_program_data.builtins,
-            &builtin_ordered_list,
-        ) {
+        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
-        let mut program_builtins: HashSet<&BuiltinName> =
-            self.program.shared_program_data.builtins.iter().collect();
+        let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
         let mut builtin_runners = Vec::<BuiltinRunner>::new();
 
         if self.layout.builtins.output {
@@ -281,16 +277,11 @@ impl CairoRunner {
             }
         }
 
-        for builtin_name in &self.program.shared_program_data.builtins {
+        for builtin_name in &self.program.builtins {
             initialize_builtin(*builtin_name, vm);
         }
         for builtin_name in starknet_preset_builtins {
-            if !self
-                .program
-                .shared_program_data
-                .builtins
-                .contains(&builtin_name)
-            {
+            if !self.program.builtins.contains(&builtin_name) {
                 initialize_builtin(builtin_name, vm)
             }
         }
@@ -513,7 +504,7 @@ impl CairoRunner {
     }
 
     pub fn get_program_builtins(&self) -> &Vec<BuiltinName> {
-        &self.program.shared_program_data.builtins
+        &self.program.builtins
     }
 
     pub fn run_until_pc(
@@ -4157,10 +4148,7 @@ mod tests {
         );
         let runner = cairo_runner!(program);
 
-        assert_eq!(
-            &program.shared_program_data.builtins,
-            runner.get_program_builtins()
-        );
+        assert_eq!(&program.builtins, runner.get_program_builtins());
     }
 
     #[test]

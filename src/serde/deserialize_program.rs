@@ -387,7 +387,6 @@ pub fn parse_program_json(
     }
 
     let shared_program_data = SharedProgramData {
-        builtins: program_json.builtins,
         data: program_json.data,
         hints: program_json.hints,
         main: entrypoint_pc,
@@ -407,6 +406,7 @@ pub fn parse_program_json(
         shared_program_data: Arc::new(shared_program_data),
         constants,
         reference_manager: program_json.reference_manager,
+        builtins: program_json.builtins,
     })
 }
 
@@ -807,7 +807,7 @@ mod tests {
             }],
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
         assert_eq!(program.shared_program_data.hints, hints);
@@ -865,7 +865,7 @@ mod tests {
             }],
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.hints, hints);
