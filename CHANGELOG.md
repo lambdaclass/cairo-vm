@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add a test for the `AllocSegment` hint [#1156](https://github.com/lambdaclass/cairo-rs/pull/1156)
+
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
     * `Cairo1HintProcessor` can now run the following hints:
