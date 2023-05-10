@@ -2,20 +2,16 @@
 
 #### Upcoming Changes
 
-* feat: Add method `CairoRunner::run_from_entrypoint_with_builtins` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
+* feat: Add method `CairoRunner::initialize_function_runner_cairo1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
 
-  * Add method `run_from_entrypoint_with_builtins(
+  * Add method `pub fn initialize_function_runner_cairo_1(
         &mut self,
-        entrypoint: usize,
-        args: &[&CairoArg],
-        verify_secure: bool,
-        program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
-        hint_processor: &mut dyn HintProcessor,
-        program_builtins: Option<&[BuiltinName]>,
-    ) -> Result<(), CairoRunError>`
+        program_builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError>` to `CairoRunner`
 
   * BREAKING: Move field `builtins` from `SharedProgramData` to `Program`
+  * BREAKING: Remove argument `add_segment_arena_builtin` from `CairoRunner::initialize_function_runner`, it is now always false
 
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
