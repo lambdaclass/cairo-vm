@@ -45,6 +45,8 @@ fn get_segment_arena_test() {
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1_usize.into()]);
 }
 
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn linear_split() {
     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/linear_split.casm");
     run_cairo_1_entrypoint(
