@@ -64,6 +64,14 @@ fn divmod_hint_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn get_segment_arena_test() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/get_segment_arena_index.casm");
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1_usize.into()]);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn boxed_fibonacci() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/alloc_constant_size.casm");
