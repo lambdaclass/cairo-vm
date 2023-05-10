@@ -12,7 +12,7 @@ use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 #[cfg(feature = "cairo-1-hints")]
 use felt::Felt252;
 
-use crate::stdlib::prelude::*;
+use crate::{serde::deserialize_program::BuiltinName, stdlib::prelude::*};
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
@@ -117,28 +117,24 @@ pub(self) fn run_cairo_1_entrypoint(
     .unwrap();
     let mut vm = VirtualMachine::new(false);
 
-    runner.initialize_function_runner(&mut vm, true).unwrap();
-
-    // Get builtin bases
-    // Extract builtins from CasmContractClass entrypoint data from the entrypoint which's offset is being ran
-    let builtins: Vec<String> = contract_class
-        .entry_points_by_type
-        .external
-        .iter()
-        .find(|e| e.offset == entrypoint_offset)
-        .unwrap()
-        .builtins
-        .iter()
-        .map(|n| format!("{}_builtin", n))
-        .collect();
+    let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
+    runner
+        .initialize_function_runner_cairo_1(&mut vm, &program_builtins)
+        .unwrap();
 
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
+    let builtins: Vec<&'static str> = runner
+        .get_program_builtins()
+        .iter()
+        .map(|b| b.name())
+        .collect();
+
     let builtin_segment: Vec<MaybeRelocatable> = vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&(b.name().to_string())))
+        .filter(|b| builtins.contains(&b.name()))
         .flat_map(|b| b.initial_stack())
         .collect();
 
@@ -204,4 +200,33 @@ pub(self) fn run_cairo_1_entrypoint(
         .map(|c| c.clone().into_owned())
         .collect();
     assert_eq!(expected_retdata, &retdata);
+}
+
+fn get_casm_contract_builtins(
+    contract_class: &CasmContractClass,
+    entrypoint_offset: usize,
+) -> Vec<BuiltinName> {
+    contract_class
+        .entry_points_by_type
+        .external
+        .iter()
+        .find(|e| e.offset == entrypoint_offset)
+        .unwrap()
+        .builtins
+        .iter()
+        .map(|n| format!("{}_builtin", n))
+        .map(|s| match &*s {
+            crate::vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME => BuiltinName::output,
+            crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME => {
+                BuiltinName::range_check
+            }
+            crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME => BuiltinName::pedersen,
+            crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME => BuiltinName::ecdsa,
+            crate::vm::runners::builtin_runner::KECCAK_BUILTIN_NAME => BuiltinName::keccak,
+            crate::vm::runners::builtin_runner::BITWISE_BUILTIN_NAME => BuiltinName::bitwise,
+            crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME => BuiltinName::ec_op,
+            crate::vm::runners::builtin_runner::POSEIDON_BUILTIN_NAME => BuiltinName::poseidon,
+            _ => panic!("Invalid builtin {}", s),
+        })
+        .collect()
 }
