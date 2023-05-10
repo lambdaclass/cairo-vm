@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683757063374,
+  "lastUpdate": 1683761214551,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101998,6 +101998,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18659291,
             "range": "± 198041",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "88055861+mmsc2@users.noreply.github.com",
+            "name": "mmsc2",
+            "username": "mmsc2"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "b0d28c66b5f5c7a551592291713bfcfa73c0a251",
+          "message": "Add arena index hint test (#1148)\n\n* Add arena index hint test\n\n* Modify changelog\n\n* fix changelog\n\n* fix changelog\n\n* Add test tag\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-10T22:47:48Z",
+          "tree_id": "66543b221b91e73fb53921f0bc39fce0c836355a",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/b0d28c66b5f5c7a551592291713bfcfa73c0a251"
+        },
+        "date": 1683761207020,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 34567,
+            "range": "± 2110",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 78251,
+            "range": "± 7353",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 27146382,
+            "range": "± 1516247",
             "unit": "ns/iter"
           }
         ]
