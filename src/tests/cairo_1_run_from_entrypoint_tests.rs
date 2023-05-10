@@ -2,6 +2,20 @@ use crate::tests::*;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn test_uint256_div_mod_hint() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[8_usize.into(), 2_usize.into()],
+        &[Felt252::from(4_usize).into()],
+    );
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_less_than_or_equal() {
     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/test_less_than.casm");
     run_cairo_1_entrypoint(
