@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683761214551,
+  "lastUpdate": 1683762227021,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102040,6 +102040,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 27146382,
             "range": "± 1516247",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "amigoigna@gmail.com",
+            "name": "igamigo",
+            "username": "igamigo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "3ab864cf2ea7e4db50b557b08c66f48a5c8d2385",
+          "message": "Test for `Uint256DivMod` hint (#1140)\n\n* test less than\n\n* test less than\n\n* Uin256 div mod test\n\n* Merge conflict\n\n* cairo program\n\n* did not save file",
+          "timestamp": "2023-05-10T23:05:02Z",
+          "tree_id": "cb30c69070f78ef3a3f1e8baf36bf471400712ec",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/3ab864cf2ea7e4db50b557b08c66f48a5c8d2385"
+        },
+        "date": 1683762220261,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 33177,
+            "range": "± 2367",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 75861,
+            "range": "± 7599",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25343607,
+            "range": "± 1754270",
             "unit": "ns/iter"
           }
         ]
