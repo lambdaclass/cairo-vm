@@ -10,7 +10,7 @@ fn test_uint256_div_mod_hint() {
         program_data.as_slice(),
         0,
         &[8_usize.into(), 2_usize.into()],
-        &[Felt252::from(4_usize).into()],
+        &[Felt252::from(4_usize)],
     );
 }
 
