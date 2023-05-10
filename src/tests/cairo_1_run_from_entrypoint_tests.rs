@@ -38,8 +38,33 @@ fn divmod_hint_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+
 fn get_segment_arena_test() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/get_segment_arena_index.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1_usize.into()]);
+}
+
+fn linear_split() {
+    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/linear_split.casm");
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[1_usize.into()],
+        &[0.into(), 1.into()],
+    );
+
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[100_usize.into()],
+        &[0.into(), 100.into()],
+    );
+
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[1000_usize.into()],
+        &[0.into(), 1000.into()],
+    );
 }
