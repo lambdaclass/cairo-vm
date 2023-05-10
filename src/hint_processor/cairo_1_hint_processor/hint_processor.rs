@@ -710,11 +710,11 @@ impl Cairo1HintProcessor {
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
 
         let val = Felt252::from(
-            if (dict_squash_exec_scope
+            if dict_squash_exec_scope
                 .current_access_indices()
                 .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
                 .len()
-                > 1)
+                > 1
             {
                 0
             } else {
