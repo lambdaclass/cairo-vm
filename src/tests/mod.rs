@@ -1,6 +1,7 @@
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    serde::deserialize_program::BuiltinName,
     types::relocatable::MaybeRelocatable,
     vm::{
         runners::cairo_runner::{CairoArg, CairoRunner},
