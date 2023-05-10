@@ -46,7 +46,7 @@ fn boxed_fibonacci() {
         0,
         &[3_usize.into(), 3_usize.into(), 3_usize.into()],
         &[9_usize.into()],
-      );
+    );
 }
 
 #[test]
