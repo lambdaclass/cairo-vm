@@ -873,9 +873,7 @@ impl CairoRunner {
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
-    /// If `program_builtins` is some, the program's builtins field will be swapped for this value
-    /// This should only be used when running cairo 1 contract entrypoints
-    pub fn run_from_entrypoint_with_builtins(
+    pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
@@ -883,11 +881,7 @@ impl CairoRunner {
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-        program_builtins: Option<&[BuiltinName]>,
     ) -> Result<(), CairoRunError> {
-        if let Some(builtins) = program_builtins {
-            self.program.builtins = builtins.to_vec();
-        }
         let stack = args
             .iter()
             .map(|arg| vm.segments.gen_cairo_arg(arg))
@@ -908,28 +902,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
-    /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
-    /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
-    pub fn run_from_entrypoint(
-        &mut self,
-        entrypoint: usize,
-        args: &[&CairoArg],
-        verify_secure: bool,
-        program_segment_size: Option<usize>,
-        vm: &mut VirtualMachine,
-        hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), CairoRunError> {
-        self.run_from_entrypoint_with_builtins(
-            entrypoint,
-            args,
-            verify_secure,
-            program_segment_size,
-            vm,
-            hint_processor,
-            None,
-        )
-    }
 
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
