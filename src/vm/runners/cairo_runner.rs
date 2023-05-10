@@ -902,7 +902,6 @@ impl CairoRunner {
         Ok(())
     }
 
-
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
     pub fn check_used_cells(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
@@ -961,12 +960,30 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Intitializes the runner in order to run cairo 1 contract entrypoints
+    /// Initializes builtins & segments
+    /// All builtins are initialized regardless of use following program ordering then starknet ordering
+    /// Swaps the program's builtins field with program_builtins
+    /// Adds the segment_arena builtin
+    pub fn initialize_function_runner_cairo_1(
+        &mut self,
+        vm: &mut VirtualMachine,
+        program_builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError> {
+        self.program.builtins = program_builtins.to_vec();
+        self.initialize_all_builtins(vm, true)?;
+        self.initialize_segments(vm, self.program_base);
+        Ok(())
+    }
+
+    /// Intitializes the runner in order to run cairo 0 contract entrypoints
+    /// Initializes builtins & segments
+    /// All builtins are initialized regardless of use following program ordering then starknet ordering
     pub fn initialize_function_runner(
         &mut self,
         vm: &mut VirtualMachine,
-        add_segment_arena_builtin: bool,
     ) -> Result<(), RunnerError> {
-        self.initialize_all_builtins(vm, add_segment_arena_builtin)?;
+        self.initialize_all_builtins(vm, false)?;
         self.initialize_segments(vm, self.program_base);
         Ok(())
     }
@@ -3978,7 +3995,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner(&mut vm, false)
+            .initialize_function_runner(&mut vm)
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
@@ -4018,7 +4035,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner(&mut vm, true)
+            .initialize_function_runner_cairo_1(&mut vm, &vec![])
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
@@ -4530,9 +4547,7 @@ mod tests {
             .pc
             .unwrap();
 
-        cairo_runner
-            .initialize_function_runner(&mut vm, false)
-            .unwrap();
+        cairo_runner.initialize_function_runner(&mut vm).unwrap();
 
         assert!(cairo_runner
             .run_from_entrypoint(
