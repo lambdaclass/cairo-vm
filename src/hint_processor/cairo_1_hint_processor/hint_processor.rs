@@ -710,13 +710,16 @@ impl Cairo1HintProcessor {
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
 
         let val = Felt252::from(
-            (dict_squash_exec_scope
+            if (dict_squash_exec_scope
                 .current_access_indices()
                 .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
                 .len()
                 > 1)
-            .then_some(0)
-            .unwrap_or(1),
+            {
+                0
+            } else {
+                1
+            },
         );
 
         vm.insert_value(cell_ref_to_relocatable(should_skip_loop, vm)?, val)?;
