@@ -94,7 +94,7 @@ pub struct DictSquashExecScope {
     /// A map from key to the list of indices accessing it, each list in reverse order.
     pub(crate) access_indices: HashMap<Felt252, Vec<Felt252>>,
     /// Descending list of keys.
-    keys: Vec<Felt252>,
+    pub(crate) keys: Vec<Felt252>,
 }
 
 impl DictSquashExecScope {

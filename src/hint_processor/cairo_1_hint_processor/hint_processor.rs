@@ -4,6 +4,7 @@ use crate::any_box;
 use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::types::relocatable::Relocatable;
 
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::*;
@@ -25,6 +26,12 @@ use core::ops::Mul;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
+
+/// Execution scope for constant memory allocation.
+struct MemoryExecScope {
+    /// The first free address in the segment.
+    next_address: Relocatable,
+}
 
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
@@ -174,6 +181,33 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHint::ShouldSkipSquashLoop { should_skip_loop }) => {
                 self.should_skip_squash_loop(vm, exec_scopes, should_skip_loop)
             }
+
+            Hint::Core(CoreHint::Felt252DictEntryInit { dict_ptr, key }) => {
+                self.dict_entry_init(vm, exec_scopes, dict_ptr, key)
+            }
+            Hint::Core(CoreHint::Felt252DictEntryUpdate { dict_ptr, value }) => {
+                self.felt_252_dict_entry_update(vm, exec_scopes, dict_ptr, value)
+            }
+            Hint::Core(CoreHint::GetCurrentAccessDelta { index_delta_minus1 }) => {
+                self.get_current_access_delta(vm, exec_scopes, index_delta_minus1)
+            }
+            Hint::Core(CoreHint::InitSquashData {
+                dict_accesses,
+                n_accesses,
+                big_keys,
+                ..
+            }) => self.init_squash_data(vm, exec_scopes, dict_accesses, n_accesses, big_keys),
+            Hint::Core(CoreHint::AllocConstantSize { size, dst }) => {
+                self.alloc_constant_size(vm, exec_scopes, size, dst)
+            }
+            Hint::Core(CoreHint::GetCurrentAccessIndex { range_check_ptr }) => {
+                self.get_current_access_index(vm, exec_scopes, range_check_ptr)
+            }
+            Hint::Core(CoreHint::ShouldContinueSquashLoop { should_continue }) => {
+                self.should_continue_squash_loop(vm, exec_scopes, should_continue)
+            }
+            Hint::Core(CoreHint::FieldSqrt { val, sqrt }) => self.field_sqrt(vm, val, sqrt),
+
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -586,6 +620,27 @@ impl Cairo1HintProcessor {
         Ok(())
     }
 
+    fn dict_entry_init(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dict_ptr: &ResOperand,
+        key: &ResOperand,
+    ) -> Result<(), HintError> {
+        let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
+        let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
+        let key = res_operand_get_val(vm, key)?;
+        let dict_manager_exec_scope =
+            exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
+
+        let prev_value = dict_manager_exec_scope
+            .get_from_tracker(dict_address, &key)
+            .unwrap_or_else(|| DictManagerExecScope::DICT_DEFAULT_VALUE.into());
+
+        vm.insert_value((dict_address + 1)?, prev_value)
+            .map_err(HintError::from)
+    }
+
     fn debug_print(
         &self,
         vm: &mut VirtualMachine,
@@ -659,6 +714,217 @@ impl Cairo1HintProcessor {
         vm.insert_value(cell_ref_to_relocatable(should_skip_loop, vm)?, val)?;
 
         Ok(())
+    }
+
+    fn felt_252_dict_entry_update(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dict_ptr: &ResOperand,
+        value: &ResOperand,
+    ) -> Result<(), HintError> {
+        let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
+        let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
+        let key = get_double_deref_val(vm, dict_base, &(dict_offset + Felt252::from(-3)))?;
+        let value = res_operand_get_val(vm, value)?;
+        let dict_manager_exec_scope = exec_scopes
+            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")
+            .map_err(|_| {
+                HintError::CustomHint(
+                    "Trying to write to a dict while dict manager was not initialized.".to_string(),
+                )
+            })?;
+        dict_manager_exec_scope.insert_to_tracker(dict_address, key, value);
+
+        Ok(())
+    }
+
+    fn get_current_access_delta(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        index_delta_minus1: &CellRef,
+    ) -> Result<(), HintError> {
+        let dict_squash_exec_scope: &mut DictSquashExecScope =
+            exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
+        let prev_access_index = dict_squash_exec_scope
+            .pop_current_access_index()
+            .ok_or(HintError::CustomHint("no accessed index".to_string()))?;
+        let index_delta_minus_1_val = dict_squash_exec_scope
+            .current_access_index()
+            .ok_or(HintError::CustomHint("no index accessed".to_string()))?
+            .clone()
+            - prev_access_index
+            - 1_u32;
+
+        vm.insert_value(
+            cell_ref_to_relocatable(index_delta_minus1, vm)?,
+            index_delta_minus_1_val,
+        )?;
+
+        Ok(())
+    }
+
+    fn init_squash_data(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dict_accesses: &ResOperand,
+        n_accesses: &ResOperand,
+        big_keys: &CellRef,
+    ) -> Result<(), HintError> {
+        let dict_access_size = 3;
+        let rangecheck_bound = Felt252::from(u128::MAX) + 1u32;
+
+        exec_scopes.assign_or_update_variable(
+            "dict_squash_exec_scope",
+            Box::<DictSquashExecScope>::default(),
+        );
+        let dict_squash_exec_scope =
+            exec_scopes.get_mut_ref::<DictSquashExecScope>("dict_squash_exec_scope")?;
+        let (dict_accesses_base, dict_accesses_offset) = extract_buffer(dict_accesses)?;
+        let dict_accesses_address = get_ptr(vm, dict_accesses_base, &dict_accesses_offset)?;
+        let n_accesses =
+            res_operand_get_val(vm, n_accesses)?
+                .to_usize()
+                .ok_or(HintError::CustomHint(
+                    "Number of accesses is too large or negative.".to_string(),
+                ))?;
+
+        for i in 0..n_accesses {
+            let current_key = vm.get_integer((dict_accesses_address + i * dict_access_size)?)?;
+            dict_squash_exec_scope
+                .access_indices
+                .entry(current_key.into_owned())
+                .and_modify(|indices| indices.push(Felt252::from(i)))
+                .or_insert_with(|| vec![Felt252::from(i)]);
+        }
+        // Reverse the accesses in order to pop them in order later.
+        for (_, accesses) in dict_squash_exec_scope.access_indices.iter_mut() {
+            accesses.reverse();
+        }
+
+        dict_squash_exec_scope.keys = dict_squash_exec_scope
+            .access_indices
+            .keys()
+            .cloned()
+            .collect();
+        dict_squash_exec_scope.keys.sort_by(|a, b| b.cmp(a));
+        // big_keys indicates if the keys are greater than rangecheck_bound. If they are not
+        // a simple range check is used instead of assert_le_felt252.
+
+        let val = Felt252::from((dict_squash_exec_scope.keys[0] < rangecheck_bound) as u8);
+
+        vm.insert_value(cell_ref_to_relocatable(big_keys, vm)?, val)?;
+
+        vm.insert_value(
+            cell_ref_to_relocatable(big_keys, vm)?,
+            dict_squash_exec_scope
+                .current_key()
+                .ok_or(HintError::CustomHint("No current key".to_string()))?,
+        )?;
+
+        Ok(())
+    }
+
+    fn alloc_constant_size(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        size: &ResOperand,
+        dst: &CellRef,
+    ) -> Result<(), HintError> {
+        let object_size = res_operand_get_val(vm, size)?
+            .to_usize()
+            .expect("Object size too large.");
+        let memory_exec_scope =
+            match exec_scopes.get_mut_ref::<MemoryExecScope>("memory_exec_scope") {
+                Ok(memory_exec_scope) => memory_exec_scope,
+                Err(_) => {
+                    exec_scopes.assign_or_update_variable(
+                        "memory_exec_scope",
+                        Box::new(MemoryExecScope {
+                            next_address: vm.add_memory_segment(),
+                        }),
+                    );
+                    exec_scopes.get_mut_ref::<MemoryExecScope>("memory_exec_scope")?
+                }
+            };
+
+        vm.insert_value(
+            cell_ref_to_relocatable(dst, vm)?,
+            memory_exec_scope.next_address,
+        )?;
+
+        memory_exec_scope.next_address.offset += object_size;
+        Ok(())
+    }
+
+    fn get_current_access_index(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        range_check_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let dict_squash_exec_scope: &mut DictSquashExecScope =
+            exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
+        let (range_check_base, range_check_offset) = extract_buffer(range_check_ptr)?;
+        let range_check_ptr = get_ptr(vm, range_check_base, &range_check_offset)?;
+        let current_access_index =
+            dict_squash_exec_scope
+                .current_access_index()
+                .ok_or(HintError::CustomHint(
+                    "No current accessed index".to_string(),
+                ))?;
+        vm.insert_value(range_check_ptr, current_access_index)?;
+
+        Ok(())
+    }
+
+    fn should_continue_squash_loop(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dst: &CellRef,
+    ) -> Result<(), HintError> {
+        let dict_squash_exec_scope: &mut DictSquashExecScope =
+            exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
+        let current_access_indices = dict_squash_exec_scope
+            .current_access_indices()
+            .ok_or(HintError::EmptyCurrentAccessIndices)?;
+
+        let should_continue = Felt252::from((current_access_indices.len() > 1) as u8);
+
+        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, should_continue)
+            .map_err(HintError::from)
+    }
+
+    fn field_sqrt(
+        &self,
+        vm: &mut VirtualMachine,
+        val: &ResOperand,
+        sqrt: &CellRef,
+    ) -> Result<(), HintError> {
+        let value = Fq::from(res_operand_get_val(vm, val)?.to_biguint());
+
+        let three_fq = Fq::from(Felt252::new(3).to_biguint());
+        let res = if value.legendre().is_qr() {
+            value
+        } else {
+            value * three_fq
+        };
+
+        if let Some(root) = res.sqrt() {
+            let root0: BigUint = root.into_bigint().into();
+            let root1: BigUint = (-root).into_bigint().into();
+            let root = Felt252::from(std::cmp::min(root0, root1));
+            vm.insert_value(cell_ref_to_relocatable(sqrt, vm)?, root)
+                .map_err(HintError::from)
+        } else {
+            Err(HintError::CustomHint(
+                "Field element is not a square".to_string(),
+            ))
+        }
     }
 }
 
