@@ -35,3 +35,16 @@ fn divmod_hint_test() {
         &[8_usize.into()],
     );
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn boxed_fibonacci() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/alloc_constant_size.casm");
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[3_usize.into(), 3_usize.into(), 3_usize.into()],
+        &[9_usize.into()],
+    );
+}
