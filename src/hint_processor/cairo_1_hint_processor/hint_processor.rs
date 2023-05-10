@@ -155,7 +155,7 @@ impl Cairo1HintProcessor {
             })) => self.dict_write(exec_scopes, vm, dict_ptr, key, value),
             Hint::Core(CoreHintBase::Core(CoreHint::AssertLeIsFirstArcExcluded {
                 skip_exclude_a_flag,
-            })) => self.assert_le_if_first_arc_exclueded(vm, skip_exclude_a_flag, exec_scopes),
+            })) => self.assert_le_if_first_arc_excluded(vm, skip_exclude_a_flag, exec_scopes),
 
             Hint::Core(CoreHintBase::Deprecated(DeprecatedHint::AssertAllAccessesUsed {
                 n_used_accesses,
@@ -430,7 +430,7 @@ impl Cairo1HintProcessor {
         Ok(())
     }
 
-    fn assert_le_if_first_arc_exclueded(
+    fn assert_le_if_first_arc_excluded(
         &self,
         vm: &mut VirtualMachine,
         skip_exclude_a_flag: &CellRef,
