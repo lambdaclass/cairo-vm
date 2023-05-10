@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683756103940,
+  "lastUpdate": 1683757063374,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101956,6 +101956,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22830011,
             "range": "± 1102422",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "88055861+mmsc2@users.noreply.github.com",
+            "name": "mmsc2",
+            "username": "mmsc2"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "578a5addb66bab2e95733f8d0765e4ad77f82810",
+          "message": "Add test for alloc constant size (#1155)\n\n* Add test for alloc constant size\n\n* cargo fmt\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-10T21:40:50Z",
+          "tree_id": "d9869fae5130216b8fd6c97f4d3f191926f75636",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/578a5addb66bab2e95733f8d0765e4ad77f82810"
+        },
+        "date": 1683757057398,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 25201,
+            "range": "± 356",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 55951,
+            "range": "± 1083",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18659291,
+            "range": "± 198041",
             "unit": "ns/iter"
           }
         ]
