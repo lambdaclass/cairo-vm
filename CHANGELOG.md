@@ -2,7 +2,22 @@
 
 #### Upcoming Changes
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
+* feat: Add method `CairoRunner::run_from_entrypoint_with_builtins` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
+
+  * Add method `run_from_entrypoint_with_builtins(
+        &mut self,
+        entrypoint: usize,
+        args: &[&CairoArg],
+        verify_secure: bool,
+        program_segment_size: Option<usize>,
+        vm: &mut VirtualMachine,
+        hint_processor: &mut dyn HintProcessor,
+        program_builtins: Option<&[BuiltinName]>,
+    ) -> Result<(), CairoRunError>`
+
+  * BREAKING: Move field `builtins` from `SharedProgramData` to `Program`
+
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
