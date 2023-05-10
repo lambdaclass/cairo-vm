@@ -336,22 +336,22 @@ pub mod test_utils {
         }
     }
 
-    impl Into<Program> for ProgramFlat {
-        fn into(self) -> Program {
+    impl From<ProgramFlat> for Program {
+        fn from(val: ProgramFlat) -> Self {
             Program {
                 shared_program_data: Arc::new(SharedProgramData {
-                    data: self.data,
-                    hints: self.hints,
-                    main: self.main,
-                    start: self.start,
-                    end: self.end,
-                    error_message_attributes: self.error_message_attributes,
-                    instruction_locations: self.instruction_locations,
-                    identifiers: self.identifiers,
+                    data: val.data,
+                    hints: val.hints,
+                    main: val.main,
+                    start: val.start,
+                    end: val.end,
+                    error_message_attributes: val.error_message_attributes,
+                    instruction_locations: val.instruction_locations,
+                    identifiers: val.identifiers,
                 }),
-                constants: self.constants,
-                builtins: self.builtins,
-                reference_manager: self.reference_manager,
+                constants: val.constants,
+                builtins: val.builtins,
+                reference_manager: val.reference_manager,
             }
         }
     }

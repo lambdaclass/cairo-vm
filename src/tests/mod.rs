@@ -12,7 +12,7 @@ use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 #[cfg(feature = "cairo-1-hints")]
 use felt::Felt252;
 
-use crate::{serde::deserialize_program::BuiltinName, stdlib::prelude::*};
+use crate::stdlib::prelude::*;
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},

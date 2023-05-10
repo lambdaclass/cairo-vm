@@ -4035,7 +4035,7 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner_cairo_1(&mut vm, &vec![])
+            .initialize_function_runner_cairo_1(&mut vm, &[])
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
