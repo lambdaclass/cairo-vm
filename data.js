@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683646548197,
+  "lastUpdate": 1683756103940,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -101914,6 +101914,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18536541,
             "range": "± 216180",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "amigoigna@gmail.com",
+            "name": "igamigo",
+            "username": "igamigo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "c71b45774eb9a558d5d856c050d4f85ce425300b",
+          "message": "test less than (#1124)\n\nCo-authored-by: Juan Bono <juanbono94@gmail.com>",
+          "timestamp": "2023-05-10T21:16:43Z",
+          "tree_id": "190c43220fdeefc98e8dc0449eb15ddf5444aa9a",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c71b45774eb9a558d5d856c050d4f85ce425300b"
+        },
+        "date": 1683756097327,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 32630,
+            "range": "± 2611",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 71953,
+            "range": "± 5547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22830011,
+            "range": "± 1102422",
             "unit": "ns/iter"
           }
         ]
