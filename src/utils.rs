@@ -292,7 +292,7 @@ pub mod test_utils {
 
     pub(crate) struct ProgramFlat {
         pub(crate) data: Vec<MaybeRelocatable>,
-        pub(crate) hints: crate::with_std::collections::HashMap<
+        pub(crate) hints: crate::stdlib::collections::HashMap<
             usize,
             Vec<crate::serde::deserialize_program::HintParams>,
         >,
@@ -302,16 +302,16 @@ pub mod test_utils {
         pub(crate) end: Option<usize>,
         pub(crate) error_message_attributes: Vec<crate::serde::deserialize_program::Attribute>,
         pub(crate) instruction_locations: Option<
-            crate::with_std::collections::HashMap<
+            crate::stdlib::collections::HashMap<
                 usize,
                 crate::serde::deserialize_program::InstructionLocation,
             >,
         >,
-        pub(crate) identifiers: crate::with_std::collections::HashMap<
+        pub(crate) identifiers: crate::stdlib::collections::HashMap<
             String,
             crate::serde::deserialize_program::Identifier,
         >,
-        pub(crate) constants: crate::with_std::collections::HashMap<String, crate::utils::Felt252>,
+        pub(crate) constants: crate::stdlib::collections::HashMap<String, crate::utils::Felt252>,
         pub(crate) builtins: Vec<crate::serde::deserialize_program::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
