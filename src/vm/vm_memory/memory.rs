@@ -27,16 +27,16 @@ impl MemoryCell {
     }
 
     pub fn mark_accessed(&mut self) {
-        match self {
-            MemoryCell::Accessed(_) => {}
-            MemoryCell::NotAccessed(val) => {
-                *self = MemoryCell::Accessed(crate::with_std::mem::take(val))
-            }
+        if let MemoryCell::NotAccessed(val) = self {
+            *self = MemoryCell::Accessed(crate::with_std::mem::take(val))
         }
     }
 
     pub fn is_accessed(&self) -> bool {
-        matches!(self, MemoryCell::Accessed(_))
+        match self {
+            MemoryCell::Accessed(_) => true,
+            _ => false,
+        }
     }
 
     pub fn get_value(&self) -> &MaybeRelocatable {
