@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683828893551,
+  "lastUpdate": 1683830445549,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102250,6 +102250,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 27680934,
             "range": "± 1024654",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e970548b385bdd5ba6a8d03d95de0e7b7502584e",
+          "message": "feat: Add method `CairoRunner::initialize_function_runner_cairo1`  (#1151)\n\n* Move builtins field outside of shared_program_data\n\n* Add method CairoRunner::run_from_entrypoint_with_builtins\n\n* Add changelog entry\n\n* Revert change\n\n* Add `CairoRunner::initialize_function_runner_cairo1`\n\n* Use initialize_function_runner_cairo1\n\n* Update changelog\n\n* Add feature flag\n\n* Clippy\n\n* Add missing import\n\n* Fix std path\n\n* Add path for Vec in program macro\n\n* Add segment_arena to BuiltinName enum\n\n* Add change to changelog\n\n* Fix test func\n\n* Add String & Vec imports for alloc feature\n\n* Remove irrelevant information from doc comment\n\n* Add path for String\n\n* Fix import\n\n* Fix test\n\n* Fix test\n\n* Fix test\n\n* Fix typo in changelog\n\n* Fix duplicate entry title in changelog",
+          "timestamp": "2023-05-11T18:09:26Z",
+          "tree_id": "ccb2adeaada9576053636f847490ae411c61fa06",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e970548b385bdd5ba6a8d03d95de0e7b7502584e"
+        },
+        "date": 1683830440099,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24266,
+            "range": "± 65",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59425,
+            "range": "± 339",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19216777,
+            "range": "± 64761",
             "unit": "ns/iter"
           }
         ]
