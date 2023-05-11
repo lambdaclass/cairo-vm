@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
+
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
 
     * `Cairo1HintProcessor` can now run the following hints:
@@ -13,8 +15,6 @@
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
         * FieldSqrt
-
-* Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
