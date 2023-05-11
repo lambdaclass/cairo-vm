@@ -204,8 +204,16 @@ impl Cairo1HintProcessor {
                 dict_accesses,
                 n_accesses,
                 big_keys,
+                first_key,
                 ..
-            })) => self.init_squash_data(vm, exec_scopes, dict_accesses, n_accesses, big_keys),
+            })) => self.init_squash_data(
+                vm,
+                exec_scopes,
+                dict_accesses,
+                n_accesses,
+                big_keys,
+                first_key,
+            ),
             Hint::Core(CoreHintBase::Core(CoreHint::AllocConstantSize { size, dst })) => {
                 self.alloc_constant_size(vm, exec_scopes, size, dst)
             }
@@ -714,11 +722,16 @@ impl Cairo1HintProcessor {
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
 
         let val = Felt252::from(
-            (dict_squash_exec_scope
+            if dict_squash_exec_scope
                 .current_access_indices()
                 .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
                 .len()
-                > 1) as u8,
+                > 1
+            {
+                0
+            } else {
+                1
+            },
         );
 
         vm.insert_value(cell_ref_to_relocatable(should_skip_loop, vm)?, val)?;
@@ -782,6 +795,7 @@ impl Cairo1HintProcessor {
         dict_accesses: &ResOperand,
         n_accesses: &ResOperand,
         big_keys: &CellRef,
+        first_key: &CellRef,
     ) -> Result<(), HintError> {
         let dict_access_size = 3;
         let rangecheck_bound = Felt252::from(u128::MAX) + 1u32;
@@ -823,12 +837,16 @@ impl Cairo1HintProcessor {
         // big_keys indicates if the keys are greater than rangecheck_bound. If they are not
         // a simple range check is used instead of assert_le_felt252.
 
-        let val = Felt252::from((dict_squash_exec_scope.keys[0] < rangecheck_bound) as u8);
+        let val = if dict_squash_exec_scope.keys[0] < rangecheck_bound {
+            Felt252::from(0)
+        } else {
+            Felt252::from(1)
+        };
 
         vm.insert_value(cell_ref_to_relocatable(big_keys, vm)?, val)?;
 
         vm.insert_value(
-            cell_ref_to_relocatable(big_keys, vm)?,
+            cell_ref_to_relocatable(first_key, vm)?,
             dict_squash_exec_scope
                 .current_key()
                 .ok_or(HintError::CustomHint("No current key".to_string()))?,

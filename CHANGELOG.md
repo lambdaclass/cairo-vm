@@ -2,7 +2,21 @@
 
 #### Upcoming Changes
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
+* feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
+
+  * Add method `pub fn initialize_function_runner_cairo_1(
+        &mut self,
+        vm: &mut VirtualMachine,
+        program_builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError>` to `CairoRunner`
+
+  * BREAKING: Move field `builtins` from `SharedProgramData` to `Program`
+  * BREAKING: Remove argument `add_segment_arena_builtin` from `CairoRunner::initialize_function_runner`, it is now always false
+  * BREAKING: Add `segment_arena` enum variant to `BuiltinName`
+
+* Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
+
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
@@ -13,8 +27,6 @@
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
         * FieldSqrt
-
-* Add a test for the `DivMod` hint [#1138](https://github.com/lambdaclass/cairo-rs/pull/1138).
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
