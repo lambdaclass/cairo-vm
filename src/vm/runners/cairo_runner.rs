@@ -4042,20 +4042,20 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_function_runner_cairo_1(&mut vm, &[])
+            .initialize_function_runner_cairo_1(&mut vm, &[BuiltinName::segment_arena])
             .expect("initialize_function_runner failed.");
 
         let builtin_runners = vm.get_builtin_runners();
 
-        assert_eq!(builtin_runners[0].name(), HASH_BUILTIN_NAME);
-        assert_eq!(builtin_runners[1].name(), RANGE_CHECK_BUILTIN_NAME);
-        assert_eq!(builtin_runners[2].name(), OUTPUT_BUILTIN_NAME);
-        assert_eq!(builtin_runners[3].name(), SIGNATURE_BUILTIN_NAME);
-        assert_eq!(builtin_runners[4].name(), BITWISE_BUILTIN_NAME);
-        assert_eq!(builtin_runners[5].name(), EC_OP_BUILTIN_NAME);
-        assert_eq!(builtin_runners[6].name(), KECCAK_BUILTIN_NAME);
-        assert_eq!(builtin_runners[7].name(), POSEIDON_BUILTIN_NAME);
-        assert_eq!(builtin_runners[8].name(), SEGMENT_ARENA_BUILTIN_NAME);
+        assert_eq!(builtin_runners[0].name(), SEGMENT_ARENA_BUILTIN_NAME);
+        assert_eq!(builtin_runners[1].name(), HASH_BUILTIN_NAME);
+        assert_eq!(builtin_runners[2].name(), RANGE_CHECK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[3].name(), OUTPUT_BUILTIN_NAME);
+        assert_eq!(builtin_runners[4].name(), SIGNATURE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[5].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(builtin_runners[6].name(), EC_OP_BUILTIN_NAME);
+        assert_eq!(builtin_runners[7].name(), KECCAK_BUILTIN_NAME);
+        assert_eq!(builtin_runners[8].name(), POSEIDON_BUILTIN_NAME);
 
         assert_eq!(
             cairo_runner.program_base,
