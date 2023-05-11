@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683827154170,
+  "lastUpdate": 1683828893551,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102208,6 +102208,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18471645,
             "range": "± 138995",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7129b921e66cb3b952ecd4d065a5e131e94780eb",
+          "message": "ci: add contribution guide (#1152)\n\n* docs: CONTRIBUTING.md\n\n* docs: fix issues links and refer to the new doc in readme\n\n* docs: take two at links",
+          "timestamp": "2023-05-11T17:34:31Z",
+          "tree_id": "f5c0692b1f4d894a22df2ebecd427bd99c423f7c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/7129b921e66cb3b952ecd4d065a5e131e94780eb"
+        },
+        "date": 1683828885872,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 36209,
+            "range": "± 1517",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 80449,
+            "range": "± 6909",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 27680934,
+            "range": "± 1024654",
             "unit": "ns/iter"
           }
         ]
