@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683783752485,
+  "lastUpdate": 1683822558982,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102124,6 +102124,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20982970,
             "range": "± 464532",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c7a0cb50b2eaa87e2734eedb73ed1de9c01a4619",
+          "message": "Add cairo program for testing AllocSegment hint (#1156)\n\n* add cairo program for testing AllocSegment hint\n\n* add changelog\n\n* address comments\n\n* Empty-Commit\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-11T15:47:33Z",
+          "tree_id": "2c9760be110d8a736b16d84a248845d80c654438",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c7a0cb50b2eaa87e2734eedb73ed1de9c01a4619"
+        },
+        "date": 1683822551827,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29317,
+            "range": "± 252",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 70006,
+            "range": "± 1315",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22517189,
+            "range": "± 131072",
             "unit": "ns/iter"
           }
         ]
