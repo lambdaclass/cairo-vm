@@ -14,11 +14,9 @@
   * BREAKING: Remove argument `add_segment_arena_builtin` from `CairoRunner::initialize_function_runner`, it is now always false
   * BREAKING: Add `segment_arena` enum variant to `BuiltinName`
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
-
 * Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1098)
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
