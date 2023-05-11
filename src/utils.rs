@@ -291,16 +291,17 @@ pub mod test_utils {
     pub(crate) use program;
 
     pub(crate) struct ProgramFlat {
-        pub(crate) data: Vec<MaybeRelocatable>,
+        pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
         pub(crate) hints: crate::stdlib::collections::HashMap<
             usize,
-            Vec<crate::serde::deserialize_program::HintParams>,
+            crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
         >,
         pub(crate) main: Option<usize>,
         //start and end labels will only be used in proof-mode
         pub(crate) start: Option<usize>,
         pub(crate) end: Option<usize>,
-        pub(crate) error_message_attributes: Vec<crate::serde::deserialize_program::Attribute>,
+        pub(crate) error_message_attributes:
+            crate::utils::Vec<crate::serde::deserialize_program::Attribute>,
         pub(crate) instruction_locations: Option<
             crate::stdlib::collections::HashMap<
                 usize,
@@ -312,7 +313,7 @@ pub mod test_utils {
             crate::serde::deserialize_program::Identifier,
         >,
         pub(crate) constants: crate::stdlib::collections::HashMap<String, crate::utils::Felt252>,
-        pub(crate) builtins: Vec<crate::serde::deserialize_program::BuiltinName>,
+        pub(crate) builtins: crate::utils::Vec<crate::serde::deserialize_program::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
 
