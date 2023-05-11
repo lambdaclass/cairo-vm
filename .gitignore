@@ -13,3 +13,4 @@ bench/results
 .python-version
 cairo-rs-env/*
 cairo-rs-pypy-env/*
+cairo/
