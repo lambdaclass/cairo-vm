@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683762227021,
+  "lastUpdate": 1683783752485,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102082,6 +102082,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 25343607,
             "range": "± 1754270",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "amigoigna@gmail.com",
+            "name": "igamigo",
+            "username": "igamigo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "385e293ec4c7f34b6e58394c490712117295410f",
+          "message": "Fix `InitSquashData`, `ShouldSkipSquashLoop` and add Cairo test program (#1147)\n\n* Fix hints and test them with new cairo program\n\n* changelog log\n\n* lint fix\n\n* fix changelog log\n\n* ran clippy\n\n* clippy fix?\n\n* fmt\n\n* fmt",
+          "timestamp": "2023-05-11T05:03:55Z",
+          "tree_id": "358a2da6bc847310a50b8ff5b44fd56495a0467d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/385e293ec4c7f34b6e58394c490712117295410f"
+        },
+        "date": 1683783745544,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 27861,
+            "range": "± 750",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 66079,
+            "range": "± 1573",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20982970,
+            "range": "± 464532",
             "unit": "ns/iter"
           }
         ]
