@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Add method `CairoRunner::initialize_function_runner_cairo1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
+* feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
 
   * Add method `pub fn initialize_function_runner_cairo_1(
         &mut self,
