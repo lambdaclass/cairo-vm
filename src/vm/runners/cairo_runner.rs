@@ -3987,10 +3987,10 @@ mod tests {
         assert_eq!(given_output[1].name(), RANGE_CHECK_BUILTIN_NAME);
         assert_eq!(given_output[2].name(), SIGNATURE_BUILTIN_NAME);
         assert_eq!(given_output[3].name(), SEGMENT_ARENA_BUILTIN_NAME);
-        assert_eq!(given_output[4].name(), BITWISE_BUILTIN_NAME);
-        assert_eq!(given_output[5].name(), EC_OP_BUILTIN_NAME);
-        assert_eq!(given_output[6].name(), KECCAK_BUILTIN_NAME);
-        assert_eq!(given_output[8].name(), OUTPUT_BUILTIN_NAME);
+        assert_eq!(given_output[4].name(), OUTPUT_BUILTIN_NAME);
+        assert_eq!(given_output[5].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(given_output[6].name(), EC_OP_BUILTIN_NAME);
+        assert_eq!(given_output[7].name(), KECCAK_BUILTIN_NAME);
     }
 
     #[test]
