@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683834793844,
+  "lastUpdate": 1683840859148,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102334,6 +102334,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18688038,
             "range": "± 134804",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "juanbono94@gmail.com",
+            "name": "Juan Bono",
+            "username": "juanbono"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7baa4122c7f8f608fe6c0ee743fca1bcd0122c75",
+          "message": "Implement widemul128 hint (#1158)\n\n* update and fix\n\n* fix typo\n\n* add Cargo.lock\n\n* add impl and test\n\n* add impl",
+          "timestamp": "2023-05-11T20:44:18Z",
+          "tree_id": "95a605571475ef61a8052b068ebd7372972cf840",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/7baa4122c7f8f608fe6c0ee743fca1bcd0122c75"
+        },
+        "date": 1683840853509,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24611,
+            "range": "± 248",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 61446,
+            "range": "± 2413",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20002106,
+            "range": "± 125224",
             "unit": "ns/iter"
           }
         ]
