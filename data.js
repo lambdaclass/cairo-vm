@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683840859148,
+  "lastUpdate": 1683845351856,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102376,6 +102376,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20002106,
             "range": "± 125224",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "434acc6a636b54a4ca1223e91a83853ccbc54dea",
+          "message": "tests: Add test that runs a contract entrypoint using the hints `Felt252DictEntryUpdate`, `GetCurrentAccessIndex` & `GetCurrentAccessAccessDelta` (#1157)\n\n* Add test\n\n* Update felt252_dict_entry_update.cairo\n\n* Update cairo_1_run_from_entrypoint_tests.rs\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-11T22:04:04Z",
+          "tree_id": "3370d7bb05f3d89a0ad31f6b42f16a949bfd6cdf",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/434acc6a636b54a4ca1223e91a83853ccbc54dea"
+        },
+        "date": 1683845346230,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24265,
+            "range": "± 38",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59568,
+            "range": "± 626",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19458969,
+            "range": "± 184011",
             "unit": "ns/iter"
           }
         ]
