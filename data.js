@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683830445549,
+  "lastUpdate": 1683834793844,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102292,6 +102292,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19216777,
             "range": "± 64761",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "juanbono94@gmail.com",
+            "name": "Juan Bono",
+            "username": "juanbono"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7c91c153e2463220ee97436738582a5dbd42ef8",
+          "message": "Update cairo 1 deps (#1154)\n\n* update and fix\n\n* fix typo\n\n* add Cargo.lock",
+          "timestamp": "2023-05-11T19:23:05Z",
+          "tree_id": "7f745a52b76bd82e57c304bb5675ee43962f264c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e7c91c153e2463220ee97436738582a5dbd42ef8"
+        },
+        "date": 1683834787729,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 25662,
+            "range": "± 62",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 56763,
+            "range": "± 312",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18688038,
+            "range": "± 134804",
             "unit": "ns/iter"
           }
         ]
