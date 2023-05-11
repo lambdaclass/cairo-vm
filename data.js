@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683822558982,
+  "lastUpdate": 1683827154170,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102166,6 +102166,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22517189,
             "range": "± 131072",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "robertitocatalan@gmail.com",
+            "name": "Roberto Catalan",
+            "username": "rcatalan98"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "e19a121f9d8d7a654132fb8cb13740d7ba483b34",
+          "message": "Make a Cairo 1 program for testing ShouldSkipSquashLoop hint (#1149)\n\n* Add Cairo 1 program & test\n\n* Add entry to changelog\n\n* Restore changelog\n\n* Add endline\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-11T17:02:56Z",
+          "tree_id": "f7ddae2cc1a7ae7fa64b301be5468f097405ba09",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e19a121f9d8d7a654132fb8cb13740d7ba483b34"
+        },
+        "date": 1683827147988,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 25119,
+            "range": "± 260",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 55185,
+            "range": "± 686",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18471645,
+            "range": "± 138995",
             "unit": "ns/iter"
           }
         ]
