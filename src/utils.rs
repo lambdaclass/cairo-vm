@@ -257,7 +257,6 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
-                builtins: vec![$( $builtin_name ),*],
                 data: crate::stdlib::vec::Vec::new(),
                 hints: crate::stdlib::collections::HashMap::new(),
                 main: None,
@@ -270,42 +269,96 @@ pub mod test_utils {
             Program {
                 shared_program_data: Arc::new(shared_program_data),
                 constants: crate::stdlib::collections::HashMap::new(),
+                builtins: vec![$( $builtin_name ),*],
                 reference_manager: ReferenceManager {
                     references: crate::stdlib::vec::Vec::new(),
                 },
             }
         }};
-        // Custom program definition
-        ($(constants = $value:expr),* $(,)?) => {
-            Program {
-                $(
-                    constants: $value,
-                )*
-                ..Default::default()
-            }
-        };
-        ($(refence_manager = $value:expr),* $(,)?) => {
-            Program {
-                $(
-                    reference_manager: $value,
-                )*
-                ..Default::default()
-            }
-        };
         ($($field:ident = $value:expr),* $(,)?) => {{
-            let shared_data = SharedProgramData {
+
+            let program_flat = crate::utils::test_utils::ProgramFlat {
                 $(
                     $field: $value,
                 )*
                 ..Default::default()
             };
-            Program {
-                shared_program_data: Arc::new(shared_data),
-                ..Default::default()
-            }
+
+            Into::<Program>::into(program_flat)
         }};
     }
+
     pub(crate) use program;
+
+    pub(crate) struct ProgramFlat {
+        pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
+        pub(crate) hints: crate::stdlib::collections::HashMap<
+            usize,
+            crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
+        >,
+        pub(crate) main: Option<usize>,
+        //start and end labels will only be used in proof-mode
+        pub(crate) start: Option<usize>,
+        pub(crate) end: Option<usize>,
+        pub(crate) error_message_attributes:
+            crate::utils::Vec<crate::serde::deserialize_program::Attribute>,
+        pub(crate) instruction_locations: Option<
+            crate::stdlib::collections::HashMap<
+                usize,
+                crate::serde::deserialize_program::InstructionLocation,
+            >,
+        >,
+        pub(crate) identifiers: crate::stdlib::collections::HashMap<
+            crate::stdlib::string::String,
+            crate::serde::deserialize_program::Identifier,
+        >,
+        pub(crate) constants: crate::stdlib::collections::HashMap<
+            crate::stdlib::string::String,
+            crate::utils::Felt252,
+        >,
+        pub(crate) builtins: crate::utils::Vec<crate::serde::deserialize_program::BuiltinName>,
+        pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
+    }
+
+    impl Default for ProgramFlat {
+        fn default() -> Self {
+            Self {
+                data: Default::default(),
+                hints: Default::default(),
+                main: Default::default(),
+                start: Default::default(),
+                end: Default::default(),
+                error_message_attributes: Default::default(),
+                instruction_locations: Default::default(),
+                identifiers: Default::default(),
+                constants: Default::default(),
+                builtins: Default::default(),
+                reference_manager: crate::serde::deserialize_program::ReferenceManager {
+                    references: crate::utils::Vec::new(),
+                },
+            }
+        }
+    }
+
+    impl From<ProgramFlat> for Program {
+        fn from(val: ProgramFlat) -> Self {
+            Program {
+                shared_program_data: Arc::new(SharedProgramData {
+                    data: val.data,
+                    hints: val.hints,
+                    main: val.main,
+                    start: val.start,
+                    end: val.end,
+                    error_message_attributes: val.error_message_attributes,
+                    instruction_locations: val.instruction_locations,
+                    identifiers: val.identifiers,
+                }),
+                constants: val.constants,
+                builtins: val.builtins,
+                reference_manager: val.reference_manager,
+            }
+        }
+    }
 
     macro_rules! vm {
         () => {{
@@ -865,7 +918,6 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro() {
         let shared_data = SharedProgramData {
-            builtins: Vec::new(),
             data: Vec::new(),
             hints: HashMap::new(),
             main: None,
@@ -881,6 +933,7 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: Vec::new(),
         };
         assert_eq!(program, program!())
     }
@@ -889,7 +942,6 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_with_builtin() {
         let shared_data = SharedProgramData {
-            builtins: vec![BuiltinName::range_check],
             data: Vec::new(),
             hints: HashMap::new(),
             main: None,
@@ -905,6 +957,7 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: vec![BuiltinName::range_check],
         };
 
         assert_eq!(program, program![BuiltinName::range_check])
@@ -914,7 +967,6 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_custom_definition() {
         let shared_data = SharedProgramData {
-            builtins: vec![BuiltinName::range_check],
             data: Vec::new(),
             hints: HashMap::new(),
             main: Some(2),
@@ -930,6 +982,7 @@ mod test {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: vec![BuiltinName::range_check],
         };
 
         assert_eq!(
