@@ -146,6 +146,6 @@ fn felt252_dict_entry_update() {
         program_data.as_slice(),
         0,
         &[],
-        &[64_usize.into(), 74_usize.into()],
+        &[64_usize.into(), 75_usize.into()],
     );
 }
