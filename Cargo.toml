@@ -9,7 +9,7 @@ license = "Apache-2.0"
 description = "Blazing fast Cairo interpreter"
 
 [features]
-default = ["std", "with_mimalloc", "cairo-1-hints"]
+default = ["std", "with_mimalloc"]
 with_mimalloc = ["mimalloc"]
 std = [
     "serde_json/std",
