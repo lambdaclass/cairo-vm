@@ -968,9 +968,9 @@ impl CairoRunner {
 
     /// Intitializes the runner in order to run cairo 1 contract entrypoints
     /// Initializes builtins & segments
-    /// All builtins are initialized regardless of use following program ordering then starknet ordering
+    /// All builtins are initialized regardless of use
     /// Swaps the program's builtins field with program_builtins
-    /// Adds the segment_arena builtin
+    /// Adds the segment_arena builtin if present in the program_builtins
     pub fn initialize_function_runner_cairo_1(
         &mut self,
         vm: &mut VirtualMachine,
@@ -984,7 +984,7 @@ impl CairoRunner {
 
     /// Intitializes the runner in order to run cairo 0 contract entrypoints
     /// Initializes builtins & segments
-    /// All builtins are initialized regardless of use following program ordering then starknet ordering
+    /// All builtins are initialized regardless of use
     pub fn initialize_function_runner(
         &mut self,
         vm: &mut VirtualMachine,
