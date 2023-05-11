@@ -1,5 +1,6 @@
 use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
 
+use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::{
     serde::deserialize_utils,
     types::{
@@ -31,6 +32,7 @@ pub enum BuiltinName {
     bitwise,
     ec_op,
     poseidon,
+    segment_arena,
 }
 
 impl BuiltinName {
@@ -44,6 +46,7 @@ impl BuiltinName {
             BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
+            BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
         }
     }
 }

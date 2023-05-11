@@ -247,7 +247,11 @@ impl CairoRunner {
             BuiltinName::poseidon,
         ];
 
-        fn initialize_builtin(name: BuiltinName, vm: &mut VirtualMachine) {
+        fn initialize_builtin(
+            name: BuiltinName,
+            vm: &mut VirtualMachine,
+            add_segment_arena_builtin: bool,
+        ) {
             match name {
                 BuiltinName::pedersen => vm
                     .builtin_runners
@@ -274,20 +278,22 @@ impl CairoRunner {
                 BuiltinName::poseidon => vm
                     .builtin_runners
                     .push(PoseidonBuiltinRunner::new(Some(1), true).into()),
+                BuiltinName::segment_arena => {
+                    if add_segment_arena_builtin {
+                        vm.builtin_runners
+                            .push(SegmentArenaBuiltinRunner::new(true).into())
+                    }
+                }
             }
         }
 
         for builtin_name in &self.program.builtins {
-            initialize_builtin(*builtin_name, vm);
+            initialize_builtin(*builtin_name, vm, add_segment_arena_builtin);
         }
         for builtin_name in starknet_preset_builtins {
             if !self.program.builtins.contains(&builtin_name) {
-                initialize_builtin(builtin_name, vm)
+                initialize_builtin(builtin_name, vm, add_segment_arena_builtin)
             }
-        }
-        if add_segment_arena_builtin {
-            vm.builtin_runners
-                .push(SegmentArenaBuiltinRunner::new(true).into())
         }
         Ok(())
     }
