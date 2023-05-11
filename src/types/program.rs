@@ -39,7 +39,6 @@ use std::path::Path;
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
-    pub(crate) builtins: Vec<BuiltinName>,
     pub(crate) data: Vec<MaybeRelocatable>,
     pub(crate) hints: HashMap<usize, Vec<HintParams>>,
     pub(crate) main: Option<usize>,
@@ -55,6 +54,7 @@ pub(crate) struct SharedProgramData {
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
+    pub(crate) builtins: Vec<BuiltinName>,
     pub(crate) reference_manager: ReferenceManager,
 }
 
@@ -81,7 +81,6 @@ impl Program {
             }
         }
         let shared_program_data = SharedProgramData {
-            builtins,
             data,
             hints,
             main,
@@ -95,6 +94,7 @@ impl Program {
             shared_program_data: Arc::new(shared_program_data),
             constants,
             reference_manager,
+            builtins,
         })
     }
 
@@ -114,7 +114,7 @@ impl Program {
     }
 
     pub fn iter_builtins(&self) -> impl Iterator<Item = &BuiltinName> {
-        self.shared_program_data.builtins.iter()
+        self.builtins.iter()
     }
 
     pub fn iter_data(&self) -> impl Iterator<Item = &MaybeRelocatable> {
@@ -145,6 +145,7 @@ impl Default for Program {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: Vec::new(),
         }
     }
 }
@@ -235,7 +236,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
@@ -297,7 +298,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -685,7 +686,7 @@ mod tests {
             },
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -784,7 +785,7 @@ mod tests {
             },
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -837,7 +838,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
         let shared_program_data = SharedProgramData {
-            builtins: Vec::new(),
             data: Vec::new(),
             hints: HashMap::new(),
             main: None,
@@ -853,6 +853,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: Vec::new(),
         };
 
         assert_eq!(program, Program::default());
