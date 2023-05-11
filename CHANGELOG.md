@@ -12,6 +12,7 @@
 
   * BREAKING: Move field `builtins` from `SharedProgramData` to `Program`
   * BREAKING: Remove argument `add_segment_arena_builtin` from `CairoRunner::initialize_function_runner`, it is now always false
+  * BREAKING: Add `segment_arena` enum variant to `BuiltinName`
 
 * Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
