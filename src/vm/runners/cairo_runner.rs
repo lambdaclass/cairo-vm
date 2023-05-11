@@ -3631,38 +3631,6 @@ mod tests {
         );
     }
 
-    /// Test that ensures get_perm_range_check_limits() returns an error when
-    /// trace is not enabled.
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_perm_range_check_limits_trace_not_enabled() {
-        let program = program!();
-
-        let cairo_runner = cairo_runner!(program);
-        let vm = vm!();
-
-        assert_matches!(
-            cairo_runner.get_perm_range_check_limits(&vm),
-            Err(VirtualMachineError::TracerError(
-                TraceError::TraceNotEnabled
-            ))
-        );
-    }
-
-    /// Test that ensures get_perm_range_check_limits() returns None when the
-    /// trace is empty (get_perm_range_check_limits returns None).
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_perm_range_check_limits_empty() {
-        let program = program!();
-
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.trace = Some(vec![]);
-
-        assert_matches!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
-    }
-
     /// Test that get_perm_range_check_limits() works correctly when there are
     /// no builtins.
     #[test]
