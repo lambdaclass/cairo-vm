@@ -16,27 +16,41 @@ pub struct ValidationRule(
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+pub(crate) enum MemoryCell {
+    Accessed(MaybeRelocatable),
+    NotAccessed(MaybeRelocatable),
+}
 
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell(value, false)
+        MemoryCell::NotAccessed(value)
     }
 
     pub fn mark_accessed(&mut self) {
-        self.1 = true
+        match self {
+            MemoryCell::Accessed(_) => {}
+            MemoryCell::NotAccessed(val) => {
+                *self = MemoryCell::Accessed(crate::with_std::mem::take(val))
+            }
+        }
     }
 
     pub fn is_accessed(&self) -> bool {
-        self.1
+        matches!(self, MemoryCell::Accessed(_))
     }
 
     pub fn get_value(&self) -> &MaybeRelocatable {
-        &self.0
+        match self {
+            MemoryCell::Accessed(val) => val,
+            MemoryCell::NotAccessed(val) => val,
+        }
     }
 
     pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
-        &mut self.0
+        match self {
+            MemoryCell::Accessed(val) => val,
+            MemoryCell::NotAccessed(val) => val,
+        }
     }
 }
 
