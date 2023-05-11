@@ -334,7 +334,7 @@ pub mod test_utils {
                 constants: Default::default(),
                 builtins: Default::default(),
                 reference_manager: crate::serde::deserialize_program::ReferenceManager {
-                    references: Vec::new(),
+                    references: crate::utils::Vec::new(),
                 },
             }
         }
