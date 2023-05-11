@@ -309,10 +309,13 @@ pub mod test_utils {
             >,
         >,
         pub(crate) identifiers: crate::stdlib::collections::HashMap<
-            String,
+            crate::stdlib::string::String,
             crate::serde::deserialize_program::Identifier,
         >,
-        pub(crate) constants: crate::stdlib::collections::HashMap<String, crate::utils::Felt252>,
+        pub(crate) constants: crate::stdlib::collections::HashMap<
+            crate::stdlib::string::String,
+            crate::utils::Felt252,
+        >,
         pub(crate) builtins: crate::utils::Vec<crate::serde::deserialize_program::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
