@@ -228,6 +228,9 @@ fn get_casm_contract_builtins(
             crate::vm::runners::builtin_runner::BITWISE_BUILTIN_NAME => BuiltinName::bitwise,
             crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME => BuiltinName::ec_op,
             crate::vm::runners::builtin_runner::POSEIDON_BUILTIN_NAME => BuiltinName::poseidon,
+            crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME => {
+                BuiltinName::segment_arena
+            }
             _ => panic!("Invalid builtin {}", s),
         })
         .collect()
