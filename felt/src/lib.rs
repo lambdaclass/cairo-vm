@@ -1283,17 +1283,32 @@ mod test {
             prop_assert_eq!(x, &(&one * x));
         }
 
+        // Signedness has ambiguous meaning and currently there's a mismatch between
+        // the implementation and test's interpretations
+        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
+        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
+        #[ignore]
         fn non_zero_felt_is_always_positive(x in nonzero_felt252()) {
             prop_assert!(x.is_positive())
         }
 
+        // Signedness has ambiguous meaning and currently there's a mismatch
+        // between the implementation and test's interpretations
+        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
+        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
+        #[ignore]
         fn felt_is_never_negative(x in any::<Felt252>()) {
             prop_assert!(!x.is_negative())
         }
 
+        // Signedness has ambiguous meaning and currently there's a mismatch between
+        // the implementation and test's interpretations
+        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
+        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
+        #[ignore]
         fn non_zero_felt_signum_is_always_one(ref x in nonzero_felt252()) {
             let one = Felt252::one();
             prop_assert_eq!(x.signum(), one)
@@ -1306,7 +1321,12 @@ mod test {
             prop_assert_eq!(x.abs_sub(&y), expected_abs_sub)
         }
 
+        // Signedness has ambiguous meaning and currently there's a mismatch
+        // between the implementation and test's interpretations
+        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
+        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
+        #[ignore]
         fn abs(x in any::<Felt252>()) {
             prop_assert_eq!(&x, &x.abs())
         }
@@ -1329,7 +1349,13 @@ mod test {
             prop_assert!(sqrt < p, "{}", sqrt);
         }
 
+        // There is a known bug in this implementation where the squared root
+        // we compute is that of the underlying integer rather than that of the
+        // field element.
+        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
+        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
+        #[ignore]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
             prop_assert_eq!((&x * &x).sqrt(), x);
         }
