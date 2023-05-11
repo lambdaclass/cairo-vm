@@ -5,7 +5,7 @@ use crate::tests::*;
 fn test_init_squash_data() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/init_squash_data.casm");
-
+        
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
