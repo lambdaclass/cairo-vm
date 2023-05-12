@@ -79,7 +79,6 @@ parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/par
 felt = { package = "cairo-felt", path = "./felt", version = "0.3.0-rc1", default-features = false, features = [
     "alloc",
 ] }
-bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 # Dependencies for cairo-1-hints feature
 cairo-lang-starknet = { git = "https://github.com/starkware-libs/cairo.git", rev = "44fdeb26231f5022f2441bf89018272460c4e326", optional = true}
