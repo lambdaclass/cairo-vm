@@ -917,7 +917,6 @@ mod test {
     use super::*;
     use crate::arbitrary::nonzero_felt252;
     use core::cmp;
-
     use proptest::prelude::*;
 
     proptest! {
