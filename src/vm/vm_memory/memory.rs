@@ -28,7 +28,7 @@ impl MemoryCell {
 
     pub fn mark_accessed(&mut self) {
         if let MemoryCell::NotAccessed(val) = self {
-            *self = MemoryCell::Accessed(crate::with_std::mem::take(val))
+            *self = MemoryCell::Accessed(crate::stdlib::mem::take(val))
         }
     }
 
