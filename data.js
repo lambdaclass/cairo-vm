@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683927695452,
+  "lastUpdate": 1683928191055,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102712,6 +102712,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 25497035,
             "range": "± 1112543",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "85275a497ec3329bb22461792c784e219efd82dd",
+          "message": "docs: add amendments for hotfix releases (#1164)",
+          "timestamp": "2023-05-12T21:12:32Z",
+          "tree_id": "e23847158c2328b70375fe4ce5de8cab07393738",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/85275a497ec3329bb22461792c784e219efd82dd"
+        },
+        "date": 1683928183992,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 33449,
+            "range": "± 1581",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 72087,
+            "range": "± 4575",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 24600920,
+            "range": "± 1401851",
             "unit": "ns/iter"
           }
         ]
