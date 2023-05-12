@@ -5,10 +5,10 @@ use crate::{
     utils::from_relocatable_to_indexes,
     vm::errors::memory_errors::MemoryError,
 };
-use bitvec::prelude as bv;
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
+use range_set_blaze::RangeSetBlaze;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
@@ -51,7 +51,7 @@ impl MemoryCell {
     }
 }
 
-pub struct AddressSet(Vec<bv::BitVec>);
+pub struct AddressSet(Vec<RangeSetBlaze<usize>>);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
@@ -59,46 +59,39 @@ impl AddressSet {
     }
 
     pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
-        let segment = addr.segment_index;
-        if segment.is_negative() {
+        let Some(segment) = addr.segment_index.to_usize() else {
             return false;
-        }
+        };
 
         self.0
-            .get(segment as usize)
-            .and_then(|segment| segment.get(addr.offset))
-            .map(|bit| *bit)
+            .get(segment)
+            .map(|segment| segment.contains(addr.offset))
             .unwrap_or(false)
     }
 
     pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
-        for addr in addresses {
-            let segment = addr.segment_index;
-            if segment.is_negative() {
-                continue;
-            }
-            let segment = segment as usize;
-            if segment >= self.0.len() {
-                self.0.resize(segment + 1, bv::BitVec::new());
-            }
-
-            let offset = addr.offset;
-            if offset >= self.0[segment].len() {
-                self.0[segment].resize(offset + 1, false);
-            }
-
-            self.0[segment].insert(offset, true);
+        // Assumption: all addresses belong to the same segment
+        if addresses.is_empty() {
+            return;
         }
+        let Some(segment) = addresses[0].segment_index.to_usize() else {
+            return;
+        };
+        // Assumption: continuous range
+        let (min, max) = addresses[1..].iter().fold(
+            (addresses[0].offset, addresses[0].offset),
+            |(min, max), address| (min.min(address.offset), max.max(address.offset)),
+        );
+        self.0
+            .resize_with(self.0.len().max(segment + 1), RangeSetBlaze::new);
+        self.0[segment] |= RangeSetBlaze::from_iter([min..=max]);
     }
 }
 
 #[cfg(test)]
 impl AddressSet {
     pub(crate) fn len(&self) -> usize {
-        self.0
-            .iter()
-            .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
-            .sum()
+        self.0.iter().map(|segment| segment.len() as usize).sum()
     }
 }
 
