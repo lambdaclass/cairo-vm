@@ -8,7 +8,6 @@ use crate::{
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
-use range_set_blaze::RangeSetBlaze;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
@@ -51,57 +50,12 @@ impl MemoryCell {
     }
 }
 
-pub struct AddressSet(Vec<RangeSetBlaze<usize>>);
-
-impl AddressSet {
-    pub(crate) fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
-        let Some(segment) = addr.segment_index.to_usize() else {
-            return false;
-        };
-
-        self.0
-            .get(segment)
-            .map(|segment| segment.contains(addr.offset))
-            .unwrap_or(false)
-    }
-
-    pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
-        // Assumption: all addresses belong to the same segment
-        if addresses.is_empty() {
-            return;
-        }
-        let Some(segment) = addresses[0].segment_index.to_usize() else {
-            return;
-        };
-        // Assumption: continuous range
-        let (min, max) = addresses[1..].iter().fold(
-            (addresses[0].offset, addresses[0].offset),
-            |(min, max), address| (min.min(address.offset), max.max(address.offset)),
-        );
-        self.0
-            .resize_with(self.0.len().max(segment + 1), RangeSetBlaze::new);
-        self.0[segment] |= RangeSetBlaze::from_iter([min..=max]);
-    }
-}
-
-#[cfg(test)]
-impl AddressSet {
-    pub(crate) fn len(&self) -> usize {
-        self.0.iter().map(|segment| segment.len() as usize).sum()
-    }
-}
-
 pub struct Memory {
     pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
     pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: AddressSet,
     validation_rules: Vec<Option<ValidationRule>>,
 }
 
@@ -111,7 +65,6 @@ impl Memory {
             data: Vec::<Vec<Option<MemoryCell>>>::new(),
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: AddressSet::new(),
             validation_rules: Vec::with_capacity(7),
         }
     }
@@ -153,7 +106,10 @@ impl Memory {
         // At this point there's *something* in there
 
         match segment[value_offset] {
-            None => segment[value_offset] = Some(MemoryCell::new(val)),
+            None => {
+                segment[value_offset] = Some(MemoryCell::new(val));
+                self.validate_memory_cell(key)
+            }
             Some(ref current_cell) => {
                 if current_cell.get_value() != &val {
                     //Existing memory cannot be changed
@@ -163,9 +119,9 @@ impl Memory {
                         val,
                     ));
                 }
+                Ok(())
             }
-        };
-        self.validate_memory_cell(key)
+        }
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
@@ -316,12 +272,7 @@ impl Memory {
             .to_usize()
             .and_then(|x| self.validation_rules.get(x))
         {
-            if !self.validated_addresses.contains(&addr) {
-                {
-                    self.validated_addresses
-                        .extend(rule.0(self, addr)?.as_slice());
-                }
-            }
+            rule.0(self, addr)?;
         }
         Ok(())
     }
@@ -333,10 +284,7 @@ impl Memory {
                 if index < self.data.len() {
                     for offset in 0..self.data[index].len() {
                         let addr = Relocatable::from((index as isize, offset));
-                        if !self.validated_addresses.contains(&addr) {
-                            self.validated_addresses
-                                .extend(rule.0(self, addr)?.as_slice());
-                        }
+                        rule.0(self, addr)?;
                     }
                 }
             }
@@ -736,10 +684,6 @@ mod memory_tests {
             )
             .unwrap();
         segments.memory.validate_existing_memory().unwrap();
-        assert!(segments
-            .memory
-            .validated_addresses
-            .contains(&Relocatable::from((0, 0))));
     }
 
     #[test]
