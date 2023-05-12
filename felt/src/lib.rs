@@ -86,8 +86,6 @@ pub(crate) trait FeltOps {
     /// ```
     fn to_biguint(&self) -> BigUint;
 
-    fn sqrt(&self) -> Self;
-
     fn bits(&self) -> u64;
 
     fn prime() -> BigUint;

@@ -194,12 +194,6 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.clone()
     }
 
-    fn sqrt(&self) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        FeltBigInt {
-            val: self.val.sqrt(),
-        }
-    }
-
     fn bits(&self) -> u64 {
         self.val.bits()
     }
