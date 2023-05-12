@@ -547,7 +547,6 @@ impl From<SegmentArenaBuiltinRunner> for BuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
     use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -1349,10 +1348,6 @@ mod tests {
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
 
         let mut vm = vm!();
-        vm.segments
-            .memory
-            .validated_addresses
-            .extend(&[relocatable!(0, 2)]);
 
         vm.segments.memory = memory![
             ((0, 0), (0, 0)),
@@ -1361,6 +1356,8 @@ mod tests {
             ((0, 3), (0, 3)),
             ((0, 4), (0, 4))
         ];
+
+        vm.segments.memory.data[0][2].unwrap().mark_accessed();
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
