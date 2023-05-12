@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683918833466,
+  "lastUpdate": 1683923282996,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102544,6 +102544,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23729009,
             "range": "± 95329",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "robertitocatalan@gmail.com",
+            "name": "Roberto Catalan",
+            "username": "rcatalan98"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "ea1bfa30af464e67ec657271e7de4f862eadf68d",
+          "message": "Test RandomEcPoint hint & Fix for LinearSplit (#1142)\n\n* Implement TryFrom<CasmContractClass> for Program\n\n* Add cairo1hintprocessor dependency\n\n* Map hints to pc\n\n* Add Cairo1HintProcessor\n\n* Move cairo-1-hint-processor to cairo-rs crate\n\n* fixes\n\n* Fix test helper\n\n* Remove allow\n\n* fix test func\n\n* Add builtins to test\n\n* Extract builtins from contract_class\n\n* Add _builtin to builtin names in etrypoint data\n\n* Copy logic from cairo1 contract execution in starknet\n\n* Remove unused code\n\n* Use lower initial_gas value\n\n* Add program segment size argument\n\n* Check return values in run_cairo_1_entrypoint fn\n\n* Remove debug prints\n\n* Add basic fibonacci test\n\n* Add another fibonacci case\n\n* Always verify secure\n\n* Clippy\n\n* Compile casm contracts when running test target\n\n* Remove unwrap from cell_ref_to_relocatable\n\n* Remove paniking macro from extract_buffer\n\n* Misc improvements\n\n* Misc improvements\n\n* Misc improvements\n\n* Misc improvements\n\n* Remove unwraps & asserts from DictSquashExecScope::pop_current_key\n\n* Remove unwraps & asserts from DictManagerExecScope::new_default_dict\n\n* Remove expect from get_dict_tracker\n\n* Add constants for cairo 1 compiler binaries in makefile\n\n* Add cairo 1 compiler to deps target in makefile\n\n* Add cairo folder to clean target\n\n* Remove todo from execute method\n\n* Separate helper functions from Cairo1HintProcessor implementation\n\n* Add untracked file\n\n* Fix\n\n* Add changelog entry\n\n* Add a job to compile cairo 1 contracts in ci\n\n* Add job dependency\n\n* Fix yml syntax\n\n* Fix yml syntax\n\n* Temporarily extempt cairo-1-hint-processor from codecov\n\n* Fix yml syntax\n\n* Fix workflow\n\n* Remove cache code from new job\n\n* Fix yml syntax\n\n* Fix wrong path\n\n* Fix makefile\n\n* Build only compiler binaries\n\n* Add cairo-1-contracts-cache\n\n* Fetch contracts cache in jobs that need them\n\n* Use no-std version of HashMap\n\n* Import stdlib::prelude::*\n\n* Wrap print in not-wasm block\n\n* Remove std path\n\n* use slices instead of vec\n\n* Make DictSquashExecScope fields private\n\n* Import hint processor dependencies without default features\n\n* -Clippy\n\n* Add type\n\n* Compile cairo 1 contracts in build-programs job\n\n* Rename cache\n\n* Use target dependency instead of explicit $(MAKE)\n\n* Fix yml syntax\n\n* Check for cairo folder before cloning cairo repo\n\n* Ommit folder name\n\n* Swap paths\n\n* Add cairo-1-hints feature flag\n\n* Add compile-hint feature to tests run in workflow\n\n* Add cairo-1-hints to test_utils\n\n* Add cairo-1-hints to test_utils\n\n* Use both paths when fetching compiled test data\n\n* Remove cairo-1-hints feature from test_utils feature\n\n* Move dependencies to cairo-1-hints feature\n\n* Update CHANGELOG.md\n\n* Fix cfg directive\n\n* Add cairo-1-hints to test workflow\n\n* Add Cairo 1 considerations for Gitignore and Makefile (#1144)\n\n* Add ignore for casm and sierra files\r\n\r\n* Add libfunc experimental for cairo 1 compilation\r\n\r\n* Add new enty to CHANGELOG\n\n* Add test for RandomEcPoint hint\n\n* Add rust test for Cairo 1 program\n\n* Fix Cairo 1 program\n\n* Change contract & Add activate feature for Cairo 1\n\n* Add new entry to Changelog\n\n* Restore CHANGELOG.md\n\n* Restore Cargo.toml\n\n* Add eof new line\n\n* Add more coverage to the test\n\n* Refactor contract test\n\n* Fix LinearSplit hint\n\n* Add fix entry to the CHANGELOG\n\n* Remove outdated comment\n\n* Remove CHANGELOG entry\n\n---------\n\nCo-authored-by: Federica <fedemoletta@hotmail.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-12T19:42:04Z",
+          "tree_id": "558ecf159fd770905dfa7240f8159426a8425488",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/ea1bfa30af464e67ec657271e7de4f862eadf68d"
+        },
+        "date": 1683923277352,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24528,
+            "range": "± 115",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59947,
+            "range": "± 674",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19454113,
+            "range": "± 97739",
             "unit": "ns/iter"
           }
         ]
