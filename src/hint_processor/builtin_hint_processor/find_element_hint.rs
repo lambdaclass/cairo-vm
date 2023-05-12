@@ -51,7 +51,6 @@ pub fn find_element(
         exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
-
         if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
                 return Err(HintError::FindElemMaxSize(
@@ -95,14 +94,6 @@ pub fn search_sorted_lower(
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
-
-    if !elm_size.is_positive() {
-        return Err(HintError::ValueOutOfRange(elm_size.into_owned()));
-    }
-
-    if n_elms.is_negative() {
-        return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
-    }
 
     if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms.as_ref() > &find_element_max_size {
