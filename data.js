@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683925721506,
+  "lastUpdate": 1683926736513,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102628,6 +102628,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23637322,
             "range": "± 213057",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "amigoigna@gmail.com",
+            "name": "igamigo",
+            "username": "igamigo"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "c044c4c35f7f9ed80825acd71564485ed6bd624f",
+          "message": "Fix `U256SquareRoot` hint (#1163)\n\n* clippy fmt\n\n* lint fix",
+          "timestamp": "2023-05-12T20:46:40Z",
+          "tree_id": "dff9c308de154e86ffb495f57064dd4daa7875aa",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c044c4c35f7f9ed80825acd71564485ed6bd624f"
+        },
+        "date": 1683926729349,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 32869,
+            "range": "± 945",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 74799,
+            "range": "± 4107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25396317,
+            "range": "± 1371532",
             "unit": "ns/iter"
           }
         ]
