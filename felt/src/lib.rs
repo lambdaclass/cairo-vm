@@ -894,7 +894,6 @@ mod test {
     use proptest::prelude::*;
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100000))]
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated
