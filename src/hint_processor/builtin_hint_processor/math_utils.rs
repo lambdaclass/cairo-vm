@@ -478,12 +478,9 @@ pub fn signed_div_rem(
         _ => {}
     }
 
-    #[allow(deprecated)]
-    let int_value = value.to_bigint();
-    #[allow(deprecated)]
-    let int_div = div.to_bigint();
-    #[allow(deprecated)]
-    let int_bound = bound.to_bigint();
+    let int_value = value.to_signed_felt();
+    let int_div = div.to_signed_felt();
+    let int_bound = bound.to_signed_felt();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
