@@ -2,6 +2,7 @@
 name = "cairo-vm-cli"
 version = "0.3.0-rc1"
 edition = "2021"
+publish = false
 
 [dependencies]
 bincode = { version = "2.0.0-rc.2", tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git" }

@@ -4,6 +4,7 @@ version = "0.3.0-rc1"
 edition = "2021"
 license = "Apache-2.0"
 description = "A script to check which whitelisted hints we're missing"
+publish = false
 
 [dependencies]
 cairo-vm = { path = "..", version = "0.3.0-rc1" }
