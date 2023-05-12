@@ -464,7 +464,7 @@ fn linear_split() {
 fn assert_le_find_small_arcs() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/assert_le_find_small_arcs.casm");
-      run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
 
 #[test]
