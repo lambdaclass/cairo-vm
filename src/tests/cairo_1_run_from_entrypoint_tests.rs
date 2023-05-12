@@ -468,6 +468,14 @@ fn alloc_felt_252_dict() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn random_ec_point() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/random_ec_point.casm");
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1.into()]);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn assert_le_find_small_arcs() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/assert_le_find_small_arcs.casm");
