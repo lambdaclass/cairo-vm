@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683915086791,
+  "lastUpdate": 1683918833466,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102502,6 +102502,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19521309,
             "range": "± 276888",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "97d5886b843d08d5a59276cd85a43db8d42582e6",
+          "message": "tests: Add test that runs a contract entrypoint using the hint `AssertLeFindSmallArcs` & `AssertLeIsSecondArcExcluded` (#1159)\n\n* Add test\n\n* fmt\n\n* cargo fmt\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-12T18:35:26Z",
+          "tree_id": "cfa9646ae2a34dfa936da9123de4fcf9ae134d64",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/97d5886b843d08d5a59276cd85a43db8d42582e6"
+        },
+        "date": 1683918826349,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29653,
+            "range": "± 175",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 72250,
+            "range": "± 1736",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23729009,
+            "range": "± 95329",
             "unit": "ns/iter"
           }
         ]
