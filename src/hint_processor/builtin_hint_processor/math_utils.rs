@@ -374,20 +374,17 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value_as_int = value.to_signed_felt();
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
-        Some(bound) if &value.abs() > bound => {
+        Some(bound) if &value_as_int.abs() > &bound.to_bigint() => {
             return Err(HintError::ValueOutsideValidRange(value.into_owned()))
         }
         _ => {}
     };
 
-    let result = if value.is_positive() {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let result = Felt252::from(value_as_int.is_positive() as u8);
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
 
