@@ -684,7 +684,6 @@ dependencies = [
  "ark-std 0.3.0",
  "assert_matches",
  "bincode",
- "bitvec",
  "cairo-felt 0.3.0-rc1",
  "cairo-lang-casm",
  "cairo-lang-starknet",

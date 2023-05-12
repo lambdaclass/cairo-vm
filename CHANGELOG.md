@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* perf: Integrate address validation into MemoryCell type [#1168](https://github.com/lambdaclass/cairo-rs/pull/1168)
+
+  * BREAKING: Remove `validated_addresses` field from `Memory`
+
 * feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
 
   * Add method `pub fn initialize_function_runner_cairo_1(
