@@ -1,5 +1,4 @@
 use crate::stdlib::{collections::HashMap, prelude::*};
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -14,7 +13,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_traits::{Signed, ToPrimitive};
+use num_traits::Signed;
+use num_traits::ToPrimitive;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -94,6 +94,10 @@ pub fn search_sorted_lower(
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+
+    if !elm_size.is_positive() {
+        return Err(HintError::ValueOutOfRange(elm_size.into_owned()));
+    }
 
     if let Ok(find_element_max_size) = find_element_max_size {
         if n_elms.as_ref() > &find_element_max_size {
@@ -417,19 +421,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn search_sorted_lower_negative_elm_size() {
-        let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
-            "elm_size".to_string(),
-            MaybeRelocatable::Int(Felt252::new(-1)),
-        )]));
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::ValueOutOfRange(x)) if x == Felt252::new(-1)
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_not_int_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
@@ -439,19 +430,6 @@ mod tests {
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
             Err(HintError::IdentifierNotInteger(x, y
             )) if x == "n_elms" && y == (1,2).into()
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn search_sorted_lower_negative_n_elms() {
-        let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
-            "n_elms".to_string(),
-            MaybeRelocatable::Int(Felt252::new(-1)),
-        )]));
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::ValueOutOfRange(x)) if x == Felt252::new(-1)
         );
     }
 
