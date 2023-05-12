@@ -33,10 +33,7 @@ impl MemoryCell {
     }
 
     pub fn is_accessed(&self) -> bool {
-        match self {
-            MemoryCell::Accessed(_) => true,
-            _ => false,
-        }
+        matches!(self, MemoryCell::Accessed(_))
     }
 
     pub fn get_value(&self) -> &MaybeRelocatable {
