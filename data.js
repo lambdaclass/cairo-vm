@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683928191055,
+  "lastUpdate": 1683929425180,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102754,6 +102754,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 24600920,
             "range": "± 1401851",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "d445e860ec1776d69e44653a0161d1a4f23b2d05",
+          "message": "Release 0.4.0 related changes (#1165)\n\n* Update manifests\n\n* Add repository to Cargo.toml\n\n* Update CHANGELOG.md\n\n* Update hint_accountant/Cargo.toml\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-05-12T21:29:15Z",
+          "tree_id": "0750f14bc2ec72110f35fe92bd386915f3417026",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d445e860ec1776d69e44653a0161d1a4f23b2d05"
+        },
+        "date": 1683929419481,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24635,
+            "range": "± 65",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59562,
+            "range": "± 630",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18546952,
+            "range": "± 197223",
             "unit": "ns/iter"
           }
         ]
