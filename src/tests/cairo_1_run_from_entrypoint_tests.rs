@@ -508,7 +508,6 @@ fn widelmul128_test() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn field_sqrt_test() {
-    let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/field_sqrt_test.casm");
+    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/field_sqrt.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[10.into()]);
 }
