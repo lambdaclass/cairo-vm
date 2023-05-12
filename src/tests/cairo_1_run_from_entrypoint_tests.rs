@@ -461,6 +461,14 @@ fn linear_split() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn felt252_dict_entry_init() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/felt252_dict_entry_init.casm");
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn felt252_dict_entry_update() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/felt252_dict_entry_update.casm");
