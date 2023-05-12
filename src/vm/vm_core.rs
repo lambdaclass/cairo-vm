@@ -81,6 +81,7 @@ pub struct VirtualMachine {
     trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
+    instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -108,6 +109,7 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             run_finished: false,
             trace_relocated: false,
+            instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -115,20 +117,6 @@ impl VirtualMachine {
 
     pub fn compute_segments_effective_sizes(&mut self) {
         self.segments.compute_effective_sizes();
-    }
-
-    ///Returns the encoded instruction (the value at pc) and the immediate value (the value at pc + 1, if it exists in the memory).
-    fn get_instruction_encoding(
-        &self,
-    ) -> Result<(Cow<Felt252>, Option<Cow<MaybeRelocatable>>), VirtualMachineError> {
-        let encoding_ref = match self.segments.memory.get(&self.run_context.pc) {
-            Some(Cow::Owned(MaybeRelocatable::Int(encoding))) => Cow::Owned(encoding),
-            Some(Cow::Borrowed(MaybeRelocatable::Int(encoding))) => Cow::Borrowed(encoding),
-            _ => return Err(VirtualMachineError::InvalidInstructionEncoding),
-        };
-
-        let imm_addr = (self.run_context.pc + 1_i32)?;
-        Ok((encoding_ref, self.segments.memory.get(&imm_addr)))
     }
 
     fn update_fp(
@@ -197,12 +185,12 @@ impl VirtualMachine {
 
     fn update_registers(
         &mut self,
-        instruction: Instruction,
+        instruction: &Instruction,
         operands: Operands,
     ) -> Result<(), VirtualMachineError> {
-        self.update_fp(&instruction, &operands)?;
-        self.update_ap(&instruction, &operands)?;
-        self.update_pc(&instruction, &operands)?;
+        self.update_fp(instruction, &operands)?;
+        self.update_ap(instruction, &operands)?;
+        self.update_pc(instruction, &operands)?;
         Ok(())
     }
 
@@ -395,11 +383,11 @@ impl VirtualMachine {
         Ok(())
     }
 
-    fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
+    fn run_instruction(&mut self, instruction: &Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
-            self.compute_operands(&instruction)?;
+            self.compute_operands(instruction)?;
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
-        self.opcode_assertions(&instruction, &operands)?;
+        self.opcode_assertions(instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
@@ -425,18 +413,13 @@ impl VirtualMachine {
     }
 
     fn decode_current_instruction(&self) -> Result<Instruction, VirtualMachineError> {
-        let (instruction_ref, imm) = self.get_instruction_encoding()?;
-        match instruction_ref.to_i64() {
-            Some(instruction) => {
-                if let Some(MaybeRelocatable::Int(imm_ref)) = imm.as_ref().map(|x| x.as_ref()) {
-                    let decoded_instruction = decode_instruction(instruction, Some(imm_ref))?;
-                    return Ok(decoded_instruction);
-                }
-                let decoded_instruction = decode_instruction(instruction, None)?;
-                Ok(decoded_instruction)
-            }
-            None => Err(VirtualMachineError::InvalidInstructionEncoding),
-        }
+        let instruction = self
+            .segments
+            .memory
+            .get_integer(self.run_context.pc)?
+            .to_u64()
+            .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
+        decode_instruction(instruction)
     }
 
     pub fn step_hint(
@@ -457,13 +440,23 @@ impl VirtualMachine {
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
-        let instruction = self.decode_current_instruction()?;
+        let pc = self.run_context.pc.offset;
+
+        let mut inst_cache = core::mem::take(&mut self.instruction_cache);
+        inst_cache.resize((pc + 1).max(inst_cache.len()), None);
+
+        let instruction = inst_cache.get_mut(pc).unwrap();
+        if instruction.is_none() {
+            *instruction = Some(self.decode_current_instruction()?);
+        }
+        let instruction = instruction.as_ref().unwrap();
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
+        self.instruction_cache = inst_cache;
         Ok(())
     }
 
@@ -724,7 +717,7 @@ impl VirtualMachine {
                 .map(|r| self.segments.memory.get_integer(r))
             {
                 Some(Ok(instruction1)) => {
-                    match is_call_instruction(&instruction1, None) {
+                    match is_call_instruction(&instruction1) {
                         true => (ret_pc - 1).unwrap(), // This unwrap wont fail as it is checked before
                         false => {
                             match (ret_pc - 2)
@@ -732,7 +725,7 @@ impl VirtualMachine {
                                 .map(|r| self.segments.memory.get_integer(r))
                             {
                                 Some(Ok(instruction0)) => {
-                                    match is_call_instruction(&instruction0, Some(&instruction1)) {
+                                    match is_call_instruction(&instruction0) {
                                         true => (ret_pc - 2).unwrap(), // This unwrap wont fail as it is checked before
                                         false => break,
                                     }
@@ -811,6 +804,9 @@ impl VirtualMachine {
         ptr: Relocatable,
         data: &Vec<MaybeRelocatable>,
     ) -> Result<Relocatable, MemoryError> {
+        if ptr.segment_index == 0 {
+            self.instruction_cache.resize(data.len(), None);
+        }
         self.segments.load_data(ptr, data)
     }
 
@@ -956,7 +952,7 @@ impl VirtualMachine {
                 .get(&Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.to_bigint()),
+                    MaybeRelocatable::Int(num) => format!("{}", num.to_signed_felt()),
                     MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
                 },
                 _ => "<missing>".to_string(),
@@ -1086,6 +1082,7 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             run_finished: self.run_finished,
             trace_relocated: false,
+            instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }
@@ -1132,50 +1129,11 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_instruction_encoding_successful_without_imm() {
-        let mut vm = vm!();
-        vm.segments = segments![((0, 0), 5)];
-        assert_eq!((Felt252::new(5), None), {
-            let value = vm.get_instruction_encoding().unwrap();
-            (value.0.into_owned(), value.1)
-        });
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_instruction_encoding_successful_with_imm() {
-        let mut vm = vm!();
-
-        vm.segments = segments![((0, 0), 5), ((0, 1), 6)];
-
-        let (num, imm) = vm
-            .get_instruction_encoding()
-            .expect("Unexpected error on get_instruction_encoding");
-        assert_eq!(num.as_ref(), &Felt252::new(5));
-        assert_eq!(
-            imm.map(Cow::into_owned),
-            Some(MaybeRelocatable::Int(Felt252::new(6)))
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_instruction_encoding_unsuccesful() {
-        let vm = vm!();
-        assert_matches!(
-            vm.get_instruction_encoding(),
-            Err(VirtualMachineError::InvalidInstructionEncoding)
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn update_fp_ap_plus2() {
         let instruction = Instruction {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1209,7 +1167,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1243,7 +1200,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1277,7 +1233,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1312,7 +1267,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1349,7 +1303,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1385,7 +1338,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1422,7 +1374,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1459,7 +1410,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1496,7 +1446,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1530,10 +1479,9 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: Some(Felt252::new(5)),
             dst_register: Register::FP,
             op0_register: Register::AP,
-            op1_addr: Op1Addr::AP,
+            op1_addr: Op1Addr::Imm,
             res: Res::Add,
             pc_update: PcUpdate::Regular,
             ap_update: ApUpdate::Regular,
@@ -1564,7 +1512,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1598,7 +1545,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1634,7 +1580,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1669,7 +1614,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1702,7 +1646,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1734,7 +1677,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1768,7 +1710,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1802,7 +1743,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1826,7 +1766,7 @@ mod tests {
         vm.run_context.fp = 6;
 
         assert_matches!(
-            vm.update_registers(instruction, operands),
+            vm.update_registers(&instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
@@ -1841,7 +1781,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1863,7 +1802,7 @@ mod tests {
         run_context!(vm, 4, 5, 6);
 
         assert_matches!(
-            vm.update_registers(instruction, operands),
+            vm.update_registers(&instruction, operands),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));
@@ -1892,7 +1831,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1921,7 +1859,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1954,7 +1891,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -1982,7 +1918,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2015,7 +1950,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2045,7 +1979,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2075,7 +2008,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2106,7 +2038,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2134,7 +2065,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2166,7 +2096,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2193,7 +2122,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2225,7 +2153,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2255,7 +2182,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2284,7 +2210,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2315,7 +2240,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2345,7 +2269,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2375,7 +2298,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2405,7 +2327,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2433,7 +2354,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2461,7 +2381,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2488,7 +2407,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2511,7 +2429,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2537,7 +2454,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2560,7 +2476,6 @@ mod tests {
             off0: 0,
             off1: 1,
             off2: 2,
-            imm: None,
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2621,7 +2536,6 @@ mod tests {
             off0: 0,
             off1: 1,
             off2: 2,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::FP,
@@ -2681,7 +2595,6 @@ mod tests {
             off0: 1,
             off1: 1,
             off2: 1,
-            imm: Some(Felt252::new(4)),
             dst_register: Register::AP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::Imm,
@@ -2735,7 +2648,6 @@ mod tests {
             off0: 2,
             off1: 0,
             off2: 0,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2761,7 +2673,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2792,7 +2703,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2829,7 +2739,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2865,7 +2774,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2902,7 +2810,6 @@ mod tests {
             off0: 1,
             off1: 2,
             off2: 3,
-            imm: None,
             dst_register: Register::FP,
             op0_register: Register::AP,
             op1_addr: Op1Addr::AP,
@@ -2972,7 +2879,7 @@ mod tests {
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check!(trace, [(0, 2, 2)]);
+        trace_check(&trace, &[(0, 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
@@ -3064,9 +2971,9 @@ mod tests {
         //Check each TraceEntry in trace
         let trace = vm.trace.unwrap();
         assert_eq!(trace.len(), 5);
-        trace_check!(
-            trace,
-            [(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)]
+        trace_check(
+            &trace,
+            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
@@ -3257,7 +3164,6 @@ mod tests {
             off0: 0,
             off1: -5,
             off2: 2,
-            imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::Op0,
@@ -3346,7 +3252,6 @@ mod tests {
             off0: 0,
             off1: -5,
             off2: 2,
-            imm: None,
             dst_register: Register::AP,
             op0_register: Register::FP,
             op1_addr: Op1Addr::Op0,
@@ -3763,16 +3668,16 @@ mod tests {
         }
         //Compare trace
         let trace = vm.trace.unwrap();
-        trace_check!(
-            trace,
-            [
+        trace_check(
+            &trace,
+            &[
                 (3, 2, 2),
                 (0, 4, 4),
                 (2, 5, 4),
                 (5, 5, 2),
                 (7, 6, 2),
-                (8, 6, 2)
-            ]
+                (8, 6, 2),
+            ],
         );
 
         //Compare final register values

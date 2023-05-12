@@ -1,5 +1,7 @@
 use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
+#[cfg(feature = "cairo-1-hints")]
+use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::{
     serde::deserialize_program::{
         deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
@@ -7,6 +9,8 @@ use crate::{
     },
     types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
 };
+#[cfg(feature = "cairo-1-hints")]
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
@@ -35,7 +39,6 @@ use std::path::Path;
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
-    pub(crate) builtins: Vec<BuiltinName>,
     pub(crate) data: Vec<MaybeRelocatable>,
     pub(crate) hints: HashMap<usize, Vec<HintParams>>,
     pub(crate) main: Option<usize>,
@@ -51,6 +54,7 @@ pub(crate) struct SharedProgramData {
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
+    pub(crate) builtins: Vec<BuiltinName>,
     pub(crate) reference_manager: ReferenceManager,
 }
 
@@ -77,7 +81,6 @@ impl Program {
             }
         }
         let shared_program_data = SharedProgramData {
-            builtins,
             data,
             hints,
             main,
@@ -91,6 +94,7 @@ impl Program {
             shared_program_data: Arc::new(shared_program_data),
             constants,
             reference_manager,
+            builtins,
         })
     }
 
@@ -110,7 +114,7 @@ impl Program {
     }
 
     pub fn iter_builtins(&self) -> impl Iterator<Item = &BuiltinName> {
-        self.shared_program_data.builtins.iter()
+        self.builtins.iter()
     }
 
     pub fn iter_data(&self) -> impl Iterator<Item = &MaybeRelocatable> {
@@ -141,7 +145,54 @@ impl Default for Program {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: Vec::new(),
         }
+    }
+}
+
+#[cfg(feature = "cairo-1-hints")]
+// Note: This Program will only work when using run_from_entrypoint, and the Cairo1Hintprocesso
+impl TryFrom<CasmContractClass> for Program {
+    type Error = ProgramError;
+    fn try_from(value: CasmContractClass) -> Result<Self, ProgramError> {
+        let data = value
+            .bytecode
+            .iter()
+            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
+            .collect();
+        //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
+        // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
+        let hints = value
+            .hints
+            .iter()
+            .map(|(x, _)| {
+                (
+                    *x,
+                    vec![HintParams {
+                        code: x.to_string(),
+                        accessible_scopes: Vec::new(),
+                        flow_tracking_data: FlowTrackingData {
+                            ap_tracking: ApTracking::default(),
+                            reference_ids: HashMap::new(),
+                        },
+                    }],
+                )
+            })
+            .collect();
+        let error_message_attributes = Vec::new();
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+        Self::new(
+            vec![],
+            data,
+            None,
+            hints,
+            reference_manager,
+            HashMap::new(),
+            error_message_attributes,
+            None,
+        )
     }
 }
 
@@ -185,7 +236,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
@@ -247,7 +298,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -635,7 +686,7 @@ mod tests {
             },
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -734,7 +785,7 @@ mod tests {
             },
         );
 
-        assert_eq!(program.shared_program_data.builtins, builtins);
+        assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, identifiers);
@@ -787,7 +838,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
         let shared_program_data = SharedProgramData {
-            builtins: Vec::new(),
             data: Vec::new(),
             hints: HashMap::new(),
             main: None,
@@ -803,6 +853,7 @@ mod tests {
             reference_manager: ReferenceManager {
                 references: Vec::new(),
             },
+            builtins: Vec::new(),
         };
 
         assert_eq!(program, Program::default());

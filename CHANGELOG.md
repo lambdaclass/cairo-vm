@@ -2,6 +2,50 @@
 
 #### Upcoming Changes
 
+* feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
+
+  * Add method `pub fn initialize_function_runner_cairo_1(
+        &mut self,
+        vm: &mut VirtualMachine,
+        program_builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError>` to `CairoRunner`
+
+  * BREAKING: Move field `builtins` from `SharedProgramData` to `Program`
+  * BREAKING: Remove argument `add_segment_arena_builtin` from `CairoRunner::initialize_function_runner`, it is now always false
+  * BREAKING: Add `segment_arena` enum variant to `BuiltinName`
+
+* Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
+
+* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
+
+    * `Cairo1HintProcessor` can now run the following hints:
+        * Felt252DictEntryInit
+        * Felt252DictEntryUpdate
+        * GetCurrentAccessDelta
+        * InitSquashData
+        * AllocConstantSize
+        * GetCurrentAccessIndex
+        * ShouldContinueSquashLoop
+        * FieldSqrt
+
+* Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
+
+  * Ignore Casm and Sierra files
+  * Add special flag to compile Cairo 1 programs
+
+* Make the VM able to run `CasmContractClass` files under `cairo-1-hints` feature [#1098](https://github.com/lambdaclass/cairo-rs/pull/1098)
+
+  * Implement `TryFrom<CasmContractClass> for Program`
+  * Add `Cairo1HintProcessor`
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+
+* perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
+
+* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123)
+
+* Use to_signed_felt as function for felt252 as BigInt within [-P/2, P/2] range and use to_bigint as function for representation as BigInt. [#1100](https://github.com/lambdaclass/cairo-rs/pull/1100)
+
 * Implement hint on field_arithmetic lib [#1090](https://github.com/lambdaclass/cairo-rs/pull/1090)
 
     `BuiltinHintProcessor` now supports the following hints:
@@ -142,6 +186,12 @@
     %}
     ```
 
+* fix(security)!: avoid DoS on malicious insertion to memory [#1099](https://github.com/lambdaclass/cairo-rs/pull/1099)
+    * A program could crash the library by attempting to insert a value at an address with a big offset; fixed by trying to reserve to check for allocation failure
+    * A program could crash the program by exploiting an integer overflow when attempting to insert a value at an address with offset `usize::MAX`
+
+    BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
+
 * fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
     * This includes the fix for a `panic!` in `ecdsa::verify`.
       See: [#365](https://github.com/xJonathanLEI/starknet-rs/issues/365) and [#366](https://github.com/xJonathanLEI/starknet-rs/pulls/366)
@@ -188,6 +238,9 @@
     ```python
     %{ ids.full_word = int(ids.n_bytes >= 8) %}
     ```
+
+* perf: cache decoded instructions [#944](https://github.com/lambdaclass/cairo-rs/pull/944)
+    * Creates a new cache field in `VirtualMachine` that stores the `Instruction` instances as they get decoded from memory, significantly reducing decoding overhead, with gains up to 9% in runtime according to benchmarks in the performance server
 
 * Add alternative hint code for nondet_bigint3 hint [#1071](https://github.com/lambdaclass/cairo-rs/pull/1071)
 
@@ -1005,6 +1058,10 @@
         ids.remainder.d1 = remainder_split[1]
         ids.remainder.d2 = remainder_split[2]
     ```
+
+* BREAKING CHANGE: optimization for instruction decoding [#942](https://github.com/lambdaclass/cairo-rs/pull/942):
+    * Avoids copying immediate arguments to the `Instruction` structure, as they get inferred from the offset anyway
+    * Breaking: removal of the field `Instruction::imm`
 
 * Add missing `\n` character in traceback string [#997](https://github.com/lambdaclass/cairo-rs/pull/997)
     * BugFix: Add missing `\n` character after traceback lines when the filename is missing ("Unknown Location")
