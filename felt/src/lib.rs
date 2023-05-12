@@ -906,11 +906,12 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::arbitrary;
+    use crate::arbitrary::nonzero_felt252;
+    use core::cmp;
+
     use proptest::prelude::*;
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(100000))]
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated
@@ -1347,6 +1348,10 @@ mod test {
 
         #[test]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
+            // In the regular use case the number upon which sqrt is called will always be a felt (aka a numer lower than cairo_prime)
+            // In order to get a number for which we know its root it is not a good enough solution to square the felt (as we might get something bigger than cairo prime)
+            // We can instead use the square root (using the biguint implementation), to guarantee that its square will be inside the felt range
+            let x = Felt252::from(x.to_biguint().sqrt());
             prop_assert_eq!((&x * &x).sqrt(), x);
         }
 
