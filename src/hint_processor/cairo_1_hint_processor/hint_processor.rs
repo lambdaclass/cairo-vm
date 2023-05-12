@@ -226,6 +226,12 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHintBase::Core(CoreHint::FieldSqrt { val, sqrt })) => {
                 self.field_sqrt(vm, val, sqrt)
             }
+            Hint::Core(CoreHintBase::Core(CoreHint::WideMul128 {
+                lhs,
+                rhs,
+                high,
+                low,
+            })) => self.wide_mul_128(vm, lhs, rhs, high, low),
             hint => Err(HintError::UnknownHint(hint.to_string())),
         }
     }
@@ -953,6 +959,29 @@ impl Cairo1HintProcessor {
                 "Field element is not a square".to_string(),
             ))
         }
+    }
+
+    fn wide_mul_128(
+        &self,
+        vm: &mut VirtualMachine,
+        lhs: &ResOperand,
+        rhs: &ResOperand,
+        high: &CellRef,
+        low: &CellRef,
+    ) -> Result<(), HintError> {
+        let mask128 = BigUint::from(u128::MAX);
+        let lhs_val = res_operand_get_val(vm, lhs)?.to_biguint();
+        let rhs_val = res_operand_get_val(vm, rhs)?.to_biguint();
+        let prod = lhs_val * rhs_val;
+        vm.insert_value(
+            cell_ref_to_relocatable(high, vm)?,
+            Felt252::from(prod.clone() >> 128),
+        )?;
+        vm.insert_value(
+            cell_ref_to_relocatable(low, vm)?,
+            Felt252::from(prod & mask128),
+        )
+        .map_err(HintError::from)
     }
 }
 
