@@ -375,6 +375,14 @@ fn u256_sqrt_zero() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn u256_sqrt_max_num() {
+    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+
+    run_cairo_1_entrypoint(program_data.as_slice(), 257, &[], &[1.into()]);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_big_num() {
     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
