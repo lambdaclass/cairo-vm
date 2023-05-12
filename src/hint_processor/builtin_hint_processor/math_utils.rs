@@ -668,11 +668,11 @@ pub fn is_quad_residue(
     if x.is_zero() || x.is_one() {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
     } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1)).is_one() {
-        insert_value_from_var_name("y", crate::math_utils::sqrt(&x), vm, ids_data, ap_tracking)
+        insert_value_from_var_name("y", &x.sqrt(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
             "y",
-            crate::math_utils::sqrt(&(x.as_ref() / Felt252::new(3_i32))),
+            (x.as_ref() / Felt252::new(3_i32)).sqrt(),
             vm,
             ids_data,
             ap_tracking,
@@ -2360,9 +2360,9 @@ mod tests {
             if x.is_zero() || x.is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
             } else if x.pow(&(Felt252::max_value() >> 1)).is_one() {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(x));
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt());
             } else {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), crate::math_utils::sqrt(&(x / Felt252::new(3))));
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x / Felt252::new(3)).sqrt());
             }
         }
     }
