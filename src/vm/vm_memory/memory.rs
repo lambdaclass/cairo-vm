@@ -18,8 +18,8 @@ pub struct ValidationRule(
 pub(crate) enum MemoryCell {
     Accessed(MaybeRelocatable),
     NotAccessed(MaybeRelocatable),
-    // As validated memory cells only belong to bultin segments and builtin segments are always accessed,
-    // we can asume validated addresses are also always accessed
+    // As validated memory cells only belong to builtin segments and builtin segments are always accessed,
+    // we can assume validated addresses are also always accessed
     Validated(MaybeRelocatable),
 }
 
