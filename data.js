@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683923282996,
+  "lastUpdate": 1683925721506,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102586,6 +102586,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19454113,
             "range": "± 97739",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "23da218dfdacee5e4cf2a04f80abb9fd9c292a9e",
+          "message": "ci: run test_install action on PRs (#1166)",
+          "timestamp": "2023-05-12T20:38:28Z",
+          "tree_id": "c767e3921e2465261484ccdb70cc6792047e42c0",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/23da218dfdacee5e4cf2a04f80abb9fd9c292a9e"
+        },
+        "date": 1683925714419,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29425,
+            "range": "± 305",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 71707,
+            "range": "± 1350",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23637322,
+            "range": "± 213057",
             "unit": "ns/iter"
           }
         ]
