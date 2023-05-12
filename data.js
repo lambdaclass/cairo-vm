@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683869962822,
+  "lastUpdate": 1683915086791,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102460,6 +102460,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22719355,
             "range": "± 615318",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "105870a33ac03907d4bdb3a8d88221a5c2a4127a",
+          "message": "test: add `proptest::Strategy` for generating arbitrary `Felt252`s (#1094)\n\n* Add arbitrary function\n\n* Update tests\n\n* Fix: remove arbitrary feature for BigInt\n\nThat feature is for compatibility with another `Arbitrary` trait\n\n* Fix: construction tests shouldn't receive felt\n\n* Fix: lower part was capped by PH instead of PL\n\n* Impl `Arbitrary` for `FeltBigInt` and `Felt252`\n\n* test: ignore and document known bugs\n\n* Remove proptest_cases config\n\n---------\n\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Juan Bono <juanbono94@gmail.com>",
+          "timestamp": "2023-05-12T17:40:35Z",
+          "tree_id": "4ec5d64870dc72bd1ff393d471dd9f2f166ba436",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/105870a33ac03907d4bdb3a8d88221a5c2a4127a"
+        },
+        "date": 1683915080905,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 24640,
+            "range": "± 25",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60309,
+            "range": "± 1783",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19521309,
+            "range": "± 276888",
             "unit": "ns/iter"
           }
         ]
