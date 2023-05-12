@@ -51,9 +51,6 @@ pub fn find_element(
         exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
-        if n_elms.is_negative() {
-            return Err(HintError::ValueOutOfRange(n_elms.into_owned()));
-        }
 
         if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
@@ -340,7 +337,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::ValueOutOfRange(x)) if x == Felt252::new(-1)
+            Err(HintError::Math(MathError::Felt252ToI32Conversion(x))) if x == Felt252::new(-1)
         );
     }
 
