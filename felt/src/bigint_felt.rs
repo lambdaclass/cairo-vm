@@ -23,7 +23,7 @@ use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zer
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-    pub static ref CAIRO_PRIME_BIGUINT: BigUint =
+    static ref CAIRO_PRIME_BIGUINT: BigUint =
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
     pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
