@@ -113,8 +113,8 @@ pub fn ec_add(
     prime: &BigInt,
 ) -> (BigInt, BigInt) {
     let m = line_slope(&point_a, &point_b, prime);
-    let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
-    let y = (m * (point_a.0 - x.clone()) - point_a.1).mod_floor(prime);
+    let x = (&m * &m - &point_a.0 - &point_b.0).mod_floor(prime);
+    let y = (&m * (&point_a.0 - &x) - &point_a.1).mod_floor(prime);
     (x, y)
 }
 

@@ -1,4 +1,4 @@
-use crate::math_utils::{ec_add, ec_double};
+use crate::math_utils::mul_inv;
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
@@ -12,7 +12,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
-use num_traits::{Num, One, Pow, Zero};
+use num_traits::{Num, One, Pow};
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -50,6 +50,55 @@ impl EcOpBuiltinRunner {
         y.pow(2) == &(x.pow(3) + alpha * x) + beta
     }
 
+    fn ec_add_projective(
+        point_a: (&BigInt, &BigInt, &BigInt),
+        point_b: (&BigInt, &BigInt, &BigInt),
+        prime: &BigInt,
+    ) -> (BigInt, BigInt, BigInt) {
+        let u0 = point_a.0 * point_b.2;
+        let u1 = point_b.0 * point_a.2;
+        if &u0 == &u1 {
+            return Self::ec_double_projective(point_a, prime);
+        }
+
+        let t0 = point_a.1 * point_b.2;
+        let t1 = point_b.1 * point_a.2;
+        let t = &t0 - &t1;
+
+        let u = &u0 - &u1;
+        let u2 = &u * &u;
+
+        let v = point_a.2 * point_b.2;
+        let w = &(&t * &t * &v) - &(&u2 * &(&u0 + &u1));
+        let u3 = &u * &u2;
+
+        let x = &u * &w;
+        let y = &t * &(&(&u0 * &u2) - &w) - &(&t0 * &u3);
+        let z = &u3 * &v;
+
+        (x, y, z)
+    }
+
+    fn ec_double_projective(
+        point: (&BigInt, &BigInt, &BigInt),
+        prime: &BigInt,
+    ) -> (BigInt, BigInt, BigInt) {
+        let (two, three) = (&BigInt::from(2), &BigInt::from(3));
+
+        let t = three * point.0 * point.0 + point.2 * point.2;
+        let u = two * point.1 * point.2;
+        let v = two * &u * point.0 * point.1;
+        let w = &t * &t - &(two * &v);
+
+        let uy = &u * point.1;
+
+        (
+            (&u * &w).mod_floor(prime),
+            (&(&t * (&v - &w)) - &(two * &uy * &uy)).mod_floor(prime),
+            (&u * &u * &u).mod_floor(prime),
+        )
+    }
+
     #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
@@ -57,33 +106,61 @@ impl EcOpBuiltinRunner {
     /// Mimics the operation of the AIR, so that this function fails whenever the builtin AIR
     /// would not yield a correct result, i.e. when any part of the computation attempts to add
     /// two points with the same x coordinate.
-    fn ec_op_impl(
+    pub fn ec_op_impl(
         partial_sum: (Felt252, Felt252),
         doubled_point: (Felt252, Felt252),
         m: &Felt252,
-        alpha: &BigInt,
+        _alpha: &BigInt,
         prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m.to_bigint();
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
-        for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
-                #[allow(deprecated)]
+        let slope = m.to_biguint();
+        let mut partial_sum_b = (
+            partial_sum.0.to_bigint(),
+            partial_sum.1.to_bigint(),
+            BigInt::one(),
+        );
+        let mut doubled_point_b = (
+            doubled_point.0.to_bigint(),
+            doubled_point.1.to_bigint(),
+            BigInt::one(),
+        );
+        for i in 0..height {
+            if &doubled_point_b.0 == &partial_sum_b.0 {
+                let zinv_sum = mul_inv(&partial_sum_b.2, prime);
+                let partial_sum = (
+                    (&partial_sum_b.0 * &zinv_sum).mod_floor(prime),
+                    (&partial_sum_b.1 * &zinv_sum).mod_floor(prime),
+                );
+                let zinv_doubled = mul_inv(&doubled_point_b.2, prime);
+                let doubled = (
+                    (&doubled_point_b.0 * &zinv_doubled).mod_floor(prime),
+                    (&doubled_point_b.1 * &zinv_doubled).mod_floor(prime),
+                );
                 return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
-                    partial_sum_b,
-                    m.clone().to_bigint(),
-                    doubled_point_b,
+                    partial_sum,
+                    m.to_bigint(),
+                    doubled,
                 )));
             };
-            if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
+            if slope.bit(i as u64) {
+                partial_sum_b = Self::ec_add_projective(
+                    (&partial_sum_b.0, &partial_sum_b.1, &partial_sum_b.2),
+                    (&doubled_point_b.0, &doubled_point_b.1, &doubled_point_b.2),
+                    prime,
+                );
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime);
-            slope = slope.clone() >> 1_u32;
+            doubled_point_b = Self::ec_double_projective(
+                (&doubled_point_b.0, &doubled_point_b.1, &doubled_point_b.2),
+                prime,
+            );
         }
-        Ok(partial_sum_b)
+
+        let zinv = mul_inv(&partial_sum_b.2, prime);
+        Ok((
+            (&partial_sum_b.0 * &zinv).mod_floor(prime),
+            (&partial_sum_b.1 * &zinv).mod_floor(prime),
+        ))
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
