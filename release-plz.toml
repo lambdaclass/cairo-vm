@@ -1,0 +1,8 @@
+[workspace]
+allow_dirty = true # allow updating repositories with uncommitted changes
+changelog_update = false # disable changelog updates
+dependencies_update = false # update dependencies with `cargo update`
+git_release_enable = true # disable GitHub/Gitea releases
+pr_labels = ["release"] # add the `release` label to the release Pull Request
+publish_allow_dirty = true # add `--allow-dirty` to `cargo publish`
+semver_check = true # disable API breaking changes checks
