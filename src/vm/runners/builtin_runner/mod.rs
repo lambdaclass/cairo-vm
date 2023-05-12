@@ -1357,7 +1357,10 @@ mod tests {
             ((0, 4), (0, 4))
         ];
 
-        vm.segments.memory.data[0][2].unwrap().mark_accessed();
+        vm.segments.memory.data[0][2]
+            .clone()
+            .unwrap()
+            .mark_accessed();
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
