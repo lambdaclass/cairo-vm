@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683845351856,
+  "lastUpdate": 1683869962822,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102418,6 +102418,48 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19458969,
             "range": "± 184011",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "647731+mfachal@users.noreply.github.com",
+            "name": "mfachal",
+            "username": "mfachal"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "51820ec360ee928b77be6611be42ec7792fcbeda",
+          "message": "Add felt252 dict entry init hint test (#1160)\n\n* add felt252 dict entry init test\n\n* update filename\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-05-12T04:54:58Z",
+          "tree_id": "86472781214fa97d3b51e53a568ed674ce2379eb",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/51820ec360ee928b77be6611be42ec7792fcbeda"
+        },
+        "date": 1683869956030,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "build runner",
+            "value": 29260,
+            "range": "± 311",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 70509,
+            "range": "± 1137",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22719355,
+            "range": "± 615318",
             "unit": "ns/iter"
           }
         ]
