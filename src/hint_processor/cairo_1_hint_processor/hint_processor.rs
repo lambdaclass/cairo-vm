@@ -459,15 +459,15 @@ impl Cairo1HintProcessor {
         x: &CellRef,
         y: &CellRef,
     ) -> Result<(), HintError> {
-        let value = res_operand_get_val(vm, value)?;
-        let scalar = res_operand_get_val(vm, scalar)?;
-        let max_x = res_operand_get_val(vm, max_x)?;
+        let value = res_operand_get_val(vm, value)?.to_biguint();
+        let scalar = res_operand_get_val(vm, scalar)?.to_biguint();
+        let max_x = res_operand_get_val(vm, max_x)?.to_biguint();
         let x_value = (&value / &scalar).min(max_x);
         let y_value = value - &x_value * &scalar;
 
-        vm.insert_value(cell_ref_to_relocatable(x, vm)?, x_value)
+        vm.insert_value(cell_ref_to_relocatable(x, vm)?, Felt252::from(x_value))
             .map_err(HintError::from)?;
-        vm.insert_value(cell_ref_to_relocatable(y, vm)?, y_value)
+        vm.insert_value(cell_ref_to_relocatable(y, vm)?, Felt252::from(y_value))
             .map_err(HintError::from)?;
 
         Ok(())
