@@ -4,7 +4,7 @@ from starkware.cairo.common.cairo_builtins import EcOpBuiltin
 from starkware.cairo.common.ec_point import EcPoint
 from starkware.cairo.common.ec import ec_op
 
-func main{ec_op_ptr: EcOpBuiltin*}() {
+func run{ec_op_ptr: EcOpBuiltin*}(n: felt) {
     let p = EcPoint(
         0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc,
         0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f,
@@ -17,5 +17,15 @@ func main{ec_op_ptr: EcOpBuiltin*}() {
     let (r) = ec_op(p, m, q);
     assert r.x = 108925483682366235368969256555281508851459278989259552980345066351008608800;
     assert r.y = 1592365885972480102953613056006596671718206128324372995731808913669237079419;
+
+    if (n != 0) {
+        return run(n - 1);
+    }
+
+    return ();
+}
+
+func main{ec_op_ptr: EcOpBuiltin*}() {
+    run(1);
     return ();
 }
