@@ -38,7 +38,7 @@
   * Implement `TryFrom<CasmContractClass> for Program`
   * Add `Cairo1HintProcessor`
 
-* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+#### [0.4.0] - 2023-05-12
 
 * perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
 
