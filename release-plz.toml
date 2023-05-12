@@ -6,3 +6,4 @@ git_release_enable = true # disable GitHub/Gitea releases
 pr_labels = ["release"] # add the `release` label to the release Pull Request
 publish_allow_dirty = true # add `--allow-dirty` to `cargo publish`
 semver_check = true # disable API breaking changes checks
+repo_url = "https://github.com/lambdaclass/cairo-rs/"
