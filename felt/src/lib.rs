@@ -208,37 +208,33 @@ impl Felt252 {
     pub fn sqrt(&self) -> Self {
         // Based on Tonelli-Shanks' algorithm for finding square roots
         // and sympy's library implementation of said algorithm.
-        // if self.value.is_zero() || self.value.is_one() {
-        //     return self.clone();
-        // }
+        if self.is_zero() || self.is_one() {
+            return self.clone();
+        }
 
-        // let max_felt = Felt252::max_value();
-        // let trailing_prime = (Felt252::max_value() >> 192).to_u32(); // 0x800000000000011
+        let max_felt = Felt252::max_value();
+        let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
 
-        // let a = self.value.pow(&trailing_prime);
-        // let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
-        // let mut m = Felt252::zero();
-        // let mut exponent = Felt252::one() << 191_u32;
-        // let mut adm;
-        // for i in 0..192_u32 {
-        //     adm = &a * &(&d).pow(&m);
-        //     adm = (&adm).pow(&exponent);
-        //     exponent >>= 1;
-        //     // if adm ≡ -1 (mod CAIRO_PRIME)
-        //     if adm == max_felt {
-        //         m += Felt252::one() << i;
-        //     }
-        // }
-        // let root_1 = self.value.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
-        // let root_2 = &max_felt - &root_1 + 1_usize;
-        // if root_1 < root_2 {
-        //     root_1
-        // } else {
-        //     root_2
-        // }
-
-        Self {
-            value: self.value.sqrt(),
+        let a = self.pow(&trailing_prime);
+        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+        let mut m = Felt252::zero();
+        let mut exponent = Felt252::one() << 191_u32;
+        let mut adm;
+        for i in 0..192_u32 {
+            adm = &a * &(&d).pow(&m);
+            adm = (&adm).pow(&exponent);
+            exponent >>= 1;
+            // if adm ≡ -1 (mod CAIRO_PRIME)
+            if adm == max_felt {
+                m += Felt252::one() << i;
+            }
+        }
+        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+        let root_2 = &max_felt - &root_1 + 1_usize;
+        if root_1 < root_2 {
+            root_1
+        } else {
+            root_2
         }
     }
 
