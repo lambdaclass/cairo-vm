@@ -1008,8 +1008,7 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn to_le_digits(ref x in any::<[u8; 40]>()) {
-            let x = &Felt252::from_bytes_be(x);
+        fn to_le_digits(ref x in any::<Felt252>()) {
             let digits: [u64; 4] = x.to_le_digits();
             let mut bytes: Vec<_> = digits
                 .into_iter()
@@ -1473,11 +1472,6 @@ mod test {
             prop_assert_eq!(x + big_min, sum_min);
             let sum_zero = (big_zero + x).to_u64();
             prop_assert_eq!(x + big_zero, sum_zero);
-        }
-
-        #[test]
-        fn add_u32_in_range(ref x in FELT_PATTERN, y in any::<u32>()) {
-            let x = Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
         }
 
         #[test]
