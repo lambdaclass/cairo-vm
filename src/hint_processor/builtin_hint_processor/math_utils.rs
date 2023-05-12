@@ -378,7 +378,7 @@ pub fn is_positive(
     let range_check_builtin = vm.get_range_check_builtin()?;
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
-        Some(bound) if &value_as_int.abs() > &bound.to_bigint() => {
+        Some(bound) if value_as_int.abs() > bound.to_bigint() => {
             return Err(HintError::ValueOutsideValidRange(value.into_owned()))
         }
         _ => {}
