@@ -1505,6 +1505,19 @@ mod memory_tests {
     }
 
     #[test]
+    fn memory_cell_new_is_not_validated() {
+        let cell = MemoryCell::new(mayberelocatable!(1));
+        assert!(!cell.is_validated())
+    }
+
+    #[test]
+    fn memory_cell_mark_validated() {
+        let mut cell = MemoryCell::new(mayberelocatable!(1));
+        cell.mark_validated();
+        assert!(cell.is_validated())
+    }
+
+    #[test]
     fn memory_cell_get_value() {
         let cell = MemoryCell::new(mayberelocatable!(1));
         assert_eq!(cell.get_value(), &mayberelocatable!(1));
