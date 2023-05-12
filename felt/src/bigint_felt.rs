@@ -183,7 +183,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn to_signed_felt(&self) -> BigInt {
-        if !self.is_zero() && self.val > *SIGNED_FELT_MAX {
+        if self.val > *SIGNED_FELT_MAX {
             BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
