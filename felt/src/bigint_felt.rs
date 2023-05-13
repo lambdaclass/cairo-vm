@@ -281,6 +281,17 @@ impl<'a, const PH: u128, const PL: u128> Add<usize> for &'a FeltBigInt<PH, PL> {
     }
 }
 
+impl<const PH: u128, const PL: u128> Add<u64> for &FeltBigInt<PH, PL> {
+    type Output = FeltBigInt<PH, PL>;
+    fn add(self, rhs: u64) -> Self::Output {
+        let mut sum = &self.val + rhs;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
+        }
+        FeltBigInt { val: sum }
+    }
+}
+
 impl<const PH: u128, const PL: u128> AddAssign for FeltBigInt<PH, PL> {
     fn add_assign(&mut self, rhs: Self) {
         *self = &*self + &rhs;
