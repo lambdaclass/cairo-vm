@@ -30,6 +30,11 @@ pub struct SignatureBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) instances_per_component: u32,
     signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
+    // This act as a cache to optimize calls to deduce_memory_cell
+    // Therefore need interior mutability
+    // 1 at position 'n' means offset 'n' relative to base pointer
+    // has been verified
+    pub(self) verified_addresses: Rc<RefCell<Vec<bool>>>,
 }
 
 impl SignatureBuiltinRunner {
@@ -44,6 +49,7 @@ impl SignatureBuiltinRunner {
             stop_ptr: None,
             instances_per_component: 1,
             signatures: Rc::new(RefCell::new(HashMap::new())),
+            verified_addresses: Rc::new(RefCell::new(Vec::new())),
         }
     }
 
@@ -96,28 +102,37 @@ impl SignatureBuiltinRunner {
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
+        let verified_addresses = Rc::clone(&self.verified_addresses);
         let rule: ValidationRule = ValidationRule(Box::new(
-            move |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+            move |memory: &Memory, addr: Relocatable| -> Result<(), MemoryError> {
                 let cell_index = addr.offset % cells_per_instance as usize;
 
                 let (pubkey_addr, message_addr) = match cell_index {
                     0 => (addr, (addr + 1)?),
                     1 => match addr - 1 {
                         Ok(prev_addr) => (prev_addr, addr),
-                        Err(_) => return Ok(vec![]),
+                        Err(_) => return Ok(()),
                     },
-                    _ => return Ok(vec![]),
+                    _ => return Ok(()),
                 };
+
+                let mut verified = verified_addresses.borrow_mut();
+                if *verified.get(addr.offset).unwrap_or(&false) {
+                    return Ok(());
+                }
+                let new_size = verified.len().max(addr.offset + 1);
+                verified.resize(new_size, false);
+                verified[addr.offset] = true;
 
                 let pubkey = match memory.get_integer(pubkey_addr) {
                     Ok(num) => num,
-                    Err(_) if cell_index == 1 => return Ok(vec![]),
+                    Err(_) if cell_index == 1 => return Ok(()),
                     _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
                 };
 
                 let msg = match memory.get_integer(message_addr) {
                     Ok(num) => num,
-                    Err(_) if cell_index == 0 => return Ok(vec![]),
+                    Err(_) if cell_index == 0 => return Ok(()),
                     _ => return Err(MemoryError::MsgNonInt(message_addr)),
                 };
 
@@ -132,7 +147,7 @@ impl SignatureBuiltinRunner {
                 let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
                     .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
                 match verify(&public_key, &message, &r, &s) {
-                    Ok(true) => Ok(vec![]),
+                    Ok(true) => Ok(()),
                     _ => Err(MemoryError::InvalidSignature(
                         signature.to_string(),
                         pubkey.into_owned(),

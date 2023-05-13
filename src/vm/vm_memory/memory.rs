@@ -11,7 +11,7 @@ use num_traits::ToPrimitive;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
+    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<(), MemoryError>>,
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
