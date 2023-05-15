@@ -704,7 +704,6 @@ dependencies = [
  "proptest",
  "rand",
  "rand_core",
- "range-set-blaze",
  "rstest",
  "rusty-hook",
  "serde",
@@ -1264,12 +1263,6 @@ dependencies = [
  "pin-utils",
  "slab",
 ]
-
-[[package]]
-name = "gen_ops"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f41347f4fa32183c2549b86daf6b6b12a26029a77463e25358f7287580b088b"
 
 [[package]]
 name = "genco"
@@ -2068,20 +2061,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
  "rand_core",
-]
-
-[[package]]
-name = "range-set-blaze"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e139f0c5edf89edb65753e67eaf8e6031de21ea59f84cb63e0cfb36aaf80e6d0"
-dependencies = [
- "gen_ops",
- "itertools",
- "num-integer",
- "num-traits 0.2.15",
- "rand",
- "thiserror",
 ]
 
 [[package]]
