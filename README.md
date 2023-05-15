@@ -72,30 +72,33 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 **Optional**
 
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
-- PyEnv with Python 3.9 
+- PyEnv with Python 3.9
 - cairo-lang
 
 ## 🚀 Usage
 
 ### Running cairo-rs
-To compile the repository, run:
+
+To run programs from the command line, first compile the repository from the cairo-vm-cli folder:
+
 ```bash
-cargo build --release
+cd cairo-vm-cli; cargo build --release; cd ..
 ```
- 
-Once the binary is built, it can be found in `target/release/` under the name `cairo-rs-run`.
+
+Once the binary is built, it can be found in `target/release/` under the name `cairo-rvm-cli`.
 
 To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
 
-```bash 
+```bash
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 ```
 
-To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example: 
+To run a compiled .json program through the VM, call the executable giving it the path and name of the file to be executed. For example:
 
-```bash 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
+```bash
+target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
+
 The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
