@@ -120,7 +120,7 @@ Currently, as this VM is under construction, it's missing some of the features o
 
 There are two ways to use non-standard hints in this VM:
 
-- Extend the cairo-rs code and build your own binary using the interface hint processor
+- Extend the cairo-rs code and build your own binary using the interface [HintProcessor](docs/hint_processor/README.md).
 - Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
