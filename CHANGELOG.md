@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Implement 'Uint512DivMod' hint [#1151](https://github.com/lambdaclass/cairo-rs/pull/1171)
+
 * feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
 
   * Add method `pub fn initialize_function_runner_cairo_1(
