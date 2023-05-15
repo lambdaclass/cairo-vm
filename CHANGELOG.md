@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
+
+  * BREAKING: Fix `Felt252` methods `abs`, `signum`, `is_positive`, `is_negative` and `sqrt`
+  * BREAKING: Remove function `math_utils::sqrt`(Now moved to `Felt252::sqrt`)
+
 * feat: Add method `CairoRunner::initialize_function_runner_cairo_1` [#1151](https://github.com/lambdaclass/cairo-rs/pull/1151)
 
   * Add method `pub fn initialize_function_runner_cairo_1(
