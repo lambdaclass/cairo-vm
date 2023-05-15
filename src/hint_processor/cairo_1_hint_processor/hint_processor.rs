@@ -282,9 +282,9 @@ impl Cairo1HintProcessor {
         value: &ResOperand,
         dst: &CellRef,
     ) -> Result<(), HintError> {
-        let value = res_operand_get_val(vm, value)?;
+        let value = res_operand_get_val(vm, value)?.to_biguint();
         let result = value.sqrt();
-        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, result)
+        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, Felt252::from(result))
             .map_err(HintError::from)
     }
 
