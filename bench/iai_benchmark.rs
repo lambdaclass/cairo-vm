@@ -1,4 +1,4 @@
-use iai::{black_box, main};
+use iai_callgrind::{black_box, main};
 
 use cairo_vm::{
     types::program::Program,
@@ -12,6 +12,7 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static ALLOC: MiMalloc = MiMalloc;
 
+#[inline(never)]
 fn parse_program() {
     //Picked the biggest one at the time of writing
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
@@ -20,25 +21,39 @@ fn parse_program() {
     let _ = black_box(program);
 }
 
-fn build_many_runners() {
+#[export_name = "helper::parse_program"]
+#[inline(never)]
+fn parse_program_helper() -> Program {
+    //Picked the biggest one at the time of writing
+    let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
+    Program::from_bytes(program.as_slice(), Some("main")).unwrap()
+}
+
+#[inline(never)]
+fn build_runner() {
+    let program = parse_program_helper();
+    let runner = CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap();
+    let _ = black_box(runner);
+}
+
+#[export_name = "helper::build_runner"]
+#[inline(never)]
+fn build_runner_helper() -> (CairoRunner, VirtualMachine) {
     //Picked the biggest one at the time of writing
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
     let program = Program::from_bytes(program.as_slice(), Some("main")).unwrap();
-    for _ in 0..100 {
-        let runner = CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap();
-        let _ = black_box(runner);
-    }
+    let runner = CairoRunner::new(&program, "starknet_with_keccak", false).unwrap();
+    let vm = VirtualMachine::new(false);
+    (runner, vm)
 }
 
+#[inline(never)]
 fn load_program_data() {
-    //Picked the biggest one at the time of writing
-    let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
-    let program = Program::from_bytes(program.as_slice(), Some("main")).unwrap();
-    for _ in 0..100 {
-        let mut runner = CairoRunner::new(&program, "starknet_with_keccak", false).unwrap();
-        let mut vm = VirtualMachine::new(false);
-        _ = black_box(runner.initialize(black_box(&mut vm)).unwrap());
-    }
+    let (mut runner, mut vm) = build_runner_helper();
+    _ = black_box(runner.initialize(black_box(&mut vm)).unwrap());
 }
 
-main!(parse_program, build_many_runners, load_program_data);
+main!(
+    callgrind_args = "toggle-collect=helper::*";
+    functions = parse_program, build_runner, load_program_data
+);

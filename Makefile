@@ -115,6 +115,7 @@ $(cairo-repo-dir):
 	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
 cargo-deps:
+	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
