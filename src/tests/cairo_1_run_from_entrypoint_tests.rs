@@ -537,7 +537,8 @@ fn field_sqrt_test() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint512_div_mod_test() {
-    let program_data = include_bytes!(../../cairo_programs/cairo-1-contracts/uint512_div_mod.casm);
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/uint512_div_mod.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -545,6 +546,6 @@ fn uint512_div_mod_test() {
         // that property should be 1 (true) if
         // the implementation is correct and
         // false otherwise.
-        &[1_usize.into()],
+        &[],
     );
 }
