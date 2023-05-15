@@ -90,8 +90,6 @@ pub(crate) trait FeltOps {
     /// ```
     fn to_biguint(&self) -> BigUint;
 
-    fn sqrt(&self) -> Self;
-
     fn bits(&self) -> u64;
 
     fn prime() -> BigUint;
@@ -228,10 +226,38 @@ impl Felt252 {
         self.value.to_biguint()
     }
     pub fn sqrt(&self) -> Self {
-        Self {
-            value: self.value.sqrt(),
+        // Based on Tonelli-Shanks' algorithm for finding square roots
+        // and sympy's library implementation of said algorithm.
+        if self.is_zero() || self.is_one() {
+            return self.clone();
+        }
+
+        let max_felt = Felt252::max_value();
+        let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
+
+        let a = self.pow(&trailing_prime);
+        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+        let mut m = Felt252::zero();
+        let mut exponent = Felt252::one() << 191_u32;
+        let mut adm;
+        for i in 0..192_u32 {
+            adm = &a * &(&d).pow(&m);
+            adm = (&adm).pow(&exponent);
+            exponent >>= 1;
+            // if adm ≡ -1 (mod CAIRO_PRIME)
+            if adm == max_felt {
+                m += Felt252::one() << i;
+            }
+        }
+        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+        let root_2 = &max_felt - &root_1 + 1_usize;
+        if root_1 < root_2 {
+            root_1
+        } else {
+            root_2
         }
     }
+
     pub fn bits(&self) -> u64 {
         self.value.bits()
     }
@@ -1377,32 +1403,17 @@ mod test {
             prop_assert_eq!(x, &(&one * x));
         }
 
-        // Signedness has ambiguous meaning and currently there's a mismatch between
-        // the implementation and test's interpretations
-        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
-        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
-        #[ignore]
-        fn non_zero_felt_is_always_positive(x in nonzero_felt252()) {
+        fn felt_is_always_positive(x in any::<Felt252>()) {
             prop_assert!(x.is_positive())
         }
 
-        // Signedness has ambiguous meaning and currently there's a mismatch
-        // between the implementation and test's interpretations
-        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
-        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
-        #[ignore]
         fn felt_is_never_negative(x in any::<Felt252>()) {
             prop_assert!(!x.is_negative())
         }
 
-        // Signedness has ambiguous meaning and currently there's a mismatch between
-        // the implementation and test's interpretations
-        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
-        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
-        #[ignore]
         fn non_zero_felt_signum_is_always_one(ref x in nonzero_felt252()) {
             let one = Felt252::one();
             prop_assert_eq!(x.signum(), one)
@@ -1415,12 +1426,7 @@ mod test {
             prop_assert_eq!(x.abs_sub(&y), expected_abs_sub)
         }
 
-        // Signedness has ambiguous meaning and currently there's a mismatch
-        // between the implementation and test's interpretations
-        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
-        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
-        #[ignore]
         fn abs(x in any::<Felt252>()) {
             prop_assert_eq!(&x, &x.abs())
         }
@@ -1443,15 +1449,16 @@ mod test {
             prop_assert!(sqrt < p, "{}", sqrt);
         }
 
-        // There is a known bug in this implementation where the squared root
-        // we compute is that of the underlying integer rather than that of the
-        // field element.
-        // See: https://github.com/lambdaclass/cairo-rs/issues/1076
-        // WIP fix: https://github.com/lambdaclass/cairo-rs/pull/1150
         #[test]
-        #[ignore]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
-            prop_assert_eq!((&x * &x).sqrt(), x);
+            let x_sq = &x * &x;
+            let sqrt = x_sq.sqrt();
+
+            if sqrt != x {
+                prop_assert_eq!(Felt252::max_value() - sqrt + 1_usize, x);
+            } else {
+                prop_assert_eq!(sqrt, x);
+            }
         }
 
         #[test]

@@ -183,7 +183,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn to_signed_felt(&self) -> BigInt {
-        if self.is_negative() {
+        if self.val > *SIGNED_FELT_MAX {
             BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
@@ -196,12 +196,6 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn to_biguint(&self) -> BigUint {
         self.val.clone()
-    }
-
-    fn sqrt(&self) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        FeltBigInt {
-            val: self.val.sqrt(),
-        }
     }
 
     fn bits(&self) -> u64 {
@@ -670,11 +664,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
 impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn abs(&self) -> Self {
-        if self.is_negative() {
-            self.neg()
-        } else {
-            self.clone()
-        }
+        self.clone()
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
@@ -688,15 +678,13 @@ impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn signum(&self) -> Self {
         if self.is_zero() {
             FeltBigInt::zero()
-        } else if self.is_positive() {
-            FeltBigInt::one()
         } else {
-            FeltBigInt::max_value()
+            FeltBigInt::one()
         }
     }
 
     fn is_positive(&self) -> bool {
-        !self.is_zero() && self.val < *SIGNED_FELT_MAX
+        !self.is_zero()
     }
 
     fn is_negative(&self) -> bool {
