@@ -177,6 +177,16 @@ impl Felt252 {
         bytes
     }
 
+    pub fn to_le_digits(&self) -> [u64; 4] {
+        let mut iter = self.iter_u64_digits();
+        [
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+        ]
+    }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_signed_bytes_le()
@@ -185,6 +195,7 @@ impl Felt252 {
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
+
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         Some(Self {
             value: FeltBigInt::parse_bytes(buf, radix)?,
@@ -306,6 +317,74 @@ impl<'a> Add<usize> for &'a Felt252 {
     fn add(self, rhs: usize) -> Self::Output {
         Self::Output {
             value: &self.value + rhs,
+        }
+    }
+}
+
+impl Add<u64> for &Felt252 {
+    type Output = Felt252;
+    fn add(self, rhs: u64) -> Self::Output {
+        Self::Output {
+            value: &self.value + rhs,
+        }
+    }
+}
+
+// This is special cased and optimized compared to the obvious implementation
+// due to `pc_update` relying on this, which makes it a major bottleneck for
+// execution. Testing for this function is extensive, comprised of explicit
+// edge and special cases testing and property tests, all comparing to the
+// more intuitive `(rhs + self).to_u64()` implementation.
+// This particular implementation is much more complex than a slightly more
+// intuitive one based on a single match. However, this is 8-62% faster
+// depending on the case being bencharked, with an average of 32%, so it's
+// worth it.
+impl Add<&Felt252> for u64 {
+    type Output = Option<u64>;
+
+    fn add(self, rhs: &Felt252) -> Option<u64> {
+        const PRIME_DIGITS_LE_HI: (u64, u64, u64) =
+            (0x0000000000000000, 0x0000000000000000, 0x0800000000000011);
+        const PRIME_MINUS_U64_MAX_DIGITS_LE_HI: (u64, u64, u64) =
+            (0xffffffffffffffff, 0xffffffffffffffff, 0x0800000000000010);
+
+        // Iterate through the 64 bits digits in little-endian order to
+        // characterize how the sum will behave.
+        let mut rhs_digits = rhs.iter_u64_digits();
+        // No digits means `rhs` is `0`, so the sum is simply `self`.
+        let Some(low) = rhs_digits.next() else {
+            return Some(self);
+        };
+        // A single digit means this is effectively the sum of two `u64` numbers.
+        let Some(h0) = rhs_digits.next() else {
+            return self.checked_add(low)
+        };
+        // Now we need to compare the 3 most significant digits.
+        // There are two relevant cases from now on, either `rhs` behaves like a
+        // substraction of a `u64` or the result of the sum falls out of range.
+        let (h1, h2) = (rhs_digits.next()?, rhs_digits.next()?);
+        match (h0, h1, h2) {
+            // The 3 MSB only match the prime for Felt252::max_value(), which is -1
+            // in the signed field, so this is equivalent to substracting 1 to `self`.
+            #[allow(clippy::suspicious_arithmetic_impl)]
+            PRIME_DIGITS_LE_HI => self.checked_sub(1),
+            // For the remaining values between `[-u64::MAX..0]` (where `{0, -1}` have
+            // already been covered) the MSB matches that of `PRIME - u64::MAX`.
+            // Because we're in the negative number case, we count down. Because `0`
+            // and `-1` correspond to different MSBs, `0` and `1` in the LSB are less
+            // than `-u64::MAX`, the smallest value we can add to (read, substract it's
+            // magnitude from) a `u64` number, meaning we exclude them from the valid
+            // case.
+            // For the remaining range, we make take the absolute value module-2 while
+            // correcting by substracting `1` (note we actually substract `2` because
+            // the absolute value itself requires substracting `1`.
+            #[allow(clippy::suspicious_arithmetic_impl)]
+            PRIME_MINUS_U64_MAX_DIGITS_LE_HI if low >= 2 => {
+                (self).checked_sub(u64::MAX - (low - 2))
+            }
+            // Any other case will result in an addition that is out of bounds, so
+            // the addition fails, returning `None`.
+            _ => None,
         }
     }
 }
@@ -917,6 +996,8 @@ mod test {
     use super::*;
     use crate::arbitrary::nonzero_felt252;
     use core::cmp;
+    use rstest::rstest;
+
     use proptest::prelude::*;
 
     proptest! {
@@ -945,6 +1026,20 @@ mod test {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_le_bytes(ref x in any::<Felt252>()) {
             let mut bytes = x.to_le_bytes();
+            // Convert to big endian for test
+            bytes.reverse();
+            let y = &Felt252::from_bytes_be(&bytes);
+            prop_assert_eq!(x, y);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn to_le_digits(ref x in any::<Felt252>()) {
+            let digits: [u64; 4] = x.to_le_digits();
+            let mut bytes: Vec<_> = digits
+                .into_iter()
+                .flat_map(|x| x.to_le_bytes())
+                .collect();
             // Convert to big endian for test
             bytes.reverse();
             let y = &Felt252::from_bytes_be(&bytes);
@@ -1367,6 +1462,26 @@ mod test {
         }
 
         #[test]
+        fn add_to_u64(x in any::<u64>(), ref felt in any::<Felt252>()) {
+            let sum = (felt + x).to_u64();
+            prop_assert_eq!(x + felt, sum);
+        }
+
+        #[test]
+        fn add_to_u64_extremes(x in any::<u64>()) {
+            let big_zero = &Felt252::zero();
+            let big_max = &Felt252::max_value();
+            let big_min = &(big_zero + (i64::MIN as usize));
+
+            let sum_max = (big_max + x).to_u64();
+            prop_assert_eq!(x + big_max, sum_max);
+            let sum_min = (big_min + x).to_u64();
+            prop_assert_eq!(x + big_min, sum_min);
+            let sum_zero = (big_zero + x).to_u64();
+            prop_assert_eq!(x + big_zero, sum_zero);
+        }
+
+        #[test]
         fn add_u32_in_range(x in any::<Felt252>(), y in any::<u32>()) {
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             let x_add_y = (x + y).to_biguint();
@@ -1431,6 +1546,16 @@ mod test {
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+    }
+
+    #[rstest]
+    fn add_to_u64_edge_cases(
+        #[values(0, 1, u64::MAX)] x: u64,
+        #[values(-2, -1, 0, 1, 1i128.neg(), i64::MIN as i128, u64::MAX as i128, u64::MAX as i128 + 1, (u64::MAX as i128).neg())]
+        y: i128,
+    ) {
+        let y = Felt252::from(y);
+        assert_eq!(x + &y, (&y + x).to_u64());
     }
 
     #[test]
