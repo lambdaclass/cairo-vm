@@ -98,7 +98,6 @@ impl SignatureBuiltinRunner {
         self.base
     }
 
-    //TODO: keep track of validated addresses here
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
