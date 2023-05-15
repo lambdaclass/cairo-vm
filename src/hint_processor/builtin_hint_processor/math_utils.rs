@@ -66,7 +66,7 @@ pub fn is_nn_out_of_range(
     //Main logic (assert a is not negative and within the expected range)
     //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
     let value = match &range_check_builtin._bound {
-        Some(bound) if Felt252::zero() - (a + 1) < *bound => Felt252::zero(),
+        Some(bound) if Felt252::zero() - (a + 1usize) < *bound => Felt252::zero(),
         None => Felt252::zero(),
         _ => Felt252::one(),
     };
