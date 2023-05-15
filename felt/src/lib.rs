@@ -1356,11 +1356,14 @@ mod test {
 
         #[test]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
-            // In the regular use case the number upon which sqrt is called will always be a felt (aka a numer lower than cairo_prime)
-            // In order to get a number for which we know its root it is not a good enough solution to square the felt (as we might get something bigger than cairo prime)
-            // We can instead use the square root (using the biguint implementation), to guarantee that its square will be inside the felt range
-            let x = Felt252::from(x.to_biguint().sqrt());
-            prop_assert_eq!((&x * &x).sqrt(), x);
+            let x_sq = &x * &x;
+            let sqrt = x_sq.sqrt();
+
+            if sqrt != x {
+                prop_assert_eq!(Felt252::max_value() - sqrt + 1_usize, x);
+            } else {
+                prop_assert_eq!(sqrt, x);
+            }
         }
 
         #[test]
