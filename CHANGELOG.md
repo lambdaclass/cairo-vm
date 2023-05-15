@@ -40,7 +40,7 @@
   * Implement `TryFrom<CasmContractClass> for Program`
   * Add `Cairo1HintProcessor`
 
-* Add `CairoRunner::get_program method` [#1123](https://github.com/lambdaclass/cairo-rs/pull/1123):
+#### [0.4.0] - 2023-05-12
 
 * perf: insert elements from the tail in `load_data` so reallocation happens only once [#1117](https://github.com/lambdaclass/cairo-rs/pull/1117)
 
@@ -193,6 +193,10 @@
     * A program could crash the program by exploiting an integer overflow when attempting to insert a value at an address with offset `usize::MAX`
 
     BREAKING: added a new error variant `MemoryError::VecCapacityExceeded`
+
+* perf: specialize addition for `u64` and `Felt252` [#932](https://github.com/lambdaclass/cairo-rs/pull/932)
+    * Avoids the creation of a new `Felt252` instance for additions with a very restricted valid range
+    * This impacts specially the addition of `Relocatable` with `Felt252` values in `update_pc`, which take a significant amount of time in some benchmarks
 
 * fix(starknet-crypto): bump version to `0.5.0` [#1088](https://github.com/lambdaclass/cairo-rs/pull/1088)
     * This includes the fix for a `panic!` in `ecdsa::verify`.
