@@ -471,6 +471,7 @@ impl VirtualMachine {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
         }
+        self.instruction_cache = inst_cache;
         Ok(())
     }
 
