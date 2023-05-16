@@ -2,7 +2,6 @@
 
 #### Upcoming Changes
 
-* feat: Implement 'Uint512DivMod' hint [#1171](https://github.com/lambdaclass/cairo-rs/pull/1171)
 
 * fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
 
@@ -23,7 +22,7 @@
 
 * Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
+* Add more hints to `Cairo1HintProcessor` [#1171](https://github.com/lambdaclass/cairo-rs/pull/1171)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
@@ -34,6 +33,7 @@
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
         * FieldSqrt
+        * Uint512DivMod
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
