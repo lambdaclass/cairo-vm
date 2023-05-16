@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1683929425180,
+  "lastUpdate": 1684264119327,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102796,6 +102796,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18546952,
             "range": "± 197223",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "88055861+mmsc2@users.noreply.github.com",
+            "name": "mmsc2",
+            "username": "mmsc2"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "92a81f74a4a06636be1a32cb9886d1c9ba793050",
+          "message": "Add Uint512DivMod Hint (#1171)\n\n* Add Uint512DivMod Hint\n\n* Update changelog\n\n* Implement test for hint\n\n* Fix test for hint\n\n* Fix changelog\n\n* Fix changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-16T18:19:05Z",
+          "tree_id": "d6a285d92d75bb8e2a131af5178fe293ee45a8ac",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/92a81f74a4a06636be1a32cb9886d1c9ba793050"
+        },
+        "date": 1684264112119,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29213,
+            "range": "± 76214",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 70627,
+            "range": "± 7135",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23029156,
+            "range": "± 91784",
             "unit": "ns/iter"
           }
         ]
