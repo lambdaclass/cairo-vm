@@ -23,6 +23,7 @@
 * Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
 
 * Add more hints to `Cairo1HintProcessor` [#1171](https://github.com/lambdaclass/cairo-rs/pull/1171)
+                                          [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
