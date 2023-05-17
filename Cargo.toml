@@ -83,8 +83,8 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.4.0", default-fea
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = { git = "https://github.com/starkware-libs/cairo.git", rev = "44fdeb26231f5022f2441bf89018272460c4e326", optional = true}
-cairo-lang-casm = { git = "https://github.com/starkware-libs/cairo.git", rev = "44fdeb26231f5022f2441bf89018272460c4e326", optional = true }
+cairo-lang-starknet = { git = "https://github.com/starkware-libs/cairo.git", rev = "4afacfd574de1121d61dea28f8c73e1516c7e07d", optional = true}
+cairo-lang-casm = { git = "https://github.com/starkware-libs/cairo.git", rev = "4afacfd574de1121d61dea28f8c73e1516c7e07d", optional = true }
 
 # TODO: check these dependencies for wasm compatibility
 ark-ff = {version = "0.4.0-alpha.7", default-features = false, optional = true}
@@ -98,7 +98,7 @@ rstest = { version = "0.17.0", default-features = false }
 wasm-bindgen-test = "0.3.34"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-iai = "0.1"
+iai-callgrind = "0.3.1"
 rusty-hook = "0.11"
 criterion = { version = "0.3", features = ["html_reports"] }
 proptest = "1.0.0"
