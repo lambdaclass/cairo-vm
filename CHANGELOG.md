@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+* feat: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
 
 * fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
 
