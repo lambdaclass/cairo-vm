@@ -54,12 +54,12 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 /// Maintains the resources of a cairo run. Can be used across multiple runners.
 #[allow(dead_code)]
 pub(crate) struct RunResources {
-    n_steps: Option<u64>,
+    n_steps: Option<usize>,
 }
 
 #[allow(dead_code)]
 impl RunResources {
-    pub fn new(n_steps: u64) -> Self {
+    pub fn new(n_steps: usize) -> Self {
         RunResources {
             n_steps: Some(n_steps),
         }
@@ -67,7 +67,7 @@ impl RunResources {
 
     pub fn consumed(&self) -> bool {
         match self.n_steps {
-            Some(n) => n <= 0,
+            Some(n) => n == 0,
             None => false,
         }
     }
