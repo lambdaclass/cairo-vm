@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684264119327,
+  "lastUpdate": 1684492626813,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102892,6 +102892,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23029156,
             "range": "± 91784",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c4afc6685af00628b34d9e59771ada3c68dece6b",
+          "message": "Update README.md (#1172)\n\n* Update instructions in readme with new binary name\n\n* Fix name + add link\n\n* Run linter",
+          "timestamp": "2023-05-19T10:05:38Z",
+          "tree_id": "ad421cf1b23054a4e98620e0689cfceb3a6bc8f0",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c4afc6685af00628b34d9e59771ada3c68dece6b"
+        },
+        "date": 1684492619569,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29064,
+            "range": "± 52",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 70559,
+            "range": "± 1115",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22716026,
+            "range": "± 172948",
             "unit": "ns/iter"
           }
         ]
