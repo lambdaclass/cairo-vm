@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1684492626813,
+  "lastUpdate": 1684548166009,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -102988,6 +102988,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22716026,
             "range": "± 172948",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "omerfirmak@gmail.com",
+            "name": "Ömer Faruk Irmak",
+            "username": "omerfirmak"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e173ec963d24d7a7199c4f5eebe04bf0c674f8a7",
+          "message": "Make felt_from_number report errors properly (#1012)\n\ninstead of returning Ok(None) in case of an error\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>",
+          "timestamp": "2023-05-20T01:30:53Z",
+          "tree_id": "48d70d15988026ba0ad485a8672f3fe6503c484c",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e173ec963d24d7a7199c4f5eebe04bf0c674f8a7"
+        },
+        "date": 1684548160344,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24249,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 61052,
+            "range": "± 533",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18863636,
+            "range": "± 97922",
             "unit": "ns/iter"
           }
         ]
