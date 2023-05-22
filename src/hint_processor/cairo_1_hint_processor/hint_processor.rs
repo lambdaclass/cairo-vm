@@ -22,7 +22,7 @@ use cairo_lang_casm::{
     operand::{CellRef, ResOperand},
 };
 use core::any::Any;
-use core::ops::Mul;
+
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
@@ -418,47 +418,50 @@ impl Cairo1HintProcessor {
         remainder_low: &CellRef,
         remainder_high: &CellRef,
     ) -> Result<(), HintError> {
-        let pow_2_128 = Felt252::from(u128::MAX) + 1u32;
-        let pow_2_64 = Felt252::from(u64::MAX) + 1u32;
-        let dividend_low = res_operand_get_val(vm, dividend_low)?;
-        let dividend_high = res_operand_get_val(vm, dividend_high)?;
-        let divisor_low = res_operand_get_val(vm, divisor_low)?;
-        let divisor_high = res_operand_get_val(vm, divisor_high)?;
-        let dividend = dividend_low + dividend_high.mul(pow_2_128.clone());
-        let divisor = divisor_low + (&divisor_high * &pow_2_128);
-        let quotient = &dividend / &divisor;
+        let pow_2_128 = BigUint::from(u128::MAX) + 1u32;
+        let pow_2_64 = BigUint::from(u64::MAX) + 1u32;
+        let dividend_low = res_operand_get_val(vm, dividend_low)?.to_biguint();
+        let dividend_high = res_operand_get_val(vm, dividend_high)?.to_biguint();
+        let divisor_low = res_operand_get_val(vm, divisor_low)?.to_biguint();
+        let divisor_high = res_operand_get_val(vm, divisor_high)?.to_biguint();
+        let dividend = dividend_low + dividend_high * pow_2_128.clone();
+        let divisor = divisor_low + divisor_high.clone() * pow_2_128.clone();
+        let quotient = dividend.clone() / divisor.clone();
         let remainder = dividend % divisor.clone();
 
         // Guess quotient limbs.
         let (quotient, limb) = quotient.div_rem(&pow_2_64);
-        vm.insert_value(cell_ref_to_relocatable(quotient0, vm)?, limb)?;
+        vm.insert_value(cell_ref_to_relocatable(quotient0, vm)?, Felt252::from(limb))?;
         let (quotient, limb) = quotient.div_rem(&pow_2_64);
-        vm.insert_value(cell_ref_to_relocatable(quotient1, vm)?, limb)?;
+        vm.insert_value(cell_ref_to_relocatable(quotient1, vm)?, Felt252::from(limb))?;
         let (quotient, limb) = quotient.div_rem(&pow_2_64);
         if divisor_high.is_zero() {
-            vm.insert_value(cell_ref_to_relocatable(extra0, vm)?, limb)?;
-            vm.insert_value(cell_ref_to_relocatable(extra1, vm)?, quotient)?;
+            vm.insert_value(cell_ref_to_relocatable(extra0, vm)?, Felt252::from(limb))?;
+            vm.insert_value(
+                cell_ref_to_relocatable(extra1, vm)?,
+                Felt252::from(quotient),
+            )?;
         }
 
         // Guess divisor limbs.
         let (divisor, limb) = divisor.div_rem(&pow_2_64);
-        vm.insert_value(cell_ref_to_relocatable(divisor0, vm)?, limb)?;
+        vm.insert_value(cell_ref_to_relocatable(divisor0, vm)?, Felt252::from(limb))?;
         let (divisor, limb) = divisor.div_rem(&pow_2_64);
-        vm.insert_value(cell_ref_to_relocatable(divisor1, vm)?, limb)?;
+        vm.insert_value(cell_ref_to_relocatable(divisor1, vm)?, Felt252::from(limb))?;
         let (divisor, limb) = divisor.div_rem(&pow_2_64);
         if !divisor_high.is_zero() {
-            vm.insert_value(cell_ref_to_relocatable(extra0, vm)?, limb)?;
-            vm.insert_value(cell_ref_to_relocatable(extra1, vm)?, divisor)?;
+            vm.insert_value(cell_ref_to_relocatable(extra0, vm)?, Felt252::from(limb))?;
+            vm.insert_value(cell_ref_to_relocatable(extra1, vm)?, Felt252::from(divisor))?;
         }
 
         // Guess remainder limbs.
         vm.insert_value(
             cell_ref_to_relocatable(remainder_low, vm)?,
-            remainder.clone() % pow_2_128.clone(),
+            Felt252::from(remainder.clone() % pow_2_128.clone()),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(remainder_high, vm)?,
-            remainder / pow_2_128,
+            Felt252::from(remainder / pow_2_128),
         )?;
         Ok(())
     }
