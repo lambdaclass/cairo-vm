@@ -59,6 +59,7 @@ pub fn cairo_run(
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
+    // check step calculation
     let mut run_resources = Some(RunResources::new(None));
 
     cairo_runner
