@@ -4,6 +4,8 @@
 
 * feat: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
 
+* fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
+
 * fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
 
   * BREAKING: Fix `Felt252` methods `abs`, `signum`, `is_positive`, `is_negative` and `sqrt`
