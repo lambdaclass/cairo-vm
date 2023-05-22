@@ -4138,7 +4138,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
@@ -4163,7 +4163,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);
@@ -4252,7 +4252,12 @@ mod tests {
                 .unwrap();
 
             assert!(cairo_runner
-                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
+                .run_until_pc(
+                    end,
+                    &mut None,
+                    &mut virtual_machine_from_builder,
+                    &mut hint_processor
+                )
                 .is_err());
         }
     }

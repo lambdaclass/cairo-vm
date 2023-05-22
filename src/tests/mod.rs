@@ -186,6 +186,7 @@ pub(self) fn run_cairo_1_entrypoint(
         .run_from_entrypoint(
             entrypoint_offset,
             &entrypoint_args,
+            &mut None,
             true,
             Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
             &mut vm,

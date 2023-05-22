@@ -387,7 +387,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(
