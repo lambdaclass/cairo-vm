@@ -6,6 +6,7 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
+    utils::RunResources,
     vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
 };
 
@@ -516,20 +517,28 @@ impl CairoRunner {
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
+        run_resources: &mut Option<RunResources>,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
         #[cfg(feature = "hooks")]
-        vm.execute_before_first_step(self, &hint_data_dictionary)?;
-        while vm.run_context.pc != address {
+        vm.execute_before
+            .unwrap()
+            ._first_step(self, &hint_data_dictionary)?;
+
+        while vm.run_context.pc != address
+            && run_resources.as_mut().map(|r| r.consumed()).unwrap_or(true)
+        {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
+            run_resources.as_mut().map(|r| r.consume_steps());
         }
         Ok(())
     }
@@ -883,6 +892,7 @@ impl CairoRunner {
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
+        run_resources: &mut Option<RunResources>,
         verify_secure: bool,
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
@@ -897,7 +907,7 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)
+        self.run_until_pc(end, run_resources, vm, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 

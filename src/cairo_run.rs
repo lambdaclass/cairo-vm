@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::program::Program,
+    utils::RunResources,
     vm::{
         errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
         runners::cairo_runner::CairoRunner,
@@ -55,11 +56,13 @@ pub fn cairo_run(
         cairo_run_config.layout,
         cairo_run_config.proof_mode,
     )?;
+
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
+    let mut run_resources = Some(RunResources::new(None));
 
     cairo_runner
-        .run_until_pc(end, &mut vm, hint_executor)
+        .run_until_pc(end, &mut run_resources, &mut vm, hint_executor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
