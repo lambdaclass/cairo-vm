@@ -528,7 +528,11 @@ impl CairoRunner {
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
 
         while vm.run_context.pc != address
-            && run_resources.as_mut().map(|r| r.consumed()).unwrap_or(true)
+            && if let Some(r) = run_resources.as_mut() {
+                r.consumed()
+            } else {
+                true
+            }
         {
             vm.step(
                 hint_processor,
@@ -536,7 +540,9 @@ impl CairoRunner {
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
-            run_resources.as_mut().map(|r| r.consume_steps());
+            if let Some(r) = run_resources.as_mut() {
+                r.consume_steps()
+            };
         }
         Ok(())
     }
@@ -886,6 +892,7 @@ impl CairoRunner {
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
+    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,

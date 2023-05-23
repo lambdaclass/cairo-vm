@@ -68,7 +68,7 @@ impl RunResources {
     }
 
     pub fn consume_steps(&mut self) {
-        self.n_steps = self.n_steps - 1;
+        self.n_steps -= 1;
     }
 }
 
