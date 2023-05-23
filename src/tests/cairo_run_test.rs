@@ -1,4 +1,20 @@
-use crate::tests::*;
+use std::collections::HashMap;
+
+use felt::{felt_str, Felt252};
+use serde::Deserialize;
+
+use crate::{
+    serde::deserialize_program::{parse_program_json, ProgramJson},
+    tests::*,
+    types::relocatable::MaybeRelocatable,
+    vm::{
+        runners::{
+            builtin_runner::BuiltinRunner,
+            cairo_runner::{CairoArg, CairoRunner},
+        },
+        vm_core::VirtualMachine,
+    },
+};
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -966,4 +982,79 @@ fn cairo_run_sha256_test() {
 fn cairo_run_reduce() {
     let program_data = include_bytes!("../../cairo_programs/reduce.json");
     run_program_simple(program_data.as_slice());
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ParsedContractClass {
+    pub program: ProgramJson,
+    pub entry_points_by_type: serde_json::Value,
+    pub abi: Option<serde_json::Value>,
+}
+
+#[test]
+fn test_problematic_program() {
+    let problematic_program_data = include_bytes!("../problematic_program.json");
+    let contract_class: ParsedContractClass =
+        serde_json::from_slice(problematic_program_data).unwrap();
+    let problematic_program = parse_program_json(contract_class.program, None).unwrap();
+    let mut runner = CairoRunner::new(&problematic_program, "all_cairo", false).unwrap();
+    let mut vm = VirtualMachine::new(false);
+    runner.initialize_function_runner(&mut vm).unwrap();
+    // let entrypoint = problematic_program
+    //     .get_identifier("__main__.is_valid_signature")
+    //     .unwrap()
+    //     .pc
+    //     .unwrap();
+    let entrypoint = 7204; // Entrypoint that matches abi index in external entrypoints
+
+    let syscall_segment = vm.add_memory_segment();
+    let mut os_context = [syscall_segment.into()].to_vec();
+    let builtin_runners = vm
+        .get_builtin_runners()
+        .iter()
+        .map(|runner| (runner.name(), runner))
+        .collect::<HashMap<&str, &BuiltinRunner>>();
+
+    runner.get_program_builtins().iter().for_each(|builtin| {
+        if builtin_runners.contains_key(builtin.name()) {
+            let b_runner = builtin_runners.get(builtin.name()).unwrap();
+            let stack = b_runner.initial_stack();
+            os_context.extend(stack);
+        }
+    });
+
+    let calldata: Vec<MaybeRelocatable> = vec![
+        // hash
+        felt_str!("3039640338767575878239125401072692337584097582160599453112814504270931278702")
+            .into(),
+        // signature_len
+        Felt252::from(5).into(),
+        // signature
+        Felt252::from(3).into(),
+        felt_str!("300458288207685800255561459137721209343").into(),
+        felt_str!("128637483687257112813200698394773177837").into(),
+        felt_str!("42902209921600686545297597248798952022").into(),
+        felt_str!("132268468879586608580348665843412477867").into(),
+    ];
+    let alloc_pointer = vm.add_memory_segment();
+    vm.load_data(alloc_pointer, &calldata).unwrap();
+    let args = [
+        //selector
+        &CairoArg::Single(
+            felt_str!(
+                "1138073982574099226972715907883430523600275391887289231447128254784345409857"
+            )
+            .into(),
+        ),
+        //os_context
+        &CairoArg::Array(os_context.clone()),
+        //calldata_len
+        &CairoArg::Single(MaybeRelocatable::Int(calldata.len().into())),
+        //calldata ptr
+        &CairoArg::Single(alloc_pointer.into()),
+    ];
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    runner
+        .run_from_entrypoint(entrypoint, &args, true, None, &mut vm, &mut hint_processor)
+        .unwrap();
 }
