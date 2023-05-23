@@ -47,31 +47,28 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
         (relocatable.segment_index as usize, relocatable.offset)
     }
 }
+
 // ================
 //   RunResources
 // ================
 
 /// Maintains the resources of a cairo run. Can be used across multiple runners.
-#[allow(dead_code)]
+
 pub struct RunResources {
-    n_steps: Option<usize>,
+    n_steps: usize,
 }
 
-#[allow(dead_code)]
 impl RunResources {
-    pub fn new(n_steps: Option<usize>) -> Self {
+    pub fn new(n_steps: usize) -> Self {
         RunResources { n_steps }
     }
 
     pub fn consumed(&self) -> bool {
-        match self.n_steps {
-            Some(n) => n == 0,
-            None => false,
-        }
+        self.n_steps == 0
     }
 
     pub fn consume_steps(&mut self) {
-        self.n_steps.map(|n| n - 1);
+        self.n_steps = self.n_steps - 1;
     }
 }
 

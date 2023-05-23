@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
+* BREAKING: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
 
