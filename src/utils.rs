@@ -53,7 +53,7 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 // ================
 
 /// Maintains the resources of a cairo run. Can be used across multiple runners.
-
+#[derive(Clone)]
 pub struct RunResources {
     n_steps: usize,
 }
