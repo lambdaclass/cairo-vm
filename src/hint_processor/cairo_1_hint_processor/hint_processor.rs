@@ -424,10 +424,10 @@ impl Cairo1HintProcessor {
         let dividend_high = res_operand_get_val(vm, dividend_high)?.to_biguint();
         let divisor_low = res_operand_get_val(vm, divisor_low)?.to_biguint();
         let divisor_high = res_operand_get_val(vm, divisor_high)?.to_biguint();
-        let dividend = dividend_low + dividend_high * pow_2_128;
-        let divisor = divisor_low + divisor_high * pow_2_128;
-        let quotient = dividend / divisor;
-        let remainder = dividend % divisor;
+        let dividend = dividend_low + dividend_high * &pow_2_128;
+        let divisor = divisor_low + &divisor_high * &pow_2_128;
+        let quotient = &dividend / &divisor;
+        let remainder = dividend % &divisor;
 
         // Guess quotient limbs.
         let (quotient, limb) = quotient.div_rem(&pow_2_64);
@@ -457,7 +457,7 @@ impl Cairo1HintProcessor {
         // Guess remainder limbs.
         vm.insert_value(
             cell_ref_to_relocatable(remainder_low, vm)?,
-            Felt252::from(remainder % pow_2_128),
+            Felt252::from(remainder.clone() % pow_2_128.clone()),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(remainder_high, vm)?,
