@@ -1000,13 +1000,7 @@ fn test_problematic_program() {
     let mut runner = CairoRunner::new(&problematic_program, "all_cairo", false).unwrap();
     let mut vm = VirtualMachine::new(false);
     runner.initialize_function_runner(&mut vm).unwrap();
-    // let entrypoint = problematic_program
-    //     .get_identifier("__main__.is_valid_signature")
-    //     .unwrap()
-    //     .pc
-    //     .unwrap();
-    let entrypoint = 7204; // Entrypoint that matches abi index in external entrypoints
-
+    let entrypoint = 7428;
     let syscall_segment = vm.add_memory_segment();
     let mut os_context = [syscall_segment.into()].to_vec();
     let builtin_runners = vm
