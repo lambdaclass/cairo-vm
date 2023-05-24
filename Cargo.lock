@@ -275,8 +275,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits 0.2.15",
- "proptest",
- "rstest",
  "serde",
 ]
 
@@ -289,6 +287,7 @@ dependencies = [
  "num-integer",
  "num-traits 0.2.15",
  "proptest",
+ "rstest",
  "serde",
 ]
 

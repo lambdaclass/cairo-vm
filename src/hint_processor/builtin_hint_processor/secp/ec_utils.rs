@@ -307,6 +307,33 @@ pub fn ec_double_assign_new_x(
     Ok(())
 }
 
+pub fn ec_double_assign_new_x_v2(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    point_alias: &str,
+) -> Result<(), HintError> {
+    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
+    //ids.slope
+    let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
+    //ids.point
+    let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
+
+    let slope = slope.pack86().mod_floor(&secp_p);
+    let x = point.x.pack86().mod_floor(&secp_p);
+    let y = point.y.pack86().mod_floor(&secp_p);
+
+    let value = (slope.pow(2) - (&x << 1u32)).mod_floor(&secp_p);
+
+    //Assign variables to vm scope
+    exec_scopes.insert_value("slope", slope);
+    exec_scopes.insert_value("x", x);
+    exec_scopes.insert_value("y", y);
+    exec_scopes.insert_value("value", value.clone());
+    exec_scopes.insert_value("new_x", value);
+    Ok(())
+}
 /*
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
