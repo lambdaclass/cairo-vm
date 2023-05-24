@@ -528,10 +528,10 @@ impl CairoRunner {
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
 
         while vm.run_context.pc != address
-            && if let Some(r) = run_resources.as_mut() {
+            && !if let Some(r) = run_resources.as_ref() {
                 r.consumed()
             } else {
-                true
+                false
             }
         {
             vm.step(
