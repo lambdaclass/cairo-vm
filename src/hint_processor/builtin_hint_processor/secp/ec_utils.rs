@@ -161,9 +161,15 @@ pub fn compute_doubling_slope_external_consts(
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
     let alpha: BigInt = exec_scopes.get("ALPHA")?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p);
+    let x = point.x.pack86();
+    let y = point.y.pack86();
+
+    let value = ec_double_slope(&(x.clone(), y.clone()), &alpha, &secp_p);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
+    exec_scopes.insert_value("x", x);
+    exec_scopes.insert_value("y", y);
+
     Ok(())
 }
 
@@ -201,6 +207,16 @@ pub fn compute_slope_and_assing_secp_p(
     )
 }
 
+// from starkware.cairo.common.cairo_secp.secp_utils import pack
+// from starkware.python.math_utils import line_slope
+
+// # Compute the slope.
+// x0 = pack(ids.point0.x, PRIME)
+// y0 = pack(ids.point0.y, PRIME)
+// x1 = pack(ids.point1.x, PRIME)
+// y1 = pack(ids.point1.y, PRIME)
+// value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)
+
 pub fn compute_slope(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -216,13 +232,22 @@ pub fn compute_slope(
 
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
 
+    let x0 = point0.x.pack86();
+    let y0 = point0.y.pack86();
+    let x1 = point1.x.pack86();
+    let y1 = point1.y.pack86();
+
     let value = line_slope(
-        &(point0.x.pack86(), point0.y.pack86()),
-        &(point1.x.pack86(), point1.y.pack86()),
+        &(x0.clone(), y0.clone()),
+        &(x1.clone(), y1.clone()),
         &secp_p,
     );
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
+    exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("y0", y0);
+    exec_scopes.insert_value("x1", x1);
+    exec_scopes.insert_value("y1", y1);
     Ok(())
 }
 

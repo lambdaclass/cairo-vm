@@ -548,6 +548,7 @@ pub fn unsigned_div_rem(
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
     vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -560,6 +561,7 @@ pub fn assert_250_bit(
     if value.as_ref() > &upper_bound {
         return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
+    exec_scopes.insert_value("value", value.as_ref().to_bigint());
     let (high, low) = value.div_rem(&shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)

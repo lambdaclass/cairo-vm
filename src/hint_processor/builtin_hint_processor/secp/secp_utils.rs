@@ -186,6 +186,16 @@ mod tests {
     }
 
     #[test]
+    fn test_bigint_3_split_error() {
+        let x = bigint3_split(
+            &bigint_str!("1119872371349642743274906544193708318430281980428994863311179430556688790526268357325142683275677076512")
+                .to_biguint()
+                .expect("Couldn't convert to BigUint"),
+        );
+
+        assert!(x.is_err());
+    }
+    #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
         let pack_1 = bigint3_pack(Uint384 {
