@@ -475,12 +475,32 @@ Implements hint:
     )
 %}
 */
+// Sound but slower solution
 pub fn quad_bit(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    n_pair_bits(vm, ids_data, ap_tracking, "quad_bit", 2)
+    let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
+    let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
+    let m_cow = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
+
+    let scalar_v = scalar_v_cow.as_ref();
+    let scalar_u = scalar_u_cow.as_ref();
+
+    // If m is too high the shift result will always be zero
+    let m = m_cow.as_ref().to_u32().unwrap_or(253);
+    if m >= 253 {
+        return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+    }
+
+    let one = &Felt252::one();
+    let res = Felt252::from(8) * ((scalar_v >> m) & one)
+        + Felt252::from(4) * ((scalar_u >> m) & one)
+        + Felt252::from(2) * ((scalar_v >> m) & one)
+        + ((scalar_u >> m) & one);
+
+    insert_value_from_var_name("quad_bit", res, vm, ids_data, ap_tracking)
 }
 
 /*
