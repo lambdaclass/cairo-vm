@@ -534,9 +534,9 @@ impl CairoRunner {
         Ok(())
     }
 
-    // TODO: Add documentation
-    // Add integration test
-    // Check unit test
+    /// Runs the self.program until it completes execution or reaches the steps_limit.
+    /// If the execution reaches the steps_limit without completing the execution
+    /// returns an error
     pub fn run_until_pc_with_steps_limit(
         &mut self,
         address: Relocatable,
