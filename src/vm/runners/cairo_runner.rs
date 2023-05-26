@@ -540,9 +540,9 @@ impl CairoRunner {
     pub fn run_until_pc_with_steps_limit(
         &mut self,
         address: Relocatable,
+        steps_limit: u64,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
-        steps_limit: u64,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
@@ -4903,25 +4903,25 @@ mod tests {
         // program takes 80 steps
         assert_matches!(
         runner
-            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
             Err(VirtualMachineError::StepsLimit(x)) if x == 20
         );
         assert_matches!(
         runner
-            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
             Err(VirtualMachineError::StepsLimit(x)) if x == 20
         );
         assert_matches!(
         runner
-            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
             Err(VirtualMachineError::StepsLimit(x)) if x == 20
         );
         assert_matches!(
             runner.run_until_pc_with_steps_limit(
                 end,
+                20,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
-                20
             ),
             Ok(())
         );
@@ -4929,9 +4929,9 @@ mod tests {
         assert_matches!(
             runner.run_until_pc_with_steps_limit(
                 end,
+                0,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
-                0
             ),
             Ok(())
         );
@@ -4952,7 +4952,7 @@ mod tests {
         // program takes 80 steps
         assert_matches!(
         runner
-            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),0),
+            .run_until_pc_with_steps_limit(end, 0, &mut vm, &mut BuiltinHintProcessor::new_empty()),
             Err(VirtualMachineError::StepsLimit(x)) if x == 0
         )
     }
@@ -4972,7 +4972,7 @@ mod tests {
         // program takes 80 steps
         assert_matches!(
         runner
-            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),79),
+            .run_until_pc_with_steps_limit(end, 79, &mut vm, &mut BuiltinHintProcessor::new_empty()),
             Err(VirtualMachineError::StepsLimit(x)) if x == 79
         )
     }
@@ -4993,9 +4993,9 @@ mod tests {
         assert_matches!(
             runner.run_until_pc_with_steps_limit(
                 end,
+                80,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
-                80
             ),
             Ok(())
         )
