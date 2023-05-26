@@ -4890,80 +4890,114 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    /*Program used:
-    %builtins range_check
-
-    func check_range{range_check_ptr}(num):
-        # Check that 0 <= num < 2**64.
-        [range_check_ptr] = num
-        assert [range_check_ptr + 1] = 2 ** 64 - 1 - num
-        let range_check_ptr = range_check_ptr + 2
-        return()
-    end
-
-    func main{range_check_ptr}():
-        check_range(7)
-        return()
-    end
-
-    main = 8
-    data = [4612671182993129469, 5189976364521848832, 18446744073709551615, 5199546496550207487, 4612389712311386111, 5198983563776393216, 2, 2345108766317314046, 5191102247248822272, 5189976364521848832, 7, 1226245742482522112, 3618502788666131213697322783095070105623107215331596699973092056135872020470, 2345108766317314046]
-    */
     fn test_run_until_pc_with_steps_limit() {
-        let program = program!(
-            builtins = vec![BuiltinName::range_check],
-            data = vec_data!(
-                (4612671182993129469_i64),
-                (5189976364521848832_i64),
-                (18446744073709551615_i128),
-                (5199546496550207487_i64),
-                (4612389712311386111_i64),
-                (5198983563776393216_i64),
-                (2),
-                (2345108766317314046_i64),
-                (5191102247248822272_i64),
-                (5189976364521848832_i64),
-                (7),
-                (1226245742482522112_i64),
-                ((
-                    "3618502788666131213697322783095070105623107215331596699973092056135872020470",
-                    10
-                )),
-                (2345108766317314046_i64)
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),20),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+            runner.run_until_pc_with_steps_limit(
+                end,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+                20
             ),
-            main = Some(8),
-        );
-
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(&program);
-
-        let mut vm = vm!(true);
-        cairo_runner.initialize_builtins(&mut vm).unwrap();
-        cairo_runner.initialize_segments(&mut vm, None);
-
-        let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
-        cairo_runner.initialize_vm(&mut vm).unwrap();
-
-        // Full takes 10 steps.
-
-        assert_matches!(
-            cairo_runner.run_until_pc_with_steps_limit(end, &mut vm, &mut hint_processor, 1),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 1
-        );
-
-        assert_matches!(
-            cairo_runner.run_until_pc_with_steps_limit(end, &mut vm, &mut hint_processor, 9),
             Ok(())
         );
 
         assert_matches!(
-            cairo_runner.run_until_pc_with_steps_limit(end, &mut vm, &mut hint_processor, 0),
+            runner.run_until_pc_with_steps_limit(
+                end,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+                0
+            ),
             Ok(())
         );
+    }
 
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_error() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
         assert_matches!(
-            cairo_runner.run_until_pc_with_steps_limit(end, &mut vm, &mut hint_processor, 1),
+        runner
+            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),0),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 0
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_error_2() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),79),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 79
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_ok() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc_with_steps_limit(
+                end,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+                80
+            ),
             Ok(())
-        );
+        )
     }
 }
