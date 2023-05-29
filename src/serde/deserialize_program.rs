@@ -169,28 +169,29 @@ where
         Some(x) => Ok(Some(x)),
         None => {
             // Handle de Number with scientific notation cases
-            // e.g.: Number(1e27)
-            let str = n.to_string();
-            let list: [&str; 2] = str
-                .split('e')
-                .collect::<Vec<&str>>()
-                .try_into()
-                .map_err(|_| String::from("felt_from_number parse error"))
-                .map_err(de::Error::custom)?;
+            // e.g.: n = Number(1e27)
+            let felt = deserialize_scientific_notation(n);
+            if felt.is_some() {
+                return Ok(felt);
+            }
 
-            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10).ok_or(
-                de::Error::custom(String::from("felt_from_number parse error")),
-            )?;
-            let exponent = list[1]
-                .parse::<u32>()
-                .map_err(|_| de::Error::custom(String::from("felt_from_number parse error")))?;
-
-            let result = base * Felt252::from(10).pow(exponent);
-            Ok(Some(result))
+            Err(de::Error::custom(String::from(
+                "felt_from_number parse error",
+            )))
         }
     }
 }
 
+fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
+    let str = n.to_string();
+    let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
+
+    let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+    let exponent = list[1].parse::<u32>().ok()?;
+
+    let result = base * Felt252::from(10).pow(exponent);
+    Some(result)
+}
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
