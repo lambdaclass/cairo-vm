@@ -109,13 +109,8 @@ impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
         value.into()
     }
-    pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
-        Self {
-            value: self.value.modpow(&exponent.value, &modulus.value),
-        }
-    }
-    pub fn iter_u64_digits(&self) -> U64Digits {
-        self.value.iter_u64_digits()
+    pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
+        self.value.representative().limbs.into_iter()
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
@@ -146,15 +141,9 @@ impl Felt252 {
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
-
-    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        Some(Self {
-            value: FieldElement::<Stark252PrimeField>::FeltBigInt::parse_bytes(buf, radix)?,
-        })
-    }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
-            value: FieldElement::<Stark252PrimeField>::from_bytes_be(bytes).unwrap(),
+            value: FieldElement::from_bytes_be(bytes).unwrap(),
         }
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
