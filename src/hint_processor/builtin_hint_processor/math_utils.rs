@@ -1897,6 +1897,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_valid() {
         let hint_code = hint_code::ASSERT_250_BITS;
+        let constants = HashMap::from([
+            ("UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("SHIFT".to_string(), Felt252::from(5)),
+        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1905,7 +1909,10 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
         check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
