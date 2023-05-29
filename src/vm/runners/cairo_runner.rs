@@ -514,6 +514,14 @@ impl CairoRunner {
         &self.program.builtins
     }
 
+    fn consumed(&self, run_resources: &mut Option<RunResources>) -> bool {
+        if let Some(r) = run_resources.as_ref() {
+            r.consumed()
+        } else {
+            false
+        }
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -527,13 +535,7 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
 
-        while vm.run_context.pc != address
-            && !if let Some(r) = run_resources.as_ref() {
-                r.consumed()
-            } else {
-                false
-            }
-        {
+        while vm.run_context.pc != address && !self.consumed(run_resources) {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
