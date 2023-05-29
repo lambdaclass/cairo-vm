@@ -487,6 +487,9 @@ pub fn n_pair_bits(
     if m >= 253 {
         return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
     }
+    if m.is_zero() {
+        return Err(HintError::NPairBitsMZero);
+    }
 
     let one = &Felt252::one();
     let two = &Felt252::from(2);
@@ -1279,6 +1282,29 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 2)];
+    }
+
+    #[test]
+    fn run_di_bit_m_zero() {
+        let hint_code = hint_code::DI_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 0b10101111001110000;
+        let scalar_v = 0b101101000111011111100;
+        let m = 0;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "dibit"];
+
+        // Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::NPairBitsMZero)
+        );
     }
 
     #[test]
