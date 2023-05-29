@@ -165,7 +165,10 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    Ok(Felt252::parse_bytes(n.to_string().as_bytes(), 10))
+    match Felt252::parse_bytes(n.to_string().as_bytes(), 10) {
+        Some(x) => Ok(Some(x)),
+        None => Err(String::from("felt_from_number parse error")).map_err(de::Error::custom),
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -1347,5 +1350,17 @@ mod tests {
                 .expect("key not found"),
             "()"
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_nonbase10_number_errors() {
+        let valid_json = r#"
+        {
+            "value" : 0x123
+        }"#;
+
+        let iden: Result<Identifier, serde_json::Error> = serde_json::from_str(valid_json);
+        assert!(iden.err().is_some());
     }
 }

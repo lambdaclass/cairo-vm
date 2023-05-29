@@ -23,15 +23,24 @@ fn dict_hint_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn test_uint256_div_mod_hint_max_value() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+
+    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_uint256_div_mod_hint() {
     let program_data =
         include_bytes!("../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
 
     run_cairo_1_entrypoint(
         program_data.as_slice(),
-        0,
-        &[8_usize.into(), 2_usize.into()],
-        &[Felt252::from(4_usize)],
+        118,
+        &[36_usize.into(), 2_usize.into()],
+        &[Felt252::from(18_usize)],
     );
 }
 
@@ -533,4 +542,19 @@ fn widelmul128_test() {
 fn field_sqrt_test() {
     let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/field_sqrt.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[10.into()]);
+}
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn uint512_div_mod_test() {
+    let program_data =
+        include_bytes!("../../cairo_programs/cairo-1-contracts/uint512_div_mod.casm");
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[],
+        // that property should be 1 (true) if
+        // the implementation is correct and
+        // false otherwise.
+        &[],
+    );
 }
