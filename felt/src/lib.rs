@@ -10,11 +10,6 @@ mod bigint_felt;
 pub mod arbitrary;
 
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
-use num_bigint::{BigInt, BigUint, U64Digits};
-use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::{Deserialize, Serialize};
-
 use core::{
     convert::Into,
     fmt,
@@ -24,6 +19,16 @@ use core::{
         Sub, SubAssign,
     },
 };
+use lambdaworks_math::{
+    field::{
+        element::FieldElement, fields::fft_friendly::stark_252_prime_field::Stark252PrimeField,
+    },
+    traits::ByteConversion,
+};
+use num_bigint::{BigInt, BigUint, Sign, U64Digits};
+use num_integer::Integer;
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
@@ -110,7 +115,7 @@ pub struct ParseFeltError;
 
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
-    value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    value: FieldElement<Stark252PrimeField>,
 }
 
 macro_rules! from_num {
@@ -156,19 +161,7 @@ impl Felt252 {
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
-        let mut res = [0u8; 32];
-        let mut iter = self.iter_u64_digits();
-        let (d0, d1, d2, d3) = (
-            iter.next().unwrap_or_default().to_le_bytes(),
-            iter.next().unwrap_or_default().to_le_bytes(),
-            iter.next().unwrap_or_default().to_le_bytes(),
-            iter.next().unwrap_or_default().to_le_bytes(),
-        );
-        res[..8].copy_from_slice(&d0);
-        res[8..16].copy_from_slice(&d1);
-        res[16..24].copy_from_slice(&d2);
-        res[24..].copy_from_slice(&d3);
-        res
+        self.to_le_bytes()
     }
 
     pub fn to_be_bytes(&self) -> [u8; 32] {
@@ -189,7 +182,7 @@ impl Felt252 {
 
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
-        self.value.to_signed_bytes_le()
+        self.value.to_bytes_le()
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_bytes_be(&self) -> Vec<u8> {
@@ -198,12 +191,12 @@ impl Felt252 {
 
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         Some(Self {
-            value: FeltBigInt::parse_bytes(buf, radix)?,
+            value: FieldElement::<Stark252PrimeField>::FeltBigInt::parse_bytes(buf, radix)?,
         })
     }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
-            value: FeltBigInt::from_bytes_be(bytes),
+            value: FieldElement::<Stark252PrimeField>::from_bytes_be(bytes).unwrap(),
         }
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -218,44 +211,46 @@ impl Felt252 {
 
     pub fn to_bigint(&self) -> BigInt {
         #[allow(deprecated)]
-        self.value.to_bigint()
+        BigInt::from_bytes_be(Sign::Plus, &self.value.to_bytes_be())
     }
 
     pub fn to_biguint(&self) -> BigUint {
-        #[allow(deprecated)]
-        self.value.to_biguint()
+        BigUint::from_bytes_be(&self.value.to_bytes_be())
     }
     pub fn sqrt(&self) -> Self {
         // Based on Tonelli-Shanks' algorithm for finding square roots
         // and sympy's library implementation of said algorithm.
-        if self.is_zero() || self.is_one() {
-            return self.clone();
+        Self {
+            value: self.value.sqrt().unwrap(),
         }
+        // if self.is_zero() || self.is_one() {
+        //     return self.clone();
+        // }
 
-        let max_felt = Felt252::max_value();
-        let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
+        // let max_felt = Felt252::max_value();
+        // let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
 
-        let a = self.pow(&trailing_prime);
-        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
-        let mut m = Felt252::zero();
-        let mut exponent = Felt252::one() << 191_u32;
-        let mut adm;
-        for i in 0..192_u32 {
-            adm = &a * &(&d).pow(&m);
-            adm = (&adm).pow(&exponent);
-            exponent >>= 1;
-            // if adm ≡ -1 (mod CAIRO_PRIME)
-            if adm == max_felt {
-                m += Felt252::one() << i;
-            }
-        }
-        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
-        let root_2 = &max_felt - &root_1 + 1_usize;
-        if root_1 < root_2 {
-            root_1
-        } else {
-            root_2
-        }
+        // let a = self.pow(&trailing_prime);
+        // let d = (&Felt252::new(3)).pow(&trailing_prime);
+        // let mut m = Felt252::zero();
+        // let mut exponent = Felt252::one() << 191_u32;
+        // let mut adm;
+        // for i in 0..192_u32 {
+        //     adm = &a * &(&d).pow(&m);
+        //     adm = (&adm).pow(&exponent);
+        //     exponent >>= 1;
+        //     // if adm ≡ -1 (mod CAIRO_PRIME)
+        //     if adm == max_felt {
+        //         m += Felt252::one() << i;
+        //     }
+        // }
+        // let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+        // let root_2 = &max_felt - &root_1 + 1_usize;
+        // if root_1 < root_2 {
+        //     root_1
+        // } else {
+        //     root_2
+        // }
     }
 
     pub fn bits(&self) -> u64 {
@@ -397,7 +392,7 @@ impl AddAssign for Felt252 {
 
 impl<'a> AddAssign<&'a Felt252> for Felt252 {
     fn add_assign(&mut self, rhs: &Self) {
-        self.value += &rhs.value;
+        self.value += rhs.value;
     }
 }
 
@@ -532,7 +527,7 @@ impl<'a> Mul<&'a Felt252> for Felt252 {
 
 impl<'a> MulAssign<&'a Felt252> for Felt252 {
     fn mul_assign(&mut self, rhs: &Self) {
-        self.value *= &rhs.value;
+        self.value = self.value * &rhs.value;
     }
 }
 
@@ -558,7 +553,7 @@ impl<'a> Pow<&'a Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: &'a Felt252) -> Self::Output {
         Self::Output {
-            value: (&self.value).pow(&rhs.value),
+            value: (&self.value).pow(rhs.value),
         }
     }
 }
@@ -611,24 +606,24 @@ impl<'a> Rem<&'a Felt252> for Felt252 {
 impl Zero for Felt252 {
     fn zero() -> Self {
         Self {
-            value: FeltBigInt::zero(),
+            value: FieldElement::<Stark252PrimeField>::zero(),
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.value.is_zero()
+        self.value == FieldElement::<Stark252PrimeField>::zero()
     }
 }
 
 impl One for Felt252 {
     fn one() -> Self {
         Self {
-            value: FeltBigInt::one(),
+            value: FieldElement::<Stark252PrimeField>::one(),
         }
     }
 
     fn is_one(&self) -> bool {
-        self.value.is_one()
+        self.value == FieldElement::<Stark252PrimeField>::one()
     }
 }
 

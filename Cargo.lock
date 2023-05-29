@@ -282,6 +282,7 @@ dependencies = [
 name = "cairo-felt"
 version = "0.4.0"
 dependencies = [
+ "lambdaworks-math",
  "lazy_static",
  "num-bigint",
  "num-integer",
@@ -1547,6 +1548,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3c48237b9604c5a4702de6b824e02006c3214327564636aef27c1028a8fa0ed"
 dependencies = [
  "regex",
+]
+
+[[package]]
+name = "lambdaworks-math"
+version = "0.1.0"
+source = "git+https://github.com/lambdaclass/lambdaworks#599b356aaa37f3971e507eb00d3f6860140c7a51"
+dependencies = [
+ "rand",
+ "rayon",
+ "thiserror",
 ]
 
 [[package]]
