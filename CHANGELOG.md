@@ -1,8 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
-
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
+
+* Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
 
