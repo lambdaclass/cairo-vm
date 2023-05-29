@@ -8,8 +8,8 @@ use super::{
     secp::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
-            ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
-            ec_negate_import_secp_p, square_slope_minus_xs,
+            ec_double_assign_new_x_v2, ec_double_assign_new_y, ec_mul_inner,
+            ec_negate_embedded_secp_p, ec_negate_import_secp_p, square_slope_minus_xs,
         },
         secp_utils::{ALPHA, ALPHA_V2, SECP_P, SECP_P_V2},
     },
@@ -552,16 +552,21 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt1",
                 &SECP_P,
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
-                ec_double_assign_new_x(
-                    vm,
-                    exec_scopes,
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                    &SECP_P,
-                    "point",
-                )
-            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => ec_double_assign_new_x_v2(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
                 vm,
                 exec_scopes,
