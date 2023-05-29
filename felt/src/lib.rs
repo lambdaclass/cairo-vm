@@ -26,8 +26,8 @@ use lambdaworks_math::{
     traits::ByteConversion,
     unsigned_integer::element::UnsignedInteger,
 };
-use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, ToPrimitive, Zero};
+use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
@@ -142,6 +142,19 @@ impl From<BigUint> for Felt252 {
     fn from(value: BigUint) -> Self {
         let prime = FeltBigInt::prime();
         let val = value % prime;
+        let mut limbs = [0; 4];
+        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+            limbs[i] = l;
+        }
+        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
+        Self { value }
+    }
+}
+
+impl From<BigInt> for Felt252 {
+    fn from(value: BigInt) -> Self {
+        let prime = FeltBigInt::prime().to_bigint().expect("cannot fail");
+        let val = (value % prime).abs();
         let mut limbs = [0; 4];
         for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
             limbs[i] = l;
