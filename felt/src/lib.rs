@@ -365,48 +365,47 @@ impl<'a> Sub<&'a Felt252> for Felt252 {
 impl Sub<&Felt252> for usize {
     type Output = Felt252;
     fn sub(self, rhs: &Self::Output) -> Self::Output {
-        Self::Output {
-            value: self - &rhs.value,
-        }
+        let neg = Self::Output {
+            value: rhs.value.neg(),
+        };
+        neg + self
     }
 }
 
 impl SubAssign for Felt252 {
     fn sub_assign(&mut self, rhs: Self) {
-        self.value -= rhs.value
+        // TODO: optimize and move to upstream
+        self.value = self.value - rhs.value
     }
 }
 
 impl<'a> SubAssign<&'a Felt252> for Felt252 {
     fn sub_assign(&mut self, rhs: &Self) {
-        self.value -= &rhs.value;
+        // TODO: optimize and move to upstream
+        self.value = self.value - rhs.value
     }
 }
 
 impl Sub<u32> for Felt252 {
     type Output = Self;
     fn sub(self, rhs: u32) -> Self {
-        Self {
-            value: self.value - rhs,
-        }
+        let value = self.value - FieldElement::new(UnsignedInteger::from_u64(rhs as u64));
+        Self { value }
     }
 }
 
 impl<'a> Sub<u32> for &'a Felt252 {
     type Output = Felt252;
     fn sub(self, rhs: u32) -> Self::Output {
-        Self::Output {
-            value: &self.value - rhs,
-        }
+        self.clone() - rhs
     }
 }
 
 impl Sub<usize> for Felt252 {
     type Output = Self;
     fn sub(self, rhs: usize) -> Self {
-        Self {
-            value: self.value - rhs,
-        }
+        let value = self.value - FieldElement::new(UnsignedInteger::from_u64(rhs as u64));
+        Self { value }
     }
 }
 
