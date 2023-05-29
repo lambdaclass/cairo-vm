@@ -584,13 +584,13 @@ impl One for Felt252 {
 impl Bounded for Felt252 {
     fn min_value() -> Self {
         Self {
-            value: FeltBigInt::min_value(),
+            value: FieldElement::zero(),
         }
     }
 
     fn max_value() -> Self {
         Self {
-            value: FeltBigInt::max_value(),
+            value: FieldElement::zero() - FieldElement::one(),
         }
     }
 }
