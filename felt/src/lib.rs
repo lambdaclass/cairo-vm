@@ -9,7 +9,7 @@ mod bigint_felt;
 #[cfg(test)]
 pub mod arbitrary;
 
-use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
+use bigint_felt::FeltBigInt;
 use core::{
     convert::Into,
     fmt,
@@ -28,77 +28,11 @@ use lambdaworks_math::{
 use num_bigint::{BigInt, BigUint, Sign, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::{Deserialize, Serialize};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
-
-pub(crate) trait FeltOps {
-    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
-
-    fn modpow(
-        &self,
-        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-    ) -> Self;
-
-    fn iter_u64_digits(&self) -> U64Digits;
-
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    fn to_signed_bytes_le(&self) -> Vec<u8>;
-
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    fn to_bytes_be(&self) -> Vec<u8>;
-
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
-
-    fn from_bytes_be(bytes: &[u8]) -> Self;
-
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    fn to_str_radix(&self, radix: u32) -> String;
-
-    /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::Felt252;
-    /// # use num_bigint::BigInt;
-    /// # use num_traits::Bounded;
-    /// let positive = Felt252::new(5);
-    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
-    ///
-    /// let negative = Felt252::max_value();
-    /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
-    /// ```
-    fn to_signed_felt(&self) -> BigInt;
-
-    // Converts [`Felt252`]'s representation directly into a [`BigInt`].
-    // Equivalent to doing felt.to_biguint().to_bigint().
-    fn to_bigint(&self) -> BigInt;
-
-    /// Converts [`Felt252`] into a [`BigUint`] number.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::Felt252;
-    /// # use num_bigint::BigUint;
-    /// # use num_traits::{Num, Bounded};
-    /// let positive = Felt252::new(5);
-    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
-    ///
-    /// let negative = Felt252::max_value();
-    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
-    /// ```
-    fn to_biguint(&self) -> BigUint;
-
-    fn bits(&self) -> u64;
-
-    fn prime() -> BigUint;
-}
 
 #[macro_export]
 macro_rules! felt_str {
@@ -113,39 +47,62 @@ macro_rules! felt_str {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
-#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
+// #[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Eq, Hash, PartialEq, Clone)]
 pub struct Felt252 {
     value: FieldElement<Stark252PrimeField>,
 }
 
-macro_rules! from_num {
-    ($type:ty) => {
-        impl From<$type> for Felt252 {
-            fn from(value: $type) -> Self {
-                Self {
-                    value: value.into(),
-                }
-            }
-        }
-    };
+impl PartialOrd for Felt252 {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
 }
 
-from_num!(i8);
-from_num!(i16);
-from_num!(i32);
-from_num!(i64);
-from_num!(i128);
-from_num!(isize);
-from_num!(u8);
-from_num!(u16);
-from_num!(u32);
-from_num!(u64);
-from_num!(u128);
-from_num!(usize);
-from_num!(BigInt);
-from_num!(&BigInt);
-from_num!(BigUint);
-from_num!(&BigUint);
+impl Ord for Felt252 {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.value
+            .representative()
+            .cmp(&other.value.representative())
+    }
+}
+
+impl Default for Felt252 {
+    fn default() -> Self {
+        Self {
+            value: FieldElement::zero(),
+        }
+    }
+}
+
+// macro_rules! from_num {
+//     ($type:ty) => {
+//         impl From<$type> for Felt252 {
+//             fn from(value: $type) -> Self {
+//                 Self {
+//                     value: value.into(),
+//                 }
+//             }
+//         }
+//     };
+// }
+
+// from_num!(i8);
+// from_num!(i16);
+// from_num!(i32);
+// from_num!(i64);
+// from_num!(i128);
+// from_num!(isize);
+// from_num!(u8);
+// from_num!(u16);
+// from_num!(u32);
+// from_num!(u64);
+// from_num!(u128);
+// from_num!(usize);
+// from_num!(BigInt);
+// from_num!(&BigInt);
+// from_num!(BigUint);
+// from_num!(&BigUint);
 
 impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
@@ -865,126 +822,6 @@ impl fmt::Debug for Felt252 {
         write!(f, "{}", self.value)
     }
 }
-
-macro_rules! assert_felt_methods {
-    ($type:ty) => {
-        const _: () = {
-            fn assert_felt_ops<T: FeltOps>() {}
-            fn assertion() {
-                assert_felt_ops::<$type>();
-            }
-        };
-    };
-}
-
-macro_rules! assert_felt_impl {
-    ($type:ty) => {
-        const _: () = {
-            fn assert_add<T: Add>() {}
-            fn assert_add_ref<'a, T: Add<&'a $type>>() {}
-            fn assert_add_u32<T: Add<u32>>() {}
-            fn assert_add_usize<T: Add<usize>>() {}
-            fn assert_add_assign<T: AddAssign>() {}
-            fn assert_add_assign_ref<'a, T: AddAssign<&'a $type>>() {}
-            fn assert_sum<T: Sum<$type>>() {}
-            fn assert_neg<T: Neg>() {}
-            fn assert_sub<T: Sub>() {}
-            fn assert_sub_ref<'a, T: Sub<&'a $type>>() {}
-            fn assert_sub_assign<T: SubAssign>() {}
-            fn assert_sub_assign_ref<'a, T: SubAssign<&'a $type>>() {}
-            fn assert_sub_u32<T: Sub<u32>>() {}
-            fn assert_sub_usize<T: Sub<usize>>() {}
-            fn assert_mul<T: Mul>() {}
-            fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
-            fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
-            fn assert_pow_u32<T: Pow<u32>>() {}
-            fn assert_pow_felt<'a, T: Pow<&'a $type>>() {}
-            fn assert_div<T: Div>() {}
-            fn assert_ref_div<T: Div<$type>>() {}
-            fn assert_rem<T: Rem>() {}
-            fn assert_rem_ref<'a, T: Rem<&'a $type>>() {}
-            fn assert_zero<T: Zero>() {}
-            fn assert_one<T: One>() {}
-            fn assert_bounded<T: Bounded>() {}
-            fn assert_num<T: Num>() {}
-            fn assert_integer<T: Integer>() {}
-            fn assert_signed<T: Signed>() {}
-            fn assert_shl_u32<T: Shl<u32>>() {}
-            fn assert_shl_usize<T: Shl<usize>>() {}
-            fn assert_shr_u32<T: Shr<u32>>() {}
-            fn assert_shr_assign_usize<T: ShrAssign<usize>>() {}
-            fn assert_bitand<T: BitAnd>() {}
-            fn assert_bitand_ref<'a, T: BitAnd<&'a $type>>() {}
-            fn assert_ref_bitand<T: BitAnd<$type>>() {}
-            fn assert_bitor<T: BitOr>() {}
-            fn assert_bitxor<T: BitXor>() {}
-            fn assert_from_primitive<T: FromPrimitive>() {}
-            fn assert_to_primitive<T: ToPrimitive>() {}
-            fn assert_display<T: fmt::Display>() {}
-            fn assert_debug<T: fmt::Debug>() {}
-
-            #[allow(dead_code)]
-            fn assert_all() {
-                assert_add::<$type>();
-                assert_add::<&$type>();
-                assert_add_ref::<$type>();
-                assert_add_u32::<$type>();
-                assert_add_usize::<$type>();
-                assert_add_usize::<&$type>();
-                assert_add_assign::<$type>();
-                assert_add_assign_ref::<$type>();
-                assert_sum::<$type>();
-                assert_neg::<$type>();
-                assert_neg::<&$type>();
-                assert_sub::<$type>();
-                assert_sub::<&$type>();
-                assert_sub_ref::<$type>();
-                assert_sub_assign::<$type>();
-                assert_sub_assign_ref::<$type>();
-                assert_sub_u32::<$type>();
-                assert_sub_u32::<&$type>();
-                assert_sub_usize::<$type>();
-                assert_mul::<$type>();
-                assert_mul::<&$type>();
-                assert_mul_ref::<$type>();
-                assert_mul_assign_ref::<$type>();
-                assert_pow_u32::<$type>();
-                assert_pow_felt::<&$type>();
-                assert_div::<$type>();
-                assert_div::<&$type>();
-                assert_ref_div::<&$type>();
-                assert_rem::<$type>();
-                assert_rem_ref::<$type>();
-                assert_zero::<$type>();
-                assert_one::<$type>();
-                assert_bounded::<$type>();
-                assert_num::<$type>();
-                assert_integer::<$type>();
-                assert_signed::<$type>();
-                assert_shl_u32::<$type>();
-                assert_shl_u32::<&$type>();
-                assert_shl_usize::<$type>();
-                assert_shl_usize::<&$type>();
-                assert_shr_u32::<$type>();
-                assert_shr_u32::<&$type>();
-                assert_shr_assign_usize::<$type>();
-                assert_bitand::<&$type>();
-                assert_bitand_ref::<$type>();
-                assert_ref_bitand::<&$type>();
-                assert_bitor::<&$type>();
-                assert_bitxor::<&$type>();
-                assert_from_primitive::<$type>();
-                assert_to_primitive::<$type>();
-                assert_display::<$type>();
-                assert_debug::<$type>();
-            }
-        };
-    };
-}
-
-assert_felt_methods!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
-assert_felt_impl!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
-assert_felt_impl!(Felt252);
 
 #[cfg(test)]
 mod test {

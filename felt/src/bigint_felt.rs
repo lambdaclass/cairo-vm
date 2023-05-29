@@ -12,7 +12,7 @@ use core::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError};
+use crate::ParseFeltError;
 
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
@@ -131,7 +131,7 @@ impl<const PH: u128, const PL: u128> From<&BigInt> for FeltBigInt<PH, PL> {
     }
 }
 
-impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+impl FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(
         value: T,
     ) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
