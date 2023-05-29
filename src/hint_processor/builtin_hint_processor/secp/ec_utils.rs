@@ -497,8 +497,8 @@ pub fn quad_bit(
     let one = &Felt252::one();
     let res = Felt252::from(8) * ((scalar_v >> m) & one)
         + Felt252::from(4) * ((scalar_u >> m) & one)
-        + Felt252::from(2) * ((scalar_v >> m) & one)
-        + ((scalar_u >> m) & one);
+        + Felt252::from(2) * ((scalar_v >> (m - 1)) & one)
+        + ((scalar_u >> (m - 1)) & one);
 
     insert_value_from_var_name("quad_bit", res, vm, ids_data, ap_tracking)
 }
