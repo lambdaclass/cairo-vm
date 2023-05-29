@@ -76,20 +76,51 @@ impl Default for Felt252 {
 }
 
 macro_rules! from_num {
-    ($type:ty) => {
+    ($type:ty, $cast:ty) => {
         impl From<$type> for Felt252 {
             fn from(value: $type) -> Self {
-                let uplifted: u64 = value as u64;
+                let uplifted: $cast = value as $cast;
                 uplifted.into()
             }
         }
     };
 }
 
-from_num!(usize);
-from_num!(u8);
-from_num!(u16);
-from_num!(u32);
+from_num!(isize, i64);
+from_num!(i8, i64);
+from_num!(i16, i64);
+from_num!(i32, i64);
+
+// TODO: move to upstream?
+impl From<i64> for Felt252 {
+    fn from(value: i64) -> Self {
+        let value = if !value.is_negative() {
+            FieldElement::new(UnsignedInteger::from_u64(value as u64))
+        } else {
+            let abs_minus_one = UnsignedInteger::from_u64(-(value + 1) as u64);
+            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
+        };
+        Self { value }
+    }
+}
+
+// TODO: move to upstream?
+impl From<i128> for Felt252 {
+    fn from(value: i128) -> Self {
+        let value = if !value.is_negative() {
+            FieldElement::new(UnsignedInteger::from_u128(value as u128))
+        } else {
+            let abs_minus_one = UnsignedInteger::from_u128(-(value + 1) as u128);
+            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
+        };
+        Self { value }
+    }
+}
+
+from_num!(usize, u64);
+from_num!(u8, u64);
+from_num!(u16, u64);
+from_num!(u32, u64);
 
 // TODO: move to upstream?
 impl From<u64> for Felt252 {
@@ -1271,7 +1302,7 @@ mod test {
         #[values(-2, -1, 0, 1, 1i128.neg(), i64::MIN as i128, u64::MAX as i128, u64::MAX as i128 + 1, (u64::MAX as i128).neg())]
         y: i128,
     ) {
-        let y = Felt252::from(y.checked_abs().unwrap_or_default() as u128);
+        let y = Felt252::from(y);
         assert_eq!(x + &y, (&y + x).to_u64());
     }
 
