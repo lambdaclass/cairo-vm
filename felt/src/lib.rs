@@ -53,12 +53,14 @@ pub struct Felt252 {
     value: FieldElement<Stark252PrimeField>,
 }
 
+// TODO: remove and change for transformation + comparación
 impl PartialOrd for Felt252 {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(&other))
     }
 }
 
+// TODO: remove and change for transformation + comparación
 impl Ord for Felt252 {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.value
@@ -138,6 +140,7 @@ impl From<u128> for Felt252 {
     }
 }
 
+// TODO: bury BigUint?
 impl From<BigUint> for Felt252 {
     fn from(value: BigUint) -> Self {
         let prime = FeltBigInt::prime();
@@ -151,6 +154,7 @@ impl From<BigUint> for Felt252 {
     }
 }
 
+// TODO: bury BigInt?
 impl From<BigInt> for Felt252 {
     fn from(value: BigInt) -> Self {
         let prime = FeltBigInt::prime().to_bigint().expect("cannot fail");
@@ -173,6 +177,7 @@ impl Felt252 {
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
+        // TODO: upstream should return array
         self.value
             .representative()
             .to_bytes_le()
@@ -181,6 +186,7 @@ impl Felt252 {
     }
 
     pub fn to_be_bytes(&self) -> [u8; 32] {
+        // TODO: upstream should return array
         self.value
             .representative()
             .to_bytes_be()
@@ -235,6 +241,18 @@ impl Felt252 {
 
     pub fn to_biguint(&self) -> BigUint {
         BigUint::from_bytes_be(&self.value.to_bytes_be())
+    }
+    pub fn bits(&self) -> u64 {
+        // TODO: move upstream
+        let rep = self.value.representative();
+        match rep.limbs {
+            [0, 0, 0, 0] => 0,
+            [0, 0, 0, l0] => u64::BITS - l0.leading_zeros(),
+            [0, 0, l1, _] => u64::BITS - l1.leading_zeros() + u64::BITS,
+            [0, l2, _, _] => u64::BITS - l2.leading_zeros() + 2 * u64::BITS,
+            [l3, _, _, _] => u64::BITS - l3.leading_zeros() + 3 * u64::BITS,
+        }
+        .into()
     }
     pub fn sqrt(&self) -> Self {
         // TODO: remove unwrap and check if .0 is correct
