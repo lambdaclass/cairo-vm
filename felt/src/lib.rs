@@ -598,9 +598,19 @@ impl Bounded for Felt252 {
 impl Num for Felt252 {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        Ok(Self {
-            value: FeltBigInt::from_str_radix(string, radix)?,
-        })
+        let value = if radix == 16 {
+            FieldElement::from_hex(string).map_err(|_| ParseFeltError)?
+        } else {
+            let biguint = BigUint::from_str_radix(string, radix).map_err(|_| ParseFeltError)?;
+            let prime = BigUint::from_str_radix(PRIME_STR, 16).expect("can't fail");
+            let val = biguint % prime;
+            let mut limbs = [0; 4];
+            for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+                limbs[i] = l;
+            }
+            FieldElement::new(UnsignedInteger::from_limbs(limbs))
+        };
+        Ok(Self { value })
     }
 }
 

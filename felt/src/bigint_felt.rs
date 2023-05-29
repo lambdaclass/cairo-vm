@@ -202,8 +202,8 @@ impl FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.bits()
     }
 
-    fn prime() -> BigUint {
-        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
+    pub fn prime() -> BigUint {
+        CAIRO_PRIME_BIGUINT.clone()
     }
 }
 
