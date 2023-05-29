@@ -16,7 +16,7 @@ use crate::{
     },
 };
 use felt::{Felt252, PRIME_STR};
-use num_traits::Num;
+use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
@@ -167,7 +167,27 @@ where
     let n = Number::deserialize(deserializer)?;
     match Felt252::parse_bytes(n.to_string().as_bytes(), 10) {
         Some(x) => Ok(Some(x)),
-        None => Err(String::from("felt_from_number parse error")).map_err(de::Error::custom),
+        None => {
+            // Handle de Number with scientific notation cases
+            // e.g.: Number(1e27)
+            let str = n.to_string();
+            let list: [&str; 2] = str
+                .split('e')
+                .collect::<Vec<&str>>()
+                .try_into()
+                .map_err(|_| String::from("felt_from_number parse error"))
+                .map_err(de::Error::custom)?;
+
+            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10).ok_or(
+                de::Error::custom(String::from("felt_from_number parse error")),
+            )?;
+            let exponent = list[1]
+                .parse::<u32>()
+                .map_err(|_| de::Error::custom(String::from("felt_from_number parse error")))?;
+
+            let result = base * Felt252::from(10).pow(exponent);
+            Ok(Some(result))
+        }
     }
 }
 
@@ -421,6 +441,7 @@ mod tests {
     use super::*;
     use assert_matches::assert_matches;
     use felt::felt_str;
+    use num_traits::One;
     use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
@@ -1362,5 +1383,18 @@ mod tests {
 
         let iden: Result<Identifier, serde_json::Error> = serde_json::from_str(valid_json);
         assert!(iden.err().is_some());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation() {
+        let n = Number::deserialize(serde_json::Value::from(1000000000000000000000000000_u128))
+            .unwrap();
+        assert_eq!(n.to_string(), "1e27".to_owned());
+
+        assert_matches!(
+            felt_from_number(n),
+            Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+        );
     }
 }
