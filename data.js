@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685401134337,
+  "lastUpdate": 1685404627079,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -103372,6 +103372,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19045665,
             "range": "± 210507",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "16db8eec31bd2c257e9aeb2820994b32e11ddc22",
+          "message": "Fix hint `EC_DOUBLE_ASSIGN_NEW_X_V2` (#1186)\n\n* Fix hint `EC_DOUBLE_ASSIGN_NEW_X_V2`\n\n* Add changelog entry\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-29T23:23:30Z",
+          "tree_id": "fae71bc260a4e8dc6405c7b3e5967c3fdf8c945f",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/16db8eec31bd2c257e9aeb2820994b32e11ddc22"
+        },
+        "date": 1685404619796,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 32655,
+            "range": "± 1344",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 77944,
+            "range": "± 6544",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25624944,
+            "range": "± 967543",
             "unit": "ns/iter"
           }
         ]
