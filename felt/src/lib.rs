@@ -803,11 +803,18 @@ impl ToPrimitive for Felt252 {
 
 impl FromPrimitive for Felt252 {
     fn from_u64(n: u64) -> Option<Self> {
-        FeltBigInt::from_u64(n).map(|n| Self { value: n })
+        Some(Felt252 {
+            value: FieldElement::from(n),
+        })
     }
 
     fn from_i64(n: i64) -> Option<Self> {
-        FeltBigInt::from_i64(n).map(|n| Self { value: n })
+        let value = if n.is_negative() {
+            FieldElement::zero() - FieldElement::from((-n) as u64)
+        } else {
+            FieldElement::from(n as u64)
+        };
+        Some(Felt252 { value })
     }
 }
 
