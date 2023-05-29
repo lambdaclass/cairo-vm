@@ -192,6 +192,7 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     let result = base * Felt252::from(10).pow(exponent);
     Some(result)
 }
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
