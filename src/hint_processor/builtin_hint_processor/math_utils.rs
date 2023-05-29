@@ -1,7 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
+use crate::{
+    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
+    stdlib::{
+        collections::HashMap,
+        ops::{Shl, Shr},
+        prelude::*,
+    },
 };
 use lazy_static::lazy_static;
 use num_traits::{Bounded, Pow};
@@ -550,10 +553,17 @@ pub fn assert_250_bit(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
+    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
     //Declare constant values
-    let upper_bound = Felt252::one().shl(250u32);
-    let shift = Felt252::one().shl(128u32);
+    let upper_bound = constants
+        .get(UPPER_BOUND)
+        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
+    let shift = constants
+        .get(SHIFT)
+        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     //can be deleted
