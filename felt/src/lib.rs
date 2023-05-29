@@ -686,60 +686,70 @@ impl Signed for Felt252 {
 impl Shl<u32> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: u32) -> Self {
-        Self {
-            value: self.value << rhs,
-        }
+        let value = FieldElement::new(self.value.representative() << (rhs as usize));
+        Self::Output { value }
     }
 }
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: u32) -> Self::Output {
-        Self::Output {
-            value: &self.value << rhs,
-        }
+        let value = FieldElement::new(self.value.representative() << (rhs as usize));
+        Self::Output { value }
     }
 }
 
 impl Shl<usize> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: usize) -> Self {
-        Self {
-            value: self.value << rhs,
-        }
+        let value = FieldElement::new(self.value.representative() << rhs);
+        Self::Output { value }
     }
 }
 
 impl<'a> Shl<usize> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: usize) -> Self::Output {
-        Self::Output {
-            value: &self.value << rhs,
-        }
+        let value = FieldElement::new(self.value.representative() << rhs);
+        Self::Output { value }
     }
 }
 
 impl Shr<u32> for Felt252 {
     type Output = Self;
     fn shr(self, rhs: u32) -> Self {
-        Self {
-            value: self.value >> rhs,
-        }
+        let value = FieldElement::new(self.value.representative() >> (rhs as usize));
+        Self::Output { value }
     }
 }
 
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: u32) -> Self::Output {
-        Self::Output {
-            value: &self.value >> rhs,
-        }
+        let value = FieldElement::new(self.value.representative() >> (rhs as usize));
+        Self::Output { value }
+    }
+}
+
+impl<'a> Shr<usize> for Felt252 {
+    type Output = Felt252;
+    fn shr(self, rhs: usize) -> Self::Output {
+        let value = FieldElement::new(self.value.representative() >> rhs);
+        Self::Output { value }
+    }
+}
+
+impl<'a> Shr<usize> for &'a Felt252 {
+    type Output = Felt252;
+    fn shr(self, rhs: usize) -> Self::Output {
+        let value = FieldElement::new(self.value.representative() >> rhs);
+        Self::Output { value }
     }
 }
 
 impl ShrAssign<usize> for Felt252 {
     fn shr_assign(&mut self, rhs: usize) {
-        self.value >>= rhs
+        *self = *self >> rhs;
     }
 }
 
