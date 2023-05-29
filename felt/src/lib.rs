@@ -75,34 +75,50 @@ impl Default for Felt252 {
     }
 }
 
-// macro_rules! from_num {
-//     ($type:ty) => {
-//         impl From<$type> for Felt252 {
-//             fn from(value: $type) -> Self {
-//                 Self {
-//                     value: value.into(),
-//                 }
-//             }
-//         }
-//     };
-// }
+macro_rules! from_num {
+    ($type:ty) => {
+        impl From<$type> for Felt252 {
+            fn from(value: $type) -> Self {
+                let uplifted: u64 = value as u64;
+                uplifted.into()
+            }
+        }
+    };
+}
 
-// from_num!(i8);
-// from_num!(i16);
-// from_num!(i32);
-// from_num!(i64);
-// from_num!(i128);
-// from_num!(isize);
-// from_num!(u8);
-// from_num!(u16);
-// from_num!(u32);
-// from_num!(u64);
-// from_num!(u128);
-// from_num!(usize);
-// from_num!(BigInt);
-// from_num!(&BigInt);
-// from_num!(BigUint);
-// from_num!(&BigUint);
+from_num!(usize);
+from_num!(u8);
+from_num!(u16);
+from_num!(u32);
+
+// TODO: move to upstream?
+impl From<u64> for Felt252 {
+    fn from(value: u64) -> Self {
+        let value = FieldElement::new(UnsignedInteger::from_u64(value));
+        Self { value }
+    }
+}
+
+// TODO: move to upstream?
+impl From<u128> for Felt252 {
+    fn from(value: u128) -> Self {
+        let value = FieldElement::new(UnsignedInteger::from_u128(value));
+        Self { value }
+    }
+}
+
+impl From<BigUint> for Felt252 {
+    fn from(value: BigUint) -> Self {
+        let prime = FeltBigInt::prime();
+        let val = value % prime;
+        let mut limbs = [0; 4];
+        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+            limbs[i] = l;
+        }
+        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
+        Self { value }
+    }
+}
 
 impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
@@ -148,19 +164,14 @@ impl Felt252 {
     }
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         let string = std::str::from_utf8(buf).ok()?;
-        let value = if radix == 16 {
-            FieldElement::from_hex(string).ok()?
+        let res = if radix == 16 {
+            let value = FieldElement::from_hex(string).ok()?;
+            Self { value }
         } else {
             let biguint = BigUint::from_str_radix(string, radix).ok()?;
-            let prime = BigUint::from_str_radix(PRIME_STR, 16).expect("can't fail");
-            let val = biguint % prime;
-            let mut limbs = [0; 4];
-            for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
-                limbs[i] = l;
-            }
-            FieldElement::new(UnsignedInteger::from_limbs(limbs))
+            biguint.into()
         };
-        Some(Self { value })
+        Some(res)
     }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
@@ -574,19 +585,14 @@ impl Bounded for Felt252 {
 impl Num for Felt252 {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        let value = if radix == 16 {
-            FieldElement::from_hex(string).map_err(|_| ParseFeltError)?
+        let res = if radix == 16 {
+            let value = FieldElement::from_hex(string).map_err(|_| ParseFeltError)?;
+            Self { value }
         } else {
             let biguint = BigUint::from_str_radix(string, radix).map_err(|_| ParseFeltError)?;
-            let prime = BigUint::from_str_radix(PRIME_STR, 16).expect("can't fail");
-            let val = biguint % prime;
-            let mut limbs = [0; 4];
-            for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
-                limbs[i] = l;
-            }
-            FieldElement::new(UnsignedInteger::from_limbs(limbs))
+            biguint.into()
         };
-        Ok(Self { value })
+        Ok(res)
     }
 }
 
@@ -783,6 +789,7 @@ mod test {
     use super::*;
     use crate::arbitrary::nonzero_felt252;
     use core::cmp;
+    use num_integer::Integer;
     use rstest::rstest;
 
     use proptest::prelude::*;
