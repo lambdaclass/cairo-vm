@@ -655,34 +655,6 @@ impl Integer for Felt252 {
     }
 }
 
-impl Signed for Felt252 {
-    fn abs(&self) -> Self {
-        Self {
-            value: self.value.abs(),
-        }
-    }
-
-    fn abs_sub(&self, other: &Self) -> Self {
-        Self {
-            value: self.value.abs_sub(&other.value),
-        }
-    }
-
-    fn signum(&self) -> Self {
-        Self {
-            value: self.value.signum(),
-        }
-    }
-
-    fn is_positive(&self) -> bool {
-        self.value.is_positive()
-    }
-
-    fn is_negative(&self) -> bool {
-        self.value.is_negative()
-    }
-}
-
 impl Shl<u32> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: u32) -> Self {
