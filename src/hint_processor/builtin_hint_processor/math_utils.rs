@@ -567,10 +567,10 @@ pub fn assert_250_bit(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic
     //can be deleted
-    if value.as_ref() > &upper_bound {
+    if value.as_ref() > upper_bound {
         return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
-    let (high, low) = value.div_rem(&shift);
+    let (high, low) = value.div_rem(shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
