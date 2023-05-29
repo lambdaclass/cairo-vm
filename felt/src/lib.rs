@@ -787,17 +787,32 @@ impl<'a> BitXor for &'a Felt252 {
     }
 }
 
+// TODO: move to upstream
 impl ToPrimitive for Felt252 {
     fn to_u128(&self) -> Option<u128> {
-        self.value.to_u128()
+        match self.value.representative().limbs {
+            [0, 0, high, low] => Some(((high as u128) << 64) | low as u128),
+            _ => None,
+        }
     }
 
     fn to_u64(&self) -> Option<u64> {
-        self.value.to_u64()
+        match self.value.representative().limbs {
+            [0, 0, 0, val] => Some(val),
+            _ => None,
+        }
     }
 
+    // TODO: re-think this function's purpose
     fn to_i64(&self) -> Option<i64> {
-        self.value.to_i64()
+        match self.to_u64() {
+            Some(u) => u.try_into().ok(),
+            None => self
+                .neg()
+                .to_u64()
+                .map(|u| u.try_into().ok())
+                .unwrap_or(None),
+        }
     }
 }
 
