@@ -556,7 +556,7 @@ pub fn assert_250_bit(
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
+    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
     //Declare constant values
     let upper_bound = constants
         .get(UPPER_BOUND)
