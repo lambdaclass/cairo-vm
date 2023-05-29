@@ -26,9 +26,8 @@ use lambdaworks_math::{
     traits::ByteConversion,
     unsigned_integer::element::UnsignedInteger,
 };
-use num_bigint::{BigInt, BigUint, Sign, U64Digits};
-use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use num_bigint::{BigInt, BigUint, Sign};
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, ToPrimitive, Zero};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
@@ -148,12 +147,8 @@ impl Felt252 {
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
-        self.value.to_str_radix(radix)
-    }
-
-    pub fn to_signed_felt(&self) -> BigInt {
-        #[allow(deprecated)]
-        self.value.to_signed_felt()
+        // TODO: implement with arbitrary radixes
+        format!("{}", self.value) // NOTE: returns hexstring
     }
 
     pub fn to_bigint(&self) -> BigInt {
@@ -165,43 +160,9 @@ impl Felt252 {
         BigUint::from_bytes_be(&self.value.to_bytes_be())
     }
     pub fn sqrt(&self) -> Self {
-        // Based on Tonelli-Shanks' algorithm for finding square roots
-        // and sympy's library implementation of said algorithm.
-        Self {
-            value: self.value.sqrt().unwrap(),
-        }
-        // if self.is_zero() || self.is_one() {
-        //     return self.clone();
-        // }
-
-        // let max_felt = Felt252::max_value();
-        // let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
-
-        // let a = self.pow(&trailing_prime);
-        // let d = (&Felt252::new(3)).pow(&trailing_prime);
-        // let mut m = Felt252::zero();
-        // let mut exponent = Felt252::one() << 191_u32;
-        // let mut adm;
-        // for i in 0..192_u32 {
-        //     adm = &a * &(&d).pow(&m);
-        //     adm = (&adm).pow(&exponent);
-        //     exponent >>= 1;
-        //     // if adm ≡ -1 (mod CAIRO_PRIME)
-        //     if adm == max_felt {
-        //         m += Felt252::one() << i;
-        //     }
-        // }
-        // let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
-        // let root_2 = &max_felt - &root_1 + 1_usize;
-        // if root_1 < root_2 {
-        //     root_1
-        // } else {
-        //     root_2
-        // }
-    }
-
-    pub fn bits(&self) -> u64 {
-        self.value.bits()
+        // TODO: remove unwrap and check if .0 is correct
+        let value = self.value.sqrt().unwrap().0;
+        Self { value }
     }
 
     pub fn prime() -> BigUint {
@@ -239,8 +200,9 @@ impl<'a> Add<&'a Felt252> for Felt252 {
 impl Add<u32> for Felt252 {
     type Output = Self;
     fn add(self, rhs: u32) -> Self {
+        let rhs = UnsignedInteger::from_u64(rhs.into());
         Self {
-            value: self.value + rhs,
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -248,8 +210,9 @@ impl Add<u32> for Felt252 {
 impl Add<usize> for Felt252 {
     type Output = Self;
     fn add(self, rhs: usize) -> Self {
+        let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self {
-            value: self.value + rhs,
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -257,8 +220,9 @@ impl Add<usize> for Felt252 {
 impl<'a> Add<usize> for &'a Felt252 {
     type Output = Felt252;
     fn add(self, rhs: usize) -> Self::Output {
+        let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self::Output {
-            value: &self.value + rhs,
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -266,8 +230,9 @@ impl<'a> Add<usize> for &'a Felt252 {
 impl Add<u64> for &Felt252 {
     type Output = Felt252;
     fn add(self, rhs: u64) -> Self::Output {
+        let rhs = UnsignedInteger::from_u64(rhs);
         Self::Output {
-            value: &self.value + rhs,
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
