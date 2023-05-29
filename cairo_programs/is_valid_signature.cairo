@@ -12,6 +12,7 @@ from starkware.cairo.common.math import (
 from starkware.cairo.common.math_cmp import is_le_felt, is_not_zero
 from starkware.cairo.common.signature import verify_ecdsa_signature
 from starkware.cairo.common.uint256 import Uint256, uint256_check
+from starkware.cairo.common.cairo_secp.bigint import BigInt3
 
 from cairo_programs.secp256r1.signature import verify_secp256r1_signature  
 
