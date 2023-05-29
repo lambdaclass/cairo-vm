@@ -146,6 +146,22 @@ impl Felt252 {
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
+    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+        let string = std::str::from_utf8(buf).ok()?;
+        let value = if radix == 16 {
+            FieldElement::from_hex(string).ok()?
+        } else {
+            let biguint = BigUint::from_str_radix(string, radix).ok()?;
+            let prime = BigUint::from_str_radix(PRIME_STR, 16).expect("can't fail");
+            let val = biguint % prime;
+            let mut limbs = [0; 4];
+            for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+                limbs[i] = l;
+            }
+            FieldElement::new(UnsignedInteger::from_limbs(limbs))
+        };
+        Some(Self { value })
+    }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
             value: FieldElement::from_bytes_be(bytes).unwrap(),
@@ -228,7 +244,7 @@ impl<'a> Add<usize> for &'a Felt252 {
     fn add(self, rhs: usize) -> Self::Output {
         let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self::Output {
-            value: self.value + FieldElement::new(rhs),
+            value: &self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -238,7 +254,7 @@ impl Add<u64> for &Felt252 {
     fn add(self, rhs: u64) -> Self::Output {
         let rhs = UnsignedInteger::from_u64(rhs);
         Self::Output {
-            value: self.value + FieldElement::new(rhs),
+            value: &self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -310,7 +326,8 @@ impl AddAssign for Felt252 {
 
 impl<'a> AddAssign<&'a Felt252> for Felt252 {
     fn add_assign(&mut self, rhs: &Self) {
-        self.value += rhs.value;
+        // TODO: optimize and move upstream
+        self.value = &self.value + &rhs.value;
     }
 }
 
@@ -372,7 +389,7 @@ impl Sub<&Felt252> for usize {
     type Output = Felt252;
     fn sub(self, rhs: &Self::Output) -> Self::Output {
         let neg = Self::Output {
-            value: rhs.value.neg(),
+            value: (&rhs.value).neg(),
         };
         neg + self
     }
@@ -381,14 +398,14 @@ impl Sub<&Felt252> for usize {
 impl SubAssign for Felt252 {
     fn sub_assign(&mut self, rhs: Self) {
         // TODO: optimize and move to upstream
-        self.value = self.value - rhs.value
+        self.value = &self.value - rhs.value
     }
 }
 
 impl<'a> SubAssign<&'a Felt252> for Felt252 {
     fn sub_assign(&mut self, rhs: &Self) {
         // TODO: optimize and move to upstream
-        self.value = self.value - rhs.value
+        self.value = &self.value - &rhs.value
     }
 }
 
@@ -444,7 +461,7 @@ impl<'a> Mul<&'a Felt252> for Felt252 {
 
 impl<'a> MulAssign<&'a Felt252> for Felt252 {
     fn mul_assign(&mut self, rhs: &Self) {
-        self.value = self.value * &rhs.value;
+        self.value = &self.value * &rhs.value;
     }
 }
 
@@ -504,14 +521,14 @@ impl<'a> Div<Felt252> for &'a Felt252 {
 
 impl Rem for Felt252 {
     type Output = Self;
-    fn rem(self, rhs: Self) -> Self {
+    fn rem(self, _rhs: Self) -> Self {
         Self::zero()
     }
 }
 
 impl<'a> Rem<&'a Felt252> for Felt252 {
     type Output = Self;
-    fn rem(self, rhs: &Self) -> Self {
+    fn rem(self, _rhs: &Self) -> Self {
         Self::zero()
     }
 }
@@ -639,7 +656,8 @@ impl<'a> Shr<usize> for &'a Felt252 {
 
 impl ShrAssign<usize> for Felt252 {
     fn shr_assign(&mut self, rhs: usize) {
-        *self = *self >> rhs;
+        // TODO: optimize and move upstream
+        *self = self.clone() >> rhs;
     }
 }
 
@@ -647,7 +665,7 @@ impl ShrAssign<usize> for Felt252 {
 impl<'a> BitAnd for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self) -> Self::Output {
-        self & rhs
+        self.clone() & rhs
     }
 }
 
