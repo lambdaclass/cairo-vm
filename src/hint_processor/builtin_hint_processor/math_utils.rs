@@ -1922,6 +1922,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_invalid() {
         let hint_code = hint_code::ASSERT_250_BITS;
+        let constants = HashMap::from([
+            ("UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("SHIFT".to_string(), Felt252::from(5)),
+        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1938,7 +1942,7 @@ mod tests {
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
             Err(HintError::ValueOutside250BitRange(x)) if x == Felt252::one().shl(251_u32)
         );
     }
