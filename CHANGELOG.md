@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Fix possible sustraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
+* Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
 
   * Hints now return an error when ids.m equals zero
 
