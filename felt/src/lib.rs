@@ -546,18 +546,14 @@ impl<'a> Div<Felt252> for &'a Felt252 {
 impl Rem for Felt252 {
     type Output = Self;
     fn rem(self, rhs: Self) -> Self {
-        Self {
-            value: self.value % rhs.value,
-        }
+        Self::zero()
     }
 }
 
 impl<'a> Rem<&'a Felt252> for Felt252 {
     type Output = Self;
     fn rem(self, rhs: &Self) -> Self {
-        Self {
-            value: self.value % &rhs.value,
-        }
+        Self::zero()
     }
 }
 
@@ -605,53 +601,6 @@ impl Num for Felt252 {
         Ok(Self {
             value: FeltBigInt::from_str_radix(string, radix)?,
         })
-    }
-}
-
-impl Integer for Felt252 {
-    fn div_floor(&self, rhs: &Self) -> Self {
-        Self {
-            value: self.value.div_floor(&rhs.value),
-        }
-    }
-
-    fn div_rem(&self, other: &Self) -> (Self, Self) {
-        let (div, rem) = self.value.div_rem(&other.value);
-        (Self { value: div }, Self { value: rem })
-    }
-
-    fn divides(&self, other: &Self) -> bool {
-        self.value.divides(&other.value)
-    }
-
-    fn gcd(&self, other: &Self) -> Self {
-        Self {
-            value: self.value.gcd(&other.value),
-        }
-    }
-
-    fn is_even(&self) -> bool {
-        self.value.is_even()
-    }
-
-    fn is_multiple_of(&self, other: &Self) -> bool {
-        self.value.is_multiple_of(&other.value)
-    }
-
-    fn is_odd(&self) -> bool {
-        self.value.is_odd()
-    }
-
-    fn lcm(&self, other: &Self) -> Self {
-        Self {
-            value: self.value.lcm(&other.value),
-        }
-    }
-
-    fn mod_floor(&self, rhs: &Self) -> Self {
-        Self {
-            value: self.value.mod_floor(&rhs.value),
-        }
     }
 }
 
