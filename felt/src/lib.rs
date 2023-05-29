@@ -109,17 +109,23 @@ impl Felt252 {
         value.into()
     }
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
-        self.value.representative().limbs.into_iter()
+        self.value.representative().limbs.into_iter().rev()
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
-        self.to_le_bytes()
+        self.value
+            .representative()
+            .to_bytes_le()
+            .try_into()
+            .expect("this never fails")
     }
 
     pub fn to_be_bytes(&self) -> [u8; 32] {
-        let mut bytes = self.to_le_bytes();
-        bytes.reverse();
-        bytes
+        self.value
+            .representative()
+            .to_bytes_be()
+            .try_into()
+            .expect("this never fails")
     }
 
     pub fn to_le_digits(&self) -> [u64; 4] {
@@ -146,7 +152,7 @@ impl Felt252 {
         }
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn to_str_radix(&self, radix: u32) -> String {
+    pub fn to_str_radix(&self, _radix: u32) -> String {
         // TODO: implement with arbitrary radixes
         format!("{}", self.value) // NOTE: returns hexstring
     }
@@ -464,7 +470,7 @@ impl<'a> Pow<&'a Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: &'a Felt252) -> Self::Output {
         Self::Output {
-            value: (&self.value).pow(rhs.value),
+            value: (&self.value).pow(rhs.value.representative()),
         }
     }
 }
