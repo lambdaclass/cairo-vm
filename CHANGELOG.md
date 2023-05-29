@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
+
 * Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
