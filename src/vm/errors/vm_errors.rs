@@ -93,7 +93,7 @@ pub enum VirtualMachineError {
     NoImm,
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
-    #[error("Couldnt reached the end of the program. Executed steps: {0}.")]
+    #[error("Could not reach the end of the program. Executed steps: {0}.")]
     StepsLimit(u64),
     #[error(transparent)]
     TracerError(#[from] TraceError),
