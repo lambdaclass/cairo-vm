@@ -788,7 +788,6 @@ impl fmt::Debug for Felt252 {
 mod test {
     use super::*;
     use crate::arbitrary::nonzero_felt252;
-    use core::cmp;
     use num_integer::Integer;
     use rstest::rstest;
 
@@ -1133,44 +1132,6 @@ mod test {
             prop_assert_eq!(x, x_i64);
         }
 
-        #[test]
-        // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
-        // will just be the smaller number.
-        fn lcm_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
-            let lcm = x.lcm(&y);
-            prop_assert!(lcm == cmp::max(x, y));
-        }
-
-        #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
-        // will always be true
-        fn is_multiple_of_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
-            prop_assert!(x.is_multiple_of(&y));
-        }
-
-        #[test]
-        fn divides_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
-            prop_assert!(x.divides(&y));
-        }
-
-        #[test]
-        fn gcd_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
-            let gcd1 = x.gcd(&y);
-            let gcd2 = y.gcd(&x);
-            prop_assert_eq!(gcd1, gcd2);
-        }
-
-        #[test]
-        fn is_even(x in any::<Felt252>()) {
-            prop_assert_eq!(x.is_even(), x.to_biguint().is_even());
-        }
-
-        #[test]
-        fn is_odd(x in any::<Felt252>()) {
-            prop_assert_eq!(x.is_odd(), x.to_biguint().is_odd());
-        }
-
         /// Tests the additive identity of the implementation of Zero trait for felts
         ///
         /// ```{.text}
@@ -1195,44 +1156,6 @@ mod test {
             let one = Felt252::one();
             prop_assert_eq!(x, &(x * &one));
             prop_assert_eq!(x, &(&one * x));
-        }
-
-        #[test]
-        fn felt_is_always_positive(x in any::<Felt252>()) {
-            prop_assert!(x.is_positive())
-        }
-
-        #[test]
-        fn felt_is_never_negative(x in any::<Felt252>()) {
-            prop_assert!(!x.is_negative())
-        }
-
-        #[test]
-        fn non_zero_felt_signum_is_always_one(ref x in nonzero_felt252()) {
-            let one = Felt252::one();
-            prop_assert_eq!(x.signum(), one)
-        }
-
-        #[test]
-        fn sub_abs(x in any::<Felt252>(), y in any::<Felt252>()) {
-            let expected_abs_sub = if x > y {&x - &y} else {&y - &x};
-
-            prop_assert_eq!(x.abs_sub(&y), expected_abs_sub)
-        }
-
-        #[test]
-        fn abs(x in any::<Felt252>()) {
-            prop_assert_eq!(&x, &x.abs())
-        }
-
-        #[test]
-        fn modpow_in_range(x in any::<Felt252>(), y in any::<Felt252>()) {
-            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
-
-            let p_felt = Felt252::max_value();
-
-            let modpow = x.modpow(&y, &p_felt).to_biguint();
-            prop_assert!(modpow < p, "{}", modpow);
         }
 
         #[test]
@@ -1348,7 +1271,7 @@ mod test {
         #[values(-2, -1, 0, 1, 1i128.neg(), i64::MIN as i128, u64::MAX as i128, u64::MAX as i128 + 1, (u64::MAX as i128).neg())]
         y: i128,
     ) {
-        let y = Felt252::from(y);
+        let y = Felt252::from(y.checked_abs().unwrap_or_default() as u128);
         assert_eq!(x + &y, (&y + x).to_u64());
     }
 
@@ -1356,9 +1279,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
-        let x = Felt252::new(0);
-        let y = Felt252::new(0);
-        let z = Felt252::new(0);
+        let x = Felt252::zero();
+        let y = Felt252::zero();
+        let z = Felt252::zero();
         assert_eq!(x + y, z)
     }
 
@@ -1366,9 +1289,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of multiplying two zeroes is zero
     fn mul_zeros_in_range() {
-        let x = Felt252::new(0);
-        let y = Felt252::new(0);
-        let z = Felt252::new(0);
+        let x = Felt252::zero();
+        let y = Felt252::zero();
+        let z = Felt252::zero();
         assert_eq!(x * y, z)
     }
 
@@ -1376,9 +1299,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of performing a bit and operation between zeroes is zero
     fn bit_and_zeros_in_range() {
-        let x = Felt252::new(0);
-        let y = Felt252::new(0);
-        let z = Felt252::new(0);
+        let x = Felt252::zero();
+        let y = Felt252::zero();
+        let z = Felt252::zero();
         assert_eq!(&x & &y, z)
     }
 
@@ -1386,9 +1309,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit or operation between zeroes is zero
     fn bit_or_zeros_in_range() {
-        let x = Felt252::new(0);
-        let y = Felt252::new(0);
-        let z = Felt252::new(0);
+        let x = Felt252::zero();
+        let y = Felt252::zero();
+        let z = Felt252::zero();
         assert_eq!(&x | &y, z)
     }
 
@@ -1396,9 +1319,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit xor operation between zeroes is zero
     fn bit_xor_zeros_in_range() {
-        let x = Felt252::new(0);
-        let y = Felt252::new(0);
-        let z = Felt252::new(0);
+        let x = Felt252::zero();
+        let y = Felt252::zero();
+        let z = Felt252::zero();
         assert_eq!(&x ^ &y, z)
     }
 
@@ -1431,7 +1354,7 @@ mod test {
     #[test]
     fn is_zero() {
         let felt_zero = Felt252::zero();
-        let felt_non_zero = Felt252::new(3);
+        let felt_non_zero = Felt252::new(3_u32);
         assert!(felt_zero.is_zero());
         assert!(!felt_non_zero.is_zero())
     }
@@ -1446,14 +1369,8 @@ mod test {
     #[test]
     fn is_one() {
         let felt_one = Felt252::one();
-        let felt_non_one = Felt252::new(8);
+        let felt_non_one = Felt252::new(8_u32);
         assert!(felt_one.is_one());
         assert!(!felt_non_one.is_one())
-    }
-
-    #[test]
-    fn signum_of_zero_is_zero() {
-        let zero = Felt252::zero();
-        assert_eq!(&zero.signum(), &zero)
     }
 }

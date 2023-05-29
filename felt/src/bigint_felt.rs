@@ -1,3 +1,6 @@
+// Disable dead_code warnings. I'm leaving the cleanup for later...
+#![allow(dead_code)]
+
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
