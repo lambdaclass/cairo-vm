@@ -988,7 +988,7 @@ impl fmt::Display for Felt252 {
 
 impl fmt::Debug for Felt252 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
+        write!(f, "{}", self.to_str_radix(10))
     }
 }
 
