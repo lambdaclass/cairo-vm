@@ -235,9 +235,20 @@ impl Felt252 {
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
-        Self {
-            value: FieldElement::from_bytes_be(bytes).unwrap(),
-        }
+        // TODO: upstream should zero pad and not return a Result
+        let value = if bytes.len() < 32 {
+            let bytes_le_padded: Vec<u8> = bytes
+                .iter()
+                .copied()
+                .rev()
+                .chain(std::iter::repeat(0))
+                .take(32)
+                .collect();
+            FieldElement::from_bytes_le(&bytes_le_padded).unwrap()
+        } else {
+            FieldElement::from_bytes_be(bytes).unwrap()
+        };
+        Self { value }
     }
 
     pub fn to_signed_felt(&self) -> BigInt {
