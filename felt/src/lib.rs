@@ -147,11 +147,12 @@ impl From<u128> for Felt252 {
 
 // TODO: bury BigUint?
 impl From<BigUint> for Felt252 {
-    fn from(value: BigUint) -> Self {
-        let prime = Self::prime();
-        let val = value % prime;
+    fn from(mut value: BigUint) -> Self {
+        if value >= *CAIRO_PRIME_BIGUINT {
+            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
+        }
         let mut limbs = [0; 4];
-        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+        for (i, l) in (0..4).rev().zip(value.iter_u64_digits()) {
             limbs[i] = l;
         }
         let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
@@ -163,8 +164,7 @@ impl From<BigUint> for Felt252 {
 // NOTE: used for deserialization
 impl From<BigInt> for Felt252 {
     fn from(value: BigInt) -> Self {
-        let prime = Self::prime().to_bigint().expect("cannot fail");
-        let val = value.mod_floor(&prime);
+        let val = value.mod_floor(&CAIRO_PRIME_BIGUINT.to_bigint().expect("cannot fail"));
         let mut limbs = [0; 4];
         for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
             limbs[i] = l;
@@ -235,20 +235,7 @@ impl Felt252 {
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
-        // TODO: upstream should zero pad and not return a Result
-        let value = if bytes.len() < 32 {
-            let bytes_le_padded: Vec<u8> = bytes
-                .iter()
-                .copied()
-                .rev()
-                .chain(std::iter::repeat(0))
-                .take(32)
-                .collect();
-            FieldElement::from_bytes_le(&bytes_le_padded).unwrap()
-        } else {
-            FieldElement::from_bytes_be(bytes).unwrap()
-        };
-        Self { value }
+        Self::from(BigUint::from_bytes_be(bytes))
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
