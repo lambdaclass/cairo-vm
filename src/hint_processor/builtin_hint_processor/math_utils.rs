@@ -1,7 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::{Shl, Shr},
-    prelude::*,
+use crate::{
+    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
+    stdlib::{
+        collections::HashMap,
+        ops::{Shl, Shr},
+        prelude::*,
+    },
 };
 use lazy_static::lazy_static;
 use num_traits::{Bounded, Pow};
@@ -550,18 +553,25 @@ pub fn assert_250_bit(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
+    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
     //Declare constant values
-    let upper_bound = Felt252::one().shl(250u32);
-    let shift = Felt252::one().shl(128u32);
+    let upper_bound = constants
+        .get(UPPER_BOUND)
+        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
+    let shift = constants
+        .get(SHIFT)
+        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
     let value = Felt252::from(
         get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.to_signed_felt(),
     );
     //Main logic
-    if &value > &upper_bound {
-        return Err(HintError::ValueOutside250BitRange(value));
+    if value.as_ref() > upper_bound {
+        return Err(HintError::ValueOutside250BitRange(value.into_owned()));
     }
-    let (high, low) = value.div_rem(&shift);
+    let (high, low) = value.div_rem(shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -1888,6 +1898,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_valid() {
         let hint_code = hint_code::ASSERT_250_BITS;
+        let constants = HashMap::from([
+            ("UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("SHIFT".to_string(), Felt252::from(5)),
+        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1896,7 +1910,10 @@ mod tests {
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            Ok(())
+        );
         //Hint would return an error if the assertion fails
         //Check ids.high and ids.low values
         check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
@@ -1906,6 +1923,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_invalid() {
         let hint_code = hint_code::ASSERT_250_BITS;
+        let constants = HashMap::from([
+            ("UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("SHIFT".to_string(), Felt252::from(5)),
+        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1922,7 +1943,7 @@ mod tests {
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
             Err(HintError::ValueOutside250BitRange(x)) if x == Felt252::one().shl(251_u32)
         );
     }
