@@ -989,12 +989,8 @@ impl FromPrimitive for Felt252 {
     }
 
     fn from_i64(n: i64) -> Option<Self> {
-        let value = if n.is_negative() {
-            FieldElement::zero() - FieldElement::from((-n) as u64)
-        } else {
-            FieldElement::from(n as u64)
-        };
-        Some(Felt252 { value })
+        let res = n.is_negative().then(|| FieldElement::from(n as u64));
+        res.map(|value| Felt252 { value })
     }
 }
 
