@@ -201,7 +201,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_EXCLUDED_0 => assert_le_felt_excluded_0(vm, exec_scopes),
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_250_BITS => {
-                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_ADDR_BOUNDED => {
