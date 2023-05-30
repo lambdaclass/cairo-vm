@@ -221,16 +221,8 @@ impl Felt252 {
         self.value.to_bytes_le()
     }
 
-    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
-        let string = std::str::from_utf8(buf).ok()?;
-        let res = if radix == 16 {
-            let value = FieldElement::from_hex(string).ok()?;
-            Self { value }
-        } else {
-            let biguint = BigInt::from_str_radix(string, radix).ok()?;
-            biguint.into()
-        };
-        Some(res)
+    pub fn parse_bytes(bytes: &[u8], radix: u32) -> Option<Self> {
+        Some(BigInt::parse_bytes(bytes, radix)?.into())
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
