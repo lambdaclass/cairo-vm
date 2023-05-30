@@ -14,7 +14,6 @@ use crate::{
 };
 use felt::Felt252;
 use num_bigint::BigInt;
-use num_bigint::ToBigInt;
 use num_traits::{One, Signed, Zero};
 
 use super::hint_utils::insert_value_from_var_name;
@@ -38,26 +37,23 @@ pub fn bigint_pack_div_mod_hint(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let p: BigInt = BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?
-        .pack86()
-        .to_bigint()
-        .unwrap_or_default();
+        .pack86();
 
     let x: BigInt = {
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
+        // pack only takes the first three limbs
         let x_lower = BigInt3 {
             d0: x_bigint5.d0,
             d1: x_bigint5.d1,
             d2: x_bigint5.d2,
         };
-        let x_lower = x_lower.pack86().to_bigint().unwrap_or_default();
-        let d3 = x_bigint5.d3.as_ref().to_bigint();
-        let d4 = x_bigint5.d4.as_ref().to_bigint();
+        let x_lower = x_lower.pack86();
+        let d3 = x_bigint5.d3.as_ref().to_signed_felt();
+        let d4 = x_bigint5.d4.as_ref().to_signed_felt();
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?
-        .pack86()
-        .to_bigint()
-        .unwrap_or_default();
+        .pack86();
 
     let res = div_mod(&x, &y, &p);
     exec_scopes.insert_value("res", res.clone());
