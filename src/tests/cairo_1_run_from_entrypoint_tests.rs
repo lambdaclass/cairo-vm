@@ -1,3 +1,5 @@
+use num_traits::Num;
+
 use crate::tests::*;
 
 #[test]
@@ -91,6 +93,37 @@ fn fibonacci_3() {
         0,
         &[3_usize.into(), 3_usize.into(), 3_usize.into()],
         &[9_usize.into()],
+    );
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn factorial_50() {
+    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/factorial.casm");
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[50.into()],
+        &[Felt252::from_str_radix(
+            "30414093201713378043612608166064768844377641568960512000000000000",
+            10,
+        )
+        .unwrap()],
+    );
+}
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn factorial_2000() {
+    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/factorial.casm");
+    run_cairo_1_entrypoint(
+        program_data.as_slice(),
+        0,
+        &[2000.into()],
+        &[Felt252::from_str_radix(
+            "2570376556569900799903105814841036176886569861654260254942280653735904624674",
+            10,
+        )
+        .unwrap()],
     );
 }
 
