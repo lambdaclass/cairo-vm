@@ -60,7 +60,7 @@ pub struct Felt252 {
 // TODO: remove and change for transformation + compare
 impl PartialOrd for Felt252 {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
@@ -554,6 +554,8 @@ impl<'a> Sub<&'a Felt252> for Felt252 {
     }
 }
 
+// a - b = a + (-b), but clippy doesn't know that
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl Sub<&Felt252> for usize {
     type Output = Felt252;
     fn sub(self, rhs: &Self::Output) -> Self::Output {
@@ -860,7 +862,7 @@ impl<'a> BitOr for &'a Felt252 {
         let b = rhs.value.representative();
 
         for i in 0..a.limbs.len() {
-            a.limbs[i] = a.limbs[i] | b.limbs[i];
+            a.limbs[i] |= b.limbs[i];
         }
         let value = FieldElement::new(a);
         // let value = FieldElement::new(a | b);
@@ -876,7 +878,7 @@ impl<'a> BitXor for &'a Felt252 {
         let b = rhs.value.representative();
 
         for i in 0..a.limbs.len() {
-            a.limbs[i] = a.limbs[i] ^ b.limbs[i];
+            a.limbs[i] ^= b.limbs[i];
         }
         let value = FieldElement::new(a);
         // let value = FieldElement::new(a ^ b);

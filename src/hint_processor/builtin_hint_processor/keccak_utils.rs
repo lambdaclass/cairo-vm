@@ -200,7 +200,7 @@ pub fn split_output(
     let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
     let output = output_cow.as_ref();
     let low = output & Felt252::from(u128::MAX);
-    let high = output >> 128;
+    let high = output >> 128_u32;
     insert_value_from_var_name(
         &format!("output{}_high", num),
         high,
@@ -286,8 +286,8 @@ pub fn split_output_mid_low_high(
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
     let output1_low = output1 & Felt252::from((1u64 << (8 * 7)) - 1u64);
-    let tmp = output1 >> (8 * 7);
-    let output1_high = &tmp >> 128;
+    let tmp = output1 >> (8_u32 * 7);
+    let output1_high = &tmp >> 128_u32;
     let output1_mid = tmp & &Felt252::from(u128::MAX);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;

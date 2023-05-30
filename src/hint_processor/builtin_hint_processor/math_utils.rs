@@ -460,10 +460,10 @@ pub fn signed_div_rem(
                 builtin_bound.clone(),
             ));
         }
-        Some(builtin_bound) if bound.as_ref() > &builtin_bound.shr(1) => {
+        Some(builtin_bound) if bound.as_ref() > &(builtin_bound >> 1_u32) => {
             return Err(HintError::OutOfValidRange(
                 bound.into_owned(),
-                builtin_bound.shr(1),
+                builtin_bound >> 1_u32,
             ));
         }
         None if div.is_zero() => {
@@ -661,7 +661,7 @@ pub fn is_quad_residue(
 
     if x.is_zero() || x.is_one() {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
-    } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1)).is_one() {
+    } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1_u32)).is_one() {
         insert_value_from_var_name("y", &x.sqrt(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
@@ -2353,7 +2353,7 @@ mod tests {
 
             if x.is_zero() || x.is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
-            } else if x.pow(&(Felt252::max_value() >> 1)).is_one() {
+            } else if x.pow(&(Felt252::max_value() >> 1_u32)).is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt());
             } else {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x / Felt252::new(3)).sqrt());
