@@ -873,7 +873,7 @@ impl<'a> Shr<usize> for &'a Felt252 {
         if rhs >= 64 * 4 {
             Felt252::zero()
         } else {
-            let value = FieldElement::new(self.value.representative() >> (rhs as usize));
+            let value = FieldElement::new(self.value.representative() >> rhs);
             Self::Output { value }
         }
     }
