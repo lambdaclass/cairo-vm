@@ -2,9 +2,11 @@
 
 #### Upcoming Changes
 
-* bugfix: Fix `EC_DOUBLE_ASSIGN_NEW_X_V2` hint not taking `SECP_P` value from the current execution scope [#1186](https://github.com/lambdaclass/cairo-rs/pull/1186)
+* fix: Fix hint `BIGINT_PACK_DIV_MOD` [#1189](https://github.com/lambdaclass/cairo-rs/pull/1189)
 
-* Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
+* fix: Fix `EC_DOUBLE_ASSIGN_NEW_X_V2` hint not taking `SECP_P` value from the current execution scope [#1186](https://github.com/lambdaclass/cairo-rs/pull/1186)
+
+* fix: Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
 
   * These hints now return an error when ids.m equals zero
 
