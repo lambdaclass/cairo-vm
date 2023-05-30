@@ -1,4 +1,4 @@
-use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
+use crate::stdlib::{cmp, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::{
@@ -82,17 +82,11 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &Felt252::one().shl(8 * (n_bytes as u32)) {
+        if word.is_negative() || word.as_ref() >= &(Felt252::one() << (8 * (n_bytes as u32))) {
             return Err(HintError::InvalidWordSize(word.into_owned()));
         }
 
-        let mut bytes = word.to_bytes_be();
-        let mut bytes = {
-            let n_word_bytes = &bytes.len();
-            left_pad(&mut bytes, n_bytes as usize - n_word_bytes)
-        };
-
-        keccak_input.append(&mut bytes);
+        keccak_input.extend_from_slice(&word.to_be_bytes()[16..]);
     }
 
     let mut hasher = Keccak256::new();
@@ -157,12 +151,7 @@ pub fn unsafe_keccak_finalize(
     let range = vm.get_integer_range(start_ptr, n_elems)?;
 
     for word in range.into_iter() {
-        let mut bytes = word.to_bytes_be();
-        let mut bytes = {
-            let n_word_bytes = &bytes.len();
-            left_pad(&mut bytes, 16 - n_word_bytes)
-        };
-        keccak_input.append(&mut bytes);
+        keccak_input.extend_from_slice(&word.to_be_bytes()[16..]);
     }
 
     let mut hasher = Keccak256::new();
@@ -179,13 +168,6 @@ pub fn unsafe_keccak_finalize(
     vm.insert_value(high_addr, &high)?;
     vm.insert_value(low_addr, &low)?;
     Ok(())
-}
-
-fn left_pad(bytes_vector: &mut [u8], n_zeros: usize) -> Vec<u8> {
-    let mut res: Vec<u8> = vec![0; n_zeros];
-    res.extend(bytes_vector.iter());
-
-    res
 }
 
 // Implements hints of type : ids.output{num}_low = ids.output{num} & ((1 << 128) - 1)

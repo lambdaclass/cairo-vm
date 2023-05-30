@@ -152,11 +152,8 @@ pub fn recover_y_hint(
 }
 
 // Returns the Felt252 as a vec of bytes of len 32, pads left with zeros
-fn to_padded_bytes(n: &Felt252) -> Vec<u8> {
-    let felt_to_bytes = n.to_bytes_be();
-    let mut bytes: Vec<u8> = vec![0; 32 - felt_to_bytes.len()];
-    bytes.extend(felt_to_bytes);
-    bytes
+fn to_padded_bytes(n: &Felt252) -> [u8; 32] {
+    n.to_be_bytes()
 }
 
 // Returns a random non-zero point on the elliptic curve

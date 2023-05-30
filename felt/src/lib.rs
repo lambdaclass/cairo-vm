@@ -50,8 +50,8 @@ macro_rules! felt_str {
 pub struct ParseFeltError;
 
 #[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
-#[serde(from = "BigUint")]
-#[serde(into = "BigUint")]
+#[serde(from = "BigInt")]
+#[serde(into = "BigInt")]
 pub struct Felt252 {
     #[serde(with = "felt_parse")]
     value: FieldElement<Stark252PrimeField>,
@@ -146,10 +146,9 @@ impl From<u128> for Felt252 {
 }
 
 // TODO: bury BigUint?
-// NOTE: used for deserialization
 impl From<BigUint> for Felt252 {
     fn from(value: BigUint) -> Self {
-        let prime = FeltBigInt::prime();
+        let prime = Self::prime();
         let val = value % prime;
         let mut limbs = [0; 4];
         for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
@@ -160,24 +159,25 @@ impl From<BigUint> for Felt252 {
     }
 }
 
-// NOTE: used for serialization
-impl From<Felt252> for BigUint {
-    fn from(value: Felt252) -> Self {
-        value.to_biguint()
-    }
-}
-
 // TODO: bury BigInt?
+// NOTE: used for deserialization
 impl From<BigInt> for Felt252 {
     fn from(value: BigInt) -> Self {
-        let prime = FeltBigInt::prime().to_bigint().expect("cannot fail");
-        let val = (value % prime).abs();
+        let prime = Self::prime().to_bigint().expect("cannot fail");
+        let val = value.mod_floor(&prime);
         let mut limbs = [0; 4];
         for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
             limbs[i] = l;
         }
         let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
         Self { value }
+    }
+}
+
+// NOTE: used for serialization
+impl From<Felt252> for BigInt {
+    fn from(value: Felt252) -> Self {
+        value.to_bigint()
     }
 }
 
@@ -222,18 +222,13 @@ impl Felt252 {
         self.value.to_bytes_le()
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn to_bytes_be(&self) -> Vec<u8> {
-        self.value.to_bytes_be()
-    }
-
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         let string = std::str::from_utf8(buf).ok()?;
         let res = if radix == 16 {
             let value = FieldElement::from_hex(string).ok()?;
             Self { value }
         } else {
-            let biguint = BigUint::from_str_radix(string, radix).ok()?;
+            let biguint = BigInt::from_str_radix(string, radix).ok()?;
             biguint.into()
         };
         Some(res)
@@ -701,7 +696,7 @@ impl Num for Felt252 {
             let value = FieldElement::from_hex(string).map_err(|_| ParseFeltError)?;
             Self { value }
         } else {
-            let biguint = BigUint::from_str_radix(string, radix).map_err(|_| ParseFeltError)?;
+            let biguint = BigInt::from_str_radix(string, radix).map_err(|_| ParseFeltError)?;
             biguint.into()
         };
         Ok(res)
@@ -709,24 +704,21 @@ impl Num for Felt252 {
 }
 
 impl Integer for Felt252 {
-    fn div_floor(&self, _rhs: &Self) -> Self {
-        // Self {
-        //     value: &self.value / &rhs.value,
-        // }
-        unimplemented!()
+    fn div_floor(&self, rhs: &Self) -> Self {
+        Self::from(&self.to_biguint() / &rhs.to_biguint())
     }
 
-    fn div_rem(&self, _other: &Self) -> (Self, Self) {
-        // (self.div_floor(other), Self::zero());
-        unimplemented!()
+    fn div_rem(&self, other: &Self) -> (Self, Self) {
+        let (div, rem) = self.to_biguint().div_mod_floor(&other.to_biguint());
+        (Self::from(div), Self::from(rem))
     }
 
     fn divides(&self, _other: &Self) -> bool {
-        unimplemented!()
+        true
     }
 
-    fn gcd(&self, _other: &Self) -> Self {
-        unimplemented!()
+    fn gcd(&self, other: &Self) -> Self {
+        Self::from(self.to_biguint().gcd(&other.to_biguint()))
     }
 
     fn is_even(&self) -> bool {
@@ -734,19 +726,20 @@ impl Integer for Felt252 {
     }
 
     fn is_multiple_of(&self, _other: &Self) -> bool {
-        unimplemented!()
+        true
     }
 
     fn is_odd(&self) -> bool {
         !self.is_even()
     }
 
-    fn lcm(&self, _other: &Self) -> Self {
-        unimplemented!()
+    fn lcm(&self, other: &Self) -> Self {
+        Self::from(self.to_biguint().lcm(&other.to_biguint()))
     }
 
-    fn mod_floor(&self, _rhs: &Self) -> Self {
-        unimplemented!()
+    fn mod_floor(&self, rhs: &Self) -> Self {
+        let (_, m) = self.div_rem(rhs);
+        m
     }
 }
 
