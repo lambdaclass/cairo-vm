@@ -53,7 +53,6 @@ pub struct ParseFeltError;
 #[serde(from = "BigInt")]
 #[serde(into = "BigInt")]
 pub struct Felt252 {
-    #[serde(with = "felt_parse")]
     value: FieldElement<Stark252PrimeField>,
 }
 
