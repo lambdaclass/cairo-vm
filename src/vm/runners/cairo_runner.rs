@@ -549,6 +549,40 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Runs the self.program until it completes execution or reaches the steps_limit.
+    /// If the execution reaches the steps_limit without completing the execution
+    /// returns an error
+    pub fn run_until_pc_with_steps_limit(
+        &mut self,
+        address: Relocatable,
+        steps_limit: u64,
+        vm: &mut VirtualMachine,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = self.get_reference_list();
+        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        #[cfg(feature = "hooks")]
+        vm.execute_before_first_step(self, &hint_data_dictionary)?;
+
+        if vm.run_context.pc == address {
+            return Ok(());
+        }
+
+        for _ in 0..steps_limit {
+            vm.step(
+                hint_processor,
+                &mut self.exec_scopes,
+                &hint_data_dictionary,
+                &self.program.constants,
+            )?;
+
+            if vm.run_context.pc == address {
+                return Ok(());
+            }
+        }
+        Err(VirtualMachineError::StepsLimit(steps_limit))
+    }
+
     /// Execute an exact number of steps on the program from the actual position.
     pub fn run_for_steps(
         &mut self,
@@ -4893,5 +4927,118 @@ mod tests {
         let runner = cairo_runner!(program);
 
         assert_eq!(runner.get_program().data_len(), 2)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_until_pc_with_steps_limit() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 20
+        );
+        assert_matches!(
+            runner.run_until_pc_with_steps_limit(
+                end,
+                20,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+
+        assert_matches!(
+            runner.run_until_pc_with_steps_limit(
+                end,
+                0,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_error() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, 0, &mut vm, &mut BuiltinHintProcessor::new_empty()),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 0
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_error_2() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+        runner
+            .run_until_pc_with_steps_limit(end, 79, &mut vm, &mut BuiltinHintProcessor::new_empty()),
+            Err(VirtualMachineError::StepsLimit(x)) if x == 79
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_steps_limit_fibonacci_ok() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc_with_steps_limit(
+                end,
+                80,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        )
     }
 }
