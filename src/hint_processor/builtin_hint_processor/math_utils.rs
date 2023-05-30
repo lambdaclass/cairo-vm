@@ -554,11 +554,12 @@ pub fn assert_250_bit(
     //Declare constant values
     let upper_bound = Felt252::one().shl(250u32);
     let shift = Felt252::one().shl(128u32);
-    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = Felt252::from(
+        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.to_signed_felt(),
+    );
     //Main logic
-    //can be deleted
-    if value.as_ref() > &upper_bound {
-        return Err(HintError::ValueOutside250BitRange(value.into_owned()));
+    if &value > &upper_bound {
+        return Err(HintError::ValueOutside250BitRange(value));
     }
     let (high, low) = value.div_rem(&shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
