@@ -36,8 +36,7 @@ pub fn bigint_pack_div_mod_hint(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let p: BigInt = BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?
-        .pack86();
+    let p: BigInt = BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?.pack86();
 
     let x: BigInt = {
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
@@ -52,8 +51,7 @@ pub fn bigint_pack_div_mod_hint(
         let d4 = x_bigint5.d4.as_ref().to_signed_felt();
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
-    let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?
-        .pack86();
+    let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();
 
     let res = div_mod(&x, &y, &p);
     exec_scopes.insert_value("res", res.clone());
