@@ -975,7 +975,7 @@ impl FromPrimitive for Felt252 {
     }
 
     fn from_i64(n: i64) -> Option<Self> {
-        let res = n.is_negative().then(|| FieldElement::from(n as u64));
+        let res = (!n.is_negative()).then(|| FieldElement::from(n as u64));
         res.map(|value| Felt252 { value })
     }
 }
@@ -1335,10 +1335,10 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
-            let x: i64 = x as i64;
-            let x_felt:Felt252 = Felt252::from_i64(x).unwrap();
-            let x_i64:i64 = Felt252::to_i64(&x_felt).unwrap();
+        fn from_i64_and_to_i64_primitive(x in any::<i64>()) {
+            let x = x.checked_abs().unwrap_or(0);
+            let x_felt: Felt252 = Felt252::from_i64(x).unwrap();
+            let x_i64: i64 = Felt252::to_i64(&x_felt).unwrap();
             prop_assert_eq!(x, x_i64);
         }
 
