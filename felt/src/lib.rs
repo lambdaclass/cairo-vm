@@ -261,9 +261,12 @@ impl Felt252 {
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn to_str_radix(&self, _radix: u32) -> String {
-        // TODO: implement with arbitrary radixes
-        format!("{}", self.value) // NOTE: returns hexstring
+    pub fn to_str_radix(&self, radix: u32) -> String {
+        if radix == 16 {
+            format!("{}", self.value)
+        } else {
+            self.to_biguint().to_str_radix(radix)
+        }
     }
 
     pub fn to_bigint(&self) -> BigInt {
@@ -745,7 +748,7 @@ impl Integer for Felt252 {
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        Self::from(self.to_biguint().lcm(&other.to_biguint()))
+        self.max(other).clone()
     }
 
     fn mod_floor(&self, rhs: &Self) -> Self {
@@ -967,7 +970,7 @@ impl FromPrimitive for Felt252 {
 
 impl fmt::Display for Felt252 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.value)
+        write!(f, "{}", self.to_str_radix(10))
     }
 }
 
@@ -979,6 +982,8 @@ impl fmt::Debug for Felt252 {
 
 #[cfg(test)]
 mod test {
+    use core::cmp;
+
     use super::*;
     use crate::arbitrary::nonzero_felt252;
     use num_integer::Integer;
@@ -1325,6 +1330,44 @@ mod test {
             prop_assert_eq!(x, x_i64);
         }
 
+        #[test]
+        // Property test to check that lcm(x, y) works. Since we're operating in a prime field, lcm
+        // will just be the smaller number.
+        fn lcm_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
+            let lcm = x.lcm(&y);
+            prop_assert!(lcm == cmp::max(x, y));
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
+        // will always be true
+        fn is_multiple_of_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
+            prop_assert!(x.is_multiple_of(&y));
+        }
+
+        #[test]
+        fn divides_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
+            prop_assert!(x.divides(&y));
+        }
+
+        #[test]
+        fn gcd_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
+            let gcd1 = x.gcd(&y);
+            let gcd2 = y.gcd(&x);
+            prop_assert_eq!(gcd1, gcd2);
+        }
+
+        #[test]
+        fn is_even(x in any::<Felt252>()) {
+            prop_assert_eq!(x.is_even(), x.to_biguint().is_even());
+        }
+
+        #[test]
+        fn is_odd(x in any::<Felt252>()) {
+            prop_assert_eq!(x.is_odd(), x.to_biguint().is_odd());
+        }
+
         /// Tests the additive identity of the implementation of Zero trait for felts
         ///
         /// ```{.text}
@@ -1349,6 +1392,35 @@ mod test {
             let one = Felt252::one();
             prop_assert_eq!(x, &(x * &one));
             prop_assert_eq!(x, &(&one * x));
+        }
+
+        #[test]
+        fn felt_is_always_positive(x in any::<Felt252>()) {
+            prop_assume!(!x.is_zero());
+            prop_assert!(x.is_positive())
+        }
+
+        #[test]
+        fn felt_is_never_negative(x in any::<Felt252>()) {
+            prop_assert!(!x.is_negative())
+        }
+
+        #[test]
+        fn non_zero_felt_signum_is_always_one(ref x in nonzero_felt252()) {
+            let one = Felt252::one();
+            prop_assert_eq!(x.signum(), one)
+        }
+
+        #[test]
+        fn sub_abs(x in any::<Felt252>(), y in any::<Felt252>()) {
+            let expected_abs_sub = if x > y {&x - &y} else {&y - &x};
+
+            prop_assert_eq!(x.abs_sub(&y), expected_abs_sub)
+        }
+
+        #[test]
+        fn abs(x in any::<Felt252>()) {
+            prop_assert_eq!(&x, &x.abs())
         }
 
         #[test]
@@ -1565,5 +1637,11 @@ mod test {
         let felt_non_one = Felt252::new(8_u32);
         assert!(felt_one.is_one());
         assert!(!felt_non_one.is_one())
+    }
+
+    #[test]
+    fn signum_of_zero_is_zero() {
+        let zero = Felt252::zero();
+        assert_eq!(&zero.signum(), &zero)
     }
 }
