@@ -39,7 +39,7 @@ impl EcPoint<'_> {
                 .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "x".to_string()))?,
             y: vm
                 .get_integer((point_addr + 1)?)
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "x".to_string()))?,
+                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "y".to_string()))?,
         })
     }
 }

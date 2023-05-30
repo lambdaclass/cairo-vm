@@ -20,7 +20,9 @@ use super::{
         pack::*,
     },
 };
-use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::{
+    ec_double_assign_new_x, ec_double_assign_new_x_v2,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -199,7 +201,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_EXCLUDED_0 => assert_le_felt_excluded_0(vm, exec_scopes),
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_250_BITS => {
-                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_ADDR_BOUNDED => {
@@ -552,16 +554,21 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt1",
                 &SECP_P,
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
-                ec_double_assign_new_x(
-                    vm,
-                    exec_scopes,
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                    &SECP_P,
-                    "point",
-                )
-            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => ec_double_assign_new_x_v2(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
                 vm,
                 exec_scopes,
