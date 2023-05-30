@@ -208,13 +208,13 @@ impl Felt252 {
     }
 
     pub fn to_le_digits(&self) -> [u64; 4] {
-        let mut iter = self.iter_u64_digits();
-        [
-            iter.next().unwrap_or_default(),
-            iter.next().unwrap_or_default(),
-            iter.next().unwrap_or_default(),
-            iter.next().unwrap_or_default(),
-        ]
+        let mut rep = self.value.representative();
+        rep.limbs.reverse();
+        rep.limbs
+    }
+
+    pub fn to_be_digits(&self) -> [u64; 4] {
+        self.value.representative().limbs
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -283,9 +283,33 @@ impl Felt252 {
     }
 
     pub fn sqrt(&self) -> Self {
-        // TODO: remove unwrap and check if .0 is correct
-        let value = self.value.sqrt().unwrap().0;
-        Self { value }
+        // TODO: this should be upstream
+        // Based on Tonelli-Shanks' algorithm for finding square roots
+        // and sympy's library implementation of said algorithm.
+        if self.is_zero() || self.is_one() {
+            return self.clone();
+        }
+
+        let max_felt = Felt252::max_value();
+        let trailing_prime = Felt252::max_value() >> 192_u32; // 0x800000000000011
+
+        let a = self.pow(&trailing_prime);
+        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+        let mut m = Felt252::zero();
+        let mut exponent = Felt252::one() << 191_u32;
+        let mut adm;
+        for i in 0..192_u32 {
+            adm = &a * &(&d).pow(&m);
+            adm = (&adm).pow(&exponent);
+            exponent >>= 1;
+            // if adm ≡ -1 (mod CAIRO_PRIME)
+            if adm == max_felt {
+                m += Felt252::one() << i;
+            }
+        }
+        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1_u32)) * (&d).pow(&(m >> 1_u32));
+        let root_2 = &max_felt - &root_1 + 1_usize;
+        root_1.min(root_2)
     }
 
     pub fn prime() -> BigUint {
@@ -373,31 +397,27 @@ impl Add<&Felt252> for u64 {
     type Output = Option<u64>;
 
     fn add(self, rhs: &Felt252) -> Option<u64> {
-        const PRIME_DIGITS_LE_HI: (u64, u64, u64) =
-            (0x0000000000000000, 0x0000000000000000, 0x0800000000000011);
-        const PRIME_MINUS_U64_MAX_DIGITS_LE_HI: (u64, u64, u64) =
-            (0xffffffffffffffff, 0xffffffffffffffff, 0x0800000000000010);
+        const PRIME_DIGITS_BE_HI: [u64; 3] =
+            [0x0800000000000011, 0x0000000000000000, 0x0000000000000000];
+        const PRIME_MINUS_U64_MAX_DIGITS_BE_HI: [u64; 3] =
+            [0x0800000000000010, 0xffffffffffffffff, 0xffffffffffffffff];
 
-        // Iterate through the 64 bits digits in little-endian order to
+        // Match with the 64 bits digits in big-endian order to
         // characterize how the sum will behave.
-        let mut rhs_digits = rhs.iter_u64_digits();
-        // No digits means `rhs` is `0`, so the sum is simply `self`.
-        let Some(low) = dbg!(rhs_digits.next()) else {
-            return Some(self);
-        };
-        // A single digit means this is effectively the sum of two `u64` numbers.
-        let Some(h0) = rhs_digits.next() else {
-            return self.checked_add(low)
-        };
-        // Now we need to compare the 3 most significant digits.
-        // There are two relevant cases from now on, either `rhs` behaves like a
-        // substraction of a `u64` or the result of the sum falls out of range.
-        let (h1, h2) = (rhs_digits.next()?, rhs_digits.next()?);
-        match (h0, h1, h2) {
+        match rhs.to_be_digits() {
+            // No digits means `rhs` is `0`, so the sum is simply `self`.
+            [0, 0, 0, 0] => Some(self),
+            // A single digit means this is effectively the sum of two `u64` numbers.
+            [0, 0, 0, low] => self.checked_add(low),
+            // Now we need to compare the 3 most significant digits.
+            // There are two relevant cases from now on, either `rhs` behaves like a
+            // substraction of a `u64` or the result of the sum falls out of range.
+
             // The 3 MSB only match the prime for Felt252::max_value(), which is -1
             // in the signed field, so this is equivalent to substracting 1 to `self`.
-            #[allow(clippy::suspicious_arithmetic_impl)]
-            PRIME_DIGITS_LE_HI => self.checked_sub(1),
+            // #[allow(clippy::suspicious_arithmetic_impl)]
+            [hi @ .., _] if hi == PRIME_DIGITS_BE_HI => self.checked_sub(1),
+
             // For the remaining values between `[-u64::MAX..0]` (where `{0, -1}` have
             // already been covered) the MSB matches that of `PRIME - u64::MAX`.
             // Because we're in the negative number case, we count down. Because `0`
@@ -408,8 +428,8 @@ impl Add<&Felt252> for u64 {
             // For the remaining range, we make take the absolute value module-2 while
             // correcting by substracting `1` (note we actually substract `2` because
             // the absolute value itself requires substracting `1`.
-            #[allow(clippy::suspicious_arithmetic_impl)]
-            PRIME_MINUS_U64_MAX_DIGITS_LE_HI if low >= 2 => {
+            // #[allow(clippy::suspicious_arithmetic_impl)]
+            [hi @ .., low] if hi == PRIME_MINUS_U64_MAX_DIGITS_BE_HI && low >= 2 => {
                 (self).checked_sub(u64::MAX - (low - 2))
             }
             // Any other case will result in an addition that is out of bounds, so
@@ -759,64 +779,80 @@ impl Signed for Felt252 {
 impl Shl<u32> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: u32) -> Self {
-        let value = FieldElement::new(self.value.representative() << (rhs as usize));
-        Self::Output { value }
+        &self << rhs
     }
 }
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: u32) -> Self::Output {
-        let value = FieldElement::new(self.value.representative() << (rhs as usize));
-        Self::Output { value }
+        // TODO: upstream should do this check
+        if rhs >= 64 * 4 {
+            Felt252::zero()
+        } else {
+            let value = FieldElement::new(self.value.representative() << (rhs as usize));
+            Self::Output { value }
+        }
     }
 }
 
 impl Shl<usize> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: usize) -> Self {
-        let value = FieldElement::new(self.value.representative() << rhs);
-        Self::Output { value }
+        &self << rhs
     }
 }
 
 impl<'a> Shl<usize> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: usize) -> Self::Output {
-        let value = FieldElement::new(self.value.representative() << rhs);
-        Self::Output { value }
+        // TODO: upstream should do this check
+        if rhs >= 64 * 4 {
+            Felt252::zero()
+        } else {
+            let value = FieldElement::new(self.value.representative() << rhs);
+            Self::Output { value }
+        }
     }
 }
 
 impl Shr<u32> for Felt252 {
     type Output = Self;
     fn shr(self, rhs: u32) -> Self {
-        let value = FieldElement::new(self.value.representative() >> (rhs as usize));
-        Self::Output { value }
+        &self >> rhs
     }
 }
 
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: u32) -> Self::Output {
-        let value = FieldElement::new(self.value.representative() >> (rhs as usize));
-        Self::Output { value }
+        // TODO: upstream should do this check
+        if rhs >= 64 * 4 {
+            Felt252::zero()
+        } else {
+            let value = FieldElement::new(self.value.representative() >> (rhs as usize));
+            Self::Output { value }
+        }
     }
 }
 
 impl Shr<usize> for Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: usize) -> Self::Output {
-        let value = FieldElement::new(self.value.representative() >> rhs);
-        Self::Output { value }
+        &self >> rhs
     }
 }
 
 impl<'a> Shr<usize> for &'a Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: usize) -> Self::Output {
-        let value = FieldElement::new(self.value.representative() >> rhs);
-        Self::Output { value }
+        // TODO: upstream should do this check
+        if rhs >= 64 * 4 {
+            Felt252::zero()
+        } else {
+            let value = FieldElement::new(self.value.representative() >> (rhs as usize));
+            Self::Output { value }
+        }
     }
 }
 
