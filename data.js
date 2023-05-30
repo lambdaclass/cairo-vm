@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685484333943,
+  "lastUpdate": 1685484851464,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -103852,6 +103852,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22915494,
             "range": "± 511239",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "martin.c.paulucci@gmail.com",
+            "name": "Martin Paulucci",
+            "username": "mpaulucci"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "09ea750e29f7ac9ea44c1a43dc100e32d762cee1",
+          "message": "Remove deprecated github action. (#1192)\n\nCo-authored-by: Juan Bono <juanbono94@gmail.com>",
+          "timestamp": "2023-05-30T21:42:55Z",
+          "tree_id": "0508469ee7de375e900c34903b94ff3849286840",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/09ea750e29f7ac9ea44c1a43dc100e32d762cee1"
+        },
+        "date": 1685484845816,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24134,
+            "range": "± 44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 62189,
+            "range": "± 521",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19080489,
+            "range": "± 313458",
             "unit": "ns/iter"
           }
         ]
