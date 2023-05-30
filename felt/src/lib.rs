@@ -251,15 +251,6 @@ impl Felt252 {
         Self { value }
     }
 
-    pub fn to_signed_felt(&self) -> BigInt {
-        let biguint = self.to_biguint();
-        if biguint > *SIGNED_FELT_MAX {
-            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
-        } else {
-            biguint.to_bigint().expect("cannot fail")
-        }
-    }
-
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         if radix == 16 {
@@ -269,11 +260,50 @@ impl Felt252 {
         }
     }
 
+    /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::cairo_felt::Felt252;
+    /// # use num_bigint::BigInt;
+    /// # use num_traits::Bounded;
+    /// let positive = Felt252::new(5);
+    /// assert_eq!(positive.to_bigint(), Into::<num_bigint::BigInt>::into(5));
+    ///
+    /// let negative = Felt252::max_value();
+    /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
+    /// ```
+    pub fn to_signed_felt(&self) -> BigInt {
+        let biguint = self.to_biguint();
+        if biguint > *SIGNED_FELT_MAX {
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
+        } else {
+            biguint.to_bigint().expect("cannot fail")
+        }
+    }
+
+    // Converts [`Felt252`]'s representation directly into a [`BigInt`].
+    // Equivalent to doing felt.to_biguint().to_bigint().
     pub fn to_bigint(&self) -> BigInt {
         #[allow(deprecated)]
         BigInt::from_bytes_be(Sign::Plus, &self.value.to_bytes_be())
     }
 
+    /// Converts [`Felt252`] into a [`BigUint`] number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::cairo_felt::Felt252;
+    /// # use num_bigint::BigUint;
+    /// # use num_traits::{Num, Bounded};
+    /// let positive = Felt252::new(5);
+    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
+    ///
+    /// let negative = Felt252::max_value();
+    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
+    /// ```
     pub fn to_biguint(&self) -> BigUint {
         BigUint::from_bytes_be(&self.value.to_bytes_be())
     }
