@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685458021100,
+  "lastUpdate": 1685459179172,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -103564,6 +103564,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 24384621,
             "range": "± 1260087",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e06c5601095ebb5b8ba02eb60ec79b2789ec8a09",
+          "message": "bugfix: Fix hint `BIGINT_PACK_DIV_MOD` (#1189)\n\n* Use `to_signed_felt` instead of `to_bigint`\n\n* fmt\n\n* Add changelog entry",
+          "timestamp": "2023-05-30T14:30:37Z",
+          "tree_id": "83b7b33fbd1c750f9d692b4358bdb4ae5e22a929",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e06c5601095ebb5b8ba02eb60ec79b2789ec8a09"
+        },
+        "date": 1685459173099,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24111,
+            "range": "± 13",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59670,
+            "range": "± 1033",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19116940,
+            "range": "± 91467",
             "unit": "ns/iter"
           }
         ]
