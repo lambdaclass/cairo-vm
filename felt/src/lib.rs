@@ -9,7 +9,7 @@ mod bigint_felt;
 #[cfg(test)]
 pub mod arbitrary;
 
-use bigint_felt::FeltBigInt;
+use bigint_felt::{FeltBigInt, CAIRO_PRIME_BIGUINT, SIGNED_FELT_MAX};
 use core::{
     convert::Into,
     fmt,
@@ -27,7 +27,9 @@ use lambdaworks_math::{
     unsigned_integer::element::UnsignedInteger,
 };
 use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
+use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
@@ -47,9 +49,11 @@ macro_rules! felt_str {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
-// #[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
-#[derive(Eq, Hash, PartialEq, Clone)]
+#[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(from = "BigUint")]
+#[serde(into = "BigUint")]
 pub struct Felt252 {
+    #[serde(with = "felt_parse")]
     value: FieldElement<Stark252PrimeField>,
 }
 
@@ -142,6 +146,7 @@ impl From<u128> for Felt252 {
 }
 
 // TODO: bury BigUint?
+// NOTE: used for deserialization
 impl From<BigUint> for Felt252 {
     fn from(value: BigUint) -> Self {
         let prime = FeltBigInt::prime();
@@ -152,6 +157,13 @@ impl From<BigUint> for Felt252 {
         }
         let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
         Self { value }
+    }
+}
+
+// NOTE: used for serialization
+impl From<Felt252> for BigUint {
+    fn from(value: Felt252) -> Self {
+        value.to_biguint()
     }
 }
 
@@ -209,10 +221,12 @@ impl Felt252 {
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         self.value.to_bytes_le()
     }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
+
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         let string = std::str::from_utf8(buf).ok()?;
         let res = if radix == 16 {
@@ -224,11 +238,13 @@ impl Felt252 {
         };
         Some(res)
     }
+
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
             value: FieldElement::from_bytes_be(bytes).unwrap(),
         }
     }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, _radix: u32) -> String {
         // TODO: implement with arbitrary radixes
@@ -243,6 +259,16 @@ impl Felt252 {
     pub fn to_biguint(&self) -> BigUint {
         BigUint::from_bytes_be(&self.value.to_bytes_be())
     }
+
+    pub fn to_signed_felt(&self) -> BigInt {
+        let biguint = self.to_biguint();
+        if biguint > *SIGNED_FELT_MAX {
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
+        } else {
+            biguint.to_bigint().expect("cannot fail")
+        }
+    }
+
     pub fn bits(&self) -> u64 {
         // TODO: move upstream
         let rep = self.value.representative();
@@ -255,6 +281,7 @@ impl Felt252 {
         }
         .into()
     }
+
     pub fn sqrt(&self) -> Self {
         // TODO: remove unwrap and check if .0 is correct
         let value = self.value.sqrt().unwrap().0;
@@ -263,6 +290,48 @@ impl Felt252 {
 
     pub fn prime() -> BigUint {
         FeltBigInt::prime()
+    }
+}
+
+impl Integer for Felt252 {
+    fn div_floor(&self, _rhs: &Self) -> Self {
+        // Self {
+        //     value: &self.value / &rhs.value,
+        // }
+        unimplemented!()
+    }
+
+    fn div_rem(&self, _other: &Self) -> (Self, Self) {
+        // (self.div_floor(other), Self::zero());
+        unimplemented!()
+    }
+
+    fn divides(&self, _other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn gcd(&self, _other: &Self) -> Self {
+        unimplemented!()
+    }
+
+    fn is_even(&self) -> bool {
+        self.value.is_even()
+    }
+
+    fn is_multiple_of(&self, _other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn is_odd(&self) -> bool {
+        !self.is_even()
+    }
+
+    fn lcm(&self, _other: &Self) -> Self {
+        unimplemented!()
+    }
+
+    fn mod_floor(&self, _rhs: &Self) -> Self {
+        unimplemented!()
     }
 }
 
@@ -578,7 +647,7 @@ impl<'a> Pow<u32> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: u32) -> Self::Output {
         Self::Output {
-            value: (&self.value).pow(rhs),
+            value: self.value.pow(rhs),
         }
     }
 }
@@ -587,7 +656,7 @@ impl<'a> Pow<&'a Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: &'a Felt252) -> Self::Output {
         Self::Output {
-            value: (&self.value).pow(rhs.value.representative()),
+            value: self.value.pow(rhs.value.representative()),
         }
     }
 }
@@ -733,7 +802,7 @@ impl<'a> Shr<u32> for &'a Felt252 {
     }
 }
 
-impl<'a> Shr<usize> for Felt252 {
+impl Shr<usize> for Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: usize) -> Self::Output {
         let value = FieldElement::new(self.value.representative() >> rhs);
