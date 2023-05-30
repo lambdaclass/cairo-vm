@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Fix hint `BIGINT_PACK_DIV_MOD` [#1189](https://github.com/lambdaclass/cairo-rs/pull/1189)
+
 * Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
