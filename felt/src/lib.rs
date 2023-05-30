@@ -245,6 +245,15 @@ impl Felt252 {
         }
     }
 
+    pub fn to_signed_felt(&self) -> BigInt {
+        let biguint = self.to_biguint();
+        if biguint > *SIGNED_FELT_MAX {
+            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
+        } else {
+            biguint.to_bigint().expect("cannot fail")
+        }
+    }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, _radix: u32) -> String {
         // TODO: implement with arbitrary radixes
@@ -258,15 +267,6 @@ impl Felt252 {
 
     pub fn to_biguint(&self) -> BigUint {
         BigUint::from_bytes_be(&self.value.to_bytes_be())
-    }
-
-    pub fn to_signed_felt(&self) -> BigInt {
-        let biguint = self.to_biguint();
-        if biguint > *SIGNED_FELT_MAX {
-            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
-        } else {
-            biguint.to_bigint().expect("cannot fail")
-        }
     }
 
     pub fn bits(&self) -> u64 {
@@ -290,74 +290,6 @@ impl Felt252 {
 
     pub fn prime() -> BigUint {
         FeltBigInt::prime()
-    }
-}
-
-impl Integer for Felt252 {
-    fn div_floor(&self, _rhs: &Self) -> Self {
-        // Self {
-        //     value: &self.value / &rhs.value,
-        // }
-        unimplemented!()
-    }
-
-    fn div_rem(&self, _other: &Self) -> (Self, Self) {
-        // (self.div_floor(other), Self::zero());
-        unimplemented!()
-    }
-
-    fn divides(&self, _other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn gcd(&self, _other: &Self) -> Self {
-        unimplemented!()
-    }
-
-    fn is_even(&self) -> bool {
-        self.value.is_even()
-    }
-
-    fn is_multiple_of(&self, _other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn is_odd(&self) -> bool {
-        !self.is_even()
-    }
-
-    fn lcm(&self, _other: &Self) -> Self {
-        unimplemented!()
-    }
-
-    fn mod_floor(&self, _rhs: &Self) -> Self {
-        unimplemented!()
-    }
-}
-
-impl Signed for Felt252 {
-    fn abs(&self) -> Self {
-        self.clone()
-    }
-
-    fn abs_sub(&self, other: &Self) -> Self {
-        self.max(other) - self.min(other)
-    }
-
-    fn signum(&self) -> Self {
-        if self.is_zero() {
-            Self::zero()
-        } else {
-            Self::one()
-        }
-    }
-
-    fn is_positive(&self) -> bool {
-        true
-    }
-
-    fn is_negative(&self) -> bool {
-        false
     }
 }
 
@@ -450,7 +382,7 @@ impl Add<&Felt252> for u64 {
         // characterize how the sum will behave.
         let mut rhs_digits = rhs.iter_u64_digits();
         // No digits means `rhs` is `0`, so the sum is simply `self`.
-        let Some(low) = rhs_digits.next() else {
+        let Some(low) = dbg!(rhs_digits.next()) else {
             return Some(self);
         };
         // A single digit means this is effectively the sum of two `u64` numbers.
@@ -753,6 +685,74 @@ impl Num for Felt252 {
             biguint.into()
         };
         Ok(res)
+    }
+}
+
+impl Integer for Felt252 {
+    fn div_floor(&self, _rhs: &Self) -> Self {
+        // Self {
+        //     value: &self.value / &rhs.value,
+        // }
+        unimplemented!()
+    }
+
+    fn div_rem(&self, _other: &Self) -> (Self, Self) {
+        // (self.div_floor(other), Self::zero());
+        unimplemented!()
+    }
+
+    fn divides(&self, _other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn gcd(&self, _other: &Self) -> Self {
+        unimplemented!()
+    }
+
+    fn is_even(&self) -> bool {
+        self.value.is_even()
+    }
+
+    fn is_multiple_of(&self, _other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn is_odd(&self) -> bool {
+        !self.is_even()
+    }
+
+    fn lcm(&self, _other: &Self) -> Self {
+        unimplemented!()
+    }
+
+    fn mod_floor(&self, _rhs: &Self) -> Self {
+        unimplemented!()
+    }
+}
+
+impl Signed for Felt252 {
+    fn abs(&self) -> Self {
+        self.clone()
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        self.max(other) - self.min(other)
+    }
+
+    fn signum(&self) -> Self {
+        if self.is_zero() {
+            Self::zero()
+        } else {
+            Self::one()
+        }
+    }
+
+    fn is_positive(&self) -> bool {
+        true
+    }
+
+    fn is_negative(&self) -> bool {
+        false
     }
 }
 
