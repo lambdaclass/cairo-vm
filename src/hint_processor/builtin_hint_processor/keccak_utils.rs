@@ -86,7 +86,8 @@ pub fn unsafe_keccak(
             return Err(HintError::InvalidWordSize(word.into_owned()));
         }
 
-        keccak_input.extend_from_slice(&word.to_be_bytes()[16..]);
+        let start = 32 - n_bytes as usize;
+        keccak_input.extend_from_slice(&word.to_be_bytes()[start..]);
     }
 
     let mut hasher = Keccak256::new();
