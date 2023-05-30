@@ -53,14 +53,15 @@ pub struct Felt252 {
     value: FieldElement<Stark252PrimeField>,
 }
 
-// TODO: remove and change for transformation + comparación
+// TODO: remove and change for transformation + compare
 impl PartialOrd for Felt252 {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(&other))
     }
 }
 
-// TODO: remove and change for transformation + comparación
+// TODO: remove and change for transformation + compare
+// Also, maybe this could be changed to compare against zero without changing montgomeryness
 impl Ord for Felt252 {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.value
@@ -262,6 +263,32 @@ impl Felt252 {
 
     pub fn prime() -> BigUint {
         FeltBigInt::prime()
+    }
+}
+
+impl Signed for Felt252 {
+    fn abs(&self) -> Self {
+        self.clone()
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        self.max(other) - self.min(other)
+    }
+
+    fn signum(&self) -> Self {
+        if self.is_zero() {
+            Self::zero()
+        } else {
+            Self::one()
+        }
+    }
+
+    fn is_positive(&self) -> bool {
+        true
+    }
+
+    fn is_negative(&self) -> bool {
+        false
     }
 }
 
