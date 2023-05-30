@@ -772,7 +772,7 @@ impl Signed for Felt252 {
     }
 
     fn is_positive(&self) -> bool {
-        true
+        !self.is_zero()
     }
 
     fn is_negative(&self) -> bool {
@@ -942,16 +942,9 @@ impl ToPrimitive for Felt252 {
         }
     }
 
-    // TODO: re-think this function's purpose
     fn to_i64(&self) -> Option<i64> {
-        match self.to_u64() {
-            Some(u) => u.try_into().ok(),
-            None => self
-                .neg()
-                .to_u64()
-                .map(|u| u.try_into().ok())
-                .unwrap_or(None),
-        }
+        // NOTE: result can't be negative
+        self.to_u64().as_ref().and_then(u64::to_i64)
     }
 }
 
