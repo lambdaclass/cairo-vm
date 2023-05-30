@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685459179172,
+  "lastUpdate": 1685466648950,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -103660,6 +103660,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19116940,
             "range": "± 91467",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c06402c84ece01c21fbfb76d7ca5a110515e4e29",
+          "message": "Use cairo constants in `ASSERT_250_BIT` hint (#1187)\n\n* Use constants in ASSERT_250_BIT hint\n\n* Fix test\n\n* Add changelog entry\n\n* Fix const path name\n\n* Fix test\n\n* clippy\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-05-30T16:39:03Z",
+          "tree_id": "41b0c70c434d54cc22cf86591a1b2f6a451f46f1",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/c06402c84ece01c21fbfb76d7ca5a110515e4e29"
+        },
+        "date": 1685466643267,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24442,
+            "range": "± 11",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 58748,
+            "range": "± 655",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18430054,
+            "range": "± 81865",
             "unit": "ns/iter"
           }
         ]
