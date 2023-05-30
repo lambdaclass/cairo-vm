@@ -4,6 +4,12 @@
 
 * bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
 
+* bugfix: Fix `EC_DOUBLE_ASSIGN_NEW_X_V2` hint not taking `SECP_P` value from the current execution scope [#1186](https://github.com/lambdaclass/cairo-rs/pull/1186)
+
+* Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
+
+  * These hints now return an error when ids.m equals zero
+
 * Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)

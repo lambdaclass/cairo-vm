@@ -266,6 +266,17 @@ pub fn square_slope_minus_xs(
     Ok(())
 }
 
+pub fn ec_double_assign_new_x_v2(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    point_alias: &str,
+) -> Result<(), HintError> {
+    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
+    ec_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &secp_p, point_alias)
+}
+
 /*
 Implements hint:
 %{
@@ -486,6 +497,9 @@ pub fn n_pair_bits(
     let m = m_cow.as_ref().to_u32().unwrap_or(253);
     if m >= 253 {
         return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+    }
+    if m.is_zero() {
+        return Err(HintError::NPairBitsMZero);
     }
 
     let one = &Felt252::one();
@@ -909,36 +923,35 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_double_assign_new_x_ok() {
-        let hint_codes = vec!["from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P", "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nslope = pack(ids.slope, PRIME)\nx = pack(ids.point.x, PRIME)\ny = pack(ids.point.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"];
+        let hint_code = hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1;
 
-        for hint_code in hint_codes {
-            let mut vm = vm_with_range_check!();
+        let mut vm = vm_with_range_check!();
 
-            //Insert ids.point and ids.slope into memory
-            vm.segments = segments![
-                ((1, 0), 134),
-                ((1, 1), 5123),
-                ((1, 2), 140),
-                ((1, 3), 1232),
-                ((1, 4), 4652),
-                ((1, 5), 720),
-                ((1, 6), 44186171158942157784255469_i128),
-                ((1, 7), 54173758974262696047492534_i128),
-                ((1, 8), 8106299688661572814170174_i128)
-            ];
+        //Insert ids.point and ids.slope into memory
+        vm.segments = segments![
+            ((1, 0), 134),
+            ((1, 1), 5123),
+            ((1, 2), 140),
+            ((1, 3), 1232),
+            ((1, 4), 4652),
+            ((1, 5), 720),
+            ((1, 6), 44186171158942157784255469_i128),
+            ((1, 7), 54173758974262696047492534_i128),
+            ((1, 8), 8106299688661572814170174_i128)
+        ];
 
-            //Initialize fp
-            vm.run_context.fp = 10;
-            let ids_data = HashMap::from([
-                ("point".to_string(), HintReference::new_simple(-10)),
-                ("slope".to_string(), HintReference::new_simple(-4)),
-            ]);
-            let mut exec_scopes = ExecutionScopes::new();
+        //Initialize fp
+        vm.run_context.fp = 10;
+        let ids_data = HashMap::from([
+            ("point".to_string(), HintReference::new_simple(-10)),
+            ("slope".to_string(), HintReference::new_simple(-4)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
 
-            //Execute the hint
-            assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
 
-            check_scope!(
+        check_scope!(
                 &exec_scopes,
                 [
                     (
@@ -969,7 +982,71 @@ mod tests {
                     )
                 ]
             );
-        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_double_assign_new_x_v2_ok() {
+        let hint_code = hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2;
+
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point and ids.slope into memory
+        vm.segments = segments![
+            ((1, 0), 134),
+            ((1, 1), 5123),
+            ((1, 2), 140),
+            ((1, 3), 1232),
+            ((1, 4), 4652),
+            ((1, 5), 720),
+            ((1, 6), 44186171158942157784255469_i128),
+            ((1, 7), 54173758974262696047492534_i128),
+            ((1, 8), 8106299688661572814170174_i128)
+        ];
+
+        //Initialize fp
+        vm.run_context.fp = 10;
+        let ids_data = HashMap::from([
+            ("point".to_string(), HintReference::new_simple(-10)),
+            ("slope".to_string(), HintReference::new_simple(-4)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.assign_or_update_variable("SECP_P", any_box!(SECP_P.clone()));
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+        check_scope!(
+                &exec_scopes,
+                [
+                    (
+                        "slope",
+                        bigint_str!(
+                            "48526828616392201132917323266456307435009781900148206102108934970258721901549"
+                        )
+                    ),
+                    (
+                        "x",
+                        bigint_str!("838083498911032969414721426845751663479194726707495046")
+                    ),
+                    (
+                        "y",
+                        bigint_str!("4310143708685312414132851373791311001152018708061750480")
+                    ),
+                    (
+                        "value",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    ),
+                    (
+                        "new_x",
+                        bigint_str!(
+                            "59479631769792988345961122678598249997181612138456851058217178025444564264149"
+                        )
+                    )
+                ]
+            );
     }
 
     #[test]
@@ -1279,6 +1356,29 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 2)];
+    }
+
+    #[test]
+    fn run_di_bit_m_zero() {
+        let hint_code = hint_code::DI_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 0b10101111001110000;
+        let scalar_v = 0b101101000111011111100;
+        let m = 0;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "dibit"];
+
+        // Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::NPairBitsMZero)
+        );
     }
 
     #[test]
