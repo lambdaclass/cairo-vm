@@ -300,33 +300,10 @@ impl Felt252 {
     }
 
     pub fn sqrt(&self) -> Self {
-        // TODO: this should be upstream
-        // Based on Tonelli-Shanks' algorithm for finding square roots
-        // and sympy's library implementation of said algorithm.
-        if self.is_zero() || self.is_one() {
-            return self.clone();
-        }
-
-        let max_felt = Felt252::max_value();
-        let trailing_prime = Felt252::max_value() >> 192_u32; // 0x800000000000011
-
-        let a = self.pow(&trailing_prime);
-        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
-        let mut m = Felt252::zero();
-        let mut exponent = Felt252::one() << 191_u32;
-        let mut adm;
-        for i in 0..192_u32 {
-            adm = &a * &(&d).pow(&m);
-            adm = (&adm).pow(&exponent);
-            exponent >>= 1;
-            // if adm ≡ -1 (mod CAIRO_PRIME)
-            if adm == max_felt {
-                m += Felt252::one() << i;
-            }
-        }
-        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1_u32)) * (&d).pow(&(m >> 1_u32));
-        let root_2 = &max_felt - &root_1 + 1_usize;
-        root_1.min(root_2)
+        // Safety: must be called with residual
+        let (root_1, root_2) = self.value.sqrt().unwrap();
+        let value = FieldElement::new(root_1.representative().min(root_2.representative()));
+        Self { value }
     }
 
     pub fn prime() -> BigUint {
