@@ -179,4 +179,6 @@ pub enum HintError {
     RecoverYPointNotOnCurve(Felt252),
     #[error("Invalid value for {0}. Got: {1}. Expected: {2}")]
     InvalidValue(&'static str, Felt252, Felt252),
+    #[error("Attempt to subtract with overflow: ids.m - 1")]
+    NPairBitsMZero,
 }
