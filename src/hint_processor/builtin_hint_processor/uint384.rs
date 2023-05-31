@@ -363,14 +363,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_UNSIGNED_DIV_REM),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 7)) &&
-                    y == MaybeRelocatable::from(Felt252::new(2)) &&
-                    z == MaybeRelocatable::from(Felt252::new(221))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 7)),
+                    MaybeRelocatable::from(Felt252::new(2)),
+                    MaybeRelocatable::from(Felt252::new(221)))
         );
     }
 
@@ -454,14 +450,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_SPLIT_128),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::from(Felt252::new(2)) &&
-                    z == MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 1)),
+                    MaybeRelocatable::from(Felt252::new(2)),
+                    MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128)))
         );
     }
 

@@ -865,18 +865,13 @@ mod tests {
         add_segments!(vm, 1);
         //ids and references are not needed for this test
         assert_matches!(
-                    run_hint!(vm, HashMap::new(), hint_code),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 6)) &&
-                            y == MaybeRelocatable::from((1, 6)) &&
-                            z == MaybeRelocatable::from((3, 0))
-                );
+            run_hint!(vm, HashMap::new(), hint_code),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 6)),
+                    MaybeRelocatable::from((1, 6)),
+                    MaybeRelocatable::from((3, 0)))
+        );
     }
 
     #[test]
@@ -980,18 +975,14 @@ mod tests {
 
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
-                    run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 1)) &&
-                            y == MaybeRelocatable::from(Felt252::new(5)) &&
-                            z == MaybeRelocatable::from(Felt252::zero())
-                );
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx ==
+                    (Relocatable::from((1, 1)),
+                    MaybeRelocatable::from(Felt252::new(5)),
+                    MaybeRelocatable::from(Felt252::zero()))
+        );
     }
 
     #[test]

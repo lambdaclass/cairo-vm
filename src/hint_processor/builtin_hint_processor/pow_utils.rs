@@ -142,17 +142,12 @@ mod tests {
         vm.segments = segments![((1, 10), 3), ((1, 11), 3)];
         //Execute the hint
         assert_matches!(
-                    run_hint!(vm, ids_data, hint_code),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 11)) &&
-                            y == MaybeRelocatable::from(Felt252::new(3)) &&
-                            z == MaybeRelocatable::from(Felt252::one())
-                );
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 11)),
+                    MaybeRelocatable::from(Felt252::new(3)),
+                    MaybeRelocatable::from(Felt252::one()))
+        );
     }
 }

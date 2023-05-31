@@ -144,7 +144,7 @@ pub mod test_utils {
             let mut res = $mem.insert(k, v);
             while matches!(
                 res,
-                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_, _))
+                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_))
             ) {
                 if $si < 0 {
                     $mem.temp_data.push($crate::stdlib::vec::Vec::new())
@@ -159,7 +159,7 @@ pub mod test_utils {
             let mut res = $mem.insert(k, v);
             while matches!(
                 res,
-                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_, _))
+                Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_))
             ) {
                 if $si < 0 {
                     $mem.temp_data.push($crate::stdlib::vec::Vec::new())

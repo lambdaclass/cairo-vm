@@ -660,10 +660,10 @@ impl CairoRunner {
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
         if unused_rc_units < (rc_max - rc_min) as usize {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::RangeCheckUnits(
+                InsufficientAllocatedCellsError::RangeCheckUnits(Box::new((
                     unused_rc_units,
                     (rc_max - rc_min) as usize,
-                ),
+                ))),
             )
             .into());
         }
@@ -706,10 +706,10 @@ impl CairoRunner {
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
         if unused_diluted_units < diluted_usage_upper_bound {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::DilutedCells(
+                InsufficientAllocatedCellsError::DilutedCells(Box::new((
                     unused_diluted_units,
                     diluted_usage_upper_bound,
-                ),
+                ))),
             )
             .into());
         }
@@ -991,10 +991,10 @@ impl CairoRunner {
         let memory_address_holes = self.get_memory_holes(vm)?;
         if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MemoryAddresses(
+                InsufficientAllocatedCellsError::MemoryAddresses(Box::new((
                     unused_memory_units,
                     memory_address_holes,
-                ),
+                ))),
             ))?
         }
         Ok(())
@@ -1631,7 +1631,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
             Err(RunnerError::MemoryValidationError(
-                MemoryError::RangeCheckFoundNonInt((2, 0).into())
+                MemoryError::RangeCheckFoundNonInt(Box::new((2, 0).into()))
             ))
         );
     }

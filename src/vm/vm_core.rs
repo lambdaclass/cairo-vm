@@ -826,7 +826,7 @@ impl VirtualMachine {
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let addr = (self.run_context.get_ap() - n_ret)
-            .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
+            .map_err(|_| MemoryError::FailedToGetReturnValues(Box::new((n_ret, self.get_ap()))))?;
         self.segments.memory.get_continuous_range(addr, n_ret)
     }
 
@@ -3587,7 +3587,9 @@ mod tests {
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
-        assert_matches!(vm.get_return_values(3), Err(MemoryError::FailedToGetReturnValues(x, y)) if x == 3 && y == Relocatable::from((1,0)));
+        assert_matches!(vm.get_return_values(3),
+            Err(MemoryError::FailedToGetReturnValues(bx))
+            if *bx == (3, Relocatable::from((1,0))));
     }
 
     /*
@@ -3776,7 +3778,7 @@ mod tests {
 
         assert_eq!(
             vm.get_continuous_range(Relocatable::from((1, 0)), 3),
-            Err(MemoryError::GetRangeMemoryGap((1, 0).into(), 3))
+            Err(MemoryError::GetRangeMemoryGap(Box::new(((1, 0).into(), 3))))
         );
     }
 

@@ -361,8 +361,8 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(MemoryError::UnknownMemoryCell(
-                x
-            ))) if x == Relocatable::from((2, 0))
+                bx
+            ))) if *bx == Relocatable::from((2, 0))
         );
     }
 
@@ -431,8 +431,8 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(MemoryError::ExpectedInteger(
-                x
-            ))) if x == Relocatable::from((2, 0))
+                bx
+            ))) if *bx == Relocatable::from((2, 0))
         );
     }
 
@@ -498,14 +498,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == Relocatable::from((2, 0)) &&
-                    y == MaybeRelocatable::from((2, 0)) &&
-                    z == MaybeRelocatable::from(Felt252::new(1795745351))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((2, 0)),
+                    MaybeRelocatable::from((2, 0)),
+                    MaybeRelocatable::from(Felt252::new(1795745351)))
         );
     }
 
@@ -681,6 +677,6 @@ mod tests {
         vm.segments = segments![((1, 0), 9), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Memory(MemoryError::UnknownMemoryCell(x))) if x == (2, 0).into());
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Memory(MemoryError::UnknownMemoryCell(bx))) if *bx == (2, 0).into());
     }
 }

@@ -130,7 +130,7 @@ impl EcOpBuiltinRunner {
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
         let x_addr = (instance + (&Felt252::new(INPUT_CELLS_PER_EC_OP)))
-            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(instance)))?;
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
             return Ok(Some(MaybeRelocatable::Int(number)));
@@ -148,7 +148,7 @@ impl EcOpBuiltinRunner {
                         Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
                         _ => {
                             return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
-                                (instance + i)?,
+                                Box::new((instance + i)?),
                             )))
                         }
                     });
@@ -192,7 +192,7 @@ impl EcOpBuiltinRunner {
             .insert(x_addr, result.0.clone().into());
         self.cache.borrow_mut().insert(
             (x_addr + 1usize)
-                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(x_addr)))?,
+                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(x_addr))))?,
             result.1.clone().into(),
         );
         match index - self.n_input_cells as usize {
@@ -861,9 +861,9 @@ mod tests {
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(
                 Relocatable::from((3, 3))
-            )))
+            ))))
         );
     }
 

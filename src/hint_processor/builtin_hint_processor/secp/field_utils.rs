@@ -326,23 +326,18 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_matches!(
-                    run_hint!(
-                        vm,
-                        ids_data,
-                        hint_code,
-                        exec_scopes_ref!()
-                    ),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 9)) &&
-                            y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
-                            z == MaybeRelocatable::from(Felt252::zero())
-                );
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!()
+            ),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 9)),
+                    MaybeRelocatable::from(Felt252::new(55_i32)),
+                    MaybeRelocatable::from(Felt252::zero()))
+        );
     }
 
     #[test]
@@ -570,14 +565,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == vm.run_context.get_ap()
-                && y == MaybeRelocatable::from(Felt252::new(55i32))
-                && z == MaybeRelocatable::from(Felt252::new(1i32))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (vm.run_context.get_ap(),
+                MaybeRelocatable::from(Felt252::new(55i32)),
+                MaybeRelocatable::from(Felt252::new(1i32)))
         );
     }
 

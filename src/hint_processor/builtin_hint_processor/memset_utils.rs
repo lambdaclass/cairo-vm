@@ -183,14 +183,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == Relocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from(Felt252::new(5)) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 0)),
+                    MaybeRelocatable::from(Felt252::new(5)),
+                    MaybeRelocatable::from(Felt252::zero()))
         );
     }
 }

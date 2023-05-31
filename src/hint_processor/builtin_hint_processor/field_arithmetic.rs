@@ -646,7 +646,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_DIV),
-            Err(HintError::Memory(MemoryError::InconsistentMemory(_, _, _)))
+            Err(HintError::Memory(MemoryError::InconsistentMemory(_)))
         );
     }
 }

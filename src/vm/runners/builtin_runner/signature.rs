@@ -55,10 +55,12 @@ impl SignatureBuiltinRunner {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
-            FieldElement::from_dec_str(&r_string)
-                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(r_string))?,
-            FieldElement::from_dec_str(&s_string)
-                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(s_string))?,
+            FieldElement::from_dec_str(&r_string).map_err(|_| {
+                MemoryError::FailedStringToFieldElementConversion(Box::new(r_string))
+            })?,
+            FieldElement::from_dec_str(&s_string).map_err(|_| {
+                MemoryError::FailedStringToFieldElementConversion(Box::new(s_string))
+            })?,
         );
 
         let signature = Signature {
@@ -110,32 +112,35 @@ impl SignatureBuiltinRunner {
                 let pubkey = match memory.get_integer(pubkey_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 1 => return Ok(vec![]),
-                    _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
+                    _ => return Err(MemoryError::PubKeyNonInt(Box::new(pubkey_addr))),
                 };
 
                 let msg = match memory.get_integer(message_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 0 => return Ok(vec![]),
-                    _ => return Err(MemoryError::MsgNonInt(message_addr)),
+                    _ => return Err(MemoryError::MsgNonInt(Box::new(message_addr))),
                 };
 
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
-                    .ok_or(MemoryError::SignatureNotFound(pubkey_addr))?;
+                    .ok_or(MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key = FieldElement::from_dec_str(&pubkey.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10)))?;
+                let public_key =
+                    FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {
+                        MemoryError::ErrorParsingPubKey(Box::new(pubkey.to_str_radix(10)))
+                    })?;
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
+                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).map_err(|_| {
+                    MemoryError::ErrorRetrievingMessage(Box::new(msg.to_str_radix(10)))
+                })?;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
-                    _ => Err(MemoryError::InvalidSignature(
+                    _ => Err(MemoryError::InvalidSignature(Box::new((
                         signature.to_string(),
                         pubkey.into_owned(),
                         msg.into_owned(),
-                    )),
+                    )))),
                 }
             },
         ));
@@ -504,7 +509,10 @@ mod tests {
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
+                InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
+                    512,
+                    SIGNATURE_BUILTIN_NAME
+                )))
             ))
         )
     }
@@ -520,7 +528,11 @@ mod tests {
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::BuiltinCells(SIGNATURE_BUILTIN_NAME, 50, 2)
+                InsufficientAllocatedCellsError::BuiltinCells(Box::new((
+                    SIGNATURE_BUILTIN_NAME,
+                    50,
+                    2
+                )))
             ))
         )
     }

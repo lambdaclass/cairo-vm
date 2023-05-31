@@ -270,7 +270,7 @@ pub fn squash_dict(
         let key_addr = (address + DICT_ACCESS_SIZE * i)?;
         let key = vm
             .get_integer(key_addr)
-            .map_err(|_| MemoryError::ExpectedInteger(key_addr))?;
+            .map_err(|_| MemoryError::ExpectedInteger(Box::new(key_addr)))?;
         access_indices
             .entry(key.into_owned())
             .or_default()
