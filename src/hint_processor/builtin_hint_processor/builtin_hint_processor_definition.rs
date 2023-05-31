@@ -886,7 +886,7 @@ mod tests {
         let mut vm = vm!();
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::UnknownHint(bx)) if bx == hint_code.to_string()
+            Err(HintError::UnknownHint(bx)) if bx == hint_code
         );
     }
 
