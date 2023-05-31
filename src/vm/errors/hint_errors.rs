@@ -212,4 +212,10 @@ mod tests {
         let expected_msg = format!("Expected size to be in the range from [0, 100), got: {x}");
         assert_eq!(error_msg, expected_msg)
     }
+
+    #[test]
+    fn test_hint_error_size_is_less_than_16_bytes() {
+        let size = std::mem::size_of::<HintError>();
+        assert!(size < 16, "{size}")
+    }
 }
