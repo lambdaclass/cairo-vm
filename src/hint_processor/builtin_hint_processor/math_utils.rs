@@ -123,7 +123,7 @@ pub fn assert_le_felt(
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     if a > b {
-        return Err(HintError::NonLeFelt252(a.clone(), b.clone()));
+        return Err(HintError::NonLeFelt252(Box::new((a.clone(), b.clone()))));
     }
 
     let arc1 = b - a;
@@ -133,12 +133,12 @@ pub fn assert_le_felt(
     if lengths_and_indices[0].0 > &div_prime_by_bound(Felt252::new(3_i32))?
         || lengths_and_indices[1].0 > &div_prime_by_bound(Felt252::new(2_i32))?
     {
-        return Err(HintError::ArcTooBig(
+        return Err(HintError::ArcTooBig(Box::new((
             lengths_and_indices[0].0.clone(),
             div_prime_by_bound(Felt252::new(3_i32))?,
             lengths_and_indices[1].0.clone(),
             div_prime_by_bound(Felt252::new(3_i32))?,
-        ));
+        ))));
     }
 
     let excluded = lengths_and_indices[2].1;
@@ -163,10 +163,10 @@ pub fn assert_le_felt_v_0_6(
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     if a.as_ref() > b.as_ref() {
-        return Err(HintError::NonLeFelt252(
+        return Err(HintError::NonLeFelt252(Box::new((
             a.clone().into_owned(),
             b.clone().into_owned(),
-        ));
+        ))));
     }
     Ok(())
 }
@@ -180,10 +180,10 @@ pub fn assert_le_felt_v_0_8(
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     if a.as_ref() > b.as_ref() {
-        return Err(HintError::NonLeFelt252(
+        return Err(HintError::NonLeFelt252(Box::new((
             a.clone().into_owned(),
             b.clone().into_owned(),
-        ));
+        ))));
     }
     let bound = vm
         .get_range_check_builtin()?
@@ -199,7 +199,7 @@ pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<()
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
     if excluded != Felt252::new(2_i32) {
-        Err(HintError::ExcludedNot2(excluded))
+        Err(HintError::ExcludedNot2(Box::new(excluded)))
     } else {
         Ok(())
     }
@@ -266,10 +266,10 @@ pub fn assert_not_equal(
     match (maybe_rel_a, maybe_rel_b) {
         (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
             if (&a - &b).is_zero() {
-                return Err(HintError::AssertNotEqualFail(
+                return Err(HintError::AssertNotEqualFail(Box::new((
                     MaybeRelocatable::Int(a),
                     MaybeRelocatable::Int(b),
-                ));
+                ))));
             };
             Ok(())
         }
@@ -278,10 +278,10 @@ pub fn assert_not_equal(
                 Err(VirtualMachineError::DiffIndexComp(a, b))?;
             };
             if a.offset == b.offset {
-                return Err(HintError::AssertNotEqualFail(
+                return Err(HintError::AssertNotEqualFail(Box::new((
                     MaybeRelocatable::RelocatableValue(a),
                     MaybeRelocatable::RelocatableValue(b),
-                ));
+                ))));
             };
             Ok(())
         }
@@ -306,7 +306,7 @@ pub fn assert_nn(
     // as prime > 0, a % prime will always be > 0
     match &range_check_builtin._bound {
         Some(bound) if a.as_ref() >= bound => {
-            Err(HintError::AssertNNValueOutOfRange(a.into_owned()))
+            Err(HintError::AssertNNValueOutOfRange(Box::new(a.into_owned())))
         }
         _ => Ok(()),
     }
@@ -325,10 +325,10 @@ pub fn assert_not_zero(
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     if value.is_zero() {
-        return Err(HintError::AssertNotZero(
+        return Err(HintError::AssertNotZero(Box::new((
             value.into_owned(),
             felt::PRIME_STR.to_string(),
-        ));
+        ))));
     };
     Ok(())
 }
@@ -363,7 +363,7 @@ pub fn split_int(
     //Main Logic
     let res = value.mod_floor(base);
     if &res > bound {
-        return Err(HintError::SplitIntLimbOutOfRange(res));
+        return Err(HintError::SplitIntLimbOutOfRange(Box::new(res)));
     }
     vm.insert_value(output, res).map_err(HintError::Memory)
 }
@@ -382,7 +382,9 @@ pub fn is_positive(
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
         Some(bound) if value_as_int.abs() > bound.to_bigint() => {
-            return Err(HintError::ValueOutsideValidRange(value.into_owned()))
+            return Err(HintError::ValueOutsideValidRange(Box::new(
+                value.into_owned(),
+            )))
         }
         _ => {}
     };
@@ -430,7 +432,9 @@ pub fn sqrt(
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::new(2).pow(250)
     if mod_value.as_ref().shr(250_u32).is_positive() {
-        return Err(HintError::ValueOutside250BitRange(mod_value.into_owned()));
+        return Err(HintError::ValueOutside250BitRange(Box::new(
+            mod_value.into_owned(),
+        )));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
     #[allow(deprecated)]
@@ -458,22 +462,22 @@ pub fn signed_div_rem(
         Some(builtin_bound)
             if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
         {
-            return Err(HintError::OutOfValidRange(
+            return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
                 builtin_bound.clone(),
-            ));
+            ))));
         }
         Some(builtin_bound) if bound.as_ref() > &builtin_bound.shr(1) => {
-            return Err(HintError::OutOfValidRange(
+            return Err(HintError::OutOfValidRange(Box::new((
                 bound.into_owned(),
                 builtin_bound.shr(1),
-            ));
+            ))));
         }
         None if div.is_zero() => {
-            return Err(HintError::OutOfValidRange(
+            return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
                 Felt252::zero() - Felt252::one(),
-            ));
+            ))));
         }
         _ => {}
     }
@@ -484,10 +488,10 @@ pub fn signed_div_rem(
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
-        return Err(HintError::OutOfValidRange(
+        return Err(HintError::OutOfValidRange(Box::new((
             Felt252::new(q),
             bound.into_owned(),
-        ));
+        ))));
     }
 
     let biased_q = q + int_bound;
@@ -524,16 +528,16 @@ pub fn unsigned_div_rem(
         Some(builtin_bound)
             if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
         {
-            return Err(HintError::OutOfValidRange(
+            return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
                 builtin_bound.clone(),
-            ));
+            ))));
         }
         None if div.is_zero() => {
-            return Err(HintError::OutOfValidRange(
+            return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
                 Felt252::zero() - Felt252::one(),
-            ));
+            ))));
         }
         _ => {}
     }
@@ -568,7 +572,9 @@ pub fn assert_250_bit(
     //Main logic
     //can be deleted
     if value.as_ref() > upper_bound {
-        return Err(HintError::ValueOutside250BitRange(value.into_owned()));
+        return Err(HintError::ValueOutside250BitRange(Box::new(
+            value.into_owned(),
+        )));
     }
     let (high, low) = value.div_rem(shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
@@ -657,7 +663,10 @@ pub fn assert_lt_felt(
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a >= b {
-        return Err(HintError::AssertLtFelt252(a.into_owned(), b.into_owned()));
+        return Err(HintError::AssertLtFelt252(Box::new((
+            a.into_owned(),
+            b.into_owned(),
+        ))));
     };
     Ok(())
 }
@@ -907,8 +916,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "a" && y == (1,4).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,4).into())
         );
     }
 
@@ -926,8 +934,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x,y
-            )) if x == "a" && y == (1,4).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,4).into())
         );
     }
 
@@ -1053,7 +1060,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNNValueOutOfRange(x)) if x == Felt252::new(-1)
+            Err(HintError::AssertNNValueOutOfRange(bx)) if *bx == Felt252::new(-1)
         );
     }
 
@@ -1087,8 +1094,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "a" && y == (1,3).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,3).into())
         );
     }
 
@@ -1123,8 +1129,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "a" && y == (1,3).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,3).into())
         );
     }
 
@@ -1151,7 +1156,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
-            Err(HintError::NonLeFelt252(x, y)) if x == Felt252::new(2) && y == Felt252::one()
+            Err(HintError::NonLeFelt252(bx)) if *bx == (Felt252::new(2), Felt252::one())
         );
     }
 
@@ -1177,8 +1182,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "a" && y == (1,0).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,0).into())
         );
     }
 
@@ -1204,8 +1208,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "b" && y == (1,1).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("b".to_string(), (1,1).into())
         );
     }
 
@@ -1257,11 +1260,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotEqualFail(
-                x,
-                y
-            )) if x == MaybeRelocatable::from(Felt252::one()) &&
-                    y == MaybeRelocatable::from(Felt252::one())
+            Err(HintError::AssertNotEqualFail(bx))
+            if *bx == (MaybeRelocatable::from(Felt252::one()), MaybeRelocatable::from(Felt252::one()))
         );
     }
 
@@ -1316,11 +1316,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotEqualFail(
-                x,
-                y
-            )) if x == MaybeRelocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from((1, 0))
+            Err(HintError::AssertNotEqualFail(bx))
+            if *bx == (MaybeRelocatable::from((1, 0)), MaybeRelocatable::from((1, 0)))
         );
     }
 
@@ -1410,10 +1407,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotZero(
-                x,
-                y
-            )) if x == Felt252::zero() && y == *felt::PRIME_STR.to_string()
+            Err(HintError::AssertNotZero(bx)) if *bx == (Felt252::zero(), felt::PRIME_STR.to_string())
         );
     }
 
@@ -1449,8 +1443,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "value" && y == (1,4).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,4).into())
         );
     }
 
@@ -1520,7 +1513,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::SplitIntLimbOutOfRange(x)) if x == Felt252::new(100)
+            Err(HintError::SplitIntLimbOutOfRange(bx)) if *bx == Felt252::new(100)
         );
     }
 
@@ -1582,7 +1575,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutsideValidRange(x)) if x == felt_str!(
+            Err(HintError::ValueOutsideValidRange(bx)) if *bx == felt_str!(
                 "618502761706184546546682988428055018603476541694452277432519575032261771265"
             )
         );
@@ -1707,10 +1700,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::OutOfValidRange(
-                x,
-                y
-            )) if x == Felt252::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
+            Err(HintError::OutOfValidRange(bx))
+            if *bx == (Felt252::new(-5), felt_str!("340282366920938463463374607431768211456"))
         )
     }
 
@@ -1823,10 +1814,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::OutOfValidRange(
-                x,
-                y
-            )) if x == Felt252::new(-5) && y == felt_str!("340282366920938463463374607431768211456")
+            Err(HintError::OutOfValidRange(bx))
+            if *bx == (Felt252::new(-5), felt_str!("340282366920938463463374607431768211456"))
         )
     }
 
@@ -1943,7 +1932,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
-            Err(HintError::ValueOutside250BitRange(x)) if x == Felt252::one().shl(251_u32)
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::one().shl(251_u32)
         );
     }
 
@@ -2215,8 +2204,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "value" && y == (1,3).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,3).into())
         );
     }
 
@@ -2249,7 +2237,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertLtFelt252(x, y)) if x == Felt252::new(3) && y == Felt252::new(2)
+            Err(HintError::AssertLtFelt252(bx)) if *bx == (Felt252::new(3), Felt252::new(2))
         );
     }
 
@@ -2284,8 +2272,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "a" && y == (1,1).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("a".to_string(), (1,1).into())
         );
     }
 
@@ -2302,8 +2289,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "b" && y == (1,2).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("b".to_string(), (1,2).into())
         );
     }
 
@@ -2321,8 +2307,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "b" && y == (1,2).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("b".to_string(), (1,2).into())
         );
     }
 
@@ -2338,7 +2323,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT_V_0_6),
-            Err(HintError::NonLeFelt252(a, b)) if a == 17_u32.into() && b == 7_u32.into()
+            Err(HintError::NonLeFelt252(bx)) if *bx == (17_u32.into(), 7_u32.into())
         );
     }
 
@@ -2354,7 +2339,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT_V_0_8),
-            Err(HintError::NonLeFelt252(a, b)) if a == 17_u32.into() && b == 7_u32.into()
+            Err(HintError::NonLeFelt252(bx)) if *bx == (17_u32.into(), 7_u32.into())
         );
     }
 

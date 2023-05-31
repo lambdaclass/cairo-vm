@@ -34,10 +34,10 @@ impl<'a> Uint256<'a> {
     ) -> Result<Self, HintError> {
         Ok(Self {
             low: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "low".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "low".to_string())))
             })?,
             high: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "high".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "high".to_string())))
             })?,
         })
     }
@@ -649,12 +649,12 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", 0)];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data.clone(), hint_code),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "low"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "low".to_string())
         );
         vm.segments = segments![((1, 0), 1001)];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "high"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "high".to_string())
         );
     }
 

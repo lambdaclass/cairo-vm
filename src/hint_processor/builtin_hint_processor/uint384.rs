@@ -174,9 +174,9 @@ pub fn uint384_signed_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_d2 = vm
-        .get_integer((a_addr + 2)?)
-        .map_err(|_| HintError::IdentifierHasNoMember("a".to_string(), "d2".to_string()))?;
+    let a_d2 = vm.get_integer((a_addr + 2)?).map_err(|_| {
+        HintError::IdentifierHasNoMember(Box::new(("a".to_string(), "d2".to_string())))
+    })?;
     let res = Felt252::from((a_d2.bits() <= 127) as u32);
     insert_value_into_ap(vm, res)
 }
@@ -638,7 +638,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "d2"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "d2".to_string())
         );
     }
 

@@ -35,7 +35,7 @@ pub fn set_add(
         )))?;
     }
     if set_ptr > set_end_ptr {
-        return Err(HintError::InvalidSetRange(set_ptr, set_end_ptr));
+        return Err(HintError::InvalidSetRange(Box::new((set_ptr, set_end_ptr))));
     }
 
     let range_limit = (set_end_ptr - set_ptr)?;
@@ -170,10 +170,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(HintError::InvalidSetRange(
-                x,
-                y,
-            )) if x == (2, 3).into() && y == (2, 2).into()
+            Err(HintError::InvalidSetRange(bx)) if *bx == ((2, 3).into(), (2, 2).into())
         );
     }
 }

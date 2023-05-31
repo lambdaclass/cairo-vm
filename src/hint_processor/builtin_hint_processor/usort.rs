@@ -40,10 +40,10 @@ pub fn usort_body(
 
     if let Ok(usort_max_size) = usort_max_size {
         if input_len_u64 > usort_max_size {
-            return Err(HintError::UsortOutOfRange(
+            return Err(HintError::UsortOutOfRange(Box::new((
                 usort_max_size,
                 input_len.into_owned(),
-            ));
+            ))));
         }
     }
     let mut positions_dict: HashMap<Felt252, Vec<u64>> = HashMap::new();
@@ -174,7 +174,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_matches!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(HintError::UsortOutOfRange(1, x)) if x == Felt252::new(5_i32)
+            Err(HintError::UsortOutOfRange(bx)) if *bx == (1, Felt252::new(5_i32))
         );
     }
 }

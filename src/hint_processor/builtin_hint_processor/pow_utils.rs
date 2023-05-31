@@ -27,7 +27,7 @@ pub fn pow(
             (get_relocatable_from_var_name("prev_locs", vm, ids_data, ap_tracking)? + 4_i32)?,
         )
         .map_err(|_| {
-            HintError::IdentifierHasNoMember("prev_locs".to_string(), "exp".to_string())
+            HintError::IdentifierHasNoMember(Box::new(("prev_locs".to_string(), "exp".to_string())))
         })?;
     let locs_bit = prev_locs_exp.is_odd();
     insert_value_from_var_name(
@@ -106,7 +106,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierHasNoMember(x, y)) if x =="prev_locs" && y == "exp"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("prev_locs".to_string(), "exp".to_string())
         );
     }
 
@@ -125,7 +125,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierHasNoMember(x, y)) if x == "prev_locs" && y == "exp"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("prev_locs".to_string(), "exp".to_string())
         );
     }
 

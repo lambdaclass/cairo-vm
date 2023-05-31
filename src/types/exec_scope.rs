@@ -398,7 +398,7 @@ mod tests {
             scopes.get_list::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
                 x
-            )) if x == *"no_variable".to_string()
+            )) if *x == *"no_variable".to_string()
         );
     }
 
@@ -418,13 +418,13 @@ mod tests {
             scopes.get_mut_ref::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
                 x
-            )) if x == *"no_variable".to_string()
+            )) if *x == *"no_variable".to_string()
         );
         assert_matches!(
             scopes.get_ref::<u64>("no_variable"),
             Err(HintError::VariableNotInScopeError(
                 x
-            )) if x == *"no_variable".to_string()
+            )) if *x == *"no_variable".to_string()
         );
     }
 

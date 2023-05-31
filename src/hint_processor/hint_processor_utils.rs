@@ -43,7 +43,7 @@ pub fn get_integer_from_reference<'a>(
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
     vm.get_integer(var_addr)
-        .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
+        .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -56,7 +56,7 @@ pub fn get_ptr_from_reference(
         .ok_or(HintError::UnknownIdentifierInternal)?;
     if hint_reference.dereference {
         vm.get_relocatable(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
+            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
     } else {
         Ok(var_addr)
     }

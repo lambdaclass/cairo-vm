@@ -28,16 +28,16 @@ impl<'a> Uint512<'a> {
     ) -> Result<Self, HintError> {
         Ok(Self {
             d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
             })?,
             d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
             })?,
             d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
             })?,
             d3: vm.get_integer((addr + 3)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d3".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d3".to_string())))
             })?,
         })
     }

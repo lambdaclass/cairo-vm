@@ -55,7 +55,7 @@ pub fn squash_dict_inner_first_iteration(
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
-        .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?
         .clone();
     current_access_indices.sort();
     current_access_indices.reverse();
@@ -171,14 +171,14 @@ pub fn squash_dict_inner_used_accesses_assert(
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
-        .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?;
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
 
     if n_used_accesses.as_ref() != &Felt252::new(access_indices_at_key.len()) {
-        return Err(HintError::NumUsedAccessesAssertFail(
+        return Err(HintError::NumUsedAccessesAssertFail(Box::new((
             n_used_accesses.into_owned(),
             access_indices_at_key.len(),
             key,
-        ));
+        ))));
     }
     Ok(())
 }
@@ -255,15 +255,15 @@ pub fn squash_dict(
     let squash_dict_max_size = exec_scopes.get::<Felt252>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
-            return Err(HintError::SquashDictMaxSizeExceeded(
+            return Err(HintError::SquashDictMaxSizeExceeded(Box::new((
                 max_size,
                 n_accesses.into_owned(),
-            ));
+            ))));
         };
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or_else(|| HintError::NAccessesTooBig(n_accesses.into_owned()))?;
+        .ok_or_else(|| HintError::NAccessesTooBig(Box::new(n_accesses.into_owned())))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
     for i in 0..n_accesses_usize {
@@ -654,11 +654,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NumUsedAccessesAssertFail(
-                x,
-                4,
-                y
-            )) if x == Felt252::new(5) && y == Felt252::new(5)
+            Err(HintError::NumUsedAccessesAssertFail(bx)) if *bx == (Felt252::new(5), 4, Felt252::new(5))
         );
     }
 
@@ -688,7 +684,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::IdentifierNotInteger(x, y)) if x == "n_used_accesses" && y == (1,0).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n_used_accesses".to_string(), (1,0).into())
         );
     }
 
@@ -964,10 +960,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::SquashDictMaxSizeExceeded(
-                x,
-                y
-            )) if x == Felt252::one() && y == Felt252::new(2)
+            Err(HintError::SquashDictMaxSizeExceeded(bx)) if *bx == (Felt252::one(), Felt252::new(2))
         );
     }
 

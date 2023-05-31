@@ -49,7 +49,7 @@ pub enum HintError {
     #[error("Failed to get scope variables")]
     ScopeError,
     #[error("Variable {0} not present in current execution scope")]
-    VariableNotInScopeError(Box<String>),
+    VariableNotInScopeError(String),
     #[error("DictManagerError: Tried to create tracker for a dictionary on segment: {0} when there is already a tracker for a dictionary on this segment")]
     CantCreateDictionaryOnTakenSegment(isize),
     #[error("Dict Error: No dict tracker found for segment {0}")]
