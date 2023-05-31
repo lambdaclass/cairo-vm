@@ -95,6 +95,8 @@ pub enum VirtualMachineError {
     EndOfProgram(usize),
     #[error("Could not reach the end of the program. Executed steps: {0}.")]
     StepsLimit(u64),
+    #[error("Could not reach the end of the program. RunResources has no remaining steps.")]
+    UnfinishedExecution,
     #[error(transparent)]
     TracerError(#[from] TraceError),
     #[error(transparent)]

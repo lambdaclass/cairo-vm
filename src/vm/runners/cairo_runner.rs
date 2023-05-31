@@ -545,7 +545,13 @@ impl CairoRunner {
             if let Some(r) = run_resources.as_mut() {
                 r.consume_steps()
             };
+            dbg!(&vm.current_step);
         }
+
+        if vm.run_context.pc != address {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
+
         Ok(())
     }
 
@@ -5040,5 +5046,106 @@ mod tests {
             ),
             Ok(())
         )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_none() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(81));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+
+        assert_eq!(run_resources, Some(RunResources::new(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok_2() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(80));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+
+        assert_eq!(run_resources, Some(RunResources::new(0)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_error() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(9));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Err(VirtualMachineError::UnfinishedExecution)
+        );
+        assert_eq!(run_resources, Some(RunResources::new(0)));
     }
 }
