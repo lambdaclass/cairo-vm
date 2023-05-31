@@ -125,6 +125,10 @@ impl Program {
         self.shared_program_data.data.len()
     }
 
+    pub fn builtins_len(&self) -> usize {
+        self.builtins.len()
+    }
+
     pub fn get_identifier(&self, id: &str) -> Option<&Identifier> {
         self.shared_program_data.identifiers.get(id)
     }
@@ -351,6 +355,8 @@ mod tests {
             program.iter_builtins().cloned().collect::<Vec<_>>(),
             builtins
         );
+
+        assert_eq!(program.builtins_len(), 2);
     }
 
     #[test]
