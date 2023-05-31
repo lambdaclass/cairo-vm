@@ -48,30 +48,6 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
     }
 }
 
-// ================
-//   RunResources
-// ================
-
-/// Maintains the resources of a cairo run. Can be used across multiple runners.
-#[derive(Clone, Default, Debug, PartialEq)]
-pub struct RunResources {
-    n_steps: usize,
-}
-
-impl RunResources {
-    pub fn new(n_steps: usize) -> Self {
-        RunResources { n_steps }
-    }
-
-    pub fn consumed(&self) -> bool {
-        self.n_steps == 0
-    }
-
-    pub fn consume_steps(&mut self) {
-        self.n_steps -= 1;
-    }
-}
-
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {

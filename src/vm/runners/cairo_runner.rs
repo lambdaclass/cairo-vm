@@ -6,7 +6,6 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
-    utils::RunResources,
     vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
 };
 
@@ -70,6 +69,30 @@ impl From<MaybeRelocatable> for CairoArg {
 impl From<Vec<MaybeRelocatable>> for CairoArg {
     fn from(other: Vec<MaybeRelocatable>) -> Self {
         CairoArg::Array(other)
+    }
+}
+
+// ================
+//   RunResources
+// ================
+
+/// Maintains the resources of a cairo run. Can be used across multiple runners.
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct RunResources {
+    n_steps: usize,
+}
+
+impl RunResources {
+    pub fn new(n_steps: usize) -> Self {
+        RunResources { n_steps }
+    }
+
+    pub fn consumed(&self) -> bool {
+        self.n_steps == 0
+    }
+
+    pub fn consume_steps(&mut self) {
+        self.n_steps -= 1;
     }
 }
 

@@ -15,6 +15,7 @@ use felt::Felt252;
 
 use crate::stdlib::prelude::*;
 
+use crate::vm::runners::cairo_runner::RunResources;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -206,7 +207,6 @@ pub(self) fn run_cairo_1_entrypoint(
         .collect();
     assert_eq!(expected_retdata, &retdata);
 }
-use crate::utils::RunResources;
 
 #[cfg(feature = "cairo-1-hints")]
 /// Equals to fn run_cairo_1_entrypoint
