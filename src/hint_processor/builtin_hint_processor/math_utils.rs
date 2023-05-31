@@ -558,7 +558,7 @@ pub fn assert_250_bit(
         get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.to_signed_felt(),
     );
     //Main logic
-    if &value > &upper_bound {
+    if value > upper_bound {
         return Err(HintError::ValueOutside250BitRange(value));
     }
     let (high, low) = value.div_rem(&shift);
