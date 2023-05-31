@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: wrap big variants of `HintError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
+
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
 
 * bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
