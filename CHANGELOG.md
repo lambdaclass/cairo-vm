@@ -3,7 +3,9 @@
 #### Upcoming Changes
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
 
-* BREAKING: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
+* feat: Add RunResources Struct [#1175](https://github.com/lambdaclass/cairo-rs/pull/1175)
+  * BREAKING: Modify `CairoRunner::run_until_pc` arity. Add `run_resources: &mut Option<RunResources>` input
+  * BREAKING: Modify `CairoRunner::run_from_entrypoint` arity. Add `run_resources: &mut Option<RunResources>` input
 
 * bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
 
