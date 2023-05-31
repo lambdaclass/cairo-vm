@@ -1,6 +1,6 @@
 use super::secp::bigint_utils::Uint384;
 use super::uint_utils::{pack, split};
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{

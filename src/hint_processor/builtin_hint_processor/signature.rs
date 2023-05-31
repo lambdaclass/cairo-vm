@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use num_integer::Integer;
 

@@ -1,6 +1,6 @@
 use core::str::FromStr;
 
-use crate::stdlib::{ops::Shl, prelude::*};
+use crate::stdlib::{boxed::Box, ops::Shl, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
 

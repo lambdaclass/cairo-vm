@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     stdlib::{
+        boxed::Box,
         collections::HashMap,
         ops::{Shl, Shr},
         prelude::*,

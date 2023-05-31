@@ -8,6 +8,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     stdlib::{
         borrow::Cow,
+        boxed::Box,
         collections::HashMap,
         ops::{Shl, Shr},
         prelude::*,

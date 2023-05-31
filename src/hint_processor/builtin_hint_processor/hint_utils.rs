@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 
 use felt::Felt252;
 

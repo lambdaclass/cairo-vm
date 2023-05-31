@@ -3,7 +3,7 @@ use num_integer::Integer;
 use num_traits::Zero;
 
 use crate::math_utils::isqrt;
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,

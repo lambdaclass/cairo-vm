@@ -11,7 +11,7 @@ use crate::{
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };

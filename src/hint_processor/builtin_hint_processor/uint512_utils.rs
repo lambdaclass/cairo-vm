@@ -1,7 +1,7 @@
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
-    stdlib::{borrow::Cow, collections::HashMap, prelude::*},
+    stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*},
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };

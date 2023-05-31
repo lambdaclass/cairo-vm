@@ -1,4 +1,4 @@
-use crate::stdlib::collections::HashMap;
+use crate::stdlib::{boxed::Box, collections::HashMap};
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},

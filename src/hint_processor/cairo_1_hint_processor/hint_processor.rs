@@ -4,8 +4,7 @@ use crate::any_box;
 use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::*;
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,

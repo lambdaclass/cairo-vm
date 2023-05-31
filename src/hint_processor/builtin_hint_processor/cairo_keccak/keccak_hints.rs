@@ -1,5 +1,6 @@
 use crate::stdlib::{
     borrow::{Cow, ToOwned},
+    boxed::Box,
     collections::HashMap,
     prelude::*,
 };

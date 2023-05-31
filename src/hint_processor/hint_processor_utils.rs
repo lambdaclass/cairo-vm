@@ -1,4 +1,4 @@
-use crate::stdlib::borrow::Cow;
+use crate::stdlib::{borrow::Cow, boxed::Box};
 
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},

@@ -1,4 +1,6 @@
-use crate::stdlib::{any::Any, cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
+use crate::stdlib::{
+    any::Any, boxed::Box, cell::RefCell, collections::HashMap, prelude::*, rc::Rc,
+};
 
 use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},

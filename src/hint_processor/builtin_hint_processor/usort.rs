@@ -1,4 +1,4 @@
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
+use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
