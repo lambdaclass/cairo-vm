@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
 
 * BREAKING: Add structure RunResources [#1173](https://github.com/lambdaclass/cairo-rs/pull/1173)
 
