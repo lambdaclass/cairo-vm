@@ -1,4 +1,8 @@
 #[cfg(feature = "cairo-1-hints")]
+use crate::vm::errors::cairo_run_errors::CairoRunError;
+#[cfg(feature = "cairo-1-hints")]
+use crate::vm::runners::cairo_runner::RunResources;
+#[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     serde::deserialize_program::BuiltinName,
@@ -15,11 +19,10 @@ use felt::Felt252;
 
 use crate::stdlib::prelude::*;
 
-use crate::vm::runners::cairo_runner::RunResources;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::{errors::cairo_run_errors::CairoRunError, trace::trace_entry::TraceEntry},
+    vm::trace::trace_entry::TraceEntry,
 };
 
 #[cfg(target_arch = "wasm32")]

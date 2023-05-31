@@ -568,7 +568,6 @@ impl CairoRunner {
             if let Some(r) = run_resources.as_mut() {
                 r.consume_steps()
             };
-            dbg!(&vm.current_step);
         }
 
         if vm.run_context.pc != address {
