@@ -136,13 +136,13 @@ fn apply_ap_tracking_correction(
 //Tries to convert a Felt252 value to usize
 pub fn felt_to_usize(felt: &Felt252) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or_else(|| MathError::Felt252ToUsizeConversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(felt.clone())))
 }
 
 ///Tries to convert a Felt252 value to u32
 pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
     felt.to_u32()
-        .ok_or_else(|| MathError::Felt252ToU32Conversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToU32Conversion(Box::new(felt.clone())))
 }
 
 fn get_offset_value_reference(

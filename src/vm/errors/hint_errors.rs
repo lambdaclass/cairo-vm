@@ -23,6 +23,14 @@ use super::{
 // For more info on #[error] syntax, see https://docs.rs/thiserror/latest/thiserror/#details
 #[derive(Debug, Error)]
 pub enum HintError {
+    #[error(transparent)]
+    FromScopeError(#[from] ExecScopeError),
+    #[error(transparent)]
+    Internal(#[from] VirtualMachineError),
+    #[error(transparent)]
+    Memory(#[from] MemoryError),
+    #[error(transparent)]
+    Math(#[from] MathError),
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,
     #[error("Unknown identifier {0}")]
@@ -101,10 +109,6 @@ pub enum HintError {
     SquashDictMaxSizeExceeded(Box<(Felt252, Felt252)>),
     #[error("squash_dict fail: n_accesses: {0} is too big to be converted into an iterator")]
     NAccessesTooBig(Box<Felt252>),
-    #[error(transparent)]
-    Internal(#[from] VirtualMachineError),
-    #[error(transparent)]
-    Memory(#[from] MemoryError),
     #[error("Couldn't convert BigInt to usize")]
     BigintToUsizeFail,
     #[error("usort() can only be used with input_len<={}. Got: input_len={}.", (*.0).0, (*.0).1)]
@@ -139,8 +143,6 @@ pub enum HintError {
     InvalidWordSize(Box<Felt252>),
     #[error("Invalid input length, Got: length={0}")]
     InvalidKeccakInputLength(Box<Felt252>),
-    #[error(transparent)]
-    FromScopeError(#[from] ExecScopeError),
     #[error("assert_not_equal failed: {} =  {}", (*.0).0, (*.0).1)]
     AssertNotEqualFail(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("split_int(): value is out of range")]
@@ -173,8 +175,6 @@ pub enum HintError {
     AddSignatureWrongEcdsaPtr(Box<Relocatable>),
     #[error("Signature hint must point to the public key cell, not {0}.")]
     AddSignatureNotAPublicKey(Box<Relocatable>),
-    #[error(transparent)]
-    Math(#[from] MathError),
     #[error("random_ec_point: Could not find a point on the curve.")]
     RandomEcPointNotOnCurve,
     #[error("Invalid value for len. Got: {0}.")]

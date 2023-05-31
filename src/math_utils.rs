@@ -32,7 +32,7 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
     }
 
     if !(&BigUint::pow(&x, 2_u32) <= n && n < &BigUint::pow(&(&x + 1_u32), 2_u32)) {
-        return Err(MathError::FailedToGetSqrt(n.clone()));
+        return Err(MathError::FailedToGetSqrt(Box::new(n.clone())));
     };
     Ok(x)
 }
@@ -46,7 +46,7 @@ pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(MathError::SafeDivFail(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));
     }
 
     Ok(q)
@@ -61,7 +61,10 @@ pub fn safe_div_bigint(x: &BigInt, y: &BigInt) -> Result<BigInt, MathError> {
     let (q, r) = x.div_mod_floor(y);
 
     if !r.is_zero() {
-        return Err(MathError::SafeDivFailBigInt(x.clone(), y.clone()));
+        return Err(MathError::SafeDivFailBigInt(Box::new((
+            x.clone(),
+            y.clone(),
+        ))));
     }
 
     Ok(q)
@@ -76,7 +79,7 @@ pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
     let (q, r) = x.div_mod_floor(&y);
 
     if !r.is_zero() {
-        return Err(MathError::SafeDivFailUsize(x, y));
+        return Err(MathError::SafeDivFailUsize(Box::new((x, y))));
     }
 
     Ok(q)
@@ -375,9 +378,7 @@ mod tests {
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
-            Err(MathError::SafeDivFail(
-                i, j
-            )) if i == Felt252::new(25) && j == Felt252::new(4));
+            Err(MathError::SafeDivFail(bx)) if *bx == (Felt252::new(25), Felt252::new(4)));
     }
 
     #[test]
@@ -400,7 +401,7 @@ mod tests {
     fn compute_safe_div_usize_non_divisor() {
         assert_matches!(
             safe_div_usize(25, 4),
-            Err(MathError::SafeDivFailUsize(25, 4))
+            Err(MathError::SafeDivFailUsize(bx)) if *bx == (25, 4)
         );
     }
 

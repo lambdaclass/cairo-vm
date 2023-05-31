@@ -232,11 +232,8 @@ mod tests {
                 0,
             ),
             Err(
-                HintError::Math(MathError::SafeDivFailBigInt(
-                    x,
-                    y,
-                )
-            )) if x == BigInt::one() && y == bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337")
+                HintError::Math(MathError::SafeDivFailBigInt(bx)
+            )) if *bx == (BigInt::one(), bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"))
         );
     }
 

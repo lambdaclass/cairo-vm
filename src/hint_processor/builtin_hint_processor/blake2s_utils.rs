@@ -285,7 +285,7 @@ pub fn example_blake2s_compress(
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).map(|x| {
         x.to_u32()
             .ok_or(HintError::Math(MathError::Felt252ToU32Conversion(
-                x.into_owned(),
+                Box::new(x.into_owned()),
             )))
     })??;
 
@@ -339,10 +339,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Math(MathError::RelocatableSubNegOffset(
-                x,
-                y
-            ))) if x == relocatable!(2,5) && y == 26
+            Err(HintError::Math(MathError::RelocatableSubNegOffset(bx)))
+            if *bx == (relocatable!(2,5), 26)
         );
     }
 
@@ -669,7 +667,7 @@ mod tests {
         vm.segments = segments![((1, 0), 9999999999_u64), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(x))) if x == Felt252::from(9999999999_u64));
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt252::from(9999999999_u64));
     }
 
     #[test]

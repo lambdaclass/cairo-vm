@@ -63,7 +63,7 @@ pub fn find_element(
         }
         let n_elms_iter: i32 = n_elms
             .to_i32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(n_elms.into_owned()))?;
+            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
@@ -333,7 +333,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Math(MathError::Felt252ToI32Conversion(x))) if x == Felt252::new(-1)
+            Err(HintError::Math(MathError::Felt252ToI32Conversion(bx))) if *bx == Felt252::new(-1)
         );
     }
 
