@@ -66,9 +66,9 @@ fn sha256_main(
             .unwrap_or(100); // Hack: enough to fail the assertion
 
     if input_chunk_size_felts >= 100 {
-        return Err(HintError::AssertionFailed(
+        return Err(HintError::AssertionFailed(Box::new(
             "assert 0 <= _sha256_input_chunk_size_felts < 100".to_string(),
-        ));
+        )));
     }
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * input_chunk_size_felts);
@@ -153,9 +153,9 @@ pub fn sha256_main_arbitrary_input_length(
         }
         // otherwise, fails the assert
         _ => {
-            return Err(HintError::AssertionFailed(
+            return Err(HintError::AssertionFailed(Box::new(
                 "assert 0 <= _sha256_state_size_felts < 100".to_string(),
-            ))
+            )))
         }
     };
 
@@ -405,7 +405,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(msg)) if msg == "assert 0 <= _sha256_input_chunk_size_felts < 100"
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_input_chunk_size_felts < 100".to_string()
         );
     }
 
@@ -439,7 +439,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(msg)) if msg == "assert 0 <= _sha256_state_size_felts < 100"
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_state_size_felts < 100".to_string()
         );
     }
 

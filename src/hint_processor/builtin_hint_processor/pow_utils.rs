@@ -89,7 +89,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "prev_locs"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "prev_locs".to_string()
         );
     }
 

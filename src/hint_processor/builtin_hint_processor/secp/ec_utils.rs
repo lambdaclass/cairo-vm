@@ -1285,7 +1285,7 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "e")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "e".to_string())
     }
 
     #[test]

@@ -34,7 +34,8 @@ fn get_access_indices(
             access_indices = Some(py_access_indices);
         }
     }
-    access_indices.ok_or_else(|| HintError::VariableNotInScopeError("access_indices".to_string()))
+    access_indices
+        .ok_or_else(|| HintError::VariableNotInScopeError(Box::new("access_indices".to_string())))
 }
 
 /*Implements hint:
@@ -414,7 +415,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *String::from("key")
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "key".to_string()
         );
     }
 
@@ -727,7 +728,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *String::from("keys")
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "keys".to_string()
         );
     }
 

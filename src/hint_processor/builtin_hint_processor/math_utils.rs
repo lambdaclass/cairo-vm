@@ -111,10 +111,10 @@ pub fn assert_le_felt(
 
     let prime_over_3_high = constants
         .get(PRIME_OVER_3_HIGH)
-        .ok_or(HintError::MissingConstant(PRIME_OVER_3_HIGH))?;
+        .ok_or(HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
-        .ok_or(HintError::MissingConstant(PRIME_OVER_2_HIGH))?;
+        .ok_or(HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
     let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
         .clone()
         .into_owned();
@@ -619,7 +619,7 @@ pub fn is_addr_bounded(
 
     let addr_bound = constants
         .get(ADDR_BOUND)
-        .ok_or(HintError::MissingConstant(ADDR_BOUND))?
+        .ok_or(HintError::MissingConstant(Box::new(ADDR_BOUND)))?
         .to_biguint();
 
     let lower_bound = BigUint::one() << 250_u32;
@@ -630,9 +630,9 @@ pub fn is_addr_bounded(
     //      'normalize_address() cannot be used with the current constants.'
     // The second check is not needed, as it's true for the CAIRO_PRIME
     if !(lower_bound < addr_bound && addr_bound <= upper_bound && (&addr_bound << 1_u32) > prime) {
-        return Err(HintError::AssertionFailed(
+        return Err(HintError::AssertionFailed(Box::new(
             "normalize_address() cannot be used with the current constants.".to_string(),
-        ));
+        )));
     }
 
     // Main logic: ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
@@ -899,7 +899,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "a"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "a".to_string()
         );
     }
 
@@ -1023,7 +1023,7 @@ mod tests {
         let ids_data = ids_data!["a", "c"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "b"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "b".to_string()
         );
     }
 
@@ -1074,7 +1074,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "a"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "a".to_string()
         );
     }
 
@@ -1422,7 +1422,7 @@ mod tests {
         let ids_data = ids_data!["incorrect_id"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x))  if x == "value"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "value".to_string()
         );
     }
 
@@ -1749,7 +1749,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "div"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "div".to_string()
         )
     }
 
@@ -1859,7 +1859,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "div"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "div".to_string()
         )
     }
 
@@ -2023,8 +2023,8 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([(ADDR_BOUND.to_string(), addr_bound)])
             ),
-            Err(HintError::AssertionFailed(msg))
-                if msg == "normalize_address() cannot be used with the current constants."
+            Err(HintError::AssertionFailed(bx))
+                if *bx == "normalize_address() cannot be used with the current constants.".to_string()
         );
     }
 
@@ -2042,7 +2042,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(ADDR_BOUND))
+            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND
         );
     }
 
@@ -2093,7 +2093,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "value"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "value".to_string()
         );
     }
 
@@ -2228,7 +2228,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "b"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "b".to_string()
         );
     }
 

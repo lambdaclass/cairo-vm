@@ -796,7 +796,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
-            code => Err(HintError::UnknownHint(code.to_string())),
+            code => Err(HintError::UnknownHint(Box::new(code.to_string()))),
         }
     }
 }
@@ -881,7 +881,7 @@ mod tests {
         let mut vm = vm!();
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::UnknownHint(bx)) if bx == hint_code
+            Err(HintError::UnknownHint(bx)) if *bx == hint_code
         );
     }
 
@@ -954,7 +954,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"n".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "n".to_string()
         );
     }
 

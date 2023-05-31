@@ -516,7 +516,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "blake2s_ptr_end"
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "blake2s_ptr_end".to_string()
         );
     }
 

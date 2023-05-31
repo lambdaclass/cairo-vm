@@ -189,7 +189,7 @@ pub fn bigint_to_uint256(
     let d1 = d1.as_ref();
     let base_86 = constants
         .get(BASE_86)
-        .ok_or(HintError::MissingConstant(BASE_86))?;
+        .ok_or(HintError::MissingConstant(Box::new(BASE_86)))?;
     let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -291,7 +291,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == "value"
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "value".to_string()
         );
     }
 
@@ -432,7 +432,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x".to_string())
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let r = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x".to_string())
     }
 
     #[test]

@@ -257,7 +257,7 @@ pub fn split_n_bytes(
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
         .and_then(|x| x.to_u64())
-        .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
+        .ok_or(HintError::MissingConstant(Box::new(BYTES_IN_WORD)))?;
     let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
     insert_value_from_var_name(
         "n_words_to_copy",
