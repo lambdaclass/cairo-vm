@@ -154,9 +154,9 @@ pub(crate) fn block_permutation_v1(
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
     if keccak_state_size_felts >= &Felt252::new(100_i32) {
-        return Err(HintError::InvalidKeccakStateSizeFelt252s(
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             keccak_state_size_felts.clone(),
-        ));
+        )));
     }
 
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr", vm, ids_data, ap_tracking)?;
@@ -221,9 +221,9 @@ pub(crate) fn block_permutation_v2(
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or(HintError::MissingConstant(KECCAK_STATE_SIZE_FELTS))?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
-        return Err(HintError::InvalidKeccakStateSizeFelt252s(
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             keccak_state_size_felts.clone(),
-        ));
+        )));
     }
 
     let keccak_ptr = get_ptr_from_var_name("keccak_ptr_start", vm, ids_data, ap_tracking)?;
@@ -262,13 +262,13 @@ fn cairo_keccak_finalize(
         .ok_or(HintError::MissingConstant(BLOCK_SIZE))?;
 
     if keccak_state_size_felts >= &Felt252::new(100_i32) {
-        return Err(HintError::InvalidKeccakStateSizeFelt252s(
+        return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             keccak_state_size_felts.clone(),
-        ));
+        )));
     }
 
     if block_size >= &Felt252::new(block_size_limit) {
-        return Err(HintError::InvalidBlockSize(block_size.clone()));
+        return Err(HintError::InvalidBlockSize(Box::new(block_size.clone())));
     };
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();

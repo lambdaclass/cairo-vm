@@ -41,7 +41,7 @@ pub fn verify_zero(
     let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
-        return Err(HintError::SecpVerifyZero(val));
+        return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
     insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
@@ -67,7 +67,7 @@ pub fn verify_zero_with_external_const(
     let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
-        return Err(HintError::SecpVerifyZero(val));
+        return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
     insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
@@ -305,7 +305,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::SecpVerifyZero(x)) if x == bigint_str!(
+            Err(HintError::SecpVerifyZero(bx)) if *bx == bigint_str!(
                 "897946605976106752944343961220884287276604954404454400"
             )
         );
@@ -398,8 +398,8 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::IdentifierHasNoMember(x, y
-            )) if x == "x" && y == "d0"
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d0".to_string())
         );
     }
 
@@ -467,8 +467,8 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::IdentifierHasNoMember(x, y
-            )) if x == "x" && y == "d0"
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d0".to_string())
         );
     }
 

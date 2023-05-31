@@ -1638,7 +1638,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::ValueOutside250BitRange(x)) if x == felt_str!(
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == felt_str!(
                 "3618502788666131213697322783095070105623107215331596699973092056135872020400"
             )
         );

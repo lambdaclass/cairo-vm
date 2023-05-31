@@ -1037,7 +1037,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::NAccessesTooBig(x)) if x == felt_str!(
+            Err(HintError::NAccessesTooBig(bx)) if *bx == felt_str!(
                 "3618502761706184546546682988428055018603476541694452277432519575032261771265"
             )
         );

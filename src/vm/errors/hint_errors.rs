@@ -165,7 +165,7 @@ pub enum HintError {
     #[error("Assertion failed, {}, is not less or equal to {}", (*.0).0, (*.0).1)]
     NonLeFelt252(Box<(Felt252, Felt252)>),
     #[error("Unknown Hint: {0}")]
-    UnknownHint(Box<String>),
+    UnknownHint(String),
     #[error("Signature hint must point to the signature builtin segment, not {0}.")]
     AddSignatureWrongEcdsaPtr(Box<Relocatable>),
     #[error("Signature hint must point to the public key cell, not {0}.")]

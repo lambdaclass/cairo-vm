@@ -798,14 +798,14 @@ impl Cairo1HintProcessor {
         let access_indices_at_key = dict_squash_exec_scope
             .access_indices
             .get(&key.clone())
-            .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?;
+            .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
 
         if n != Felt252::new(access_indices_at_key.len()) {
-            return Err(HintError::NumUsedAccessesAssertFail(
+            return Err(HintError::NumUsedAccessesAssertFail(Box::new((
                 n,
                 access_indices_at_key.len(),
                 key,
-            ));
+            ))));
         }
 
         Ok(())

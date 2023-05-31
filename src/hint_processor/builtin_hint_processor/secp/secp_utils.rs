@@ -84,7 +84,7 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
     }
 
     if !num.is_zero() {
-        return Err(HintError::SecpSplitOutOfRange(integer.clone()));
+        return Err(HintError::SecpSplitOutOfRange(Box::new(integer.clone())));
     }
     Ok(canonical_repr)
 }
@@ -176,7 +176,7 @@ mod tests {
         );
         assert_matches!(
             array_4,
-            Err(HintError::SecpSplitOutOfRange(x)) if x == bigint_str!(
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == bigint_str!(
                     "773712524553362671811952647737125245533626718119526477371252455336267181195264"
                 )
                     .to_biguint()

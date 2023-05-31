@@ -1275,7 +1275,7 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let r = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "e.y" && y == "d1")
+        assert_matches!(r, Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("e.y".to_string(), "d1".to_string()))
     }
 
     #[test]
