@@ -736,7 +736,7 @@ impl Integer for Felt252 {
     }
 
     fn divides(&self, _other: &Self) -> bool {
-        true
+        !self.is_zero()
     }
 
     fn gcd(&self, other: &Self) -> Self {
@@ -747,8 +747,8 @@ impl Integer for Felt252 {
         self.value.is_even()
     }
 
-    fn is_multiple_of(&self, _other: &Self) -> bool {
-        true
+    fn is_multiple_of(&self, other: &Self) -> bool {
+        !other.is_zero()
     }
 
     fn is_odd(&self) -> bool {

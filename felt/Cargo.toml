@@ -18,7 +18,7 @@ lazy_static = { version = "1.4.0", default-features = false, features = [
     "spin_no_std",
 ] }
 serde = { version = "1.0", features = ["derive"], default-features = false }
-lambdaworks-math = { git = "https://github.com/lambdaclass/lambdaworks", rev = "af9e400" }
+lambdaworks-math = { git = "https://github.com/lambdaclass/lambdaworks", rev = "d1b853c" }
 
 [dev-dependencies]
 proptest = "1.1.0"

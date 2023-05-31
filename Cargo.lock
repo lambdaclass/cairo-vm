@@ -1553,7 +1553,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.1.0"
-source = "git+https://github.com/lambdaclass/lambdaworks?rev=af9e400#af9e400fb9371c4ee1bfd6e9264e67ce1e4d9cdc"
+source = "git+https://github.com/lambdaclass/lambdaworks?rev=d1b853c#d1b853cea4b24c74fb47beff815d2814308a976d"
 dependencies = [
  "rand",
  "rayon",
