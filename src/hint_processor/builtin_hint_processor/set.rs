@@ -11,7 +11,6 @@ use crate::{
     types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{One, ToPrimitive, Zero};
 
@@ -41,10 +40,7 @@ pub fn set_add(
     let range_limit = (set_end_ptr - set_ptr)?;
 
     for i in 0..range_limit {
-        if matches!(
-            vm.memcmp(elm_ptr, (set_ptr + elm_size * i)?, elm_size),
-            (Ordering::Equal, _)
-        ) {
+        if vm.mem_eq(elm_ptr, (set_ptr + elm_size * i)?, elm_size) {
             insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",

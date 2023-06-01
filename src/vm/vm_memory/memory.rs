@@ -398,6 +398,54 @@ impl Memory {
         (Ordering::Equal, len)
     }
 
+    /// Compares two ranges of values in memory of length `len`
+    /// Returns the ordering and the first relative position at which they differ
+    /// Special cases:
+    /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
+    /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
+    /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
+    /// Everything else behaves much like `memcmp` in C.
+    /// This is meant as an optimization for hints to avoid allocations.
+    pub(crate) fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
+        if lhs == rhs {
+            return true;
+        }
+        let get_segment = |idx: isize| {
+            if idx.is_negative() {
+                self.temp_data.get(-(idx + 1) as usize)
+            } else {
+                self.data.get(idx as usize)
+            }
+        };
+        match (
+            get_segment(lhs.segment_index),
+            get_segment(rhs.segment_index),
+        ) {
+            (None, None) => {
+                return true;
+            }
+            (Some(_), None) => {
+                return false;
+            }
+            (None, Some(_)) => {
+                return false;
+            }
+            (Some(lhs_segment), Some(rhs_segment)) => {
+                let (lhs_start, rhs_start) = (lhs.offset, rhs.offset);
+                for i in 0..len {
+                    let (lhs, rhs) = (
+                        lhs_segment.get(lhs_start + i),
+                        rhs_segment.get(rhs_start + i),
+                    );
+                    if lhs != rhs {
+                        return false;
+                    }
+                }
+            }
+        };
+        true
+    }
+
     /// Gets a range of memory values from addr to addr + size
     /// The outputed range may contain gaps if the original memory has them
     pub fn get_range(&self, addr: Relocatable, size: usize) -> Vec<Option<Cow<MaybeRelocatable>>> {

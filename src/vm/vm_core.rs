@@ -822,6 +822,10 @@ impl VirtualMachine {
         self.segments.memory.memcmp(lhs, rhs, len)
     }
 
+    pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
+        self.segments.memory.mem_eq(lhs, rhs, len)
+    }
+
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let addr = (self.run_context.get_ap() - n_ret)
