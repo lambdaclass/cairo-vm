@@ -161,7 +161,7 @@ mod tests {
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::AssertionFailed(
                 bx
-            )) if *bx == "assert ids.elm_size > 0".to_string()
+            )) if *bx == "assert ids.elm_size > 0"
         );
     }
     #[test]

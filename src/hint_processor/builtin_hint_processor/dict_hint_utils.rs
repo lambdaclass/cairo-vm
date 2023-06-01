@@ -449,7 +449,7 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "default_value".to_string()
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "default_value"
         );
     }
 

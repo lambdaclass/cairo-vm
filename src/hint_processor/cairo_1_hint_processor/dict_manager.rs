@@ -46,8 +46,8 @@ impl DictManagerExecScope {
             )
             .is_some()
         {
-            return Err(HintError::CustomHint(String::from(
-                "Segment index already in use.",
+            return Err(HintError::CustomHint(Box::new(
+                "Segment index already in use.".to_string(),
             )));
         }
 
@@ -58,8 +58,8 @@ impl DictManagerExecScope {
     fn get_dict_tracker(&self, dict_end: Relocatable) -> Result<&DictTrackerExecScope, HintError> {
         self.trackers
             .get(&dict_end.segment_index)
-            .ok_or(HintError::CustomHint(String::from(
-                "The given value does not point to a known dictionary.",
+            .ok_or(HintError::CustomHint(Box::new(
+                "The given value does not point to a known dictionary.".to_string(),
             )))
     }
 
@@ -106,21 +106,18 @@ impl DictSquashExecScope {
     /// Removes the current key, and its access indices. Should be called when only the
     /// last key access is in the corresponding indices list.
     pub fn pop_current_key(&mut self) -> Result<(), HintError> {
-        let current_key = self
-            .current_key()
-            .ok_or(HintError::CustomHint(String::from(
-                "Failed to get current key",
-            )))?;
+        let current_key = self.current_key().ok_or(HintError::CustomHint(Box::new(
+            "Failed to get current key".to_string(),
+        )))?;
         let key_accesses =
             self.access_indices
                 .remove(&current_key)
-                .ok_or(HintError::CustomHint(format!(
-                    "No key accesses for key {}",
-                    current_key
-                )))?;
+                .ok_or(HintError::CustomHint(Box::new(format!(
+                    "No key accesses for key {current_key}"
+                ))))?;
         if !key_accesses.len().is_one() {
-            return Err(HintError::CustomHint(String::from(
-                "Key popped but not all accesses were processed.",
+            return Err(HintError::CustomHint(Box::new(
+                "Key popped but not all accesses were processed.".to_string(),
             )));
         }
         self.keys.pop();

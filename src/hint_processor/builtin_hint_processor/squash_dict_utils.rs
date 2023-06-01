@@ -415,7 +415,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "key".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "key"
         );
     }
 
@@ -728,7 +728,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "keys".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if *bx == "keys"
         );
     }
 

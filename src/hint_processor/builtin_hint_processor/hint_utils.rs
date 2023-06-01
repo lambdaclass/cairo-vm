@@ -186,7 +186,7 @@ mod tests {
 
         assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "value".to_string()
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "value"
         );
     }
 
@@ -242,7 +242,7 @@ mod tests {
 
         assert_matches!(
             get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "value".to_string()
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "value"
         );
     }
 

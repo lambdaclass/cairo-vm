@@ -405,7 +405,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_input_chunk_size_felts < 100".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_input_chunk_size_felts < 100"
         );
     }
 
@@ -439,7 +439,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_state_size_felts < 100".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= _sha256_state_size_felts < 100"
         );
     }
 

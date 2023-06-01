@@ -366,7 +366,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_GET_SQUARE_ROOT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1"
         );
     }
 
@@ -500,7 +500,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1"
         );
     }
 

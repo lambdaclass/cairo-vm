@@ -12,13 +12,15 @@ pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252),
             if let DerefOrImmediate::Immediate(val) = &bin_op.b {
                 (&bin_op.a, val.clone().value.into())
             } else {
-                return Err(HintError::CustomHint("Failed to extract buffer, expected ResOperand of BinOp type to have Inmediate b value".to_owned()));
+                return Err(HintError::CustomHint(Box::new(
+                    "Failed to extract buffer, expected ResOperand of BinOp type to have Inmediate b value".to_owned()
+                )));
             }
         }
         _ => {
-            return Err(HintError::CustomHint(
+            return Err(HintError::CustomHint(Box::new(
                 "Illegal argument for a buffer.".to_string(),
-            ))
+            )))
         }
     };
     Ok((cell, base_offset))

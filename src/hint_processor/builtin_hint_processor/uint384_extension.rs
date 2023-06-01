@@ -304,7 +304,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let r = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x".to_string())
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x")
     }
 
     #[rstest]

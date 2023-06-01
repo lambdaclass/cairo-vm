@@ -536,7 +536,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
-            Err(HintError::MissingConstant(bx)) if *bx == "SHIFT".to_string()
+            Err(HintError::MissingConstant(bx)) if *bx == "SHIFT"
         );
     }
 
@@ -586,7 +586,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_SQRT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= root < 2 ** 192".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= root < 2 ** 192"
         );
     }
 

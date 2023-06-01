@@ -779,7 +779,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128".to_string()
+            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
         );
     }
 
@@ -1068,7 +1068,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "quotient_low".to_string()
+            Err(HintError::UnknownIdentifier(bx)) if *bx == "quotient_low"
         );
     }
 }
