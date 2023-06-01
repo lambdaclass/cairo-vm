@@ -781,13 +781,7 @@ impl Shl<u32> for Felt252 {
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: u32) -> Self::Output {
-        // TODO: upstream should do this check
-        if rhs >= 64 * 4 {
-            Felt252::zero()
-        } else {
-            let value = FieldElement::new(self.value.representative() << (rhs as usize));
-            Self::Output { value }
-        }
+        Felt252::from(2).pow(rhs) * self
     }
 }
 
@@ -801,13 +795,7 @@ impl Shl<usize> for Felt252 {
 impl<'a> Shl<usize> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: usize) -> Self::Output {
-        // TODO: upstream should do this check
-        if rhs >= 64 * 4 {
-            Felt252::zero()
-        } else {
-            let value = FieldElement::new(self.value.representative() << rhs);
-            Self::Output { value }
-        }
+        self << (rhs as u32)
     }
 }
 
@@ -821,13 +809,7 @@ impl Shr<u32> for Felt252 {
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: u32) -> Self::Output {
-        // TODO: upstream should do this check
-        if rhs >= 64 * 4 {
-            Felt252::zero()
-        } else {
-            let value = FieldElement::new(self.value.representative() >> (rhs as usize));
-            Self::Output { value }
-        }
+        self / Felt252::from(2).pow(rhs)
     }
 }
 
@@ -974,6 +956,16 @@ mod test {
     use rstest::rstest;
 
     use proptest::prelude::*;
+
+    // TODO: return Option in sqrt
+    fn prop_assume_is_quad_residue(x: &Felt252) -> Result<(), TestCaseError> {
+        let x_biguint = x.to_biguint();
+        let felt_max_halved = Felt252::max_value() / Felt252::from(2_u32);
+        prop_assume!(
+            (x_biguint.is_zero() || x_biguint.is_one() || x.pow(&felt_max_halved).is_one())
+        );
+        Ok(())
+    }
 
     proptest! {
         #[test]
@@ -1156,7 +1148,7 @@ mod test {
         // Property-based test that ensures, for 100 {value}s that are randomly generated
         // each time tests are run, that performing a bit shift to the left by {shift_amount}
         // of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_left_in_range(value in any::<Felt252>(), shift_amount in 0..1000_u32){
+        fn shift_left_in_range(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let result = (value.clone() << shift_amount).to_biguint();
@@ -1164,6 +1156,19 @@ mod test {
 
             let result = (&value << shift_amount).to_biguint();
             prop_assert!(&result < p);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn shift_left_equals_two_power_multiplication(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
+            let pow = BigUint::from(2_u32).modpow(&BigUint::from(shift_amount), &Felt252::prime());
+            let expected = (value.to_biguint() * &pow) % &Felt252::prime();
+
+            let result = (&value << shift_amount).to_biguint();
+            prop_assert_eq!(&result, &expected);
+
+            let result = (value << shift_amount).to_biguint();
+            prop_assert_eq!(&result, &expected);
         }
 
         #[test]
@@ -1184,10 +1189,25 @@ mod test {
         // of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
         // "With assignment" means that the result of the operation is autommatically assigned
         // to the variable value, replacing its previous content.
-        fn shift_right_assign_in_range(mut value in any::<Felt252>(), shift_amount in 0..1000_usize){
+        fn shift_right_assign_in_range(mut value in any::<Felt252>(), shift_amount in 0..1000_usize) {
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             value >>= shift_amount;
             prop_assert!(value.to_biguint() < p);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn shift_right_equals_two_power_division(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
+            let prime = Felt252::prime().to_bigint().unwrap();
+            let pow = BigInt::from(2).modpow(&BigInt::from(shift_amount), &prime);
+            let inv_pow = pow.extended_gcd(&prime).x;
+            let expected = (value.to_bigint() * inv_pow).mod_floor(&prime).to_biguint().unwrap();
+
+            let result = (&value >> shift_amount).to_biguint();
+            prop_assert_eq!(&result, &expected);
+
+            let result = (value >> shift_amount).to_biguint();
+            prop_assert_eq!(&result, &expected);
         }
 
         #[test]
@@ -1409,7 +1429,8 @@ mod test {
 
         #[test]
         fn sqrt_in_range(x in any::<Felt252>()) {
-            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            prop_assume_is_quad_residue(&x)?;
+            let p = Felt252::prime();
 
             let sqrt = x.sqrt().to_biguint();
             prop_assert!(sqrt < p, "{}", sqrt);
@@ -1417,6 +1438,7 @@ mod test {
 
         #[test]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
+            prop_assume_is_quad_residue(&x)?;
             let x_sq = &x * &x;
             let sqrt = x_sq.sqrt();
 
