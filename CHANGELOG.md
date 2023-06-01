@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+* perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
 * feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
   * BREAKING: all tuple variants of `HintError` with a single `Felt252` or multiple elements now receive a single `Box`
 
