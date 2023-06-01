@@ -280,14 +280,12 @@ This is a list of recommended books to learn how to implement a compiler or an i
 #### Basics
 
 - [Intro to zero-knowledge proofs](https://www.youtube.com/watch?v=HUs1bH85X9I)
-
 - [Security and Privacy for Crypto with Zero-Knowledge Proofs](https://www.youtube.com/watch?v=3NL0ThdvWMU)
 - [A Hands-On Tutorial for Zero-Knowledge Proofs Series](http://www.shirpeled.com/2018/09/a-hands-on-tutorial-for-zero-knowledge.html)
 
 #### ZK SNARKs
 
 - [What are zk-SNARKs?](https://z.cash/technology/zksnarks/)
-
 - [Vitalik's introduction to how zk-SNARKs are possible](https://vitalik.ca/general/2021/01/26/snarks.html)
 - [Vitalik's post on quadratic arithmetic programs](https://medium.com/@VitalikButerin/quadratic-arithmetic-programs-from-zero-to-hero-f6d558cea649)
 - [Why and How zk-SNARK Works - Maksym Petkus](https://arxiv.org/abs/1906.07221)
