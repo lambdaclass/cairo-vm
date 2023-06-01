@@ -829,7 +829,7 @@ impl CairoRunner {
 
             builtin_segment_info.push((
                 index,
-                stop_ptr.ok_or(RunnerError::NoStopPointer(Box::new(builtin.name())))?,
+                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
         }
 

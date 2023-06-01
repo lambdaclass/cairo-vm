@@ -124,7 +124,7 @@ impl SignatureBuiltinRunner {
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
-                    .ok_or(MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
+                    .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
                 let public_key =
                     FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {

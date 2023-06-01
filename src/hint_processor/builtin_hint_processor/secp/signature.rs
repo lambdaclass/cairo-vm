@@ -115,7 +115,7 @@ pub fn get_point_from_x(
     #[allow(deprecated)]
     let beta = constants
         .get(BETA)
-        .ok_or(HintError::MissingConstant(Box::new(BETA)))?
+        .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
         .to_bigint();
 
     let x_cube_int = bigint3_pack(Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
