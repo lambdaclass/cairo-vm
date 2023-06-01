@@ -295,9 +295,9 @@ impl Felt252 {
         match rep.limbs {
             [0, 0, 0, 0] => 0,
             [0, 0, 0, l0] => u64::BITS - l0.leading_zeros(),
-            [0, 0, l1, _] => u64::BITS - l1.leading_zeros() + u64::BITS,
-            [0, l2, _, _] => u64::BITS - l2.leading_zeros() + 2 * u64::BITS,
-            [l3, _, _, _] => u64::BITS - l3.leading_zeros() + 3 * u64::BITS,
+            [0, 0, l1, _] => 2 * u64::BITS - l1.leading_zeros(),
+            [0, l2, _, _] => 3 * u64::BITS - l2.leading_zeros(),
+            [l3, _, _, _] => 4 * u64::BITS - l3.leading_zeros(),
         }
         .into()
     }

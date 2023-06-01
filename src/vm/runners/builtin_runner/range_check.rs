@@ -88,13 +88,12 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if &Felt252::zero() <= num.as_ref() && num.as_ref() < &Felt252::one().shl(128_usize)
-                {
+                if num.as_ref().bits() <= 128 {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one().shl(128_usize),
+                        Felt252::from(u128::MAX) + Felt252::one(), // 2**128
                     ))))
                 }
             },
