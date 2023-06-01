@@ -111,3 +111,22 @@ pub enum InsufficientAllocatedCellsError {
     #[error("There are only {} cells to fill the memory address holes, but {} are required.", (*.0).0, (*.0).1)]
     MemoryAddresses(Box<(u32, usize)>),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_memory_error_size() {
+        let size = crate::stdlib::mem::size_of::<MemoryError>();
+        assert!(size <= 24, "{size}")
+    }
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_insufficient_allocated_cells_error_size() {
+        let size = crate::stdlib::mem::size_of::<InsufficientAllocatedCellsError>();
+        assert!(size <= 16, "{size}")
+    }
+}

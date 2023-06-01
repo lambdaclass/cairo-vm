@@ -108,7 +108,7 @@ impl CairoRunner {
             "all_cairo" => CairoLayout::all_cairo_instance(),
             "all_solidity" => CairoLayout::all_solidity_instance(),
             "dynamic" => CairoLayout::dynamic_instance(),
-            name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
+            name => return Err(RunnerError::InvalidLayoutName(Box::new(name.to_string()))),
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -219,10 +219,10 @@ impl CairoRunner {
             }
         }
         if !program_builtins.is_empty() {
-            return Err(RunnerError::NoBuiltinForInstance(
+            return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
                 self.layout._name.clone(),
-            ));
+            ))));
         }
 
         vm.builtin_runners = builtin_runners;
@@ -829,7 +829,7 @@ impl CairoRunner {
 
             builtin_segment_info.push((
                 index,
-                stop_ptr.ok_or(RunnerError::NoStopPointer(builtin.name()))?,
+                stop_ptr.ok_or(RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
         }
 
@@ -3461,7 +3461,9 @@ mod tests {
         vm.builtin_runners = vec![BuiltinRunner::Output(OutputBuiltinRunner::new(true))];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::NoStopPointer(BuiltinName::output.name())),
+            Err(RunnerError::NoStopPointer(Box::new(
+                BuiltinName::output.name()
+            ))),
         );
     }
 
@@ -4118,10 +4120,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name()]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4133,10 +4135,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name(), HASH_BUILTIN_NAME]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4148,10 +4150,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "small");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::bitwise.name()]),
                 String::from("small")
-            ))
+            ))))
         );
     }
     #[test]

@@ -71,10 +71,8 @@ impl EcOpBuiltinRunner {
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 #[allow(deprecated)]
-                return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
-                    partial_sum_b,
-                    m.clone().to_bigint(),
-                    doubled_point_b,
+                return Err(RunnerError::EcOpSameXCoordinate(Box::new(
+                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b),
                 )));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
@@ -170,10 +168,10 @@ impl EcOpBuiltinRunner {
                 &alpha,
                 &beta,
             ) {
-                return Err(RunnerError::PointNotOnCurve((
+                return Err(RunnerError::PointNotOnCurve(Box::new((
                     input_cells[pair.0].clone(),
                     input_cells[pair.1].clone(),
-                )));
+                ))));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
@@ -226,28 +224,28 @@ impl EcOpBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     EC_OP_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     EC_OP_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -350,11 +348,11 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 EC_OP_BUILTIN_NAME,
                 relocatable!(0, 994),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -402,7 +400,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))
         );
     }
 
@@ -657,13 +655,13 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(RunnerError::EcOpSameXCoordinate(
+            Err(RunnerError::EcOpSameXCoordinate(Box::new(
                 EcOpBuiltinRunner::format_ec_op_error(
                     (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
                     m.to_bigint(),
                     (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
                 )
-            ))
+            )))
         );
     }
 

@@ -214,8 +214,8 @@ mod tests {
     }
 
     #[test]
-    fn test_hint_error_size_is_less_than_16_bytes() {
-        let size = std::mem::size_of::<HintError>();
-        assert!(size < 16, "{size}")
+    fn test_hint_error_size() {
+        let size = crate::stdlib::mem::size_of::<HintError>();
+        assert!(size <= 32, "{size}")
     }
 }

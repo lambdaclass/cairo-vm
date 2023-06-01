@@ -82,18 +82,18 @@ impl BitwiseBuiltinRunner {
             num_y.as_ref().map(|x| x.as_ref()),
         ) {
             if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
-                ));
+                ))));
             };
             if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     y_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_y.clone(),
-                ));
+                ))));
             };
             let res = match index {
                 2 => Some(MaybeRelocatable::from(num_x & num_y)),
@@ -140,28 +140,28 @@ impl BitwiseBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BITWISE_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BITWISE_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     BITWISE_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     BITWISE_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -262,11 +262,11 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 BITWISE_BUILTIN_NAME,
                 relocatable!(0, 995),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -314,7 +314,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(BITWISE_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(BITWISE_BUILTIN_NAME)))
         );
     }
 

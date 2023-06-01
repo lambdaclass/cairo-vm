@@ -124,3 +124,15 @@ pub enum VirtualMachineError {
     #[error("Failed to write the output builtin content")]
     FailedToWriteOutput,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_vm_error_size() {
+        let size = crate::stdlib::mem::size_of::<VirtualMachineError>();
+        assert!(size <= 32, "{size}")
+    }
+}

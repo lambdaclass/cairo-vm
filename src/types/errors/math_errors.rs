@@ -61,3 +61,15 @@ pub enum MathError {
     #[error("Conversion to u64 failed for Felt252 {0}")]
     Felt252ToU64Conversion(Box<Felt252>),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_math_error_size() {
+        let size = crate::stdlib::mem::size_of::<MathError>();
+        assert!(size <= 16, "{size}")
+    }
+}
