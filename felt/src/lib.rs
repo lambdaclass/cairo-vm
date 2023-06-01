@@ -264,8 +264,7 @@ impl Felt252 {
     // Converts [`Felt252`]'s representation directly into a [`BigInt`].
     // Equivalent to doing felt.to_biguint().to_bigint().
     pub fn to_bigint(&self) -> BigInt {
-        #[allow(deprecated)]
-        BigInt::from_bytes_be(Sign::Plus, &self.value.to_bytes_be())
+        BigInt::from_biguint(Sign::Plus, self.to_biguint())
     }
 
     /// Converts [`Felt252`] into a [`BigUint`] number.
@@ -283,7 +282,11 @@ impl Felt252 {
     /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
     /// ```
     pub fn to_biguint(&self) -> BigUint {
-        BigUint::from_bytes_be(&self.value.to_bytes_be())
+        let big_digits = self
+            .iter_u64_digits()
+            .flat_map(|limb| [limb as u32, (limb >> 32) as u32])
+            .collect();
+        BigUint::new(big_digits)
     }
 
     pub fn bits(&self) -> u64 {
