@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685630346526,
+  "lastUpdate": 1685635684430,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -104236,6 +104236,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 27697173,
             "range": "± 1352412",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf5768c3a5473727e737cec3a693b1257e39e761",
+          "message": "feat: wrap big variants of errors in `Box` (#1193)\n\n* Wrap HintError's variants' contents in Box\n\n* Fix half of the errors\n\n* Fix compile warnings\n\n* Use `crate::stdlib`'s `Box`\n\n* Appease clippy\n\n* Add simple smoke tests of message formatting\n\n* Update changelog\n\n* Mention change is breaking\n\n* Box `MathError` variants\n\n* Box `MemoryError` variants\n\n* Box HintError variants (now also strings)\n\n* Add tentative test to avoid size regressions\n\n* Box `VirtualMachineError`\n\n* Box RunnerError\n\n* Appease clippy\n\n* Use `crate::stdlib`'s `Box`\n\n* Update changelog with recent changes\n\n* fix: replace several ok_ok by ok_or_else for perf regression\n\n* Replace more ok_or for ok_or_else\n\n* Add missing regression test\n\n* Use `Box<str>` instead of `Box<String>`\n\n---------\n\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2023-06-01T15:27:01Z",
+          "tree_id": "22162bab4b1a7b6ee05bb1d77f033dce2fa70017",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/cf5768c3a5473727e737cec3a693b1257e39e761"
+        },
+        "date": 1685635678683,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24359,
+            "range": "± 79",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 48919,
+            "range": "± 1292",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19194439,
+            "range": "± 133948",
             "unit": "ns/iter"
           }
         ]
