@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685629622230,
+  "lastUpdate": 1685630346526,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -104140,6 +104140,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21847658,
             "range": "± 681652",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d9784bfebe7e610a08b90b7291c193cd87a4ec15",
+          "message": "Check `as_int` usage in hints (#1191)\n\n* Add `as_int` logic to `assert_250_bit` hint\n\n* Remove uneeded to_signed_felt in `SIGNED_DIV_REM` hint\n\n* Add changelog entry\n\n* Clippy\n\n* Update CHANGELOG.md\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n---------\n\nCo-authored-by: Juan Bono <juanbono94@gmail.com>\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-06-01T13:54:49Z",
+          "tree_id": "8406b3b841b068a10bad4a91c71e2da86e986d4b",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d9784bfebe7e610a08b90b7291c193cd87a4ec15"
+        },
+        "date": 1685630338708,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 35774,
+            "range": "± 1501",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 82691,
+            "range": "± 7471",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 27697173,
+            "range": "± 1352412",
             "unit": "ns/iter"
           }
         ]
