@@ -479,8 +479,8 @@ pub fn signed_div_rem(
     }
 
     let int_value = value.to_signed_felt();
-    let int_div = div.to_signed_felt();
-    let int_bound = bound.to_signed_felt();
+    let int_div = div.to_bigint();
+    let int_bound = bound.to_bigint();
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
@@ -564,11 +564,12 @@ pub fn assert_250_bit(
     let shift = constants
         .get(SHIFT)
         .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
-    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
+    let value = Felt252::from(
+        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.to_signed_felt(),
+    );
     //Main logic
-    //can be deleted
-    if value.as_ref() > upper_bound {
-        return Err(HintError::ValueOutside250BitRange(value.into_owned()));
+    if &value > upper_bound {
+        return Err(HintError::ValueOutside250BitRange(value));
     }
     let (high, low) = value.div_rem(shift);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
