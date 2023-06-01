@@ -784,6 +784,7 @@ impl Shl<u32> for Felt252 {
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shl(self, rhs: u32) -> Self::Output {
         // TODO: upstream should be able to receive usize
         Felt252::from(2).pow(rhs) * self
