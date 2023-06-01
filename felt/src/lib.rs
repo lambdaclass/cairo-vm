@@ -771,6 +771,10 @@ impl Signed for Felt252 {
     }
 }
 
+// -------------------
+// Bit-wise operations
+// NOTE: these do bit shifting on the representative
+
 impl Shl<u32> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: u32) -> Self {
@@ -780,8 +784,8 @@ impl Shl<u32> for Felt252 {
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shl(self, rhs: u32) -> Self::Output {
+        // TODO: upstream should be able to receive usize
         Felt252::from(2).pow(rhs) * self
     }
 }
@@ -809,9 +813,8 @@ impl Shr<u32> for Felt252 {
 
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shr(self, rhs: u32) -> Self::Output {
-        self / Felt252::from(2).pow(rhs)
+        self >> (rhs as usize)
     }
 }
 
@@ -824,10 +827,14 @@ impl Shr<usize> for Felt252 {
 
 impl<'a> Shr<usize> for &'a Felt252 {
     type Output = Felt252;
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shr(self, rhs: usize) -> Self::Output {
         // TODO: upstream should do this check
-        self >> (rhs as u32)
+        if rhs >= 64 * 4 {
+            Felt252::zero()
+        } else {
+            let value = FieldElement::new(self.value.representative() >> rhs);
+            Self::Output { value }
+        }
     }
 }
 
@@ -1148,9 +1155,8 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn shift_left_equals_two_power_multiplication(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
-            let pow = BigUint::from(2_u32).modpow(&BigUint::from(shift_amount), &Felt252::prime());
-            let expected = (value.to_biguint() * &pow) % &Felt252::prime();
+        fn shift_left_equals_old_shl(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
+            let expected = (value.to_biguint() << shift_amount).mod_floor(&Felt252::prime());
 
             let result = (&value << shift_amount).to_biguint();
             prop_assert_eq!(&result, &expected);
@@ -1185,11 +1191,8 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn shift_right_equals_two_power_division(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
-            let prime = Felt252::prime().to_bigint().unwrap();
-            let pow = BigInt::from(2).modpow(&BigInt::from(shift_amount), &prime);
-            let inv_pow = pow.extended_gcd(&prime).x;
-            let expected = (value.to_bigint() * inv_pow).mod_floor(&prime).to_biguint().unwrap();
+        fn shift_right_equals_old_shr(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
+            let expected = (value.to_biguint() >> shift_amount).mod_floor(&Felt252::prime());
 
             let result = (&value >> shift_amount).to_biguint();
             prop_assert_eq!(&result, &expected);
