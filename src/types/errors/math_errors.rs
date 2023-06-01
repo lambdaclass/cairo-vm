@@ -1,6 +1,7 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
+use crate::stdlib::boxed::Box;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 

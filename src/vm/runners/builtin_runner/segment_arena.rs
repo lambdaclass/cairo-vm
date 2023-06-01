@@ -1,3 +1,4 @@
+use crate::stdlib::boxed::Box;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;

@@ -1,4 +1,4 @@
-use crate::stdlib::vec::Vec;
+use crate::stdlib::{boxed::Box, vec::Vec};
 use crate::{
     types::{
         instance_definitions::bitwise_instance_def::{
