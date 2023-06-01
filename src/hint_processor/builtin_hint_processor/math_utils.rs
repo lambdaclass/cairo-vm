@@ -111,10 +111,10 @@ pub fn assert_le_felt(
 
     let prime_over_3_high = constants
         .get(PRIME_OVER_3_HIGH)
-        .ok_or(HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
-        .ok_or(HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
     let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
         .clone()
         .into_owned();
@@ -619,7 +619,7 @@ pub fn is_addr_bounded(
 
     let addr_bound = constants
         .get(ADDR_BOUND)
-        .ok_or(HintError::MissingConstant(Box::new(ADDR_BOUND)))?
+        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?
         .to_biguint();
 
     let lower_bound = BigUint::one() << 250_u32;

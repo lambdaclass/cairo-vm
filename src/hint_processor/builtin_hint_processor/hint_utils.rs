@@ -116,7 +116,7 @@ pub fn get_reference_from_var_name<'a>(
 ) -> Result<&'a HintReference, HintError> {
     ids_data
         .get(var_name)
-        .ok_or(HintError::UnknownIdentifier(Box::new(var_name.to_string())))
+        .ok_or_else(|| HintError::UnknownIdentifier(Box::new(var_name.to_string())))
 }
 
 pub fn get_constant_from_var_name<'a>(
@@ -127,7 +127,7 @@ pub fn get_constant_from_var_name<'a>(
         .iter()
         .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
         .map(|(_, n)| n)
-        .ok_or(HintError::MissingConstant(Box::new(var_name)))
+        .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
 }
 
 #[cfg(test)]

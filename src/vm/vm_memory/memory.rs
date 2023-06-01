@@ -132,10 +132,7 @@ impl Memory {
         let data_len = data.len();
         let segment = data
             .get_mut(value_index)
-            .ok_or(MemoryError::UnallocatedSegment(Box::new((
-                value_index,
-                data_len,
-            ))))?;
+            .ok_or_else(|| MemoryError::UnallocatedSegment(Box::new((value_index, data_len))))?;
 
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index

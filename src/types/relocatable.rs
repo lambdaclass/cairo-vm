@@ -95,9 +95,7 @@ impl Add<usize> for Relocatable {
         self.offset
             .checked_add(other)
             .map(|x| Relocatable::from((self.segment_index, x)))
-            .ok_or(MathError::RelocatableAddUsizeOffsetExceeded(Box::new((
-                self, other,
-            ))))
+            .ok_or_else(|| MathError::RelocatableAddUsizeOffsetExceeded(Box::new((self, other))))
     }
 }
 
