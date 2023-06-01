@@ -496,10 +496,12 @@ impl CairoRunner {
                     &hint.flow_tracking_data.reference_ids,
                     references,
                 );
-                hint_data_dictionary.entry(*hint_index).or_default().push(
-                    hint_data
-                        .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
-                );
+                hint_data_dictionary
+                    .entry(*hint_index)
+                    .or_default()
+                    .push(hint_data.map_err(|_| {
+                        VirtualMachineError::CompileHintFail(Box::new(hint.code.clone()))
+                    })?);
             }
         }
         Ok(hint_data_dictionary)

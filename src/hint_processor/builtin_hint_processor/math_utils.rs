@@ -276,7 +276,7 @@ pub fn assert_not_equal(
         }
         (MaybeRelocatable::RelocatableValue(a), MaybeRelocatable::RelocatableValue(b)) => {
             if a.segment_index != b.segment_index {
-                Err(VirtualMachineError::DiffIndexComp(a, b))?;
+                Err(VirtualMachineError::DiffIndexComp(Box::new((a, b))))?;
             };
             if a.offset == b.offset {
                 return Err(HintError::AssertNotEqualFail(Box::new((
@@ -286,7 +286,7 @@ pub fn assert_not_equal(
             };
             Ok(())
         }
-        (a, b) => Err(VirtualMachineError::DiffTypeComparison(a, b))?,
+        (a, b) => Err(VirtualMachineError::DiffTypeComparison(Box::new((a, b))))?,
     }
 }
 
@@ -1345,10 +1345,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Internal(VirtualMachineError::DiffIndexComp(
-                x,
-                y
-            ))) if x == relocatable!(2, 0) && y == relocatable!(1, 0)
+            Err(HintError::Internal(VirtualMachineError::DiffIndexComp(bx)))
+            if *bx == (relocatable!(2, 0), relocatable!(1, 0))
         );
     }
 
@@ -1366,11 +1364,8 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Internal(
-                VirtualMachineError::DiffTypeComparison(
-                    x,
-                    y
-                )
-            )) if x == MaybeRelocatable::from((1, 0)) && y == MaybeRelocatable::from(Felt252::one())
+                VirtualMachineError::DiffTypeComparison(bx)
+            )) if *bx == (MaybeRelocatable::from((1, 0)), MaybeRelocatable::from(Felt252::one()))
         );
     }
 

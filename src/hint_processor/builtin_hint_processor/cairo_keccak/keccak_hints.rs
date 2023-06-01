@@ -362,9 +362,9 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
             | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => num
                 .to_u64()
                 .ok_or_else(|| MathError::Felt252ToU64Conversion(Box::new(num.clone())).into()),
-            _ => Err(VirtualMachineError::ExpectedIntAtRange(
+            _ => Err(VirtualMachineError::ExpectedIntAtRange(Box::new(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
-            )),
+            ))),
         })
         .collect::<Result<Vec<u64>, VirtualMachineError>>()?;
 
