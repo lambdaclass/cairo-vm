@@ -1,3 +1,6 @@
+// The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
+#![allow(clippy::explicit_auto_deref)]
+
 use crate::stdlib::prelude::*;
 
 #[cfg(feature = "std")]
@@ -19,6 +22,18 @@ use felt::Felt252;
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
+    #[error(transparent)]
+    RunnerError(#[from] RunnerError),
+    #[error(transparent)]
+    Memory(#[from] MemoryError),
+    #[error(transparent)]
+    Math(#[from] MathError),
+    #[error(transparent)]
+    TracerError(#[from] TraceError),
+    #[error(transparent)]
+    MainScopeError(#[from] ExecScopeError),
+    #[error(transparent)]
+    Other(anyhow::Error),
     #[error("Instruction MSB should be 0")]
     InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
@@ -44,17 +59,17 @@ pub enum VirtualMachineError {
     #[error("An integer value as Res cannot be used with PcUpdate.JUMP_REL")]
     JumpRelNotInt,
     #[error(
-        "Failed to compute Res.MUL: Could not complete computation of non pure values {0} * {1}"
+        "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
     )]
-    ComputeResRelocatableMul(MaybeRelocatable, MaybeRelocatable),
-    #[error("Couldn't compute operand {0}. Unknown value for memory cell {1}")]
-    FailedToComputeOperands(String, Relocatable),
-    #[error("An ASSERT_EQ instruction failed: {0} != {1}.")]
-    DiffAssertValues(MaybeRelocatable, MaybeRelocatable),
-    #[error("Call failed to write return-pc (inconsistent op0): {0} != {1}. Did you forget to increment ap?")]
-    CantWriteReturnPc(MaybeRelocatable, MaybeRelocatable),
-    #[error("Call failed to write return-fp (inconsistent dst): {0} != {1}. Did you forget to increment ap?")]
-    CantWriteReturnFp(MaybeRelocatable, MaybeRelocatable),
+    ComputeResRelocatableMul(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Couldn't compute operand {}. Unknown value for memory cell {}", (*.0).0, (*.0).1)]
+    FailedToComputeOperands(Box<(String, Relocatable)>),
+    #[error("An ASSERT_EQ instruction failed: {} != {}.", (*.0).0, (*.0).1)]
+    DiffAssertValues(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Call failed to write return-pc (inconsistent op0): {} != {}. Did you forget to increment ap?", (*.0).0, (*.0).1)]
+    CantWriteReturnPc(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Call failed to write return-fp (inconsistent dst): {} != {}. Did you forget to increment ap?", (*.0).0, (*.0).1)]
+    CantWriteReturnFp(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Couldn't get or load dst")]
     NoDst,
     #[error("Invalid res value: {0}")]
@@ -63,50 +78,42 @@ pub enum VirtualMachineError {
     InvalidOpcode(u64),
     #[error("This is not implemented")]
     NotImplemented,
-    #[error("Inconsistent auto-deduction for builtin {0}, expected {1}, got {2:?}")]
-    InconsistentAutoDeduction(&'static str, MaybeRelocatable, Option<MaybeRelocatable>),
-    #[error(transparent)]
-    RunnerError(#[from] RunnerError),
+    #[error("Inconsistent auto-deduction for builtin {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
+    InconsistentAutoDeduction(Box<(&'static str, MaybeRelocatable, Option<MaybeRelocatable>)>),
     #[error("Invalid hint encoding at pc: {0}")]
-    InvalidHintEncoding(MaybeRelocatable),
-    #[error(transparent)]
-    Memory(#[from] MemoryError),
+    InvalidHintEncoding(Box<MaybeRelocatable>),
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
-    #[error("Div out of range: 0 < {0} <= {1}")]
-    OutOfValidRange(Felt252, Felt252),
-    #[error("Failed to compare {0} and {1}, cant compare a relocatable to an integer value")]
-    DiffTypeComparison(MaybeRelocatable, MaybeRelocatable),
-    #[error("Failed to compare {0} and  {1}, cant compare two relocatable values of different segment indexes")]
-    DiffIndexComp(Relocatable, Relocatable),
+    #[error("Div out of range: 0 < {} <= {}", (*.0).0, (*.0).1)]
+    OutOfValidRange(Box<(Felt252, Felt252)>),
+    #[error("Failed to compare {} and {}, cant compare a relocatable to an integer value", (*.0).0, (*.0).1)]
+    DiffTypeComparison(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Failed to compare {} and  {}, cant compare two relocatable values of different segment indexes", (*.0).0, (*.0).1)]
+    DiffIndexComp(Box<(Relocatable, Relocatable)>),
     #[error("Couldn't convert usize to u32")]
     NoneInMemoryRange,
     #[error("Expected integer, found: {0:?}")]
-    ExpectedIntAtRange(Option<MaybeRelocatable>),
+    ExpectedIntAtRange(Box<Option<MaybeRelocatable>>),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
     #[error("Failed to compile hint: {0}")]
-    CompileHintFail(String),
+    CompileHintFail(Box<str>),
     #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
     NoImm,
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
     #[error("Could not reach the end of the program. Executed steps: {0}.")]
     StepsLimit(u64),
-    #[error(transparent)]
-    TracerError(#[from] TraceError),
-    #[error(transparent)]
-    MainScopeError(#[from] ExecScopeError),
     #[error("Current run is not finished")]
     RunNotFinished,
-    #[error("Invalid argument count, expected {0} but got {1}")]
-    InvalidArgCount(usize, usize),
+    #[error("Invalid argument count, expected {} but got {}", (*.0).0, (*.0).1)]
+    InvalidArgCount(Box<(usize, usize)>),
     #[error("Couldn't parse prime: {0}")]
-    CouldntParsePrime(String),
-    #[error("Got an exception while executing a hint: {1}")]
-    Hint(usize, Box<HintError>),
+    CouldntParsePrime(Box<str>),
+    #[error("Got an exception while executing a hint: {}", (*.0).1)]
+    Hint(Box<(usize, HintError)>),
     #[error("Unexpected Failure")]
     Unexpected,
     #[error("Out of bounds access to builtin segment")]
@@ -114,13 +121,21 @@ pub enum VirtualMachineError {
     #[error("Out of bounds access to program segment")]
     OutOfBoundsProgramSegmentAccess,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
-    InvalidMemoryValueTemporaryAddress(Relocatable),
+    InvalidMemoryValueTemporaryAddress(Box<Relocatable>),
     #[error("accessed_addresses is None.")]
     MissingAccessedAddresses,
-    #[error(transparent)]
-    Math(#[from] MathError),
     #[error("Failed to write the output builtin content")]
     FailedToWriteOutput,
-    #[error(transparent)]
-    Other(anyhow::Error),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_vm_error_size() {
+        let size = crate::stdlib::mem::size_of::<VirtualMachineError>();
+        assert!(size <= 32, "{size}")
+    }
 }

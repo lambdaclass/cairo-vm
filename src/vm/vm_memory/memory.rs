@@ -132,7 +132,7 @@ impl Memory {
         let data_len = data.len();
         let segment = data
             .get_mut(value_index)
-            .ok_or(MemoryError::UnallocatedSegment(value_index, data_len))?;
+            .ok_or_else(|| MemoryError::UnallocatedSegment(Box::new((value_index, data_len))))?;
 
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
@@ -153,11 +153,11 @@ impl Memory {
             Some(ref current_cell) => {
                 if current_cell.get_value() != &val {
                     //Existing memory cannot be changed
-                    return Err(MemoryError::InconsistentMemory(
+                    return Err(MemoryError::InconsistentMemory(Box::new((
                         key,
                         current_cell.get_value().clone(),
                         val,
-                    ));
+                    ))));
                 }
             }
         };
@@ -270,20 +270,26 @@ impl Memory {
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
-        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
             Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(MemoryError::ExpectedInteger(key)),
+            _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
         }
     }
 
     /// Gets the value from memory address as a Relocatable value.
     /// Returns an Error if the value at the memory address is missing or not a Relocatable.
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
-        match self.get(&key).ok_or(MemoryError::UnknownMemoryCell(key))? {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
-            _ => Err(MemoryError::ExpectedRelocatable(key)),
+            _ => Err(MemoryError::ExpectedRelocatable(Box::new(key))),
         }
     }
 
@@ -416,7 +422,7 @@ impl Memory {
         for i in 0..size {
             values.push(match self.get(&(addr + i)?) {
                 Some(elem) => elem.into_owned(),
-                None => return Err(MemoryError::GetRangeMemoryGap(addr, size)),
+                None => return Err(MemoryError::GetRangeMemoryGap(Box::new((addr, size)))),
             });
         }
 
@@ -631,11 +637,11 @@ mod memory_tests {
         memory.temp_data = vec![vec![None, Some(MemoryCell::new(mayberelocatable!(8)))]];
         assert_eq!(
             memory.insert(key, &mayberelocatable!(5)),
-            Err(MemoryError::InconsistentMemory(
+            Err(MemoryError::InconsistentMemory(Box::new((
                 relocatable!(-1, 1),
                 mayberelocatable!(8),
                 mayberelocatable!(5)
-            ))
+            ))))
         );
     }
 
@@ -662,7 +668,10 @@ mod memory_tests {
         let val = MaybeRelocatable::from(Felt252::new(5));
         let mut memory = Memory::new();
         let error = memory.insert(key, &val);
-        assert_eq!(error, Err(MemoryError::UnallocatedSegment(0, 0)));
+        assert_eq!(
+            error,
+            Err(MemoryError::UnallocatedSegment(Box::new((0, 0))))
+        );
     }
 
     #[test]
@@ -679,7 +688,9 @@ mod memory_tests {
         let error = memory.insert(key, &val_b);
         assert_eq!(
             error,
-            Err(MemoryError::InconsistentMemory(key, val_a, val_b))
+            Err(MemoryError::InconsistentMemory(Box::new((
+                key, val_a, val_b
+            ))))
         );
     }
 
@@ -756,10 +767,10 @@ mod memory_tests {
         let error = segments.memory.validate_existing_memory();
         assert_eq!(
             error,
-            Err(MemoryError::RangeCheckNumOutOfBounds(
+            Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                 Felt252::new(-10),
                 Felt252::one().shl(128_u32)
-            ))
+            ))))
         );
     }
 
@@ -787,7 +798,10 @@ mod memory_tests {
         ];
         builtin.add_validation_rule(&mut segments.memory);
         let error = segments.memory.validate_existing_memory();
-        assert_eq!(error, Err(MemoryError::SignatureNotFound((0, 0).into())));
+        assert_eq!(
+            error,
+            Err(MemoryError::SignatureNotFound(Box::new((0, 0).into())))
+        );
     }
 
     #[test]
@@ -839,7 +853,9 @@ mod memory_tests {
         let error = segments.memory.validate_existing_memory();
         assert_eq!(
             error,
-            Err(MemoryError::RangeCheckFoundNonInt(relocatable!(0, 0)))
+            Err(MemoryError::RangeCheckFoundNonInt(Box::new(relocatable!(
+                0, 0
+            ))))
         );
     }
 
@@ -887,8 +903,8 @@ mod memory_tests {
         assert_matches!(
             segments.memory.get_integer(Relocatable::from((0, 0))),
             Err(MemoryError::ExpectedInteger(
-                e
-            )) if e == Relocatable::from((0, 0))
+                bx
+            )) if *bx == Relocatable::from((0, 0))
         );
     }
 
@@ -1087,7 +1103,7 @@ mod memory_tests {
 
         assert_eq!(
             memory.get_continuous_range(Relocatable::from((1, 0)), 3),
-            Err(MemoryError::GetRangeMemoryGap((1, 0).into(), 3))
+            Err(MemoryError::GetRangeMemoryGap(Box::new(((1, 0).into(), 3))))
         );
     }
 
@@ -1192,7 +1208,7 @@ mod memory_tests {
 
         assert_eq!(
             memory.relocate_memory(),
-            Err(MemoryError::UnallocatedSegment(2, 2))
+            Err(MemoryError::UnallocatedSegment(Box::new((2, 2))))
         );
     }
 
@@ -1251,11 +1267,11 @@ mod memory_tests {
 
         assert_eq!(
             memory.relocate_memory(),
-            Err(MemoryError::InconsistentMemory(
+            Err(MemoryError::InconsistentMemory(Box::new((
                 (1, 0).into(),
                 (1, 1).into(),
                 7.into(),
-            ))
+            ))))
         );
     }
 

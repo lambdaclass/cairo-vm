@@ -108,7 +108,11 @@ impl CairoRunner {
             "all_cairo" => CairoLayout::all_cairo_instance(),
             "all_solidity" => CairoLayout::all_solidity_instance(),
             "dynamic" => CairoLayout::dynamic_instance(),
-            name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
+            name => {
+                return Err(RunnerError::InvalidLayoutName(
+                    name.to_string().into_boxed_str(),
+                ))
+            }
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -219,10 +223,10 @@ impl CairoRunner {
             }
         }
         if !program_builtins.is_empty() {
-            return Err(RunnerError::NoBuiltinForInstance(
+            return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
                 self.layout._name.clone(),
-            ));
+            ))));
         }
 
         vm.builtin_runners = builtin_runners;
@@ -496,10 +500,12 @@ impl CairoRunner {
                     &hint.flow_tracking_data.reference_ids,
                     references,
                 );
-                hint_data_dictionary.entry(*hint_index).or_default().push(
-                    hint_data
-                        .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
-                );
+                hint_data_dictionary
+                    .entry(*hint_index)
+                    .or_default()
+                    .push(hint_data.map_err(|_| {
+                        VirtualMachineError::CompileHintFail(hint.code.clone().into_boxed_str())
+                    })?);
             }
         }
         Ok(hint_data_dictionary)
@@ -660,10 +666,10 @@ impl CairoRunner {
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
         if unused_rc_units < (rc_max - rc_min) as usize {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::RangeCheckUnits(
+                InsufficientAllocatedCellsError::RangeCheckUnits(Box::new((
                     unused_rc_units,
                     (rc_max - rc_min) as usize,
-                ),
+                ))),
             )
             .into());
         }
@@ -706,10 +712,10 @@ impl CairoRunner {
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
         if unused_diluted_units < diluted_usage_upper_bound {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::DilutedCells(
+                InsufficientAllocatedCellsError::DilutedCells(Box::new((
                     unused_diluted_units,
                     diluted_usage_upper_bound,
-                ),
+                ))),
             )
             .into());
         }
@@ -827,7 +833,7 @@ impl CairoRunner {
 
             builtin_segment_info.push((
                 index,
-                stop_ptr.ok_or(RunnerError::NoStopPointer(builtin.name()))?,
+                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
         }
 
@@ -991,10 +997,10 @@ impl CairoRunner {
         let memory_address_holes = self.get_memory_holes(vm)?;
         if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MemoryAddresses(
+                InsufficientAllocatedCellsError::MemoryAddresses(Box::new((
                     unused_memory_units,
                     memory_address_holes,
-                ),
+                ))),
             ))?
         }
         Ok(())
@@ -1631,7 +1637,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
             Err(RunnerError::MemoryValidationError(
-                MemoryError::RangeCheckFoundNonInt((2, 0).into())
+                MemoryError::RangeCheckFoundNonInt(Box::new((2, 0).into()))
             ))
         );
     }
@@ -3459,7 +3465,9 @@ mod tests {
         vm.builtin_runners = vec![BuiltinRunner::Output(OutputBuiltinRunner::new(true))];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::NoStopPointer(BuiltinName::output.name())),
+            Err(RunnerError::NoStopPointer(Box::new(
+                BuiltinName::output.name()
+            ))),
         );
     }
 
@@ -4116,10 +4124,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name()]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4131,10 +4139,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name(), HASH_BUILTIN_NAME]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4146,10 +4154,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "small");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::bitwise.name()]),
                 String::from("small")
-            ))
+            ))))
         );
     }
     #[test]

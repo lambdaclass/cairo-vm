@@ -11,7 +11,7 @@ use crate::{
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -41,7 +41,7 @@ pub fn verify_zero(
     let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
-        return Err(HintError::SecpVerifyZero(val));
+        return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
     insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
@@ -67,7 +67,7 @@ pub fn verify_zero_with_external_const(
     let val = bigint3_pack(Uint384::from_var_name("val", vm, ids_data, ap_tracking)?);
     let (q, r) = val.div_rem(secp_p);
     if !r.is_zero() {
-        return Err(HintError::SecpVerifyZero(val));
+        return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
     insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
@@ -305,7 +305,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::SecpVerifyZero(x)) if x == bigint_str!(
+            Err(HintError::SecpVerifyZero(bx)) if *bx == bigint_str!(
                 "897946605976106752944343961220884287276604954404454400"
             )
         );
@@ -326,23 +326,18 @@ mod tests {
         vm.segments = segments![((1, 4), 0), ((1, 5), 0), ((1, 6), 0), ((1, 9), 55)];
         //Execute the hint
         assert_matches!(
-                    run_hint!(
-                        vm,
-                        ids_data,
-                        hint_code,
-                        exec_scopes_ref!()
-                    ),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 9)) &&
-                            y == MaybeRelocatable::from(Felt252::new(55_i32)) &&
-                            z == MaybeRelocatable::from(Felt252::zero())
-                );
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!()
+            ),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 9)),
+                    MaybeRelocatable::from(Felt252::new(55_i32)),
+                    MaybeRelocatable::from(Felt252::zero()))
+        );
     }
 
     #[test]
@@ -398,8 +393,8 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::IdentifierHasNoMember(x, y
-            )) if x == "x" && y == "d0"
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d0".to_string())
         );
     }
 
@@ -467,8 +462,8 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::IdentifierHasNoMember(x, y
-            )) if x == "x" && y == "d0"
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d0".to_string())
         );
     }
 
@@ -546,7 +541,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "x"
         );
     }
 
@@ -570,14 +565,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == vm.run_context.get_ap()
-                && y == MaybeRelocatable::from(Felt252::new(55i32))
-                && z == MaybeRelocatable::from(Felt252::new(1i32))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (vm.run_context.get_ap(),
+                MaybeRelocatable::from(Felt252::new(55i32)),
+                MaybeRelocatable::from(Felt252::new(1i32)))
         );
     }
 
@@ -636,7 +627,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"x".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "x"
         );
     }
 }

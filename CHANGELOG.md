@@ -1,9 +1,17 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
+  * BREAKING: all tuple variants of `HintError` with a single `Felt252` or multiple elements now receive a single `Box`
+
 * Add `Program::builtins_len method` [#1194](https://github.com/lambdaclass/cairo-rs/pull/1194)
 
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
+
+* fix: Fix 'as_int' conversion usage in hints `ASSERT_250_BIT` &  `SIGNED_DIV_REM` [#1191](https://github.com/lambdaclass/cairo-rs/pull/1191)
+
+* fix: Fix hint `BIGINT_PACK_DIV_MOD` [#1189](https://github.com/lambdaclass/cairo-rs/pull/1189)
 
 * bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
 
