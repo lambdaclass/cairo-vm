@@ -291,7 +291,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "value"
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -432,7 +432,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "x")
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let r = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if *bx == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "x")
     }
 
     #[test]

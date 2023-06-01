@@ -88,9 +88,11 @@ pub fn u384_get_square_root(
     };
 
     if !&x.is_zero() && !(success_x ^ success_gx) {
-        return Err(HintError::AssertionFailed(Box::new(
-            "assert success_x + success_gx ==1".to_string(),
-        )));
+        return Err(HintError::AssertionFailed(
+            "assert success_x + success_gx ==1"
+                .to_string()
+                .into_boxed_str(),
+        ));
     }
     insert_value_from_var_name(
         "success_x",
@@ -178,9 +180,11 @@ pub fn u256_get_square_root(
     };
 
     if !&x.is_zero() && !(success_x ^ success_gx) {
-        return Err(HintError::AssertionFailed(Box::new(
-            "assert success_x + success_gx ==1".to_string(),
-        )));
+        return Err(HintError::AssertionFailed(
+            "assert success_x + success_gx ==1"
+                .to_string()
+                .into_boxed_str(),
+        ));
     }
     insert_value_from_var_name(
         "success_x",
@@ -366,7 +370,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_GET_SQUARE_ROOT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert success_x + success_gx ==1"
         );
     }
 
@@ -500,7 +504,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT256_GET_SQUARE_ROOT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert success_x + success_gx ==1"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert success_x + success_gx ==1"
         );
     }
 

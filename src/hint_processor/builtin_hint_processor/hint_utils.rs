@@ -51,7 +51,9 @@ pub fn get_ptr_from_var_name(
         Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
             HintError::IdentifierNotRelocatable(Box::new((var_name.to_string(), *var_addr))),
         ),
-        _ => Err(HintError::UnknownIdentifier(Box::new(var_name.to_string()))),
+        _ => Err(HintError::UnknownIdentifier(
+            var_name.to_string().into_boxed_str(),
+        )),
     }
 }
 
@@ -75,7 +77,7 @@ pub fn get_relocatable_from_var_name(
     ids_data
         .get(var_name)
         .and_then(|x| compute_addr_from_reference(x, vm, ap_tracking))
-        .ok_or_else(|| HintError::UnknownIdentifier(Box::new(var_name.to_string())))
+        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
 }
 
 //Gets the value of a variable name.
@@ -94,7 +96,9 @@ pub fn get_integer_from_var_name<'a>(
         Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
             HintError::IdentifierNotInteger(Box::new((var_name.to_string(), *var_addr))),
         ),
-        _ => Err(HintError::UnknownIdentifier(Box::new(var_name.to_string()))),
+        _ => Err(HintError::UnknownIdentifier(
+            var_name.to_string().into_boxed_str(),
+        )),
     }
 }
 
@@ -107,7 +111,7 @@ pub fn get_maybe_relocatable_from_var_name<'a>(
 ) -> Result<MaybeRelocatable, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_maybe_relocatable_from_reference(vm, reference, ap_tracking)
-        .ok_or_else(|| HintError::UnknownIdentifier(Box::new(var_name.to_string())))
+        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
 }
 
 pub fn get_reference_from_var_name<'a>(
@@ -116,7 +120,7 @@ pub fn get_reference_from_var_name<'a>(
 ) -> Result<&'a HintReference, HintError> {
     ids_data
         .get(var_name)
-        .ok_or_else(|| HintError::UnknownIdentifier(Box::new(var_name.to_string())))
+        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
 }
 
 pub fn get_constant_from_var_name<'a>(
@@ -186,7 +190,7 @@ mod tests {
 
         assert_matches!(
             get_maybe_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "value"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -242,7 +246,7 @@ mod tests {
 
         assert_matches!(
             get_relocatable_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "value"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
     }
 

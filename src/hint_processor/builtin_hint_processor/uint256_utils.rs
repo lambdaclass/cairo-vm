@@ -270,10 +270,9 @@ pub fn uint256_sqrt(
     let root = isqrt(&n)?;
 
     if root.bits() > 128 {
-        return Err(HintError::AssertionFailed(Box::new(format!(
-            "assert 0 <= {} < 2 ** 128",
-            &root
-        ))));
+        return Err(HintError::AssertionFailed(
+            format!("assert 0 <= {} < 2 ** 128", &root).into_boxed_str(),
+        ));
     }
 
     let root = Felt252::new(root);
@@ -779,7 +778,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
         );
     }
 
@@ -1068,7 +1067,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
-            Err(HintError::UnknownIdentifier(bx)) if *bx == "quotient_low"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "quotient_low"
         );
     }
 }

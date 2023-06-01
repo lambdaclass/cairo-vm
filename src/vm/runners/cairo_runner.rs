@@ -108,7 +108,11 @@ impl CairoRunner {
             "all_cairo" => CairoLayout::all_cairo_instance(),
             "all_solidity" => CairoLayout::all_solidity_instance(),
             "dynamic" => CairoLayout::dynamic_instance(),
-            name => return Err(RunnerError::InvalidLayoutName(Box::new(name.to_string()))),
+            name => {
+                return Err(RunnerError::InvalidLayoutName(
+                    name.to_string().into_boxed_str(),
+                ))
+            }
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -500,7 +504,7 @@ impl CairoRunner {
                     .entry(*hint_index)
                     .or_default()
                     .push(hint_data.map_err(|_| {
-                        VirtualMachineError::CompileHintFail(Box::new(hint.code.clone()))
+                        VirtualMachineError::CompileHintFail(hint.code.clone().into_boxed_str())
                     })?);
             }
         }

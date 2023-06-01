@@ -68,7 +68,7 @@ impl ExecutionScopes {
                 val = Some(int.clone());
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of the given generic type
@@ -79,7 +79,7 @@ impl ExecutionScopes {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given generic type
@@ -90,7 +90,7 @@ impl ExecutionScopes {
                 val = Some(int);
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns the value in the current execution scope that matches the name
@@ -98,9 +98,9 @@ impl ExecutionScopes {
         if let Some(variable) = self.get_local_variables()?.get(name) {
             return Ok(variable);
         }
-        Err(HintError::VariableNotInScopeError(Box::new(
-            name.to_string(),
-        )))
+        Err(HintError::VariableNotInScopeError(
+            name.to_string().into_boxed_str(),
+        ))
     }
 
     ///Returns the value in the current execution scope that matches the name
@@ -108,9 +108,9 @@ impl ExecutionScopes {
         if let Some(variable) = self.get_local_variables_mut()?.get_mut(name) {
             return Ok(variable);
         }
-        Err(HintError::VariableNotInScopeError(Box::new(
-            name.to_string(),
-        )))
+        Err(HintError::VariableNotInScopeError(
+            name.to_string().into_boxed_str(),
+        ))
     }
 
     ///Returns the value in the current execution scope that matches the name and is of type List
@@ -121,7 +121,7 @@ impl ExecutionScopes {
                 val = Some(list.clone());
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns a reference to the value in the current execution scope that matches the name and is of type List
@@ -132,7 +132,7 @@ impl ExecutionScopes {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of type List
@@ -143,7 +143,7 @@ impl ExecutionScopes {
                 val = Some(list);
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Returns the value in the dict manager
@@ -154,7 +154,9 @@ impl ExecutionScopes {
                 val = Some(dict_manager.clone());
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new("dict_manager".to_string())))
+        val.ok_or_else(|| {
+            HintError::VariableNotInScopeError("dict_manager".to_string().into_boxed_str())
+        })
     }
 
     ///Returns a mutable reference to the value in the current execution scope that matches the name and is of the given type
@@ -168,7 +170,7 @@ impl ExecutionScopes {
                 val = Some(dict);
             }
         }
-        val.ok_or_else(|| HintError::VariableNotInScopeError(Box::new(name.to_string())))
+        val.ok_or_else(|| HintError::VariableNotInScopeError(name.to_string().into_boxed_str()))
     }
 
     ///Inserts the boxed value into the current scope

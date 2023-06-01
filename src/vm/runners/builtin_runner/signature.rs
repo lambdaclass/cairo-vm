@@ -56,10 +56,10 @@ impl SignatureBuiltinRunner {
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
             FieldElement::from_dec_str(&r_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(Box::new(r_string))
+                MemoryError::FailedStringToFieldElementConversion(r_string.into_boxed_str())
             })?,
             FieldElement::from_dec_str(&s_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(Box::new(s_string))
+                MemoryError::FailedStringToFieldElementConversion(s_string.into_boxed_str())
             })?,
         );
 
@@ -128,11 +128,11 @@ impl SignatureBuiltinRunner {
 
                 let public_key =
                     FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {
-                        MemoryError::ErrorParsingPubKey(Box::new(pubkey.to_str_radix(10)))
+                        MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10).into_boxed_str())
                     })?;
                 let (r, s) = (signature.r, signature.s);
                 let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).map_err(|_| {
-                    MemoryError::ErrorRetrievingMessage(Box::new(msg.to_str_radix(10)))
+                    MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10).into_boxed_str())
                 })?;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),

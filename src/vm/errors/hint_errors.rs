@@ -34,7 +34,7 @@ pub enum HintError {
     #[error("HintProcessor failed retrieve the compiled data necessary for hint execution")]
     WrongHintData,
     #[error("Unknown identifier {0}")]
-    UnknownIdentifier(Box<String>),
+    UnknownIdentifier(Box<str>),
     #[error("Expected ids.{} at address {} to be an Integer value", (*.0).0, (*.0).1)]
     IdentifierNotInteger(Box<(String, Relocatable)>),
     #[error("Expected ids.{} at address {} to be a Relocatable value", (*.0).0, (*.0).1)]
@@ -46,7 +46,7 @@ pub enum HintError {
     #[error("Wrong identifier type at address {0}")]
     WrongIdentifierTypeInternal(Box<Relocatable>),
     #[error("Custom Hint Error: {0}")]
-    CustomHint(Box<String>),
+    CustomHint(Box<str>),
     #[error("Missing constant: {0}")]
     MissingConstant(Box<&'static str>),
     #[error("Fail to get constants for hint execution")]
@@ -60,7 +60,7 @@ pub enum HintError {
     #[error("Failed to get scope variables")]
     ScopeError,
     #[error("Variable {0} not present in current execution scope")]
-    VariableNotInScopeError(Box<String>),
+    VariableNotInScopeError(Box<str>),
     #[error("DictManagerError: Tried to create tracker for a dictionary on segment: {0} when there is already a tracker for a dictionary on this segment")]
     CantCreateDictionaryOnTakenSegment(isize),
     #[error("Dict Error: No dict tracker found for segment {0}")]
@@ -128,7 +128,7 @@ pub enum HintError {
     #[error("Failed to construct a fixed size array of size: {0}")]
     FixedSizeArrayFail(usize),
     #[error("{0}")]
-    AssertionFailed(Box<String>),
+    AssertionFailed(Box<str>),
     #[error("Wrong dict pointer supplied. Got {}, expected {}.", (*.0).0, (*.0).1)]
     MismatchedDictPtr(Box<(Relocatable, Relocatable)>),
     #[error("Integer must be postive or zero, got: {0}")]
@@ -170,7 +170,7 @@ pub enum HintError {
     #[error("Assertion failed, {}, is not less or equal to {}", (*.0).0, (*.0).1)]
     NonLeFelt252(Box<(Felt252, Felt252)>),
     #[error("Unknown Hint: {0}")]
-    UnknownHint(Box<String>),
+    UnknownHint(Box<str>),
     #[error("Signature hint must point to the signature builtin segment, not {0}.")]
     AddSignatureWrongEcdsaPtr(Box<Relocatable>),
     #[error("Signature hint must point to the public key cell, not {0}.")]

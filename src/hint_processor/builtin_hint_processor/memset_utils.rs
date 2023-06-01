@@ -163,7 +163,7 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "n"
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "n"
         );
     }
 

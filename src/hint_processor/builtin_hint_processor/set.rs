@@ -30,9 +30,9 @@ pub fn set_add(
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
-        Err(HintError::AssertionFailed(Box::new(
-            "assert ids.elm_size > 0".to_string(),
-        )))?;
+        Err(HintError::AssertionFailed(
+            "assert ids.elm_size > 0".to_string().into_boxed_str(),
+        ))?;
     }
     if set_ptr > set_end_ptr {
         return Err(HintError::InvalidSetRange(Box::new((set_ptr, set_end_ptr))));
@@ -161,7 +161,7 @@ mod tests {
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::AssertionFailed(
                 bx
-            )) if *bx == "assert ids.elm_size > 0"
+            )) if bx.as_ref() == "assert ids.elm_size > 0"
         );
     }
     #[test]

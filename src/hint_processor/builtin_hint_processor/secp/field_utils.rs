@@ -541,7 +541,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "x"
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "x"
         );
     }
 
@@ -627,7 +627,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!()
             ),
-            Err(HintError::VariableNotInScopeError(bx)) if *bx == "x"
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "x"
         );
     }
 }

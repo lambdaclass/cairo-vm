@@ -68,9 +68,9 @@ pub enum MemoryError {
     )]
     SignatureNotFound(Box<Relocatable>),
     #[error("Could not create pubkey from: {0:?}")]
-    ErrorParsingPubKey(Box<String>),
+    ErrorParsingPubKey(Box<str>),
     #[error("Could not retrieve message from: {0:?}")]
-    ErrorRetrievingMessage(Box<String>),
+    ErrorRetrievingMessage(Box<str>),
     #[error("Error verifying given signature")]
     ErrorVerifyingSignature,
     #[error("Couldn't obtain a mutable accessed offset")]
@@ -80,7 +80,7 @@ pub enum MemoryError {
     #[error("ECDSA builtin: Expected message hash at address {0} to be an integer")]
     MsgNonInt(Box<Relocatable>),
     #[error("Failed to convert String: {0} to FieldElement")]
-    FailedStringToFieldElementConversion(Box<String>),
+    FailedStringToFieldElementConversion(Box<str>),
     #[error("Failed to fetch {} return values, ap is only {}", (*.0).0, (*.0).1)]
     FailedToGetReturnValues(Box<(usize, Relocatable)>),
     #[error("Segment {} has {} amount of accessed addresses but its size is only {}.", (*.0).0, (*.0).1, (*.0).2)]

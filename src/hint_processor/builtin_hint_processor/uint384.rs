@@ -157,9 +157,9 @@ pub fn uint384_sqrt(
     let root = isqrt(&a)?;
 
     if root.is_zero() || root.bits() > 192 {
-        return Err(HintError::AssertionFailed(Box::new(
-            "assert 0 <= root < 2 ** 192".to_string(),
-        )));
+        return Err(HintError::AssertionFailed(
+            "assert 0 <= root < 2 ** 192".to_string().into_boxed_str(),
+        ));
     }
     let root_split = Uint384::split(&root);
     root_split.insert_from_var_name("root", vm, ids_data, ap_tracking)
@@ -586,7 +586,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_SQRT),
-            Err(HintError::AssertionFailed(bx)) if *bx == "assert 0 <= root < 2 ** 192"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= root < 2 ** 192"
         );
     }
 

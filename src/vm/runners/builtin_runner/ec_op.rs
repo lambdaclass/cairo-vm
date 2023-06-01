@@ -71,9 +71,10 @@ impl EcOpBuiltinRunner {
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 #[allow(deprecated)]
-                return Err(RunnerError::EcOpSameXCoordinate(Box::new(
-                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b),
-                )));
+                return Err(RunnerError::EcOpSameXCoordinate(
+                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b)
+                        .into_boxed_str(),
+                ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
                 partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
@@ -655,13 +656,14 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(RunnerError::EcOpSameXCoordinate(Box::new(
+            Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
                     (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
                     m.to_bigint(),
                     (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
                 )
-            )))
+                .into_boxed_str()
+            ))
         );
     }
 

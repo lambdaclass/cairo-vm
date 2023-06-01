@@ -99,7 +99,7 @@ pub enum VirtualMachineError {
     #[error("Could not convert slice to array")]
     SliceToArrayError,
     #[error("Failed to compile hint: {0}")]
-    CompileHintFail(Box<String>),
+    CompileHintFail(Box<str>),
     #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
     NoImm,
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
@@ -111,7 +111,7 @@ pub enum VirtualMachineError {
     #[error("Invalid argument count, expected {} but got {}", (*.0).0, (*.0).1)]
     InvalidArgCount(Box<(usize, usize)>),
     #[error("Couldn't parse prime: {0}")]
-    CouldntParsePrime(Box<String>),
+    CouldntParsePrime(Box<str>),
     #[error("Got an exception while executing a hint: {}", (*.0).1)]
     Hint(Box<(usize, HintError)>),
     #[error("Unexpected Failure")]

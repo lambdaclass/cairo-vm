@@ -39,13 +39,13 @@ pub enum RunnerError {
     #[error("Expected integer at address {:?} to be smaller than 2^{}, Got {}", (*.0).0, (*.0).1, (*.0).2)]
     IntegerBiggerThanPowerOfTwo(Box<(Relocatable, u32, Felt252)>),
     #[error("{0}")]
-    EcOpSameXCoordinate(Box<String>),
+    EcOpSameXCoordinate(Box<str>),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve(Box<(Felt252, Felt252)>),
     #[error("Builtin(s) {:?} not present in layout {}", (*.0).0, (*.0).1)]
     NoBuiltinForInstance(Box<(HashSet<&'static str>, String)>),
     #[error("Invalid layout {0}")]
-    InvalidLayoutName(Box<String>),
+    InvalidLayoutName(Box<str>),
     #[error("end_run called twice.")]
     EndRunCalledTwice,
     #[error("end_run must be called before finalize_segments.")]
