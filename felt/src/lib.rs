@@ -955,16 +955,6 @@ mod test {
 
     use proptest::prelude::*;
 
-    // TODO: return Option in sqrt
-    fn prop_assume_is_quad_residue(x: &Felt252) -> Result<(), TestCaseError> {
-        let x_biguint = x.to_biguint();
-        let felt_max_halved = Felt252::max_value() / Felt252::from(2_u32);
-        prop_assume!(
-            (x_biguint.is_zero() || x_biguint.is_one() || x.pow(&felt_max_halved).is_one())
-        );
-        Ok(())
-    }
-
     proptest! {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -1427,7 +1417,8 @@ mod test {
 
         #[test]
         fn sqrt_in_range(x in any::<Felt252>()) {
-            prop_assume_is_quad_residue(&x)?;
+            // we use x = x' * x' so x has a square root
+            let x = &x * &x;
             let p = Felt252::prime();
 
             let sqrt = x.sqrt().to_biguint();
@@ -1436,7 +1427,8 @@ mod test {
 
         #[test]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
-            prop_assume_is_quad_residue(&x)?;
+            // we use x = x' * x' so x has a square root
+            let x = &x * &x;
             let x_sq = &x * &x;
             let sqrt = x_sq.sqrt();
 
