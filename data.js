@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685551462766,
+  "lastUpdate": 1685629622230,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -104044,6 +104044,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23102062,
             "range": "± 188155",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "20408709+marco-paulucci@users.noreply.github.com",
+            "name": "Marco",
+            "username": "marco-paulucci"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "e77968d93301d30660f1e52c55f6219a2308ec4d",
+          "message": "fix README.md (#1196)\n\ntwo lists had an empty line inside them causing lists to break",
+          "timestamp": "2023-06-01T13:53:18Z",
+          "tree_id": "0c0178188fc585e0d0633e50f99906e5364c9fa8",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e77968d93301d30660f1e52c55f6219a2308ec4d"
+        },
+        "date": 1685629614995,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 28552,
+            "range": "± 802",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 72951,
+            "range": "± 2492",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21847658,
+            "range": "± 681652",
             "unit": "ns/iter"
           }
         ]
