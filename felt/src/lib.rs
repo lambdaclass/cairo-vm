@@ -780,6 +780,7 @@ impl Shl<u32> for Felt252 {
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shl(self, rhs: u32) -> Self::Output {
         Felt252::from(2).pow(rhs) * self
     }
@@ -808,6 +809,7 @@ impl Shr<u32> for Felt252 {
 
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shr(self, rhs: u32) -> Self::Output {
         self / Felt252::from(2).pow(rhs)
     }
@@ -822,14 +824,10 @@ impl Shr<usize> for Felt252 {
 
 impl<'a> Shr<usize> for &'a Felt252 {
     type Output = Felt252;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shr(self, rhs: usize) -> Self::Output {
         // TODO: upstream should do this check
-        if rhs >= 64 * 4 {
-            Felt252::zero()
-        } else {
-            let value = FieldElement::new(self.value.representative() >> rhs);
-            Self::Output { value }
-        }
+        self >> (rhs as u32)
     }
 }
 
