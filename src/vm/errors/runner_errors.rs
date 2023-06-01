@@ -89,3 +89,15 @@ pub enum RunnerError {
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_runner_error_size() {
+        let size = crate::stdlib::mem::size_of::<RunnerError>();
+        assert!(size <= 32, "{size}")
+    }
+}
