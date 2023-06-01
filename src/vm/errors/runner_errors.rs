@@ -1,3 +1,6 @@
+// The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
+#![allow(clippy::explicit_auto_deref)]
+
 use crate::stdlib::{collections::HashSet, prelude::*};
 
 #[cfg(feature = "std")]
@@ -30,19 +33,19 @@ pub enum RunnerError {
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
     #[error("EcOpBuiltin: m should be at most {0}")]
-    EcOpBuiltinScalarLimit(Felt252),
+    EcOpBuiltinScalarLimit(Box<Felt252>),
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
-    #[error("Expected integer at address {0:?} to be smaller than 2^{1}, Got {2}")]
-    IntegerBiggerThanPowerOfTwo(Relocatable, u32, Felt252),
+    #[error("Expected integer at address {:?} to be smaller than 2^{}, Got {}", (*.0).0, (*.0).1, (*.0).2)]
+    IntegerBiggerThanPowerOfTwo(Box<(Relocatable, u32, Felt252)>),
     #[error("{0}")]
-    EcOpSameXCoordinate(String),
+    EcOpSameXCoordinate(Box<str>),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
-    PointNotOnCurve((Felt252, Felt252)),
-    #[error("Builtin(s) {0:?} not present in layout {1}")]
-    NoBuiltinForInstance(HashSet<&'static str>, String),
+    PointNotOnCurve(Box<(Felt252, Felt252)>),
+    #[error("Builtin(s) {:?} not present in layout {}", (*.0).0, (*.0).1)]
+    NoBuiltinForInstance(Box<(HashSet<&'static str>, String)>),
     #[error("Invalid layout {0}")]
-    InvalidLayoutName(String),
+    InvalidLayoutName(Box<str>),
     #[error("end_run called twice.")]
     EndRunCalledTwice,
     #[error("end_run must be called before finalize_segments.")]
@@ -53,12 +56,12 @@ pub enum RunnerError {
     FinalizeSegements(MemoryError),
     #[error("finalize_segments called but proof_mode is not enabled")]
     FinalizeSegmentsNoProofMode,
-    #[error("Invalid stop pointer for {0}: Stop pointer has value {1} but builtin segment is {2}")]
-    InvalidStopPointerIndex(&'static str, Relocatable, usize),
-    #[error("Invalid stop pointer for {0}. Expected: {1}, found: {2}")]
-    InvalidStopPointer(&'static str, Relocatable, Relocatable),
+    #[error("Invalid stop pointer for {}: Stop pointer has value {} but builtin segment is {}", (*.0).0, (*.0).1, (*.0).2)]
+    InvalidStopPointerIndex(Box<(&'static str, Relocatable, usize)>),
+    #[error("Invalid stop pointer for {}. Expected: {}, found: {}", (*.0).0, (*.0).1, (*.0).2)]
+    InvalidStopPointer(Box<(&'static str, Relocatable, Relocatable)>),
     #[error("No stop pointer found for builtin {0}")]
-    NoStopPointer(&'static str),
+    NoStopPointer(Box<&'static str>),
     #[error("Running in proof-mode but no __start__ label found, try compiling with proof-mode")]
     NoProgramStart,
     #[error("Running in proof-mode but no __end__ label found, try compiling with proof-mode")]
@@ -81,8 +84,20 @@ pub enum RunnerError {
     Math(#[from] MathError),
     #[error("keccak_builtin: Failed to get first input address")]
     KeccakNoFirstInput,
-    #[error("{0}: Expected integer at address {1}")]
-    BuiltinExpectedInteger(&'static str, Relocatable),
+    #[error("{}: Expected integer at address {}", (*.0).0, (*.0).1)]
+    BuiltinExpectedInteger(Box<(&'static str, Relocatable)>),
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_runner_error_size() {
+        let size = crate::stdlib::mem::size_of::<RunnerError>();
+        assert!(size <= 32, "{size}")
+    }
 }

@@ -1,3 +1,4 @@
+use crate::stdlib::boxed::Box;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
@@ -71,25 +72,25 @@ impl SegmentArenaBuiltinRunner {
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
             let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(SEGMENT_ARENA_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(SEGMENT_ARENA_BUILTIN_NAME)))?;
             if self.base.segment_index != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     SEGMENT_ARENA_BUILTIN_NAME,
                     stop_pointer,
                     self.base.segment_index as usize,
-                ));
+                ))));
             }
             let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
             if stop_pointer != (self.base + used)? {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     SEGMENT_ARENA_BUILTIN_NAME,
                     (self.base + used)?,
                     stop_pointer,
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_pointer.offset);
             Ok(stop_pointer_addr)
@@ -202,11 +203,11 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 SEGMENT_ARENA_BUILTIN_NAME,
                 relocatable!(0, 3),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -278,7 +279,9 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(SEGMENT_ARENA_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(
+                SEGMENT_ARENA_BUILTIN_NAME
+            )))
         );
     }
 

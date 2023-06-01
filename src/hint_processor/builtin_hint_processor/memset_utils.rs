@@ -104,8 +104,7 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y
-            )) if x == "n" && y == (1,1).into()
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n".to_string(), (1,1).into())
         );
     }
 
@@ -164,7 +163,7 @@ mod tests {
         let ids_data = ids_data!["continue_loop"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"n".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "n"
         );
     }
 
@@ -184,14 +183,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == Relocatable::from((1, 0)) &&
-                    y == MaybeRelocatable::from(Felt252::new(5)) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 0)),
+                    MaybeRelocatable::from(Felt252::new(5)),
+                    MaybeRelocatable::from(Felt252::zero()))
         );
     }
 }
