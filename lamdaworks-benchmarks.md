@@ -21,6 +21,10 @@ mv target/release/cairo-vm-cli binaries/cairo-vm-cli-main
 
 ###  Create binary from lambdaworks-felt 
 
+```
+cargo clean
+```
+
 // lambdaworks-felt last commit (cambiarlo con el ultimo commit)
 ```
 git checkout 7dd7d58cabdb4861549149431db0461d965ec531 
