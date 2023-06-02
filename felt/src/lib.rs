@@ -4,12 +4,9 @@
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 pub extern crate alloc;
 
-mod bigint_felt;
-
 #[cfg(test)]
 pub mod arbitrary;
 
-use bigint_felt::{FeltBigInt, CAIRO_PRIME_BIGUINT, SIGNED_FELT_MAX};
 use core::{
     convert::Into,
     fmt,
@@ -26,6 +23,7 @@ use lambdaworks_math::{
     traits::ByteConversion,
     unsigned_integer::element::UnsignedInteger,
 };
+use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -35,6 +33,17 @@ use serde::{Deserialize, Serialize};
 use alloc::{string::String, vec::Vec};
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
+pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
+pub const FIELD_LOW: u128 = 1;
+
+lazy_static! {
+    pub static ref CAIRO_PRIME_BIGUINT: BigUint =
+        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
+    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
+        .to_bigint()
+        .expect("Conversion BigUint -> BigInt can't fail");
+}
 
 #[macro_export]
 macro_rules! felt_str {
@@ -48,6 +57,12 @@ macro_rules! felt_str {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
+
+impl fmt::Display for ParseFeltError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{ParseFeltError:?}")
+    }
+}
 
 #[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
 #[serde(from = "BigInt")]
@@ -310,7 +325,7 @@ impl Felt252 {
     }
 
     pub fn prime() -> BigUint {
-        FeltBigInt::prime()
+        CAIRO_PRIME_BIGUINT.clone()
     }
 }
 
