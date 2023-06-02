@@ -16,7 +16,7 @@ cargo build -p cairo-vm-cli --release
 ```
 
 ```
-mv target/release/cairo-vm-cli bins/cairo-vm-cli-main
+mv target/release/cairo-vm-cli binaries/cairo-vm-cli-main
 ```
 
 ###  Create binary from lambdaworks-felt 
@@ -27,25 +27,28 @@ git checkout 6a8ca26cb20b3829db6ef1e298f27a3161642395
 ```
 
 ```
-cargo clean
-```
-
-```
 cargo build -p cairo-vm-cli --release
 ```
 
 ```
-mv target/release/cairo-vm-cli bins/cairo-vm-cli-lambdaworks
+mv target/release/cairo-vm-cli binaries/cairo-vm-cli-lambdaworks
 ```
 
 ## Compile cairo program
 Install dependencies if neesary
+
+Linux users
 ```
-make deps for linux users
-```
+make deps
 ```
 
-make deps-macos for mac users
+Mac users
+```
+make deps-macos
+```
+
+```
+source cairo-rs-env/bin/activate
 ```
 
 ```
@@ -56,6 +59,7 @@ make cairo_bench_programs
 ```
 chmod +x lamdaworks-benchmarks.sh
 ```
+
 ```
 sh lamdaworks-benchmarks.sh
 ```
