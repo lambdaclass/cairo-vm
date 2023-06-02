@@ -23,7 +23,7 @@ mv target/release/cairo-vm-cli binaries/cairo-vm-cli-main
 
 // lambdaworks-felt last commit (cambiarlo con el ultimo commit)
 ```
-git checkout 6a8ca26cb20b3829db6ef1e298f27a3161642395 
+git checkout 7dd7d58cabdb4861549149431db0461d965ec531 
 ```
 
 ```
