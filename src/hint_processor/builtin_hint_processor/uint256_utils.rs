@@ -376,14 +376,14 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (a_high << 128_u32) + a_low;
-    let div = (div_high << 128_u32) + div_low;
+    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
+    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
-    let quotient = Uint256::from(quotient);
-    let remainder = Uint256::from(remainder);
+    let quotient = Uint256::from(Felt252::from(quotient));
+    let remainder = Uint256::from(Felt252::from(remainder));
 
     quotient.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     remainder.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
