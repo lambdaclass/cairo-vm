@@ -398,15 +398,12 @@ impl Add<u64> for &Felt252 {
     }
 }
 
+// TODO: verify if this optimization causes a speed-up in the current implementation.
 // This is special cased and optimized compared to the obvious implementation
 // due to `pc_update` relying on this, which makes it a major bottleneck for
 // execution. Testing for this function is extensive, comprised of explicit
 // edge and special cases testing and property tests, all comparing to the
 // more intuitive `(rhs + self).to_u64()` implementation.
-// This particular implementation is much more complex than a slightly more
-// intuitive one based on a single match. However, this is 8-62% faster
-// depending on the case being bencharked, with an average of 32%, so it's
-// worth it.
 impl Add<&Felt252> for u64 {
     type Output = Option<u64>;
 
@@ -419,7 +416,7 @@ impl Add<&Felt252> for u64 {
         // Match with the 64 bits digits in big-endian order to
         // characterize how the sum will behave.
         match rhs.to_be_digits() {
-            // No digits means `rhs` is `0`, so the sum is simply `self`.
+            // All digits are `0`, so the sum is simply `self`.
             [0, 0, 0, 0] => Some(self),
             // A single digit means this is effectively the sum of two `u64` numbers.
             [0, 0, 0, low] => self.checked_add(low),
@@ -429,20 +426,18 @@ impl Add<&Felt252> for u64 {
 
             // The 3 MSB only match the prime for Felt252::max_value(), which is -1
             // in the signed field, so this is equivalent to substracting 1 to `self`.
-            // #[allow(clippy::suspicious_arithmetic_impl)]
             [hi @ .., _] if hi == PRIME_DIGITS_BE_HI => self.checked_sub(1),
 
             // For the remaining values between `[-u64::MAX..0]` (where `{0, -1}` have
             // already been covered) the MSB matches that of `PRIME - u64::MAX`.
             // Because we're in the negative number case, we count down. Because `0`
             // and `-1` correspond to different MSBs, `0` and `1` in the LSB are less
-            // than `-u64::MAX`, the smallest value we can add to (read, substract it's
+            // than `-u64::MAX`, the smallest value we can add to (read, substract its
             // magnitude from) a `u64` number, meaning we exclude them from the valid
             // case.
-            // For the remaining range, we make take the absolute value module-2 while
+            // For the remaining range, we take the absolute value module-2 while
             // correcting by substracting `1` (note we actually substract `2` because
             // the absolute value itself requires substracting `1`.
-            // #[allow(clippy::suspicious_arithmetic_impl)]
             [hi @ .., low] if hi == PRIME_MINUS_U64_MAX_DIGITS_BE_HI && low >= 2 => {
                 (self).checked_sub(u64::MAX - (low - 2))
             }
