@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1685653840063,
+  "lastUpdate": 1686004149301,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -104428,6 +104428,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19336610,
             "range": "± 478629",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fc09e20b786e87d1cd341e05f491c358d032015e",
+          "message": "Fix deserialization of scientific notation with fractional values (#1202)\n\n* First draft\n\n* Simplify implementation\n\n* Remove test\n\n* Add changelog entry\n\n* Clippy",
+          "timestamp": "2023-06-05T21:54:29Z",
+          "tree_id": "95fab0fb8dba22e1df0df29163044a04d914426e",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/fc09e20b786e87d1cd341e05f491c358d032015e"
+        },
+        "date": 1686004143540,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24515,
+            "range": "± 19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 49236,
+            "range": "± 999",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19296658,
+            "range": "± 131390",
             "unit": "ns/iter"
           }
         ]
