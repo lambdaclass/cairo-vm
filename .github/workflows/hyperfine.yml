@@ -138,7 +138,7 @@ jobs:
         if [ 'modified' = ${{ matrix.program_state }} ]; then
           BINS=head
           for f in head_programs/*.json; do
-            # Only run new or modified benchmarks
+            # Only run new or modified benchmarks
             if ! cmp -s ${f/head/base} $f; then
               cp $f target_programs/
             fi
@@ -146,14 +146,14 @@ jobs:
         else
           BINS="base,head"
           for f in base_programs/*.json; do
-            # Only run unmodified benchmarks
+            # Only run unmodified benchmarks
             if cmp -s ${f/base/head} $f; then
               cp $f target_programs/
             fi
           done
         fi
         find target_programs -name '*.json' -exec basename -s .json '{}' '+' | \
-        sort | xargs -P 2 -I '{program}' \
+        sort | xargs -I '{program}' \
         hyperfine -N -w 20 -r 100 --export-markdown "target_programs/{program}.md" \
         -L bin "$BINS" -n "{bin} {program}" \
         -s "cat ./bin/cairo-vm-cli-{bin} target_programs/{program}.json" \
