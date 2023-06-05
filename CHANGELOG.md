@@ -1,8 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: Fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
 
 * feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
 * perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
 
 * feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
