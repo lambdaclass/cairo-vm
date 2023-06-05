@@ -334,7 +334,7 @@ fn dict_update() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256() {
     let program_data = include_bytes!("../../cairo_programs/uint256.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 3514);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 3534);
 }
 
 #[test]
@@ -825,7 +825,7 @@ fn highest_bitlen() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256_improvements() {
     let program_data = include_bytes!("../../cairo_programs/uint256_improvements.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 108);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 128);
 }
 
 #[test]
