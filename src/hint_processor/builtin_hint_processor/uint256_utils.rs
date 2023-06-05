@@ -67,6 +67,8 @@ impl<'a> Uint256<'a> {
         ap_tracking: &ApTracking,
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
+        dbg!(&self.low);
+        dbg!(&self.high);
 
         vm.insert_value(addr, self.low.into_owned())?;
         vm.insert_value((addr + 1)?, self.high.into_owned())?;
@@ -382,8 +384,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
-    let quotient = Uint256::from(Felt252::from(quotient));
-    let remainder = Uint256::from(Felt252::from(remainder));
+    let quotient = Uint256::from(&quotient);
+    let remainder = Uint256::from(&remainder);
 
     quotient.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     remainder.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
