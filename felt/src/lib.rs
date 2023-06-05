@@ -205,20 +205,22 @@ impl Felt252 {
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
         // TODO: upstream should return array
-        self.value
-            .representative()
-            .to_bytes_le()
-            .try_into()
-            .expect("this never fails")
+        let mut bytes = [0; 32];
+        let digits = self.to_le_digits();
+        for (i, d) in digits.into_iter().enumerate() {
+            bytes[i..(i + 8)].copy_from_slice(&d.to_le_bytes());
+        }
+        bytes
     }
 
     pub fn to_be_bytes(&self) -> [u8; 32] {
         // TODO: upstream should return array
-        self.value
-            .representative()
-            .to_bytes_be()
-            .try_into()
-            .expect("this never fails")
+        let mut bytes = [0; 32];
+        let digits = self.to_be_digits();
+        for (i, d) in digits.into_iter().enumerate() {
+            bytes[i..(i + 8)].copy_from_slice(&d.to_be_bytes());
+        }
+        bytes
     }
 
     pub fn to_le_digits(&self) -> [u64; 4] {
