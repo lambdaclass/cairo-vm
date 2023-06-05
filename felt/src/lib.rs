@@ -208,7 +208,8 @@ impl Felt252 {
         let mut bytes = [0; 32];
         let digits = self.to_le_digits();
         for (i, d) in digits.into_iter().enumerate() {
-            bytes[i..(i + 8)].copy_from_slice(&d.to_le_bytes());
+            let idx = i * 8;
+            bytes[idx..(idx + 8)].copy_from_slice(&d.to_le_bytes());
         }
         bytes
     }
@@ -218,7 +219,8 @@ impl Felt252 {
         let mut bytes = [0; 32];
         let digits = self.to_be_digits();
         for (i, d) in digits.into_iter().enumerate() {
-            bytes[i..(i + 8)].copy_from_slice(&d.to_be_bytes());
+            let idx = i * 8;
+            bytes[idx..(idx + 8)].copy_from_slice(&d.to_be_bytes());
         }
         bytes
     }
