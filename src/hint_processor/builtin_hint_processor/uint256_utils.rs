@@ -67,8 +67,6 @@ impl<'a> Uint256<'a> {
         ap_tracking: &ApTracking,
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
-        dbg!(&self.low);
-        dbg!(&self.high);
 
         vm.insert_value(addr, self.low.into_owned())?;
         vm.insert_value((addr + 1)?, self.high.into_owned())?;
