@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
+
 * feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
 * perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
 
