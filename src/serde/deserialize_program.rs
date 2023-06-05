@@ -182,36 +182,17 @@ where
     }
 }
 
-// 10 ** f64::MAX_10_EXP as u32
-const MAX_EXP_POWER_OF_10: f64 = 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0;
-
 fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
-    let str = n.to_string();
-    let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
-
-    let exponent = list[1].parse::<u32>().ok()?;
-    let base_string = list[0].to_string();
-    match Felt252::parse_bytes(base_string.as_bytes(), 10) {
-        Some(base) => Some(base * Felt252::from(10).pow(exponent)),
-        // We have a fractional number as base
+    match n.as_f64() {
         None => {
-            let float_base = base_string.parse::<f64>().ok()?;
-            // List of cases to handle
-            // I: EXPONENT > MAX_10_EXP
-            // We need to get rid of the decimal part of the base, but we must also not go beyond the f64 range
-            if exponent > f64::MAX_10_EXP as u32 {
-                let exponent = exponent - f64::MAX_10_EXP as u32;
-                let base = (float_base * MAX_EXP_POWER_OF_10) as u64;
-                Some(Felt252::from(base) * Felt252::from(10).pow(exponent))
-            // II: EXPONENT < MAX_10_EXP
-            // We can perform the exponenciation inside the f64 range, but may need to round up remaining digits
-            } else {
-                let num = (float_base * 10f64.pow(exponent as f64))
-                    .round()
-                    .to_string();
-                Felt252::from_str_radix(&num, 10).ok()
-            }
+            let str = n.to_string();
+            let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
+
+            let exponent = list[1].parse::<u32>().ok()?;
+            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+            Some(base * Felt252::from(10).pow(exponent))
         }
+        Some(float) => Felt252::parse_bytes(&float.round().to_string().as_bytes(), 10),
     }
 }
 
