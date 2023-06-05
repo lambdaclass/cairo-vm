@@ -9,8 +9,6 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 #![cfg_attr(any(target_arch = "wasm32", not(feature = "std")), no_std)]
-// TODO: remove when boxed
-#![allow(clippy::result_large_err)]
 
 #[cfg(feature = "std")]
 include!("./with_std.rs");
