@@ -721,12 +721,24 @@ impl Num for Felt252 {
 
 impl Integer for Felt252 {
     fn div_floor(&self, rhs: &Self) -> Self {
-        Self::from(&self.to_biguint() / &rhs.to_biguint())
+        let (d, _) = self.div_rem(rhs);
+        d
+    }
+
+    fn mod_floor(&self, rhs: &Self) -> Self {
+        let (_, m) = self.div_rem(rhs);
+        m
     }
 
     fn div_rem(&self, other: &Self) -> (Self, Self) {
         let (div, rem) = self.to_biguint().div_mod_floor(&other.to_biguint());
         (Self::from(div), Self::from(rem))
+    }
+
+    // NOTE: we overload because the default impl calls div_floor AND mod_floor.
+    fn div_mod_floor(&self, rhs: &Self) -> (Self, Self) {
+        // NOTE: for positive integers, to floor and truncate is the same, so div_rem == div_mod_floor.
+        self.div_rem(rhs)
     }
 
     fn divides(&self, _other: &Self) -> bool {
@@ -751,11 +763,6 @@ impl Integer for Felt252 {
 
     fn lcm(&self, other: &Self) -> Self {
         self.max(other).clone()
-    }
-
-    fn mod_floor(&self, rhs: &Self) -> Self {
-        let (_, m) = self.div_rem(rhs);
-        m
     }
 }
 
