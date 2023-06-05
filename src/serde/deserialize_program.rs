@@ -183,14 +183,17 @@ where
 }
 
 fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
-    let str = n.to_string();
-    let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
+    match n.as_f64() {
+        None => {
+            let str = n.to_string();
+            let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
 
-    let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
-    let exponent = list[1].parse::<u32>().ok()?;
-
-    let result = base * Felt252::from(10).pow(exponent);
-    Some(result)
+            let exponent = list[1].parse::<u32>().ok()?;
+            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+            Some(base * Felt252::from(10).pow(exponent))
+        }
+        Some(float) => Felt252::parse_bytes(float.round().to_string().as_bytes(), 10),
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -1397,6 +1400,33 @@ mod tests {
         assert_matches!(
             felt_from_number(n),
             Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_with_fractional_part() {
+        let n = serde_json::Value::Number(Number::from_f64(64e+74).unwrap());
+
+        assert_matches!(
+            felt_from_number(n),
+            Ok(x) if x == Some(Felt252::from_str_radix("64", 10).unwrap() * Felt252::from(10).pow(74))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_with_fractional_part_f64_max() {
+        let n = serde_json::Value::Number(Number::from_f64(f64::MAX).unwrap());
+        assert_eq!(
+            felt_from_number(n).unwrap(),
+            Some(
+                Felt252::from_str_radix(
+                    "2082797363194934431336897723140298717588791783575467744530053896730196177808",
+                    10
+                )
+                .unwrap()
+            )
         );
     }
 }
