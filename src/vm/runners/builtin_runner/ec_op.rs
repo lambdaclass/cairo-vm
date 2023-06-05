@@ -71,11 +71,10 @@ impl EcOpBuiltinRunner {
         for _ in 0..height {
             if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
                 #[allow(deprecated)]
-                return Err(RunnerError::EcOpSameXCoordinate(Self::format_ec_op_error(
-                    partial_sum_b,
-                    m.clone().to_bigint(),
-                    doubled_point_b,
-                )));
+                return Err(RunnerError::EcOpSameXCoordinate(
+                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b)
+                        .into_boxed_str(),
+                ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
                 partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
@@ -130,7 +129,7 @@ impl EcOpBuiltinRunner {
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
         let x_addr = (instance + (&Felt252::new(INPUT_CELLS_PER_EC_OP)))
-            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(instance)))?;
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
             return Ok(Some(MaybeRelocatable::Int(number)));
@@ -148,7 +147,7 @@ impl EcOpBuiltinRunner {
                         Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
                         _ => {
                             return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
-                                (instance + i)?,
+                                Box::new((instance + i)?),
                             )))
                         }
                     });
@@ -170,10 +169,10 @@ impl EcOpBuiltinRunner {
                 &alpha,
                 &beta,
             ) {
-                return Err(RunnerError::PointNotOnCurve((
+                return Err(RunnerError::PointNotOnCurve(Box::new((
                     input_cells[pair.0].clone(),
                     input_cells[pair.1].clone(),
-                )));
+                ))));
             };
         }
         let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
@@ -192,7 +191,7 @@ impl EcOpBuiltinRunner {
             .insert(x_addr, result.0.clone().into());
         self.cache.borrow_mut().insert(
             (x_addr + 1usize)
-                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(x_addr)))?,
+                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(x_addr))))?,
             result.1.clone().into(),
         );
         match index - self.n_input_cells as usize {
@@ -226,28 +225,28 @@ impl EcOpBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     EC_OP_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     EC_OP_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -350,11 +349,11 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 EC_OP_BUILTIN_NAME,
                 relocatable!(0, 994),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -402,7 +401,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(EC_OP_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))
         );
     }
 
@@ -663,6 +662,7 @@ mod tests {
                     m.to_bigint(),
                     (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
                 )
+                .into_boxed_str()
             ))
         );
     }
@@ -861,9 +861,9 @@ mod tests {
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
-            Err(RunnerError::Memory(MemoryError::ExpectedInteger(
+            Err(RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(
                 Relocatable::from((3, 3))
-            )))
+            ))))
         );
     }
 

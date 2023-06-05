@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
@@ -11,7 +11,6 @@ use crate::{
     types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{One, ToPrimitive, Zero};
 
@@ -24,27 +23,24 @@ pub fn set_add(
     let elm_size =
         get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_usize()
-                .ok_or_else(|| MathError::Felt252ToUsizeConversion(x.into_owned()).into())
+                .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(x.into_owned())).into())
         })?;
     let elm_ptr = get_ptr_from_var_name("elm_ptr", vm, ids_data, ap_tracking)?;
     let set_end_ptr = get_ptr_from_var_name("set_end_ptr", vm, ids_data, ap_tracking)?;
 
     if elm_size.is_zero() {
-        Err(HintError::AssertionFailed(String::from(
-            "assert ids.elm_size > 0",
-        )))?;
+        Err(HintError::AssertionFailed(
+            "assert ids.elm_size > 0".to_string().into_boxed_str(),
+        ))?;
     }
     if set_ptr > set_end_ptr {
-        return Err(HintError::InvalidSetRange(set_ptr, set_end_ptr));
+        return Err(HintError::InvalidSetRange(Box::new((set_ptr, set_end_ptr))));
     }
 
     let range_limit = (set_end_ptr - set_ptr)?;
 
     for i in 0..range_limit {
-        if matches!(
-            vm.memcmp(elm_ptr, (set_ptr + elm_size * i)?, elm_size),
-            (Ordering::Equal, _)
-        ) {
+        if vm.mem_eq(elm_ptr, (set_ptr + elm_size * i)?, elm_size) {
             insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
@@ -160,8 +156,8 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
             Err(HintError::AssertionFailed(
-                m
-            )) if m == *"assert ids.elm_size > 0"
+                bx
+            )) if bx.as_ref() == "assert ids.elm_size > 0"
         );
     }
     #[test]
@@ -170,10 +166,7 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(Some((2, 3)), None, None, None);
         assert_matches!(
             run_hint!(vm, ids_data, HINT_CODE),
-            Err(HintError::InvalidSetRange(
-                x,
-                y,
-            )) if x == (2, 3).into() && y == (2, 2).into()
+            Err(HintError::InvalidSetRange(bx)) if *bx == ((2, 3).into(), (2, 2).into())
         );
     }
 }

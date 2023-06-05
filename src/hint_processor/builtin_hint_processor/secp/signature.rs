@@ -115,7 +115,7 @@ pub fn get_point_from_x(
     #[allow(deprecated)]
     let beta = constants
         .get(BETA)
-        .ok_or(HintError::MissingConstant(BETA))?
+        .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
         .to_bigint();
 
     let x_cube_int = bigint3_pack(Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
@@ -232,11 +232,8 @@ mod tests {
                 0,
             ),
             Err(
-                HintError::Math(MathError::SafeDivFailBigInt(
-                    x,
-                    y,
-                )
-            )) if x == BigInt::one() && y == bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337")
+                HintError::Math(MathError::SafeDivFailBigInt(bx)
+            )) if *bx == (BigInt::one(), bigint_str!("115792089237316195423570985008687907852837564279074904382605163141518161494337"))
         );
     }
 

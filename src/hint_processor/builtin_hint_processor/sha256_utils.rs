@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
@@ -67,7 +67,9 @@ fn sha256_main(
 
     if input_chunk_size_felts >= 100 {
         return Err(HintError::AssertionFailed(
-            "assert 0 <= _sha256_input_chunk_size_felts < 100".to_string(),
+            "assert 0 <= _sha256_input_chunk_size_felts < 100"
+                .to_string()
+                .into_boxed_str(),
         ));
     }
 
@@ -145,16 +147,18 @@ pub fn sha256_main_arbitrary_input_length(
         // if size is valid, but not SHA256_STATE_SIZE_FELTS, throw error
         // NOTE: in this case the python-vm fails with "not enough values to unpack" error
         Some(size) if size < 100 => {
-            return Err(HintError::InvalidValue(
+            return Err(HintError::InvalidValue(Box::new((
                 "SHA256_STATE_SIZE_FELTS",
                 state_size_felt.clone(),
                 Felt252::from(SHA256_STATE_SIZE_FELTS),
-            ))
+            ))))
         }
         // otherwise, fails the assert
         _ => {
             return Err(HintError::AssertionFailed(
-                "assert 0 <= _sha256_state_size_felts < 100".to_string(),
+                "assert 0 <= _sha256_state_size_felts < 100"
+                    .to_string()
+                    .into_boxed_str(),
             ))
         }
     };
@@ -405,7 +409,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(msg)) if msg == "assert 0 <= _sha256_input_chunk_size_felts < 100"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= _sha256_input_chunk_size_felts < 100"
         );
     }
 
@@ -439,7 +443,7 @@ mod tests {
         ]);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::AssertionFailed(msg)) if msg == "assert 0 <= _sha256_state_size_felts < 100"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= _sha256_state_size_felts < 100"
         );
     }
 
@@ -475,8 +479,8 @@ mod tests {
         let expected_size = Felt252::from(SHA256_STATE_SIZE_FELTS);
         assert_matches!(
             run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
-            Err(HintError::InvalidValue("SHA256_STATE_SIZE_FELTS", got, expected))
-                if got == state_size && expected == expected_size
+            Err(HintError::InvalidValue(bx))
+                if *bx == ("SHA256_STATE_SIZE_FELTS", state_size, expected_size)
         );
     }
 }

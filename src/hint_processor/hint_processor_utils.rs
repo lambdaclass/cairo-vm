@@ -1,4 +1,4 @@
-use crate::stdlib::borrow::Cow;
+use crate::stdlib::{borrow::Cow, boxed::Box};
 
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
@@ -43,7 +43,7 @@ pub fn get_integer_from_reference<'a>(
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
     vm.get_integer(var_addr)
-        .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
+        .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -56,7 +56,7 @@ pub fn get_ptr_from_reference(
         .ok_or(HintError::UnknownIdentifierInternal)?;
     if hint_reference.dereference {
         vm.get_relocatable(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(var_addr))
+            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
     } else {
         Ok(var_addr)
     }
@@ -136,13 +136,13 @@ fn apply_ap_tracking_correction(
 //Tries to convert a Felt252 value to usize
 pub fn felt_to_usize(felt: &Felt252) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or_else(|| MathError::Felt252ToUsizeConversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(felt.clone())))
 }
 
 ///Tries to convert a Felt252 value to u32
 pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
     felt.to_u32()
-        .ok_or_else(|| MathError::Felt252ToU32Conversion(felt.clone()))
+        .ok_or_else(|| MathError::Felt252ToU32Conversion(Box::new(felt.clone())))
 }
 
 fn get_offset_value_reference(

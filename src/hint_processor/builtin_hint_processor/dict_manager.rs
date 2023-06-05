@@ -1,4 +1,4 @@
-use crate::stdlib::collections::HashMap;
+use crate::stdlib::{boxed::Box, collections::HashMap};
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
@@ -114,7 +114,10 @@ impl DictManager {
             .get_mut(&dict_ptr.segment_index)
             .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != dict_ptr {
-            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, dict_ptr));
+            return Err(HintError::MismatchedDictPtr(Box::new((
+                tracker.current_ptr,
+                dict_ptr,
+            ))));
         }
         Ok(tracker)
     }
@@ -126,7 +129,10 @@ impl DictManager {
             .get(&dict_ptr.segment_index)
             .ok_or(HintError::NoDictTracker(dict_ptr.segment_index))?;
         if tracker.current_ptr != dict_ptr {
-            return Err(HintError::MismatchedDictPtr(tracker.current_ptr, dict_ptr));
+            return Err(HintError::MismatchedDictPtr(Box::new((
+                tracker.current_ptr,
+                dict_ptr,
+            ))));
         }
         Ok(tracker)
     }
@@ -188,7 +194,7 @@ impl DictTracker {
     pub fn get_value(&mut self, key: &MaybeRelocatable) -> Result<&MaybeRelocatable, HintError> {
         self.data
             .get(key)
-            .ok_or_else(|| HintError::NoValueForKey(key.clone()))
+            .ok_or_else(|| HintError::NoValueForKey(Box::new(key.clone())))
     }
 
     pub fn insert_value(&mut self, key: &MaybeRelocatable, val: &MaybeRelocatable) {
