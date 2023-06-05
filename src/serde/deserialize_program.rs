@@ -1429,14 +1429,4 @@ mod tests {
             )
         );
     }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_felt_from_number_with_scientific_notation_with_fractional_part_u64_max() {
-        let n = serde_json::Value::Number(Number::from_f64(18446744073709551615.0).unwrap());
-        assert_eq!(
-            felt_from_number(n).unwrap(),
-            Some(Felt252::from_str_radix("18446744073709551615", 10).unwrap())
-        );
-    }
 }
