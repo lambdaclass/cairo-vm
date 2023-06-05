@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::utils::CAIRO_PRIME;
 use crate::{
     hint_processor::{
@@ -34,12 +34,12 @@ impl EcPoint<'_> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {
-            x: vm
-                .get_integer(point_addr)
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "x".to_string()))?,
-            y: vm
-                .get_integer((point_addr + 1)?)
-                .map_err(|_| HintError::IdentifierHasNoMember(name.to_string(), "y".to_string()))?,
+            x: vm.get_integer(point_addr).map_err(|_| {
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "x".to_string())))
+            })?,
+            y: vm.get_integer((point_addr + 1)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "y".to_string())))
+            })?,
         })
     }
 }
@@ -109,7 +109,7 @@ pub fn chained_ec_op_random_ec_point_hint(
 ) -> Result<(), HintError> {
     let n_elms = get_integer_from_var_name("len", vm, ids_data, ap_tracking)?;
     if n_elms.is_zero() || n_elms.to_usize().is_none() {
-        return Err(HintError::InvalidLenValue(n_elms.into_owned()));
+        return Err(HintError::InvalidLenValue(Box::new(n_elms.into_owned())));
     }
     let n_elms = n_elms.to_usize().unwrap();
     let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
@@ -145,7 +145,8 @@ pub fn recover_y_hint(
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
     vm.insert_value(p_addr, &p_x)?;
     let p_y = Felt252::from(
-        recover_y(&p_x.to_biguint()).ok_or_else(|| HintError::RecoverYPointNotOnCurve(p_x))?,
+        recover_y(&p_x.to_biguint())
+            .ok_or_else(|| HintError::RecoverYPointNotOnCurve(Box::new(p_x)))?,
     );
     vm.insert_value((p_addr + 1)?, p_y)?;
     Ok(())

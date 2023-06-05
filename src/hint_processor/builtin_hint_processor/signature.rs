@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use num_integer::Integer;
 
@@ -27,13 +27,13 @@ pub fn verify_ecdsa_signature(
     let ecdsa_ptr = get_ptr_from_var_name("ecdsa_ptr", vm, ids_data, ap_tracking)?;
     let ecdsa_builtin = &mut vm.get_signature_builtin()?;
     if ecdsa_ptr.segment_index != ecdsa_builtin.base() as isize {
-        return Err(HintError::AddSignatureWrongEcdsaPtr(ecdsa_ptr));
+        return Err(HintError::AddSignatureWrongEcdsaPtr(Box::new(ecdsa_ptr)));
     }
     if !ecdsa_ptr
         .offset
         .is_multiple_of(&(CELLS_PER_SIGNATURE as usize))
     {
-        return Err(HintError::AddSignatureNotAPublicKey(ecdsa_ptr));
+        return Err(HintError::AddSignatureNotAPublicKey(Box::new(ecdsa_ptr)));
     }
     ecdsa_builtin
         .add_signature(ecdsa_ptr, &(signature_r, signature_s))
@@ -117,7 +117,7 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
-        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureWrongEcdsaPtr(addr)) if addr == (3,0).into());
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureWrongEcdsaPtr(bx)) if *bx == (3,0).into());
     }
 
     #[test]
@@ -144,6 +144,6 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["ecdsa_ptr", "signature_r", "signature_s"];
-        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureNotAPublicKey(addr)) if addr == (0,3).into());
+        assert_matches!(run_hint!(vm, ids_data, VERIFY_ECDSA_SIGNATURE), Err(HintError::AddSignatureNotAPublicKey(bx)) if *bx == (0,3).into());
     }
 }

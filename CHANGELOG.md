@@ -1,6 +1,15 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
+
+* feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+* perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
+* feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
+  * BREAKING: all tuple variants of `HintError` with a single `Felt252` or multiple elements now receive a single `Box`
+
 * Add `Program::builtins_len method` [#1194](https://github.com/lambdaclass/cairo-rs/pull/1194)
 
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)

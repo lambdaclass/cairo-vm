@@ -1,7 +1,7 @@
 use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -39,13 +39,13 @@ impl BigInt3<'_> {
     ) -> Result<BigInt3<'a>, HintError> {
         Ok(BigInt3 {
             d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
             })?,
             d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
             })?,
             d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
             })?,
         })
     }
@@ -120,19 +120,19 @@ impl BigInt5<'_> {
     ) -> Result<BigInt5<'a>, HintError> {
         Ok(BigInt5 {
             d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
             })?,
             d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
             })?,
             d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
             })?,
             d3: vm.get_integer((addr + 3)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d3".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d3".to_string())))
             })?,
             d4: vm.get_integer((addr + 4)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d4".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d4".to_string())))
             })?,
         })
     }
@@ -189,7 +189,7 @@ pub fn bigint_to_uint256(
     let d1 = d1.as_ref();
     let base_86 = constants
         .get(BASE_86)
-        .ok_or(HintError::MissingConstant(BASE_86))?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
     let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -291,7 +291,7 @@ mod tests {
         let ids_data = non_continuous_ids_data![("res", 5)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == "value"
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -347,7 +347,10 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
         let r = BigInt3::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+        assert_matches!(r,
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d2".to_string())
+        )
     }
 
     #[test]
@@ -355,7 +358,10 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4),];
         let r = BigInt5::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d4")
+        assert_matches!(r,
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d4".to_string())
+        )
     }
 
     #[test]
@@ -400,7 +406,10 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
         let ids_data = ids_data!["x"];
         let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+        assert_matches!(r,
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d2".to_string())
+        )
     }
 
     #[test]
@@ -411,7 +420,10 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let ids_data = ids_data!["x"];
         let r = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d4")
+        assert_matches!(r,
+            Err(HintError::IdentifierHasNoMember(bx))
+            if *bx == ("x".to_string(), "d4".to_string())
+        )
     }
 
     #[test]
@@ -420,7 +432,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let r = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "x")
     }
 
     #[test]
@@ -436,7 +448,7 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let r = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "x")
     }
 
     #[test]

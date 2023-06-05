@@ -4,8 +4,7 @@ use crate::any_box;
 use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::*;
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
@@ -251,7 +250,7 @@ impl Cairo1HintProcessor {
                 quotient1, quotient2, quotient3, remainder0, remainder1,
             ),
 
-            hint => Err(HintError::UnknownHint(hint.to_string())),
+            hint => Err(HintError::UnknownHint(hint.to_string().into_boxed_str())),
         }
     }
 
@@ -521,7 +520,9 @@ impl Cairo1HintProcessor {
         let x_bigint: BigUint = random_x.into_bigint().into();
         let y_bigint: BigUint = random_y_squared
             .sqrt()
-            .ok_or(HintError::CustomHint("Failed to compute sqrt".to_string()))?
+            .ok_or(HintError::CustomHint(
+                "Failed to compute sqrt".to_string().into_boxed_str(),
+            ))?
             .into_bigint()
             .into();
 
@@ -562,7 +563,9 @@ impl Cairo1HintProcessor {
             .into_owned()
             .to_usize()
             .ok_or(HintError::CustomHint(
-                "Invalid number of dictionaries.".to_string(),
+                "Invalid number of dictionaries."
+                    .to_string()
+                    .into_boxed_str(),
             ))?;
 
         let dict_infos_base = vm.get_relocatable((dict_manager_address - 3)?)?;
@@ -798,14 +801,14 @@ impl Cairo1HintProcessor {
         let access_indices_at_key = dict_squash_exec_scope
             .access_indices
             .get(&key.clone())
-            .ok_or_else(|| HintError::NoKeyInAccessIndices(key.clone()))?;
+            .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
 
         if n != Felt252::new(access_indices_at_key.len()) {
-            return Err(HintError::NumUsedAccessesAssertFail(
+            return Err(HintError::NumUsedAccessesAssertFail(Box::new((
                 n,
                 access_indices_at_key.len(),
                 key,
-            ));
+            ))));
         }
 
         Ok(())
@@ -823,7 +826,9 @@ impl Cairo1HintProcessor {
         let val = Felt252::from(
             if dict_squash_exec_scope
                 .current_access_indices()
-                .ok_or(HintError::CustomHint("no indices accessed".to_string()))?
+                .ok_or(HintError::CustomHint(
+                    "no indices accessed".to_string().into_boxed_str(),
+                ))?
                 .len()
                 > 1
             {
@@ -853,7 +858,9 @@ impl Cairo1HintProcessor {
             .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")
             .map_err(|_| {
                 HintError::CustomHint(
-                    "Trying to write to a dict while dict manager was not initialized.".to_string(),
+                    "Trying to write to a dict while dict manager was not initialized."
+                        .to_string()
+                        .into_boxed_str(),
                 )
             })?;
         dict_manager_exec_scope.insert_to_tracker(dict_address, key, value);
@@ -869,12 +876,17 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let dict_squash_exec_scope: &mut DictSquashExecScope =
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
-        let prev_access_index = dict_squash_exec_scope
-            .pop_current_access_index()
-            .ok_or(HintError::CustomHint("no accessed index".to_string()))?;
+        let prev_access_index =
+            dict_squash_exec_scope
+                .pop_current_access_index()
+                .ok_or(HintError::CustomHint(
+                    "no accessed index".to_string().into_boxed_str(),
+                ))?;
         let index_delta_minus_1_val = dict_squash_exec_scope
             .current_access_index()
-            .ok_or(HintError::CustomHint("no index accessed".to_string()))?
+            .ok_or(HintError::CustomHint(
+                "no index accessed".to_string().into_boxed_str(),
+            ))?
             .clone()
             - prev_access_index
             - 1_u32;
@@ -911,7 +923,9 @@ impl Cairo1HintProcessor {
             res_operand_get_val(vm, n_accesses)?
                 .to_usize()
                 .ok_or(HintError::CustomHint(
-                    "Number of accesses is too large or negative.".to_string(),
+                    "Number of accesses is too large or negative."
+                        .to_string()
+                        .into_boxed_str(),
                 ))?;
 
         for i in 0..n_accesses {
@@ -948,7 +962,9 @@ impl Cairo1HintProcessor {
             cell_ref_to_relocatable(first_key, vm)?,
             dict_squash_exec_scope
                 .current_key()
-                .ok_or(HintError::CustomHint("No current key".to_string()))?,
+                .ok_or(HintError::CustomHint(
+                    "No current key".to_string().into_boxed_str(),
+                ))?,
         )?;
 
         Ok(())
@@ -1001,7 +1017,7 @@ impl Cairo1HintProcessor {
             dict_squash_exec_scope
                 .current_access_index()
                 .ok_or(HintError::CustomHint(
-                    "No current accessed index".to_string(),
+                    "No current accessed index".to_string().into_boxed_str(),
                 ))?;
         vm.insert_value(range_check_ptr, current_access_index)?;
 
@@ -1049,7 +1065,7 @@ impl Cairo1HintProcessor {
                 .map_err(HintError::from)
         } else {
             Err(HintError::CustomHint(
-                "Field element is not a square".to_string(),
+                "Field element is not a square".to_string().into_boxed_str(),
             ))
         }
     }
@@ -1092,7 +1108,10 @@ impl HintProcessor for Cairo1HintProcessor {
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &HashMap<usize, HintReference>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
-        let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned()).ok_or(VirtualMachineError::CompileHintFail(format!("No hint found for pc {}. Cairo1HintProccesor can only be used when running CasmContractClass", hint_code)))?;
+        let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
+        .ok_or(VirtualMachineError::CompileHintFail(
+            format!("No hint found for pc {hint_code}. Cairo1HintProccesor can only be used when running CasmContractClass").into_boxed_str()
+    ))?;
         Ok(any_box!(data))
     }
 

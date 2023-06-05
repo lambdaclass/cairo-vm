@@ -3,7 +3,7 @@ use num_integer::Integer;
 use num_traits::Zero;
 
 use crate::math_utils::isqrt;
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -157,9 +157,9 @@ pub fn uint384_sqrt(
     let root = isqrt(&a)?;
 
     if root.is_zero() || root.bits() > 192 {
-        return Err(HintError::AssertionFailed(String::from(
-            "assert 0 <= root < 2 ** 192",
-        )));
+        return Err(HintError::AssertionFailed(
+            "assert 0 <= root < 2 ** 192".to_string().into_boxed_str(),
+        ));
     }
     let root_split = Uint384::split(&root);
     root_split.insert_from_var_name("root", vm, ids_data, ap_tracking)
@@ -174,9 +174,9 @@ pub fn uint384_signed_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_d2 = vm
-        .get_integer((a_addr + 2)?)
-        .map_err(|_| HintError::IdentifierHasNoMember("a".to_string(), "d2".to_string()))?;
+    let a_d2 = vm.get_integer((a_addr + 2)?).map_err(|_| {
+        HintError::IdentifierHasNoMember(Box::new(("a".to_string(), "d2".to_string())))
+    })?;
     let res = Felt252::from((a_d2.bits() <= 127) as u32);
     insert_value_into_ap(vm, res)
 }
@@ -363,14 +363,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_UNSIGNED_DIV_REM),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 7)) &&
-                    y == MaybeRelocatable::from(Felt252::new(2)) &&
-                    z == MaybeRelocatable::from(Felt252::new(221))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 7)),
+                    MaybeRelocatable::from(Felt252::new(2)),
+                    MaybeRelocatable::from(Felt252::new(221)))
         );
     }
 
@@ -454,14 +450,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_SPLIT_128),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 1)) &&
-                    y == MaybeRelocatable::from(Felt252::new(2)) &&
-                    z == MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 1)),
+                    MaybeRelocatable::from(Felt252::new(2)),
+                    MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128)))
         );
     }
 
@@ -544,7 +536,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
-            Err(HintError::MissingConstant(s)) if s == "SHIFT"
+            Err(HintError::MissingConstant(bx)) if *bx == "SHIFT"
         );
     }
 
@@ -594,7 +586,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT384_SQRT),
-            Err(HintError::AssertionFailed(s)) if s == "assert 0 <= root < 2 ** 192"
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= root < 2 ** 192"
         );
     }
 
@@ -638,7 +630,7 @@ mod tests {
         ];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code::UINT384_SIGNED_NN),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "d2"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "d2".to_string())
         );
     }
 

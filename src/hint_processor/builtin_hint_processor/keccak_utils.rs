@@ -1,4 +1,4 @@
-use crate::stdlib::{cmp, collections::HashMap, ops::Shl, prelude::*};
+use crate::stdlib::{boxed::Box, cmp, collections::HashMap, ops::Shl, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::{
@@ -54,10 +54,10 @@ pub fn unsafe_keccak(
 
     if let Ok(keccak_max_size) = exec_scopes.get::<Felt252>("__keccak_max_size") {
         if length.as_ref() > &keccak_max_size {
-            return Err(HintError::KeccakMaxSize(
+            return Err(HintError::KeccakMaxSize(Box::new((
                 length.into_owned(),
                 keccak_max_size,
-            ));
+            ))));
         }
     }
 
@@ -70,7 +70,7 @@ pub fn unsafe_keccak(
     // transform to u64 to make ranges cleaner in the for loop below
     let u64_length = length
         .to_u64()
-        .ok_or_else(|| HintError::InvalidKeccakInputLength(length.into_owned()))?;
+        .ok_or_else(|| HintError::InvalidKeccakInputLength(Box::new(length.into_owned())))?;
 
     let mut keccak_input = Vec::new();
     for (word_i, byte_i) in (0..u64_length).step_by(16).enumerate() {
@@ -83,7 +83,7 @@ pub fn unsafe_keccak(
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
         if word.is_negative() || word.as_ref() >= &Felt252::one().shl(8 * (n_bytes as u32)) {
-            return Err(HintError::InvalidWordSize(word.into_owned()));
+            return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
         }
 
         let mut bytes = word.to_bytes_be();
@@ -251,13 +251,13 @@ pub fn split_n_bytes(
         get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_u64()
                 .ok_or(HintError::Math(MathError::Felt252ToU64Conversion(
-                    x.into_owned(),
+                    Box::new(x.into_owned()),
                 )))
         })?;
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
         .and_then(|x| x.to_u64())
-        .ok_or(HintError::MissingConstant(BYTES_IN_WORD))?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(BYTES_IN_WORD)))?;
     let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
     insert_value_from_var_name(
         "n_words_to_copy",
