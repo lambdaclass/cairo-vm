@@ -182,15 +182,37 @@ where
     }
 }
 
+// 10 ** f64::MAX_10_EXP as u32
+const MAX_EXP_POWER_OF_10: f64 = 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0;
+
 fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     let str = n.to_string();
     let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
 
-    let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
     let exponent = list[1].parse::<u32>().ok()?;
-
-    let result = base * Felt252::from(10).pow(exponent);
-    Some(result)
+    let base_string = list[0].to_string();
+    match Felt252::parse_bytes(base_string.as_bytes(), 10) {
+        Some(base) => Some(base * Felt252::from(10).pow(exponent)),
+        // We have a fractional number as base
+        None => {
+            let float_base = base_string.parse::<f64>().ok()?;
+            // List of cases to handle
+            // I: EXPONENT > MAX_10_EXP
+            // We need to get rid of the decimal part of the base, but we must also not go beyond the f64 range
+            if exponent > f64::MAX_10_EXP as u32 {
+                let exponent = exponent - f64::MAX_10_EXP as u32;
+                let base = (float_base * MAX_EXP_POWER_OF_10) as u64;
+                Some(Felt252::from(base) * Felt252::from(10).pow(exponent))
+            // II: EXPONENT < MAX_10_EXP
+            // We can perform the exponenciation inside the f64 range, but may need to round up remaining digits
+            } else {
+                let num = (float_base * 10f64.pow(exponent as f64))
+                    .round()
+                    .to_string();
+                Felt252::from_str_radix(&num, 10).ok()
+            }
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -1397,6 +1419,43 @@ mod tests {
         assert_matches!(
             felt_from_number(n),
             Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_with_fractional_part() {
+        let n = serde_json::Value::Number(Number::from_f64(64e+74).unwrap());
+
+        assert_matches!(
+            felt_from_number(n),
+            Ok(x) if x == Some(Felt252::from_str_radix("64", 10).unwrap() * Felt252::from(10).pow(74))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_with_fractional_part_f64_max() {
+        let n = serde_json::Value::Number(Number::from_f64(f64::MAX).unwrap());
+        assert_eq!(
+            felt_from_number(n).unwrap(),
+            Some(
+                Felt252::from_str_radix(
+                    "2082797363194934431336897723140298717588791783575467744530053896730196177808",
+                    10
+                )
+                .unwrap()
+            )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_with_fractional_part_u64_max() {
+        let n = serde_json::Value::Number(Number::from_f64(18446744073709551615.0).unwrap());
+        assert_eq!(
+            felt_from_number(n).unwrap(),
+            Some(Felt252::from_str_radix("18446744073709551615", 10).unwrap())
         );
     }
 }
