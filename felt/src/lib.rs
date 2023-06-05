@@ -460,7 +460,7 @@ impl AddAssign for Felt252 {
 impl<'a> AddAssign<&'a Felt252> for Felt252 {
     fn add_assign(&mut self, rhs: &Self) {
         // TODO: optimize and move upstream
-        self.value = &self.value + &rhs.value;
+        self.value += rhs.value.clone();
     }
 }
 
@@ -739,7 +739,7 @@ impl Integer for Felt252 {
     }
 
     fn is_even(&self) -> bool {
-        self.value.is_even()
+        self.value.representative().limbs[3] & 1 == 0
     }
 
     fn is_multiple_of(&self, other: &Self) -> bool {
