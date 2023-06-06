@@ -117,41 +117,48 @@ pub fn assert_le_felt(
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
     let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
         .clone()
-        .into_owned();
+        .into_owned()
+        .to_biguint();
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?
         .clone()
-        .into_owned();
+        .into_owned()
+        .to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
+    // TODO: use UnsignedInteger for this
+    let prime_div2 = prime_div_constant(2)?;
+    let prime_div3 = prime_div_constant(3)?;
+
     if a > b {
-        return Err(HintError::NonLeFelt252(Box::new((a.clone(), b.clone()))));
+        return Err(HintError::NonLeFelt252(Box::new((
+            Felt252::from(a.clone()),
+            Felt252::from(b.clone()),
+        ))));
     }
 
     let arc1 = b - a;
-    let arc2 = Felt252::zero() - Felt252::one() - b;
-    let mut lengths_and_indices = vec![(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
+    let arc2 = Felt252::prime() - 1_u32 - b;
+    let mut lengths_and_indices = [(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
-    if lengths_and_indices[0].0 > &div_prime_by_bound(Felt252::new(3_i32))?
-        || lengths_and_indices[1].0 > &div_prime_by_bound(Felt252::new(2_i32))?
-    {
+    if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
         return Err(HintError::ArcTooBig(Box::new((
-            lengths_and_indices[0].0.clone(),
-            div_prime_by_bound(Felt252::new(3_i32))?,
-            lengths_and_indices[1].0.clone(),
-            div_prime_by_bound(Felt252::new(3_i32))?,
+            Felt252::from(lengths_and_indices[0].0.clone()),
+            Felt252::from(prime_div2),
+            Felt252::from(lengths_and_indices[1].0.clone()),
+            Felt252::from(prime_div3),
         ))));
     }
 
     let excluded = lengths_and_indices[2].1;
     exec_scopes.assign_or_update_variable("excluded", any_box!(Felt252::new(excluded)));
 
-    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
-    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
+    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&prime_over_3_high.to_biguint());
+    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&prime_over_2_high.to_biguint());
 
-    vm.insert_value((range_check_ptr + 1_i32)?, q_0)?;
-    vm.insert_value(range_check_ptr, r_0)?;
-    vm.insert_value((range_check_ptr + 3_i32)?, q_1)?;
-    vm.insert_value((range_check_ptr + 2_i32)?, r_1)?;
+    vm.insert_value(range_check_ptr, Felt252::from(r_0))?;
+    vm.insert_value((range_check_ptr + 1_i32)?, Felt252::from(q_0))?;
+    vm.insert_value((range_check_ptr + 2_i32)?, Felt252::from(r_1))?;
+    vm.insert_value((range_check_ptr + 3_i32)?, Felt252::from(q_1))?;
     Ok(())
 }
 
@@ -700,6 +707,12 @@ fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt252::new(limit))
+}
+
+fn prime_div_constant(bound: u32) -> Result<BigUint, VirtualMachineError> {
+    let prime: &BigUint = &CAIRO_PRIME;
+    let limit = prime / bound;
+    Ok(limit)
 }
 
 /* Implements hint:

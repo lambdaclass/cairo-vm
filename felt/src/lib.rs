@@ -670,12 +670,12 @@ impl<'a> Rem<&'a Felt252> for Felt252 {
 impl Zero for Felt252 {
     fn zero() -> Self {
         Self {
-            value: FieldElement::<Stark252PrimeField>::zero(),
+            value: FieldElement::from_raw(&Stark252PrimeField::ZERO),
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.value == FieldElement::<Stark252PrimeField>::zero()
+        self.value == FieldElement::from_raw(&Stark252PrimeField::ZERO)
     }
 }
 
