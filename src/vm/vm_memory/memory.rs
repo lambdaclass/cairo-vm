@@ -73,7 +73,7 @@ impl AddressSet {
 
             let offset = addr.offset;
             if offset >= self.0[segment].len() {
-                self.0[segment].resize(offset + 1, false);
+                self.0[segment].resize(offset, false);
             }
 
             self.0[segment].insert(offset, true);
