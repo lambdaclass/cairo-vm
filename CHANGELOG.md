@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
+
 * fix: Fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
 
 * bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
