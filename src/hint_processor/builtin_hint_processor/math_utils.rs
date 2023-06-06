@@ -30,7 +30,7 @@ use crate::{
     },
 };
 use felt::Felt252;
-use num_bigint::BigUint;
+use num_bigint::{BigUint, Sign};
 use num_integer::Integer;
 use num_traits::One;
 use num_traits::{Signed, Zero};
@@ -387,9 +387,12 @@ pub fn is_positive(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value_as_int = value.to_signed_felt();
     let range_check_builtin = vm.get_range_check_builtin()?;
+
+    // Avoid using abs so we don't allocate a new BigInt
+    let (sign, abs_value) = value_as_int.into_parts();
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
-        Some(bound) if value_as_int.abs() > bound.to_bigint() => {
+        Some(bound) if abs_value > bound.to_biguint() => {
             return Err(HintError::ValueOutsideValidRange(Box::new(
                 value.into_owned(),
             )))
@@ -397,7 +400,7 @@ pub fn is_positive(
         _ => {}
     };
 
-    let result = Felt252::from(value_as_int.is_positive() as u8);
+    let result = Felt252::from((sign == Sign::Plus) as u8);
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
 
