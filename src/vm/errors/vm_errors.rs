@@ -106,6 +106,8 @@ pub enum VirtualMachineError {
     EndOfProgram(usize),
     #[error("Could not reach the end of the program. Executed steps: {0}.")]
     StepsLimit(u64),
+    #[error("Could not reach the end of the program. RunResources has no remaining steps.")]
+    UnfinishedExecution,
     #[error("Current run is not finished")]
     RunNotFinished,
     #[error("Invalid argument count, expected {} but got {}", (*.0).0, (*.0).1)]

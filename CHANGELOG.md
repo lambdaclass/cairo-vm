@@ -1,10 +1,12 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: Fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
 
 * bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
 
 * feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
 * perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
 
 * feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
@@ -14,9 +16,12 @@
 
 * fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
 
+* feat: Add RunResources Struct [#1175](https://github.com/lambdaclass/cairo-rs/pull/1175)
+  * BREAKING: Modify `CairoRunner::run_until_pc` arity. Add `run_resources: &mut Option<RunResources>` input
+  * BREAKING: Modify `CairoRunner::run_from_entrypoint` arity. Add `run_resources: &mut Option<RunResources>` input
+
 * fix: Fix 'as_int' conversion usage in hints `ASSERT_250_BIT` &  `SIGNED_DIV_REM` [#1191](https://github.com/lambdaclass/cairo-rs/pull/1191)
 
-* fix: Fix hint `BIGINT_PACK_DIV_MOD` [#1189](https://github.com/lambdaclass/cairo-rs/pull/1189)
 
 * bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
 
