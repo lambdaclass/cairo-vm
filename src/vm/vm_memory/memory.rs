@@ -319,10 +319,8 @@ impl Memory {
             .and_then(|x| self.validation_rules.get(x))
         {
             if !self.validated_addresses.contains(&addr) {
-                {
-                    self.validated_addresses
-                        .extend(rule.0(self, addr)?.as_slice());
-                }
+                self.validated_addresses
+                    .extend(rule.0(self, addr)?.as_slice());
             }
         }
         Ok(())
@@ -331,15 +329,17 @@ impl Memory {
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for (index, rule) in self.validation_rules.iter().enumerate() {
-            if let Some(rule) = rule {
-                if index < self.data.len() {
-                    for offset in 0..self.data[index].len() {
-                        let addr = Relocatable::from((index as isize, offset));
-                        if !self.validated_addresses.contains(&addr) {
-                            self.validated_addresses
-                                .extend(rule.0(self, addr)?.as_slice());
-                        }
-                    }
+            if index >= self.data.len() {
+                continue;
+            }
+            let Some(rule) = rule else {
+                continue;
+            };
+            for offset in 0..self.data[index].len() {
+                let addr = Relocatable::from((index as isize, offset));
+                if !self.validated_addresses.contains(&addr) {
+                    self.validated_addresses
+                        .extend(rule.0(self, addr)?.as_slice());
                 }
             }
         }
