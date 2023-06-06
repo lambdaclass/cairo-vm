@@ -19,7 +19,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
 use num_traits::{One, ToPrimitive, Zero};
@@ -496,28 +496,45 @@ pub fn n_pair_bits(
     // If m is too high the shift result will always be zero
     let m = m_cow.as_ref().to_u32().unwrap_or(253);
     if m >= 253 {
-        return insert_value_from_var_name("quad_bit", 0, vm, ids_data, ap_tracking);
+        return insert_value_from_var_name(result_name, 0, vm, ids_data, ap_tracking);
     }
     if m.is_zero() {
         return Err(HintError::NPairBitsMZero);
     }
 
-    let one = &Felt252::one();
-    let two = &Felt252::from(2);
+    let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
 
     // Each step, fetches the bits in mth position for v and u,
     // and appends them to the accumulator. i.e:
     //         10
     //         ↓↓
     //  1010101__ -> 101010110
+    let get_bit =
+        |x: &BigUint, i| m.checked_sub(i).map(|i| x.bit(i.into())).unwrap_or(false) as u32;
     let res: Felt252 = (0..number_of_pairs)
         .map(|i| {
-            let bit_1 = (scalar_v >> (m - i - 1)) & two;
+            // This code is definitely verbose, but it's the only way I found to avoid a `panic`
+            // when `m < number_of_pairs` while still being correct and hopefully fast.
+            let bit_1 = get_bit(&scalar_v, i);
             // 1 * ((ids.scalar_u >> ids.m) & 1)
-            let bit_0 = (scalar_u >> (m - i)) & one;
-            bit_0 + bit_1
+            let bit_0 = get_bit(&scalar_u, i);
+            bit_0 | (bit_1 << 1)
         })
-        .fold(Felt252::zero(), |acc, x| (acc << 2_u32) + x);
+        .fold(BigUint::zero(), |mut acc, x| {
+            acc <<= 2_u32;
+            acc += x;
+            acc
+        })
+        .into();
+    /*
+        ids.quad_bit = (
+            8 * ((ids.scalar_v >> ids.m) & 1)
+            + 4 * ((ids.scalar_u >> ids.m) & 1)
+            + 2 * ((ids.scalar_v >> (ids.m - 1)) & 1)
+            + ((ids.scalar_u >> (ids.m - 1)) & 1)
+        )
+    %{ ids.dibit = ((ids.scalar_u >> ids.m) & 1) + 2 * ((ids.scalar_v >> ids.m) & 1) %}
+    */
 
     insert_value_from_var_name(result_name, res, vm, ids_data, ap_tracking)
 }
@@ -1312,6 +1329,29 @@ mod tests {
     }
 
     #[test]
+    fn run_quad_bit_for_m_1() {
+        let hint_code = hint_code::QUAD_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        let m = 1;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
+
+    #[test]
     fn run_quad_bit_with_max_m_ok() {
         let hint_code = hint_code::QUAD_BIT;
         let mut vm = vm_with_range_check!();
@@ -1356,6 +1396,30 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 2)];
+    }
+
+    #[test]
+    fn run_di_bit_with_max_m_ok() {
+        let hint_code = hint_code::DI_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 89712;
+        let scalar_v = 1478396;
+        // Value is so high the result will always be zero
+        let m = i128::MAX;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "dibit"];
+
+        // Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 
     #[test]
