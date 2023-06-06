@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686067132540,
+  "lastUpdate": 1686070590421,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -104716,6 +104716,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23054408,
             "range": "± 1652904",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "88055861+mmsc2@users.noreply.github.com",
+            "name": "mmsc2",
+            "username": "mmsc2"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "46ad0b8d2c008a7c1ee9b003effe9e206fb42aba",
+          "message": "Implement run resources funcs (#1175)\n\n* Add RunResources structure\n\n* Modify changelog\n\n* change data type of n_steps from u64 to usize\n\n* Implement run resources functions\n\n* Fix tests\n\n* set comment about calculation in cairo_run\n\n* Change CHangelog and remove option from RunResources\n\n* Fix clippy\n\n* Add clone trait to run resources\n\n* Add debug and default traits to RunResources\n\n* Fix error in while loop inside run_until_pc\n\n* Add helper function for clarity in run_until_pc loop\n\n* Add test for cairo 0 contracts\n\n* Add tests with Cairo 1 contracts\n\n* Move RunResources struct to vm::runners::cairo_runner::RunResources\n\n* Update CHANGELOG.md\n\n* Fix wasm and no-std compilation\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-06T16:17:42Z",
+          "tree_id": "570dee15633fede5fedc80d67e2eb03b8bbd51cb",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/46ad0b8d2c008a7c1ee9b003effe9e206fb42aba"
+        },
+        "date": 1686070582866,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29116,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 58862,
+            "range": "± 2153",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23288421,
+            "range": "± 49241",
             "unit": "ns/iter"
           }
         ]
