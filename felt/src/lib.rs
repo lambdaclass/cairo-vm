@@ -20,7 +20,6 @@ use lambdaworks_math::{
     field::{
         element::FieldElement, fields::fft_friendly::stark_252_prime_field::Stark252PrimeField,
     },
-    traits::ByteConversion,
     unsigned_integer::element::UnsignedInteger,
 };
 use lazy_static::lazy_static;
@@ -235,11 +234,6 @@ impl Felt252 {
         self.value.representative().limbs
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn to_signed_bytes_le(&self) -> Vec<u8> {
-        self.value.to_bytes_le()
-    }
-
     pub fn parse_bytes(bytes: &[u8], radix: u32) -> Option<Self> {
         Some(BigInt::parse_bytes(bytes, radix)?.into())
     }
@@ -251,7 +245,9 @@ impl Felt252 {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         if radix == 16 {
-            format!("{}", self.value)
+            let mut res = format!("{}", self.value);
+            res.replace_range(..2, "");
+            res
         } else {
             self.to_biguint().to_str_radix(radix)
         }
@@ -1549,6 +1545,26 @@ mod test {
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
+
+        #[test]
+        fn felt_to_str(x in any::<Felt252>(), radix in 2_u32..37) {
+            let str_x = x.to_str_radix(radix);
+            let int_x = x.to_biguint();
+            let expected = int_x.to_str_radix(radix);
+            prop_assert_eq!(str_x, expected);
+        }
+
+        #[test]
+        fn bigint_from_felt(x in any::<Felt252>()) {
+            prop_assert_eq!(BigInt::from(x.clone()), x.to_bigint());
+        }
+
+        #[test]
+        fn to_signed_felt_is_negative(x in any::<i128>()) {
+            let int = BigInt::from(x);
+            let felt = Felt252::from(x);
+            prop_assert_eq!(felt.to_signed_felt(), int);
+        }
     }
 
     #[rstest]
@@ -1664,5 +1680,19 @@ mod test {
     fn signum_of_zero_is_zero() {
         let zero = Felt252::zero();
         assert_eq!(&zero.signum(), &zero)
+    }
+
+    #[test]
+    fn felt_from_str_radix_failed() {
+        let x = Felt252::from_str_radix("abcdefghijk", 16);
+        assert!(x.is_err());
+        let res = x.unwrap_err().to_string();
+        let expected = "ParseFeltError";
+        assert_eq!(res, expected)
+    }
+
+    #[test]
+    fn default_is_zero() {
+        assert_eq!(Felt252::default(), Felt252::zero())
     }
 }
