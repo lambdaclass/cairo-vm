@@ -4,6 +4,8 @@
 
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
 
+#### [0.5.0] - 2023-6-7
+
 * fix: Fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
 
 * bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
@@ -35,8 +37,6 @@
 * fix: Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
 
   * These hints now return an error when ids.m equals zero
-
-* Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
 
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
 
