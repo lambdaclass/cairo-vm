@@ -3,11 +3,14 @@ use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::{
+    hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
         deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
-        InstructionLocation, ReferenceManager,
+        InstructionLocation, OffsetValue, ReferenceManager,
     },
-    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
+    types::{
+        errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,
+    },
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
@@ -48,6 +51,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) error_message_attributes: Vec<Attribute>,
     pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     pub(crate) identifiers: HashMap<String, Identifier>,
+    pub(crate) reference_manager: Vec<HintReference>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -55,7 +59,6 @@ pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
-    pub(crate) reference_manager: ReferenceManager,
 }
 
 impl Program {
@@ -89,11 +92,11 @@ impl Program {
             error_message_attributes,
             instruction_locations,
             identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
             constants,
-            reference_manager,
             builtins,
         })
     }
@@ -139,6 +142,29 @@ impl Program {
             .iter()
             .map(|(cairo_type, identifier)| (cairo_type.as_str(), identifier))
     }
+
+    pub(crate) fn get_reference_list(reference_manager: &ReferenceManager) -> Vec<HintReference> {
+        reference_manager
+            .references
+            .iter()
+            .map(|r| {
+                HintReference {
+                    offset1: r.value_address.offset1.clone(),
+                    offset2: r.value_address.offset2.clone(),
+                    dereference: r.value_address.dereference,
+                    // only store `ap` tracking data if the reference is referred to it
+                    ap_tracking_data: match (&r.value_address.offset1, &r.value_address.offset2) {
+                        (OffsetValue::Reference(Register::AP, _, _), _)
+                        | (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                            Some(r.ap_tracking_data.clone())
+                        }
+                        _ => None,
+                    },
+                    cairo_type: Some(r.value_address.value_type.clone()),
+                }
+            })
+            .collect()
+    }
 }
 
 impl Default for Program {
@@ -146,9 +172,6 @@ impl Default for Program {
         Self {
             shared_program_data: Arc::new(SharedProgramData::default()),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         }
     }

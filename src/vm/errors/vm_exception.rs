@@ -179,8 +179,8 @@ fn get_value_from_simple_reference(
 ) -> Option<MaybeRelocatable> {
     let reference: HintReference = runner
         .program
+        .shared_program_data
         .reference_manager
-        .references
         .get(ref_id)?
         .clone()
         .into();
