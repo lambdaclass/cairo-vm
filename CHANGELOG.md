@@ -3,6 +3,7 @@
 #### Upcoming Changes
 
 #### [0.5.0] - 2023-6-7
+
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
   Fixes [#1205](https://github.com/lambdaclass/cairo-rs/issue/1205)
 
