@@ -33,8 +33,6 @@
 
   * These hints now return an error when ids.m equals zero
 
-* Add `CairoRunner::run_until_pc_with_steps_limit method` [#1181](https://github.com/lambdaclass/cairo-rs/pull/1181)
-
 * fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
 
 * fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
