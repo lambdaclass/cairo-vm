@@ -1819,6 +1819,29 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn signed_div_rem_out_of_range_bound() {
+        let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 6;
+        //Insert ids into memory
+        let bound = vm.get_range_check_builtin().unwrap()._bound.clone();
+        vm.segments = segments![((1, 3), (5)), ((1, 4), 10)];
+        vm.insert_value((1, 5).into(), bound.clone().unwrap())
+            .unwrap();
+        //Create ids
+        let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
+        //Execute the hint
+        let builtin_bound = felt_str!("340282366920938463463374607431768211456");
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::OutOfValidRange(bx))
+            if *bx == (bound.unwrap(), builtin_bound >> 1_u32)
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn signed_div_rem_no_range_check_builtin() {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm!();
