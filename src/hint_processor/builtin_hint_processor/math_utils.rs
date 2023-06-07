@@ -140,6 +140,7 @@ pub fn assert_le_felt(
     let arc2 = Felt252::prime() - 1_u32 - b;
     let mut lengths_and_indices = [(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
+    // TODO: I believe this check can be removed
     if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
         return Err(HintError::ArcTooBig(Box::new((
             Felt252::from(lengths_and_indices[0].0.clone()),
