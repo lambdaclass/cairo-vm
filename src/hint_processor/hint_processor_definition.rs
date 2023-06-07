@@ -40,7 +40,7 @@ pub trait HintProcessor {
         //(may contain other variables aside from those used by the hint)
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
-        references: &Vec<HintReference>,
+        references: &[HintReference],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
@@ -52,7 +52,7 @@ pub trait HintProcessor {
 
 fn get_ids_data(
     reference_ids: &HashMap<String, usize>,
-    references: &Vec<HintReference>,
+    references: &[HintReference],
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
     let mut ids_data = HashMap::<String, HintReference>::new();
     for (path, ref_id) in reference_ids {

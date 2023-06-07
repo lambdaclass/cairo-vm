@@ -10,10 +10,7 @@ use thiserror::Error;
 use thiserror_no_std::Error;
 
 use crate::{
-    hint_processor::{
-        hint_processor_definition::HintReference,
-        hint_processor_utils::get_maybe_relocatable_from_reference,
-    },
+    hint_processor::hint_processor_utils::get_maybe_relocatable_from_reference,
     serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
     types::{instruction::Register, relocatable::MaybeRelocatable},
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
@@ -177,13 +174,11 @@ fn get_value_from_simple_reference(
     runner: &CairoRunner,
     vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
-    let reference: HintReference = runner
+    let reference = runner
         .program
         .shared_program_data
         .reference_manager
-        .get(ref_id)?
-        .clone()
-        .into();
+        .get(ref_id)?;
     // Filter ap-based references
     match reference.offset1 {
         OffsetValue::Reference(Register::AP, _, _) => None,
@@ -191,7 +186,7 @@ fn get_value_from_simple_reference(
             // Filer complex types (only felt/felt pointers)
             match reference.cairo_type {
                 Some(ref cairo_type) if cairo_type.contains("felt") => Some(
-                    get_maybe_relocatable_from_reference(vm, &reference, ap_tracking)?,
+                    get_maybe_relocatable_from_reference(vm, reference, ap_tracking)?,
                 ),
                 _ => None,
             }

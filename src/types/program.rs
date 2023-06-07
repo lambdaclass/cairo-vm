@@ -875,13 +875,13 @@ mod tests {
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_program_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         };
 

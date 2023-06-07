@@ -483,7 +483,7 @@ impl CairoRunner {
     /// Gets the data used by the HintProcessor to execute each hint
     pub fn get_hint_data_dictionary(
         &self,
-        references: &Vec<HintReference>,
+        references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
@@ -530,7 +530,7 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
 
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
