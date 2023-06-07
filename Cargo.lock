@@ -280,7 +280,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-felt"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "lazy_static",
  "num-bigint",
@@ -692,7 +692,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-take_until_unbalanced"
-version = "0.26.0"
+version = "0.27.0"
 dependencies = [
  "nom",
  "wasm-bindgen-test",
@@ -700,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "ark-ff",
@@ -708,7 +708,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.5.0",
+ "cairo-felt 0.5.1",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "cairo-take_until_unbalanced",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1424,7 +1424,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2634,9 +2634,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.21"
+version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3403384eaacbca9923fa06940178ac13e4edb725486d70e8e15881d0c836cc"
+checksum = "ea9e1b3cf1243ae005d9e74085d4d542f3125458f3a81af210d901dcd7411efd"
 dependencies = [
  "itoa",
  "libc",
