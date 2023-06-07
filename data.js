@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686164480708,
+  "lastUpdate": 1686170024177,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -105004,6 +105004,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21249302,
             "range": "± 474359",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "21e86c66f27abc497fc50d5b16809e02b11a596d",
+          "message": "fix: overflow in `n_pair_bits` (#1209)\n\n* fix: overflow in `n_pair_bits`\n\nReplace a substraction and shift-based logic by `.checked_sub` and\nfinding the right bit to avoid a `panic`.\nAlso fixed a bug where `m >= 253` would store the result with the wrong\nid for `DI_BIT` hint.\n\nFixes #1205\n\n* fix changelog.md\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-07T19:52:42Z",
+          "tree_id": "9a2e3b478adb08bdad2416336112206bc34a7b11",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/21e86c66f27abc497fc50d5b16809e02b11a596d"
+        },
+        "date": 1686170017688,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24375,
+            "range": "± 2547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 50080,
+            "range": "± 3241",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19691351,
+            "range": "± 1241966",
             "unit": "ns/iter"
           }
         ]
