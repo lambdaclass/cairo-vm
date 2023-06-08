@@ -41,16 +41,16 @@ pub fn memset_continue_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<Felt252>("n")?;
+    let n = exec_scopes.get_mut_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - &Felt252::one();
+    let new_n = n.clone() - Felt252::one();
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = Felt252::new(new_n.is_positive());
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    exec_scopes.insert_value("n", new_n);
+    *n = new_n;
     Ok(())
 }
 

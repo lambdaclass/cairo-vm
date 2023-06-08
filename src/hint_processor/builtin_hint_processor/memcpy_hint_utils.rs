@@ -58,23 +58,14 @@ pub fn memcpy_continue_copying(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
-    let n = exec_scopes.get_ref::<Felt252>("n")?;
+    let n = exec_scopes.get_mut_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1;
+    let new_n = n.clone() - Felt252::one();
     // if it is positive, insert 1 in the address of `continue_copying`
     // else, insert 0
-    if new_n.is_zero() {
-        insert_value_from_var_name("continue_copying", &new_n, vm, ids_data, ap_tracking)?;
-    } else {
-        insert_value_from_var_name(
-            "continue_copying",
-            Felt252::one(),
-            vm,
-            ids_data,
-            ap_tracking,
-        )?;
-    }
-    exec_scopes.insert_value("n", new_n);
+    let flag = Felt252::new(new_n.is_zero());
+    insert_value_from_var_name("continue_copying", &flag, vm, ids_data, ap_tracking)?;
+    *n = new_n;
     Ok(())
 }
 
