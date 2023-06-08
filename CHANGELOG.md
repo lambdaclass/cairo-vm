@@ -5,11 +5,14 @@
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
   * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
 
-#### [0.5.0] - 2023-6-7
+#### [0.5.1] - 2023-6-7
 
-* fix: Fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
+* fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
+  Fixes [#1205](https://github.com/lambdaclass/cairo-rs/issue/1205)
 
-* bugfix: Fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
+* fix: fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
+
+* bugfix: fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
 
 * feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
 
@@ -83,6 +86,9 @@
 
   * Implement `TryFrom<CasmContractClass> for Program`
   * Add `Cairo1HintProcessor`
+
+#### 0.5.0
+**YANKED**
 
 #### [0.4.0] - 2023-05-12
 
