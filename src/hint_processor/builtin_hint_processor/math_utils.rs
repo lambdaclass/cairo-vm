@@ -115,8 +115,8 @@ pub fn assert_le_felt(
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
-    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
-    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     // TODO: use UnsignedInteger for this
@@ -125,14 +125,14 @@ pub fn assert_le_felt(
 
     if a > b {
         return Err(HintError::NonLeFelt252(Box::new((
-            Felt252::from(a.clone()),
-            Felt252::from(b.clone()),
+            Felt252::from(a),
+            Felt252::from(b),
         ))));
     }
 
-    let arc1 = b - a;
-    let arc2 = Felt252::prime() - 1_u32 - b;
-    let mut lengths_and_indices = [(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
+    let arc1 = &b - &a;
+    let arc2 = Felt252::prime() - 1_u32 - &b;
+    let mut lengths_and_indices = [(&a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
     // TODO: I believe this check can be removed
     if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
