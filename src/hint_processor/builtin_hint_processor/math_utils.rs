@@ -115,14 +115,8 @@ pub fn assert_le_felt(
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
-    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
-        .clone()
-        .into_owned()
-        .to_biguint();
-    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?
-        .clone()
-        .into_owned()
-        .to_biguint();
+    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
+    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     // TODO: use UnsignedInteger for this
