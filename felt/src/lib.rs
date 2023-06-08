@@ -678,13 +678,12 @@ impl Zero for Felt252 {
 
 impl One for Felt252 {
     fn one() -> Self {
-        Self {
-            value: FieldElement::<Stark252PrimeField>::one(),
-        }
+        let value = FieldElement::from_raw(&Stark252PrimeField::ONE);
+        Self { value }
     }
 
     fn is_one(&self) -> bool {
-        self.value == FieldElement::<Stark252PrimeField>::one()
+        self.value == FieldElement::from_raw(&Stark252PrimeField::ONE)
     }
 }
 

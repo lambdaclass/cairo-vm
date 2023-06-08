@@ -12,7 +12,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
-use num_traits::Signed;
+use num_traits::{One, Signed};
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -43,7 +43,7 @@ pub fn memset_continue_loop(
     // get `n` variable from vm scope
     let n = exec_scopes.get_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n - 1;
+    let new_n = n - &Felt252::one();
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
     let should_continue = Felt252::new(new_n.is_positive() as i32);
