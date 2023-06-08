@@ -31,26 +31,26 @@ pub fn memset_enter_scope(
 /* Implements hint:
 %{
     n -= 1
-    ids.continue_loop = 1 if n > 0 else 0
+    ids.`i_name` = 1 if n > 0 else 0
 %}
 */
-pub fn memset_continue_loop(
+pub fn memset_step_loop(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    i_name: &'static str,
 ) -> Result<(), HintError> {
     // get `n` variable from vm scope
     let n = exec_scopes.get_mut_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
-    let new_n = n.clone() - Felt252::one();
+    *n -= Felt252::one();
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let should_continue = Felt252::new(new_n.is_positive());
-    insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
+    let flag = Felt252::new(n.is_positive());
+    insert_value_from_var_name(i_name, flag, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
-    *n = new_n;
     Ok(())
 }
 
