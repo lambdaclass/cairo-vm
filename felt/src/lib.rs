@@ -158,6 +158,16 @@ impl From<u128> for Felt252 {
     }
 }
 
+impl From<bool> for Felt252 {
+    fn from(flag: bool) -> Self {
+        if flag {
+            Self::one()
+        } else {
+            Self::zero()
+        }
+    }
+}
+
 // TODO: bury BigUint?
 impl From<BigUint> for Felt252 {
     fn from(mut value: BigUint) -> Self {

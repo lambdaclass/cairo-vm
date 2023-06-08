@@ -46,7 +46,7 @@ pub fn memset_continue_loop(
     let new_n = n - &Felt252::one();
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let should_continue = Felt252::new(new_n.is_positive() as i32);
+    let should_continue = Felt252::new(new_n.is_positive());
     insert_value_from_var_name("continue_loop", should_continue, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
