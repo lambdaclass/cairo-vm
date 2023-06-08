@@ -37,8 +37,8 @@ impl VmException {
     ) -> Self {
         let pc = vm.run_context.pc.offset;
         let error_attr_value = get_error_attr_value(pc, runner, vm);
-        let hint_index = if let VirtualMachineError::Hint(hint_index, _) = error {
-            Some(hint_index)
+        let hint_index = if let VirtualMachineError::Hint(ref bx) = error {
+            Some(bx.0)
         } else {
             None
         };
@@ -387,10 +387,10 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: None,
-            inner_exc: VirtualMachineError::FailedToComputeOperands(
+            inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
                 Relocatable::from((0, 4)),
-            ),
+            ))),
             error_attr_value: None,
             traceback: None,
         };
@@ -398,10 +398,10 @@ mod test {
             vm_excep.to_string(),
             format!(
                 "Error at pc=0:2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands(
+                VirtualMachineError::FailedToComputeOperands(Box::new((
                     "op0".to_string(),
                     Relocatable::from((0, 4))
-                )
+                )))
             )
         )
     }
@@ -412,10 +412,10 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: None,
-            inner_exc: VirtualMachineError::FailedToComputeOperands(
+            inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
                 Relocatable::from((0, 4)),
-            ),
+            ))),
             error_attr_value: Some(String::from("Error message: Block may fail\n")),
             traceback: None,
         };
@@ -423,10 +423,10 @@ mod test {
             vm_excep.to_string(),
             format!(
                 "Error message: Block may fail\nError at pc=0:2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands(
+                VirtualMachineError::FailedToComputeOperands(Box::new((
                     "op0".to_string(),
                     Relocatable::from((0, 4))
-                )
+                )))
             )
         )
     }
@@ -447,10 +447,10 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::FailedToComputeOperands(
+            inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
                 Relocatable::from((0, 4)),
-            ),
+            ))),
             error_attr_value: None,
             traceback: None,
         };
@@ -458,10 +458,10 @@ mod test {
             vm_excep.to_string(),
             format!(
                 "Folder/file.cairo:1:1: Error at pc=0:2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands(
+                VirtualMachineError::FailedToComputeOperands(Box::new((
                     "op0".to_string(),
                     Relocatable::from((0, 4))
-                )
+                )))
             )
         )
     }
@@ -494,10 +494,10 @@ mod test {
         let vm_excep = VmException {
             pc: 2,
             inst_location: Some(location),
-            inner_exc: VirtualMachineError::FailedToComputeOperands(
+            inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
                 Relocatable::from((0, 4)),
-            ),
+            ))),
             error_attr_value: None,
             traceback: None,
         };
@@ -505,7 +505,7 @@ mod test {
             vm_excep.to_string(),
             format!(
                 "Folder/file_b.cairo:2:2: While expanding the reference:\nFolder/file.cairo:1:1: Error at pc=0:2:\n{}\n",
-                VirtualMachineError::FailedToComputeOperands("op0".to_string(), Relocatable::from((0, 4)))
+                VirtualMachineError::FailedToComputeOperands(Box::new(("op0".to_string(), Relocatable::from((0, 4)))))
             )
         )
     }
@@ -643,7 +643,7 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
 
         #[cfg(all(feature = "std"))]
@@ -657,7 +657,7 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
@@ -695,7 +695,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         assert_eq!(
             get_traceback(&vm, &cairo_runner),
@@ -854,7 +854,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
@@ -899,7 +899,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);

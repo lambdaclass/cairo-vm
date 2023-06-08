@@ -144,8 +144,7 @@ impl BuiltinRunner {
                         let min_step = (ratio * self.instances_per_component()) as usize;
                         if vm.current_step < min_step {
                             return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                                min_step,
-                                self.name(),
+                                Box::new((min_step, self.name())),
                             )
                             .into());
                         };
@@ -412,7 +411,7 @@ impl BuiltinRunner {
         // Verify that n is not too large to make sure the expected_offsets set that is constructed
         // below is not too large.
         if n > div_floor(offset_len, n_input_cells) {
-            return Err(MemoryError::MissingMemoryCells(self.name()).into());
+            return Err(MemoryError::MissingMemoryCells(Box::new(self.name())).into());
         }
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
@@ -426,9 +425,11 @@ impl BuiltinRunner {
             }
         }
         if !missing_offsets.is_empty() {
-            return Err(
-                MemoryError::MissingMemoryCellsWithOffsets(self.name(), missing_offsets).into(),
-            );
+            return Err(MemoryError::MissingMemoryCellsWithOffsets(Box::new((
+                self.name(),
+                missing_offsets,
+            )))
+            .into());
         }
         // Verify auto deduction rules for the unasigned output cells
         // Assigned output cells are checked as part of the call to verify_auto_deductions().
@@ -459,11 +460,11 @@ impl BuiltinRunner {
                 let used = self.get_used_cells(&vm.segments)?;
                 let size = self.get_allocated_memory_units(vm)?;
                 if used > size {
-                    return Err(InsufficientAllocatedCellsError::BuiltinCells(
+                    return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
                         self.name(),
                         used,
                         size,
-                    )
+                    )))
                     .into());
                 }
                 Ok((used, size))
@@ -802,7 +803,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -849,7 +850,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
@@ -893,7 +894,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
@@ -937,7 +938,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
@@ -968,7 +969,10 @@ mod tests {
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(160, KECCAK_BUILTIN_NAME)
+                InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
+                    160,
+                    KECCAK_BUILTIN_NAME
+                )))
             ))
         );
     }
@@ -1214,8 +1218,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCellsWithOffsets(BITWISE_BUILTIN_NAME, x)
-            )) if x == vec![0]
+                MemoryError::MissingMemoryCellsWithOffsets(bx)
+            )) if *bx == (BITWISE_BUILTIN_NAME, vec![0])
         );
     }
 
@@ -1242,8 +1246,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(BITWISE_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == BITWISE_BUILTIN_NAME
         );
     }
 
@@ -1263,8 +1267,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCellsWithOffsets(HASH_BUILTIN_NAME, x)
-            )) if x == vec![0]
+                MemoryError::MissingMemoryCellsWithOffsets(bx)
+            )) if *bx == (HASH_BUILTIN_NAME, vec![0])
         );
     }
 
@@ -1282,8 +1286,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(HASH_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == HASH_BUILTIN_NAME
         );
     }
 
@@ -1306,8 +1310,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == RANGE_CHECK_BUILTIN_NAME
         );
     }
 
@@ -1323,8 +1327,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(RANGE_CHECK_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == RANGE_CHECK_BUILTIN_NAME
         );
     }
 
@@ -1392,8 +1396,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == EC_OP_BUILTIN_NAME
         );
     }
 
@@ -1411,8 +1415,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCells(EC_OP_BUILTIN_NAME)
-            ))
+                MemoryError::MissingMemoryCells(bx)
+            )) if *bx == EC_OP_BUILTIN_NAME
         );
     }
 
@@ -1434,8 +1438,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
-            )) if x == vec![0]
+                MemoryError::MissingMemoryCellsWithOffsets(bx)
+            )) if *bx == (EC_OP_BUILTIN_NAME, vec![0])
         );
     }
 
@@ -1465,8 +1469,8 @@ mod tests {
         assert_matches!(
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
-                MemoryError::MissingMemoryCellsWithOffsets(EC_OP_BUILTIN_NAME, x)
-            )) if x == vec![7]
+                MemoryError::MissingMemoryCellsWithOffsets(bx)
+            )) if *bx == (EC_OP_BUILTIN_NAME, vec![7])
         );
     }
 

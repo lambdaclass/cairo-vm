@@ -20,7 +20,9 @@ use super::{
         pack::*,
     },
 };
-use crate::hint_processor::builtin_hint_processor::secp::ec_utils::ec_double_assign_new_x;
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::{
+    ec_double_assign_new_x, ec_double_assign_new_x_v2,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -199,7 +201,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_EXCLUDED_0 => assert_le_felt_excluded_0(vm, exec_scopes),
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::ASSERT_250_BITS => {
-                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
             }
             hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_ADDR_BOUNDED => {
@@ -552,16 +554,21 @@ impl HintProcessor for BuiltinHintProcessor {
                 "pt1",
                 &SECP_P,
             ),
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 | hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => {
-                ec_double_assign_new_x(
-                    vm,
-                    exec_scopes,
-                    &hint_data.ids_data,
-                    &hint_data.ap_tracking,
-                    &SECP_P,
-                    "point",
-                )
-            }
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP_P,
+                "point",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => ec_double_assign_new_x_v2(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+            ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => ec_double_assign_new_x(
                 vm,
                 exec_scopes,
@@ -789,7 +796,7 @@ impl HintProcessor for BuiltinHintProcessor {
             hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
-            code => Err(HintError::UnknownHint(code.to_string())),
+            code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }
 }
@@ -858,18 +865,13 @@ mod tests {
         add_segments!(vm, 1);
         //ids and references are not needed for this test
         assert_matches!(
-                    run_hint!(vm, HashMap::new(), hint_code),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 6)) &&
-                            y == MaybeRelocatable::from((1, 6)) &&
-                            z == MaybeRelocatable::from((3, 0))
-                );
+            run_hint!(vm, HashMap::new(), hint_code),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 6)),
+                    MaybeRelocatable::from((1, 6)),
+                    MaybeRelocatable::from((3, 0)))
+        );
     }
 
     #[test]
@@ -879,7 +881,7 @@ mod tests {
         let mut vm = vm!();
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code),
-            Err(HintError::UnknownHint(x)) if x == *hint_code.to_string()
+            Err(HintError::UnknownHint(bx)) if bx.as_ref() == hint_code
         );
     }
 
@@ -914,8 +916,8 @@ mod tests {
         let ids_data = ids_data!["len"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(x, y))
-            if x == "len" && y == (1,1).into()
+            Err(HintError::IdentifierNotInteger(bx))
+            if *bx == ("len".to_string(), (1,1).into())
         );
     }
 
@@ -952,7 +954,7 @@ mod tests {
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::VariableNotInScopeError(x)) if x == *"n".to_string()
+            Err(HintError::VariableNotInScopeError(bx)) if bx.as_ref() == "n"
         );
     }
 
@@ -973,18 +975,14 @@ mod tests {
 
         let ids_data = ids_data!["continue_copying"];
         assert_matches!(
-                    run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 1)) &&
-                            y == MaybeRelocatable::from(Felt252::new(5)) &&
-                            z == MaybeRelocatable::from(Felt252::zero())
-                );
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx ==
+                    (Relocatable::from((1, 1)),
+                    MaybeRelocatable::from(Felt252::new(5)),
+                    MaybeRelocatable::from(Felt252::zero()))
+        );
     }
 
     #[test]
@@ -1079,7 +1077,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(2))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::KeccakMaxSize(x, y)) if x == Felt252::new(5) && y == Felt252::new(2)
+            Err(HintError::KeccakMaxSize(bx)) if *bx == (Felt252::new(5), Felt252::new(2))
         );
     }
 
@@ -1127,7 +1125,7 @@ mod tests {
         let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(10))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::InvalidWordSize(x)) if x == Felt252::new(-1)
+            Err(HintError::InvalidWordSize(bx)) if *bx == Felt252::new(-1)
         );
     }
 

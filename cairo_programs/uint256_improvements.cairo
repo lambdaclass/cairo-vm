@@ -314,6 +314,16 @@ func test_udiv_expanded{range_check_ptr}() {
     );
     assert b_quotient = Uint256(1, 0);
     assert b_remainder = Uint256(340282366920938463463374607431768211377, 0);
+
+    let (c_div_expanded) = uint256_expand(Uint256(1, 0));
+
+    let (c_quotient, c_remainder) = uint256_unsigned_div_rem_expanded(
+        Uint256(340282366920938463463374607431768211455, 340282366920938463463374607431768211455),
+        c_div_expanded,
+    );
+
+    assert c_quotient = Uint256(340282366920938463463374607431768211455, 340282366920938463463374607431768211455);
+    assert c_remainder = Uint256(0, 0);
     return ();
 }
 

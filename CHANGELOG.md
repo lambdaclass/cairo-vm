@@ -2,6 +2,45 @@
 
 #### Upcoming Changes
 
+#### [0.5.1] - 2023-6-7
+
+* fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
+  Fixes [#1205](https://github.com/lambdaclass/cairo-rs/issue/1205)
+
+* fix: fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-rs/pull/1203)
+
+* bugfix: fix deserialization of scientific notation with fractional values [#1202](https://github.com/lambdaclass/cairo-rs/pull/1202)
+
+* feat: implement `mem_eq` function to test for equality of two ranges in memory [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
+* perf: use `mem_eq` in `set_add` [#1198](https://github.com/lambdaclass/cairo-rs/pull/1198)
+
+* feat: wrap big variants of `HintError`, `VirtualMachineError`, `RunnerError`, `MemoryError`, `MathError`, `InsufficientAllocatedCellsError` in `Box` [#1193](https://github.com/lambdaclass/cairo-rs/pull/1193)
+  * BREAKING: all tuple variants of `HintError` with a single `Felt252` or multiple elements now receive a single `Box`
+
+* Add `Program::builtins_len method` [#1194](https://github.com/lambdaclass/cairo-rs/pull/1194)
+
+* fix: Handle the deserialization of serde_json::Number with scientific notation (e.g.: Number(1e27)) in felt_from_number function [#1188](https://github.com/lambdaclass/cairo-rs/pull/1188)
+
+* feat: Add RunResources Struct [#1175](https://github.com/lambdaclass/cairo-rs/pull/1175)
+  * BREAKING: Modify `CairoRunner::run_until_pc` arity. Add `run_resources: &mut Option<RunResources>` input
+  * BREAKING: Modify `CairoRunner::run_from_entrypoint` arity. Add `run_resources: &mut Option<RunResources>` input
+
+* fix: Fix 'as_int' conversion usage in hints `ASSERT_250_BIT` &  `SIGNED_DIV_REM` [#1191](https://github.com/lambdaclass/cairo-rs/pull/1191)
+
+
+* bugfix: Use cairo constants in `ASSERT_250_BIT` hint [#1187](https://github.com/lambdaclass/cairo-rs/pull/1187)
+
+* bugfix: Fix `EC_DOUBLE_ASSIGN_NEW_X_V2` hint not taking `SECP_P` value from the current execution scope [#1186](https://github.com/lambdaclass/cairo-rs/pull/1186)
+
+* fix: Fix hint `BIGINT_PACK_DIV_MOD` [#1189](https://github.com/lambdaclass/cairo-rs/pull/1189)
+
+* fix: Fix possible subtraction overflow in `QUAD_BIT` & `DI_BIT` hints [#1185](https://github.com/lambdaclass/cairo-rs/pull/1185)
+
+  * These hints now return an error when ids.m equals zero
+
+* fix: felt_from_number not properly returning parse errors [#1012](https://github.com/lambdaclass/cairo-rs/pull/1012)
+
 * fix: Fix felt sqrt and Signed impl [#1150](https://github.com/lambdaclass/cairo-rs/pull/1150)
 
   * BREAKING: Fix `Felt252` methods `abs`, `signum`, `is_positive`, `is_negative` and `sqrt`
@@ -21,7 +60,8 @@
 
 * Fix implementation of `InitSquashData` and `ShouldSkipSquashLoop`
 
-* Add more hints to `Cairo1HintProcessor` [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
+* Add more hints to `Cairo1HintProcessor` [#1171](https://github.com/lambdaclass/cairo-rs/pull/1171)
+                                          [#1143](https://github.com/lambdaclass/cairo-rs/pull/1143)
 
     * `Cairo1HintProcessor` can now run the following hints:
         * Felt252DictEntryInit
@@ -32,6 +72,7 @@
         * GetCurrentAccessIndex
         * ShouldContinueSquashLoop
         * FieldSqrt
+        * Uint512DivMod
 
 * Add some small considerations regarding Cairo 1 programs [#1144](https://github.com/lambdaclass/cairo-rs/pull/1144):
 
@@ -42,6 +83,9 @@
 
   * Implement `TryFrom<CasmContractClass> for Program`
   * Add `Cairo1HintProcessor`
+
+#### 0.5.0
+**YANKED**
 
 #### [0.4.0] - 2023-05-12
 

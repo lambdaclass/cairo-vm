@@ -1,4 +1,6 @@
-use crate::stdlib::{any::Any, cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
+use crate::stdlib::{
+    any::Any, boxed::Box, cell::RefCell, collections::HashMap, prelude::*, rc::Rc,
+};
 
 use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
@@ -181,11 +183,11 @@ pub fn dict_update(
     //Check that prev_value is equal to the current value at the given key
     let current_value = tracker.get_value(&key)?;
     if current_value != &prev_value {
-        return Err(HintError::WrongPrevValue(
+        return Err(HintError::WrongPrevValue(Box::new((
             prev_value,
             current_value.into(),
             key,
-        ));
+        ))));
     }
     //Update Value
     tracker.insert_value(&key, &new_value);
@@ -329,18 +331,13 @@ mod tests {
         vm.segments = segments![((1, 0), 1)];
         //ids and references are not needed for this test
         assert_matches!(
-                    run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
-                    Err(HintError::Memory(
-                        MemoryError::InconsistentMemory(
-                            x,
-                            y,
-                            z
-                        )
-                    )) if x ==
-        Relocatable::from((1, 0)) &&
-                            y == MaybeRelocatable::from(1) &&
-                            z == MaybeRelocatable::from((2, 0))
-                );
+            run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
+            Err(HintError::Memory(
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 0)),
+                    MaybeRelocatable::from(1),
+                    MaybeRelocatable::from((2, 0)))
+        );
     }
 
     #[test]
@@ -386,7 +383,7 @@ mod tests {
         dict_manager!(&mut exec_scopes, 2, (5, 12));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(6)
+            Err(HintError::NoValueForKey(bx)) if *bx == MaybeRelocatable::from(6)
         );
     }
     #[test]
@@ -452,7 +449,7 @@ mod tests {
         let ids_data = ids_data!["default_value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::UnknownIdentifier(x)) if x == "default_value"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "default_value"
         );
     }
 
@@ -562,7 +559,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(5)
+            Err(HintError::NoValueForKey(bx)) if *bx == MaybeRelocatable::from(5)
         );
     }
 
@@ -636,13 +633,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::WrongPrevValue(
-                x,
-                y,
-                z
-            )) if x == MaybeRelocatable::from(11) &&
-                    y == MaybeRelocatable::from(10) &&
-                    z == MaybeRelocatable::from(5)
+            Err(HintError::WrongPrevValue(bx))
+            if *bx == (MaybeRelocatable::from(11), MaybeRelocatable::from(10), MaybeRelocatable::from(5))
         );
     }
 
@@ -666,7 +658,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NoValueForKey(x)) if x == MaybeRelocatable::from(6)
+            Err(HintError::NoValueForKey(bx)) if *bx == MaybeRelocatable::from(6)
         );
     }
 
@@ -740,13 +732,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::WrongPrevValue(
-                x,
-                y,
-                z
-            )) if x == MaybeRelocatable::from(11) &&
-                    y == MaybeRelocatable::from(10) &&
-                    z == MaybeRelocatable::from(5)
+            Err(HintError::WrongPrevValue(bx))
+            if *bx == (MaybeRelocatable::from(11), MaybeRelocatable::from(10), MaybeRelocatable::from(5))
         );
     }
 
@@ -770,13 +757,8 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::WrongPrevValue(
-                x,
-                y,
-                z
-            )) if x == MaybeRelocatable::from(10) &&
-                    y == MaybeRelocatable::from(17) &&
-                    z == MaybeRelocatable::from(6)
+            Err(HintError::WrongPrevValue(bx))
+            if *bx == (MaybeRelocatable::from(10), MaybeRelocatable::from(17), MaybeRelocatable::from(6))
         );
     }
 
@@ -944,10 +926,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::MismatchedDictPtr(
-                x,
-                y
-            )) if x == relocatable!(2, 0) && y == relocatable!(2, 3)
+            Err(HintError::MismatchedDictPtr(bx)) if *bx == (relocatable!(2, 0), relocatable!(2, 3))
         );
     }
 

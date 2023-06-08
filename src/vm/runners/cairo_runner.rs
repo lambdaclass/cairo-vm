@@ -71,6 +71,30 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
     }
 }
 
+// ================
+//   RunResources
+// ================
+
+/// Maintains the resources of a cairo run. Can be used across multiple runners.
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct RunResources {
+    n_steps: usize,
+}
+
+impl RunResources {
+    pub fn new(n_steps: usize) -> Self {
+        RunResources { n_steps }
+    }
+
+    pub fn consumed(&self) -> bool {
+        self.n_steps == 0
+    }
+
+    pub fn consume_steps(&mut self) {
+        self.n_steps -= 1;
+    }
+}
+
 #[derive(Debug)]
 pub struct CairoRunner {
     pub(crate) program: Program,
@@ -107,7 +131,11 @@ impl CairoRunner {
             "all_cairo" => CairoLayout::all_cairo_instance(),
             "all_solidity" => CairoLayout::all_solidity_instance(),
             "dynamic" => CairoLayout::dynamic_instance(),
-            name => return Err(RunnerError::InvalidLayoutName(name.to_string())),
+            name => {
+                return Err(RunnerError::InvalidLayoutName(
+                    name.to_string().into_boxed_str(),
+                ))
+            }
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -218,10 +246,10 @@ impl CairoRunner {
             }
         }
         if !program_builtins.is_empty() {
-            return Err(RunnerError::NoBuiltinForInstance(
+            return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
                 self.layout._name.clone(),
-            ));
+            ))));
         }
 
         vm.builtin_runners = builtin_runners;
@@ -495,10 +523,12 @@ impl CairoRunner {
                     &hint.flow_tracking_data.reference_ids,
                     references,
                 );
-                hint_data_dictionary.entry(*hint_index).or_default().push(
-                    hint_data
-                        .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone()))?,
-                );
+                hint_data_dictionary
+                    .entry(*hint_index)
+                    .or_default()
+                    .push(hint_data.map_err(|_| {
+                        VirtualMachineError::CompileHintFail(hint.code.clone().into_boxed_str())
+                    })?);
             }
         }
         Ok(hint_data_dictionary)
@@ -512,24 +542,43 @@ impl CairoRunner {
         &self.program.builtins
     }
 
+    fn consumed(&self, run_resources: &mut Option<RunResources>) -> bool {
+        if let Some(r) = run_resources.as_ref() {
+            r.consumed()
+        } else {
+            false
+        }
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
+        run_resources: &mut Option<RunResources>,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
-        while vm.run_context.pc != address {
+
+        while vm.run_context.pc != address && !self.consumed(run_resources) {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
+            if let Some(r) = run_resources.as_mut() {
+                r.consume_steps()
+            };
         }
+
+        if vm.run_context.pc != address {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
+
         Ok(())
     }
 
@@ -617,10 +666,10 @@ impl CairoRunner {
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
         if unused_rc_units < (rc_max - rc_min) as usize {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::RangeCheckUnits(
+                InsufficientAllocatedCellsError::RangeCheckUnits(Box::new((
                     unused_rc_units,
                     (rc_max - rc_min) as usize,
-                ),
+                ))),
             )
             .into());
         }
@@ -663,10 +712,10 @@ impl CairoRunner {
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
         if unused_diluted_units < diluted_usage_upper_bound {
             return Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::DilutedCells(
+                InsufficientAllocatedCellsError::DilutedCells(Box::new((
                     unused_diluted_units,
                     diluted_usage_upper_bound,
-                ),
+                ))),
             )
             .into());
         }
@@ -784,7 +833,7 @@ impl CairoRunner {
 
             builtin_segment_info.push((
                 index,
-                stop_ptr.ok_or(RunnerError::NoStopPointer(builtin.name()))?,
+                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
         }
 
@@ -870,10 +919,12 @@ impl CairoRunner {
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
+    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
+        run_resources: &mut Option<RunResources>,
         verify_secure: bool,
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
@@ -888,7 +939,7 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)
+        self.run_until_pc(end, run_resources, vm, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
@@ -948,10 +999,10 @@ impl CairoRunner {
         let memory_address_holes = self.get_memory_holes(vm)?;
         if unused_memory_units < memory_address_holes as u32 {
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MemoryAddresses(
+                InsufficientAllocatedCellsError::MemoryAddresses(Box::new((
                     unused_memory_units,
                     memory_address_holes,
-                ),
+                ))),
             ))?
         }
         Ok(())
@@ -1588,7 +1639,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_vm(&mut vm),
             Err(RunnerError::MemoryValidationError(
-                MemoryError::RangeCheckFoundNonInt((2, 0).into())
+                MemoryError::RangeCheckFoundNonInt(Box::new((2, 0).into()))
             ))
         );
     }
@@ -1883,7 +1934,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -1959,7 +2010,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2074,7 +2125,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2213,7 +2264,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2450,7 +2501,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2589,7 +2640,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2766,7 +2817,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2807,7 +2858,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2893,7 +2944,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -3386,7 +3437,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
             cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
@@ -3416,7 +3467,9 @@ mod tests {
         vm.builtin_runners = vec![BuiltinRunner::Output(OutputBuiltinRunner::new(true))];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::NoStopPointer(BuiltinName::output.name())),
+            Err(RunnerError::NoStopPointer(Box::new(
+                BuiltinName::output.name()
+            ))),
         );
     }
 
@@ -4041,10 +4094,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name()]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4056,10 +4109,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "plain");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name(), HASH_BUILTIN_NAME]),
                 String::from("plain")
-            ))
+            ))))
         );
     }
 
@@ -4071,10 +4124,10 @@ mod tests {
         let cairo_runner = cairo_runner!(program, "small");
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm),
-            Err(RunnerError::NoBuiltinForInstance(
+            Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::bitwise.name()]),
                 String::from("small")
-            ))
+            ))))
         );
     }
     #[test]
@@ -4453,6 +4506,7 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
+                &mut None,
                 true,
                 None,
                 &mut vm,
@@ -4483,6 +4537,7 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
+                &mut None,
                 true,
                 None,
                 &mut new_vm,
@@ -4521,6 +4576,7 @@ mod tests {
                 &[
                     &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
                 ],
+                &mut None,
                 true,
                 None,
                 &mut vm,
@@ -4638,6 +4694,7 @@ mod tests {
         let result = cairo_runner.run_from_entrypoint(
             main_entrypoint,
             &[],
+            &mut None,
             true,
             None,
             &mut vm,
@@ -4667,7 +4724,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4690,7 +4752,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4713,7 +4780,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4737,7 +4809,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let mut exec = runner.get_execution_resources(&vm).unwrap();
@@ -4811,5 +4888,106 @@ mod tests {
         let runner = cairo_runner!(program);
 
         assert_eq!(runner.get_program().data_len(), 2)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_none() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(81));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+
+        assert_eq!(run_resources, Some(RunResources::new(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok_2() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(80));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        );
+
+        assert_eq!(run_resources, Some(RunResources::new(0)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_error() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(9));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Err(VirtualMachineError::UnfinishedExecution)
+        );
+        assert_eq!(run_resources, Some(RunResources::new(0)));
     }
 }

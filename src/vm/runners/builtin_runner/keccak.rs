@@ -88,16 +88,16 @@ impl KeccakBuiltinRunner {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(
+                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
                             KECCAK_BUILTIN_NAME,
                             (first_input_addr + i)?,
-                        ))?;
+                        ))))?;
                     if num >= &(Felt252::one() << self.state_rep[i]) {
-                        return Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+                        return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                             (first_input_addr + i)?,
                             self.state_rep[i],
                             num.clone(),
-                        ));
+                        ))));
                     }
                     num.clone()
                 }
@@ -151,28 +151,28 @@ impl KeccakBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     KECCAK_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     KECCAK_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -307,11 +307,11 @@ mod tests {
         let pointer = Relocatable::from((2, 2));
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 KECCAK_BUILTIN_NAME,
                 relocatable!(0, 992),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -361,7 +361,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(KECCAK_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))
         );
     }
 
@@ -387,7 +387,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(
@@ -586,10 +586,10 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(RunnerError::BuiltinExpectedInteger(
+            Err(RunnerError::BuiltinExpectedInteger(Box::new((
                 KECCAK_BUILTIN_NAME,
                 (0, 0).into()
-            ))
+            ))))
         );
     }
 
@@ -668,11 +668,11 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(RunnerError::IntegerBiggerThanPowerOfTwo(
+            Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                 (0, 16).into(),
                 1,
                 43.into()
-            ))
+            ))))
         );
     }
 

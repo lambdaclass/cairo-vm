@@ -55,10 +55,12 @@ impl SignatureBuiltinRunner {
         let r_string = r.to_str_radix(10);
         let s_string = s.to_str_radix(10);
         let (r_felt, s_felt) = (
-            FieldElement::from_dec_str(&r_string)
-                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(r_string))?,
-            FieldElement::from_dec_str(&s_string)
-                .map_err(|_| MemoryError::FailedStringToFieldElementConversion(s_string))?,
+            FieldElement::from_dec_str(&r_string).map_err(|_| {
+                MemoryError::FailedStringToFieldElementConversion(r_string.into_boxed_str())
+            })?,
+            FieldElement::from_dec_str(&s_string).map_err(|_| {
+                MemoryError::FailedStringToFieldElementConversion(s_string.into_boxed_str())
+            })?,
         );
 
         let signature = Signature {
@@ -110,32 +112,35 @@ impl SignatureBuiltinRunner {
                 let pubkey = match memory.get_integer(pubkey_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 1 => return Ok(vec![]),
-                    _ => return Err(MemoryError::PubKeyNonInt(pubkey_addr)),
+                    _ => return Err(MemoryError::PubKeyNonInt(Box::new(pubkey_addr))),
                 };
 
                 let msg = match memory.get_integer(message_addr) {
                     Ok(num) => num,
                     Err(_) if cell_index == 0 => return Ok(vec![]),
-                    _ => return Err(MemoryError::MsgNonInt(message_addr)),
+                    _ => return Err(MemoryError::MsgNonInt(Box::new(message_addr))),
                 };
 
                 let signatures_map = signatures.borrow();
                 let signature = signatures_map
                     .get(&pubkey_addr)
-                    .ok_or(MemoryError::SignatureNotFound(pubkey_addr))?;
+                    .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key = FieldElement::from_dec_str(&pubkey.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10)))?;
+                let public_key =
+                    FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {
+                        MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10).into_boxed_str())
+                    })?;
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_dec_str(&msg.to_str_radix(10))
-                    .map_err(|_| MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10)))?;
+                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).map_err(|_| {
+                    MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10).into_boxed_str())
+                })?;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
-                    _ => Err(MemoryError::InvalidSignature(
+                    _ => Err(MemoryError::InvalidSignature(Box::new((
                         signature.to_string(),
                         pubkey.into_owned(),
                         msg.into_owned(),
-                    )),
+                    )))),
                 }
             },
         ));
@@ -178,28 +183,28 @@ impl SignatureBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(SIGNATURE_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(SIGNATURE_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     SIGNATURE_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     SIGNATURE_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -304,11 +309,11 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 SIGNATURE_BUILTIN_NAME,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -332,7 +337,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(SIGNATURE_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(SIGNATURE_BUILTIN_NAME)))
         );
     }
 
@@ -504,7 +509,10 @@ mod tests {
         assert_eq!(
             builtin.get_allocated_memory_units(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::MinStepNotReached(512, SIGNATURE_BUILTIN_NAME)
+                InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
+                    512,
+                    SIGNATURE_BUILTIN_NAME
+                )))
             ))
         )
     }
@@ -520,7 +528,11 @@ mod tests {
         assert_eq!(
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
-                InsufficientAllocatedCellsError::BuiltinCells(SIGNATURE_BUILTIN_NAME, 50, 2)
+                InsufficientAllocatedCellsError::BuiltinCells(Box::new((
+                    SIGNATURE_BUILTIN_NAME,
+                    50,
+                    2
+                )))
             ))
         )
     }
@@ -533,11 +545,11 @@ mod tests {
         vm.segments = segments![((0, 0), (1, 0))];
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
-            Err(RunnerError::InvalidStopPointerIndex(
+            Err(RunnerError::InvalidStopPointerIndex(Box::new((
                 SIGNATURE_BUILTIN_NAME,
                 relocatable!(1, 0),
                 0
-            ))
+            ))))
         )
     }
 

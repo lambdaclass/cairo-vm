@@ -8,6 +8,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     stdlib::{
         borrow::Cow,
+        boxed::Box,
         collections::HashMap,
         ops::{Shl, Shr},
         prelude::*,
@@ -34,10 +35,10 @@ impl<'a> Uint256<'a> {
     ) -> Result<Self, HintError> {
         Ok(Self {
             low: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "low".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "low".to_string())))
             })?,
             high: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "high".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "high".to_string())))
             })?,
         })
     }
@@ -269,10 +270,9 @@ pub fn uint256_sqrt(
     let root = isqrt(&n)?;
 
     if root.bits() > 128 {
-        return Err(HintError::AssertionFailed(format!(
-            "assert 0 <= {} < 2 ** 128",
-            &root
-        )));
+        return Err(HintError::AssertionFailed(
+            format!("assert 0 <= {} < 2 ** 128", &root).into_boxed_str(),
+        ));
     }
 
     let root = Felt252::new(root);
@@ -376,14 +376,14 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (a_high << 128_u32) + a_low;
-    let div = (div_high << 128_u32) + div_low;
+    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
+    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
 
-    let quotient = Uint256::from(quotient);
-    let remainder = Uint256::from(remainder);
+    let quotient = Uint256::from(&quotient);
+    let remainder = Uint256::from(&remainder);
 
     quotient.insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
     remainder.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
@@ -581,14 +581,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == Relocatable::from((1, 12)) &&
-                    y == MaybeRelocatable::from(Felt252::new(2)) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 12)),
+                    MaybeRelocatable::from(Felt252::new(2)),
+                    MaybeRelocatable::from(Felt252::zero()))
         );
     }
 
@@ -649,12 +645,12 @@ mod tests {
         let ids_data = non_continuous_ids_data![("a", 0)];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data.clone(), hint_code),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "low"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "low".to_string())
         );
         vm.segments = segments![((1, 0), 1001)];
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierHasNoMember(s1, s2)) if s1 == "a" && s2 == "high"
+            Err(HintError::IdentifierHasNoMember(bx)) if *bx == ("a".to_string(), "high".to_string())
         );
     }
 
@@ -721,14 +717,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z
-                )
-            )) if x == Relocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt252::zero()) &&
-                    z == MaybeRelocatable::from(felt_str!("7249717543555297151"))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 10)),
+                    MaybeRelocatable::from(Felt252::zero()),
+                    MaybeRelocatable::from(felt_str!("7249717543555297151")))
         );
     }
 
@@ -786,9 +778,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertionFailed(x)) if x == *String::from(
-                "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
-            )
+            Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= 340282366920938463463374607431768211456 < 2 ** 128"
         );
     }
 
@@ -807,14 +797,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt252::one()) &&
-                    z == MaybeRelocatable::from(felt_str!("48805497317890012913"))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 5)),
+                    MaybeRelocatable::from(Felt252::one()),
+                    MaybeRelocatable::from(felt_str!("48805497317890012913")))
         );
     }
 
@@ -880,14 +866,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 5)) &&
-                    y == MaybeRelocatable::from(Felt252::new(55)) &&
-                    z == MaybeRelocatable::from(Felt252::one())
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 5)),
+                    MaybeRelocatable::from(Felt252::new(55)),
+                    MaybeRelocatable::from(Felt252::one()))
         );
     }
 
@@ -973,14 +955,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 10)) &&
-                    y == MaybeRelocatable::from(Felt252::zero()) &&
-                    z == MaybeRelocatable::from(Felt252::new(10))
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 10)),
+                    MaybeRelocatable::from(Felt252::zero()),
+                    MaybeRelocatable::from(Felt252::new(10)))
         );
     }
 
@@ -1006,14 +984,10 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::Memory(
-                MemoryError::InconsistentMemory(
-                    x,
-                    y,
-                    z,
-                )
-            )) if x == Relocatable::from((1, 11)) &&
-                    y == MaybeRelocatable::from(Felt252::one()) &&
-                    z == MaybeRelocatable::from(Felt252::zero())
+                MemoryError::InconsistentMemory(bx)
+            )) if *bx == (Relocatable::from((1, 11)),
+                    MaybeRelocatable::from(Felt252::one()),
+                    MaybeRelocatable::from(Felt252::zero()))
         );
     }
 
@@ -1093,7 +1067,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::UINT256_MUL_DIV_MOD),
-            Err(HintError::UnknownIdentifier(s)) if s == "quotient_low"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "quotient_low"
         );
     }
 }

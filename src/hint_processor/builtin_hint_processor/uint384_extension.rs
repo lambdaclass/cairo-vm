@@ -1,6 +1,6 @@
 use super::secp::bigint_utils::Uint384;
 use super::uint_utils::{pack, split};
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::{
@@ -34,22 +34,22 @@ impl Uint768<'_> {
     ) -> Result<Uint768<'a>, HintError> {
         Ok(Uint768 {
             d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d0".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
             })?,
             d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d1".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
             })?,
             d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d2".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
             })?,
             d3: vm.get_integer((addr + 3)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d3".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d3".to_string())))
             })?,
             d4: vm.get_integer((addr + 4)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d4".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d4".to_string())))
             })?,
             d5: vm.get_integer((addr + 5)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(name.to_string(), "d5".to_string())
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d5".to_string())))
             })?,
         })
     }
@@ -199,13 +199,21 @@ mod tests {
         assert_eq!(x.d2.as_ref(), &Felt252::from(3));
     }
 
+    fn assert_is_err_identifier_has_no_member(
+        result: Result<Uint768, HintError>,
+        x: &str,
+        y: &str,
+    ) {
+        assert_matches!(result, Err(HintError::IdentifierHasNoMember(bx)) if *bx == (x.to_string(), y.to_string()))
+    }
+
     #[test]
     fn get_uint768_from_base_addr_missing_member_d0() {
         //Uint768(x,2,x,x,x,x)
         let mut vm = vm!();
         vm.segments = segments![((0, 1), 2)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d0")
+        assert_is_err_identifier_has_no_member(r, "x", "d0")
     }
 
     #[test]
@@ -214,7 +222,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d1")
+        assert_is_err_identifier_has_no_member(r, "x", "d1")
     }
 
     #[test]
@@ -223,7 +231,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+        assert_is_err_identifier_has_no_member(r, "x", "d2")
     }
 
     #[test]
@@ -232,7 +240,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d3")
+        assert_is_err_identifier_has_no_member(r, "x", "d3")
     }
 
     #[test]
@@ -241,7 +249,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d4")
+        assert_is_err_identifier_has_no_member(r, "x", "d4")
     }
 
     #[test]
@@ -256,7 +264,7 @@ mod tests {
             ((0, 4), 5)
         ];
         let r = Uint768::from_base_addr((0, 0).into(), "x", &vm);
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d5")
+        assert_is_err_identifier_has_no_member(r, "x", "d5")
     }
 
     #[test]
@@ -287,7 +295,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2)];
         let ids_data = ids_data!["x"];
         let r = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::IdentifierHasNoMember(x, y)) if x == "x" && y == "d2")
+        assert_is_err_identifier_has_no_member(r, "x", "d2")
     }
 
     #[test]
@@ -296,7 +304,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let r = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default());
-        assert_matches!(r, Err(HintError::UnknownIdentifier(x)) if x == "x")
+        assert_matches!(r, Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "x")
     }
 
     #[rstest]

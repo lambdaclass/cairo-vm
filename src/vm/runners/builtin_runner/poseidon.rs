@@ -83,10 +83,10 @@ impl PoseidonBuiltinRunner {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(
+                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
                             POSEIDON_BUILTIN_NAME,
                             (first_input_addr + i)?,
-                        ))?;
+                        ))))?;
                     FieldElement::from_dec_str(&num.to_str_radix(10))
                         .map_err(|_| RunnerError::FailedStringConversion)?
                 }
@@ -131,28 +131,28 @@ impl PoseidonBuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(POSEIDON_BUILTIN_NAME))?;
+            let stop_pointer_addr = (pointer - 1)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(POSEIDON_BUILTIN_NAME))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))?;
             if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     POSEIDON_BUILTIN_NAME,
                     stop_pointer,
                     self.base,
-                ));
+                ))));
             }
             let stop_ptr = stop_pointer.offset;
             let num_instances = self.get_used_instances(segments)?;
             let used = num_instances * self.cells_per_instance as usize;
             if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(
+                return Err(RunnerError::InvalidStopPointer(Box::new((
                     POSEIDON_BUILTIN_NAME,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
-                ));
+                ))));
             }
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
@@ -244,11 +244,11 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::InvalidStopPointer(
+            Err(RunnerError::InvalidStopPointer(Box::new((
                 POSEIDON_BUILTIN_NAME,
                 relocatable!(0, 1002),
                 relocatable!(0, 0)
-            ))
+            ))))
         );
     }
 
@@ -296,7 +296,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(POSEIDON_BUILTIN_NAME))
+            Err(RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))
         );
     }
 
@@ -340,7 +340,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 6)));
@@ -384,7 +384,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(6));

@@ -205,9 +205,7 @@ impl MemorySegmentManager {
                 .ok_or(MemoryError::MissingSegmentUsedSizes)?;
             if accessed_amount > segment_size {
                 return Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
-                    i,
-                    accessed_amount,
-                    segment_size,
+                    Box::new((i, accessed_amount, segment_size)),
                 ));
             }
             memory_holes += segment_size - accessed_amount;
@@ -621,7 +619,7 @@ mod tests {
         assert_eq!(
             memory_segment_manager.get_memory_holes(0),
             Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
-                0, 3, 2
+                Box::new((0, 3, 2))
             )),
         );
     }

@@ -18,3 +18,15 @@ pub enum TraceError {
     #[error("Trace not relocated")]
     TraceNotRelocated,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_trace_error_size() {
+        let size = crate::stdlib::mem::size_of::<TraceError>();
+        assert!(size <= 24, "{size}")
+    }
+}

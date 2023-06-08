@@ -136,11 +136,12 @@ jobs:
     - name: Benchmark ${{ matrix.program_state }} programs
       id: run-benchmarks
       run: |
+        sudo swapoff -a
         mkdir target_programs
         if [ 'modified' = ${{ matrix.program_state }} ]; then
           BINS=head
           for f in head_programs/*.json; do
-            # Only run new or modified benchmarks
+            # Only run new or modified benchmarks
             if ! cmp -s ${f/head/base} $f; then
               cp $f target_programs/
             fi
@@ -148,7 +149,7 @@ jobs:
         else
           BINS="base,head"
           for f in base_programs/*.json; do
-            # Only run unmodified benchmarks
+            # Only run unmodified benchmarks
             if cmp -s ${f/base/head} $f; then
               cp $f target_programs/
             fi

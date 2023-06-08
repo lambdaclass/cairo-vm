@@ -132,7 +132,7 @@ impl VirtualMachine {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
                 MaybeRelocatable::Int(ref num) => num
                     .to_usize()
-                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(num.clone()))?,
+                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(num.clone())))?,
             },
             FpUpdate::Regular => return Ok(()),
         };
@@ -301,10 +301,10 @@ impl VirtualMachine {
                 {
                     return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
                 }
-                Err(VirtualMachineError::ComputeResRelocatableMul(
+                Err(VirtualMachineError::ComputeResRelocatableMul(Box::new((
                     op0.clone(),
                     op1.clone(),
-                ))
+                ))))
             }
             Res::Unconstrained => Ok(None),
         }
@@ -331,25 +331,24 @@ impl VirtualMachine {
             Opcode::AssertEq => match &operands.res {
                 None => Err(VirtualMachineError::UnconstrainedResAssertEq),
                 Some(res) if res != &operands.dst => Err(VirtualMachineError::DiffAssertValues(
-                    operands.dst.clone(),
-                    res.clone(),
+                    Box::new((operands.dst.clone(), res.clone())),
                 )),
                 _ => Ok(()),
             },
             Opcode::Call => {
                 let return_pc = MaybeRelocatable::from((self.run_context.pc + instruction.size())?);
                 if operands.op0 != return_pc {
-                    return Err(VirtualMachineError::CantWriteReturnPc(
+                    return Err(VirtualMachineError::CantWriteReturnPc(Box::new((
                         operands.op0.clone(),
                         return_pc,
-                    ));
+                    ))));
                 };
 
                 if MaybeRelocatable::from(self.run_context.get_fp()) != operands.dst {
-                    return Err(VirtualMachineError::CantWriteReturnFp(
+                    return Err(VirtualMachineError::CantWriteReturnFp(Box::new((
                         operands.dst.clone(),
                         MaybeRelocatable::from(self.run_context.get_fp()),
-                    ));
+                    ))));
                 };
                 Ok(())
             }
@@ -448,7 +447,7 @@ impl VirtualMachine {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
                 hint_executor
                     .execute_hint(self, exec_scopes, hint_data, constants)
-                    .map_err(|err| VirtualMachineError::Hint(hint_index, Box::new(err)))?
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
             }
         }
         Ok(())
@@ -520,7 +519,7 @@ impl VirtualMachine {
             deduced_memory_cell => deduced_memory_cell,
         };
         let op0 = op0_op.ok_or_else(|| {
-            VirtualMachineError::FailedToComputeOperands("op0".to_string(), op0_addr)
+            VirtualMachineError::FailedToComputeOperands(Box::new(("op0".to_string(), op0_addr)))
         })?;
         Ok(op0)
     }
@@ -545,7 +544,7 @@ impl VirtualMachine {
             deduced_memory_cell => deduced_memory_cell,
         };
         let op1 = op1_op.ok_or_else(|| {
-            VirtualMachineError::FailedToComputeOperands("op1".to_string(), op1_addr)
+            VirtualMachineError::FailedToComputeOperands(Box::new(("op1".to_string(), op1_addr)))
         })?;
         Ok(op1)
     }
@@ -643,11 +642,11 @@ impl VirtualMachine {
                 {
                     let value = value.as_ref().map(|x| x.get_value());
                     if Some(&deduced_memory_cell) != value && value.is_some() {
-                        return Err(VirtualMachineError::InconsistentAutoDeduction(
+                        return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
                             builtin.name(),
                             deduced_memory_cell,
                             value.cloned(),
-                        ));
+                        ))));
                     }
                 }
             }
@@ -670,11 +669,11 @@ impl VirtualMachine {
             None => return Ok(()),
         };
         if value != current_value {
-            return Err(VirtualMachineError::InconsistentAutoDeduction(
+            return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
                 builtin.name(),
                 value,
                 Some(current_value),
-            ));
+            ))));
         }
         Ok(())
     }
@@ -838,10 +837,14 @@ impl VirtualMachine {
         self.segments.memory.memcmp(lhs, rhs, len)
     }
 
+    pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
+        self.segments.memory.mem_eq(lhs, rhs, len)
+    }
+
     ///Gets `n_ret` return values from memory
     pub fn get_return_values(&self, n_ret: usize) -> Result<Vec<MaybeRelocatable>, MemoryError> {
         let addr = (self.run_context.get_ap() - n_ret)
-            .map_err(|_| MemoryError::FailedToGetReturnValues(n_ret, self.get_ap()))?;
+            .map_err(|_| MemoryError::FailedToGetReturnValues(Box::new((n_ret, self.get_ap()))))?;
         self.segments.memory.get_continuous_range(addr, n_ret)
     }
 
@@ -2359,7 +2362,7 @@ mod tests {
         let op0 = MaybeRelocatable::from((2, 6));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
-            Err(VirtualMachineError::ComputeResRelocatableMul(x, y)) if x == op0 && y == op1
+            Err(VirtualMachineError::ComputeResRelocatableMul(bx)) if *bx == (op0, op1)
         );
     }
 
@@ -2740,11 +2743,9 @@ mod tests {
 
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::DiffAssertValues(
-                i,
-                j
-            )) if i == MaybeRelocatable::Int(Felt252::new(9_i32)) &&
-                 j == MaybeRelocatable::Int(Felt252::new(8_i32))
+            Err(VirtualMachineError::DiffAssertValues(bx))
+            if *bx == (MaybeRelocatable::Int(Felt252::new(9_i32)),
+                 MaybeRelocatable::Int(Felt252::new(8_i32)))
         );
     }
 
@@ -2776,10 +2777,7 @@ mod tests {
 
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::DiffAssertValues(
-                i,
-                j)
-            ) if i == MaybeRelocatable::from((1, 1)) && j == MaybeRelocatable::from((1, 2))
+            Err(VirtualMachineError::DiffAssertValues(bx)) if *bx == (MaybeRelocatable::from((1, 1)), MaybeRelocatable::from((1, 2)))
         );
     }
 
@@ -2812,10 +2810,7 @@ mod tests {
 
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::CantWriteReturnPc(
-                x,
-                y,
-            )) if x == mayberelocatable!(9) && y == mayberelocatable!(0, 5)
+            Err(VirtualMachineError::CantWriteReturnPc(bx)) if *bx == (mayberelocatable!(9), mayberelocatable!(0, 5))
         );
     }
 
@@ -2847,10 +2842,7 @@ mod tests {
 
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
-            Err(VirtualMachineError::CantWriteReturnFp(
-                x,
-                y
-            )) if x == mayberelocatable!(8) && y == mayberelocatable!(1, 6)
+            Err(VirtualMachineError::CantWriteReturnFp(bx)) if *bx == (mayberelocatable!(8), mayberelocatable!(1, 6))
         );
     }
 
@@ -3482,17 +3474,14 @@ mod tests {
         assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op_builtin, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
         assert_matches!(
             error,
-            Err(VirtualMachineError::InconsistentAutoDeduction(
-                x,
-                y,
-                z
-            )) if x == EC_OP_BUILTIN_NAME &&
-                    y == MaybeRelocatable::Int(felt_str!(
+            Err(VirtualMachineError::InconsistentAutoDeduction(bx))
+            if *bx == (EC_OP_BUILTIN_NAME,
+                    MaybeRelocatable::Int(felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
-                    )) &&
-                    z == Some(MaybeRelocatable::Int(felt_str!(
+                    )),
+                    Some(MaybeRelocatable::Int(felt_str!(
                         "2778063437308421278851140253538604815869848682781135193774472480292420096757"
-                    )))
+                    ))))
         );
     }
 
@@ -3603,7 +3592,9 @@ mod tests {
     fn get_return_values_fails_when_ap_is_0() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
-        assert_matches!(vm.get_return_values(3), Err(MemoryError::FailedToGetReturnValues(x, y)) if x == 3 && y == Relocatable::from((1,0)));
+        assert_matches!(vm.get_return_values(3),
+            Err(MemoryError::FailedToGetReturnValues(bx))
+            if *bx == (3, Relocatable::from((1,0))));
     }
 
     /*
@@ -3792,7 +3783,7 @@ mod tests {
 
         assert_eq!(
             vm.get_continuous_range(Relocatable::from((1, 0)), 3),
-            Err(MemoryError::GetRangeMemoryGap((1, 0).into(), 3))
+            Err(MemoryError::GetRangeMemoryGap(Box::new(((1, 0).into(), 3))))
         );
     }
 
@@ -4154,7 +4145,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
@@ -4179,7 +4170,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);
@@ -4268,7 +4259,12 @@ mod tests {
                 .unwrap();
 
             assert!(cairo_runner
-                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
+                .run_until_pc(
+                    end,
+                    &mut None,
+                    &mut virtual_machine_from_builder,
+                    &mut hint_processor
+                )
                 .is_err());
         }
     }
