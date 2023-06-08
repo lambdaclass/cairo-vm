@@ -4118,7 +4118,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_usort() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/bad_programs/bad_usort.json"),
+            include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
         .unwrap();
@@ -4143,7 +4143,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_dict_update() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/bad_programs/bad_dict_update.json"),
+            include_bytes!("../../../cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
         .unwrap();
@@ -4232,7 +4232,7 @@ mod tests {
         #[cfg(feature = "hooks")]
         {
             let program = crate::types::program::Program::from_bytes(
-                include_bytes!("../../cairo_programs/sqrt.json"),
+                include_bytes!("../../../cairo_programs/sqrt.json"),
                 Some("main"),
             )
             .expect("Call to `Program::from_file()` failed.");
