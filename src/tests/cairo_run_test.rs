@@ -967,3 +967,12 @@ fn cairo_run_reduce() {
     let program_data = include_bytes!("../../cairo_programs/reduce.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+fn cairo_run_if_reloc_equal() {
+    const PROGRAM_DATA: &[u8] = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/cairo_programs/if_reloc_equal.json",
+    ));
+    run_program_simple(PROGRAM_DATA);
+}

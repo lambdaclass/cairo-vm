@@ -256,7 +256,9 @@ impl MaybeRelocatable {
                 MaybeRelocatable::RelocatableValue(rel_b),
             ) => {
                 if rel_a.segment_index == rel_b.segment_index {
-                    return Ok(MaybeRelocatable::from(Felt252::new((*rel_a - *rel_b)?)));
+                    return Ok(MaybeRelocatable::from(Felt252::from(
+                        rel_a.offset as i128 - rel_b.offset as i128,
+                    )));
                 }
                 Err(MathError::RelocatableSubDiffIndex(Box::new((
                     *rel_a, *rel_b,
