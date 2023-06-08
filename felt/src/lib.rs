@@ -198,6 +198,7 @@ impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
         value.into()
     }
+
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
         self.value.representative().limbs.into_iter().rev()
     }
@@ -304,6 +305,13 @@ impl Felt252 {
         BigUint::new(big_digits)
     }
 
+    pub fn sqrt(&self) -> Self {
+        // Safety: must be called with residual
+        let (root_1, root_2) = self.value.sqrt().unwrap();
+        let value = FieldElement::new(root_1.representative().min(root_2.representative()));
+        Self { value }
+    }
+
     pub fn bits(&self) -> u64 {
         // TODO: move upstream
         let rep = self.value.representative();
@@ -315,13 +323,6 @@ impl Felt252 {
             [l3, _, _, _] => 4 * u64::BITS - l3.leading_zeros(),
         }
         .into()
-    }
-
-    pub fn sqrt(&self) -> Self {
-        // Safety: must be called with residual
-        let (root_1, root_2) = self.value.sqrt().unwrap();
-        let value = FieldElement::new(root_1.representative().min(root_2.representative()));
-        Self { value }
     }
 
     pub fn prime() -> BigUint {

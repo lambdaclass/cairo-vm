@@ -3,6 +3,7 @@
 #### Upcoming Changes
 
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
 
 #### [0.5.0] - 2023-6-7
 
