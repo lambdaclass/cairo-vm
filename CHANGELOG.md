@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
+
 #### [0.5.1] - 2023-6-7
 
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
