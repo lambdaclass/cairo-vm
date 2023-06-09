@@ -18,6 +18,7 @@ use crate::{
     },
 };
 use felt::Felt252;
+use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
@@ -122,10 +123,11 @@ impl RangeCheckBuiltinRunner {
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         let mut rc_bounds: Option<(usize, usize)> = None;
         let range_check_segment = memory.data.get(self.base)?;
-        let inner_rc_bound = Felt252::new(self.inner_rc_bound);
+        // TODO: use UnsignedInteger
+        let inner_rc_bound = BigUint::from(self.inner_rc_bound);
         for value in range_check_segment {
             //Split val into n_parts parts.
-            let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
+            let mut val = value.as_ref()?.get_value().get_int_ref()?.to_biguint();
             for _ in 0..self.n_parts {
                 let (d, m) = val.div_mod_floor(&inner_rc_bound);
                 let part_val = m.to_usize()?;
