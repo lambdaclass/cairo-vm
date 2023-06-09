@@ -230,7 +230,6 @@ impl VirtualMachine {
                 ) if !num_op1.is_zero() => {
                     Ok((Some(MaybeRelocatable::Int(num_dst / num_op1)), dst.cloned()))
                 }
-                // FIXME: missing case: div by 0 should return error
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -383,8 +382,6 @@ impl VirtualMachine {
         Ok(())
     }
 
-    // TODO: TEST: run_instruction with update JmpNz, operation Add, (dst, op1) = (Rel, Rel) and
-    // op1 > dst
     fn run_instruction(&mut self, instruction: &Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
             self.compute_operands(instruction)?;
@@ -452,7 +449,6 @@ impl VirtualMachine {
             *instruction = Some(self.decode_current_instruction()?);
         }
         let instruction = instruction.as_ref().unwrap();
-        dbg!(instruction);
         if !self.skip_instruction_execution {
             self.run_instruction(instruction)?;
         } else {
