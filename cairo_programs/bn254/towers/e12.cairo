@@ -157,7 +157,6 @@ namespace e12 {
             p, c0, c1=0, 6*[0], 6*[0]
             c0_refs =[ids.x.c0.b0.a0, ids.x.c0.b0.a1, ids.x.c0.b1.a0, ids.x.c0.b1.a1, ids.x.c0.b2.a0, ids.x.c0.b2.a1]
             c1_refs =[ids.x.c1.b0.a0, ids.x.c1.b0.a1, ids.x.c1.b1.a0, ids.x.c1.b1.a1, ids.x.c1.b2.a0, ids.x.c1.b2.a1]
-
             # E2 Tower:
             def mul_e2(x:(int,int), y:(int,int)):
                 a = (x[0] + x[1]) * (y[0] + y[1]) % p
@@ -180,7 +179,6 @@ namespace e12 {
                 t0 = (t0 + t1) % p
                 t1 = pow(t0, -1, p)
                 return a[0] * t1 % p, -(a[1] * t1) % p
-
             # E6 Tower:
             def mul_by_non_residue_e6(x:((int,int),(int,int),(int,int))):
                 return mul_by_non_residue_e2(x[2]), x[0], x[1]
@@ -201,8 +199,6 @@ namespace e12 {
                 t6 = add_e2(t6, d1)
                 t6 = inv_e2(t6)
                 return mul_e2(c0, t6), mul_e2(c1, t6), mul_e2(c2, t6)
-
-
             def mul_e6(x:((int,int),(int,int),(int,int)), y:((int,int),(int,int),(int,int))):
                 assert len(x) == 3 and len(y) == 3 and len(x[0]) == 2 and len(x[1]) == 2 and len(x[2]) == 2 and len(y[0]) == 2 and len(y[1]) == 2 and len(y[2]) == 2
                 t0, t1, t2 = mul_e2(x[0], y[0]), mul_e2(x[1], y[1]), mul_e2(x[2], y[2])
@@ -229,7 +225,6 @@ namespace e12 {
                 return c0, c1, c2
             def square_e6(x:((int,int),(int,int),(int,int))):
                 return mul_e6(x,x)
-
             def inv_e12(c0:((int,int),(int,int),(int,int)), c1:((int,int),(int,int),(int,int))):
                 t0, t1 = square_e6(c0), square_e6(c1)
                 tmp = mul_by_non_residue_e6(t1)

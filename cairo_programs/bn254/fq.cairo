@@ -32,11 +32,9 @@ namespace fq_bigint3 {
         %{
             BASE = ids.BASE
             assert 1 < ids.N_LIMBS <= 12
-
             p, sum_limbs = 0, []
             for i in range(ids.N_LIMBS):
                 p+=getattr(ids, 'P'+str(i)) * BASE**i
-
             p_limbs = [getattr(ids, 'P'+str(i)) for i in range(ids.N_LIMBS)]
             sum_limbs = [getattr(getattr(ids, 'a'), 'd'+str(i)) + getattr(getattr(ids, 'b'), 'd'+str(i)) for i in range(ids.N_LIMBS)]
             sum_unreduced = sum([sum_limbs[i] * BASE**i for i in range(ids.N_LIMBS)])
@@ -56,7 +54,6 @@ namespace fq_bigint3 {
                     has_borrow_carry_reduced.append(1)
                 else:
                     has_borrow_carry_reduced.append(0)
-
             memory[ap] = needs_reduction
             for i in range(ids.N_LIMBS-1):
                 if needs_reduction:
@@ -132,11 +129,9 @@ namespace fq_bigint3 {
         %{
             BASE = ids.BASE
             assert 1 < ids.N_LIMBS <= 12
-
             p, sub_limbs = 0, []
             for i in range(ids.N_LIMBS):
                 p+=getattr(ids, 'P'+str(i)) * BASE**i
-
             p_limbs = [getattr(ids, 'P'+str(i)) for i in range(ids.N_LIMBS)]
             sub_limbs = [getattr(getattr(ids, 'a'), 'd'+str(i)) - getattr(getattr(ids, 'b'), 'd'+str(i)) for i in range(ids.N_LIMBS)]
             sub_unreduced = sum([sub_limbs[i] * BASE**i for i in range(ids.N_LIMBS)])
@@ -155,8 +150,7 @@ namespace fq_bigint3 {
                 elif (sub_reduced[i] + has_borrow_carry_reduced[i-1]) >= BASE:
                     has_borrow_carry_reduced.append(1)
                 else:
-                    has_borrow_carry_reduced.append(0)
-                    
+                    has_borrow_carry_reduced.append(0)     
             memory[ap] = needs_reduction
             for i in range(ids.N_LIMBS-1):
                 if needs_reduction:
@@ -251,7 +245,6 @@ namespace fq_bigint3 {
                     x = r
                 coeffs.append(x)
                 return coeffs[::-1]
-
             def poly_mul(a:list, b:list,n=ids.N_LIMBS) -> list:
                 assert len(a) == len(b) == n
                 result = [0] * ids.N_LIMBS_UNREDUCED
@@ -274,13 +267,11 @@ namespace fq_bigint3 {
                 for i in range(n):
                     result[i] = a[i] - b[i]
                 return result
-
             def abs_poly(x:list):
                 result = [0] * len(x)
                 for i in range(len(x)):
                     result[i] = abs(x[i])
                 return result
-
             def reduce_zero_poly(x:list):
                 x = x.copy()
                 carries = [0] * (len(x)-1)
@@ -291,7 +282,6 @@ namespace fq_bigint3 {
                     x[i+1] += carries[i]
                 assert x[-1] == 0
                 return x, carries
-
             for i in range(ids.N_LIMBS):
                 a+=as_int(getattr(ids.a, 'd'+str(i)),PRIME) * ids.BASE**i
                 b+=as_int(getattr(ids.b, 'd'+str(i)),PRIME) * ids.BASE**i
@@ -299,14 +289,12 @@ namespace fq_bigint3 {
                 a_limbs[i]=as_int(getattr(ids.a, 'd'+str(i)),PRIME)
                 b_limbs[i]=as_int(getattr(ids.b, 'd'+str(i)),PRIME)
                 p_limbs[i]=getattr(ids, 'P'+str(i))
-
             mul = a*b
             q, r = divmod(mul, p)
             qs, rs = split(q), split(r)
             for i in range(ids.N_LIMBS):
                 setattr(ids.r, 'd'+str(i), rs[i])
                 setattr(ids.q, 'd'+str(i), qs[i])
-
             val_limbs = poly_mul(a_limbs, b_limbs)
             q_P_plus_r_limbs = poly_mul_plus_c(qs, p_limbs, rs)
             diff_limbs = poly_sub(q_P_plus_r_limbs, val_limbs)
@@ -427,20 +415,17 @@ namespace fq_bigint3 {
                     x = r
                 coeffs.append(x)
                 return coeffs[::-1]
-
             def poly_sub(a:list, b:list, n=ids.N_LIMBS_UNREDUCED) -> list:
                 assert len(a) == len(b) == n
                 result = [0] * n
                 for i in range(n):
                     result[i] = a[i] - b[i]
                 return result
-
             def abs_poly(x:list):
                 result = [0] * len(x)
                 for i in range(len(x)):
                     result[i] = abs(x[i])
                 return result
-
             def reduce_zero_poly(x:list):
                 x = x.copy()
                 carries = [0] * (len(x)-1)
@@ -451,23 +436,19 @@ namespace fq_bigint3 {
                     x[i+1] += carries[i]
                 assert x[-1] == 0
                 return x, carries
-
             for i in range(ids.N_LIMBS):
                 a+=as_int(getattr(ids.a, 'd'+str(i)),PRIME) * ids.BASE**i
                 p+=getattr(ids, 'P'+str(i)) * ids.BASE**i
                 a_limbs[i]=as_int(getattr(ids.a, 'd'+str(i)),PRIME)
                 p_limbs[i]=getattr(ids, 'P'+str(i))
-
             mul = a*9
             q, r = divmod(mul, p)
             rs = split(r)
             for i in range(ids.N_LIMBS):
                 setattr(ids.r, 'd'+str(i), rs[i])
             ids.q=q
-
             val_limbs = [a_limbs[i] * 9 for i in range(ids.N_LIMBS)]
             q_P_plus_r_limbs = [q * p_limbs[i] + rs[i] for i in range(ids.N_LIMBS)]
-
             diff_limbs = poly_sub(q_P_plus_r_limbs, val_limbs, ids.N_LIMBS)
             _, carries = reduce_zero_poly(diff_limbs)
             carries = abs_poly(carries)
@@ -532,20 +513,17 @@ namespace fq_bigint3 {
                     x = r
                 coeffs.append(x)
                 return coeffs[::-1]
-
             def poly_sub(a:list, b:list, n=ids.N_LIMBS_UNREDUCED) -> list:
                 assert len(a) == len(b) == n
                 result = [0] * n
                 for i in range(n):
                     result[i] = a[i] - b[i]
                 return result
-
             def abs_poly(x:list):
                 result = [0] * len(x)
                 for i in range(len(x)):
                     result[i] = abs(x[i])
                 return result
-
             def reduce_zero_poly(x:list):
                 x = x.copy()
                 carries = [0] * (len(x)-1)
@@ -556,23 +534,19 @@ namespace fq_bigint3 {
                     x[i+1] += carries[i]
                 assert x[-1] == 0
                 return x, carries
-
             for i in range(ids.N_LIMBS):
                 a+=as_int(getattr(ids.a, 'd'+str(i)),PRIME) * ids.BASE**i
                 p+=getattr(ids, 'P'+str(i)) * ids.BASE**i
                 a_limbs[i]=as_int(getattr(ids.a, 'd'+str(i)),PRIME)
                 p_limbs[i]=getattr(ids, 'P'+str(i))
-
             mul = a*10
             q, r = divmod(mul, p)
             rs = split(r)
             for i in range(ids.N_LIMBS):
                 setattr(ids.r, 'd'+str(i), rs[i])
             ids.q=q
-
             val_limbs = [a_limbs[i] * 10 for i in range(ids.N_LIMBS)]
             q_P_plus_r_limbs = [q * p_limbs[i] + rs[i] for i in range(ids.N_LIMBS)]
-
             diff_limbs = poly_sub(q_P_plus_r_limbs, val_limbs, ids.N_LIMBS)
             _, carries = reduce_zero_poly(diff_limbs)
             carries = abs_poly(carries)
@@ -628,7 +602,6 @@ namespace fq_bigint3 {
             assert 1 < ids.N_LIMBS <= 12
             assert ids.DEGREE == ids.N_LIMBS-1
             a,p=0,0
-
             def split(x, degree=ids.DEGREE, base=ids.BASE):
                 coeffs = []
                 for n in range(degree, 0, -1):
@@ -637,11 +610,9 @@ namespace fq_bigint3 {
                     x = r
                 coeffs.append(x)
                 return coeffs[::-1]
-
             for i in range(ids.N_LIMBS):
                 a+=as_int(getattr(ids.a, 'd'+str(i)), PRIME) * ids.BASE**i
                 p+=getattr(ids, 'P'+str(i)) * ids.BASE**i
-
             inv = pow(a, -1, p)
             invs = split(inv)
             for i in range(ids.N_LIMBS):

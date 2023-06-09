@@ -53,7 +53,6 @@ namespace e2 {
             assert 1 < ids.N_LIMBS <= 12
             assert ids.DEGREE == ids.N_LIMBS-1
             a0,a1,p=0,0,0
-
             def split(x, degree=ids.DEGREE, base=ids.BASE):
                 coeffs = []
                 for n in range(degree, 0, -1):
@@ -62,18 +61,15 @@ namespace e2 {
                     x = r
                 coeffs.append(x)
                 return coeffs[::-1]
-
             for i in range(ids.N_LIMBS):
                 a0+=as_int(getattr(ids.x.a0, 'd'+str(i)), PRIME) * ids.BASE**i
                 a1+=as_int(getattr(ids.x.a1, 'd'+str(i)), PRIME) * ids.BASE**i
                 p+=getattr(ids, 'P'+str(i)) * ids.BASE**i
-
             def inv_e2(a0:int, a1:int):
                 t0, t1 = (a0 * a0 % p, a1 * a1 % p)
                 t0 = (t0 + t1) % p
                 t1 = pow(t0, -1, p)
                 return (a0 * t1 % p, -(a1 * t1) % p)
-
             inverse0, inverse1 = inv_e2(a0, a1)
             inv0, inv1 =split(inverse0), split(inverse1)
             for i in range(ids.N_LIMBS):
