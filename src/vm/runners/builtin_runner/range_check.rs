@@ -27,6 +27,9 @@ const _INNER_RC_BOUND: u64 = 1u64 << INNER_RC_BOUND_SHIFT;
 const INNER_RC_BOUND_SHIFT: u64 = 16;
 const INNER_RC_BOUND_MASK: u64 = u16::MAX as u64;
 
+// TODO: use constant instead of receiving as false parameter
+const N_PARTS: u64 = 8;
+
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
     ratio: Option<u32>,
@@ -88,13 +91,12 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if &Felt252::zero() <= num.as_ref() && num.as_ref() < &Felt252::one().shl(128_usize)
-                {
+                if num.bits() < N_PARTS * INNER_RC_BOUND_SHIFT {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one().shl(128_usize),
+                        Felt252::one().shl((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },
