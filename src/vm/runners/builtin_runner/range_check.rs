@@ -91,7 +91,7 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if num.bits() < N_PARTS * INNER_RC_BOUND_SHIFT {
+                if num.bits() <= N_PARTS * INNER_RC_BOUND_SHIFT {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
