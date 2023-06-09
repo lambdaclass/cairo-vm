@@ -127,7 +127,8 @@ impl RangeCheckBuiltinRunner {
             //Split val into n_parts parts.
             let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
             for _ in 0..self.n_parts {
-                let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
+                let (d, m) = val.div_mod_floor(&inner_rc_bound);
+                let part_val = m.to_usize()?;
                 rc_bounds = Some(match rc_bounds {
                     None => (part_val, part_val),
                     Some((rc_min, rc_max)) => {
@@ -137,7 +138,7 @@ impl RangeCheckBuiltinRunner {
                         (rc_min, rc_max)
                     }
                 });
-                val = val.div_floor(&inner_rc_bound)
+                val = d;
             }
         }
         rc_bounds
