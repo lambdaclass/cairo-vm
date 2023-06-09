@@ -970,9 +970,6 @@ fn cairo_run_reduce() {
 
 #[test]
 fn cairo_run_if_reloc_equal() {
-    const PROGRAM_DATA: &[u8] = include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/cairo_programs/if_reloc_equal.json",
-    ));
-    run_program_simple(PROGRAM_DATA);
+    let program_data = include_bytes!("../../cairo_programs/if_reloc_equal.json");
+    run_program_simple_with_memory_holes(program_data, 4);
 }
