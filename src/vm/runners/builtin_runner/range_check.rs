@@ -126,6 +126,7 @@ impl RangeCheckBuiltinRunner {
         // TODO: use UnsignedInteger
         let inner_rc_bound = BigUint::from(self.inner_rc_bound);
         for value in range_check_segment {
+            // TODO: change division into shifts and masks when inner_rc_bound is turned constant
             //Split val into n_parts parts.
             let mut val = value.as_ref()?.get_value().get_int_ref()?.to_biguint();
             for _ in 0..self.n_parts {
