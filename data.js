@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686177603643,
+  "lastUpdate": 1686353208589,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -105292,6 +105292,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 29380906,
             "range": "± 1461947",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "5b406bfb06bdbfd24c6cf595c333d2dc8a679926",
+          "message": "Convert unchanged inner_rc_bound to constant (#935)\n\n* Convert unchanged `inner_rc_bound` to constant\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n* Update changelog\n\n* Replace magic number for new constant + TODO\n\n* Fix: check with <= instead of <\n\n---------\n\nCo-authored-by: Tomá <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-06-09T22:46:56Z",
+          "tree_id": "ac279196ce0c2b6f0c9001470b01add8acd5fe45",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/5b406bfb06bdbfd24c6cf595c333d2dc8a679926"
+        },
+        "date": 1686353202573,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24339,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53195,
+            "range": "± 2843",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18964062,
+            "range": "± 227045",
             "unit": "ns/iter"
           }
         ]
