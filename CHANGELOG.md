@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
+
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
 
 #### [0.5.1] - 2023-6-7
