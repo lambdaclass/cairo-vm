@@ -967,3 +967,9 @@ fn cairo_run_reduce() {
     let program_data = include_bytes!("../../cairo_programs/reduce.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+fn cairo_run_if_reloc_equal() {
+    let program_data = include_bytes!("../../cairo_programs/if_reloc_equal.json");
+    run_program_simple_with_memory_holes(program_data, 4);
+}
