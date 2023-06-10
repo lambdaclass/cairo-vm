@@ -8,6 +8,8 @@
 
 #### [0.5.1] - 2023-6-7
 
+* fix: substraction of `MaybeRelocatable` always behaves as signed [#1218](https://github.com/lambdaclass/cairo-rs/pull/1218)
+
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
   Fixes [#1205](https://github.com/lambdaclass/cairo-rs/issue/1205)
 
