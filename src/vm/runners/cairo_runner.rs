@@ -626,23 +626,20 @@ impl CairoRunner {
         self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
     }
 
-    pub fn get_perm_range_check_limits(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
+    pub fn get_perm_range_check_limits(&self, vm: &VirtualMachine) -> Option<(isize, isize)> {
         let runner_usages = vm
             .builtin_runners
             .iter()
             .filter_map(|runner| runner.get_range_check_usage(&vm.segments.memory))
             .map(|(rc_min, rc_max)| (rc_min as isize, rc_max as isize));
         let rc_bounds = vm.rc_limits.iter().copied().chain(runner_usages);
-        Ok(rc_bounds.reduce(|(min1, max1), (min2, max2)| (min1.min(min2), max1.max(max2))))
+        rc_bounds.reduce(|(min1, max1), (min2, max2)| (min1.min(min2), max1.max(max2)))
     }
 
     /// Checks that there are enough trace cells to fill the entire range check
     /// range.
     pub fn check_range_check_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
-        let Some((rc_min, rc_max)) = self.get_perm_range_check_limits(vm)? else {
+        let Some((rc_min, rc_max)) = self.get_perm_range_check_limits(vm) else {
             return Ok(());
         };
 
@@ -3701,7 +3698,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((32768, 32803)))
+            Some((32768, 32803))
         );
     }
 
@@ -3722,7 +3719,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((0, 33023)))
+            Some((0, 33023))
         );
     }
 
