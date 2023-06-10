@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686353208589,
+  "lastUpdate": 1686358877013,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -105388,6 +105388,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18964062,
             "range": "± 227045",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2b7de089c093625be0d1c39577471da7c7098af5",
+          "message": "fix: substraction between relocatables should be signed (#1218)\n\n* fix: substraction between relocatables should be signed\n\nIt is valid as per the reference implementation to substract two\nrelocatables `a - b` where `b.offset > a.offset`.\nThe fix consists in not using the trait as implemented for `Relocatable`\n(where it represents a positive distance between pointers) but to\npromote the offsets to `i128` and only substract them for\n`MaybeRelocatable`, as those are the language-level types.\n\n* chore: remove uneeded stuff\n\n* Add fix holes to if_reloc_equal.cairo test\n\n* chore: changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-10T00:26:23Z",
+          "tree_id": "b83f3d61543b6be54fafbc05d30b8321dfee14a4",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2b7de089c093625be0d1c39577471da7c7098af5"
+        },
+        "date": 1686358869528,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29200,
+            "range": "± 199",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 56237,
+            "range": "± 1827",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21963904,
+            "range": "± 239933",
             "unit": "ns/iter"
           }
         ]
