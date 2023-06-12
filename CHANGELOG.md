@@ -5,6 +5,8 @@
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
   * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
 
+* fix: pin Cairo compiler version [#1220](https://github.com/lambdaclass/cairo-rs/pull/1220)
+
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
 
 #### [0.5.1] - 2023-6-7
