@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686358877013,
+  "lastUpdate": 1686591165725,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -105484,6 +105484,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21963904,
             "range": "± 239933",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "73539d37d3ce203cc08ad97d57790bd2221cc117",
+          "message": "fix: pin Cairo compiler version (#1220)",
+          "timestamp": "2023-06-12T16:59:14Z",
+          "tree_id": "5137fac6291ceffdc85e07d0ef0192f07c9fd638",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/73539d37d3ce203cc08ad97d57790bd2221cc117"
+        },
+        "date": 1686591158313,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29556,
+            "range": "± 106",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 57046,
+            "range": "± 1489",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22250773,
+            "range": "± 317040",
             "unit": "ns/iter"
           }
         ]
