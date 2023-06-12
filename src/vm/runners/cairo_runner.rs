@@ -94,6 +94,10 @@ impl RunResources {
     pub fn consume_steps(&mut self) {
         self.n_steps -= 1;
     }
+
+    pub fn get_n_steps(&mut self) -> usize {
+        self.n_steps
+    }
 }
 
 #[derive(Debug)]
@@ -4978,7 +4982,7 @@ mod tests {
             Ok(())
         );
 
-        assert_eq!(run_resources, Some(RunResources::new(1)));
+        assert_eq!(run_resources.unwrap().get_n_steps(), 1);
     }
 
     #[test]
