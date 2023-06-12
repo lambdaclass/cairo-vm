@@ -95,7 +95,7 @@ impl RunResources {
         self.n_steps -= 1;
     }
 
-    pub fn get_n_steps(&mut self) -> usize {
+    pub fn get_n_steps(&self) -> usize {
         self.n_steps
     }
 }
