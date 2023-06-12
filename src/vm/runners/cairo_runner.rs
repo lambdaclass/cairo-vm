@@ -72,6 +72,30 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
     }
 }
 
+// ================
+//   RunResources
+// ================
+
+/// Maintains the resources of a cairo run. Can be used across multiple runners.
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct RunResources {
+    n_steps: usize,
+}
+
+impl RunResources {
+    pub fn new(n_steps: usize) -> Self {
+        RunResources { n_steps }
+    }
+
+    pub fn consumed(&self) -> bool {
+        self.n_steps == 0
+    }
+
+    pub fn consume_steps(&mut self) {
+        self.n_steps -= 1;
+    }
+}
+
 #[derive(Debug)]
 pub struct CairoRunner {
     pub(crate) program: Program,
@@ -519,59 +543,44 @@ impl CairoRunner {
         &self.program.builtins
     }
 
+    fn consumed(&self, run_resources: &mut Option<RunResources>) -> bool {
+        if let Some(r) = run_resources.as_ref() {
+            r.consumed()
+        } else {
+            false
+        }
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
+        run_resources: &mut Option<RunResources>,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
-        while vm.run_context.pc != address {
+
+        while vm.run_context.pc != address && !self.consumed(run_resources) {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
+            if let Some(r) = run_resources.as_mut() {
+                r.consume_steps()
+            };
         }
+
+        if vm.run_context.pc != address {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
+
         Ok(())
-    }
-
-    /// Runs the self.program until it completes execution or reaches the steps_limit.
-    /// If the execution reaches the steps_limit without completing the execution
-    /// returns an error
-    pub fn run_until_pc_with_steps_limit(
-        &mut self,
-        address: Relocatable,
-        steps_limit: u64,
-        vm: &mut VirtualMachine,
-        hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
-        let references = self.get_reference_list();
-        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
-        #[cfg(feature = "hooks")]
-        vm.execute_before_first_step(self, &hint_data_dictionary)?;
-
-        if vm.run_context.pc == address {
-            return Ok(());
-        }
-
-        for _ in 0..steps_limit {
-            vm.step(
-                hint_processor,
-                &mut self.exec_scopes,
-                &hint_data_dictionary,
-                &self.program.constants,
-            )?;
-
-            if vm.run_context.pc == address {
-                return Ok(());
-            }
-        }
-        Err(VirtualMachineError::StepsLimit(steps_limit))
     }
 
     /// Execute an exact number of steps on the program from the actual position.
@@ -919,10 +928,12 @@ impl CairoRunner {
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
+    #[allow(clippy::too_many_arguments)]
     pub fn run_from_entrypoint(
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
+        run_resources: &mut Option<RunResources>,
         verify_secure: bool,
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
@@ -937,7 +948,7 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)
+        self.run_until_pc(end, run_resources, vm, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
@@ -1932,7 +1943,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2008,7 +2019,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2123,7 +2134,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2262,7 +2273,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2499,7 +2510,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2638,7 +2649,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2815,7 +2826,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2856,7 +2867,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2942,7 +2953,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
+            cairo_runner.run_until_pc(end, &mut None, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -3435,7 +3446,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
             cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
@@ -4536,6 +4547,7 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
+                &mut None,
                 true,
                 None,
                 &mut vm,
@@ -4566,6 +4578,7 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
+                &mut None,
                 true,
                 None,
                 &mut new_vm,
@@ -4604,6 +4617,7 @@ mod tests {
                 &[
                     &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
                 ],
+                &mut None,
                 true,
                 None,
                 &mut vm,
@@ -4721,6 +4735,7 @@ mod tests {
         let result = cairo_runner.run_from_entrypoint(
             main_entrypoint,
             &[],
+            &mut None,
             true,
             None,
             &mut vm,
@@ -4750,7 +4765,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4773,7 +4793,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4796,7 +4821,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4820,7 +4850,12 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
+            .run_until_pc(
+                end,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
             .unwrap();
         vm.segments.compute_effective_sizes();
         let mut exec = runner.get_execution_resources(&vm).unwrap();
@@ -4898,7 +4933,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_run_until_pc_with_steps_limit() {
+    fn test_run_resources_none() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/fibonacci.json"),
             Some("main"),
@@ -4910,44 +4945,71 @@ mod tests {
 
         // program takes 80 steps
         assert_matches!(
-        runner
-            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 20
-        );
-        assert_matches!(
-        runner
-            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 20
-        );
-        assert_matches!(
-        runner
-            .run_until_pc_with_steps_limit(end, 20, &mut vm, &mut BuiltinHintProcessor::new_empty()),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 20
-        );
-        assert_matches!(
-            runner.run_until_pc_with_steps_limit(
+            runner.run_until_pc(
                 end,
-                20,
+                &mut None,
+                &mut vm,
+                &mut BuiltinHintProcessor::new_empty(),
+            ),
+            Ok(())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(81));
+        // program takes 80 steps
+        assert_matches!(
+            runner.run_until_pc(
+                end,
+                &mut run_resources,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
             ),
             Ok(())
         );
 
+        assert_eq!(run_resources, Some(RunResources::new(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_run_resources_ok_2() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner = cairo_runner!(program);
+        let mut vm = vm!();
+        let end = runner.initialize(&mut vm).unwrap();
+        let mut run_resources = Some(RunResources::new(80));
+        // program takes 80 steps
         assert_matches!(
-            runner.run_until_pc_with_steps_limit(
+            runner.run_until_pc(
                 end,
-                0,
+                &mut run_resources,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
             ),
             Ok(())
         );
+
+        assert_eq!(run_resources, Some(RunResources::new(0)));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_steps_limit_fibonacci_error() {
+    fn test_run_resources_error() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/fibonacci.json"),
             Some("main"),
@@ -4956,56 +5018,17 @@ mod tests {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
-
+        let mut run_resources = Some(RunResources::new(9));
         // program takes 80 steps
         assert_matches!(
-        runner
-            .run_until_pc_with_steps_limit(end, 0, &mut vm, &mut BuiltinHintProcessor::new_empty()),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 0
-        )
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_steps_limit_fibonacci_error_2() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
-            Some("main"),
-        )
-        .unwrap();
-        let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let end = runner.initialize(&mut vm).unwrap();
-
-        // program takes 80 steps
-        assert_matches!(
-        runner
-            .run_until_pc_with_steps_limit(end, 79, &mut vm, &mut BuiltinHintProcessor::new_empty()),
-            Err(VirtualMachineError::StepsLimit(x)) if x == 79
-        )
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_steps_limit_fibonacci_ok() {
-        let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
-            Some("main"),
-        )
-        .unwrap();
-        let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let end = runner.initialize(&mut vm).unwrap();
-
-        // program takes 80 steps
-        assert_matches!(
-            runner.run_until_pc_with_steps_limit(
+            runner.run_until_pc(
                 end,
-                80,
+                &mut run_resources,
                 &mut vm,
                 &mut BuiltinHintProcessor::new_empty(),
             ),
-            Ok(())
-        )
+            Err(VirtualMachineError::UnfinishedExecution)
+        );
+        assert_eq!(run_resources, Some(RunResources::new(0)));
     }
 }

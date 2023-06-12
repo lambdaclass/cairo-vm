@@ -18,10 +18,17 @@ use crate::{
     },
 };
 use felt::Felt252;
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{One, Zero};
 
 use super::RANGE_CHECK_BUILTIN_NAME;
+
+// NOTE: the current implementation is based on the bound 0x10000
+const _INNER_RC_BOUND: u64 = 1u64 << INNER_RC_BOUND_SHIFT;
+const INNER_RC_BOUND_SHIFT: u64 = 16;
+const INNER_RC_BOUND_MASK: u64 = u16::MAX as u64;
+
+// TODO: use constant instead of receiving as false parameter
+const N_PARTS: u64 = 8;
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
@@ -30,7 +37,6 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    inner_rc_bound: usize,
     pub _bound: Option<Felt252>,
     pub(crate) included: bool,
     pub(crate) n_parts: u32,
@@ -39,8 +45,6 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let inner_rc_bound = 1_usize << 16;
-
         let bound = Felt252::one().shl(16 * n_parts);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
@@ -54,7 +58,6 @@ impl RangeCheckBuiltinRunner {
             stop_ptr: None,
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
-            inner_rc_bound,
             _bound,
             included,
             n_parts,
@@ -88,13 +91,12 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if &Felt252::zero() <= num.as_ref() && num.as_ref() < &Felt252::one().shl(128_usize)
-                {
+                if num.bits() <= N_PARTS * INNER_RC_BOUND_SHIFT {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one().shl(128_usize),
+                        Felt252::one().shl((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },
@@ -121,27 +123,30 @@ impl RangeCheckBuiltinRunner {
     }
 
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
-        let mut rc_bounds: Option<(usize, usize)> = None;
         let range_check_segment = memory.data.get(self.base)?;
-        let inner_rc_bound = Felt252::new(self.inner_rc_bound);
-        for value in range_check_segment {
-            //Split val into n_parts parts.
-            let mut val = value.as_ref()?.get_value().get_int_ref()?.clone();
-            for _ in 0..self.n_parts {
-                let part_val = val.mod_floor(&inner_rc_bound).to_usize()?;
-                rc_bounds = Some(match rc_bounds {
-                    None => (part_val, part_val),
-                    Some((rc_min, rc_max)) => {
-                        let rc_min = min(rc_min, part_val);
-                        let rc_max = max(rc_max, part_val);
+        let mut rc_bounds =
+            (!range_check_segment.is_empty()).then_some((usize::MAX, usize::MIN))?;
 
-                        (rc_min, rc_max)
-                    }
+        // Split value into n_parts parts of less than _INNER_RC_BOUND size.
+        for value in range_check_segment {
+            rc_bounds = value
+                .as_ref()?
+                .get_value()
+                .get_int_ref()?
+                .to_le_digits()
+                // TODO: maybe skip leading zeros
+                .into_iter()
+                .flat_map(|digit| {
+                    (0..=3)
+                        .rev()
+                        .map(move |i| ((digit >> (i * INNER_RC_BOUND_SHIFT)) & INNER_RC_BOUND_MASK))
+                })
+                .take(self.n_parts as usize)
+                .fold(rc_bounds, |mm, x| {
+                    (min(mm.0, x as usize), max(mm.1, x as usize))
                 });
-                val = val.div_floor(&inner_rc_bound)
-            }
         }
-        rc_bounds
+        Some(rc_bounds)
     }
 
     pub fn get_used_instances(
@@ -363,7 +368,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 1)));
@@ -407,7 +412,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
