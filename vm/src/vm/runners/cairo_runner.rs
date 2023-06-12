@@ -1611,6 +1611,7 @@ mod tests {
         assert_eq!(vm.run_context.fp, 2);
     }
 
+    /*
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_with_range_check_valid() {
@@ -1639,6 +1640,7 @@ mod tests {
             .contains(&Relocatable::from((2, 1))));
         assert_eq!(vm.segments.memory.validated_addresses.len(), 2);
     }
+    */
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

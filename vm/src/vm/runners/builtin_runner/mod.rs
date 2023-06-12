@@ -1346,6 +1346,7 @@ mod tests {
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
 
+    /* FIXME: this test is really not testing anything
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_validate_auto_deductions() {
@@ -1368,6 +1369,7 @@ mod tests {
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
+    */
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

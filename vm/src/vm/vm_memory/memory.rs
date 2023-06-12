@@ -97,8 +97,7 @@ pub struct Memory {
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: AddressSet,
-    validation_rules: Vec<Option<ValidationRule>>,
+    validation_rules: Vec<Option<(ValidationRule, AddressSet)>>,
 }
 
 impl Memory {
@@ -107,8 +106,7 @@ impl Memory {
             data: Vec::<Vec<Option<MemoryCell>>>::new(),
             temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: AddressSet::new(),
-            validation_rules: Vec::with_capacity(7),
+            validation_rules: Vec::with_capacity(20),
         }
     }
 
@@ -304,46 +302,67 @@ impl Memory {
     }
 
     pub fn add_validation_rule(&mut self, segment_index: usize, rule: ValidationRule) {
-        if segment_index >= self.validation_rules.len() {
-            // Fill gaps
-            self.validation_rules
-                .resize_with(segment_index + 1, || None);
-        }
-        self.validation_rules.insert(segment_index, Some(rule));
+        let new_len = self.validation_rules.len().max(segment_index + 1);
+        self.validation_rules.resize_with(new_len, || None);
+        self.validation_rules.insert(segment_index, Some((rule, AddressSet::new())));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
-        if let Some(Some(rule)) = addr
+        let mut res = Ok(());
+        let mut rules_tmp = Vec::new();
+        core::mem::swap(&mut self.validation_rules, &mut rules_tmp);
+        if let Some(Some((rule, validated_addresses))) = addr
             .segment_index
             .to_usize()
-            .and_then(|x| self.validation_rules.get(x))
+            .and_then(|x| rules_tmp.get_mut(x))
         {
-            if !self.validated_addresses.contains(&addr) {
-                {
-                    self.validated_addresses
-                        .extend(rule.0(self, addr)?.as_slice());
-                }
+            if validated_addresses.contains(&addr) {
+                return Ok(());
+            }
+            let validated = rule.0(self, addr);
+            // NOTE: we can't simply `?` here because we need to restore the validation rules at the end
+            match validated {
+                Ok(addresses) => validated_addresses.extend(addresses.as_slice()),
+                Err(e) => {
+                    res = Err(e);
+                },
             }
         }
-        Ok(())
+        self.validation_rules = rules_tmp;
+        res
     }
 
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
-        for (index, rule) in self.validation_rules.iter().enumerate() {
-            if let Some(rule) = rule {
-                if index < self.data.len() {
-                    for offset in 0..self.data[index].len() {
-                        let addr = Relocatable::from((index as isize, offset));
-                        if !self.validated_addresses.contains(&addr) {
-                            self.validated_addresses
-                                .extend(rule.0(self, addr)?.as_slice());
-                        }
-                    }
+        let mut res = Ok(());
+        let mut rules_tmp = Vec::new();
+        core::mem::swap(&mut self.validation_rules, &mut rules_tmp);
+        for (segment, rule) in rules_tmp.iter_mut().enumerate() {
+            let Some((rule, ref mut validated_addresses)) = rule else {
+                continue;
+            };
+            let Some(len) = self.data.get(segment).map(|s| s.len()) else {
+                continue;
+            };
+            for offset in 0..len {
+                let addr = (segment as isize, offset).into();
+                if validated_addresses.contains(&addr) {
+                    continue;
+                }
+                let validated = rule.0(self, addr);
+                // NOTE: we can't simply `?` here because we need to restore the validation rules at the end
+                match validated {
+                    Ok(addresses) => validated_addresses.extend(addresses.as_slice()),
+                    // NOTE: we need to break here, otherwise we lose the rules
+                    Err(e) => {
+                        res = Err(e);
+                        break;
+                    },
                 }
             }
         }
-        Ok(())
+        self.validation_rules = rules_tmp;
+        res
     }
 
     /// Compares two ranges of values in memory of length `len`
@@ -780,7 +799,7 @@ mod memory_tests {
         segments.memory.validate_existing_memory().unwrap();
         assert!(segments
             .memory
-            .validated_addresses
+            .validation_rules[0].as_ref().unwrap().1
             .contains(&Relocatable::from((0, 0))));
     }
 
