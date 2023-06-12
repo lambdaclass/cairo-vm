@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
+
+  * `CairoRunner::get_execution_resources` return's `n_steps` field value is now set to `vm.current_step` instead of `0` if both `original_steps` and `trace` are set to `None`
+
 * Add `RunResources::get_n_steps` method [#1225](https://github.com/lambdaclass/cairo-rs/pull/1225)
 
 * fix: pin Cairo compiler version [#1220](https://github.com/lambdaclass/cairo-rs/pull/1220)
