@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
+
+  * `CairoRunner::get_execution_resources` return's `n_steps` field value is now set to `vm.current_step` instead of `0` if both `original_steps` and `trace` are set to `None`
+
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
 
 #### [0.5.1] - 2023-6-7
