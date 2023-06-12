@@ -732,7 +732,7 @@ impl<const PH: u128, const PL: u128> Shr<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: self.val.shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
+            val: self.val.shr(other),
         }
     }
 }
