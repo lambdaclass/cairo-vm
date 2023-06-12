@@ -8,6 +8,8 @@
 
 * Add `RunResources::get_n_steps` method [#1225](https://github.com/lambdaclass/cairo-rs/pull/1225)
 
+* refactor: simplify `mem_eq`
+
 * fix: pin Cairo compiler version [#1220](https://github.com/lambdaclass/cairo-rs/pull/1220)
 
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
