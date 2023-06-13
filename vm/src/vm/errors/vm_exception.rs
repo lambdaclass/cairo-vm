@@ -256,6 +256,17 @@ impl Location {
     pub fn to_string_with_content(&self, message: &str) -> String {
         let mut string = self.to_string(message);
         let input_file_path = std::path::Path::new(&self.input_file.filename);
+        #[cfg(test)]
+        let input_file_path = {
+            use std::path::PathBuf;
+            let current_dir = std::env::current_dir().expect("should return the current directory");
+            let mut parent_dir: PathBuf = current_dir
+                .parent()
+                .expect("should have a parent directory")
+                .into();
+            parent_dir.push(input_file_path);
+            parent_dir
+        };
         if let Ok(file_content) = std::fs::read(input_file_path) {
             string.push_str(&format!("\n{}", self.get_location_marks(&file_content)));
         }
@@ -632,7 +643,7 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_dict_update() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_dict_update.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/bad_dict_update.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
@@ -666,7 +677,7 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_usort() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
         .unwrap();
@@ -778,7 +789,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             end_line: 5,
             end_col: 2,
             input_file: InputFile {
-                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
+                filename: String::from("../cairo_programs/bad_programs/bad_usort.cairo"),
             },
             parent_location: None,
             start_line: 5,
@@ -843,7 +854,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:19:33: (pc=0:17)
 cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 "#;
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_range_check.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/bad_range_check.json"),
             Some("main"),
         )
         .unwrap();
@@ -888,7 +899,7 @@ cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
 cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 "#;
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/bad_usort.json"),
             Some("main"),
         )
         .unwrap();
@@ -909,7 +920,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_ap_based() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
         .unwrap();
@@ -928,7 +939,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_ap_based() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
             Some("main"),
         )
         .unwrap();
@@ -950,7 +961,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_complex() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
             Some("main"),
         )
         .unwrap();
@@ -969,7 +980,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_complex() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
             Some("main"),
         )
         .unwrap();

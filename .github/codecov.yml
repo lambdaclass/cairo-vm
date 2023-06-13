@@ -5,8 +5,8 @@ coverage:
         threshold: 5%
 
 ignore:
-  - src/vm/errors
-  - src/types/errors
+  - vm/src/vm/errors
+  - vm/src/types/errors
   - hint_accountant
-  - src/hint_processor/cairo-1-hint-processor # TODO: Remove this line
+  - vm/src/hint_processor/cairo-1-hint-processor # TODO: Remove this line
   - ./deps

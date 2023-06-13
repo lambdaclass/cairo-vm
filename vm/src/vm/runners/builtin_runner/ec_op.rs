@@ -971,7 +971,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_same_x() {
-        let program = include_bytes!("../../../../cairo_programs/bad_programs/ec_op_same_x.json");
+        let program =
+            include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
@@ -996,7 +997,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_not_in_curve() {
         let program =
-            include_bytes!("../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
+            include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
             layout: "all_cairo",
             ..crate::cairo_run::CairoRunConfig::default()
