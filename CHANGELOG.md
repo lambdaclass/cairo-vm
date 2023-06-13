@@ -2,15 +2,23 @@
 
 #### Upcoming Changes
 
+#### [0.5.2] - 2023-6-12
+
+* BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
+
+  * `CairoRunner::get_execution_resources` return's `n_steps` field value is now set to `vm.current_step` instead of `0` if both `original_steps` and `trace` are set to `None`
+
 * Add `RunResources::get_n_steps` method [#1225](https://github.com/lambdaclass/cairo-rs/pull/1225)
+
+* refactor: simplify `mem_eq`
 
 * fix: pin Cairo compiler version [#1220](https://github.com/lambdaclass/cairo-rs/pull/1220)
 
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
 
-#### [0.5.1] - 2023-6-7
-
 * fix: substraction of `MaybeRelocatable` always behaves as signed [#1218](https://github.com/lambdaclass/cairo-rs/pull/1218)
+
+#### [0.5.1] - 2023-6-7
 
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)
   Fixes [#1205](https://github.com/lambdaclass/cairo-rs/issue/1205)
