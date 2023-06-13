@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686682006698,
+  "lastUpdate": 1686687120922,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106156,6 +106156,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18828396,
             "range": "± 209311",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6d8d4925022931914958ebc364fd98c7d3b0b1f1",
+          "message": "Add factorial tests (#1180)\n\n* Add factorial tests\n\n* Change functions name",
+          "timestamp": "2023-06-13T19:27:49Z",
+          "tree_id": "0140f942d9c1b5f7d772ddb9b8974cb0c0f50a5d",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/6d8d4925022931914958ebc364fd98c7d3b0b1f1"
+        },
+        "date": 1686687114289,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 25202,
+            "range": "± 18",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 45077,
+            "range": "± 632",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18617640,
+            "range": "± 248442",
             "unit": "ns/iter"
           }
         ]
