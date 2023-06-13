@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-tests_path="../../cairo_programs"
+tests_path="../../../cairo_programs"
 exit_code=0
 trace=false
 memory=false
@@ -13,7 +13,7 @@ for i in $@; do
         ;;
         "memory") memory=true
         ;;
-        "proof_mode") tests_path="../../cairo_programs/proof_programs"
+        "proof_mode") tests_path="../../../cairo_programs/proof_programs"
         ;;
         *)
         ;;

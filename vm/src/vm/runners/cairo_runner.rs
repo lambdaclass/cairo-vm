@@ -93,6 +93,10 @@ impl RunResources {
     pub fn consume_steps(&mut self) {
         self.n_steps -= 1;
     }
+
+    pub fn get_n_steps(&self) -> usize {
+        self.n_steps
+    }
 }
 
 #[derive(Debug)]
@@ -834,7 +838,11 @@ impl CairoRunner {
     ) -> Result<ExecutionResources, TraceError> {
         let n_steps = match self.original_steps {
             Some(x) => x,
-            None => vm.trace.as_ref().map(|x| x.len()).unwrap_or(0),
+            None => vm
+                .trace
+                .as_ref()
+                .map(|x| x.len())
+                .unwrap_or(vm.current_step),
         };
         let n_memory_holes = self.get_memory_holes(vm)?;
 
@@ -1213,6 +1221,7 @@ impl MulAssign<usize> for ExecutionResources {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
@@ -1547,7 +1556,7 @@ mod tests {
         // The fibonacci program has 24 instructions, so there should be 24 accessed addresses,
         // from (0, 0) to (0, 23).
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -3414,7 +3423,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run_proof_mode_insufficient_allocated_cells() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -3467,17 +3476,52 @@ mod tests {
         let program = program!();
 
         let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
+        let mut vm: VirtualMachine = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
+        vm.current_step = 10;
         assert_eq!(
             cairo_runner.get_execution_resources(&vm),
             Ok(ExecutionResources {
-                n_steps: 0,
+                n_steps: 10,
                 n_memory_holes: 0,
                 builtin_instance_counter: HashMap::new(),
             }),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_execution_resources_run_program() {
+        let program_data = include_bytes!("../../../../cairo_programs/fibonacci.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: true,
+            relocate_mem: false,
+            layout: "all_cairo",
+            proof_mode: false,
+            secure_run: Some(false),
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        assert_eq!(runner.get_execution_resources(&vm).unwrap().n_steps, 80);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_execution_resources_run_program_no_trace() {
+        let program_data = include_bytes!("../../../../cairo_programs/fibonacci.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: "all_cairo",
+            proof_mode: false,
+            secure_run: Some(false),
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        assert_eq!(runner.get_execution_resources(&vm).unwrap().n_steps, 80);
     }
 
     #[test]
@@ -4454,7 +4498,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_custom_program_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/example_program.json"),
+            include_bytes!("../../../../cairo_programs/example_program.json"),
             None,
         )
         .unwrap();
@@ -4525,7 +4569,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_bitwise_test_check_memory_holes() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bitwise_builtin_test.json"),
+            include_bytes!("../../../../cairo_programs/bitwise_builtin_test.json"),
             None,
         )
         .unwrap();
@@ -4645,7 +4689,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_substitute_error_message_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/bad_programs/error_msg_function.json"),
+            include_bytes!("../../../../cairo_programs/bad_programs/error_msg_function.json"),
             None,
         )
         .unwrap();
@@ -4690,7 +4734,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_range_check_builtin() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/assert_le_felt_hint.json"),
+            include_bytes!("../../../../cairo_programs/assert_le_felt_hint.json"),
             Some("main"),
         )
         .unwrap();
@@ -4718,7 +4762,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_4_builtins() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/integration.json"),
+            include_bytes!("../../../../cairo_programs/integration.json"),
             Some("main"),
         )
         .unwrap();
@@ -4746,7 +4790,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_no_builtins() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -4775,7 +4819,7 @@ mod tests {
 
     fn filter_unused_builtins_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/integration.json"),
+            include_bytes!("../../../../cairo_programs/integration.json"),
             Some("main"),
         )
         .unwrap();
@@ -4868,7 +4912,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_none() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -4892,7 +4936,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_ok() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -4911,14 +4955,14 @@ mod tests {
             Ok(())
         );
 
-        assert_eq!(run_resources, Some(RunResources::new(1)));
+        assert_eq!(run_resources.unwrap().get_n_steps(), 1);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_ok_2() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();
@@ -4944,7 +4988,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_error() {
         let program = Program::from_bytes(
-            include_bytes!("../../../cairo_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
         .unwrap();

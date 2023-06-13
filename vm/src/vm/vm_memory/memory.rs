@@ -418,32 +418,19 @@ impl Memory {
             }
         };
         match (
-            get_segment(lhs.segment_index),
-            get_segment(rhs.segment_index),
+            get_segment(lhs.segment_index).and_then(|s| s.get(lhs.offset..)),
+            get_segment(rhs.segment_index).and_then(|s| s.get(rhs.offset..)),
         ) {
-            (None, None) => {
-                return true;
-            }
-            (Some(_), None) => {
-                return false;
-            }
-            (None, Some(_)) => {
-                return false;
-            }
-            (Some(lhs_segment), Some(rhs_segment)) => {
-                let (lhs_start, rhs_start) = (lhs.offset, rhs.offset);
-                for i in 0..len {
-                    let (lhs, rhs) = (
-                        lhs_segment.get(lhs_start + i),
-                        rhs_segment.get(rhs_start + i),
-                    );
-                    if lhs != rhs {
-                        return false;
-                    }
+            (Some(lhs), Some(rhs)) => {
+                let (lhs_len, rhs_len) = (lhs.len().min(len), rhs.len().min(len));
+                if lhs_len != rhs_len {
+                    return false;
                 }
+                lhs[..lhs_len] == rhs[..rhs_len]
             }
-        };
-        true
+            (None, None) => true,
+            _ => false,
+        }
     }
 
     /// Gets a range of memory values from addr to addr + size

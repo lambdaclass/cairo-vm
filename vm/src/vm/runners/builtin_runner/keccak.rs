@@ -375,7 +375,7 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         let program = Program::from_bytes(
-            include_bytes!("../../../../cairo_programs/_keccak.json"),
+            include_bytes!("../../../../../cairo_programs/_keccak.json"),
             Some("main"),
         )
         .unwrap();
