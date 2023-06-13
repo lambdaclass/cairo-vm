@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686610253814,
+  "lastUpdate": 1686682006698,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106060,6 +106060,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23300556,
             "range": "± 1076185",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34384633+tdelabro@users.noreply.github.com",
+            "name": "Timothée Delabrouille",
+            "username": "tdelabro"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f05364642e3c5d968ffa9b6bb1088210a88285f1",
+          "message": "add ensure-no-std crate to workspace (#1215)",
+          "timestamp": "2023-06-13T18:08:40Z",
+          "tree_id": "270e0e940627647a30c23217f74b12236fa0aa81",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/f05364642e3c5d968ffa9b6bb1088210a88285f1"
+        },
+        "date": 1686682000537,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 24387,
+            "range": "± 35",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 47838,
+            "range": "± 1259",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18828396,
+            "range": "± 209311",
             "unit": "ns/iter"
           }
         ]
