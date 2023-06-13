@@ -1569,3 +1569,6 @@
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
         * `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError>` is now `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<&BigInt>) -> Result<instruction::Instruction, VirtualMachineError>`
         * `VmException` fields' string format now mirrors their cairo-lang counterparts.
+
+#### [0.1.0] - 2022-13-30
+* Add Fuzzer workflow [#1231](https://github.com/lambdaclass/cairo-rs/pull/1231)
