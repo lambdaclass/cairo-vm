@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* move the vm in it's own directory and crate, different from the workspace
+
+* add a `ensure_no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+
 #### [0.5.2] - 2023-6-12
 
 * BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
@@ -17,10 +21,6 @@
 * perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
 
 * fix: substraction of `MaybeRelocatable` always behaves as signed [#1218](https://github.com/lambdaclass/cairo-rs/pull/1218)
-
-* move the vm in it's own directory and crate, different from the workspace
-
-* add a `ensure_no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
 
 #### [0.5.1] - 2023-6-7
 
