@@ -158,6 +158,22 @@ jobs:
       run: cargo check-all-features --workspace --all-targets
 
 
+  # NOTE: the term "smoke test" comes from electronics design: the minimal
+  # expectations anyone has in their device is to not catch fire on boot.
+  smoke-no-std:
+    name: Make sure no-std works
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust 1.69.0
+      uses: dtolnay/rust-toolchain@1.69.0
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Check
+      run: cd ensure_no_std && cargo b --release
+
   tests:
     needs: build-programs
     strategy:
