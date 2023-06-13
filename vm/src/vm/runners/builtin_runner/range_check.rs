@@ -87,12 +87,12 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+            |memory: &Memory, address: Relocatable| -> Result<(usize, usize), MemoryError> {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
                 if num.bits() <= N_PARTS * INNER_RC_BOUND_SHIFT {
-                    Ok(vec![address.to_owned()])
+                    Ok((address.offset, address.offset))
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),

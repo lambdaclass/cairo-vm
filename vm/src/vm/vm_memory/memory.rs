@@ -12,7 +12,7 @@ use num_traits::ToPrimitive;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
+    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<(usize, usize), MemoryError>>,
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
@@ -47,18 +47,18 @@ impl AddressSet {
         Self(bv::BitVec::new())
     }
 
-    pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
-        self.0.get(addr.offset)
+    pub(crate) fn contains(&self, offset: usize) -> bool {
+        self.0.get(offset)
             .map(|bit| *bit)
             .unwrap_or(false)
     }
 
-    pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
-        for Relocatable{offset, ..} in addresses {
-            if *offset >= self.0.len() {
+    pub(crate) fn extend(&mut self, (start, end): (usize, usize)) {
+        for offset in (start..=end).rev() {
+            if offset >= self.0.len() {
                 self.0.resize(offset + 1, false);
             }
-            self.0.insert(*offset, true);
+            self.0.insert(offset, true);
         }
     }
 }
@@ -297,13 +297,15 @@ impl Memory {
             .to_usize()
             .and_then(|x| rules_tmp.get_mut(x))
         {
-            if validated_addresses.contains(&addr) {
+            if validated_addresses.contains(addr.offset) {
                 return Ok(());
             }
             let validated = rule.0(self, addr);
             // NOTE: we can't simply `?` here because we need to restore the validation rules at the end
             match validated {
-                Ok(addresses) => validated_addresses.extend(addresses.as_slice()),
+                Ok(addresses) => {
+                    validated_addresses.extend(addresses);
+                },
                 Err(e) => {
                     res = Err(e);
                 },
@@ -327,13 +329,15 @@ impl Memory {
             };
             for offset in 0..len {
                 let addr = (segment as isize, offset).into();
-                if validated_addresses.contains(&addr) {
+                if validated_addresses.contains(offset) {
                     continue;
                 }
                 let validated = rule.0(self, addr);
                 // NOTE: we can't simply `?` here because we need to restore the validation rules at the end
                 match validated {
-                    Ok(addresses) => validated_addresses.extend(addresses.as_slice()),
+                    Ok(addresses) => {
+                        validated_addresses.extend(addresses);
+                    },
                     // NOTE: we need to break here, otherwise we lose the rules
                     Err(e) => {
                         res = Err(e);
