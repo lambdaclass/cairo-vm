@@ -40,56 +40,37 @@ impl MemoryCell {
     }
 }
 
-pub struct AddressSet(Vec<bv::BitVec>);
+pub struct AddressSet(bv::BitVec);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
-        Self(Vec::new())
+        Self(bv::BitVec::new())
     }
 
     pub(crate) fn contains(&self, addr: &Relocatable) -> bool {
-        let segment = addr.segment_index;
-        if segment.is_negative() {
-            return false;
-        }
-
-        self.0
-            .get(segment as usize)
-            .and_then(|segment| segment.get(addr.offset))
+        self.0.get(addr.offset)
             .map(|bit| *bit)
             .unwrap_or(false)
     }
 
     pub(crate) fn extend(&mut self, addresses: &[Relocatable]) {
-        for addr in addresses {
-            let segment = addr.segment_index;
-            if segment.is_negative() {
-                continue;
+        for Relocatable{offset, ..} in addresses {
+            if *offset >= self.0.len() {
+                self.0.resize(offset + 1, false);
             }
-            let segment = segment as usize;
-            if segment >= self.0.len() {
-                self.0.resize(segment + 1, bv::BitVec::new());
-            }
-
-            let offset = addr.offset;
-            if offset >= self.0[segment].len() {
-                self.0[segment].resize(offset + 1, false);
-            }
-
-            self.0[segment].insert(offset, true);
+            self.0.insert(*offset, true);
         }
     }
 }
 
+/*
 #[cfg(test)]
 impl AddressSet {
     pub(crate) fn len(&self) -> usize {
-        self.0
-            .iter()
-            .map(|segment| segment.iter().map(|bit| *bit as usize).sum::<usize>())
-            .sum()
+        self.0.iter().map(|bit| *bit as usize).sum::<usize>()
     }
 }
+*/
 
 pub struct Memory {
     pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
