@@ -36,7 +36,6 @@ use crate::{
             vm_exception::VmException,
         },
         security::verify_secure_runner,
-        trace::get_perm_range_check_limits,
         {
             runners::builtin_runner::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -596,7 +595,6 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = self.get_reference_list();
         let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
-
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
@@ -632,48 +630,29 @@ impl CairoRunner {
         self.run_until_steps(vm.current_step.next_power_of_two(), vm, hint_processor)
     }
 
-    pub fn get_perm_range_check_limits(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<Option<(isize, isize)>, VirtualMachineError> {
-        let limits = get_perm_range_check_limits(
-            vm.trace.as_ref().ok_or(VirtualMachineError::TracerError(
-                TraceError::TraceNotEnabled,
-            ))?,
-            &vm.segments.memory,
-        )?;
-
-        match limits {
-            Some((mut rc_min, mut rc_max)) => {
-                for runner in &vm.builtin_runners {
-                    let (runner_min, runner_max) =
-                        match runner.get_range_check_usage(&vm.segments.memory) {
-                            Some(x) => x,
-                            None => continue,
-                        };
-
-                    rc_min = rc_min.min(runner_min as isize);
-                    rc_max = rc_max.max(runner_max as isize);
-                }
-
-                Ok(Some((rc_min, rc_max)))
-            }
-            None => Ok(None),
-        }
+    pub fn get_perm_range_check_limits(&self, vm: &VirtualMachine) -> Option<(isize, isize)> {
+        let runner_usages = vm
+            .builtin_runners
+            .iter()
+            .filter_map(|runner| runner.get_range_check_usage(&vm.segments.memory))
+            .map(|(rc_min, rc_max)| (rc_min as isize, rc_max as isize));
+        let rc_bounds = vm.rc_limits.iter().copied().chain(runner_usages);
+        rc_bounds.reduce(|(min1, max1), (min2, max2)| (min1.min(min2), max1.max(max2)))
     }
 
     /// Checks that there are enough trace cells to fill the entire range check
     /// range.
     pub fn check_range_check_usage(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
-        let (rc_min, rc_max) = match self.get_perm_range_check_limits(vm)? {
-            Some(x) => x,
-            None => return Ok(()),
+        let Some((rc_min, rc_max)) = self.get_perm_range_check_limits(vm) else {
+            return Ok(());
         };
 
-        let mut rc_units_used_by_builtins = 0;
-        for builtin_runner in &vm.builtin_runners {
-            rc_units_used_by_builtins += builtin_runner.get_used_perm_range_check_units(vm)?;
-        }
+        let rc_units_used_by_builtins: usize = vm
+            .builtin_runners
+            .iter()
+            .map(|runner| runner.get_used_perm_range_check_units(vm))
+            .sum::<Result<usize, MemoryError>>()
+            .map_err(Into::<VirtualMachineError>::into)?;
 
         let unused_rc_units =
             (self.layout.rc_units as usize - 3) * vm.current_step - rc_units_used_by_builtins;
@@ -3737,74 +3716,33 @@ mod tests {
         );
     }
 
-    /// Test that ensures get_perm_range_check_limits() returns an error when
-    /// trace is not enabled.
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_perm_range_check_limits_trace_not_enabled() {
-        let program = program!();
-
-        let cairo_runner = cairo_runner!(program);
-        let vm = vm!();
-
-        assert_matches!(
-            cairo_runner.get_perm_range_check_limits(&vm),
-            Err(VirtualMachineError::TracerError(
-                TraceError::TraceNotEnabled
-            ))
-        );
-    }
-
-    /// Test that ensures get_perm_range_check_limits() returns None when the
-    /// trace is empty (get_perm_range_check_limits returns None).
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_perm_range_check_limits_empty() {
-        let program = program!();
-
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.trace = Some(vec![]);
-
-        assert_matches!(cairo_runner.get_perm_range_check_limits(&vm), Ok(None));
-    }
-
     /// Test that get_perm_range_check_limits() works correctly when there are
     /// no builtins.
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perm_range_check_limits_no_builtins() {
         let program = program!();
+        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new());
 
-        let cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        vm.trace = Some(vec![
-            TraceEntry {
-                pc: 0,
-                ap: 0,
-                fp: 0,
-            },
-            TraceEntry {
-                pc: 1,
-                ap: 0,
-                fp: 0,
-            },
-            TraceEntry {
-                pc: 2,
-                ap: 0,
-                fp: 0,
-            },
-        ]);
-        vm.segments.memory.data = vec![vec![
-            Some(MemoryCell::new(Felt252::new(0x80FF_8000_0530u64).into())),
-            Some(MemoryCell::new(Felt252::new(0xBFFF_8000_0620u64).into())),
-            Some(MemoryCell::new(Felt252::new(0x8FFF_8000_0750u64).into())),
-        ]];
+        vm.segments.memory.data = vec![
+            vec![
+                Some(MemoryCell::new(Felt252::new(0x8000_8023_8012u64).into())),
+                Some(MemoryCell::new(Felt252::new(0xBFFF_8000_0620u64).into())),
+                Some(MemoryCell::new(Felt252::new(0x8FFF_8000_0750u64).into())),
+            ],
+            vec![Some(MemoryCell::new((0isize, 0usize).into())); 128 * 1024],
+        ];
+
+        cairo_runner
+            .run_for_steps(1, &mut vm, &mut hint_processor)
+            .unwrap();
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((1328, 49151)))
+            Some((32768, 32803))
         );
     }
 
@@ -3818,11 +3756,6 @@ mod tests {
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        vm.trace = Some(vec![TraceEntry {
-            pc: 0,
-            ap: 0,
-            fp: 0,
-        }]);
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -3830,7 +3763,7 @@ mod tests {
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
-            Ok(Some((0, 33023)))
+            Some((0, 33023))
         );
     }
 
