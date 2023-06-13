@@ -5,10 +5,11 @@ use crate::{
     utils::from_relocatable_to_indexes,
     vm::errors::memory_errors::MemoryError,
 };
-use bitvec::prelude as bv;
+//use bitvec::prelude as bv;
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
+use range_set_blaze::RangeSetBlaze;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
@@ -40,26 +41,19 @@ impl MemoryCell {
     }
 }
 
-pub struct AddressSet(bv::BitVec);
+pub struct AddressSet(RangeSetBlaze<usize>);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
-        Self(bv::BitVec::new())
+        Self(RangeSetBlaze::new())
     }
 
     pub(crate) fn contains(&self, offset: usize) -> bool {
-        self.0.get(offset)
-            .map(|bit| *bit)
-            .unwrap_or(false)
+        self.0.contains(offset)
     }
 
     pub(crate) fn extend(&mut self, (start, end): (usize, usize)) {
-        for offset in (start..=end).rev() {
-            if offset >= self.0.len() {
-                self.0.resize(offset + 1, false);
-            }
-            self.0.insert(offset, true);
-        }
+        self.0.extend(start..=end)
     }
 }
 

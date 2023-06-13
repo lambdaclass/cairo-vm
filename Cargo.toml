@@ -53,7 +53,8 @@ parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/par
 felt = { package = "cairo-felt", path = "./felt", version = "0.5.2", default-features = false, features = [
     "alloc",
 ] }
-bitvec = { version = "1", default-features = false, features = ["alloc"] }
+#bitvec = { version = "1", default-features = false, features = ["alloc"] }
+range-set-blaze = "0.1.6"
 
 # Dependencies for cairo-1-hints feature
 cairo-lang-starknet = { version = "1.1.0"}
