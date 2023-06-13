@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cairo-felt = { path = "../felt", default-features = false, features = ["alloc"] }
+cairo-felt = { path = "../felt", default-features = false, features = [
+    "alloc",
+] }
 
 wee_alloc = "0.4.5"
 
