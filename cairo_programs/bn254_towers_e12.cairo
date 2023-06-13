@@ -1,8 +1,8 @@
-from cairo_programs.bn254.towers.e6 import e6, E6
-from cairo_programs.bn254.towers.e2 import e2, E2
-from cairo_programs.bn254.fq import fq_bigint3, BigInt3
+from cairo_programs.bn254_towers_e6 import e6, E6
+from cairo_programs.bn254_towers_e2 import e2, E2
+from cairo_programs.bn254_fq import fq_bigint3, BigInt3
 from starkware.cairo.common.registers import get_fp_and_pc
-from cairo_programs.bn254.curve import (
+from cairo_programs.bn254_curve import (
     N_LIMBS,
     DEGREE,
     BASE,

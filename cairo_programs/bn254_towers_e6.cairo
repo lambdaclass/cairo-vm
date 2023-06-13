@@ -1,6 +1,6 @@
 from starkware.cairo.common.registers import get_fp_and_pc
 
-from cairo_programs.bn254.towers.e2 import e2, E2
+from cairo_programs.bn254_towers_e2 import e2, E2
 
 struct E6 {
     b0: E2*,

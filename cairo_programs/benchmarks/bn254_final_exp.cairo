@@ -1,11 +1,11 @@
 %builtins range_check
 
 from starkware.cairo.common.registers import get_label_location
-from cairo_programs.bn254.towers.e12 import E12, e12
-from cairo_programs.bn254.towers.e6 import E6
-from cairo_programs.bn254.towers.e2 import E2
+from cairo_programs.bn254_towers_e12 import E12, e12
+from cairo_programs.bn254_towers_e6 import E6
+from cairo_programs.bn254_towers_e2 import E2
 
-from cairo_programs.bn254.fq import BigInt3
+from cairo_programs.bn254_fq import BigInt3
 
 func final_exponentiation{range_check_ptr}(z: E12*) -> E12* {
     alloc_locals;

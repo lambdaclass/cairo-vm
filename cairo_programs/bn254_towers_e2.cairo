@@ -1,6 +1,6 @@
-from cairo_programs.bn254.fq import fq_bigint3, BigInt3, fq_eq_zero
+from cairo_programs.bn254_fq import fq_bigint3, BigInt3, fq_eq_zero
 from starkware.cairo.common.registers import get_fp_and_pc
-from cairo_programs.bn254.curve import (
+from cairo_programs.bn254_curve import (
     N_LIMBS,
     DEGREE,
     BASE,
