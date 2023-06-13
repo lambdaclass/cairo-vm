@@ -116,6 +116,7 @@ impl Add<i32> for Relocatable {
         }
     }
 }
+
 impl Add<&Felt252> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn add(self, other: &Felt252) -> Result<Relocatable, MathError> {
@@ -124,6 +125,16 @@ impl Add<&Felt252> for Relocatable {
             .ok_or_else(|| {
                 MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, other.clone())))
             })?;
+        Ok((self.segment_index, new_offset).into())
+    }
+}
+
+impl Add<i128> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: i128) -> Result<Relocatable, MathError> {
+        let new_offset = (self.offset as i128 + other).to_usize().ok_or_else(|| {
+            MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, Felt252::from(other))))
+        })?;
         Ok((self.segment_index, new_offset).into())
     }
 }

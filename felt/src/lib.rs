@@ -287,6 +287,23 @@ impl Felt252 {
         }
     }
 
+    pub fn to_signed_i128(&self) -> Option<i128> {
+        const PRIME_DIGITS_BE_HI: [u64; 3] =
+            [0x0800000000000011, 0x0000000000000000, 0x0000000000000000];
+        const PRIME_MINUS_U64_MAX_DIGITS_BE_HI: [u64; 3] =
+            [0x0800000000000010, 0xffffffffffffffff, 0xffffffffffffffff];
+
+        // Extracted from Add<&Felt252>
+        match self.to_be_digits() {
+            [0, 0, 0, low] => Some(low as i128),
+            [hi @ .., _] if hi == PRIME_DIGITS_BE_HI => Some(-1),
+            [hi @ .., low] if hi == PRIME_MINUS_U64_MAX_DIGITS_BE_HI && low >= 2 => {
+                Some(-((u64::MAX - (low - 2)) as i128))
+            }
+            _ => None,
+        }
+    }
+
     // Converts [`Felt252`]'s representation directly into a [`BigInt`].
     // Equivalent to doing felt.to_biguint().to_bigint().
     pub fn to_bigint(&self) -> BigInt {

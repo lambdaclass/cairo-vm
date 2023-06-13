@@ -26,6 +26,7 @@ use crate::{
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
+use std::collections::hash_map::Entry;
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
@@ -82,6 +83,7 @@ pub struct VirtualMachine {
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
+    operands_cache: HashMap<Felt252, i128>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -102,14 +104,15 @@ impl VirtualMachine {
 
         VirtualMachine {
             run_context,
-            builtin_runners: Vec::new(),
+            builtin_runners: Default::default(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             run_finished: false,
             trace_relocated: false,
-            instruction_cache: Vec::new(),
+            instruction_cache: Default::default(),
+            operands_cache: Default::default(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
         }
@@ -160,6 +163,7 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
         operands: &Operands,
+        oper_cache: &mut HashMap<Felt252, i128>,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
@@ -169,14 +173,42 @@ impl VirtualMachine {
             },
             PcUpdate::JumpRel => match &operands.res {
                 Some(res) => match res {
-                    MaybeRelocatable::Int(num_res) => (self.run_context.pc + num_res)?,
+                    MaybeRelocatable::Int(num_res) => {
+                        let res =
+                            cached_addition(oper_cache, num_res.clone()).ok_or_else(|| {
+                                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
+                                    self.run_context.pc,
+                                    num_res.clone(),
+                                )))
+                            })?;
+                        (self.run_context.pc + res)?
+                    }
                     _ => return Err(VirtualMachineError::JumpRelNotInt),
                 },
                 None => return Err(VirtualMachineError::UnconstrainedResJumpRel),
             },
             PcUpdate::Jnz => match VirtualMachine::is_zero(&operands.dst) {
                 true => (self.run_context.pc + instruction.size())?,
-                false => (self.run_context.pc + &operands.op1)?,
+                false => {
+                    let res = match operands.op1.clone() {
+                        MaybeRelocatable::Int(num_res) => {
+                            cached_addition(oper_cache, num_res.clone()).ok_or_else(|| {
+                                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
+                                    self.run_context.pc,
+                                    num_res,
+                                )))
+                            })?
+                        }
+                        MaybeRelocatable::RelocatableValue(rel) => {
+                            return Err(MathError::RelocatableAdd(Box::new((
+                                self.run_context.pc,
+                                rel,
+                            )))
+                            .into())
+                        }
+                    };
+                    (self.run_context.pc + res)?
+                }
             },
         };
         self.run_context.pc = new_pc;
@@ -187,10 +219,11 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
         operands: Operands,
+        oper_cache: &mut HashMap<Felt252, i128>,
     ) -> Result<(), VirtualMachineError> {
         self.update_fp(instruction, &operands)?;
         self.update_ap(instruction, &operands)?;
-        self.update_pc(instruction, &operands)?;
+        self.update_pc(instruction, &operands, oper_cache)?;
         Ok(())
     }
 
@@ -406,7 +439,10 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
-        self.update_registers(instruction, operands)?;
+        let mut oper_cache = core::mem::take(&mut self.operands_cache);
+        self.update_registers(instruction, operands, &mut oper_cache)?;
+        self.operands_cache = oper_cache;
+
         self.current_step += 1;
         Ok(())
     }
@@ -996,6 +1032,17 @@ impl VirtualMachine {
     }
 }
 
+fn cached_addition(oper_cache: &mut HashMap<Felt252, i128>, felt: Felt252) -> Option<i128> {
+    match oper_cache.entry(felt.clone()) {
+        Entry::Occupied(entry) => Some(*entry.get()),
+        Entry::Vacant(entry) => {
+            let computed = felt.to_signed_i128()?;
+            entry.insert(computed);
+            Some(computed)
+        }
+    }
+}
+
 pub struct VirtualMachineBuilder {
     pub(crate) run_context: RunContext,
     pub(crate) builtin_runners: Vec<BuiltinRunner>,
@@ -1085,7 +1132,8 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             run_finished: self.run_finished,
             trace_relocated: false,
-            instruction_cache: Vec::new(),
+            instruction_cache: Default::default(),
+            operands_cache: Default::default(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
         }
@@ -1469,7 +1517,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
@@ -1502,7 +1550,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
@@ -1535,7 +1583,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 8)));
@@ -1571,7 +1619,7 @@ mod tests {
         vm.run_context.fp = 6;
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Err(VirtualMachineError::UnconstrainedResJump)
         );
     }
@@ -1604,7 +1652,7 @@ mod tests {
         run_context!(vm, 1, 1, 1);
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 9)));
@@ -1637,7 +1685,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Err(VirtualMachineError::UnconstrainedResJumpRel)
         );
     }
@@ -1668,7 +1716,7 @@ mod tests {
 
         let mut vm = vm!();
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Err::<(), VirtualMachineError>(VirtualMachineError::JumpRelNotInt)
         );
     }
@@ -1700,7 +1748,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 1)));
@@ -1733,7 +1781,7 @@ mod tests {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.update_pc(&instruction, &operands),
+            vm.update_pc(&instruction, &operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 10)));
@@ -1769,7 +1817,7 @@ mod tests {
         vm.run_context.fp = 6;
 
         assert_matches!(
-            vm.update_registers(&instruction, operands),
+            vm.update_registers(&instruction, operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 5)));
@@ -1805,7 +1853,7 @@ mod tests {
         run_context!(vm, 4, 5, 6);
 
         assert_matches!(
-            vm.update_registers(&instruction, operands),
+            vm.update_registers(&instruction, operands, &mut Default::default()),
             Ok::<(), VirtualMachineError>(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 12)));
