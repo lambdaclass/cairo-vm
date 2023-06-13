@@ -166,6 +166,8 @@ jobs:
     steps:
     - name: Install Rust 1.69.0
       uses: dtolnay/rust-toolchain@1.69.0
+      with:
+        targets: wasm32-unknown-unknown
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
@@ -188,7 +190,6 @@ jobs:
       uses: dtolnay/rust-toolchain@1.69.0
       with:
           components: llvm-tools-preview
-          targets: wasm32-unknown-unknown
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
