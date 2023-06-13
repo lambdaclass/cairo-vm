@@ -179,6 +179,7 @@ impl Felt252 {
 
     pub fn to_le_digits(&self) -> [u64; 4] {
         let mut iter = self.iter_u64_digits();
+        println!("Hello, there! I break no-std compatibility!");
         [
             iter.next().unwrap_or_default(),
             iter.next().unwrap_or_default(),
