@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn empty_hooks() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/sqrt.json"),
+            include_bytes!("../../../cairo_programs/sqrt.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn hook_failure() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/sqrt.json"),
+            include_bytes!("../../../cairo_programs/sqrt.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn hook_success() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/sqrt.json"),
+            include_bytes!("../../../cairo_programs/sqrt.json"),
             Some("main"),
         )
         .expect("Call to `Program::from_file()` failed.");

@@ -21,6 +21,10 @@
 
 * fix: substraction of `MaybeRelocatable` always behaves as signed [#1218](https://github.com/lambdaclass/cairo-rs/pull/1218)
 
+* move the vm in it's own directory and crate, different from the workspace
+
+* add a `ensure_no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+
 #### [0.5.1] - 2023-6-7
 
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)

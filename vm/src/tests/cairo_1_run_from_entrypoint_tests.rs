@@ -5,7 +5,7 @@ use assert_matches::assert_matches;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_init_squash_data() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/init_squash_data.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/init_squash_data.casm");
 
     run_cairo_1_entrypoint(
         program_data.as_slice(),
@@ -18,7 +18,7 @@ fn test_init_squash_data() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn dict_hint_test() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/dict_test.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/dict_test.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[5_usize.into()]);
 }
 
@@ -26,7 +26,7 @@ fn dict_hint_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_uint256_div_mod_hint_max_value() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
 
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
@@ -35,7 +35,7 @@ fn test_uint256_div_mod_hint_max_value() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_uint256_div_mod_hint() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
 
     run_cairo_1_entrypoint(
         program_data.as_slice(),
@@ -48,7 +48,8 @@ fn test_uint256_div_mod_hint() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_less_than_or_equal() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/test_less_than.casm");
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/test_less_than.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -74,7 +75,7 @@ fn test_less_than_or_equal() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_1() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/fib.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -86,7 +87,7 @@ fn fibonacci_1() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_3() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/fib.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -98,7 +99,7 @@ fn fibonacci_3() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u8_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -110,7 +111,7 @@ fn u8_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u8_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -122,7 +123,7 @@ fn u8_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u8_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -134,7 +135,7 @@ fn u8_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u8_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u8_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -146,7 +147,7 @@ fn u8_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u16_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -158,7 +159,7 @@ fn u16_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u16_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -170,7 +171,7 @@ fn u16_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u16_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -182,7 +183,7 @@ fn u16_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u16_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u16_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -194,7 +195,7 @@ fn u16_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u32_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -206,7 +207,7 @@ fn u32_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u32_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -218,7 +219,7 @@ fn u32_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u32_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -230,7 +231,7 @@ fn u32_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u32_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u32_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -242,7 +243,7 @@ fn u32_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u64_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -254,7 +255,7 @@ fn u64_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u64_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -266,7 +267,7 @@ fn u64_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u64_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -278,7 +279,7 @@ fn u64_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u64_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u64_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -290,7 +291,7 @@ fn u64_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u128_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -302,7 +303,7 @@ fn u128_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u128_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -314,7 +315,7 @@ fn u128_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u128_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -326,7 +327,7 @@ fn u128_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u128_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u128_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -338,7 +339,7 @@ fn u128_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_9() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -350,7 +351,7 @@ fn u256_sqrt_9() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_10() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -362,7 +363,7 @@ fn u256_sqrt_10() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_one() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -374,7 +375,7 @@ fn u256_sqrt_one() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_zero() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -386,7 +387,7 @@ fn u256_sqrt_zero() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_max_num() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
 
     run_cairo_1_entrypoint(program_data.as_slice(), 257, &[], &[1.into()]);
 }
@@ -394,7 +395,7 @@ fn u256_sqrt_max_num() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn u256_sqrt_big_num() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/u256_sqrt.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         144,
@@ -406,7 +407,7 @@ fn u256_sqrt_big_num() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn divmod_hint_test() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/divmod.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/divmod.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -418,7 +419,8 @@ fn divmod_hint_test() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn alloc_segment_hint_test() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/alloc_segment.casm");
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/alloc_segment.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
 
@@ -426,7 +428,7 @@ fn alloc_segment_hint_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn should_skip_squash_loop_hint_test() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/should_skip_squash_loop.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/should_skip_squash_loop.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
 
@@ -434,7 +436,7 @@ fn should_skip_squash_loop_hint_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn get_segment_arena_test() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/get_segment_arena_index.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/get_segment_arena_index.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1_usize.into()]);
 }
 
@@ -442,7 +444,7 @@ fn get_segment_arena_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn boxed_fibonacci() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/alloc_constant_size.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/alloc_constant_size.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -454,7 +456,8 @@ fn boxed_fibonacci() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn linear_split() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/linear_split.casm");
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/linear_split.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -480,7 +483,8 @@ fn linear_split() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn alloc_felt_252_dict() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/felt_252_dict.casm");
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/felt_252_dict.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1.into()]);
 }
 
@@ -488,7 +492,7 @@ fn alloc_felt_252_dict() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn random_ec_point() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/random_ec_point.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/random_ec_point.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[1.into()]);
 }
 
@@ -496,7 +500,7 @@ fn random_ec_point() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn assert_le_find_small_arcs() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/assert_le_find_small_arcs.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/assert_le_find_small_arcs.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
 
@@ -504,7 +508,7 @@ fn assert_le_find_small_arcs() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn felt252_dict_entry_init() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/felt252_dict_entry_init.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/felt252_dict_entry_init.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
 
@@ -512,7 +516,7 @@ fn felt252_dict_entry_init() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn felt252_dict_entry_update() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/felt252_dict_entry_update.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/felt252_dict_entry_update.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -524,7 +528,7 @@ fn felt252_dict_entry_update() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn widelmul128_test() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/widemul128.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/widemul128.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -541,14 +545,14 @@ fn widelmul128_test() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn field_sqrt_test() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/field_sqrt.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/field_sqrt.casm");
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[10.into()]);
 }
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint512_div_mod_test() {
     let program_data =
-        include_bytes!("../../cairo_programs/cairo-1-contracts/uint512_div_mod.casm");
+        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint512_div_mod.casm");
     run_cairo_1_entrypoint(
         program_data.as_slice(),
         0,
@@ -567,7 +571,7 @@ fn uint512_div_mod_test() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_ok() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/fib.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
     let mut resources = Some(RunResources::new(621));
     // Program takes 621 steps
     assert_matches!(
@@ -586,7 +590,7 @@ fn fibonacci_with_run_resources_ok() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_2_ok() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/fib.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
     let mut resources = Some(RunResources::new(1000));
     // Program takes 621 steps
     assert_matches!(
@@ -604,7 +608,7 @@ fn fibonacci_with_run_resources_2_ok() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_error() {
-    let program_data = include_bytes!("../../cairo_programs/cairo-1-contracts/fib.casm");
+    let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
     let mut resources = Some(RunResources::new(100));
     // Program takes 621 steps
     assert!(run_cairo_1_entrypoint_with_run_resources(
