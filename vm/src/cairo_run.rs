@@ -166,7 +166,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_run_custom_entry_point() {
         let program = Program::from_bytes(
-            include_bytes!("../cairo_programs/not_main.json"),
+            include_bytes!("../../cairo_programs/not_main.json"),
             Some("not_main"),
         )
         .unwrap();
@@ -191,7 +191,7 @@ mod tests {
         // it should fail when the program is loaded.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_data_program_path =
-            include_bytes!("../cairo_programs/manually_compiled/no_data_program.json");
+            include_bytes!("../../cairo_programs/manually_compiled/no_data_program.json");
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(no_data_program_path, &cairo_run_config, &mut hint_processor,).is_err());
     }
@@ -203,7 +203,7 @@ mod tests {
         // it should fail when trying to run initialize_main_entrypoint.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let no_main_program =
-            include_bytes!("../cairo_programs/manually_compiled/no_main_program.json");
+            include_bytes!("../../cairo_programs/manually_compiled/no_main_program.json");
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(no_main_program, &cairo_run_config, &mut hint_processor,).is_err());
     }
@@ -215,7 +215,7 @@ mod tests {
         // decode the instruction.
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let invalid_memory =
-            include_bytes!("../cairo_programs/manually_compiled/invalid_memory.json");
+            include_bytes!("../../cairo_programs/manually_compiled/invalid_memory.json");
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(invalid_memory, &cairo_run_config, &mut hint_processor,).is_err());
     }
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_output_program() {
-        let program_content = include_bytes!("../cairo_programs/bitwise_output.json");
+        let program_content = include_bytes!("../../cairo_programs/bitwise_output.json");
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let (_, mut vm) = run_test_program(program_content, &mut hint_processor)
             .expect("Couldn't initialize cairo runner");
@@ -236,9 +236,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_binary_trace_file() {
-        let program_content = include_bytes!("../cairo_programs/struct.json");
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_trace =
-            include_bytes!("../cairo_programs/trace_memory/cairo_trace_struct");
+            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
 
         // run test program until the end
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -261,9 +261,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_binary_memory_file() {
-        let program_content = include_bytes!("../cairo_programs/struct.json");
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_memory =
-            include_bytes!("../cairo_programs/trace_memory/cairo_memory_struct");
+            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
 
         // run test program until the end
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -286,7 +286,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_with_no_trace() {
         let program = Program::from_bytes(
-            include_bytes!("../cairo_programs/struct.json"),
+            include_bytes!("../../cairo_programs/struct.json"),
             Some("main"),
         )
         .unwrap();
