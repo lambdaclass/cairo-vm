@@ -2,9 +2,9 @@
 
 #### Upcoming Changes
 
-* move the vm in it's own directory and crate, different from the workspace
+* BREAKING: Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
 
-* add a `ensure_no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+* Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
 
 #### [0.5.2] - 2023-6-12
 
