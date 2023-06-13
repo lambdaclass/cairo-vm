@@ -26,12 +26,13 @@ use crate::{
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
-use std::collections::hash_map::Entry;
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
+
+type OperandsCache = Vec<(Felt252, i128)>;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Operands {
@@ -83,7 +84,7 @@ pub struct VirtualMachine {
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
-    operands_cache: HashMap<Felt252, i128>,
+    operands_cache: OperandsCache,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -163,7 +164,7 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
         operands: &Operands,
-        oper_cache: &mut HashMap<Felt252, i128>,
+        oper_cache: &mut OperandsCache,
     ) -> Result<(), VirtualMachineError> {
         let new_pc: Relocatable = match instruction.pc_update {
             PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
@@ -219,7 +220,7 @@ impl VirtualMachine {
         &mut self,
         instruction: &Instruction,
         operands: Operands,
-        oper_cache: &mut HashMap<Felt252, i128>,
+        oper_cache: &mut OperandsCache,
     ) -> Result<(), VirtualMachineError> {
         self.update_fp(instruction, &operands)?;
         self.update_ap(instruction, &operands)?;
@@ -1032,13 +1033,13 @@ impl VirtualMachine {
     }
 }
 
-fn cached_addition(oper_cache: &mut HashMap<Felt252, i128>, felt: Felt252) -> Option<i128> {
-    match oper_cache.entry(felt.clone()) {
-        Entry::Occupied(entry) => Some(*entry.get()),
-        Entry::Vacant(entry) => {
-            let computed = felt.to_signed_i128()?;
-            entry.insert(computed);
-            Some(computed)
+fn cached_addition(oper_cache: &mut OperandsCache, felt: Felt252) -> Option<i128> {
+    match oper_cache.iter().rev().filter(|(f, _)| f == &felt).next() {
+        Some((_, num)) => Some(*num),
+        None => {
+            let num = felt.to_signed_i128()?;
+            oper_cache.push((felt, num));
+            Some(num)
         }
     }
 }
