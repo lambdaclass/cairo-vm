@@ -1,17 +1,17 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
+use arbitrary::Arbitrary;
 use bincode::enc::write::Writer;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use honggfuzz::fuzz;
+use std::fmt;
 use std::io::{self, Write};
 use std::path::PathBuf;
-use std::fmt;
 use thiserror::Error;
-use arbitrary::Arbitrary;
-use honggfuzz::fuzz;
 
 #[cfg(feature = "with_mimalloc")]
 use mimalloc::MiMalloc;
@@ -42,7 +42,7 @@ enum Layout {
     RecursiveLargeOutput,
     AllCairo,
     AllSolidity,
-    Dynamic
+    Dynamic,
 }
 
 impl fmt::Display for Layout {
@@ -63,8 +63,6 @@ impl fmt::Display for Layout {
 
 #[derive(Debug, Error)]
 enum Error {
-    #[error("Invalid arguments")]
-    Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
     #[error("The cairo program execution failed")]
