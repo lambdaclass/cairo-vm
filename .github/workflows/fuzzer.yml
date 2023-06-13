@@ -1,4 +1,4 @@
-name: "Fuzzer Workflow"
+name: "Fuzzer"
 
 on:
   schedule:
