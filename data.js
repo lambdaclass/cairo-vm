@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686687120922,
+  "lastUpdate": 1686694896388,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106252,6 +106252,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18617640,
             "range": "± 248442",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4221723f1d9d3db1cb8e3fd99cce5771543af399",
+          "message": "perf: keep min and max referenced offsets during run (#1080)\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* WIP\n\n* Fix trace\n\n* WIP\n\n* Revert \"WIP\"\n\nThis reverts commit eae76bb92a33de5dd5f488a08efe18b91846b2dd.\n\n* test: remove no longer relevant tests\n\n* Fix missing reassignment of cache\n\n* Cleanup and correctness\n\n* chore: changelog\n\n* refactor: don't return Result\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Tomá <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-06-13T21:46:30Z",
+          "tree_id": "d254b923b7aac2c96ab1346f6aa9b87c5bc0bdd1",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/4221723f1d9d3db1cb8e3fd99cce5771543af399"
+        },
+        "date": 1686694889067,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 29081,
+            "range": "± 68",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 57626,
+            "range": "± 1093",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23218988,
+            "range": "± 109494",
             "unit": "ns/iter"
           }
         ]
