@@ -23,6 +23,8 @@ use crate::{
     },
 };
 
+use crate::stdlib::collections::BTreeMap;
+use crate::stdlib::collections::Entry;
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
@@ -32,7 +34,7 @@ use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
-type OperandsCache = Vec<(Felt252, i128)>;
+type OperandsCache = BTreeMap<[u64; 4], i128>;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Operands {
@@ -1034,12 +1036,12 @@ impl VirtualMachine {
 }
 
 fn cached_addition(oper_cache: &mut OperandsCache, felt: Felt252) -> Option<i128> {
-    match oper_cache.iter().rev().filter(|(f, _)| f == &felt).next() {
-        Some((_, num)) => Some(*num),
-        None => {
-            let num = felt.to_signed_i128()?;
-            oper_cache.push((felt, num));
-            Some(num)
+    match oper_cache.entry(felt.raw_value()) {
+        Entry::Occupied(entry) => Some(*entry.get()),
+        Entry::Vacant(entry) => {
+            let value = felt.to_signed_i128()?;
+            entry.insert(value);
+            Some(value)
         }
     }
 }

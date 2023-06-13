@@ -245,6 +245,10 @@ impl Felt252 {
         self.value.representative().limbs
     }
 
+    pub fn raw_value(&self) -> [u64; 4] {
+        self.value.value().limbs
+    }
+
     pub fn parse_bytes(bytes: &[u8], radix: u32) -> Option<Self> {
         Some(BigInt::parse_bytes(bytes, radix)?.into())
     }
