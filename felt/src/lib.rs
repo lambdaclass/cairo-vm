@@ -179,7 +179,6 @@ impl Felt252 {
 
     pub fn to_le_digits(&self) -> [u64; 4] {
         let mut iter = self.iter_u64_digits();
-        let _breaking: Vec<u64> = Vec::new();
         [
             iter.next().unwrap_or_default(),
             iter.next().unwrap_or_default(),
