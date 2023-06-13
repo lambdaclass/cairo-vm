@@ -6,7 +6,7 @@ use wasm_bindgen_test::*;
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn bitwise_integration_test() {
-    let program_data = include_bytes!("../../cairo_programs/bitwise_builtin_test.json");
+    let program_data = include_bytes!("../../../cairo_programs/bitwise_builtin_test.json");
     let trace = [
         (27, 72, 72),
         (28, 73, 72),

@@ -217,11 +217,11 @@ jobs:
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils --no-default-features
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node --no-default-features
+          wasm-pack test --release --node vm --no-default-features
           ;;
         esac
 
@@ -423,4 +423,4 @@ jobs:
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
           PROOF=proof
         fi
-        ./src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF

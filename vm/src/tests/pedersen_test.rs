@@ -6,7 +6,7 @@ use wasm_bindgen_test::*;
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn pedersen_integration_test() {
-    let program_data = include_bytes!("../../cairo_programs/pedersen_test.json");
+    let program_data = include_bytes!("../../../cairo_programs/pedersen_test.json");
     let expected_trace = [
         (7, 25, 25),
         (8, 26, 25),
