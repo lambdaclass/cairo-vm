@@ -1,5 +1,3 @@
-#![deny(warnings)]
-#![forbid(unsafe_code)]
 use arbitrary::Arbitrary;
 use bincode::enc::write::Writer;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
