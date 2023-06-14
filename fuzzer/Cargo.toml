@@ -25,3 +25,7 @@ with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
 [[bin]]
 name = "fuzz_json"
 path = "src/fuzz_json.rs"
+
+[[bin]]
+name = "fuzz_cairo"
+path = "src/fuzz_cairo_source.rs"
