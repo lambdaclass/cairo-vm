@@ -177,7 +177,6 @@ jobs:
       run: |
         cd ensure_no_std
         cargo build --release
-        cargo build --release -F alloc
 
   tests:
     needs: build-programs

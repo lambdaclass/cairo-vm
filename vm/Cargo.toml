@@ -22,51 +22,54 @@ cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
-test_utils = ["skip_next_instruction_hint", "hooks"] # This feature will reference every test-oriented feature
+test_utils = [
+    "skip_next_instruction_hint",
+    "hooks",
+] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
 
 [dependencies]
-mimalloc = {workspace = true, optional = true}
-num-bigint = {workspace = true}
-rand = {workspace = true}
-num-traits = {workspace = true}
-num-integer = {workspace = true}
-num-prime = {workspace = true}
-serde = {workspace = true}
-serde_bytes = {workspace = true}
-serde_json = {workspace = true}
-hex = {workspace = true}
-bincode = {workspace = true}
-starknet-crypto = {workspace = true}
-sha3 = {workspace = true}
-rand_core = {workspace = true}
-lazy_static = {workspace = true}
-nom = {workspace = true}
-sha2 = {workspace = true}
-generic-array = {workspace = true}
-keccak = {workspace = true}
-hashbrown = {workspace = true}
-anyhow = {workspace = true}
-thiserror = {workspace = true}
-thiserror-no-std = { workspace = true}
+mimalloc = { workspace = true, optional = true }
+num-bigint = { workspace = true, default-features = false }
+rand = { workspace = true }
+num-traits = { workspace = true }
+num-integer = { workspace = true }
+num-prime = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+bincode = { workspace = true }
+starknet-crypto = { workspace = true }
+sha3 = { workspace = true }
+rand_core = { workspace = true }
+lazy_static = { workspace = true }
+nom = { workspace = true }
+sha2 = { workspace = true }
+generic-array = { workspace = true }
+keccak = { workspace = true }
+hashbrown = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+thiserror-no-std = { workspace = true }
 
 # This crate has only one function `take_until_unbalanced` that is
 # very useful for our parsing purposes:
 # https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 # There is a proposal for extending nom::delimited to use this function:
 # https://github.com/Geal/nom/issues/1253
-parse-hyperlinks = {workspace = true}
-felt = {workspace = true}
-bitvec = {workspace = true}
+parse-hyperlinks = { workspace = true }
+felt = { workspace = true }
+bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = {workspace = true, optional = true}
-cairo-lang-casm = {workspace = true, optional = true}
+cairo-lang-starknet = { workspace = true, optional = true }
+cairo-lang-casm = { workspace = true, optional = true }
 
 # TODO: check these dependencies for wasm compatibility
-ark-ff = {workspace = true, optional = true}
-ark-std = {workspace = true, optional = true}
+ark-ff = { workspace = true, optional = true }
+ark-std = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches = "1.5.0"

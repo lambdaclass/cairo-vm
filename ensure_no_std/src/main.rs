@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![allow(unused_imports)]
 
 use core::panic::PanicInfo;
 
@@ -17,5 +18,5 @@ pub extern "C" fn _start() -> ! {
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[allow(unused_imports)]
 use cairo_felt;
+use cairo_vm;
