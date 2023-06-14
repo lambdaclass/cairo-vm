@@ -111,7 +111,7 @@ cairo-repo-dir = cairo
 build-cairo-1-compiler: | $(cairo-repo-dir)
 
 $(cairo-repo-dir):
-	git clone https://github.com/starkware-libs/cairo.git
+	git clone --depth 1 -b v1.1.0 https://github.com/starkware-libs/cairo.git
 	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
 cargo-deps:
@@ -172,7 +172,7 @@ test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(C
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	# NOTE: release mode is needed to avoid "too many locals" error
-	wasm-pack test --release --node --no-default-features
+	wasm-pack test --release --node vm --no-default-features
 
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
