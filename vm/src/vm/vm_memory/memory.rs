@@ -9,7 +9,6 @@ use crate::{
 use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::ToPrimitive;
-use range_set_blaze::RangeSetBlaze;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
@@ -41,19 +40,58 @@ impl MemoryCell {
     }
 }
 
-pub struct AddressSet(RangeSetBlaze<usize>);
+// TODO: smallvec
+pub struct AddressSet(Vec<(usize, usize)>);
 
+// PERFORMANCE: we assume there's a low number of ranges in the address set,
+// so we use a simple linear search. Also assume we're not marking the same
+// offset twice.
 impl AddressSet {
     pub(crate) fn new() -> Self {
-        Self(RangeSetBlaze::new())
+        Self(Vec::new())
     }
 
+    #[inline(always)]
     pub(crate) fn contains(&self, offset: usize) -> bool {
-        self.0.contains(offset)
+        self.0.binary_search_by(|range| {
+            if offset < range.0 {
+                Ordering::Greater
+            } else if offset > range.1 {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        })
+        .is_ok()
     }
 
+    #[inline(always)]
     pub(crate) fn extend(&mut self, (start, end): (usize, usize)) {
-        self.0.extend(start..=end)
+        let pp = self.0.partition_point(|range| range.1 < start);
+        if pp == self.0.len() {
+            self.0.push((start, end));
+            return;
+        }
+        if pp == 0 {
+            if self.0[0].0 == end + 1 {
+                self.0[0].0 = start;
+                return;
+            }
+            self.0.insert(0, (start, end));
+            return;
+        }
+        if self.0[pp - 1].1 == start - 1 {
+            if self.0[pp].0 == end + 1 {
+                self.0[pp - 1].1 = self.0[pp].1;
+                self.0.remove(pp);
+                return;
+            }
+            self.0[pp - 1].1 = end;
+        }
+        if self.0[pp].0 == end + 1 {
+            self.0[pp].0 = start;
+            return;
+        }
     }
 }
 
@@ -779,7 +817,7 @@ mod memory_tests {
         assert!(segments
             .memory
             .validation_rules[0].as_ref().unwrap().1
-            .contains(&Relocatable::from((0, 0))));
+            .contains(0));
     }
 
     #[test]
