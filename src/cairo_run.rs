@@ -66,7 +66,12 @@ pub fn cairo_run(
     cairo_runner
         .run_until_pc(end, &mut run_resources, &mut vm, hint_executor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
-    cairo_runner.end_run(cairo_run_config.disable_trace_padding, false, &mut vm, hint_executor)?;
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        &mut vm,
+        hint_executor,
+    )?;
 
     vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(&mut vm)?;
