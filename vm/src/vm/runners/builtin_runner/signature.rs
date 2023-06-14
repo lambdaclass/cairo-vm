@@ -97,27 +97,27 @@ impl SignatureBuiltinRunner {
         let cells_per_instance = self.cells_per_instance;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
-            move |memory: &Memory, addr: Relocatable| -> Result<(usize, usize), MemoryError> {
+            move |memory: &Memory, addr: Relocatable| -> Result<Option<(usize, usize)>, MemoryError> {
                 let cell_index = addr.offset % cells_per_instance as usize;
 
                 let (pubkey_addr, message_addr) = match cell_index {
                     0 => (addr, (addr + 1)?),
                     1 => match addr - 1 {
                         Ok(prev_addr) => (prev_addr, addr),
-                        Err(_) => return Ok((0, 0)),
+                        Err(_) => return Ok(None),
                     },
-                    _ => return Ok((0, 0)),
+                    _ => return Ok(None),
                 };
 
                 let pubkey = match memory.get_integer(pubkey_addr) {
                     Ok(num) => num,
-                    Err(_) if cell_index == 1 => return Ok((0, 0)),
+                    Err(_) if cell_index == 1 => return Ok(None),
                     _ => return Err(MemoryError::PubKeyNonInt(Box::new(pubkey_addr))),
                 };
 
                 let msg = match memory.get_integer(message_addr) {
                     Ok(num) => num,
-                    Err(_) if cell_index == 0 => return Ok((0, 0)),
+                    Err(_) if cell_index == 0 => return Ok(None),
                     _ => return Err(MemoryError::MsgNonInt(Box::new(message_addr))),
                 };
 
@@ -135,7 +135,7 @@ impl SignatureBuiltinRunner {
                     MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10).into_boxed_str())
                 })?;
                 match verify(&public_key, &message, &r, &s) {
-                    Ok(true) => Ok((pubkey_addr.offset, message_addr.offset)),
+                    Ok(true) => Ok(Some((pubkey_addr.offset, message_addr.offset))),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
                         signature.to_string(),
                         pubkey.into_owned(),
