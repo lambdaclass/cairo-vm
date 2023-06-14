@@ -5,13 +5,9 @@ on:
   # At the end of every day
   - cron: "0 0 * * *"
 
-concurrency:
-  group: ${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   changelog:
-    runs-on: [self-hosted, ubuntu]
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
