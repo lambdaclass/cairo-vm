@@ -642,7 +642,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json"),
+            include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
             Some("main"),
         )
         .unwrap();
@@ -726,7 +726,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/manually_compiled/valid_program_a.json"),
+            include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
             None,
         )
         .unwrap();
@@ -828,7 +828,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_constants_test() {
         let program = Program::from_bytes(
-            include_bytes!("../../cairo_programs/manually_compiled/deserialize_constant_test.json"),
+            include_bytes!(
+                "../../../cairo_programs/manually_compiled/deserialize_constant_test.json"
+            ),
             Some("main"),
         )
         .unwrap();
