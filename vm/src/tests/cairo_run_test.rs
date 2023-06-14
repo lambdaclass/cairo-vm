@@ -1,3 +1,5 @@
+use num_traits::Zero;
+
 use crate::tests::*;
 
 #[test]
@@ -974,4 +976,17 @@ fn cairo_run_reduce() {
 fn cairo_run_if_reloc_equal() {
     let program_data = include_bytes!("../../../cairo_programs/if_reloc_equal.json");
     run_program_simple_with_memory_holes(program_data, 4);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn fibonacci_proof_mode_disable_trace_padding() {
+    let program_data = include_bytes!("../../../cairo_programs/fibonacci.json");
+    let config = CairoRunConfig {
+        disable_trace_padding: true,
+        ..Default::default()
+    };
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let (r, v) = cairo_run(program_data, &config, &mut hint_processor).unwrap();
+    assert!(r.get_memory_holes(&v).unwrap().is_zero());
 }
