@@ -20,6 +20,8 @@ fn main() {
             let program_bytes = std::fs::read(&program_name).unwrap();
 
             let _ = run((data.0, program_bytes));
+
+            std::fs::remove_file(program_name).unwrap();
         });
     }
 }
