@@ -121,6 +121,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         layout: &args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
+        ..Default::default()
     };
 
     let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
