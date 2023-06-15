@@ -1,3 +1,7 @@
+mod is_prime;
+
+pub use is_prime::is_prime;
+
 use core::cmp::min;
 
 use crate::stdlib::{boxed::Box, cell::RefCell, ops::Shr, rc::Rc, vec::Vec};
@@ -5,11 +9,6 @@ use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
-use num_prime::{
-    buffer::NaiveBuffer, nt_funcs::is_prime64, Primality, PrimalityTestConfig, PrimalityUtils,
-    PrimeBuffer,
-};
-use num_traits::{FromPrimitive, ToPrimitive};
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
@@ -224,8 +223,7 @@ impl Prime for NaiveBuffer {
 
 // Adapted from sympy _sqrt_prime_power with k == 1
 pub fn sqrt_prime_power(a: &BigUint, p: &BigUint) -> Option<BigUint> {
-    let buffer = NaiveBuffer::new();
-    if p.is_zero() || !buffer.is_prime(p).probably() {
+    if p.is_zero() || !is_prime(p) {
         return None;
     }
     let two = BigUint::from(2_u32);
@@ -353,14 +351,14 @@ mod tests {
 
     use num_traits::Num;
 
-    #[cfg(not(target_arch = "wasm32"))]
-    use original_num_prime::RandPrime;
+    #[cfg(feature = "std")]
+    use num_prime::RandPrime;
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "std")]
     use proptest::prelude::*;
 
     // Only used in proptest for now
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "std")]
     use num_bigint::Sign;
 
     #[cfg(target_arch = "wasm32")]
@@ -863,7 +861,7 @@ mod tests {
         assert_eq!(x_inv, BigInt::zero());
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(feature = "std")]
     proptest! {
         #[test]
         // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.

@@ -1,5 +1,5 @@
 [package]
-name = "ensure_no_std"
+name = "ensure-no_std"
 version = "0.1.0"
 edition = "2021"
 
