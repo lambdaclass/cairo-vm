@@ -9,6 +9,16 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        path: fuzzer
+
+    - name: Checkout inputs repo
+      uses: actions/checkout@v3
+      with:
+        repository: lambdaclass/fuzzing_examples
+        ref: cairo-fuzzer-inputs
+        path: './inputs'
+        token: ${{ }}
 
     - name: Install dependencies
       run: |
@@ -26,8 +36,8 @@ jobs:
 
     - name: Run fuzzer
       run: |
-        cd test_fuzzer
-        HFUZZ_RUN_ARGS="--run_time 10" cargo hfuzz run test_fuzzer
+        cd fuzzer/test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 60 --input ../../inputs/cairo-rs-fuzzer-inputs/hfuzz_workspace" cargo hfuzz run test_fuzzer
 
     - name: Archive fuzzer inputs and outputs
       uses: actions/upload-artifact@v3
