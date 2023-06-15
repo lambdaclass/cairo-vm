@@ -116,6 +116,9 @@ jobs:
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
+      with:
+        targets: wasm32-unknown-unknown
+
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Install cargo-all-features
@@ -154,27 +157,10 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
-    - name: Check
+    - name: Check all features
       run: cargo check-all-features --workspace --all-targets
 
-
-  # NOTE: the term "smoke test" comes from electronics design: the minimal
-  # expectations anyone has in their device is to not catch fire on boot.
-  smoke-no-std:
-    name: Make sure no-std works
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.69.0
-      with:
-        toolchain: nightly
-        targets: wasm32-unknown-unknown
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Check
+    - name: Check no-std
       run: |
         cd ensure-no_std
         cargo build --release
