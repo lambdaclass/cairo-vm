@@ -303,6 +303,7 @@ impl Location {
 #[cfg(test)]
 mod test {
     use crate::stdlib::{boxed::Box, collections::HashMap};
+    use crate::vm::runners::cairo_runner::RunResources;
     use assert_matches::assert_matches;
     #[cfg(feature = "std")]
     use std::path::Path;
@@ -654,7 +655,12 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
 
         #[cfg(all(feature = "std"))]
@@ -668,7 +674,12 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
@@ -706,7 +717,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
         assert_eq!(
             get_traceback(&vm, &cairo_runner),
@@ -865,7 +881,12 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor,
+            )
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
@@ -910,7 +931,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor,
+            )
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);

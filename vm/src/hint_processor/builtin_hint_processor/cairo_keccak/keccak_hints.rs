@@ -368,6 +368,7 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
+    use crate::vm::runners::cairo_runner::RunResources;
 
     use crate::{
         any_box,

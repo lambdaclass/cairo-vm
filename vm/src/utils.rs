@@ -427,7 +427,13 @@ pub mod test_utils {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+            hint_processor.execute_hint(
+                &mut $vm,
+                $exec_scopes,
+                &any_box!(hint_data),
+                $constants,
+                &mut RunResources::default(),
+            )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default(
@@ -440,6 +446,7 @@ pub mod test_utils {
                 $exec_scopes,
                 &any_box!(hint_data),
                 &crate::stdlib::collections::HashMap::new(),
+                &mut RunResources::default(),
             )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
@@ -453,6 +460,7 @@ pub mod test_utils {
                 exec_scopes_ref!(),
                 &any_box!(hint_data),
                 &crate::stdlib::collections::HashMap::new(),
+                &mut RunResources::default(),
             )
         }};
     }
@@ -598,6 +606,7 @@ pub mod test_utils {
 #[cfg(test)]
 mod test {
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::{
             builtin_hint_processor::{

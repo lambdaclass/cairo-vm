@@ -6,6 +6,7 @@ use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecS
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
+use crate::vm::runners::cairo_runner::RunResources;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::exec_scope::ExecutionScopes,
@@ -1128,6 +1129,7 @@ impl HintProcessor for Cairo1HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         _constants: &HashMap<String, Felt252>,
+        _run_resources: &mut RunResources,
     ) -> Result<(), HintError> {
         let hints: &Vec<Hint> = hint_data.downcast_ref().ok_or(HintError::WrongHintData)?;
         for hint in hints {

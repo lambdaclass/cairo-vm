@@ -8,6 +8,7 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::runners::cairo_runner::RunResources;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
@@ -27,6 +28,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt252>,
+        run_resources: &mut RunResources,
     ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
