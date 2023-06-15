@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686863221063,
+  "lastUpdate": 1686868904687,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106540,6 +106540,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18815490,
             "range": "± 215663",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "e876253276a4eca882f45e68b990f10a360404f2",
+          "message": "fix(security): DoS in parser (#1239)\n\n* fix(security): DoS in parser\n\nMalicious input can cause a denial of service by exponentiating a number\nto a huge power and taking the CPU for galactic amounts of time, as well\nas exponentially increasing memory usage.\nThe added test can trigger it before this commit even in release mode.\nAt the time of writing this it's still running after 50' and more than\n2700MB.\nThis was found by the fuzzer using the externally reachable parser, even\nthough the test only attacks the culprit here.\n\nThe cause of this issue is the following:\n- Recently we added support for scientific notation numbers in the\n  `data` section of an input program;\n- `NumBigUint` only supports `modpow` when all arguments are `BigUint`;\n- `FeltBigInt` for primitive-type exponents tried to avoid creating a\n  new `BigUint` as an attempt at optimization, so it used\n  `pow`+`mod_floor` instead;\n- This combination with a huge exponent means an ever increasing number\n  of allocations.\n\nThe fix consists in building the `BigUint` and using `modpow` instead.\nThis uses constant space because internally it uses the Montgomery\nexponentiation algorithm. With this the test finishes in 11ms on my\nmachine.\n\n* Leftover `dbg!`\n\n* Remove clippy allow",
+          "timestamp": "2023-06-15T22:10:12Z",
+          "tree_id": "bd4d86ac07a825b226d89ee05818f27ed3a4eece",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/e876253276a4eca882f45e68b990f10a360404f2"
+        },
+        "date": 1686868897332,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1622,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 50356,
+            "range": "± 538",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22323775,
+            "range": "± 188593",
             "unit": "ns/iter"
           }
         ]
