@@ -502,7 +502,6 @@ impl<const PH: u128, const PL: u128> Pow<u32> for FeltBigInt<PH, PL> {
 
 impl<'a, const PH: u128, const PL: u128> Pow<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
-    #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt {
             val: self.val.modpow(&BigUint::from(rhs), &CAIRO_PRIME_BIGUINT),
