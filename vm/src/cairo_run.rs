@@ -3,7 +3,7 @@ use crate::{
     types::program::Program,
     vm::{
         errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
-        runners::cairo_runner::CairoRunner,
+        runners::cairo_runner::{CairoRunner, RunResources},
         security::verify_secure_runner,
         vm_core::VirtualMachine,
     },
@@ -59,7 +59,7 @@ pub fn cairo_run(
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm)?;
     // check step calculation
-    let mut run_resources = None;
+    let mut run_resources = RunResources::default();
 
     cairo_runner
         .run_until_pc(end, &mut run_resources, &mut vm, hint_executor)

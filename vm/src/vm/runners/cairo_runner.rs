@@ -79,23 +79,33 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct RunResources {
     n_steps: usize,
+    consume_steps: bool,
 }
 
 impl RunResources {
     pub fn new(n_steps: usize) -> Self {
-        RunResources { n_steps }
+        RunResources {
+            n_steps,
+            consume_steps: true,
+        }
     }
 
     pub fn consumed(&self) -> bool {
-        self.n_steps == 0
+        self.consume_steps && self.n_steps == 0
     }
 
     pub fn consume_steps(&mut self) {
-        self.n_steps -= 1;
+        if self.consume_steps {
+            self.n_steps -= 1;
+        }
     }
 
     pub fn get_n_steps(&self) -> usize {
         self.n_steps
+    }
+
+    pub fn get_consume_steps(&self) -> bool {
+        self.consume_steps
     }
 }
 
@@ -546,9 +556,9 @@ impl CairoRunner {
         &self.program.builtins
     }
 
-    fn consumed(&self, run_resources: &mut Option<RunResources>) -> bool {
-        if let Some(r) = run_resources.as_ref() {
-            r.consumed()
+    fn consumed(&self, run_resources: &mut RunResources) -> bool {
+        if run_resources.consume_steps {
+            run_resources.consumed()
         } else {
             false
         }
@@ -557,7 +567,7 @@ impl CairoRunner {
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
-        run_resources: &mut Option<RunResources>,
+        run_resources: &mut RunResources,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
@@ -574,9 +584,7 @@ impl CairoRunner {
                 &hint_data_dictionary,
                 &self.program.constants,
             )?;
-            if let Some(r) = run_resources.as_mut() {
-                r.consume_steps()
-            };
+            run_resources.consume_steps()
         }
 
         if vm.run_context.pc != address {
@@ -920,7 +928,7 @@ impl CairoRunner {
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
-        run_resources: &mut Option<RunResources>,
+        run_resources: &mut RunResources,
         verify_secure: bool,
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
