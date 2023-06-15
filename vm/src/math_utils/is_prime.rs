@@ -1,23 +1,20 @@
 #[cfg(feature = "std")]
-pub use std::is_prime;
+pub use with_std::is_prime;
+
+#[cfg(not(feature = "std"))]
+pub use with_no_std::is_prime;
 
 #[cfg(feature = "std")]
-mod std {
-    use num_prime::{
-        buffer::NaiveBuffer, nt_funcs::is_prime64, Primality, PrimalityTestConfig, PrimalityUtils,
-        PrimeBuffer,
-    };
-    use num_traits::{FromPrimitive, ToPrimitive};
+mod with_std {
+    use num_bigint::BigUint;
+
     pub fn is_prime(n: &BigUint) -> bool {
-        NaiveBuffer::new().is_prime(p).probably()
+        num_prime::nt_funcs::is_prime(n, None).probably()
     }
 }
 
 #[cfg(not(feature = "std"))]
-pub use no_std::is_prime;
-
-#[cfg(not(feature = "std"))]
-mod no_std {
+mod with_no_std {
     // Copy pasted from https://github.com/alfiedotwtf/is_prime
 
     use crate::stdlib::string::ToString;

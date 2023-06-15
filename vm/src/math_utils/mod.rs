@@ -4,13 +4,13 @@ pub use is_prime::is_prime;
 
 use core::cmp::min;
 
-use crate::stdlib::{boxed::Box, cell::RefCell, ops::Shr, rc::Rc, vec::Vec};
+use crate::stdlib::{boxed::Box, ops::Shr};
 use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
-use rand::{rngs::SmallRng, RngCore, SeedableRng};
+use rand::{rngs::SmallRng, SeedableRng};
 
 #[cfg(not(feature = "std"))]
 #[allow(unused_imports)]
@@ -162,63 +162,6 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
         &(2_i32 * &point.1),
         prime,
     )
-}
-
-// Implementation based on https://github.com/open-dust/cairo-rs/tree/no_std-support
-trait Prime {
-    fn is_prime(&self, n: &BigUint) -> Primality;
-}
-
-impl Prime for NaiveBuffer {
-    fn is_prime(&self, target: &BigUint) -> Primality {
-        if target.is_even() {
-            return if target == &BigUint::from_u8(2u8).unwrap() {
-                Primality::Yes
-            } else {
-                Primality::No
-            };
-        }
-
-        // do deterministic test if target is under 2^64
-        if let Some(x) = target.to_u64() {
-            return match is_prime64(x) {
-                true => Primality::Yes,
-                false => Primality::No,
-            };
-        }
-
-        let config = PrimalityTestConfig::default();
-        let mut probability = 1.;
-
-        // miller-rabin test
-        let mut witness_list: Vec<u64> = Vec::new();
-        if config.sprp_trials > 0 {
-            witness_list.extend(self.iter().take(config.sprp_trials));
-            probability *= 1. - 0.25f32.powi(config.sprp_trials as i32);
-        }
-        if config.sprp_random_trials > 0 {
-            let rng = Rc::new(RefCell::new(SmallRng::seed_from_u64(11480028852697973135)));
-            let mut key = [0u8; 16];
-            rng.borrow_mut().fill_bytes(&mut key);
-            for _ in 0..config.sprp_random_trials {
-                // we have ensured target is larger than 2^64
-                let mut w: u64 = rng.borrow_mut().next_u64();
-                while witness_list.contains(&w) {
-                    w = rng.borrow_mut().next_u64();
-                }
-                witness_list.push(w);
-            }
-            probability *= 1. - 0.25f32.powi(config.sprp_random_trials as i32);
-        }
-        if !witness_list
-            .into_iter()
-            .all(|x| target.is_sprp(BigUint::from_u64(x).unwrap()))
-        {
-            return Primality::No;
-        }
-
-        Primality::Probable(probability)
-    }
 }
 
 // Adapted from sympy _sqrt_prime_power with k == 1

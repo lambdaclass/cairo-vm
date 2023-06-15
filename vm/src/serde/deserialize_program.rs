@@ -21,10 +21,6 @@ use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
-#[cfg(not(feature = "std"))]
-#[allow(unused_imports)]
-use num_traits::float::FloatCore;
-
 // This enum is used to deserialize program builtins into &str and catch non-valid names
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
