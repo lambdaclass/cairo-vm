@@ -20,6 +20,9 @@ num-integer = { version = "0.1.45", default-features = false }
 num-prime = { git = " https://github.com/tdelabro/num-prime.git", rev = "70bfd81292929d694cadff82f43ba223df9225f1", default-features = false, features = [
     "big-int",
 ] }
+original-num-prime = { package = "num-prime", version = "0.4.3", default-features = false, features = [
+    "big-int",
+] }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",

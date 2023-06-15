@@ -14,6 +14,7 @@ use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 #[cfg(not(feature = "std"))]
+#[allow(unused_variables)]
 use num_traits::float::FloatCore;
 
 ///Returns the integer square root of the nonnegative integer n.
@@ -203,7 +204,7 @@ impl Prime for NaiveBuffer {
             for _ in 0..config.sprp_random_trials {
                 // we have ensured target is larger than 2^64
                 let mut w: u64 = rng.borrow_mut().next_u64();
-                while witness_list.iter().find(|&x| x == &w).is_some() {
+                while witness_list.contains(&w) {
                     w = rng.borrow_mut().next_u64();
                 }
                 witness_list.push(w);
@@ -367,7 +368,7 @@ mod tests {
     use num_traits::Num;
 
     #[cfg(not(target_arch = "wasm32"))]
-    use num_prime::RandPrime;
+    use original_num_prime::RandPrime;
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;

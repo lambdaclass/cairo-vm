@@ -72,6 +72,7 @@ ark-ff = { workspace = true, optional = true }
 ark-std = { workspace = true, optional = true }
 
 [dev-dependencies]
+original-num-prime = { workspace = true }
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 

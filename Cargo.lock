@@ -14,6 +14,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ahash"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -138,7 +149,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df2c09229cbc5a028b1d70e00fdb2acee28b1055dfb5ca73eea49c5a25c4e7c"
 dependencies = [
  "num-traits 0.2.15",
- "rand",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -148,7 +159,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
 dependencies = [
  "num-traits 0.2.15",
- "rand",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -712,11 +723,12 @@ dependencies = [
  "nom",
  "num-bigint",
  "num-integer",
- "num-prime",
+ "num-prime 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-prime 0.4.3 (git+https://github.com/tdelabro/num-prime.git?rev=70bfd81292929d694cadff82f43ba223df9225f1)",
  "num-traits 0.2.15",
  "proptest",
- "rand",
- "rand_core",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
  "rstest",
  "rusty-hook",
  "serde",
@@ -1353,7 +1365,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
 ]
 
 [[package]]
@@ -1362,6 +1374,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
+ "ahash 0.8.3",
  "serde",
 ]
 
@@ -1714,7 +1727,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits 0.2.15",
- "rand",
+ "rand 0.8.5",
  "serde",
 ]
 
@@ -1750,6 +1763,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-modular"
+version = "0.6.0"
+source = "git+https://github.com/tdelabro/num-modular.git?branch=no_std-standardization#e1a27316fbaf38f1c68c8ffce046acbed6af8d4f"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.15",
+]
+
+[[package]]
 name = "num-prime"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1760,9 +1783,24 @@ dependencies = [
  "lru",
  "num-bigint",
  "num-integer",
- "num-modular",
+ "num-modular 0.5.1",
  "num-traits 0.2.15",
- "rand",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "num-prime"
+version = "0.4.3"
+source = "git+https://github.com/tdelabro/num-prime.git?rev=70bfd81292929d694cadff82f43ba223df9225f1#70bfd81292929d694cadff82f43ba223df9225f1"
+dependencies = [
+ "bitvec",
+ "either",
+ "lru",
+ "num-bigint",
+ "num-integer",
+ "num-modular 0.6.0",
+ "num-traits 0.2.15",
+ "rand 0.9.0",
 ]
 
 [[package]]
@@ -1997,7 +2035,7 @@ dependencies = [
  "lazy_static",
  "num-traits 0.2.15",
  "quick-error 2.0.1",
- "rand",
+ "rand 0.8.5",
  "rand_chacha",
  "rand_xorshift",
  "regex-syntax 0.6.29",
@@ -2041,7 +2079,15 @@ checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
  "rand_chacha",
- "rand_core",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand"
+version = "0.9.0"
+source = "git+https://github.com/rust-random/rand#0c4c6c02d818ec7ec6a9d7458297ca3993e4c2fe"
+dependencies = [
+ "rand_core 0.7.0",
 ]
 
 [[package]]
@@ -2051,7 +2097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -2064,12 +2110,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_core"
+version = "0.7.0"
+source = "git+https://github.com/rust-random/rand#0c4c6c02d818ec7ec6a9d7458297ca3993e4c2fe"
+
+[[package]]
 name = "rand_xorshift"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
- "rand_core",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
