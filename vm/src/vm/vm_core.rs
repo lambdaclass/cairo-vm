@@ -29,6 +29,7 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
+use super::runners::cairo_runner::RunResources;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -448,11 +449,12 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
+        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
                 hint_executor
-                    .execute_hint(self, exec_scopes, hint_data, constants)
+                    .execute_hint(self, exec_scopes, hint_data, constants, run_resources)
                     .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
             }
         }
@@ -486,8 +488,15 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
+        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
+        self.step_hint(
+            hint_executor,
+            exec_scopes,
+            hint_data_dictionary,
+            constants,
+            run_resources,
+        )?;
 
         #[cfg(feature = "hooks")]
         self.execute_pre_step_instruction(
