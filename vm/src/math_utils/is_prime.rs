@@ -51,7 +51,7 @@ mod with_no_std {
             }
 
             for _ in 1..trials {
-                result = result.pow(2) % n;
+                result = &result * &result % n;
 
                 if result == BigUint::one() {
                     return false;
