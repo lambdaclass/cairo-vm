@@ -1450,7 +1450,6 @@ mod tests {
             String::from_utf8(vec![b'9'; 1000]).unwrap(),
             u32::MAX
         );
-        dbg!(malicious_input);
         let f = serde_json::from_str::<Test>(malicious_input)
             .unwrap()
             .f
