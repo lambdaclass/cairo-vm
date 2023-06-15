@@ -12,7 +12,7 @@ use crate::{
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div_usize,
-    serde::deserialize_program::{BuiltinName, OffsetValue},
+    serde::deserialize_program::BuiltinName,
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -20,7 +20,6 @@ use crate::{
             bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
             ecdsa_instance_def::EcdsaInstanceDef,
         },
-        instruction::Register,
         layout::CairoLayout,
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
@@ -494,38 +493,10 @@ impl CairoRunner {
         self.initial_fp
     }
 
-    pub fn get_reference_list(&self) -> HashMap<usize, HintReference> {
-        let mut references = HashMap::<usize, HintReference>::new();
-
-        for (i, reference) in self.program.reference_manager.references.iter().enumerate() {
-            references.insert(
-                i,
-                HintReference {
-                    offset1: reference.value_address.offset1.clone(),
-                    offset2: reference.value_address.offset2.clone(),
-                    dereference: reference.value_address.dereference,
-                    // only store `ap` tracking data if the reference is referred to it
-                    ap_tracking_data: match (
-                        &reference.value_address.offset1,
-                        &reference.value_address.offset2,
-                    ) {
-                        (OffsetValue::Reference(Register::AP, _, _), _)
-                        | (_, OffsetValue::Reference(Register::AP, _, _)) => {
-                            Some(reference.ap_tracking_data.clone())
-                        }
-                        _ => None,
-                    },
-                    cairo_type: Some(reference.value_address.value_type.clone()),
-                },
-            );
-        }
-        references
-    }
-
     /// Gets the data used by the HintProcessor to execute each hint
     pub fn get_hint_data_dictionary(
         &self,
-        references: &HashMap<usize, HintReference>,
+        references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
@@ -571,8 +542,8 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let references = self.get_reference_list();
-        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        let references = &self.program.shared_program_data.reference_manager;
+        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
 
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
@@ -602,8 +573,9 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let references = self.get_reference_list();
-        let hint_data_dictionary = self.get_hint_data_dictionary(&references, hint_processor)?;
+        let references = &self.program.shared_program_data.reference_manager;
+        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
+
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));

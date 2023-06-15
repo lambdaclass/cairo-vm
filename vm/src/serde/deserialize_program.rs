@@ -196,7 +196,7 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
@@ -432,11 +432,11 @@ pub fn parse_program_json(
             .debug_info
             .map(|debug_info| debug_info.instruction_locations),
         identifiers: program_json.identifiers,
+        reference_manager: Program::get_reference_list(&program_json.reference_manager),
     };
     Ok(Program {
         shared_program_data: Arc::new(shared_program_data),
         constants,
-        reference_manager: program_json.reference_manager,
         builtins: program_json.builtins,
     })
 }

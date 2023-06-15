@@ -265,14 +265,14 @@ pub mod test_utils {
                 error_message_attributes: crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
                 identifiers: crate::stdlib::collections::HashMap::new(),
+                reference_manager: Program::get_reference_list(&ReferenceManager {
+                    references: crate::stdlib::vec::Vec::new(),
+                }),
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
                 constants: crate::stdlib::collections::HashMap::new(),
                 builtins: vec![$( $builtin_name ),*],
-                reference_manager: ReferenceManager {
-                    references: crate::stdlib::vec::Vec::new(),
-                },
             }
         }};
         ($($field:ident = $value:expr),* $(,)?) => {{
@@ -352,10 +352,10 @@ pub mod test_utils {
                     error_message_attributes: val.error_message_attributes,
                     instruction_locations: val.instruction_locations,
                     identifiers: val.identifiers,
+                    reference_manager: Program::get_reference_list(&val.reference_manager),
                 }),
                 constants: val.constants,
                 builtins: val.builtins,
-                reference_manager: val.reference_manager,
             }
         }
     }
@@ -935,13 +935,13 @@ mod test {
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         };
         assert_eq!(program, program!())
@@ -959,13 +959,13 @@ mod test {
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: vec![BuiltinName::range_check],
         };
 
@@ -984,13 +984,13 @@ mod test {
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: vec![BuiltinName::range_check],
         };
 
