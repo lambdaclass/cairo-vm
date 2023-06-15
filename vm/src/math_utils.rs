@@ -165,13 +165,13 @@ pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt)
     )
 }
 
+// Implementation based on https://github.com/open-dust/cairo-rs/tree/no_std-support
 trait Prime {
     fn is_prime(&self, n: &BigUint) -> Primality;
 }
 
 impl Prime for NaiveBuffer {
     fn is_prime(&self, target: &BigUint) -> Primality {
-        // shortcuts
         if target.is_even() {
             return if target == &BigUint::from_u8(2u8).unwrap() {
                 Primality::Yes
@@ -216,20 +216,6 @@ impl Prime for NaiveBuffer {
             .all(|x| target.is_sprp(BigUint::from_u64(x).unwrap()))
         {
             return Primality::No;
-        }
-
-        // lucas probable prime test
-        if config.slprp_test {
-            probability *= 1. - 4f32 / 15f32;
-            if !target.is_slprp(None, None) {
-                return Primality::No;
-            }
-        }
-        if config.eslprp_test {
-            probability *= 1. - 4f32 / 15f32;
-            if !target.is_eslprp(None) {
-                return Primality::No;
-            }
         }
 
         Primality::Probable(probability)
