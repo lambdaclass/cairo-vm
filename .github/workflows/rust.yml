@@ -176,7 +176,7 @@ jobs:
 
     - name: Check
       run: |
-        cd ensure_no_std
+        cd ensure-no_std
         cargo build --release
 
   tests:
