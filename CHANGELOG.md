@@ -5,6 +5,15 @@
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
   * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
 
+* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
+  BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
+
+* perf: process reference list on `Program` creation only [#1214](https://github.com/lambdaclass/cairo-rs/pull/1214)
+  Also keep them in a `Vec<_>` instead of a `HashMap<_, _>` since it will be continuous anyway.
+  BREAKING:
+  * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
+  * Public `CairoRunner::get_reference_list` has been removed
+
 #### [0.5.2] - 2023-6-12
 
 * BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
