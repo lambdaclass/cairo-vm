@@ -17,9 +17,9 @@ num-bigint = { version = "0.4", default-features = false, features = [
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
 num-traits = { version = "0.2", default-features = false }
 num-integer = { version = "0.1.45", default-features = false }
-num-prime = { version = "0.4.3", features = [
+num-prime = { git = " https://github.com/tdelabro/num-prime.git", rev = "70bfd81292929d694cadff82f43ba223df9225f1", default-features = false, features = [
     "big-int",
-], default-features = false }
+] }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",
@@ -45,7 +45,7 @@ nom = { version = "7", default-features = false }
 sha2 = { version = "0.10.2", features = ["compress"], default-features = false }
 generic-array = { version = "0.14.6", default-features = false }
 keccak = { version = "0.1.2", default-features = false }
-hashbrown = { version = "0.13.2", default-features = false, features = [
+hashbrown = { version = "0.13.2", features = [
     "serde",
 ] }
 anyhow = { version = "1.0.69", default-features = false }
