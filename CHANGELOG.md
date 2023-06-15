@@ -29,7 +29,9 @@
 
 * move the vm in it's own directory and crate, different from the workspace
 
-* add a `ensure_no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+* add a `ensure-no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+
+* replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility
 
 #### [0.5.1] - 2023-6-7
 

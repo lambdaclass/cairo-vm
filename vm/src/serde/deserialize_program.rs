@@ -16,6 +16,7 @@ use crate::{
     },
 };
 use felt::{Felt252, PRIME_STR};
+use num_traits::float::FloatCore;
 use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -192,7 +193,7 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::parse_bytes(float.round().to_string().as_bytes(), 10),
+        Some(float) => Felt252::parse_bytes(FloatCore::round(float).to_string().as_bytes(), 10),
     }
 }
 
