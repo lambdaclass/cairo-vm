@@ -14,7 +14,7 @@ use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 #[cfg(not(feature = "std"))]
-#[allow(unused_variables)]
+#[allow(unused_imports)]
 use num_traits::float::FloatCore;
 
 ///Returns the integer square root of the nonnegative integer n.
