@@ -19,6 +19,7 @@ mod with_no_std {
 
     use crate::stdlib::string::ToString;
     use num_bigint::BigUint;
+    use num_traits::{One, Zero};
 
     /// Tests if the given integer within a string is prime
     pub fn is_prime(n: &BigUint) -> bool {
@@ -39,7 +40,7 @@ mod with_no_std {
 
         let n_sub = n.clone() - BigUint::one();
         let mut exponent = n_sub.clone();
-        let trials = exponent.trailing_zeros();
+        let trials = exponent.trailing_zeros().unwrap_or(0);
         exponent >>= trials;
 
         'LOOP: for i in 1..((n.to_string().len()) + 2) {
