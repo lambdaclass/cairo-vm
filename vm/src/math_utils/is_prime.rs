@@ -44,7 +44,7 @@ mod with_no_std {
         exponent >>= trials;
 
         'LOOP: for i in 1..((n.to_string().len()) + 2) {
-            let mut result = bmodpow(&(BigUint::from(2u32) + i), &exponent, n);
+            let mut result = (BigUint::from(2u32) + i).modpow(&exponent, n);
 
             if result == BigUint::one() || result == n_sub {
                 continue;
@@ -66,36 +66,6 @@ mod with_no_std {
         }
 
         true
-    }
-
-    fn bmodpow(base: &BigUint, exponent: &BigUint, modulus: &BigUint) -> BigUint {
-        // Translated from
-        // http://search.cpan.org/~pjacklam/Math-BigInt-1.999810/lib/Math/BigInt.pm#Arithmetic_methods
-
-        if *base == BigUint::zero() {
-            return match *exponent == BigUint::zero() {
-                true => BigUint::one(),
-                false => BigUint::zero(),
-            };
-        }
-
-        if *modulus == BigUint::one() {
-            return BigUint::zero();
-        }
-
-        let exponent_in_binary = exponent.to_radix_le(2);
-        let mut my_base = base.clone();
-        let mut result = BigUint::one();
-
-        for next_bit in exponent_in_binary {
-            if next_bit == 1 {
-                result = (result * my_base.clone()) % modulus;
-            }
-
-            my_base = my_base.pow(2) % modulus;
-        }
-
-        result
     }
 
     #[cfg(test)]
