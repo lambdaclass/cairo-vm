@@ -1,0 +1,49 @@
+name: "Fuzzer Workflow"
+on:
+  schedule:
+  # At the end of every day
+  - cron: "0 * * * *"    
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        sudo apt-get install binutils-dev
+        sudo apt-get install libunwind-dev
+        sudo curl https://sh.rustup.rs -sSf | bash -s -- -y --default-toolchain nightly
+
+    - name: Set Environment Variable
+      run: echo "PATH="/root/.cargo/bin:${PATH}"" >> $GITHUB_ENV
+
+    - name: Install Honggfuzz
+      run: cargo install honggfuzz
+
+    - name: Run fuzzer
+      run: |
+        cd test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 10" cargo hfuzz run test_fuzzer
+
+    - name: Archive fuzzer inputs and outputs
+      uses: actions/upload-artifact@v3
+      with:
+        name: fuzzer-report
+        path: test_fuzzer/hfuzz_workspace
+
+    - name: Pushes inputs
+      uses: crykn/copy_folder_to_another_repo_action@v1.0.6
+      env:
+        API_TOKEN_GITHUB: ${{ }}
+      with:
+        source_folder: 'test_fuzzer/hfuzz_workspace/input'
+        destination_repo: 'lambdaclass/fuzzing_examples'
+        destination_folder: 'cairo-rs-fuzzer-inputs/hfuzz_workspace/'
+        destination_branch: 'cairo-fuzzer-inputs'
+        user_email: ' '
+        user_name: ' '
+        commit_message: 'push fuzzer inputs'
