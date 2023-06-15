@@ -33,30 +33,26 @@ mod with_no_std {
             return true;
         }
 
-        if (n % BigUint::from(2u32)) == BigUint::from(0u32) {
+        if (n % BigUint::from(2u32)) == BigUint::zero() {
             return false;
         }
 
-        let n_sub = n.clone() - BigUint::from(1u32);
+        let n_sub = n.clone() - BigUint::one();
         let mut exponent = n_sub.clone();
-        let mut trials = 0;
-
-        while (&exponent % BigUint::from(2u32)) == BigUint::from(0u32) {
-            exponent /= 2u32;
-            trials += 1;
-        }
+        let trials = exponent.trailing_zeros();
+        exponent >>= trials;
 
         'LOOP: for i in 1..((n.to_string().len()) + 2) {
             let mut result = bmodpow(&(BigUint::from(2u32) + i), &exponent, n);
 
-            if result == BigUint::from(1u32) || result == n_sub {
+            if result == BigUint::one() || result == n_sub {
                 continue;
             }
 
             for _ in 1..trials {
                 result = result.pow(2) % n;
 
-                if result == BigUint::from(1u32) {
+                if result == BigUint::one() {
                     return false;
                 }
 
@@ -75,20 +71,20 @@ mod with_no_std {
         // Translated from
         // http://search.cpan.org/~pjacklam/Math-BigInt-1.999810/lib/Math/BigInt.pm#Arithmetic_methods
 
-        if *base == BigUint::from(0u32) {
-            return match *exponent == BigUint::from(0u32) {
-                true => BigUint::from(1u32),
-                false => BigUint::from(0u32),
+        if *base == BigUint::zero() {
+            return match *exponent == BigUint::zero() {
+                true => BigUint::one(),
+                false => BigUint::zero(),
             };
         }
 
-        if *modulus == BigUint::from(1u32) {
-            return BigUint::from(0u32);
+        if *modulus == BigUint::one() {
+            return BigUint::zero();
         }
 
         let exponent_in_binary = exponent.to_radix_le(2);
         let mut my_base = base.clone();
-        let mut result = BigUint::from(1u32);
+        let mut result = BigUint::one();
 
         for next_bit in exponent_in_binary {
             if next_bit == 1 {
