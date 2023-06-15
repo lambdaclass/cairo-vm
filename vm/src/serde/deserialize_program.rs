@@ -1437,4 +1437,31 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_big_exponent() {
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Test {
+            #[serde(deserialize_with = "felt_from_number")]
+            f: Option<Felt252>,
+        }
+        let malicious_input = &format!(
+            "{{ \"f\": {}e{} }}",
+            String::from_utf8(vec![b'9'; 1000]).unwrap(),
+            u32::MAX
+        );
+        let f = serde_json::from_str::<Test>(malicious_input)
+            .unwrap()
+            .f
+            .unwrap();
+        assert_eq!(
+            f,
+            Felt252::from_str_radix(
+                "2471602022505793130446032259107029522557827898253184929958153020344968292412",
+                10
+            )
+            .unwrap()
+        );
+    }
 }
