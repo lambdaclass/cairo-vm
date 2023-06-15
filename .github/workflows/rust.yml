@@ -167,6 +167,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
       with:
+        toolchain: nightly
         targets: wasm32-unknown-unknown
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2

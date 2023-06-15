@@ -19,4 +19,5 @@ pub extern "C" fn _start() -> ! {
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 use cairo_felt;
-use cairo_vm;
+// Add once cairo-vm supports no_std
+// use cairo_vm;

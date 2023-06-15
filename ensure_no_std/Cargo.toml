@@ -7,7 +7,8 @@ edition = "2021"
 cairo-felt = { path = "../felt", default-features = false, features = [
     "alloc",
 ] }
-cairo-vm = { path = "../vm", default-features = false }
+# Add once cairo-vm supports no_std
+# cairo-vm = { path = "../vm", default-features = false }
 
 wee_alloc = "0.4.5"
 
