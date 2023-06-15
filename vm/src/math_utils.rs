@@ -1,20 +1,16 @@
 use core::cmp::min;
 
-use crate::stdlib::{cell::RefCell, rc::Rc, boxed::Box, ops::Shr, vec::Vec};
+use crate::stdlib::{boxed::Box, cell::RefCell, ops::Shr, rc::Rc, vec::Vec};
 use crate::types::errors::math_errors::MathError;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_prime::{
-    buffer::NaiveBuffer,
-    nt_funcs::is_prime64,
-    Primality,
-    PrimalityTestConfig,
-    PrimalityUtils,
+    buffer::NaiveBuffer, nt_funcs::is_prime64, Primality, PrimalityTestConfig, PrimalityUtils,
     PrimeBuffer,
 };
-use num_traits::{One, Signed, Zero};
 use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 
 #[cfg(not(feature = "std"))]
@@ -201,9 +197,7 @@ impl Prime for NaiveBuffer {
             probability *= 1. - 0.25f32.powi(config.sprp_trials as i32);
         }
         if config.sprp_random_trials > 0 {
-            let rng = Rc::new(RefCell::new(
-                SmallRng::seed_from_u64(11480028852697973135)
-            ));
+            let rng = Rc::new(RefCell::new(SmallRng::seed_from_u64(11480028852697973135)));
             let mut key = [0u8; 16];
             rng.borrow_mut().fill_bytes(&mut key);
             for _ in 0..config.sprp_random_trials {
