@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686694896388,
+  "lastUpdate": 1686844659405,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106348,6 +106348,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23218988,
             "range": "± 109494",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "dbcf4c4bbbcbc80326b57af504b4c72a51119ab0",
+          "message": "perf: reference management optimizations (#1214)\n\n* wip\n\n* test passing\n\n* more accurate bench\n\n* fix\n\n* perf: optimizations for reference management\n\n- Store directly the reference list rather than the whole\n  `ReferenceManager` structures\n- Only process them once, when creating the `Program`\n- Move them to the `SharedProgramData` member\n- Convert to `Vec<HintReference>` and adapt the methods using it\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-15T15:28:17Z",
+          "tree_id": "01921d15b8ab2672aaefcd1a1232adfe8c09a2f3",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/dbcf4c4bbbcbc80326b57af504b4c72a51119ab0"
+        },
+        "date": 1686844652672,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1304,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 39435,
+            "range": "± 240",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18736153,
+            "range": "± 357396",
             "unit": "ns/iter"
           }
         ]
