@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
+* chore: update deps [#1237](https://github.com/lambdaclass/cairo-rs/pull/1237)
+
+* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/1080)
   BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
 
 #### [0.5.2] - 2023-6-12
