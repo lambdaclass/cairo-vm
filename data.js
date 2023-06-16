@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686875892411,
+  "lastUpdate": 1686950909537,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106732,6 +106732,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19459883,
             "range": "± 209787",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "ad25b63cde2a07d85e56892eed387a2a8da7fa70",
+          "message": "fix: `dibit` shouldn't fail when `m` is zero (#1247)\n\n* Fix test\n\n* Fix n_pair_bits if condition\n\nIt was always checking that `m` wasn't zero, but that was correct only for a `number_of_pairs` equal to 2 (i.e. quad_bit).\n\n* Rename error\n\n* Update changelog\n\n* Add test for quad_bit with `m == 0`",
+          "timestamp": "2023-06-16T20:46:27Z",
+          "tree_id": "a800cecac26ed66491fdc6e44d9165cda5395584",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/ad25b63cde2a07d85e56892eed387a2a8da7fa70"
+        },
+        "date": 1686950903007,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1327,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 38610,
+            "range": "± 244",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18887841,
+            "range": "± 350760",
             "unit": "ns/iter"
           }
         ]
