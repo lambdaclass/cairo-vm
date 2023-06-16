@@ -14,3 +14,5 @@ bench/results
 cairo-rs-env/*
 cairo-rs-pypy-env/*
 cairo/
+
+ensure-no_std/Cargo.lock

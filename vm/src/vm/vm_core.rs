@@ -78,6 +78,7 @@ pub struct VirtualMachine {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    pub(crate) rc_limits: Option<(isize, isize)>,
     trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
@@ -107,6 +108,7 @@ impl VirtualMachine {
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
+            rc_limits: None,
             run_finished: false,
             trace_relocated: false,
             instruction_cache: Vec::new(),
@@ -396,6 +398,24 @@ impl VirtualMachine {
             });
         }
 
+        // Update range check limits
+        const OFFSET_BITS: u32 = 16;
+        let (off0, off1, off2) = (
+            instruction.off0 + (1_isize << (OFFSET_BITS - 1)),
+            instruction.off1 + (1_isize << (OFFSET_BITS - 1)),
+            instruction.off2 + (1_isize << (OFFSET_BITS - 1)),
+        );
+        self.rc_limits = Some((
+            [self.rc_limits.unwrap_or((off0, off0)).0, off0, off1, off2]
+                .into_iter()
+                .min()
+                .unwrap(),
+            [self.rc_limits.unwrap_or((off0, off0)).1, off0, off1, off2]
+                .into_iter()
+                .max()
+                .unwrap(),
+        ));
+
         self.segments
             .memory
             .mark_as_accessed(operands_addresses.dst_addr);
@@ -408,6 +428,7 @@ impl VirtualMachine {
 
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
+
         Ok(())
     }
 
@@ -1083,6 +1104,7 @@ impl VirtualMachineBuilder {
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
             segments: self.segments,
+            rc_limits: None,
             run_finished: self.run_finished,
             trace_relocated: false,
             instruction_cache: Vec::new(),

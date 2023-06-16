@@ -1,17 +1,22 @@
 [workspace]
-members = ["cairo-vm-cli", "felt", "vm", "hint_accountant", "./deps/parse-hyperlinks"]
-exclude = ["ensure_no_std"]
+members = [
+    "cairo-vm-cli",
+    "felt",
+    "vm",
+    "hint_accountant",
+    "./deps/parse-hyperlinks",
+]
+exclude = ["ensure-no_std"]
 
 [workspace.dependencies]
 mimalloc = { version = "0.1.29", default-features = false }
-num-bigint = { version = "0.4", features = [
+num-bigint = { version = "0.4", default-features = false, features = [
     "serde",
     "rand",
-], default-features = false }
+] }
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
 num-traits = { version = "0.2", default-features = false }
 num-integer = { version = "0.1.45", default-features = false }
-num-prime = { version = "0.4.3", features = ["big-int"], default-features = false }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",
@@ -40,7 +45,7 @@ keccak = { version = "0.1.2", default-features = false }
 hashbrown = { version = "0.13.2", features = ["serde"] }
 anyhow = { version = "1.0.69", default-features = false }
 thiserror = { version = "1.0.32", default-features = false }
-thiserror-no-std = "2.0.2"
+thiserror-no-std = { version = "2.0.2", default-features = false }
 
 # This crate has only one function `take_until_unbalanced` that is
 # very useful for our parsing purposes:
@@ -56,11 +61,11 @@ felt = { package = "cairo-felt", path = "./felt", version = "0.5.2", default-fea
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = { version = "1.1.0"}
-cairo-lang-casm = { version = "1.1.0"}
+cairo-lang-starknet = { version = "1.1.0", default-features = false }
+cairo-lang-casm = { version = "1.1.0", default-features = false }
 
 # TODO: check these dependencies for wasm compatibility
-ark-ff = { version = "0.4.0-alpha.7", default-features = false  }
+ark-ff = { version = "0.4.0-alpha.7", default-features = false }
 ark-std = { version = "0.3.0", default-features = false }
 
 [profile.release]

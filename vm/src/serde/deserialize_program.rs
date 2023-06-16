@@ -16,6 +16,7 @@ use crate::{
     },
 };
 use felt::{Felt252, PRIME_STR};
+use num_traits::float::FloatCore;
 use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -192,11 +193,11 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::parse_bytes(float.round().to_string().as_bytes(), 10),
+        Some(float) => Felt252::parse_bytes(FloatCore::round(float).to_string().as_bytes(), 10),
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
@@ -432,11 +433,11 @@ pub fn parse_program_json(
             .debug_info
             .map(|debug_info| debug_info.instruction_locations),
         identifiers: program_json.identifiers,
+        reference_manager: Program::get_reference_list(&program_json.reference_manager),
     };
     Ok(Program {
         shared_program_data: Arc::new(shared_program_data),
         constants,
-        reference_manager: program_json.reference_manager,
         builtins: program_json.builtins,
     })
 }
@@ -1434,6 +1435,33 @@ mod tests {
                 )
                 .unwrap()
             )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_big_exponent() {
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct Test {
+            #[serde(deserialize_with = "felt_from_number")]
+            f: Option<Felt252>,
+        }
+        let malicious_input = &format!(
+            "{{ \"f\": {}e{} }}",
+            String::from_utf8(vec![b'9'; 1000]).unwrap(),
+            u32::MAX
+        );
+        let f = serde_json::from_str::<Test>(malicious_input)
+            .unwrap()
+            .f
+            .unwrap();
+        assert_eq!(
+            f,
+            Felt252::from_str_radix(
+                "2471602022505793130446032259107029522557827898253184929958153020344968292412",
+                10
+            )
+            .unwrap()
         );
     }
 }
