@@ -28,7 +28,7 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt252>,
-        // RunResources keep track of the steps executed by the VirtualMachine.
+        // RunResources keeps track of the steps executed by the VirtualMachine.
         // It is not used in cairo-rs, but it is utilized in starknet_in_rust and blockifier
         // to limit recursive contract calls.
         run_resources: &mut RunResources,
