@@ -43,14 +43,14 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: fuzzer-report
-        path: test_fuzzer/hfuzz_workspace
+        path: fuzzer/test_fuzzer/hfuzz_workspace
 
     - name: Pushes inputs
       uses: crykn/copy_folder_to_another_repo_action@v1.0.6
       env:
         API_TOKEN_GITHUB: ${{ }}
       with:
-        source_folder: 'test_fuzzer/hfuzz_workspace/input'
+        source_folder: 'fuzzer/test_fuzzer/hfuzz_workspace/input'
         destination_repo: 'lambdaclass/fuzzing_examples'
         destination_folder: 'cairo-rs-fuzzer-inputs/hfuzz_workspace/'
         destination_branch: 'cairo-fuzzer-inputs'
