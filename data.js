@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686868904687,
+  "lastUpdate": 1686875892411,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106636,6 +106636,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22323775,
             "range": "± 188593",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a72ddc20a8881c965d082d96db31a378925fdea",
+          "message": "Add `ensure_no_std` build to CI (#1232)\n\n* Add ensure_no_std build to CI\n\n* Add print to test\n\n* Install wasm32 target for no-std testing\n\n* Fix: added option in wrong job\n\n* Try another breaking change\n\n* Remove \"alloc\" feature in Cargo.toml\n\n* Also add compilation with the 'alloc' option\n\n* Add cairo-vm to ensure_no_std deps\n\n* Remove alloc feature\n\n* Fix (WIP)\n\n* comment vm (not no_std ready); use nightly toolchain\n\n* add Timothée num-prime fork and fix no-std support\n\n* run cargo fmt\n\n* fix clippy; add original num_prime for tests; ignore unused FloatCore\n\n* fix typo on unused_variables instead imports\n\n* remove prime computations for non default primality test config\n\n* Split implementation of is_prime into std/no_std\n\n* Remove unused import\n\n* Change some constants\n\n* Update dir name\n\n* Fix errors\n\n* Use modpow, and increase time of bench\n\n* Merge smoke and smoke-no_std\n\n* Use mul instead of pow\n\n---------\n\nCo-authored-by: João Carvalho <joao.carvalho@tripleoak.pt>",
+          "timestamp": "2023-06-15T23:48:26Z",
+          "tree_id": "f23a51d64c2660e3bbf2df51fa7c73257e80dcb1",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/8a72ddc20a8881c965d082d96db31a378925fdea"
+        },
+        "date": 1686875886377,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1415,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 44938,
+            "range": "± 130",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19459883,
+            "range": "± 209787",
             "unit": "ns/iter"
           }
         ]
