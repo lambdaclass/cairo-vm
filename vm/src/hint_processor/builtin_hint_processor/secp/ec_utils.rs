@@ -498,7 +498,7 @@ pub fn n_pair_bits(
     if m >= 253 {
         return insert_value_from_var_name(result_name, 0, vm, ids_data, ap_tracking);
     }
-    if m.is_zero() {
+    if m + 1 < number_of_pairs {
         return Err(HintError::NPairBitsMZero);
     }
 
