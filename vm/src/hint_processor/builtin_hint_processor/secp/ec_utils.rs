@@ -498,8 +498,8 @@ pub fn n_pair_bits(
     if m >= 253 {
         return insert_value_from_var_name(result_name, 0, vm, ids_data, ap_tracking);
     }
-    if m.is_zero() {
-        return Err(HintError::NPairBitsMZero);
+    if m + 1 < number_of_pairs {
+        return Err(HintError::NPairBitsTooLowM);
     }
 
     let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
@@ -1330,7 +1330,7 @@ mod tests {
     }
 
     #[test]
-    fn run_quad_bit_for_m_1() {
+    fn run_quad_bit_for_m_1_ok() {
         let hint_code = hint_code::QUAD_BIT;
         let mut vm = vm_with_range_check!();
 
@@ -1350,6 +1350,29 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
+
+    #[test]
+    fn run_quad_bit_for_m_0() {
+        let hint_code = hint_code::QUAD_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 0b1010101;
+        let scalar_v = 0b1010101;
+        let m = 0;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::NPairBitsTooLowM)
+        );
     }
 
     #[test]
@@ -1424,12 +1447,12 @@ mod tests {
     }
 
     #[test]
-    fn run_di_bit_m_zero() {
+    fn run_di_bit_m_zero_ok() {
         let hint_code = hint_code::DI_BIT;
         let mut vm = vm_with_range_check!();
 
-        let scalar_u = 0b10101111001110000;
-        let scalar_v = 0b101101000111011111100;
+        let scalar_u = 0b00;
+        let scalar_v = 0b01;
         let m = 0;
         // Insert ids.scalar into memory
         vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
@@ -1440,10 +1463,10 @@ mod tests {
         let ids_data = ids_data!["scalar_u", "scalar_v", "m", "dibit"];
 
         // Execute the hint
-        assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
-            Err(HintError::NPairBitsMZero)
-        );
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+
+        // Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 3), 0b10)];
     }
 
     #[test]
