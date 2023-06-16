@@ -5,6 +5,7 @@ members = [
     "vm",
     "hint_accountant",
     "./deps/parse-hyperlinks",
+    "fuzzer",
 ]
 exclude = ["ensure-no_std"]
 
