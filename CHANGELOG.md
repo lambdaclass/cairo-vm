@@ -5,9 +5,9 @@
 * BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
     * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
 
-    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215) [#1232](https://github.com/lambdaclass/cairo-rs/pull/1232) 
 
-    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility
+    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-rs/pull/1238)
 
 * fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
 
