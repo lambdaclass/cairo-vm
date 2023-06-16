@@ -94,9 +94,9 @@ impl RunResources {
         false
     }
 
-    pub fn consume_steps(&mut self) {
+    pub fn consume_step(&mut self) {
         if let Some(n_steps) = self.n_steps {
-            self.n_steps = Some(n_steps - 1);
+            self.n_steps = Some(n_steps.saturating_sub(1));
         }
     }
 
@@ -524,10 +524,6 @@ impl CairoRunner {
         &self.program.builtins
     }
 
-    fn consumed(&self, run_resources: &mut RunResources) -> bool {
-        run_resources.consumed()
-    }
-
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -541,7 +537,7 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
 
-        while vm.run_context.pc != address && !self.consumed(run_resources) {
+        while vm.run_context.pc != address && !run_resources.consumed() {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
@@ -549,7 +545,7 @@ impl CairoRunner {
                 &self.program.constants,
                 run_resources,
             )?;
-            run_resources.consume_steps()
+            run_resources.consume_step()
         }
 
         if vm.run_context.pc != address {
