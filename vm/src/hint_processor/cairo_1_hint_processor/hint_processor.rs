@@ -4,7 +4,7 @@ use crate::any_box;
 use crate::felt::{felt_str, Felt252};
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, cmp, collections::HashMap, ops::Shl, prelude::*};
 use crate::types::relocatable::Relocatable;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
@@ -25,7 +25,6 @@ use core::any::Any;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
-use std::ops::Shl;
 
 /// Execution scope for constant memory allocation.
 struct MemoryExecScope {
@@ -92,9 +91,15 @@ impl Cairo1HintProcessor {
                 quotient,
                 remainder,
             })) => self.div_mod(vm, lhs, rhs, quotient, remainder),
+
+            #[cfg(not(target_arch = "wasm32"))]
             Hint::Core(CoreHintBase::Core(CoreHint::DebugPrint { start, end })) => {
                 self.debug_print(vm, start, end)
             }
+            #[cfg(target_arch = "wasm32")]
+            Hint::Core(CoreHintBase::Core(CoreHint::DebugPrint { .. })) => Err(
+                HintError::CustomHint("Tried to DebugPrint in wasm32 environment".into()),
+            ),
 
             Hint::Core(CoreHintBase::Core(CoreHint::Uint256SquareRoot {
                 value_low,
@@ -761,6 +766,7 @@ impl Cairo1HintProcessor {
             .map_err(HintError::from)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn debug_print(
         &self,
         vm: &mut VirtualMachine,
@@ -769,20 +775,16 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let mut curr = as_relocatable(vm, start)?;
         let end = as_relocatable(vm, end)?;
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            while curr != end {
-                let value = vm.get_integer(curr)?;
-                if let Some(shortstring) = as_cairo_short_string(&value) {
-                    println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
-                } else {
-                    println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
-                }
-                curr += 1;
+        while curr != end {
+            let value = vm.get_integer(curr)?;
+            if let Some(shortstring) = as_cairo_short_string(&value) {
+                println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
+            } else {
+                println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
             }
-            println!();
+            curr += 1;
         }
+        println!();
         Ok(())
     }
 
@@ -1060,7 +1062,7 @@ impl Cairo1HintProcessor {
         if let Some(root) = res.sqrt() {
             let root0: BigUint = root.into_bigint().into();
             let root1: BigUint = (-root).into_bigint().into();
-            let root = Felt252::from(std::cmp::min(root0, root1));
+            let root = Felt252::from(cmp::min(root0, root1));
             vm.insert_value(cell_ref_to_relocatable(sqrt, vm)?, root)
                 .map_err(HintError::from)
         } else {

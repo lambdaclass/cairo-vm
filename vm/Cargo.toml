@@ -19,7 +19,12 @@ std = [
     "felt/std",
     "num-prime",
 ]
-cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
+cairo-1-hints = [
+    "cairo-lang-starknet",
+    "cairo-lang-casm",
+    "ark-ff",
+    "ark-std"
+]
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
@@ -69,8 +74,6 @@ bitvec = { workspace = true }
 # Dependencies for cairo-1-hints feature
 cairo-lang-starknet = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
-
-# TODO: check these dependencies for wasm compatibility
 ark-ff = { workspace = true, optional = true }
 ark-std = { workspace = true, optional = true }
 
