@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1686950909537,
+  "lastUpdate": 1686955746127,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -106828,6 +106828,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18887841,
             "range": "± 350760",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "2cf8f1d63ddad1f4281c310d4cc9f6fbb4fb3278",
+          "message": "Modify RunResources usage (#1241)\n\n* Add RunResources.consume_steps && modify CairoRuner::run_until_pc and CairoRunner::run_from_entrypoint API\n\n* Add RunResources as an input of HintProcessor::execute_hint\n\n* fix test\n\n* Add doc\n\n* Modify field RunResources.n_steps: Option<usize>\n\n* fix unit tests\n\n* minor code refactors\n\n* update changelog\n\n* typo",
+          "timestamp": "2023-06-16T22:04:04Z",
+          "tree_id": "ca4065f6e29680c2823256ff63e7964f758998ae",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/2cf8f1d63ddad1f4281c310d4cc9f6fbb4fb3278"
+        },
+        "date": 1686955740046,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1341,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 38480,
+            "range": "± 230",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18585280,
+            "range": "± 71190",
             "unit": "ns/iter"
           }
         ]
