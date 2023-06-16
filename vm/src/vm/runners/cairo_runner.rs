@@ -4980,7 +4980,7 @@ mod tests {
             Ok(())
         );
 
-        assert_eq!(run_resources.get_n_steps(), 1);
+        assert_eq!(run_resources.get_n_steps(), Some(1));
     }
 
     #[test]
