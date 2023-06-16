@@ -4,6 +4,15 @@
 
 * fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
 
+* BREAKING: Change `RunResources` usage:
+    * Modify field type `RunResources.n_steps: Option<usize>,`
+    
+    * Public Api Changes:
+        *  CairoRunner::run_until_pc: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        *  CairoRunner::run_from_entrypoint: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        * VirtualMachine::Step: Add `&mut RunResources` as input
+        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input 
+
 * perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
   BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
 
