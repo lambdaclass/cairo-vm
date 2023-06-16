@@ -77,34 +77,31 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
 /// Maintains the resources of a cairo run. Can be used across multiple runners.
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct RunResources {
-    n_steps: usize,
-    consume_steps: bool,
+    n_steps: Option<usize>,
 }
 
 impl RunResources {
     pub fn new(n_steps: usize) -> Self {
         RunResources {
-            n_steps,
-            consume_steps: true,
+            n_steps: Some(n_steps),
         }
     }
 
     pub fn consumed(&self) -> bool {
-        self.consume_steps && self.n_steps == 0
+        if self.n_steps == Some(0) {
+            return true;
+        }
+        false
     }
 
     pub fn consume_steps(&mut self) {
-        if self.consume_steps {
-            self.n_steps -= 1;
+        if let Some(n_steps) = self.n_steps {
+            self.n_steps = Some(n_steps - 1);
         }
     }
 
-    pub fn get_n_steps(&self) -> usize {
+    pub fn get_n_steps(&self) -> Option<usize> {
         self.n_steps
-    }
-
-    pub fn get_consume_steps(&self) -> bool {
-        self.consume_steps
     }
 }
 
@@ -528,11 +525,7 @@ impl CairoRunner {
     }
 
     fn consumed(&self, run_resources: &mut RunResources) -> bool {
-        if run_resources.consume_steps {
-            run_resources.consumed()
-        } else {
-            false
-        }
+        run_resources.consumed()
     }
 
     pub fn run_until_pc(
