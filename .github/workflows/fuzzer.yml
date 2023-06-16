@@ -2,7 +2,7 @@ name: "Fuzzer Workflow"
 on:
   schedule:
   # At the end of every day
-  - cron: "* 0 * * *"    
+  - cron: "0 0 * * *"
 jobs:
   changelog:
     runs-on: ubuntu-latest
@@ -10,11 +10,15 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref }}
+
 
     - name: Cache Inputs
       id: cache-inputs
       uses: actions/cache@v3
       with:
+      # Path where the inputs for the fuzzer are stored
         path: test_fuzzer/hfuzz_workspace/input
         key: ${{ runner.os }}-inputs
 
@@ -34,16 +38,18 @@ jobs:
       run: cargo install honggfuzz
 
     - if: ${{ steps.cache-inputs.outputs.cache-hit != 'true' }}
+    # If didn´t have any inputs starts from 0
       name: Initializing fuzzer from 0 
       run: |
         cd test_fuzzer
-        HFUZZ_RUN_ARGS="--run_time 60" cargo hfuzz run test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 10800" cargo hfuzz run test_fuzzer
 
+    # If has cached inputs starts with them and run with minimize 
     - if: ${{ steps.cache-inputs.outputs.cache-hit != 'false' }}
       name: Initializing fuzzer with previous inputs 
       run: |
         cd test_fuzzer
-        HFUZZ_RUN_ARGS="--run_time 60 --minimize" cargo hfuzz run test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 10800 --minimize --timeout " cargo hfuzz run test_fuzzer
 
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
