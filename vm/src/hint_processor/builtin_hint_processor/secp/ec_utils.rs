@@ -499,7 +499,7 @@ pub fn n_pair_bits(
         return insert_value_from_var_name(result_name, 0, vm, ids_data, ap_tracking);
     }
     if m + 1 < number_of_pairs {
-        return Err(HintError::NPairBitsMZero);
+        return Err(HintError::NPairBitsTooLowM);
     }
 
     let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
