@@ -2,6 +2,39 @@
 
 #### Upcoming Changes
 
+* fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
+
+* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
+  BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
+
+* perf: process reference list on `Program` creation only [#1214](https://github.com/lambdaclass/cairo-rs/pull/1214)
+  Also keep them in a `Vec<_>` instead of a `HashMap<_, _>` since it will be continuous anyway.
+  BREAKING:
+  * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
+  * Public `CairoRunner::get_reference_list` has been removed
+
+#### [0.5.2] - 2023-6-12
+
+* BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
+
+  * `CairoRunner::get_execution_resources` return's `n_steps` field value is now set to `vm.current_step` instead of `0` if both `original_steps` and `trace` are set to `None`
+
+* Add `RunResources::get_n_steps` method [#1225](https://github.com/lambdaclass/cairo-rs/pull/1225)
+
+* refactor: simplify `mem_eq`
+
+* fix: pin Cairo compiler version [#1220](https://github.com/lambdaclass/cairo-rs/pull/1220)
+
+* perf: make `inner_rc_bound` a constant, improving performance of the range-check builtin
+
+* fix: substraction of `MaybeRelocatable` always behaves as signed [#1218](https://github.com/lambdaclass/cairo-rs/pull/1218)
+
+* move the vm in it's own directory and crate, different from the workspace
+
+* add a `ensure-no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+
+* replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility
+
 #### [0.5.1] - 2023-6-7
 
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-rs/pull/1209)

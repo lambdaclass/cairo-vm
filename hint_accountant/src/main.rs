@@ -50,7 +50,7 @@ fn run() {
     let (ap_tracking_data, reference_ids, references, mut exec_scopes, constants) = (
         ApTracking::default(),
         HashMap::new(),
-        HashMap::new(),
+        Vec::new(),
         ExecutionScopes::new(),
         HashMap::new(),
     );

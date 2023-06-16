@@ -17,7 +17,7 @@ fn parse_program(c: &mut Criterion) {
     //Picked the biggest one at the time of writing
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
     c.bench_function("parse program", |b| {
-        b.iter(|| {
+        b.iter_with_large_drop(|| {
             _ = Program::from_bytes(black_box(program.as_slice()), black_box(Some("main")))
                 .unwrap();
         })
@@ -29,7 +29,7 @@ fn build_many_runners(c: &mut Criterion) {
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
     let program = Program::from_bytes(program.as_slice(), Some("main")).unwrap();
     c.bench_function("build runner", |b| {
-        b.iter(|| {
+        b.iter_with_large_drop(|| {
             _ = black_box(
                 CairoRunner::new(
                     black_box(&program),
