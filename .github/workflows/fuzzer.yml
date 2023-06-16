@@ -2,24 +2,23 @@ name: "Fuzzer Workflow"
 on:
   schedule:
   # At the end of every day
-  - cron: "0 * * * *"    
+  - cron: "* 0 * * *"    
 jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
+
     - name: Checkout
       uses: actions/checkout@v3
-      with:
-        path: fuzzer
 
-    - name: Checkout inputs repo
-      uses: actions/checkout@v3
+    - name: Cache Inputs
+      id: cache-inputs
+      uses: actions/cache@v3
       with:
-        repository: lambdaclass/fuzzing_examples
-        ref: cairo-fuzzer-inputs
-        path: './inputs'
-        token: ${{ }}
+        path: test_fuzzer/hfuzz_workspace/input
+        key: ${{ runner.os }}-inputs
 
+    
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -34,26 +33,19 @@ jobs:
     - name: Install Honggfuzz
       run: cargo install honggfuzz
 
-    - name: Run fuzzer
+    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'true' }}
+      name: Initializing fuzzer from 0 
       run: |
-        cd fuzzer/test_fuzzer
-        HFUZZ_RUN_ARGS="--run_time 60 --input ../../inputs/cairo-rs-fuzzer-inputs/hfuzz_workspace" cargo hfuzz run test_fuzzer
+        cd test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 60" cargo hfuzz run test_fuzzer
 
-    - name: Archive fuzzer inputs and outputs
-      uses: actions/upload-artifact@v3
-      with:
-        name: fuzzer-report
-        path: fuzzer/test_fuzzer/hfuzz_workspace
+    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'false' }}
+      name: Initializing fuzzer with previous inputs 
+      run: |
+        cd test_fuzzer
+        HFUZZ_RUN_ARGS="--run_time 60 --minimize" cargo hfuzz run test_fuzzer
 
-    - name: Pushes inputs
-      uses: crykn/copy_folder_to_another_repo_action@v1.0.6
-      env:
-        API_TOKEN_GITHUB: ${{ }}
+    - uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        source_folder: 'fuzzer/test_fuzzer/hfuzz_workspace/input'
-        destination_repo: 'lambdaclass/fuzzing_examples'
-        destination_folder: 'cairo-rs-fuzzer-inputs/hfuzz_workspace/'
-        destination_branch: 'cairo-fuzzer-inputs'
-        user_email: ' '
-        user_name: ' '
-        commit_message: 'push fuzzer inputs'
+        commit_message: changing report
+        file_pattern: '*/hfuzz_workspace/test_fuzzer/HONGGFUZZ*  */hfuzz_workspace/test_fuzzer/SIG*'
