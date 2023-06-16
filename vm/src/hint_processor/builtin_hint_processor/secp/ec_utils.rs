@@ -1329,7 +1329,7 @@ mod tests {
     }
 
     #[test]
-    fn run_quad_bit_for_m_1() {
+    fn run_quad_bit_for_m_1_ok() {
         let hint_code = hint_code::QUAD_BIT;
         let mut vm = vm_with_range_check!();
 
@@ -1349,6 +1349,29 @@ mod tests {
 
         // Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
+
+    #[test]
+    fn run_quad_bit_for_m_0() {
+        let hint_code = hint_code::QUAD_BIT;
+        let mut vm = vm_with_range_check!();
+
+        let scalar_u = 0b1010101;
+        let scalar_v = 0b1010101;
+        let m = 0;
+        // Insert ids.scalar into memory
+        vm.segments = segments![((1, 0), scalar_u), ((1, 1), scalar_v), ((1, 2), m)];
+
+        // Initialize RunContext
+        run_context!(vm, 0, 4, 4);
+
+        let ids_data = ids_data!["scalar_u", "scalar_v", "m", "quad_bit"];
+
+        // Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::NPairBitsTooLowM)
+        );
     }
 
     #[test]
