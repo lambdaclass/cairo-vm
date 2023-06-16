@@ -266,6 +266,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{

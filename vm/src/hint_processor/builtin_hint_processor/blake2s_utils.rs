@@ -306,6 +306,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
