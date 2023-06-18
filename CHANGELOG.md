@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [0.6.0] - 2023-6-18
+
 * fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)
 
 * fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
