@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
+
 #### [0.6.0] - 2023-6-18
 
 * fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)
@@ -31,8 +33,6 @@
 * add a `ensure-no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
 
 * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility
-
-* fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
 
 #### [0.5.2] - 2023-6-12
 

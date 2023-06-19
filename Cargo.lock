@@ -1053,13 +1053,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "custom_hint_example"
-version = "0.1.0"
-dependencies = [
- "cairo-vm",
-]
-
-[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
