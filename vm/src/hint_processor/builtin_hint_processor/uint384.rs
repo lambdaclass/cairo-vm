@@ -228,10 +228,10 @@ pub fn sub_reduced_a_and_reduced_b(
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Shl;
-
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::vm::runners::cairo_runner::RunResources;
+    use core::ops::Shl;
 
     use crate::{
         any_box,

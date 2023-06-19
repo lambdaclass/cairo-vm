@@ -263,6 +263,7 @@ mod tests {
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
 
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::builtin_hint_processor::dict_manager::{DictManager, DictTracker},
         relocatable,
