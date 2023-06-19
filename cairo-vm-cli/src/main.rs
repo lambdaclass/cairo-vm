@@ -6,7 +6,7 @@ use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_def
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{Parser, ValueHint};
+use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -37,6 +37,8 @@ struct Args {
     proof_mode: bool,
     #[structopt(long = "--secure_run")]
     secure_run: Option<bool>,
+    #[clap(long = "--air_public_input")]
+    air_public_input: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<(), String> {
@@ -112,6 +114,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             return Err(Error::Cli(error));
         }
     };
+
+    if args.air_public_input.is_some() && !args.proof_mode {
+        let error = Args::command().error(
+            clap::ErrorKind::ArgumentConflict,
+            "--air_public_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
     let trace_enabled = args.trace_file.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
