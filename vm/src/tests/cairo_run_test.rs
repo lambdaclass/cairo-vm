@@ -335,7 +335,7 @@ fn dict_update() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256() {
     let program_data = include_bytes!("../../../cairo_programs/uint256.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 3534);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 3554);
 }
 
 #[test]

@@ -8,7 +8,7 @@ from starkware.cairo.common.uint256 import (
     uint256_signed_nn,
     uint256_unsigned_div_rem,
     uint256_mul,
-    uint256_mul_div_mod
+    uint256_mul_div_mod,
 )
 from starkware.cairo.common.alloc import alloc
 
@@ -66,10 +66,16 @@ func main{range_check_ptr: felt}() {
     assert c_quotient = Uint256(340282366920938463463374607431768211455, 340282366920938463463374607431768211455);
     assert c_remainder = Uint256(0, 0);
 
+    let (d_quotient, d_remainder) = uint256_unsigned_div_rem(
+        Uint256(low=0, high=0x371303c0000000000000000000000000),
+        Uint256(low=0, high=0x1000000000000000000000000),
+    );
+
+    assert d_quotient = Uint256(low=0x371303c0, high=0);
+    assert d_remainder = Uint256(0, 0);
+
     let (a_quotient_low, a_quotient_high, a_remainder) = uint256_mul_div_mod(
-        Uint256(89, 72),
-        Uint256(3, 7),
-        Uint256(107, 114),
+        Uint256(89, 72), Uint256(3, 7), Uint256(107, 114)
     );
     assert a_quotient_low = Uint256(143276786071974089879315624181797141668, 4);
     assert a_quotient_high = Uint256(0, 0);
@@ -94,7 +100,7 @@ func main{range_check_ptr: felt}() {
     );
     assert mult_low_b = Uint256(
         42047520920204780886066537579778623760, 216529163594619381764978757921136443390
-    );
+        );
     assert mult_high_b = Uint256(0, 0);
 
     let array_length = 100;
