@@ -13,6 +13,8 @@
   * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
   * Public `CairoRunner::get_reference_list` has been removed
 
+* fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
+
 #### [0.5.2] - 2023-6-12
 
 * BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)
