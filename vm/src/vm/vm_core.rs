@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::{
@@ -1026,10 +1027,16 @@ impl VirtualMachine {
     }
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
-    pub fn get_public_memory_addresses(
-        &self,
-    ) -> Vec<(usize, &usize)> {
-        self.segments.get_public_memory_addresses(self.trace_relocated)
+    pub fn get_public_memory_addresses(&self) -> Vec<(usize, &usize)> {
+        self.segments
+            .get_public_memory_addresses(self.trace_relocated)
+    }
+
+    pub fn get_memory_segment_addresses(&self) -> HashMap<BuiltinName, (usize, Option<usize>)> {
+        self.builtin_runners
+            .iter()
+            .map(|builtin| builtin.get_memory_segment_addresses())
+            .collect()
     }
 }
 
