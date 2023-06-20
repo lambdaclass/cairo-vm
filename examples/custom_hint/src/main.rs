@@ -27,6 +27,7 @@ fn print_a_hint(
     Ok(())
 }
 
+#[cfg(feature = "std")]
 fn main() {
     // Wrap the Rust hint implementation in a Box smart pointer inside a HintFunc
     let hint = HintFunc(Box::new(print_a_hint));
