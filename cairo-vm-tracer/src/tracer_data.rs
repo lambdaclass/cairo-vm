@@ -4,6 +4,7 @@ use cairo_vm::{
     felt::Felt252,
     serde::deserialize_program::{DebugInfo, InstructionLocation},
     types::{
+        instruction::Op1Addr,
         program::Program,
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -171,14 +172,18 @@ impl TracerData {
             let op0_addr = run_context.compute_op0_addr(&instruction)?.offset;
 
             // get op1_addr
-            let op0_memory = &memory[op0_addr];
-            let op0 = match op0_memory {
-                None => None,
-                Some(felt) => Some(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: 1 as isize,
-                    offset: felt.clone().to_usize().unwrap(),
-                })),
-            };
+            let mut op0 = None;
+            if instruction.op1_addr == Op1Addr::Op0 {
+                let op0_memory = &memory[op0_addr];
+                op0 = match op0_memory {
+                    None => None,
+                    Some(felt) => Some(MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: 1 as isize,
+                        offset: felt.clone().to_usize().unwrap(),
+                    })),
+                };
+            }
+
             let op1_addr = run_context
                 .compute_op1_addr(&instruction, op0.as_ref())?
                 .offset;
