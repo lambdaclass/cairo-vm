@@ -1024,6 +1024,13 @@ impl VirtualMachine {
             Err(TraceError::TraceNotRelocated)
         }
     }
+
+    /// Returns a list of addresses of memory cells that constitute the public memory.
+    pub fn get_public_memory_addresses(
+        &self,
+    ) -> Vec<(usize, &usize)> {
+        self.segments.get_public_memory_addresses(self.trace_relocated)
+    }
 }
 
 pub struct VirtualMachineBuilder {

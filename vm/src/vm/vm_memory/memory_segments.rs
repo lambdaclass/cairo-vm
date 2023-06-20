@@ -213,6 +213,30 @@ impl MemorySegmentManager {
         Ok(memory_holes)
     }
 
+    /// Returns a list of addresses of memory cells that constitute the public memory.
+    pub fn get_public_memory_addresses(
+        &self,
+        relocated: bool
+    ) -> Vec<(usize, &usize)> {
+        let mut addresses = Vec::with_capacity(self.public_memory_offsets.len());
+
+        let segment_offsets = if relocated {
+            self.relocate_segments()
+        } else {
+            panic!(); // FIXME: replace with error
+        };
+
+        for segment_index in 0..self.num_segments() {
+            // FIXME: remove unwrap
+            let offsets = self.public_memory_offsets.get(&segment_index).unwrap();
+            let segment_start = segment_offsets[&segment_index];
+            for (offset, page_id) in offsets.iter() {
+                addresses.push((segment_start + offset, page_id));
+            }
+        }
+        addresses
+    }
+
     // Writes the following information for the given segment:
     // * size - The size of the segment (to be used in relocate_segments).
     // * public_memory - A list of offsets for memory cells that will be considered as public
