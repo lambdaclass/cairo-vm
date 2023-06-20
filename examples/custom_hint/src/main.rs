@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use cairo_vm::cairo_run::{cairo_run, CairoRunConfig};
 use cairo_vm::felt::Felt252;
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -15,6 +17,7 @@ use std::path::Path;
 use std::rc::Rc;
 
 // Create the function that implements the custom hint
+#[cfg(feature = "std")]
 fn print_a_hint(
     vm: &mut VirtualMachine,
     _exec_scopes: &mut ExecutionScopes,
@@ -54,3 +57,6 @@ fn main() {
     )
     .expect("Couldn't run program");
 }
+
+#[cfg(not(feature = "std"))]
+fn main() {}
