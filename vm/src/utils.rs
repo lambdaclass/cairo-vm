@@ -615,13 +615,9 @@ mod test {
     use felt::Felt252;
     use num_traits::One;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     use super::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn memory_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
@@ -641,7 +637,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
@@ -662,7 +657,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_address_macro_test() {
         let mut memory = Memory::new();
         for _ in 0..2 {
@@ -684,7 +678,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_run_context() {
         let mut vm = vm!();
         run_context!(vm, 2, 6, 10);
@@ -695,7 +688,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
@@ -718,7 +710,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_non_continuous_ids_data() {
         let ids_data_macro = non_continuous_ids_data![("a", -2), ("", -6)];
         let ids_data_verbose = HashMap::from([
@@ -729,7 +720,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_hint_alloc() {
         let hint_code = "memory[ap] = segments.add()";
         let mut vm = vm!();
@@ -740,7 +730,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_scope_test_pass() {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.assign_or_update_variable("a", any_box!(String::from("Hello")));
@@ -786,7 +775,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn scope_macro_test() {
         let scope_from_macro = scope![("a", Felt252::one())];
         let mut scope_verbose = ExecutionScopes::new();
@@ -800,7 +788,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
@@ -836,7 +823,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_dict_ptr_pass() {
         let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
@@ -864,7 +850,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_macro() {
         let tracker = DictTracker::new_empty(relocatable!(2, 0));
         let mut dict_manager = DictManager::new();
@@ -878,7 +863,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
             relocatable!(2, 0),
@@ -896,7 +880,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn data_vec_test() {
         let data = vec_data!((1), ((2, 2)), (("49128305", 10)), (("3b6f00a9", 16)));
         assert_eq!(data[0], mayberelocatable!(1));
@@ -905,7 +888,6 @@ mod test {
         assert_eq!(data[3], mayberelocatable!(997130409));
     }
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn from_relocatable_to_indexes_test() {
         let reloc_1 = relocatable!(1, 5);
         let reloc_2 = relocatable!(0, 5);
@@ -916,7 +898,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
@@ -940,7 +921,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_with_builtin() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
@@ -965,7 +945,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_macro_custom_definition() {
         let shared_data = SharedProgramData {
             data: Vec::new(),

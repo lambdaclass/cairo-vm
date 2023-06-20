@@ -65,7 +65,6 @@ bitvec = { workspace = true }
 cairo-lang-starknet = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
 
-# TODO: check these dependencies for wasm compatibility
 ark-ff = { workspace = true, optional = true }
 ark-std = { workspace = true, optional = true }
 
@@ -73,11 +72,6 @@ ark-std = { workspace = true, optional = true }
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.3.1"
 rusty-hook = "0.11"
 criterion = { version = "0.3", features = ["html_reports"] }

@@ -114,11 +114,8 @@ mod tests {
     use num_bigint::BigUint;
 
     use num_traits::One;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
@@ -186,7 +183,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
         let pack_1 = bigint3_pack(Uint384 {
             d0: Cow::Borrowed(&Felt252::new(10_i32)),

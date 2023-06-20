@@ -35,9 +35,6 @@ mod tests {
     use felt::Felt252;
     use num_traits::{Bounded, One, Zero};
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     use super::*;
 
     fn run_hint(x: Felt252) -> Result<Felt252, HintError> {
@@ -56,7 +53,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_simple() {
         let bit_length_result = run_hint(Felt252::new(7));
         assert!(bit_length_result.is_ok());
@@ -64,7 +60,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
         for i in 0..252_usize {
             let x: Felt252 = Felt252::one() << i;
@@ -76,7 +71,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_wraparound() {
         let x = Felt252::max_value() + Felt252::one();
         let bit_length_result = run_hint(x);

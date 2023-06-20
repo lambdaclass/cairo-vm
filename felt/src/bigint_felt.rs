@@ -848,12 +848,8 @@ mod tests {
     #[cfg(all(not(feature = "std"), feature = "alloc"))]
     use alloc::string::ToString;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
     // Tests that the result of adding two zeros is zero.
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
         let b = FeltBigInt::new(0);
@@ -863,7 +859,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of performing add assign with two zeros is zero.
     fn add_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -922,7 +917,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros is zero.
     fn mul_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -933,7 +927,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of multiplying two zeros with assignment is zero.
     fn mul_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -945,7 +938,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros is zero.
     fn sub_zeros() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -956,7 +948,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the result of subtracting two zeros with assignment is zero.
     fn sub_assign_zeros() {
         let mut a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);
@@ -968,7 +959,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_usize_felt() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(4u32);
         let b = FeltBigInt::new(2u32);
@@ -978,7 +968,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the negative of zero is zero
     fn negate_zero() {
         let a = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::new(0);

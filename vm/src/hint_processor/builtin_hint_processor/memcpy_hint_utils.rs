@@ -50,11 +50,8 @@ mod tests {
     use assert_matches::assert_matches;
 
     use felt::Felt252;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         // initialize memory segments
@@ -80,7 +77,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_invalid_expected_integer() {
         let mut vm = vm!();
 

@@ -59,11 +59,7 @@ mod tests {
     use assert_matches::assert_matches;
     use num_traits::One;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_ok() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -77,7 +73,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_ids() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -94,7 +89,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_incorrect_references() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -111,7 +105,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_prev_locs_exp_is_not_integer() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();
@@ -130,7 +123,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_pow_invalid_memory_insert() {
         let hint_code = "ids.locs.bit = (ids.prev_locs.exp % PRIME) & 1";
         let mut vm = vm_with_range_check!();

@@ -130,11 +130,7 @@ mod tests {
         types::exec_scope::ExecutionScopes,
     };
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_divmod_n_packed_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -172,7 +168,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_sub_a_b_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -206,7 +201,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_mod_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -249,7 +243,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_div_m_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();

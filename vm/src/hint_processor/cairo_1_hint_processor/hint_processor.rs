@@ -776,19 +776,17 @@ impl Cairo1HintProcessor {
         let mut curr = as_relocatable(vm, start)?;
         let end = as_relocatable(vm, end)?;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            while curr != end {
-                let value = vm.get_integer(curr)?;
-                if let Some(shortstring) = as_cairo_short_string(&value) {
-                    println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
-                } else {
-                    println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
-                }
-                curr += 1;
+        while curr != end {
+            let value = vm.get_integer(curr)?;
+            if let Some(shortstring) = as_cairo_short_string(&value) {
+                println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
+            } else {
+                println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
             }
-            println!();
+            curr += 1;
         }
+        println!();
+
         Ok(())
     }
 

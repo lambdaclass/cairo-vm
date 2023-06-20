@@ -208,18 +208,13 @@ mod tests {
     use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_dict_manager() {
         let dict_manager = DictManager::new();
         assert_eq!(dict_manager.trackers, HashMap::new());
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_dict_tracker_empty() {
         let dict_tracker = DictTracker::new_empty(relocatable!(1, 0));
         assert_eq!(
@@ -230,7 +225,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn create_dict_tracker_default() {
         let dict_tracker =
             DictTracker::new_default_dict(relocatable!(1, 0), &MaybeRelocatable::from(5), None);
@@ -245,7 +239,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_dict_empty() {
         let mut vm = vm!();
         let mut dict_manager = DictManager::new();
@@ -260,7 +253,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_dict_default() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
@@ -279,7 +271,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut vm = vm!();
@@ -299,7 +290,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_default_dict_with_initial_dict() {
         let mut dict_manager = DictManager::new();
         let mut initial_dict = HashMap::<MaybeRelocatable, MaybeRelocatable>::new();
@@ -324,7 +314,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_dict_empty_same_segment() {
         let mut dict_manager = DictManager::new();
         dict_manager
@@ -338,7 +327,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dict_manager_new_default_dict_empty_same_segment() {
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(
@@ -353,7 +341,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dictionary_get_insert_simple() {
         let mut dictionary = Dictionary::SimpleDictionary(HashMap::new());
         dictionary.insert(&MaybeRelocatable::from(1), &MaybeRelocatable::from(2));
@@ -365,7 +352,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn dictionary_get_insert_default() {
         let mut dictionary = Dictionary::DefaultDictionary {
             dict: HashMap::new(),

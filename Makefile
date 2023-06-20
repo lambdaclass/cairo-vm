@@ -121,7 +121,6 @@ cargo-deps:
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.11.0 wasm-pack
 
 deps: cargo-deps build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
@@ -170,9 +169,6 @@ test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED
 	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
 test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
-test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
-	# NOTE: release mode is needed to avoid "too many locals" error
-	wasm-pack test --release --node vm --no-default-features
 
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings

@@ -177,8 +177,6 @@ mod tests {
     use felt::felt_str;
     use num_traits::One;
     use rstest::rstest;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn get_uint768_from_base_addr_ok() {
@@ -309,7 +307,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -381,7 +378,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_divide_by_zero(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp

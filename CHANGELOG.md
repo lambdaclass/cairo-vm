@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* remove the wasm32 testing target
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
@@ -41,7 +43,6 @@
   * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
 
 * build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-vm/pull/1266)
-
 
 #### [0.6.1] - 2023-6-23
 

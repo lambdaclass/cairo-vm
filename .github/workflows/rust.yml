@@ -172,7 +172,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "lambdaworks-felt"]
-        target: [ test, test-no_std, test-wasm ]
+        target: [ test, test-no_std ]
         # TODO: features
     name: Run tests
     runs-on: ubuntu-22.04
@@ -217,7 +217,7 @@ jobs:
     - name: Install testing tools
       uses: taiki-e/install-action@v2
       with:
-        tool: cargo-nextest,cargo-llvm-cov,wasm-pack
+        tool: cargo-nextest,cargo-llvm-cov
     - name: Run
       run: |
         # FIXME: we need to update the Makefile to do this correctly
@@ -228,14 +228,9 @@ jobs:
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
-        'test-wasm')
-          # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
-          ;;
         esac
 
     - name: Save coverage
-      if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
         path: lcov-${{ matrix.target }}.info

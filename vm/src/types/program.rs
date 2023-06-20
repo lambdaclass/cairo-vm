@@ -231,11 +231,7 @@ mod tests {
     use felt::felt_str;
     use num_traits::Zero;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -270,7 +266,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -339,14 +334,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_prime() {
         let program = Program::default();
         assert_eq!(PRIME_STR, program.prime());
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_builtins() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -383,7 +376,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_data() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -415,7 +407,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn data_len() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -447,7 +438,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_identifier() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -517,7 +507,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -581,7 +570,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_invalid_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -639,7 +627,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
@@ -723,7 +710,6 @@ mod tests {
 
     /// Deserialize a program without an entrypoint.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
@@ -825,7 +811,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_constants_test() {
         let program = Program::from_bytes(
             include_bytes!(
@@ -866,7 +851,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
         let shared_program_data = SharedProgramData {
             data: Vec::new(),

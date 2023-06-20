@@ -1003,7 +1003,6 @@ mod test {
 
     proptest! {
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated
         // each time tests are run, that a new felt doesn't fall outside the range [0, p].
         // In this and some of the following tests, The value of {x} can be either [0] or a
@@ -1016,7 +1015,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_be_bytes(ref x in any::<Felt252>()) {
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
@@ -1024,7 +1022,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_le_bytes(ref x in any::<Felt252>()) {
             let mut bytes = x.to_le_bytes();
             // Convert to big endian for test
@@ -1034,7 +1031,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_le_digits(ref x in any::<Felt252>()) {
             let digits: [u64; 4] = x.to_le_digits();
             let mut bytes: Vec<_> = digits
@@ -1048,7 +1044,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_u128_ok(x in any::<u128>()) {
             let y = Felt252::from(x);
             let y = y.to_u128();
@@ -1056,7 +1051,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_u128_out_of_range(x in nonzero_felt252()) {
             let y = x + Felt252::from(u128::MAX);
             let y = y.to_u128();
@@ -1064,7 +1058,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly
         // generated each time tests are run, that a felt created using Felt252::from_bytes_be doesn't
         // fall outside the range [0, p].
@@ -1077,7 +1070,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 felt values that are randomly generated each time
         // tests are run, that the negative of a felt doesn't fall outside the range [0, p].
         fn neg_in_range(x in any::<Felt252>()) {
@@ -1094,7 +1086,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated
         // each time tests are run, that a subtraction between two felts {x} and {y} and doesn't fall
         // outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
@@ -1112,7 +1103,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly generated
         // each time tests are run, that a subtraction with assignment between two felts {x} and {y}
         // and doesn't fall outside the range [0, p]. The values of {x} and {y} can be either [0] or a very large number.
@@ -1130,7 +1120,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {x} and {y} values that are randomly
         // generated each time tests are run, that a multiplication between two felts {x}
         // and {y} and doesn't fall outside the range [0, p]. The values of {x} and {y}
@@ -1147,7 +1136,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that
         // are randomly generated each time tests are run, that a multiplication with
         // assignment between two felts {x} and {y} and doesn't fall outside the range [0, p].
@@ -1161,7 +1149,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 pairs of {x} and {y} values that are
         // randomly generated each time tests are run, that the result of the division of
         // {x} by {y} is the inverse multiplicative of {x} --that is, multiplying the result
@@ -1178,7 +1165,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated
         // each time tests are run, that performing a bit shift to the left by {shift_amount}
         // of bits (between 0 and 999) returns a result that is inside of the range [0, p].
@@ -1193,7 +1179,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {value}s that are randomly
         // generated each time tests are run, that performing a bit shift to the right
         // by {shift_amount} of bits (between 0 and 999) returns a result that is inside of the range [0, p].
@@ -1204,7 +1189,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 {value}s that are randomly generated
         // each time tests are run, that performing a bit shift to the right by {shift_amount}
         // of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
@@ -1217,7 +1201,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y}
         // generated at random each time tests are run, that performing a BitAnd
         // operation between them returns a result that is inside of the range [0, p].
@@ -1229,7 +1212,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y}
         // generated at random each time tests are run, that performing a BitOr
         // operation between them returns a result that is inside of the range [0, p].
@@ -1240,7 +1222,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y}
         // generated at random each time tests are run, that performing a BitXor
         // operation between them returns a result that is inside of the range [0, p].
@@ -1251,7 +1232,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 values {x} that are randomly
         // generated each time tests are run, that raising {x} to the {y}th power
         // returns a result that is inside of the range [0, p].
@@ -1269,7 +1249,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property-based test that ensures, for 100 values {x} that are randomly
         // generated each time tests are run, that raising {x} to the {y}th power
         // returns a result that is inside of the range [0, p].
@@ -1287,7 +1266,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 pairs of values {x} and {y}
         // generated at random each time tests are run, that performing a Sum operation
         // between them returns a result that is inside of the range [0, p].
@@ -1300,7 +1278,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that the remainder of a division between 100 pairs of
         // values {x} and {y},generated at random each time tests are run, falls in the
         // range [0, p]. x and y can either take the value of 0 or a large integer.
@@ -1320,7 +1297,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property based test that ensures, for 100 Felt252s {x} generated at
         // random each time tests are run, that converting them into the u64 type
         // returns a result that is inside of the range [0, p].
@@ -1332,7 +1308,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
             let x: i64 = x as i64;
             let x_felt:Felt252 = Felt252::from_i64(x).unwrap();
@@ -1349,7 +1324,6 @@ mod test {
         }
 
         #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         // Property test to check that is_multiple_of(x, y) works. Since we're operating in a prime field, is_multiple_of
         // will always be true
         fn is_multiple_of_doesnt_panic(x in any::<Felt252>(), y in any::<Felt252>()) {
@@ -1560,7 +1534,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
         let x = Felt252::new(0);
@@ -1570,7 +1543,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of multiplying two zeroes is zero
     fn mul_zeros_in_range() {
         let x = Felt252::new(0);
@@ -1580,7 +1552,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of performing a bit and operation between zeroes is zero
     fn bit_and_zeros_in_range() {
         let x = Felt252::new(0);
@@ -1590,7 +1561,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit or operation between zeroes is zero
     fn bit_or_zeros_in_range() {
         let x = Felt252::new(0);
@@ -1600,7 +1570,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit xor operation between zeroes is zero
     fn bit_xor_zeros_in_range() {
         let x = Felt252::new(0);
@@ -1610,7 +1579,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the maximum value a Felt252 can take is equal to (prime - 1)
     fn upper_bound() {
         let prime = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
@@ -1620,7 +1588,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Tests that the minimum value a Felt252 can take is equal to zero.
     fn lower_bound() {
         let zero = BigUint::zero();

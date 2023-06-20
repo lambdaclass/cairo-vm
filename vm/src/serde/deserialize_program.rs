@@ -450,11 +450,7 @@ mod tests {
     use num_traits::One;
     use num_traits::Zero;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_from_string_json_gives_error() {
         let invalid_even_length_hex_json = r#"
             {
@@ -479,7 +475,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_invalid_char_error() {
         let invalid_char = r#"
             {
@@ -492,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_bigint_no_prefix_error() {
         let no_prefix = r#"
             {
@@ -506,7 +500,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_from_string_json() {
         let valid_json = r#"
             {
@@ -721,7 +714,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_a() {
         // Open json file with (valid) even length encoded hex
         let reader =
@@ -739,7 +731,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_b() {
         // Open json file with (valid) odd length encoded hex
         let reader =
@@ -758,7 +749,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_json_from_json_file_gives_error() {
         // Open json file with (invalid) even length encoded hex
         let reader = include_bytes!(
@@ -779,7 +769,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_missing_entrypoint_gives_error() {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
@@ -794,7 +783,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
@@ -853,7 +841,6 @@ mod tests {
 
     /// Deserialize a program without an entrypoint.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
@@ -911,7 +898,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_constant() {
         let reader = include_bytes!(
             "../../../cairo_programs/manually_compiled/deserialize_constant_test.json"
@@ -1006,7 +992,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn value_address_no_hint_reference_default_test() {
         let valid_json = r#"
             {
@@ -1053,7 +1038,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_attributes_test() {
         let valid_json = r#"
             {
@@ -1147,7 +1131,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_instruction_locations_test_no_parent() {
         let valid_json = r#"
             {
@@ -1256,7 +1239,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_instruction_locations_test_with_parent() {
         let valid_json = r#"
             {
@@ -1357,7 +1339,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_with_type_definition() {
         let reader = include_bytes!("../../../cairo_programs/uint256_integration_tests.json");
 
@@ -1387,7 +1368,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_nonbase10_number_errors() {
         let valid_json = r#"
         {
@@ -1399,7 +1379,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation() {
         let n = Number::deserialize(serde_json::Value::from(1000000000000000000000000000_u128))
             .unwrap();
@@ -1412,7 +1391,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation_with_fractional_part() {
         let n = serde_json::Value::Number(Number::from_f64(64e+74).unwrap());
 
@@ -1423,7 +1401,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation_with_fractional_part_f64_max() {
         let n = serde_json::Value::Number(Number::from_f64(f64::MAX).unwrap());
         assert_eq!(
@@ -1439,7 +1416,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation_big_exponent() {
         #[derive(Deserialize, Debug, PartialEq)]
         struct Test {

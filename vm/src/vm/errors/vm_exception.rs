@@ -307,12 +307,8 @@ mod test {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     use super::*;
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_vm_exception_from_vm_error() {
         let pc = 0;
         let location = Location {
@@ -345,7 +341,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_no_message() {
         let location = Location {
             end_line: 2,
@@ -365,7 +360,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_message() {
         let location = Location {
             end_line: 2,
@@ -385,7 +379,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_no_attributes() {
         let vm_excep = VmException {
             pc: 2,
@@ -410,7 +403,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_with_attributes() {
         let vm_excep = VmException {
             pc: 2,
@@ -435,7 +427,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_attributes_no_parent() {
         let location = Location {
             end_line: 2,
@@ -470,7 +461,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_attributes_with_parent() {
         let location = Location {
             end_line: 2,
@@ -514,7 +504,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_error_attr_value_some() {
         let attributes = vec![Attribute {
             name: String::from("Error message"),
@@ -533,7 +522,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_error_attr_value_none() {
         let attributes = vec![Attribute {
             name: String::from("Error message"),
@@ -549,7 +537,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_some() {
         let location = Location {
             end_line: 2,
@@ -572,7 +559,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_none() {
         let location = Location {
             end_line: 2,
@@ -595,7 +581,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_location_some_hint_index() {
         let location_a = Location {
             end_line: 2,
@@ -632,7 +617,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_dict_update() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/bad_dict_update.json"),
@@ -666,7 +650,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_bad_usort() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/bad_usort.json"),
@@ -707,7 +690,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents_no_contents() {
         let location = Location {
             end_line: 2,
@@ -727,7 +709,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents() {
         let location = Location {
             end_line: 5,
@@ -753,7 +734,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_to_string_with_contents_no_file() {
         let location = Location {
             end_line: 5,
@@ -796,7 +776,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn location_get_location_marks_empty_file() {
         let location = Location {
             end_line: 5,
@@ -813,7 +792,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_range_check_and_check_error_displayed() {
         #[cfg(feature = "std")]
         let expected_error_string = r#"Error message: Failed range-check
@@ -864,7 +842,6 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_usort_and_check_error_displayed() {
         #[cfg(feature = "std")]
         let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
@@ -909,7 +886,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_ap_based() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
@@ -928,7 +904,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_ap_based() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
@@ -950,7 +925,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_complex() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),
@@ -969,7 +943,6 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn substitute_error_message_references_complex() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_struct.json"),

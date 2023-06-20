@@ -215,11 +215,8 @@ mod tests {
     use assert_matches::assert_matches;
 
     use rstest::rstest;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_ok() {
         let hint_codes = vec![
             &hint_code::VERIFY_ZERO_V1,
@@ -242,7 +239,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_v3_ok() {
         let hint_codes = vec![
             "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME",
@@ -264,7 +260,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_with_external_const_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -287,7 +282,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -312,7 +306,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_verify_zero_invalid_memory_insert() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nq, r = divmod(pack(ids.val, PRIME), SECP_P)\nassert r == 0, f\"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}.\"\nids.q = q % PRIME";
         let mut vm = vm_with_range_check!();
@@ -341,7 +334,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_reduce_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -373,7 +365,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_reduce_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nvalue = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -399,7 +390,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
         let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
@@ -441,7 +431,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack\n\nx = pack(ids.x, PRIME) % SECP_P";
         let mut vm = vm_with_range_check!();
@@ -470,7 +459,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::IS_ZERO_NONDET)]
     #[case(hint_code::IS_ZERO_INT)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_ok_true(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
 
@@ -498,7 +486,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::IS_ZERO_NONDET)]
     #[case(hint_code::IS_ZERO_INT)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_ok_false(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
 
@@ -526,7 +513,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::IS_ZERO_NONDET)]
     #[case(hint_code::IS_ZERO_INT)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_scope_error(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
 
@@ -548,7 +534,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::IS_ZERO_NONDET)]
     #[case(hint_code::IS_ZERO_INT)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_nondet_invalid_memory_insert(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
 
@@ -573,7 +558,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_ok() {
         let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
@@ -614,7 +598,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_assign_scope_variables_scope_error() {
         let hint_code = hint_code::IS_ZERO_ASSIGN_SCOPE_VARS;
         let mut vm = vm_with_range_check!();

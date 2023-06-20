@@ -122,11 +122,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_uint512_unsigned_div_rem_ok() {
         let hint_code = hint_code::UINT512_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
@@ -161,7 +157,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_inv_mod_p_uint256_ok() {
         let hint_code = hint_code::INV_MOD_P_UINT256;
         let mut vm = vm_with_range_check!();

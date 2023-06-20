@@ -40,25 +40,19 @@ impl KeccakInstanceDef {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_units_per_builtin() {
         let builtin_instance = KeccakInstanceDef::default();
         assert_eq!(builtin_instance._range_check_units_per_builtin(), 0);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_builtin() {
         let builtin_instance = KeccakInstanceDef::default();
         assert_eq!(builtin_instance.cells_per_builtin(), 16);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let builtin_instance = KeccakInstanceDef {
             ratio: Some(2048),
@@ -72,7 +66,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let builtin_instance = KeccakInstanceDef {
             ratio: Some(2048),

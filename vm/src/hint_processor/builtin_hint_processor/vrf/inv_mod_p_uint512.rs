@@ -68,8 +68,6 @@ mod tests {
     };
     use num_bigint::BigUint;
     use num_traits::{FromPrimitive, Num};
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn test_pack_512() {
@@ -111,7 +109,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_inv_mod_p_uint512_ok() {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);

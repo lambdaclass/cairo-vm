@@ -291,11 +291,7 @@ mod tests {
     use felt::felt_str;
     use EcOpBuiltinRunner;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
@@ -306,7 +302,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
@@ -330,7 +325,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
@@ -358,7 +352,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false);
 
@@ -382,7 +375,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
 
@@ -406,7 +398,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
@@ -452,7 +443,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
@@ -497,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_a() {
         let x = felt_str!(
             "874739451078007766457464989774322083649278607533249481151382481072868806602"
@@ -513,7 +502,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_b() {
         let x = felt_str!(
             "3139037544796708144595053687182055617920475701120786241351436619796497072089"
@@ -529,7 +517,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_a() {
         let x = felt_str!(
             "874739454078007766457464989774322083649278607533249481151382481072868806602"
@@ -545,7 +532,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_b() {
         let x = felt_str!(
             "3139037544756708144595053687182055617927475701120786241351436619796497072089"
@@ -561,7 +547,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_a() {
         let partial_sum = (
             felt_str!(
@@ -599,7 +584,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_b() {
         let partial_sum = (
             felt_str!(
@@ -637,7 +621,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
         let partial_sum = (Felt252::one(), Felt252::new(9));
@@ -668,7 +651,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Data taken from this program execution:
        %builtins output ec_op
        from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -736,7 +718,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_unfilled_input_cells() {
         let memory = memory![
             (
@@ -776,7 +757,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_addr_not_an_output_cell() {
         let memory = memory![
             (
@@ -823,7 +803,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_for_preset_memory_non_integer_input() {
         let memory = memory![
             (
@@ -868,7 +847,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
 
@@ -876,7 +854,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -889,7 +866,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -900,7 +876,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -919,7 +894,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -932,7 +906,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -943,7 +916,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin =
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
@@ -954,7 +926,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
@@ -962,14 +933,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
         let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_same_x() {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
@@ -994,7 +963,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn catch_point_not_in_curve() {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");

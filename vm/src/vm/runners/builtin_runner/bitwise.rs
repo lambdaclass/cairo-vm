@@ -196,11 +196,7 @@ mod tests {
     };
     use felt::Felt252;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
@@ -219,7 +215,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
@@ -243,7 +238,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
@@ -271,7 +265,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false);
 
@@ -295,7 +288,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
 
@@ -319,7 +311,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
@@ -366,7 +357,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
             BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
@@ -411,7 +401,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_and() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -420,7 +409,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_xor() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -429,7 +417,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_valid_or() {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -438,7 +425,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 3), 10), ((0, 4), 12), ((0, 5), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -447,7 +433,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_for_preset_memory_no_values_to_operate() {
         let memory = memory![((0, 5), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
@@ -456,7 +441,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses() {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
 
@@ -464,7 +448,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -479,7 +462,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -492,7 +474,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_accesses() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -513,7 +494,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -528,7 +508,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -541,7 +520,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -554,7 +532,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_a() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -564,7 +541,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_b() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
@@ -574,7 +550,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_c() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
             &BitwiseInstanceDef::default(),
