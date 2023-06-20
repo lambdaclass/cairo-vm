@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* build: remove unused implicit features from cairo-vm
+
 #### [0.6.1] - 2023-6-23
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
