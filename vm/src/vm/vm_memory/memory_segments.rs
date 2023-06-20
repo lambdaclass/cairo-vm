@@ -214,10 +214,7 @@ impl MemorySegmentManager {
     }
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
-    pub fn get_public_memory_addresses(
-        &self,
-        relocated: bool
-    ) -> Vec<(usize, &usize)> {
+    pub fn get_public_memory_addresses(&self, relocated: bool) -> Vec<(usize, &usize)> {
         let mut addresses = Vec::with_capacity(self.public_memory_offsets.len());
 
         let segment_offsets = if relocated {
