@@ -164,7 +164,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
-    run(std::env::args())
+    match run(std::env::args()) {
+        Ok(()) => Ok(()),
+        Err(Error::Cli(_)) => {
+            Ok(()) // Exit with code 0 to avoid printing CLI error message
+        }
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(test)]
