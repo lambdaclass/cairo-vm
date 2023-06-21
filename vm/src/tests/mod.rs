@@ -190,7 +190,7 @@ pub(self) fn run_cairo_1_entrypoint(
         .run_from_entrypoint(
             entrypoint_offset,
             &entrypoint_args,
-            &mut None,
+            &mut RunResources::default(),
             true,
             Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
             &mut vm,
@@ -217,7 +217,7 @@ pub(self) fn run_cairo_1_entrypoint(
 pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     program_content: &[u8],
     entrypoint_offset: usize,
-    run_resources: &mut Option<RunResources>,
+    run_resources: &mut RunResources,
     args: &[MaybeRelocatable],
 ) -> Result<Vec<Felt252>, CairoRunError> {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();

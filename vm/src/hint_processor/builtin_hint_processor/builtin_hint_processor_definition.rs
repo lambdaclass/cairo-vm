@@ -20,8 +20,11 @@ use super::{
         pack::*,
     },
 };
-use crate::hint_processor::builtin_hint_processor::secp::ec_utils::{
-    ec_double_assign_new_x, ec_double_assign_new_x_v2,
+use crate::{
+    hint_processor::builtin_hint_processor::secp::ec_utils::{
+        ec_double_assign_new_x, ec_double_assign_new_x_v2,
+    },
+    vm::runners::cairo_runner::RunResources,
 };
 use crate::{
     hint_processor::{
@@ -167,6 +170,7 @@ impl HintProcessor for BuiltinHintProcessor {
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
         constants: &HashMap<String, Felt252>,
+        _run_resources: &mut RunResources,
     ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
@@ -810,6 +814,7 @@ mod tests {
     use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
 
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::hint_processor_definition::HintProcessor,
@@ -1225,7 +1230,8 @@ mod tests {
                 &mut vm,
                 exec_scopes,
                 &any_box!(hint_data),
-                &HashMap::new()
+                &HashMap::new(),
+                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -1237,7 +1243,8 @@ mod tests {
                 &mut vm,
                 exec_scopes,
                 &any_box!(hint_data),
-                &HashMap::new()
+                &HashMap::new(),
+                &mut RunResources::default(),
             ),
             Ok(())
         );

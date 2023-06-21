@@ -165,6 +165,7 @@ mod tests {
     use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
 
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{

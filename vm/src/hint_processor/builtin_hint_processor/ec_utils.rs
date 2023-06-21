@@ -225,6 +225,7 @@ mod tests {
 
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::utils::test_utils::*;
+    use crate::vm::runners::cairo_runner::RunResources;
     use assert_matches::assert_matches;
 
     use super::*;
