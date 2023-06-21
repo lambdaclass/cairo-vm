@@ -605,7 +605,7 @@ fn uint512_div_mod_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_ok() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let mut resources = Some(RunResources::new(621));
+    let mut resources = RunResources::new(621);
     // Program takes 621 steps
     assert_matches!(
         run_cairo_1_entrypoint_with_run_resources(
@@ -617,14 +617,14 @@ fn fibonacci_with_run_resources_ok() {
         Ok(x) if x == [10946_usize.into()]
     );
 
-    assert_eq!(resources, Some(RunResources::new(0)));
+    assert_eq!(resources, RunResources::new(0));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_2_ok() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let mut resources = Some(RunResources::new(1000));
+    let mut resources = RunResources::new(1000);
     // Program takes 621 steps
     assert_matches!(
         run_cairo_1_entrypoint_with_run_resources(
@@ -635,14 +635,14 @@ fn fibonacci_with_run_resources_2_ok() {
         ),
         Ok(x) if x == [10946_usize.into()]
     );
-    assert_eq!(resources, Some(RunResources::new(1000 - 621)));
+    assert_eq!(resources, RunResources::new(1000 - 621));
 }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_error() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let mut resources = Some(RunResources::new(100));
+    let mut resources = RunResources::new(100);
     // Program takes 621 steps
     assert!(run_cairo_1_entrypoint_with_run_resources(
         program_data.as_slice(),
@@ -651,5 +651,5 @@ fn fibonacci_with_run_resources_error() {
         &[1_usize.into(), 1_usize.into(), 20_usize.into()],
     )
     .is_err());
-    assert_eq!(resources, Some(RunResources::new(0)));
+    assert_eq!(resources, RunResources::new(0));
 }

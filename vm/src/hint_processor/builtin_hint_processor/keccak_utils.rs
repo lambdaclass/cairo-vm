@@ -298,6 +298,7 @@ pub fn split_output_mid_low_high(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::{
             builtin_hint_processor::{
