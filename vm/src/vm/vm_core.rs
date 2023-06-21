@@ -1032,10 +1032,10 @@ impl VirtualMachine {
             .get_public_memory_addresses(self.trace_relocated)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> HashMap<BuiltinName, (usize, Option<usize>)> {
+    pub fn get_memory_segment_addresses(&self) -> HashMap<&'static str, (usize, Option<usize>)> {
         self.builtin_runners
             .iter()
-            .map(|builtin| builtin.get_memory_segment_addresses())
+            .map(|builtin| (builtin.name(), builtin.get_memory_segment_addresses()))
             .collect()
     }
 }
