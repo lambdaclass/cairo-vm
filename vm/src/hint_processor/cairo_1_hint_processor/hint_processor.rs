@@ -6,7 +6,6 @@ use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecS
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
-use crate::vm::runners::cairo_runner::RunResources;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::exec_scope::ExecutionScopes,
@@ -49,12 +48,14 @@ fn get_beta() -> Felt252 {
 /// HintProcessor for Cairo 1 compiler hints.
 pub struct Cairo1HintProcessor {
     hints: HashMap<usize, Vec<Hint>>,
+    run_resources: RunResources,
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: &[(usize, Vec<Hint>)]) -> Self {
+    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
+            run_resources,
         }
     }
     // Runs a single Hint
@@ -1095,7 +1096,7 @@ impl Cairo1HintProcessor {
     }
 }
 
-impl HintProcessor for Cairo1HintProcessor {
+impl HintProcessorLogic for Cairo1HintProcessor {
     // Ignores all data except for the code that should contain
     fn compile_hint(
         &self,
@@ -1129,12 +1130,29 @@ impl HintProcessor for Cairo1HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         _constants: &HashMap<String, Felt252>,
-        _run_resources: &mut RunResources,
     ) -> Result<(), HintError> {
         let hints: &Vec<Hint> = hint_data.downcast_ref().ok_or(HintError::WrongHintData)?;
         for hint in hints {
             self.execute(vm, exec_scopes, hint)?;
         }
         Ok(())
+    }
+}
+
+impl ResourceTracker for Cairo1HintProcessor {
+    fn consumed(&self) -> bool {
+        self.run_resources.consumed()
+    }
+
+    fn consume_step(&mut self) {
+        self.run_resources.consume_step()
+    }
+
+    fn get_n_steps(&self) -> Option<usize> {
+        self.run_resources.get_n_steps()
+    }
+
+    fn run_resources(&mut self) -> &RunResources {
+        &self.run_resources
     }
 }
