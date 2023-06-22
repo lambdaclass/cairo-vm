@@ -18,7 +18,7 @@ use crate::{
 use felt::{Felt252, PRIME_STR};
 use num_traits::float::FloatCore;
 use num_traits::{Num, Pow};
-use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
+use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Number;
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
@@ -52,11 +52,14 @@ impl BuiltinName {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,
-    #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
+    #[serde(
+        serialize_with = "serialize_program_data",
+        deserialize_with = "deserialize_array_of_bigint_hex"
+    )]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
     pub hints: HashMap<usize, Vec<HintParams>>,
@@ -139,7 +142,7 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
@@ -349,6 +352,22 @@ pub fn deserialize_felt_hex<'de, D: Deserializer<'de>>(d: D) -> Result<Felt252, 
     d.deserialize_str(Felt252Visitor)
 }
 
+pub fn serialize_program_data<S: Serializer>(
+    v: &[MaybeRelocatable],
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let v = v
+        .iter()
+        .map(|val| match val.clone() {
+            MaybeRelocatable::Int(value) => format!("0x{:x}", value.to_biguint()),
+            MaybeRelocatable::RelocatableValue(_) => {
+                panic!("Got unexpected relocatable value in program data")
+            }
+        })
+        .collect::<Vec<String>>();
+    v.serialize(serializer)
+}
+
 pub fn deserialize_array_of_bigint_hex<'de, D: Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<MaybeRelocatable>, D::Error> {
@@ -440,6 +459,41 @@ pub fn parse_program_json(
         constants,
         builtins: program_json.builtins,
     })
+}
+
+pub fn parse_program(program: Program) -> ProgramJson {
+    let references = program
+        .shared_program_data
+        .reference_manager
+        .iter()
+        .map(|r| Reference {
+            value_address: ValueAddress {
+                offset1: r.offset1.clone(),
+                offset2: r.offset2.clone(),
+                dereference: r.dereference,
+                value_type: r.cairo_type.clone().unwrap_or_default(),
+            },
+            ap_tracking_data: r.ap_tracking_data.clone().unwrap_or_default(),
+            pc: None,
+        })
+        .collect::<Vec<_>>();
+
+    ProgramJson {
+        prime: program.prime().to_string(),
+        builtins: program.builtins.clone(),
+        data: program.shared_program_data.data.clone(),
+        identifiers: program.shared_program_data.identifiers.clone(),
+        hints: program.shared_program_data.hints.clone(),
+        attributes: program.shared_program_data.error_message_attributes.clone(),
+        debug_info: program
+            .shared_program_data
+            .instruction_locations
+            .clone()
+            .map(|instruction_locations| DebugInfo {
+                instruction_locations,
+            }),
+        reference_manager: ReferenceManager { references },
+    }
 }
 
 #[cfg(test)]
