@@ -19,8 +19,7 @@ std = [
     "felt/std",
     "num-prime",
 ]
-cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
-
+cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std", "cairo-lang-runner"]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
@@ -53,6 +52,10 @@ hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 thiserror-no-std = { workspace = true }
+
+# only for cairo-1-hint-processor
+
+cairo-lang-runner = { version = "1.1.0", default-features = false, optional=true }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
