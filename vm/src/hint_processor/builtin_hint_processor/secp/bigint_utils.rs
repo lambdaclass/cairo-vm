@@ -226,7 +226,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
@@ -236,7 +236,6 @@ mod tests {
 
     use crate::vm::vm_core::VirtualMachine;
 
-    use crate::vm::runners::cairo_runner::RunResources;
     use assert_matches::assert_matches;
     use num_traits::One;
 
