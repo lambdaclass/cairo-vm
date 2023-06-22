@@ -6,8 +6,10 @@ use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecS
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::Relocatable;
+use crate::vm::runners::cairo_runner::ResourceTracker;
+use crate::vm::runners::cairo_runner::RunResources;
 use crate::{
-    hint_processor::hint_processor_definition::HintProcessor,
+    hint_processor::hint_processor_definition::HintProcessorLogic,
     types::exec_scope::ExecutionScopes,
     vm::errors::vm_errors::VirtualMachineError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -1152,7 +1154,7 @@ impl ResourceTracker for Cairo1HintProcessor {
         self.run_resources.get_n_steps()
     }
 
-    fn run_resources(&mut self) -> &RunResources {
+    fn run_resources(&self) -> &RunResources {
         &self.run_resources
     }
 }

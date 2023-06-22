@@ -114,8 +114,6 @@ pub(self) fn run_cairo_1_entrypoint(
     args: &[MaybeRelocatable],
     expected_retdata: &[Felt252],
 ) {
-    use crate::vm::runners::cairo_runner::RunResources;
-
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::default());
@@ -222,8 +220,6 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     hint_processor: &mut Cairo1HintProcessor,
     args: &[MaybeRelocatable],
 ) -> Result<Vec<Felt252>, CairoRunError> {
-    let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
-
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
         "all_cairo",
@@ -296,11 +292,10 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     runner.run_from_entrypoint(
         entrypoint_offset,
         &entrypoint_args,
-        run_resources,
         true,
         Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
         &mut vm,
-        &mut hint_processor,
+        hint_processor,
     )?;
 
     // Check return values
