@@ -17,7 +17,6 @@ use std::path::Path;
 use std::rc::Rc;
 
 // Create the function that implements the custom hint
-#[cfg(feature = "std")]
 fn print_a_hint(
     vm: &mut VirtualMachine,
     _exec_scopes: &mut ExecutionScopes,
@@ -30,7 +29,6 @@ fn print_a_hint(
     Ok(())
 }
 
-#[cfg(feature = "std")]
 fn main() {
     // Wrap the Rust hint implementation in a Box smart pointer inside a HintFunc
     let hint = HintFunc(Box::new(print_a_hint));
@@ -57,6 +55,3 @@ fn main() {
     )
     .expect("Couldn't run program");
 }
-
-#[cfg(not(feature = "std"))]
-fn main() {}
