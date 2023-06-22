@@ -5,6 +5,22 @@ use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 
+pub struct MemorySegmentAddresses {
+    /// Represents the address of the beginning of the memory segment.
+    pub begin_addr: Felt252,
+
+    /// Represents the location of the segment pointer after the program is completed. This is not
+    /// the end of the segment. For example, for the program segment, it will point to the last
+    /// instruction executed, rather than the end of the program segment.
+    pub stop_ptr: Option<Felt252>,
+}
+
+/// Same as MemorySegmentAddresses, except that the addresses are Relocatable.
+pub struct MemorySegmentRelocatableAddresses {
+    pub begin_addr: Relocatable,
+    pub stop_ptr: Option<Relocatable>,
+}
+
 #[macro_export]
 macro_rules! relocatable {
     ($val1 : expr, $val2 : expr) => {

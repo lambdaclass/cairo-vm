@@ -1090,6 +1090,11 @@ impl CairoRunner {
     pub fn get_program(&self) -> &Program {
         &self.program
     }
+
+    /// Return CairoRunner.layout
+    pub fn get_layout(&self) -> &CairoLayout {
+        &self.layout
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -1,12 +1,12 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use bincode::enc::write::Writer;
+use cairo_vm::air_public_input::write_air_public_input;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use cairo_vm::vm::trace::trace_entry::TraceEntry;
 use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -175,11 +175,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     if let Some(air_public_input) = args.air_public_input {
         let (rc_min, rc_max) = cairo_runner.get_perm_range_check_limits(&vm).unwrap();
         // FIXME: remove unwrap
+        let dyn_layout = match args.layout.as_str() {
+            "dynamic" => Some(cairo_runner.get_layout()),
+            _ => None,
+        };
         write_air_public_input(
             &air_public_input,
-            cairo_runner.relocated_memory,
+            cairo_runner.relocated_memory.clone(),
             &args.layout,
-            todo!(), // ONLY IF DYNAMIC, cairo_runner.layout???
+            dyn_layout,
             vm.get_public_memory_addresses(),
             vm.get_memory_segment_addresses(),
             vm.get_relocated_trace().unwrap(),
@@ -189,46 +193,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     Ok(())
-}
-
-// TODO: move this to air_public_input.rs
-fn write_air_public_input(
-    public_input_file: &str,
-    memory: Vec<Option<Felt252>>,
-    layout: &str,
-    dyn_layout_params: todo!(),
-    public_memory_addresses: Vec<(usize, &usize)>,
-    memory_segment_addresses: HashMap<str, MemorySegmentAddresses>,
-    trace: Vec<TraceEntry>,
-    rc_min: isize,
-    rc_max: isize,
-) {
-    //public_memory = [
-    //    PublicMemoryEntry(address=addr, value=memory[addr], page=page)  # type: ignore
-    //    for addr, page in public_memory_addresses
-    //]
-    //initial_pc = trace[0].pc
-    //assert isinstance(initial_pc, int)
-    //public_input = PublicInput(  # type: ignore
-    //    layout=layout,
-    //    layout_params=layout_params,
-    //    rc_min=rc_min,
-    //    rc_max=rc_max,
-    //    n_steps=len(trace),
-    //    memory_segments={
-    //        "program": MemorySegmentAddresses(  # type: ignore
-    //            begin_addr=trace[0].pc, stop_ptr=trace[-1].pc
-    //        ),
-    //        "execution": MemorySegmentAddresses(  # type: ignore
-    //            begin_addr=trace[0].ap, stop_ptr=trace[-1].ap
-    //        ),
-    //        **memory_segment_addresses,
-    //    },
-    //    public_memory=public_memory,
-    //)
-    //public_input_file.write(PublicInput.Schema().dumps(public_input, indent=4))
-    //public_input_file.write("\n")
-    //public_input_file.flush()
 }
 
 fn main() -> Result<(), Error> {

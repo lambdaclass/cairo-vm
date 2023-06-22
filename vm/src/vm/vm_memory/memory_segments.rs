@@ -218,7 +218,7 @@ impl MemorySegmentManager {
         let mut addresses = Vec::with_capacity(self.public_memory_offsets.len());
 
         let segment_offsets = if relocated {
-            self.relocate_segments()
+            self.relocate_segments().unwrap()
         } else {
             panic!(); // FIXME: replace with error
         };
@@ -226,7 +226,7 @@ impl MemorySegmentManager {
         for segment_index in 0..self.num_segments() {
             // FIXME: remove unwrap
             let offsets = self.public_memory_offsets.get(&segment_index).unwrap();
-            let segment_start = segment_offsets[&segment_index];
+            let segment_start = segment_offsets[segment_index];
             for (offset, page_id) in offsets.iter() {
                 addresses.push((segment_start + offset, page_id));
             }
