@@ -788,8 +788,6 @@ name = "cairo-vm"
 version = "0.6.0"
 dependencies = [
  "anyhow",
- "ark-ff",
- "ark-std 0.3.0",
  "assert_matches",
  "bincode 2.0.0-rc.2",
  "bitvec",
