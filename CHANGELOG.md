@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)
+  * Rename trait `HintProcessor` to `HintProcessorLogic`
+  * Add trait `ResourceTracker`
+  * Trait `HintProcessor` is now `HintProcessor: HintProcessorLogic + ResourceTracker`
+  * `BuiltinHintProcessor::new` & `Cairo1HintProcessor::new` now receive the argumet `run_resources: RunResources`
+  * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
+  * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
+
 * fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
 
 #### [0.6.0] - 2023-6-18
