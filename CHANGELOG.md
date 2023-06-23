@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [0.6.1] - 2023-6-23
+
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
 
 * Add path to cairo-vm README.md [#1276](https://github.com/lambdaclass/cairo-rs/pull/1276)
