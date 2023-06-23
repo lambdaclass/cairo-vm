@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687554027278,
+  "lastUpdate": 1687554298874,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -107596,6 +107596,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 24219320,
             "range": "± 715179",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "5263301+d-roak@users.noreply.github.com",
+            "name": "Oak",
+            "username": "d-roak"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "44ebf229d692c82c39d8b5beb40862a7cce00dcd",
+          "message": "Update the custom hint example (#1258)\n\n* Add custom_hint_example to workspace, remove local Cargo.lock, fix example\n\n* updated the `CHANGELOG`\n\n* move custom_hint example to examples folder, move this fix to upcoming changes, define example inside vm package\n\n* fix makefile, add std flag for example main\n\n* fix no_std behaviour on example\n\n* change required feature std to example definition\n\n* remove unecessary allow unused_imports\n\n---------\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-23T20:17:33Z",
+          "tree_id": "a1214cb2184562ac8f110f7f18e5b629b56a1fac",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/44ebf229d692c82c39d8b5beb40862a7cce00dcd"
+        },
+        "date": 1687554291435,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1770,
+            "range": "± 151",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59397,
+            "range": "± 2535",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 26104436,
+            "range": "± 1114559",
             "unit": "ns/iter"
           }
         ]
