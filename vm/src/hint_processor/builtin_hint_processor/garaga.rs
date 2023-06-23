@@ -31,6 +31,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessor;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use felt::Felt252;
     use num_traits::{Bounded, One, Zero};

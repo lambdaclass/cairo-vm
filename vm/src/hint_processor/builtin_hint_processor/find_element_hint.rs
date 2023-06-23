@@ -131,6 +131,7 @@ mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
     use crate::types::relocatable::Relocatable;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{

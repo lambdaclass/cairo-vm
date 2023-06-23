@@ -2,14 +2,26 @@
 
 #### Upcoming Changes
 
-* BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
-    * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
+* Add path to cairo-vm README.md [#1276](https://github.com/lambdaclass/cairo-rs/pull/1276)
 
-    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215) [#1232](https://github.com/lambdaclass/cairo-rs/pull/1232) 
+* fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
 
-    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-rs/pull/1238)
+* fix: CLI error message when using --help [#1270](https://github.com/lambdaclass/cairo-rs/pull/1270)
+
+#### [0.6.0] - 2023-6-18
+
+* fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)
 
 * fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
+
+* BREAKING: Change `RunResources` usage:
+    * Modify field type `RunResources.n_steps: Option<usize>,`
+    
+    * Public Api Changes:
+        *  CairoRunner::run_until_pc: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        *  CairoRunner::run_from_entrypoint: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        * VirtualMachine::Step: Add `&mut RunResources` as input
+        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input 
 
 * perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
   BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
@@ -19,6 +31,13 @@
   BREAKING:
   * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
   * Public `CairoRunner::get_reference_list` has been removed
+
+* BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
+    * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
+
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215) [#1232](https://github.com/lambdaclass/cairo-rs/pull/1232) 
+
+    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-rs/pull/1238)
 
 #### [0.5.2] - 2023-6-12
 

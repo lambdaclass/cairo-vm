@@ -1,10 +1,11 @@
 [package]
 name = "cairo-vm"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Blazing fast Cairo interpreter"
 repository = "https://github.com/lambdaclass/cairo-rs/"
+readme= "../README.md"
 
 [features]
 default = ["std", "with_mimalloc"]
