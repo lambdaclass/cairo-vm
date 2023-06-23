@@ -1042,6 +1042,10 @@ impl VirtualMachine {
             .map(|builtin| (builtin.name(), builtin.get_memory_segment_addresses()))
             .collect()
     }
+
+    pub fn get_trace(&self) -> &Option<Vec<TraceEntry>> {
+        &self.trace
+    }
 }
 
 pub struct VirtualMachineBuilder {

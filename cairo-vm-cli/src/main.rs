@@ -124,7 +124,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         return Err(Error::Cli(error));
     }
 
-    let trace_enabled = args.trace_file.is_some();
+    let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
@@ -179,6 +179,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             "dynamic" => Some(cairo_runner.get_layout()),
             _ => None,
         };
+
         write_air_public_input(
             &air_public_input,
             cairo_runner.relocated_memory.clone(),
@@ -187,7 +188,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             vm.get_public_memory_addresses()
                 .map_err(VirtualMachineError::Memory)?,
             vm.get_memory_segment_addresses(),
-            vm.get_relocated_trace().unwrap(),
+            vm.get_trace()
+                .as_ref()
+                .ok_or(VirtualMachineError::TracerError(
+                    TraceError::TraceNotEnabled,
+                ))?,
             rc_min,
             rc_max,
         );

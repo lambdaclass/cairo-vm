@@ -48,7 +48,7 @@ pub fn write_air_public_input(
         })
         .collect();
 
-    let initial_pc = trace[0].pc;
+    let initial_pc = trace[0].pc; // FIXME: what is this for?
 
     let public_input = PublicInput {
         layout,
