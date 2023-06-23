@@ -5,6 +5,9 @@
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
   * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
   
+* fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
+
+
 #### [0.6.0] - 2023-6-18
 
 * fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)

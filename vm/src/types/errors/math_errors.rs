@@ -37,7 +37,9 @@ pub enum MathError {
     #[error("Cant convert felt: {0} to Relocatable")]
     Felt252ToRelocatable(Box<Felt252>),
     #[error("Operation failed: {} - {}, offsets cant be negative", (*.0).0, (*.0).1)]
-    RelocatableSubNegOffset(Box<(Relocatable, usize)>),
+    RelocatableSubFelt252NegOffset(Box<(Relocatable, Felt252)>),
+    #[error("Operation failed: {} - {}, offsets cant be negative", (*.0).0, (*.0).1)]
+    RelocatableSubUsizeNegOffset(Box<(Relocatable, usize)>),
     #[error("Operation failed: {} + {}, maximum offset value exceeded", (*.0).0, (*.0).1)]
     RelocatableAddFelt252OffsetExceeded(Box<(Relocatable, Felt252)>),
     #[error("Operation failed: {} + {}, maximum offset value exceeded", (*.0).0, (*.0).1)]
