@@ -200,7 +200,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
-    run(std::env::args())
+    match run(std::env::args()) {
+        Ok(()) => Ok(()),
+        Err(Error::Cli(_)) => {
+            Ok(()) // Exit with code 0 to avoid printing CLI error message
+        }
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(test)]
@@ -296,7 +302,7 @@ mod tests {
     //to fool Codecov.
     #[test]
     fn test_main() {
-        assert!(main().is_err());
+        assert!(main().is_ok());
     }
 
     #[test]
