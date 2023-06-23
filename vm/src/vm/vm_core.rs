@@ -42,14 +42,14 @@ pub struct Operands {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct OperandsAddresses {
+struct OperandsAddresses {
     dst_addr: Relocatable,
     op0_addr: Relocatable,
     op1_addr: Relocatable,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
-pub struct DeducedOperands(u8);
+struct DeducedOperands(u8);
 
 impl DeducedOperands {
     fn set_dst(&mut self, value: bool) {
