@@ -4,6 +4,8 @@
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
 
+* Add path to cairo-vm README.md [#1276](https://github.com/lambdaclass/cairo-rs/pull/1276)
+
 * fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
 
 * fix: CLI error message when using --help [#1270](https://github.com/lambdaclass/cairo-rs/pull/1270)
