@@ -21,8 +21,8 @@ pub struct PublicMemoryEntry {
 pub struct PublicInput<'a> {
     layout: &'a str,
     layout_params: Option<&'a CairoLayout>,
-    rc_min: isize,
-    rc_max: isize,
+    rc_min: Option<isize>,
+    rc_max: Option<isize>,
     n_steps: usize,
     memory_segments: HashMap<&'a str, (usize, Option<usize>)>,
     public_memory: Vec<PublicMemoryEntry>,
@@ -36,8 +36,7 @@ pub fn write_air_public_input(
     public_memory_addresses: Vec<(usize, &usize)>,
     memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
     trace: &Vec<TraceEntry>,
-    rc_min: isize,
-    rc_max: isize,
+    rc_limits: Option<(isize, isize)>,
 ) {
     let public_memory = public_memory_addresses
         .into_iter()
@@ -49,6 +48,12 @@ pub fn write_air_public_input(
         .collect();
 
     let initial_pc = trace[0].pc; // FIXME: what is this for?
+
+    let (rc_min, rc_max) = if let Some(rc_limits) = rc_limits {
+        (Some(rc_limits.0), Some(rc_limits.1))
+    } else {
+        (None, None)
+    };
 
     let public_input = PublicInput {
         layout,

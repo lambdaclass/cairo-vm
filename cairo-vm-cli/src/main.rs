@@ -173,8 +173,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(air_public_input) = args.air_public_input {
-        let (rc_min, rc_max) = cairo_runner.get_perm_range_check_limits(&vm).unwrap();
-        // FIXME: remove unwrap
         let dyn_layout = match args.layout.as_str() {
             "dynamic" => Some(cairo_runner.get_layout()),
             _ => None,
@@ -193,8 +191,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
                 .ok_or(VirtualMachineError::TracerError(
                     TraceError::TraceNotEnabled,
                 ))?,
-            rc_min,
-            rc_max,
+            cairo_runner.get_perm_range_check_limits(&vm),
         );
     }
 
