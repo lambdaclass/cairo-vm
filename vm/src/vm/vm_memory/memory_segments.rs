@@ -222,9 +222,12 @@ impl MemorySegmentManager {
         let len = self.num_segments().min(self.public_memory_offsets.len());
         let mut addresses = Vec::with_capacity(len);
 
-        for segment_index in 0..len {
-            let offsets = &self.public_memory_offsets[&segment_index];
-            let segment_start = segment_offsets[segment_index];
+        for (offsets, segment_start) in self
+            .public_memory_offsets
+            .values()
+            .zip(segment_offsets.iter())
+            .take(len)
+        {
             for (offset, page_id) in offsets.iter() {
                 addresses.push((segment_start + offset, page_id));
             }
