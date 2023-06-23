@@ -182,9 +182,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             cairo_runner.relocated_memory.clone(),
             &args.layout,
             dyn_layout,
-            vm.get_public_memory_addresses()
-                .map_err(VirtualMachineError::Memory)?,
-            vm.get_memory_segment_addresses(),
+            vm.get_public_memory_addresses()?,
+            vm.get_memory_segment_addresses()?,
             vm.get_trace()
                 .as_ref()
                 .ok_or(VirtualMachineError::TracerError(

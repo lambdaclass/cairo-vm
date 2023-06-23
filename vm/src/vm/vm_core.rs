@@ -1028,19 +1028,40 @@ impl VirtualMachine {
     }
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
-    pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, &usize)>, MemoryError> {
+    pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, &usize)>, VirtualMachineError> {
         if let Some(relocation_table) = &self.relocation_table {
             Ok(self.segments.get_public_memory_addresses(relocation_table))
         } else {
-            Err(MemoryError::UnrelocatedMemory)
+            Err(MemoryError::UnrelocatedMemory.into())
         }
     }
 
-    pub fn get_memory_segment_addresses(&self) -> HashMap<&'static str, (usize, Option<usize>)> {
-        self.builtin_runners
+    pub fn get_memory_segment_addresses(
+        &self,
+    ) -> Result<HashMap<&'static str, (usize, Option<usize>)>, VirtualMachineError> {
+        let relocation_table = self
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, Option<usize>)| -> (usize, Option<usize>) {
+            let (index, stop_ptr_offset) = segment;
+            (
+                relocation_table[index],
+                stop_ptr_offset.map(|s| relocation_table[index] + s),
+            )
+        };
+
+        Ok(self
+            .builtin_runners
             .iter()
-            .map(|builtin| (builtin.name(), builtin.get_memory_segment_addresses()))
-            .collect()
+            .map(|builtin| {
+                (
+                    builtin.name(),
+                    relocate(builtin.get_memory_segment_addresses()),
+                )
+            })
+            .collect())
     }
 
     pub fn get_trace(&self) -> &Option<Vec<TraceEntry>> {
