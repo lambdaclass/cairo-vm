@@ -179,10 +179,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         };
 
         let public_input = PublicInput::new(
-            cairo_runner.relocated_memory.clone(),
+            &cairo_runner.relocated_memory,
             &args.layout,
             dyn_layout,
-            vm.get_public_memory_addresses()?,
+            &vm.get_public_memory_addresses()?,
             vm.get_memory_segment_addresses()?,
             vm.get_relocated_trace()?,
             cairo_runner.get_perm_range_check_limits(&vm),

@@ -30,20 +30,20 @@ pub struct PublicInput<'a> {
 
 impl<'a> PublicInput<'a> {
     pub fn new(
-        memory: Vec<Option<Felt252>>,
+        memory: &[Option<Felt252>],
         layout: &'a str,
         dyn_layout_params: Option<&'a CairoLayout>,
-        public_memory_addresses: Vec<(usize, &usize)>,
+        public_memory_addresses: &[(usize, &usize)],
         memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
-        trace: &Vec<TraceEntry>,
+        trace: &[TraceEntry],
         rc_limits: Option<(isize, isize)>,
     ) -> Self {
         let public_memory = public_memory_addresses
             .into_iter()
             .map(|(address, page)| PublicMemoryEntry {
-                address,
-                page: *page,
-                value: memory[address].clone(),
+                address: *address,
+                page: **page,
+                value: memory[*address].clone(),
             })
             .collect();
 
