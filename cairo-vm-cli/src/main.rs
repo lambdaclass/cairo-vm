@@ -1,7 +1,7 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use bincode::enc::write::Writer;
-use cairo_vm::air_public_input::PublicInput;
+use cairo_vm::air_public_input::{PublicInput, PublicInputError};
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
@@ -71,6 +71,8 @@ enum Error {
     VirtualMachine(#[from] VirtualMachineError),
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error(transparent)]
+    PublicInput(#[from] PublicInputError),
 }
 
 struct FileWriter {
@@ -186,7 +188,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             vm.get_memory_segment_addresses()?,
             vm.get_relocated_trace()?,
             cairo_runner.get_perm_range_check_limits(&vm),
-        );
+        )?;
 
         public_input.write(&file_path);
     }

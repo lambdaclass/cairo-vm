@@ -2,13 +2,16 @@
 use std::collections::HashMap;
 
 use felt::Felt252;
+use serde::Serialize;
+use thiserror::Error;
 
 use crate::{
     types::layout::CairoLayout,
-    vm::{trace::trace_entry::TraceEntry, vm_memory::memory_segments},
+    vm::{
+        errors::trace_errors::TraceError, trace::trace_entry::TraceEntry,
+        vm_memory::memory_segments,
+    },
 };
-
-use serde::Serialize;
 
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
@@ -37,7 +40,7 @@ impl<'a> PublicInput<'a> {
         memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
         trace: &[TraceEntry],
         rc_limits: Option<(isize, isize)>,
-    ) -> Self {
+    ) -> Result<Self, PublicInputError> {
         let public_memory = public_memory_addresses
             .into_iter()
             .map(|(address, page)| PublicMemoryEntry {
@@ -53,7 +56,10 @@ impl<'a> PublicInput<'a> {
             (None, None)
         };
 
-        PublicInput {
+        let trace_first = trace.first().ok_or(PublicInputError::EmptyTrace)?;
+        let trace_last = trace.last().ok_or(PublicInputError::EmptyTrace)?;
+
+        Ok(PublicInput {
             layout,
             layout_params: dyn_layout_params,
             rc_min,
@@ -61,18 +67,21 @@ impl<'a> PublicInput<'a> {
             n_steps: trace.len(),
             memory_segments: {
                 let mut memory_segment_addresses = memory_segment_addresses.clone();
-                memory_segment_addresses
-                    .insert("program", (trace[0].pc, Some(trace[trace.len() - 1].pc)));
-                memory_segment_addresses
-                    .insert("execution", (trace[0].ap, Some(trace[trace.len() - 1].ap)));
-
+                memory_segment_addresses.insert("program", (trace_first.pc, Some(trace_last.pc)));
+                memory_segment_addresses.insert("execution", (trace_first.ap, Some(trace_last.ap)));
                 memory_segment_addresses
             },
             public_memory,
-        }
+        })
     }
 
     pub fn write(&self, file_path: &str) {
         std::fs::write(file_path, serde_json::to_string_pretty(&self).unwrap());
     }
+}
+
+#[derive(Debug, Error)]
+pub enum PublicInputError {
+    #[error("The trace slice provided is empty")]
+    EmptyTrace,
 }
