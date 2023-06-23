@@ -958,11 +958,13 @@ impl VirtualMachine {
         self.segments.get_segment_size(index)
     }
 
+    /// Adds a new temporary segment to the memory and returns its starting location as a Relocatable value.
+    /// temporary segments have a negative index and are not present in the relocated memory unless a relocation rule is added for that segment
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.segments.add_temporary_segment()
     }
 
-    /// Add a new relocation rule.
+    /// Adds a new relocation rule.
     ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
@@ -976,6 +978,9 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
+    /// Converts args to Cairo-friendly ones.
+    /// Currently accepts only `MaybeRelocatable`, `Vec<MaybeRelocatable` and `Vec<Relocatable>`, other inputs will fail
+    /// If an argument is a `Vec`, it is written into a new memory segment and it's base is returned
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.gen_arg(arg)
     }
@@ -1017,7 +1022,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
+    /// Relocates the VM's trace, turning relocatable registers to numbered ones
     pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
         if let Some(ref mut trace) = self.trace {
             if self.trace_relocated {
@@ -1037,6 +1042,8 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Returns the relocated trace
+    /// Fails if the trace has not been relocated
     pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
         if self.trace_relocated {
             self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)
