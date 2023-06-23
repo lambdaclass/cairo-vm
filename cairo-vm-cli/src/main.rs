@@ -190,7 +190,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             cairo_runner.get_perm_range_check_limits(&vm),
         )?;
 
-        public_input.write(&file_path);
+        public_input.write(&file_path)?;
     }
 
     Ok(())

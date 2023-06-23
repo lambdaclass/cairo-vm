@@ -68,8 +68,9 @@ impl<'a> PublicInput<'a> {
         })
     }
 
-    pub fn write(&self, file_path: &str) {
-        std::fs::write(file_path, serde_json::to_string_pretty(&self).unwrap());
+    pub fn write(&self, file_path: &str) -> Result<(), PublicInputError> {
+        let _ = std::fs::write(file_path, serde_json::to_string_pretty(&self)?)?;
+        Ok(())
     }
 }
 
@@ -77,4 +78,8 @@ impl<'a> PublicInput<'a> {
 pub enum PublicInputError {
     #[error("The trace slice provided is empty")]
     EmptyTrace,
+    #[error("Failed to interact with the file system")]
+    IO(#[from] std::io::Error),
+    #[error("Failed to (de)serialize data")]
+    Serde(#[from] serde_json::Error),
 }
