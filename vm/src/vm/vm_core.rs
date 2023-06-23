@@ -34,7 +34,7 @@ use super::runners::cairo_runner::RunResources;
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct Operands {
+struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
@@ -42,14 +42,14 @@ pub struct Operands {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct OperandsAddresses {
+struct OperandsAddresses {
     dst_addr: Relocatable,
     op0_addr: Relocatable,
     op1_addr: Relocatable,
 }
 
 #[derive(Default, Debug, Clone, Copy)]
-pub struct DeducedOperands(u8);
+struct DeducedOperands(u8);
 
 impl DeducedOperands {
     fn set_dst(&mut self, value: bool) {
@@ -118,6 +118,7 @@ impl VirtualMachine {
         }
     }
 
+    #[doc(hidden)]
     pub fn compute_segments_effective_sizes(&mut self) {
         self.segments.compute_effective_sizes();
     }
@@ -443,6 +444,7 @@ impl VirtualMachine {
         decode_instruction(instruction)
     }
 
+    #[doc(hidden)]
     pub fn step_hint(
         &mut self,
         hint_executor: &mut dyn HintProcessor,
@@ -461,6 +463,7 @@ impl VirtualMachine {
         Ok(())
     }
 
+    #[doc(hidden)]
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let pc = self.run_context.pc.offset;
 
@@ -482,6 +485,7 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Executes the hints at the current pc + the next cairo instruction
     pub fn step(
         &mut self,
         hint_executor: &mut dyn HintProcessor,
@@ -578,9 +582,9 @@ impl VirtualMachine {
         Ok(dst)
     }
 
-    /// Compute operands and result, trying to deduce them if normal memory access returns a None
-    /// value.
-    pub fn compute_operands(
+    //Compute operands and result, trying to deduce them if normal memory access returns a None
+    // value.
+    fn compute_operands(
         &self,
         instruction: &Instruction,
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
@@ -669,8 +673,8 @@ impl VirtualMachine {
         Ok(())
     }
 
-    //Makes sure that the value at the given address is consistent with the auto deduction rules.
-    pub fn verify_auto_deductions_for_addr(
+    // Makes sure that the value at the given address is consistent with the auto deduction rules.
+    pub(crate) fn verify_auto_deductions_for_addr(
         &self,
         addr: Relocatable,
         builtin: &BuiltinRunner,
@@ -702,6 +706,8 @@ impl VirtualMachine {
         }
     }
 
+    /// Marks the memory addresses from base to base + len as accessed
+    /// Accessed addresses are accounted for when calculating memory holes
     pub fn mark_address_range_as_accessed(
         &mut self,
         base: Relocatable,
@@ -773,34 +779,37 @@ impl VirtualMachine {
         entries
     }
 
-    ///Adds a new segment and to the memory and returns its starting location as a Relocatable value.
+    /// Adds a new segment to the memory and returns its starting location as a Relocatable value.
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.segments.add()
     }
 
+    /// Returns the current value of the allocation pointer
     pub fn get_ap(&self) -> Relocatable {
         self.run_context.get_ap()
     }
 
+    /// Returns the current value of the frame pointer
     pub fn get_fp(&self) -> Relocatable {
         self.run_context.get_fp()
     }
 
+    /// Returns the current value of the program counter
     pub fn get_pc(&self) -> Relocatable {
         self.run_context.get_pc()
     }
 
-    ///Gets the integer value corresponding to the Relocatable address
+    /// Gets the felt value stored in the memory address indicated by `key`
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
-    ///Gets the relocatable value corresponding to the Relocatable address
+    /// Gets the relocatable value stored in the memory address indicated by `key`
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
         self.segments.memory.get_relocatable(key)
     }
 
-    ///Gets a MaybeRelocatable value from memory indicated by a generic address
+    /// Gets the MaybeRelocatable value from memory indicated by a generic address
     pub fn get_maybe<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<MaybeRelocatable>
     where
         Relocatable: TryFrom<&'a K>,
@@ -808,17 +817,17 @@ impl VirtualMachine {
         self.segments.memory.get(key).map(|x| x.into_owned())
     }
 
-    /// Returns a reference to the vector with all builtins present in the virtual machine
+    /// Returns a reference to the vector with all builtin runners present in the VM
     pub fn get_builtin_runners(&self) -> &Vec<BuiltinRunner> {
         &self.builtin_runners
     }
 
-    /// Returns a mutable reference to the vector with all builtins present in the virtual machine
+    /// Returns a mutable reference to the vector with all builtins present in the VM
     pub fn get_builtin_runners_as_mut(&mut self) -> &mut Vec<BuiltinRunner> {
         &mut self.builtin_runners
     }
 
-    ///Inserts a value into a memory address given by a Relocatable value
+    /// Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
         key: Relocatable,
@@ -827,7 +836,7 @@ impl VirtualMachine {
         self.segments.memory.insert_value(key, val)
     }
 
-    ///Writes data into the memory from address ptr and returns the first address after the data.
+    /// Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
         ptr: Relocatable,
@@ -848,10 +857,12 @@ impl VirtualMachine {
         self.segments.write_arg(ptr, arg)
     }
 
+    /// Compares the memory at two ranges indicated by their base and length
     pub fn memcmp(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> (Ordering, usize) {
         self.segments.memory.memcmp(lhs, rhs, len)
     }
 
+    /// Checks if the memory at two ranges indicated by their base and length is equal
     pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
         self.segments.memory.mem_eq(lhs, rhs, len)
     }
@@ -886,6 +897,8 @@ impl VirtualMachine {
         self.segments.memory.get_integer_range(addr, size)
     }
 
+    #[doc(hidden)]
+    // Returns a reference to the range_check builtin if present
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
         for builtin in &self.builtin_runners {
             if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
@@ -895,6 +908,8 @@ impl VirtualMachine {
         Err(VirtualMachineError::NoRangeCheckBuiltin)
     }
 
+    #[doc(hidden)]
+    // Returns a reference to the signature builtin if present
     pub fn get_signature_builtin(
         &mut self,
     ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
@@ -906,6 +921,8 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
+
+    #[doc(hidden)]
     pub fn disable_trace(&mut self) {
         self.trace = None
     }
@@ -930,19 +947,24 @@ impl VirtualMachine {
         self.run_context.set_pc(pc)
     }
 
+    /// Returns the size of a memory segment indicated by its index
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segments.get_segment_used_size(index)
     }
 
+    /// Returns the finalized size of a given segment. If the segment has not been finalized,
+    /// returns its used size.
     pub fn get_segment_size(&self, index: usize) -> Option<usize> {
         self.segments.get_segment_size(index)
     }
 
+    /// Adds a new temporary segment to the memory and returns its starting location as a Relocatable value.
+    /// temporary segments have a negative index and are not present in the relocated memory unless a relocation rule is added for that segment
     pub fn add_temporary_segment(&mut self) -> Relocatable {
         self.segments.add_temporary_segment()
     }
 
-    /// Add a new relocation rule.
+    /// Adds a new relocation rule.
     ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
@@ -956,6 +978,9 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
+    /// Converts args to Cairo-friendly ones.
+    /// Currently accepts only `MaybeRelocatable`, `Vec<MaybeRelocatable` and `Vec<Relocatable>`, other inputs will fail
+    /// If an argument is a `Vec`, it is written into a new memory segment and it's base is returned
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.gen_arg(arg)
     }
@@ -997,7 +1022,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
+    /// Relocates the VM's trace, turning relocatable registers to numbered ones
     pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
         if let Some(ref mut trace) = self.trace {
             if self.trace_relocated {
@@ -1017,6 +1042,8 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Returns the relocated trace
+    /// Fails if the trace has not been relocated
     pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
         if self.trace_relocated {
             self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)

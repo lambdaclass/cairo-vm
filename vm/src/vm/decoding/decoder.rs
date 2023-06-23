@@ -9,7 +9,7 @@ use crate::{
 // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
 /// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
+pub(crate) fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
     const HIGH_BIT: u64 = 1u64 << 63;
     const DST_REG_MASK: u64 = 0x0001;
     const DST_REG_OFF: u64 = 0;

@@ -112,6 +112,9 @@ impl MemorySegmentManager {
         Ok(relocation_table)
     }
 
+    /// Converts args to Cairo-friendly ones.
+    /// Currently accepts only `MaybeRelocatable`, `Vec<MaybeRelocatable` and `Vec<Relocatable>`, other inputs will fail
+    /// If an argument is a `Vec`, it is written into a new memory segment and it's base is returned
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         if let Some(value) = arg.downcast_ref::<MaybeRelocatable>() {
             Ok(value.clone())

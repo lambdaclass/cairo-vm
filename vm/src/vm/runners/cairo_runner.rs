@@ -74,7 +74,7 @@ impl From<Vec<MaybeRelocatable>> for CairoArg {
 //   RunResources
 // ================
 
-/// Maintains the resources of a cairo run. Can be used across multiple runners.
+/// Keeps track of the resources used by cairo run. Can be used across multiple runners.
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct RunResources {
     n_steps: Option<usize>,
@@ -87,6 +87,8 @@ impl RunResources {
         }
     }
 
+    /// Returns true if the resources have been consumed
+    /// no more steps can be run if the resources are consumed
     pub fn consumed(&self) -> bool {
         if self.n_steps == Some(0) {
             return true;
@@ -94,12 +96,14 @@ impl RunResources {
         false
     }
 
+    /// Consumes a single step
     pub fn consume_step(&mut self) {
         if let Some(n_steps) = self.n_steps {
             self.n_steps = Some(n_steps.saturating_sub(1));
         }
     }
 
+    /// Returns the number of remaining steps
     pub fn get_n_steps(&self) -> Option<usize> {
         self.n_steps
     }
@@ -167,6 +171,7 @@ impl CairoRunner {
         })
     }
 
+    /// Performs the full initialization step, including builtins, segments and vm
     pub fn initialize(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, RunnerError> {
         self.initialize_builtins(vm)?;
         self.initialize_segments(vm, None);
@@ -175,6 +180,7 @@ impl CairoRunner {
         Ok(end)
     }
 
+    /// Initializes the builtins according to the cairo layout and program builtins
     pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -335,7 +341,7 @@ impl CairoRunner {
         Ok(())
     }
 
-    ///Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
+    /// Creates the necessary segments for the program, execution, and each builtin on the MemorySegmentManager and stores the first adress of each of this new segments as each owner's base
     pub fn initialize_segments(
         &mut self,
         vm: &mut VirtualMachine,
@@ -385,6 +391,7 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Initializes the given function entrypoint with the given args and returns the end pc
     pub fn initialize_function_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
@@ -472,6 +479,7 @@ impl CairoRunner {
         }
     }
 
+    // Initializes the vm's run_context and validation rules, validates the existing memory
     pub fn initialize_vm(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
         vm.run_context.pc = *self.initial_pc.as_ref().ok_or(RunnerError::NoPC)?;
         vm.run_context.ap = self.initial_ap.as_ref().ok_or(RunnerError::NoAP)?.offset;

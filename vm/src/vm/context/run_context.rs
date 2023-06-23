@@ -16,17 +16,20 @@ pub struct RunContext {
 }
 
 impl RunContext {
+    /// Returns the current value of the allocation pointer
     pub fn get_ap(&self) -> Relocatable {
         Relocatable::from((1, self.ap))
     }
+    /// Returns the current value of the frame pointer
     pub fn get_fp(&self) -> Relocatable {
         Relocatable::from((1, self.fp))
     }
+    /// Returns the current value of the program counter
     pub fn get_pc(&self) -> Relocatable {
         self.pc
     }
 
-    pub fn compute_dst_addr(
+    pub(crate) fn compute_dst_addr(
         &self,
         instruction: &Instruction,
     ) -> Result<Relocatable, VirtualMachineError> {
@@ -41,7 +44,7 @@ impl RunContext {
         }
     }
 
-    pub fn compute_op0_addr(
+    pub(crate) fn compute_op0_addr(
         &self,
         instruction: &Instruction,
     ) -> Result<Relocatable, VirtualMachineError> {
@@ -56,7 +59,7 @@ impl RunContext {
         }
     }
 
-    pub fn compute_op1_addr(
+    pub(crate) fn compute_op1_addr(
         &self,
         instruction: &Instruction,
         op0: Option<&MaybeRelocatable>,

@@ -1,5 +1,5 @@
 pub mod context;
-pub mod decoding;
+pub(crate) mod decoding;
 pub mod errors;
 pub mod runners;
 pub mod security;
