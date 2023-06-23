@@ -340,7 +340,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Math(MathError::RelocatableSubNegOffset(bx)))
+            Err(HintError::Math(MathError::RelocatableSubUsizeNegOffset(bx)))
             if *bx == (relocatable!(2,5), 26)
         );
     }
