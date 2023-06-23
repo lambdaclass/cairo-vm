@@ -34,7 +34,7 @@ use super::runners::cairo_runner::RunResources;
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct Operands {
+struct Operands {
     dst: MaybeRelocatable,
     res: Option<MaybeRelocatable>,
     op0: MaybeRelocatable,
