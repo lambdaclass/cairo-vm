@@ -8,7 +8,6 @@ use libafl::{
     feedback_and, feedback_or,
     feedbacks::{CrashFeedback, MaxMapFeedback, NewHashFeedback, TimeFeedback, TimeoutFeedback},
     fuzzer::{Fuzzer, StdFuzzer},
-    generators::RandPrintablesGenerator,
     inputs::{BytesInput, HasTargetBytes},
     monitors::SimpleMonitor,
     mutators::scheduled::{havoc_mutations, StdScheduledMutator},
@@ -107,15 +106,12 @@ pub fn main() {
             &mut state,
             &mut mgr,
         ).expect("Failed to create the Executor"),
-        Duration::new(60, 0)
+        Duration::new(10, 0)
     );
 
-    // Generator of printable bytearrays of max size 32
-    let mut generator = RandPrintablesGenerator::new(32);
-
-    // Generate 8 initial inputs
+    // Read from corpus/
     state
-        .generate_initial_inputs(&mut fuzzer, &mut executor, &mut generator, &mut mgr, 8)
+        .load_initial_inputs(&mut fuzzer, &mut executor, &mut mgr, &[PathBuf::from("./corpus")])
         .expect("Failed to generate the initial corpus");
 
     // Setup a mutational stage with a basic bytes mutator
