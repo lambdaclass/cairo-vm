@@ -1,44 +1,22 @@
 [workspace]
-members = [".", "cairo-vm-cli", "felt", "hint_accountant", "./deps/parse-hyperlinks"]
-
-[package]
-name = "cairo-vm"
-version = "0.5.2"
-edition = "2021"
-license = "Apache-2.0"
-description = "Blazing fast Cairo interpreter"
-repository = "https://github.com/lambdaclass/cairo-rs/"
-
-[features]
-default = ["std", "with_mimalloc"]
-with_mimalloc = ["mimalloc"]
-std = [
-    "serde_json/std",
-    "serde_bytes/std",
-    "bincode/std",
-    "anyhow/std",
-    "starknet-crypto/std",
-    "parse-hyperlinks/std",
-    "felt/std",
+members = [
+    "cairo-vm-cli",
+    "felt",
+    "vm",
+    "hint_accountant",
+    "./deps/parse-hyperlinks",
 ]
-cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
+exclude = ["ensure-no_std"]
 
-
-# Note that these features are not retro-compatible with the cairo Python VM.
-test_utils = [
-    "skip_next_instruction_hint",
-    "hooks"
-] # This feature will reference every test-oriented feature
-skip_next_instruction_hint = []
-hooks = []
-
-[dependencies]
-mimalloc = { version = "0.1.29", default-features = false, optional = true }
-num-bigint = { version = "0.4", features = ["serde", "rand"], default-features = false }
+[workspace.dependencies]
+mimalloc = { version = "0.1.29", default-features = false }
+num-bigint = { version = "0.4", default-features = false, features = [
+    "serde",
+    "rand",
+] }
 rand = { version = "0.8.3", features = ["small_rng"], default-features = false }
 num-traits = { version = "0.2", default-features = false }
 num-integer = { version = "0.1.45", default-features = false }
-num-prime = {version = "0.4.3", features = ["big-int"], default-features = false }
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_bytes = { version = "0.11.9", default-features = false, features = [
     "alloc",
@@ -67,51 +45,28 @@ keccak = { version = "0.1.2", default-features = false }
 hashbrown = { version = "0.13.2", features = ["serde"] }
 anyhow = { version = "1.0.69", default-features = false }
 thiserror = { version = "1.0.32", default-features = false }
-thiserror-no-std = "2.0.2"
+thiserror-no-std = { version = "2.0.2", default-features = false }
 
 # This crate has only one function `take_until_unbalanced` that is
 # very useful for our parsing purposes:
 # https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 # There is a proposal for extending nom::delimited to use this function:
 # https://github.com/Geal/nom/issues/1253
-parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.28.0", default-features = false, features = [
+parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.29.0", default-features = false, features = [
     "alloc",
 ] }
-felt = { package = "cairo-felt", path = "./felt", version = "0.5.2", default-features = false, features = [
+felt = { package = "cairo-felt", path = "./felt", version = "0.6.0", default-features = false, features = [
     "alloc",
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = {version = "1.1.0", optional = true}
-cairo-lang-casm = {version = "1.1.0", optional = true }
+cairo-lang-starknet = { version = "1.1.0", default-features = false }
+cairo-lang-casm = { version = "1.1.0", default-features = false }
 
 # TODO: check these dependencies for wasm compatibility
-ark-ff = {version = "0.4.0-alpha.7", default-features = false, optional = true}
-ark-std = {version = "0.3.0", default-features = false, optional = true}
-
-[dev-dependencies]
-assert_matches = "1.5.0"
-rstest = { version = "0.17.0", default-features = false }
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-iai-callgrind = "0.3.1"
-rusty-hook = "0.11"
-criterion = { version = "0.3", features = ["html_reports"] }
-proptest = "1.0.0"
-
-[[bench]]
-path = "bench/iai_benchmark.rs"
-name = "iai_benchmark"
-harness = false
-
-[[bench]]
-path = "bench/criterion_benchmark.rs"
-name = "criterion_benchmark"
-harness = false
+ark-ff = { version = "0.4.0-alpha.7", default-features = false }
+ark-std = { version = "0.3.0", default-features = false }
 
 [profile.release]
 lto = "fat"

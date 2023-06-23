@@ -1,0 +1,99 @@
+[package]
+name = "cairo-vm"
+version = "0.6.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Blazing fast Cairo interpreter"
+repository = "https://github.com/lambdaclass/cairo-rs/"
+
+[features]
+default = ["std", "with_mimalloc"]
+with_mimalloc = ["mimalloc"]
+std = [
+    "serde_json/std",
+    "serde_bytes/std",
+    "bincode/std",
+    "anyhow/std",
+    "starknet-crypto/std",
+    "parse-hyperlinks/std",
+    "felt/std",
+    "num-prime",
+]
+cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
+
+
+# Note that these features are not retro-compatible with the cairo Python VM.
+test_utils = [
+    "skip_next_instruction_hint",
+    "hooks",
+] # This feature will reference every test-oriented feature
+skip_next_instruction_hint = []
+hooks = []
+
+[dependencies]
+mimalloc = { workspace = true, optional = true }
+num-bigint = { workspace = true }
+rand = { workspace = true }
+num-traits = { workspace = true }
+num-integer = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+bincode = { workspace = true }
+starknet-crypto = { workspace = true }
+sha3 = { workspace = true }
+rand_core = { workspace = true }
+lazy_static = { workspace = true }
+nom = { workspace = true }
+sha2 = { workspace = true }
+generic-array = { workspace = true }
+keccak = { workspace = true }
+hashbrown = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+thiserror-no-std = { workspace = true }
+
+# only for std
+num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
+
+# This crate has only one function `take_until_unbalanced` that is
+# very useful for our parsing purposes:
+# https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
+# There is a proposal for extending nom::delimited to use this function:
+# https://github.com/Geal/nom/issues/1253
+parse-hyperlinks = { workspace = true }
+felt = { workspace = true }
+bitvec = { workspace = true }
+
+# Dependencies for cairo-1-hints feature
+cairo-lang-starknet = { workspace = true, optional = true }
+cairo-lang-casm = { workspace = true, optional = true }
+
+# TODO: check these dependencies for wasm compatibility
+ark-ff = { workspace = true, optional = true }
+ark-std = { workspace = true, optional = true }
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+rstest = { version = "0.17.0", default-features = false }
+num-prime = { version = "0.4.3", features = ["big-int"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.34"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+iai-callgrind = "0.3.1"
+rusty-hook = "0.11"
+criterion = { version = "0.3", features = ["html_reports"] }
+proptest = "1.0.0"
+
+[[bench]]
+path = "../bench/iai_benchmark.rs"
+name = "iai_benchmark"
+harness = false
+
+[[bench]]
+path = "../bench/criterion_benchmark.rs"
+name = "criterion_benchmark"
+harness = false

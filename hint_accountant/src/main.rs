@@ -7,7 +7,10 @@ use cairo_vm::{
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
-    vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
+    vm::{
+        errors::hint_errors::HintError, runners::cairo_runner::RunResources,
+        vm_core::VirtualMachine,
+    },
     with_std::collections::{HashMap, HashSet},
 };
 use serde::Deserialize;
@@ -50,7 +53,7 @@ fn run() {
     let (ap_tracking_data, reference_ids, references, mut exec_scopes, constants) = (
         ApTracking::default(),
         HashMap::new(),
-        HashMap::new(),
+        Vec::new(),
         ExecutionScopes::new(),
         HashMap::new(),
     );
@@ -67,7 +70,13 @@ fn run() {
                 .compile_hint(h, &ap_tracking_data, &reference_ids, &references)
                 .expect("this implementation is infallible");
             matches!(
-                hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants),
+                hint_executor.execute_hint(
+                    &mut vm,
+                    &mut exec_scopes,
+                    &hint_data,
+                    &constants,
+                    &mut RunResources::default()
+                ),
                 Err(HintError::UnknownHint(_)),
             )
         })
