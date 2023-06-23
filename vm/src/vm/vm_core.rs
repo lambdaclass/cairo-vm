@@ -1063,10 +1063,6 @@ impl VirtualMachine {
             })
             .collect())
     }
-
-    pub fn get_trace(&self) -> &Option<Vec<TraceEntry>> {
-        &self.trace
-    }
 }
 
 pub struct VirtualMachineBuilder {
