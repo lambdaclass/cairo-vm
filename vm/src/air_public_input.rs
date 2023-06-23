@@ -1,17 +1,10 @@
-#![allow(unused)]
 use std::collections::HashMap;
 
 use felt::Felt252;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::{
-    types::layout::CairoLayout,
-    vm::{
-        errors::trace_errors::TraceError, trace::trace_entry::TraceEntry,
-        vm_memory::memory_segments,
-    },
-};
+use crate::{types::layout::CairoLayout, vm::trace::trace_entry::TraceEntry};
 
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
