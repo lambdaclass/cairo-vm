@@ -1044,24 +1044,26 @@ impl VirtualMachine {
             .as_ref()
             .ok_or(MemoryError::UnrelocatedMemory)?;
 
-        let relocate = |segment: (usize, Option<usize>)| -> (usize, Option<usize>) {
+        let relocate = |segment: (usize, Option<usize>)| -> Result<(usize, Option<usize>), VirtualMachineError> {
             let (index, stop_ptr_offset) = segment;
-            (
-                relocation_table[index],
-                stop_ptr_offset.map(|s| relocation_table[index] + s),
-            )
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((
+                *base,
+                stop_ptr_offset.map(|s| base + s),
+            ))
         };
 
-        Ok(self
-            .builtin_runners
+        self.builtin_runners
             .iter()
             .map(|builtin| {
-                (
+                Ok((
                     builtin.name(),
-                    relocate(builtin.get_memory_segment_addresses()),
-                )
+                    relocate(builtin.get_memory_segment_addresses())?,
+                ))
             })
-            .collect())
+            .collect()
     }
 }
 
