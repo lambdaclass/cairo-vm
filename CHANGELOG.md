@@ -32,11 +32,12 @@
   * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
   * Public `CairoRunner::get_reference_list` has been removed
 
-* move the vm in it's own directory and crate, different from the workspace
+* BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
+    * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
 
-* add a `ensure-no_std` crate that will be used by the CI to check that new changes are not reverting `no_std` support
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215) [#1232](https://github.com/lambdaclass/cairo-rs/pull/1232) 
 
-* replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility
+    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-rs/pull/1238)
 
 #### [0.5.2] - 2023-6-12
 
