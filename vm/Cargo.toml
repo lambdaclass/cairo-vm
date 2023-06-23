@@ -98,3 +98,8 @@ harness = false
 path = "../bench/criterion_benchmark.rs"
 name = "criterion_benchmark"
 harness = false
+
+[[example]]
+name = "custom_hint"
+path = "../examples/custom_hint/src/main.rs"
+required-features = ["std"]
