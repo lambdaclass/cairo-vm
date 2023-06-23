@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "cairo-vm-cli", "felt", "hint_accountant", "./deps/parse-hyperlinks", "fuzzer", "test_fuzzer"]
+members = [".", "cairo-vm-cli", "felt", "hint_accountant", "./deps/parse-hyperlinks"]
 
 [package]
 name = "cairo-vm"
