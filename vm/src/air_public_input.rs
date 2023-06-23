@@ -28,54 +28,51 @@ pub struct PublicInput<'a> {
     public_memory: Vec<PublicMemoryEntry>,
 }
 
-pub fn write_air_public_input(
-    public_input_file: &str,
-    memory: Vec<Option<Felt252>>,
-    layout: &str,
-    dyn_layout_params: Option<&CairoLayout>,
-    public_memory_addresses: Vec<(usize, &usize)>,
-    memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
-    trace: &Vec<TraceEntry>,
-    rc_limits: Option<(isize, isize)>,
-) {
-    let public_memory = public_memory_addresses
-        .into_iter()
-        .map(|(address, page)| PublicMemoryEntry {
-            address,
-            page: *page,
-            value: memory[address].clone(),
-        })
-        .collect();
+impl<'a> PublicInput<'a> {
+    pub fn new(
+        memory: Vec<Option<Felt252>>,
+        layout: &'a str,
+        dyn_layout_params: Option<&'a CairoLayout>,
+        public_memory_addresses: Vec<(usize, &usize)>,
+        memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
+        trace: &Vec<TraceEntry>,
+        rc_limits: Option<(isize, isize)>,
+    ) -> Self {
+        let public_memory = public_memory_addresses
+            .into_iter()
+            .map(|(address, page)| PublicMemoryEntry {
+                address,
+                page: *page,
+                value: memory[address].clone(),
+            })
+            .collect();
 
-    let initial_pc = trace[0].pc; // FIXME: what is this for?
+        let (rc_min, rc_max) = if let Some(rc_limits) = rc_limits {
+            (Some(rc_limits.0), Some(rc_limits.1))
+        } else {
+            (None, None)
+        };
 
-    let (rc_min, rc_max) = if let Some(rc_limits) = rc_limits {
-        (Some(rc_limits.0), Some(rc_limits.1))
-    } else {
-        (None, None)
-    };
+        PublicInput {
+            layout,
+            layout_params: dyn_layout_params,
+            rc_min,
+            rc_max,
+            n_steps: trace.len(),
+            memory_segments: {
+                let mut memory_segment_addresses = memory_segment_addresses.clone();
+                memory_segment_addresses
+                    .insert("program", (trace[0].pc, Some(trace[trace.len() - 1].pc)));
+                memory_segment_addresses
+                    .insert("execution", (trace[0].ap, Some(trace[trace.len() - 1].ap)));
 
-    let public_input = PublicInput {
-        layout,
-        layout_params: dyn_layout_params,
-        rc_min,
-        rc_max,
-        n_steps: trace.len(),
-        memory_segments: {
-            let mut memory_segment_addresses = memory_segment_addresses.clone();
-            memory_segment_addresses
-                .insert("program", (trace[0].pc, Some(trace[trace.len() - 1].pc)));
-            memory_segment_addresses
-                .insert("execution", (trace[0].ap, Some(trace[trace.len() - 1].ap)));
+                memory_segment_addresses
+            },
+            public_memory,
+        }
+    }
 
-            memory_segment_addresses
-        },
-        public_memory,
-    };
-
-    std::fs::write(
-        public_input_file,
-        serde_json::to_string_pretty(&public_input).unwrap(),
-    );
+    pub fn write(&self, file_path: &str) {
+        std::fs::write(file_path, serde_json::to_string_pretty(&self).unwrap());
+    }
 }
-// TODO: make that a method and make a publicinput::new()
