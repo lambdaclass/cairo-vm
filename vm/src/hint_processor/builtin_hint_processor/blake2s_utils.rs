@@ -306,6 +306,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
@@ -339,7 +340,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::Math(MathError::RelocatableSubNegOffset(bx)))
+            Err(HintError::Math(MathError::RelocatableSubUsizeNegOffset(bx)))
             if *bx == (relocatable!(2,5), 26)
         );
     }

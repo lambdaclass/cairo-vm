@@ -236,6 +236,7 @@ mod tests {
 
     use crate::vm::vm_core::VirtualMachine;
 
+    use crate::vm::runners::cairo_runner::RunResources;
     use assert_matches::assert_matches;
     use num_traits::One;
 

@@ -125,12 +125,12 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program,
         utils::test_utils::{cairo_runner, vm},
     };
-
     #[test]
     fn empty_hooks() {
         let program = Program::from_bytes(
@@ -146,7 +146,12 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_ok());
     }
 
@@ -194,7 +199,12 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
 
         // Pre step fail
@@ -205,7 +215,12 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
 
         // Post step fail
@@ -216,7 +231,12 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_err());
     }
 
@@ -267,7 +287,12 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(
+                end,
+                &mut RunResources::default(),
+                &mut vm,
+                &mut hint_processor
+            )
             .is_ok());
     }
 }

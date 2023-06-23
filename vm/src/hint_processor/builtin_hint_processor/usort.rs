@@ -136,7 +136,7 @@ pub fn verify_multiplicity_body(
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
