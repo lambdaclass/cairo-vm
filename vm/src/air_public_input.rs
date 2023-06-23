@@ -34,14 +34,22 @@ impl<'a> PublicInput<'a> {
         trace: &[TraceEntry],
         rc_limits: Option<(isize, isize)>,
     ) -> Result<Self, PublicInputError> {
+        let memory_entry =
+            |addresses: &(usize, &usize)| -> Result<PublicMemoryEntry, PublicInputError> {
+                let (address, page) = addresses;
+                Ok(PublicMemoryEntry {
+                    address: *address,
+                    page: **page,
+                    value: memory
+                        .get(*address)
+                        .ok_or(PublicInputError::MemoryNotFound(*address))?
+                        .clone(),
+                })
+            };
         let public_memory = public_memory_addresses
             .into_iter()
-            .map(|(address, page)| PublicMemoryEntry {
-                address: *address,
-                page: **page,
-                value: memory[*address].clone(),
-            })
-            .collect();
+            .map(memory_entry)
+            .collect::<Result<Vec<_>, _>>()?;
 
         let (rc_min, rc_max) = if let Some(rc_limits) = rc_limits {
             (Some(rc_limits.0), Some(rc_limits.1))
@@ -78,6 +86,8 @@ impl<'a> PublicInput<'a> {
 pub enum PublicInputError {
     #[error("The trace slice provided is empty")]
     EmptyTrace,
+    #[error("The provided memory doesn't contain public address {0}")]
+    MemoryNotFound(usize),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
     #[error("Failed to (de)serialize data")]
