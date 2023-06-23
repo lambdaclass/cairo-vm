@@ -86,6 +86,7 @@ pub struct VirtualMachine {
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
 impl VirtualMachine {
@@ -115,6 +116,7 @@ impl VirtualMachine {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
+            relocation_table: None,
         }
     }
 
@@ -1026,9 +1028,12 @@ impl VirtualMachine {
     }
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
-    pub fn get_public_memory_addresses(&self) -> Vec<(usize, &usize)> {
-        self.segments
-            .get_public_memory_addresses(self.trace_relocated)
+    pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, &usize)>, MemoryError> {
+        if let Some(relocation_table) = &self.relocation_table {
+            Ok(self.segments.get_public_memory_addresses(relocation_table))
+        } else {
+            Err(MemoryError::UnrelocatedMemory)
+        }
     }
 
     pub fn get_memory_segment_addresses(&self) -> HashMap<&'static str, (usize, Option<usize>)> {
@@ -1132,6 +1137,7 @@ impl VirtualMachineBuilder {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
+            relocation_table: None,
         }
     }
 }

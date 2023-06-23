@@ -73,3 +73,4 @@ pub fn write_air_public_input(
         serde_json::to_string_pretty(&public_input).unwrap(),
     );
 }
+// TODO: make that a method and make a publicinput::new()

@@ -129,7 +129,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
         trace_enabled,
-        relocate_mem: args.memory_file.is_some(),
+        relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
@@ -184,7 +184,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             cairo_runner.relocated_memory.clone(),
             &args.layout,
             dyn_layout,
-            vm.get_public_memory_addresses(),
+            vm.get_public_memory_addresses()
+                .map_err(VirtualMachineError::Memory)?,
             vm.get_memory_segment_addresses(),
             vm.get_relocated_trace().unwrap(),
             rc_min,

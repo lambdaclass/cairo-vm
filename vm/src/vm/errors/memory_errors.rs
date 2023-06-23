@@ -99,6 +99,8 @@ pub enum MemoryError {
     InvalidUsedSizeSegmentArena,
     #[error("Vector capacity exceeded")]
     VecCapacityExceeded,
+    #[error("Memory wasn't relocated")]
+    UnrelocatedMemory,
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
