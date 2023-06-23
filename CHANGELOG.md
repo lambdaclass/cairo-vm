@@ -4,6 +4,8 @@
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
 
+* fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
+
 #### [0.6.0] - 2023-6-18
 
 * fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)
