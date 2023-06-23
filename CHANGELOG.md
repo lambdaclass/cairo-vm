@@ -5,7 +5,7 @@
 * fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
 
 * fix: CLI error message when using --help [#1270](https://github.com/lambdaclass/cairo-rs/pull/1270)
-* feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1201](https://github.com/lambdaclass/cairo-rs/pull/1201)
+* feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
 
 #### [0.6.0] - 2023-6-18
 
