@@ -1,4 +1,5 @@
 use crate::{
+    air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -1096,6 +1097,32 @@ impl CairoRunner {
     /// Return CairoRunner.layout
     pub fn get_layout(&self) -> &CairoLayout {
         &self.layout
+    }
+
+    pub fn get_air_public_input(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<PublicInput, PublicInputError> {
+        let (layout_name, dyn_layout) = {
+            let layout = self.get_layout();
+            (
+                layout._name.as_str(),
+                match layout._name.as_str() {
+                    "dynamic" => Some(layout),
+                    _ => None,
+                },
+            )
+        };
+
+        PublicInput::new(
+            &self.relocated_memory,
+            layout_name,
+            dyn_layout,
+            &vm.get_public_memory_addresses()?,
+            vm.get_memory_segment_addresses()?,
+            vm.get_relocated_trace()?,
+            self.get_perm_range_check_limits(vm),
+        )
     }
 }
 

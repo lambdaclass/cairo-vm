@@ -4,7 +4,13 @@ use felt::Felt252;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::{types::layout::CairoLayout, vm::trace::trace_entry::TraceEntry};
+use crate::{
+    types::layout::CairoLayout,
+    vm::{
+        errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
+        trace::trace_entry::TraceEntry,
+    },
+};
 
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
@@ -92,4 +98,8 @@ pub enum PublicInputError {
     IO(#[from] std::io::Error),
     #[error("Failed to (de)serialize data")]
     Serde(#[from] serde_json::Error),
+    #[error("VM related error")]
+    VirtualMachine(#[from] VirtualMachineError),
+    #[error("Trace related error")]
+    Trace(#[from] TraceError),
 }

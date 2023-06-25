@@ -1,7 +1,7 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use bincode::enc::write::Writer;
-use cairo_vm::air_public_input::{PublicInput, PublicInputError};
+use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
@@ -168,22 +168,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(file_path) = args.air_public_input {
-        let dyn_layout = match args.layout.as_str() {
-            "dynamic" => Some(cairo_runner.get_layout()),
-            _ => None,
-        };
-
-        let public_input = PublicInput::new(
-            &cairo_runner.relocated_memory,
-            &args.layout,
-            dyn_layout,
-            &vm.get_public_memory_addresses()?,
-            vm.get_memory_segment_addresses()?,
-            vm.get_relocated_trace()?,
-            cairo_runner.get_perm_range_check_limits(&vm),
-        )?;
-
-        public_input.write(&file_path)?;
+        cairo_runner.get_air_public_input(&vm)?.write(&file_path)?;
     }
 
     Ok(())
