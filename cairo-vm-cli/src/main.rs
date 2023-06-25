@@ -109,14 +109,7 @@ impl FileWriter {
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
-    let args = Args::try_parse_from(args);
-    let args = match args {
-        Ok(args) => args,
-        Err(error) => {
-            eprintln!("{error}");
-            return Err(Error::Cli(error));
-        }
-    };
+    let args = Args::try_parse_from(args)?;
 
     if args.air_public_input.is_some() && !args.proof_mode {
         let error = Args::command().error(
@@ -198,11 +191,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     match run(std::env::args()) {
-        Ok(()) => Ok(()),
-        Err(Error::Cli(err)) if err.kind() != clap::ErrorKind::ArgumentConflict => {
-            Ok(()) // Exit with code 0 to avoid printing CLI error message
-        }
-        Err(error) => Err(error),
+        Err(Error::Cli(err)) => err.exit(),
+        other => other,
     }
 }
 
