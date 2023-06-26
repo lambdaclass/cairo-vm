@@ -19,7 +19,7 @@
     - `felt/Cargo.toml`: update the version string.
     - `deps/parse-hyperlinks/Cargo.toml`: this vendored dependency needs its
       version bumped, but does not need to match the other crate versions.
-  - [Here](https://github.com/lambdaclass/cairo-rs/pull/948/files) is an
+  - [Here](https://github.com/lambdaclass/cairo-rs/pull/1257/files) is an
     example pull request with these changes.
 - [ ] Run `cargo update` and `git add Cargo.lock`
 - [ ] Update `CHANGELOG.md`:
