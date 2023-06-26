@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687638276118,
+  "lastUpdate": 1687802066716,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -107884,6 +107884,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18322342,
             "range": "± 191836",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "18997e360c678c1146551e69cb9eed0763be41d6",
+          "message": "Integrate `RunResources` logic  into `HintProcessor` trait (#1274)\n\n* RunResources into context\n\nSigned-off-by: Dori Medini <dori@starkware.co>\n\n* Fix broken code under `cairo-1-hints` feature\n\n* Add changelog entry\n\n---------\n\nSigned-off-by: Dori Medini <dori@starkware.co>\nCo-authored-by: Dori Medini <dori@starkware.co>",
+          "timestamp": "2023-06-26T17:25:33Z",
+          "tree_id": "c744eb4b2b0d6c13d1378a0a95db3fdafb5981cb",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/18997e360c678c1146551e69cb9eed0763be41d6"
+        },
+        "date": 1687802056804,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1522,
+            "range": "± 79",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 47573,
+            "range": "± 2123",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20845354,
+            "range": "± 897055",
             "unit": "ns/iter"
           }
         ]
