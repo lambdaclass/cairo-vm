@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687802066716,
+  "lastUpdate": 1687806942373,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -107980,6 +107980,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20845354,
             "range": "± 897055",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "9932cba527040386d91fd069aed3976fb9405bf4",
+          "message": "Run benchmarks serially in the CI (#1280)\n\nThe benchmarks consume a lot of memory.\nSince we disabled swap memory usage, the bench runs fail sporadically because of OOM errors.\nThis makes them run with 1 process instead of 2 in parallel.",
+          "timestamp": "2023-06-26T18:46:04Z",
+          "tree_id": "41b67b1de33d3778ec64f04150ec48ba84929070",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/9932cba527040386d91fd069aed3976fb9405bf4"
+        },
+        "date": 1687806935180,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1828,
+            "range": "± 70",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 61940,
+            "range": "± 3817",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 27115850,
+            "range": "± 1527064",
             "unit": "ns/iter"
           }
         ]
