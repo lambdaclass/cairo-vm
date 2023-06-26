@@ -98,7 +98,7 @@ pub enum PublicInputError {
     IO(#[from] std::io::Error),
     #[error("Failed to (de)serialize data")]
     Serde(#[from] serde_json::Error),
-    #[error("VM related error")]
+    #[error(transparent)]
     VirtualMachine(#[from] VirtualMachineError),
     #[error("Trace related error")]
     Trace(#[from] TraceError),
