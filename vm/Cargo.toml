@@ -18,6 +18,7 @@ std = [
     "starknet-crypto/std",
     "felt/std",
     "dep:num-prime",
+    "thiserror-no-std/std",
 ]
 cairo-1-hints = ["dep:cairo-lang-starknet", "dep:cairo-lang-casm", "dep:ark-ff", "dep:ark-std"]
 lambdaworks-felt = [
@@ -53,7 +54,6 @@ generic-array = { workspace = true }
 keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
-thiserror = { workspace = true }
 thiserror-no-std = { workspace = true }
 
 # only for std
