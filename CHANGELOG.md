@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
+
+    Changes under this feature:
+  * `Felt252` now uses _lambdaworks_' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
+
 #### [0.7.0] - 2023-6-26
 
 * BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)

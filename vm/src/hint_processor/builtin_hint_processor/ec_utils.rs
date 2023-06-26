@@ -65,7 +65,7 @@ pub fn random_ec_point_hint(
     let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
-        .flat_map(|x| to_padded_bytes(x))
+        .flat_map(|x| x.to_be_bytes())
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -121,7 +121,7 @@ pub fn chained_ec_op_random_ec_point_hint(
         .iter()
         .chain(m_range.iter())
         .chain(q_range.iter())
-        .flat_map(|x| to_padded_bytes(x))
+        .flat_map(|x| x.to_be_bytes())
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -150,14 +150,6 @@ pub fn recover_y_hint(
     );
     vm.insert_value((p_addr + 1)?, p_y)?;
     Ok(())
-}
-
-// Returns the Felt252 as a vec of bytes of len 32, pads left with zeros
-fn to_padded_bytes(n: &Felt252) -> Vec<u8> {
-    let felt_to_bytes = n.to_bytes_be();
-    let mut bytes: Vec<u8> = vec![0; 32 - felt_to_bytes.len()];
-    bytes.extend(felt_to_bytes);
-    bytes
 }
 
 // Returns a random non-zero point on the elliptic curve

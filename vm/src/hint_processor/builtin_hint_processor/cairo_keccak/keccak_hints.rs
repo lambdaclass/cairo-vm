@@ -56,8 +56,8 @@ pub fn keccak_write_args(
     let low = low.as_ref();
     let high = high.as_ref();
 
-    let low_args = [low & Felt252::new(u64::MAX), low >> 64];
-    let high_args = [high & Felt252::new(u64::MAX), high >> 64];
+    let low_args = [low & Felt252::new(u64::MAX), low >> 64_u32];
+    let high_args = [high & Felt252::new(u64::MAX), high >> 64_u32];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
     vm.write_arg(inputs_ptr, &low_args)

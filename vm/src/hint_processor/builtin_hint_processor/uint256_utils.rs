@@ -95,7 +95,7 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
         let low = Felt252::new(u128::MAX) & &value;
-        let high = value >> 128;
+        let high = value >> 128_u32;
         Self::from_values(low, high)
     }
 }
@@ -231,11 +231,7 @@ pub fn split_64(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = Felt252::new(digits.next().unwrap_or(0u64));
-    let high = if digits.len() <= 1 {
-        Felt252::new(digits.next().unwrap_or(0u64))
-    } else {
-        a.as_ref().shr(64_u32)
-    };
+    let high = a.as_ref() >> 64_u32;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }

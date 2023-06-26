@@ -170,6 +170,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        special-features: ["", "lambdaworks-felt"]
         target: [ test, test-no_std, test-wasm ]
         # TODO: features
     name: Run tests
@@ -221,14 +222,14 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}" 
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node vm --no-default-features
+          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
           ;;
         esac
 

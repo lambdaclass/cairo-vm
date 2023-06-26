@@ -54,10 +54,8 @@ use crate::{
                 unsafe_keccak_finalize,
             },
             math_utils::*,
-            memcpy_hint_utils::{
-                add_segment, enter_scope, exit_scope, memcpy_continue_copying, memcpy_enter_scope,
-            },
-            memset_utils::{memset_continue_loop, memset_enter_scope},
+            memcpy_hint_utils::{add_segment, enter_scope, exit_scope, memcpy_enter_scope},
+            memset_utils::{memset_enter_scope, memset_step_loop},
             poseidon_utils::{n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
@@ -241,15 +239,20 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::MEMSET_ENTER_SCOPE => {
                 memset_enter_scope(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::MEMCPY_CONTINUE_COPYING => memcpy_continue_copying(
+            hint_code::MEMCPY_CONTINUE_COPYING => memset_step_loop(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
+                "continue_copying",
             ),
-            hint_code::MEMSET_CONTINUE_LOOP => {
-                memset_continue_loop(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
-            }
+            hint_code::MEMSET_CONTINUE_LOOP => memset_step_loop(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "continue_loop",
+            ),
             hint_code::SPLIT_FELT => split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)

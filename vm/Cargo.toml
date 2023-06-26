@@ -21,7 +21,9 @@ std = [
     "dep:num-prime",
 ]
 cairo-1-hints = ["dep:cairo-lang-starknet", "dep:cairo-lang-casm", "dep:ark-ff", "dep:ark-std"]
-
+lambdaworks-felt = [
+    "felt/lambdaworks-felt"
+]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [

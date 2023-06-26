@@ -96,7 +96,7 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one().shl((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt252::one() << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },
