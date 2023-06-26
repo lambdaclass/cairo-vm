@@ -12,7 +12,7 @@ use core::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError};
+use crate::{lib_bigint_felt::FeltOps, ParseFeltError};
 
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
@@ -837,12 +837,6 @@ impl<const PH: u128, const PL: u128> fmt::Display for FeltBigInt<PH, PL> {
 impl<const PH: u128, const PL: u128> fmt::Debug for FeltBigInt<PH, PL> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.val)
-    }
-}
-
-impl fmt::Display for ParseFeltError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{ParseFeltError:?}")
     }
 }
 

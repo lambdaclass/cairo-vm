@@ -4,9 +4,9 @@
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 pub extern crate alloc;
 
-mod bigint_felt;
+use crate::ParseFeltError;
 
-use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
+use crate::bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -133,6 +133,16 @@ from_num!(BigInt);
 from_num!(&BigInt);
 from_num!(BigUint);
 from_num!(&BigUint);
+
+impl From<bool> for Felt252 {
+    fn from(flag: bool) -> Self {
+        if flag {
+            Self::one()
+        } else {
+            Self::zero()
+        }
+    }
+}
 
 impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
@@ -986,7 +996,7 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::arbitrary::nonzero_felt252;
+    use crate::{arbitrary_bigint_felt::nonzero_felt252, PRIME_STR};
     use core::cmp;
     use rstest::rstest;
 
