@@ -111,6 +111,12 @@ macro_rules! felt_str {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseFeltError;
 
+impl fmt::Display for ParseFeltError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{ParseFeltError:?}")
+    }
+}
+
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
     value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
