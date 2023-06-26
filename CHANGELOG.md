@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Add feature `lambdaworks-felt` to `felt` crate [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
 
     Changes under this feature:
   * `Felt252` now uses _lambdaworks_' `FieldElement` internally
