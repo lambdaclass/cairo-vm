@@ -1,8 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#[allow(unused_imports)]
-#[macro_use]
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-pub extern crate alloc;
 
 use core::{
     convert::Into,

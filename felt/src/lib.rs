@@ -1,3 +1,8 @@
+#[allow(unused_imports)]
+#[macro_use]
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+pub extern crate alloc;
+
 #[cfg(test)]
 #[cfg(not(feature = "lambdaworks-felt"))]
 mod arbitrary_bigint_felt;
