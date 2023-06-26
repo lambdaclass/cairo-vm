@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687808129580,
+  "lastUpdate": 1687816462882,
   "repoUrl": "https://github.com/lambdaclass/cairo-rs",
   "entries": {
     "Benchmark": [
@@ -108172,6 +108172,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22191363,
             "range": "± 253232",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0804dd151047ba025d8b17c10a0e3e883032d3d",
+          "message": "feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates (#1281)\n\n* wip\n\n* Manually implement some common derives\n\nAlso comment `from` impls for primitive numbers and (De)Serialize derives\n\n* Implement FromPrimitive\n\n* Implement ToPrimitive\n\n* Add BitAnd/Xor/Or implementations\n\n* Implement bit shift operators\n\n* Remove Signed implementation\n\n* Remove Integer impl\n\n* Impl Bounded\n\n* Impl from_str_radix\n\n* Add iter_u64_digits impl\n\n* Add Add impls\n\n* Add Sub impls\n\n* Patch arbitrary\n\n* Fix some warnings\n\n* Implement parse_bytes\n\n* Implement utility methods for tests\n\n* Fix test compilation errors\n\n* Add From impl for signed primitive nums\n\n* Impl From<BigInt>\n\n* Re-add bits fn\n\n* Impl Signed\n\n* Impl (De)Serialize\n\n* Fix compile errors and clippy suggestions\n\n* Pin cairo 1 compiler version\n\n* Reorder impls\n\n* Fix compile error\n\n* Fix various errors (tests pass!)\n\n* Remove to_bytes_be\n\n* Fix panicky from_bytes_be\n\n* Fix is_positive\n\n* Fix str conversions\n\n* Add documentation\n\n* Fix from_i64 accepting negative numbers\n\n* Use BigUint in from_bytes_be\n\n* Remove unneded field macro\n\n* Pin lambdaworks commit\n\n* Fix keccak\n\n* Fix from_i64 condition was reversed\n\n* Change Debug::fmt to return number in decimal\n\n* Appease clippy in felt crate\n\n* Silence clippy warning (for now)\n\n* Fix nostd error\n\n* Update lambdaworks to latest revision\n\n* Update rust version in CI\n\n* Change sqrt for lambdaworks'\n\n* Manually build BigDigits on to_biguint\n\n* Use a bigger number of iterations for square bench\n\n* Update lambdaworks-math revision\n\n* Fix sqrt tests and Shl/Shr impl (+add tests)\n\n* Update Cargo.lock\n\n* Appease clippy and fix Shr<usize>\n\n* Square input instead of using prop_assume\n\n* Revert the change to Shr\n\n* Appease clippy\n\n* Use bits instead of shl in range check\n\n* Remove `FeltBigInt`\n\n* Add lamdaworks-benchmarks.sh\n\n* Add lamdaworks-benchmarks.md\n\n* Update lamdaworks-benchmarks.md\n\n* Update commits\n\n* Update .md commits\n\n* Looooong benchmark\n\n* Remove bigbox clippy allow\n\n* Update lambdaworks to latest, and change AddAssign\n\n* Remove `-P` option in `xargs`\n\nIn the measurements we got through `perf`, there were 3 to 4 times more page faults compared to base.\nThis can be explained by the runner using swap memory because of the increase in memory usage.\nWe can fix it by reducing the amount of processes ran in parallel by xargs (2 -> 1)\n\n* Change `to_(b|l)e_bytes` to not use lw primitives\n\n* Change comments in `Add<&Felt252> for u64`\n\n* Fix: wasn't indexing properly :P\n\n* Override default `div_mod_floor` impl for Felt252\n\n* Disable swap memory before benchmarking\n\n* Reduce number of warmups and runs\n\n* Optimize `assert_le_felt`\n\n(used in math_integration_benchmark)\n\n* Use constant for zero() function\n\n* Extract division by constant\n\n* Use BigUint in assert_le_felt\n\nThis part uses comparisons and integer division (that use `to_biguint`), so it's better to use `BigUints` directly.\n\n* Avoid calling `BigInt::abs`\n\n* Update changelog\n\n* Add tests for felt\n\n* Add TODO\n\n* Add other texts\n\n* Update lambdaworks to latest\n\n* Revert hyperfine arguments to main\n\n* Remove unneeded clones and into_owneds\n\n* Remove unneeded references and clones\n\n* Add BREAKING note to changelog\n\n* Make Felt252::one just copy a constant\n\n* Impl From<bool> for Felt252\n\n* Change some uses of get_ref with get_mut_ref\n\nUsing `get_ref` and later updating the variable with an `exec_scopes.insert_value(...)` causes two lookups in a hashmap, along with two creation of `String` from a slice.\nThis change reduces it to just a single lookup and `String` creation.\n\n* Unify mem*_continue_* functions\n\n* Run benchmarks sequentially to avoid mem issues\n\n* Use div_mod_floor instead of div and mod\n\n* Use BigUint for non-modular calculations\n\n* Add TODO\n\n* Include both lib.rs\n\n* Fix lib_bigint_felt\n\n* Add test-lambdaworks-felt workflow\n\n* Fix failling example\n\n* Move extern crate import to lib.rs\n\n* Update changelog\n\n* Fix changelog\n\n* Fix example\n\n* Remove benchmark docs\n\n* Remove clone\n\n* Move crate-level attribute to lib.rs\n\n* Fix changelog\n\n* Remove blank line in toml\n\n* Use one line cfg directives\n\n* Remove reference\n\n* Restore clone\n\n* Fix doc test\n\n* Add `lambdaworks-felt` feature to vm crate\n\n* Add instructions to (de)activate the new feature\n\n* Use different matrix group for lambdaworks felt in CI\n\n* Move the sections a bit\n\n* Update lambdaworks-math version to 0.1.1\n\n* Invert the part talking about features\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Tomá <47506558+MegaRedHand@users.noreply.github.com>\nCo-authored-by: Mario Rugiero <mrugiero@gmail.com>",
+          "timestamp": "2023-06-26T21:29:50Z",
+          "tree_id": "13d4794a65a0cd550718acb4860c904878865d92",
+          "url": "https://github.com/lambdaclass/cairo-rs/commit/d0804dd151047ba025d8b17c10a0e3e883032d3d"
+        },
+        "date": 1687816455406,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1585,
+            "range": "± 78",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 64373,
+            "range": "± 2865",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22174185,
+            "range": "± 1123252",
             "unit": "ns/iter"
           }
         ]
