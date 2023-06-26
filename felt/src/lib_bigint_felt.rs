@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use crate::ParseFeltError;
 
 use crate::bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
