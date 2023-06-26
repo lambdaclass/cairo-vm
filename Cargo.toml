@@ -52,10 +52,10 @@ thiserror-no-std = { version = "2.0.2", default-features = false }
 # https://stackoverflow.com/questions/70630556/parse-allowing-nested-parentheses-in-nom
 # There is a proposal for extending nom::delimited to use this function:
 # https://github.com/Geal/nom/issues/1253
-parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.30.0", default-features = false, features = [
+parse-hyperlinks = { package = "cairo-take_until_unbalanced", path = "./deps/parse-hyperlinks", version = "0.31.0", default-features = false, features = [
     "alloc",
 ] }
-felt = { package = "cairo-felt", path = "./felt", version = "0.6.1", default-features = false, features = [
+felt = { package = "cairo-felt", path = "./felt", version = "0.7.0", default-features = false, features = [
     "alloc",
 ] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
