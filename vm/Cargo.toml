@@ -1,10 +1,11 @@
 [package]
 name = "cairo-vm"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "Blazing fast Cairo interpreter"
 repository = "https://github.com/lambdaclass/cairo-rs/"
+readme= "../README.md"
 
 [features]
 default = ["std", "with_mimalloc"]
@@ -17,9 +18,9 @@ std = [
     "starknet-crypto/std",
     "parse-hyperlinks/std",
     "felt/std",
-    "num-prime",
+    "dep:num-prime",
 ]
-cairo-1-hints = ["cairo-lang-starknet", "cairo-lang-casm", "ark-ff", "ark-std"]
+cairo-1-hints = ["dep:cairo-lang-starknet", "dep:cairo-lang-casm", "dep:ark-ff", "dep:ark-std"]
 
 
 # Note that these features are not retro-compatible with the cairo Python VM.
@@ -97,3 +98,8 @@ harness = false
 path = "../bench/criterion_benchmark.rs"
 name = "criterion_benchmark"
 harness = false
+
+[[example]]
+name = "custom_hint"
+path = "../examples/custom_hint/src/main.rs"
+required-features = ["std"]
