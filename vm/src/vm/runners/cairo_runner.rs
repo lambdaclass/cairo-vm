@@ -1103,15 +1103,10 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
-        let (layout_name, dyn_layout) = {
-            let layout = self.get_layout();
-            (
-                layout._name.as_str(),
-                match layout._name.as_str() {
-                    "dynamic" => Some(layout),
-                    _ => None,
-                },
-            )
+        let layout_name = self.get_layout()._name.as_str();
+        let dyn_layout = match layout_name {
+            "dynamic" => Some(self.get_layout()),
+            _ => None,
         };
 
         PublicInput::new(
