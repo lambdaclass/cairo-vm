@@ -368,7 +368,6 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-    use crate::vm::runners::cairo_runner::RunResources;
 
     use crate::{
         any_box,
@@ -376,7 +375,7 @@ mod tests {
             builtin_hint_processor::builtin_hint_processor_definition::{
                 BuiltinHintProcessor, HintProcessorData,
             },
-            hint_processor_definition::{HintProcessor, HintReference},
+            hint_processor_definition::{HintProcessorLogic, HintReference},
         },
         types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
         utils::test_utils::*,

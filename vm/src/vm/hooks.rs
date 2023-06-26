@@ -125,7 +125,6 @@ impl VirtualMachine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program,
@@ -146,12 +145,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 
@@ -199,12 +193,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Pre step fail
@@ -215,12 +204,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Post step fail
@@ -231,12 +215,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
     }
 
@@ -287,12 +266,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 }

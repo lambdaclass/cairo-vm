@@ -2,11 +2,21 @@
 
 #### Upcoming Changes
 
+<<<<<<< HEAD
 * feat: `Felt252` now uses _lambdaworks_' `FieldElement` internally
   * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
   
 * fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
 
+=======
+* BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)
+  * Rename trait `HintProcessor` to `HintProcessorLogic`
+  * Add trait `ResourceTracker`
+  * Trait `HintProcessor` is now `HintProcessor: HintProcessorLogic + ResourceTracker`
+  * `BuiltinHintProcessor::new` & `Cairo1HintProcessor::new` now receive the argumet `run_resources: RunResources`
+  * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
+  * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
+>>>>>>> 18997e360c678c1146551e69cb9eed0763be41d6
 
 * build: remove unused implicit features from cairo-vm
 
