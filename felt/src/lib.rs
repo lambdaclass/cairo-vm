@@ -5,11 +5,9 @@
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 pub extern crate alloc;
 
-#[cfg(test)]
-#[cfg(not(feature = "lambdaworks-felt"))]
+#[cfg(all(test, not(feature = "lambdaworks-felt")))]
 mod arbitrary_bigint_felt;
-#[cfg(feature = "lambdaworks-felt")]
-#[cfg(test)]
+#[cfg(all(test, feature = "lambdaworks-felt"))]
 mod arbitrary_lambdaworks;
 #[cfg(not(feature = "lambdaworks-felt"))]
 mod bigint_felt;
