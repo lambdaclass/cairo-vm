@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [0.7.0] - 2023-6-26
+
 * BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)
   * Rename trait `HintProcessor` to `HintProcessorLogic`
   * Add trait `ResourceTracker`
@@ -10,7 +12,7 @@
   * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
   * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
 
-* build: remove unused implicit features from cairo-vm
+* build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
 
 #### [0.6.1] - 2023-6-23
 
