@@ -170,7 +170,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [ test, test-no_std, test-wasm ]
+        target: [ test, test-no_std, test-wasm, test-lambdaworks-felt ]
         # TODO: features
     name: Run tests
     runs-on: ubuntu-22.04
@@ -229,6 +229,9 @@ jobs:
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
           wasm-pack test --release --node vm --no-default-features
+          ;;
+        'test-lambdaworks-felt')
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints, test_utils, lambdaworks-felt"
           ;;
         esac
 
