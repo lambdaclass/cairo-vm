@@ -53,7 +53,7 @@ impl<'a> PublicInput<'a> {
                 })
             };
         let public_memory = public_memory_addresses
-            .into_iter()
+            .iter()
             .map(memory_entry)
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -83,7 +83,7 @@ impl<'a> PublicInput<'a> {
     }
 
     pub fn write(&self, file_path: &str) -> Result<(), PublicInputError> {
-        let _ = std::fs::write(file_path, serde_json::to_string_pretty(&self)?)?;
+        std::fs::write(file_path, serde_json::to_string_pretty(&self)?)?;
         Ok(())
     }
 }
