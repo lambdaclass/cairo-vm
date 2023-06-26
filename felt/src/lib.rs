@@ -6,13 +6,15 @@ pub extern crate alloc;
 
 #[cfg(feature = "lambdaworks-felt")]
 mod lambdaworks_felt;
-
+#[cfg(not(feature = "lambdaworks-felt"))]
 mod bigint_felt;
 
 #[cfg(test)]
 pub mod arbitrary;
-
+#[cfg(not(feature = "lambdaworks-felt"))]
 use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
+#[cfg(feature = "lambdaworks-felt")]
+use lambdaworks_felt::LambdaworksFelt;
 use num_bigint::{BigInt, BigUint, U64Digits};
 use num_integer::Integer;
 use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
@@ -34,12 +36,12 @@ use alloc::{string::String, vec::Vec};
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
 
 pub(crate) trait FeltOps {
-    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
+    fn new<T: Into<Felt252>>(value: T) -> Self;
 
     fn modpow(
         &self,
-        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
-        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+        exponent: &Felt252,
+        modulus: &Felt252,
     ) -> Self;
 
     fn iter_u64_digits(&self) -> U64Digits;
@@ -50,7 +52,7 @@ pub(crate) trait FeltOps {
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_bytes_be(&self) -> Vec<u8>;
 
-    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<Felt252>;
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
@@ -117,9 +119,16 @@ impl fmt::Display for ParseFeltError {
     }
 }
 
+#[cfg(not(feature = "lambdaworks-felt"))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
     value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+}
+
+#[cfg(feature = "lambdaworks-felt")]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
+pub struct Felt252 {
+    value: LambdaworksFelt,
 }
 
 macro_rules! from_num {
@@ -207,12 +216,12 @@ impl Felt252 {
 
     pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
         Some(Self {
-            value: FeltBigInt::parse_bytes(buf, radix)?,
+            value: Felt252::parse_bytes(buf, radix)?,
         })
     }
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
         Self {
-            value: FeltBigInt::from_bytes_be(bytes),
+            value: Felt252::from_bytes_be(bytes),
         }
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -272,7 +281,7 @@ impl Felt252 {
     }
 
     pub fn prime() -> BigUint {
-        FeltBigInt::prime()
+        Felt252::prime()
     }
 }
 
@@ -630,7 +639,7 @@ impl<'a> Rem<&'a Felt252> for Felt252 {
 impl Zero for Felt252 {
     fn zero() -> Self {
         Self {
-            value: FeltBigInt::zero(),
+            value: Felt252::zero(),
         }
     }
 
@@ -642,7 +651,7 @@ impl Zero for Felt252 {
 impl One for Felt252 {
     fn one() -> Self {
         Self {
-            value: FeltBigInt::one(),
+            value: Felt252::one(),
         }
     }
 
