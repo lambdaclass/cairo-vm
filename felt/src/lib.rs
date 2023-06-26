@@ -4,8 +4,19 @@
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 pub extern crate alloc;
 
+#[cfg(feature = "lambdaworks-felt")]
+mod lambdaworks_felt;
+
+mod bigint_felt;
+
 #[cfg(test)]
 pub mod arbitrary;
+
+use bigint_felt::{FeltBigInt, FIELD_HIGH, FIELD_LOW};
+use num_bigint::{BigInt, BigUint, U64Digits};
+use num_integer::Integer;
+use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 use core::{
     convert::Into,
@@ -16,253 +27,35 @@ use core::{
         Sub, SubAssign,
     },
 };
-use lambdaworks_math::{
-    field::{
-        element::FieldElement, fields::fft_friendly::stark_252_prime_field::Stark252PrimeField,
-    },
-    unsigned_integer::element::UnsignedInteger,
-};
-use lazy_static::lazy_static;
-use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
-use num_integer::Integer;
-use num_traits::{Bounded, FromPrimitive, Num, One, Pow, Signed, ToPrimitive, Zero};
-use serde::{Deserialize, Serialize};
 
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
-pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
-pub const FIELD_LOW: u128 = 1;
 
-lazy_static! {
-    pub static ref CAIRO_PRIME_BIGUINT: BigUint =
-        (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW);
-    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME_BIGUINT).shr(1_u32);
-    pub static ref CAIRO_SIGNED_PRIME: BigInt = CAIRO_PRIME_BIGUINT
-        .to_bigint()
-        .expect("Conversion BigUint -> BigInt can't fail");
-}
+pub(crate) trait FeltOps {
+    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
 
-#[macro_export]
-macro_rules! felt_str {
-    ($val: expr) => {
-        $crate::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
-    };
-    ($val: expr, $opt: expr) => {
-        $crate::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
-    };
-}
+    fn modpow(
+        &self,
+        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    ) -> Self;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ParseFeltError;
-
-impl fmt::Display for ParseFeltError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{ParseFeltError:?}")
-    }
-}
-
-#[derive(Eq, Hash, PartialEq, Clone, Deserialize, Serialize)]
-#[serde(from = "BigInt")]
-#[serde(into = "BigInt")]
-pub struct Felt252 {
-    value: FieldElement<Stark252PrimeField>,
-}
-
-// TODO: remove and change for transformation + compare
-impl PartialOrd for Felt252 {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// TODO: remove and change for transformation + compare
-// Also, maybe this could be changed to compare against zero without changing montgomeryness
-impl Ord for Felt252 {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.value
-            .representative()
-            .cmp(&other.value.representative())
-    }
-}
-
-impl Default for Felt252 {
-    fn default() -> Self {
-        Self {
-            value: FieldElement::zero(),
-        }
-    }
-}
-
-macro_rules! from_num {
-    ($type:ty, $cast:ty) => {
-        impl From<$type> for Felt252 {
-            fn from(value: $type) -> Self {
-                let uplifted: $cast = value as $cast;
-                uplifted.into()
-            }
-        }
-    };
-}
-
-from_num!(isize, i64);
-from_num!(i8, i64);
-from_num!(i16, i64);
-from_num!(i32, i64);
-
-// TODO: move to upstream?
-impl From<i64> for Felt252 {
-    fn from(value: i64) -> Self {
-        let value = if !value.is_negative() {
-            FieldElement::new(UnsignedInteger::from_u64(value as u64))
-        } else {
-            let abs_minus_one = UnsignedInteger::from_u64(-(value + 1) as u64);
-            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
-        };
-        Self { value }
-    }
-}
-
-// TODO: move to upstream?
-impl From<i128> for Felt252 {
-    fn from(value: i128) -> Self {
-        let value = if !value.is_negative() {
-            FieldElement::new(UnsignedInteger::from_u128(value as u128))
-        } else {
-            let abs_minus_one = UnsignedInteger::from_u128(-(value + 1) as u128);
-            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
-        };
-        Self { value }
-    }
-}
-
-from_num!(usize, u64);
-from_num!(u8, u64);
-from_num!(u16, u64);
-from_num!(u32, u64);
-
-// TODO: move to upstream?
-impl From<u64> for Felt252 {
-    fn from(value: u64) -> Self {
-        let value = FieldElement::new(UnsignedInteger::from_u64(value));
-        Self { value }
-    }
-}
-
-// TODO: move to upstream?
-impl From<u128> for Felt252 {
-    fn from(value: u128) -> Self {
-        let value = FieldElement::new(UnsignedInteger::from_u128(value));
-        Self { value }
-    }
-}
-
-impl From<bool> for Felt252 {
-    fn from(flag: bool) -> Self {
-        if flag {
-            Self::one()
-        } else {
-            Self::zero()
-        }
-    }
-}
-
-// TODO: bury BigUint?
-impl From<BigUint> for Felt252 {
-    fn from(mut value: BigUint) -> Self {
-        if value >= *CAIRO_PRIME_BIGUINT {
-            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
-        }
-        let mut limbs = [0; 4];
-        for (i, l) in (0..4).rev().zip(value.iter_u64_digits()) {
-            limbs[i] = l;
-        }
-        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
-        Self { value }
-    }
-}
-
-// TODO: bury BigInt?
-// NOTE: used for deserialization
-impl From<BigInt> for Felt252 {
-    fn from(value: BigInt) -> Self {
-        let val = value.mod_floor(&CAIRO_PRIME_BIGUINT.to_bigint().expect("cannot fail"));
-        let mut limbs = [0; 4];
-        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
-            limbs[i] = l;
-        }
-        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
-        Self { value }
-    }
-}
-
-// NOTE: used for serialization
-impl From<Felt252> for BigInt {
-    fn from(value: Felt252) -> Self {
-        value.to_bigint()
-    }
-}
-
-impl Felt252 {
-    pub fn new<T: Into<Felt252>>(value: T) -> Self {
-        value.into()
-    }
-
-    pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
-        self.value.representative().limbs.into_iter().rev()
-    }
-
-    pub fn to_le_bytes(&self) -> [u8; 32] {
-        // TODO: upstream should return array
-        let mut bytes = [0; 32];
-        let digits = self.to_le_digits();
-        for (i, d) in digits.into_iter().enumerate() {
-            let idx = i * 8;
-            bytes[idx..(idx + 8)].copy_from_slice(&d.to_le_bytes());
-        }
-        bytes
-    }
-
-    pub fn to_be_bytes(&self) -> [u8; 32] {
-        // TODO: upstream should return array
-        let mut bytes = [0; 32];
-        let digits = self.to_be_digits();
-        for (i, d) in digits.into_iter().enumerate() {
-            let idx = i * 8;
-            bytes[idx..(idx + 8)].copy_from_slice(&d.to_be_bytes());
-        }
-        bytes
-    }
-
-    pub fn to_le_digits(&self) -> [u64; 4] {
-        let mut rep = self.value.representative();
-        rep.limbs.reverse();
-        rep.limbs
-    }
-
-    pub fn to_be_digits(&self) -> [u64; 4] {
-        self.value.representative().limbs
-    }
-
-    pub fn parse_bytes(bytes: &[u8], radix: u32) -> Option<Self> {
-        Some(BigInt::parse_bytes(bytes, radix)?.into())
-    }
-
-    pub fn from_bytes_be(bytes: &[u8]) -> Self {
-        Self::from(BigUint::from_bytes_be(bytes))
-    }
+    fn iter_u64_digits(&self) -> U64Digits;
 
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn to_str_radix(&self, radix: u32) -> String {
-        if radix == 16 {
-            let mut res = format!("{}", self.value);
-            res.replace_range(..2, "");
-            res
-        } else {
-            self.to_biguint().to_str_radix(radix)
-        }
-    }
+    fn to_signed_bytes_le(&self) -> Vec<u8>;
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn to_bytes_be(&self) -> Vec<u8>;
+
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
+
+    fn from_bytes_be(bytes: &[u8]) -> Self;
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn to_str_radix(&self, radix: u32) -> String;
 
     /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
     ///
@@ -278,20 +71,11 @@ impl Felt252 {
     /// let negative = Felt252::max_value();
     /// assert_eq!(negative.to_bigint(), Into::<num_bigint::BigInt>::into(-1));
     /// ```
-    pub fn to_signed_felt(&self) -> BigInt {
-        let biguint = self.to_biguint();
-        if biguint > *SIGNED_FELT_MAX {
-            BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &biguint)
-        } else {
-            biguint.to_bigint().expect("cannot fail")
-        }
-    }
+    fn to_signed_felt(&self) -> BigInt;
 
     // Converts [`Felt252`]'s representation directly into a [`BigInt`].
     // Equivalent to doing felt.to_biguint().to_bigint().
-    pub fn to_bigint(&self) -> BigInt {
-        BigInt::from_biguint(Sign::Plus, self.to_biguint())
-    }
+    fn to_bigint(&self) -> BigInt;
 
     /// Converts [`Felt252`] into a [`BigUint`] number.
     ///
@@ -307,36 +91,192 @@ impl Felt252 {
     /// let negative = Felt252::max_value();
     /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
     /// ```
-    pub fn to_biguint(&self) -> BigUint {
-        let big_digits = self
-            .iter_u64_digits()
-            .flat_map(|limb| [limb as u32, (limb >> 32) as u32])
-            .collect();
-        BigUint::new(big_digits)
+    fn to_biguint(&self) -> BigUint;
+
+    fn bits(&self) -> u64;
+
+    fn prime() -> BigUint;
+}
+
+#[macro_export]
+macro_rules! felt_str {
+    ($val: expr) => {
+        $crate::Felt252::parse_bytes($val.as_bytes(), 10_u32).expect("Couldn't parse bytes")
+    };
+    ($val: expr, $opt: expr) => {
+        $crate::Felt252::parse_bytes($val.as_bytes(), $opt as u32).expect("Couldn't parse bytes")
+    };
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParseFeltError;
+
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
+pub struct Felt252 {
+    value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+}
+
+macro_rules! from_num {
+    ($type:ty) => {
+        impl From<$type> for Felt252 {
+            fn from(value: $type) -> Self {
+                Self {
+                    value: value.into(),
+                }
+            }
+        }
+    };
+}
+
+from_num!(i8);
+from_num!(i16);
+from_num!(i32);
+from_num!(i64);
+from_num!(i128);
+from_num!(isize);
+from_num!(u8);
+from_num!(u16);
+from_num!(u32);
+from_num!(u64);
+from_num!(u128);
+from_num!(usize);
+from_num!(BigInt);
+from_num!(&BigInt);
+from_num!(BigUint);
+from_num!(&BigUint);
+
+impl Felt252 {
+    pub fn new<T: Into<Felt252>>(value: T) -> Self {
+        value.into()
+    }
+    pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
+        Self {
+            value: self.value.modpow(&exponent.value, &modulus.value),
+        }
+    }
+    pub fn iter_u64_digits(&self) -> U64Digits {
+        self.value.iter_u64_digits()
     }
 
+    pub fn to_le_bytes(&self) -> [u8; 32] {
+        let mut res = [0u8; 32];
+        let mut iter = self.iter_u64_digits();
+        let (d0, d1, d2, d3) = (
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+            iter.next().unwrap_or_default().to_le_bytes(),
+        );
+        res[..8].copy_from_slice(&d0);
+        res[8..16].copy_from_slice(&d1);
+        res[16..24].copy_from_slice(&d2);
+        res[24..].copy_from_slice(&d3);
+        res
+    }
+
+    pub fn to_be_bytes(&self) -> [u8; 32] {
+        let mut bytes = self.to_le_bytes();
+        bytes.reverse();
+        bytes
+    }
+
+    pub fn to_le_digits(&self) -> [u64; 4] {
+        let mut iter = self.iter_u64_digits();
+        [
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+            iter.next().unwrap_or_default(),
+        ]
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn to_signed_bytes_le(&self) -> Vec<u8> {
+        self.value.to_signed_bytes_le()
+    }
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        self.value.to_bytes_be()
+    }
+
+    pub fn parse_bytes(buf: &[u8], radix: u32) -> Option<Self> {
+        Some(Self {
+            value: FeltBigInt::parse_bytes(buf, radix)?,
+        })
+    }
+    pub fn from_bytes_be(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_be(bytes),
+        }
+    }
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn to_str_radix(&self, radix: u32) -> String {
+        self.value.to_str_radix(radix)
+    }
+
+    pub fn to_signed_felt(&self) -> BigInt {
+        #[allow(deprecated)]
+        self.value.to_signed_felt()
+    }
+
+    pub fn to_bigint(&self) -> BigInt {
+        #[allow(deprecated)]
+        self.value.to_bigint()
+    }
+
+    pub fn to_biguint(&self) -> BigUint {
+        #[allow(deprecated)]
+        self.value.to_biguint()
+    }
     pub fn sqrt(&self) -> Self {
-        // Safety: must be called with residual
-        let (root_1, root_2) = self.value.sqrt().unwrap();
-        let value = FieldElement::new(root_1.representative().min(root_2.representative()));
-        Self { value }
+        // Based on Tonelli-Shanks' algorithm for finding square roots
+        // and sympy's library implementation of said algorithm.
+        if self.is_zero() || self.is_one() {
+            return self.clone();
+        }
+
+        let max_felt = Felt252::max_value();
+        let trailing_prime = Felt252::max_value() >> 192; // 0x800000000000011
+
+        let a = self.pow(&trailing_prime);
+        let d = (&Felt252::new(3_i32)).pow(&trailing_prime);
+        let mut m = Felt252::zero();
+        let mut exponent = Felt252::one() << 191_u32;
+        let mut adm;
+        for i in 0..192_u32 {
+            adm = &a * &(&d).pow(&m);
+            adm = (&adm).pow(&exponent);
+            exponent >>= 1;
+            // if adm ≡ -1 (mod CAIRO_PRIME)
+            if adm == max_felt {
+                m += Felt252::one() << i;
+            }
+        }
+        let root_1 = self.pow(&((trailing_prime + 1_u32) >> 1)) * (&d).pow(&(m >> 1));
+        let root_2 = &max_felt - &root_1 + 1_usize;
+        if root_1 < root_2 {
+            root_1
+        } else {
+            root_2
+        }
     }
 
     pub fn bits(&self) -> u64 {
-        // TODO: move upstream
-        let rep = self.value.representative();
-        match rep.limbs {
-            [0, 0, 0, 0] => 0,
-            [0, 0, 0, l0] => u64::BITS - l0.leading_zeros(),
-            [0, 0, l1, _] => 2 * u64::BITS - l1.leading_zeros(),
-            [0, l2, _, _] => 3 * u64::BITS - l2.leading_zeros(),
-            [l3, _, _, _] => 4 * u64::BITS - l3.leading_zeros(),
-        }
-        .into()
+        self.value.bits()
     }
 
     pub fn prime() -> BigUint {
-        CAIRO_PRIME_BIGUINT.clone()
+        FeltBigInt::prime()
+    }
+}
+
+impl From<bool> for Felt252 {
+    fn from(flag: bool) -> Self {
+        if flag {
+            Self::one()
+        } else {
+            Self::zero()
+        }
     }
 }
 
@@ -370,9 +310,8 @@ impl<'a> Add<&'a Felt252> for Felt252 {
 impl Add<u32> for Felt252 {
     type Output = Self;
     fn add(self, rhs: u32) -> Self {
-        let rhs = UnsignedInteger::from_u64(rhs.into());
         Self {
-            value: self.value + FieldElement::new(rhs),
+            value: self.value + rhs,
         }
     }
 }
@@ -380,9 +319,8 @@ impl Add<u32> for Felt252 {
 impl Add<usize> for Felt252 {
     type Output = Self;
     fn add(self, rhs: usize) -> Self {
-        let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self {
-            value: self.value + FieldElement::new(rhs),
+            value: self.value + rhs,
         }
     }
 }
@@ -390,9 +328,8 @@ impl Add<usize> for Felt252 {
 impl<'a> Add<usize> for &'a Felt252 {
     type Output = Felt252;
     fn add(self, rhs: usize) -> Self::Output {
-        let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self::Output {
-            value: &self.value + FieldElement::new(rhs),
+            value: &self.value + rhs,
         }
     }
 }
@@ -400,54 +337,62 @@ impl<'a> Add<usize> for &'a Felt252 {
 impl Add<u64> for &Felt252 {
     type Output = Felt252;
     fn add(self, rhs: u64) -> Self::Output {
-        let rhs = UnsignedInteger::from_u64(rhs);
         Self::Output {
-            value: &self.value + FieldElement::new(rhs),
+            value: &self.value + rhs,
         }
     }
 }
 
-// TODO: verify if this optimization causes a speed-up in the current implementation.
 // This is special cased and optimized compared to the obvious implementation
 // due to `pc_update` relying on this, which makes it a major bottleneck for
 // execution. Testing for this function is extensive, comprised of explicit
 // edge and special cases testing and property tests, all comparing to the
 // more intuitive `(rhs + self).to_u64()` implementation.
+// This particular implementation is much more complex than a slightly more
+// intuitive one based on a single match. However, this is 8-62% faster
+// depending on the case being bencharked, with an average of 32%, so it's
+// worth it.
 impl Add<&Felt252> for u64 {
     type Output = Option<u64>;
 
     fn add(self, rhs: &Felt252) -> Option<u64> {
-        const PRIME_DIGITS_BE_HI: [u64; 3] =
-            [0x0800000000000011, 0x0000000000000000, 0x0000000000000000];
-        const PRIME_MINUS_U64_MAX_DIGITS_BE_HI: [u64; 3] =
-            [0x0800000000000010, 0xffffffffffffffff, 0xffffffffffffffff];
+        const PRIME_DIGITS_LE_HI: (u64, u64, u64) =
+            (0x0000000000000000, 0x0000000000000000, 0x0800000000000011);
+        const PRIME_MINUS_U64_MAX_DIGITS_LE_HI: (u64, u64, u64) =
+            (0xffffffffffffffff, 0xffffffffffffffff, 0x0800000000000010);
 
-        // Match with the 64 bits digits in big-endian order to
+        // Iterate through the 64 bits digits in little-endian order to
         // characterize how the sum will behave.
-        match rhs.to_be_digits() {
-            // All digits are `0`, so the sum is simply `self`.
-            [0, 0, 0, 0] => Some(self),
-            // A single digit means this is effectively the sum of two `u64` numbers.
-            [0, 0, 0, low] => self.checked_add(low),
-            // Now we need to compare the 3 most significant digits.
-            // There are two relevant cases from now on, either `rhs` behaves like a
-            // substraction of a `u64` or the result of the sum falls out of range.
-
+        let mut rhs_digits = rhs.iter_u64_digits();
+        // No digits means `rhs` is `0`, so the sum is simply `self`.
+        let Some(low) = rhs_digits.next() else {
+            return Some(self);
+        };
+        // A single digit means this is effectively the sum of two `u64` numbers.
+        let Some(h0) = rhs_digits.next() else {
+            return self.checked_add(low)
+        };
+        // Now we need to compare the 3 most significant digits.
+        // There are two relevant cases from now on, either `rhs` behaves like a
+        // substraction of a `u64` or the result of the sum falls out of range.
+        let (h1, h2) = (rhs_digits.next()?, rhs_digits.next()?);
+        match (h0, h1, h2) {
             // The 3 MSB only match the prime for Felt252::max_value(), which is -1
             // in the signed field, so this is equivalent to substracting 1 to `self`.
-            [hi @ .., _] if hi == PRIME_DIGITS_BE_HI => self.checked_sub(1),
-
+            #[allow(clippy::suspicious_arithmetic_impl)]
+            PRIME_DIGITS_LE_HI => self.checked_sub(1),
             // For the remaining values between `[-u64::MAX..0]` (where `{0, -1}` have
             // already been covered) the MSB matches that of `PRIME - u64::MAX`.
             // Because we're in the negative number case, we count down. Because `0`
             // and `-1` correspond to different MSBs, `0` and `1` in the LSB are less
-            // than `-u64::MAX`, the smallest value we can add to (read, substract its
+            // than `-u64::MAX`, the smallest value we can add to (read, substract it's
             // magnitude from) a `u64` number, meaning we exclude them from the valid
             // case.
-            // For the remaining range, we take the absolute value module-2 while
+            // For the remaining range, we make take the absolute value module-2 while
             // correcting by substracting `1` (note we actually substract `2` because
             // the absolute value itself requires substracting `1`.
-            [hi @ .., low] if hi == PRIME_MINUS_U64_MAX_DIGITS_BE_HI && low >= 2 => {
+            #[allow(clippy::suspicious_arithmetic_impl)]
+            PRIME_MINUS_U64_MAX_DIGITS_LE_HI if low >= 2 => {
                 (self).checked_sub(u64::MAX - (low - 2))
             }
             // Any other case will result in an addition that is out of bounds, so
@@ -465,8 +410,7 @@ impl AddAssign for Felt252 {
 
 impl<'a> AddAssign<&'a Felt252> for Felt252 {
     fn add_assign(&mut self, rhs: &Self) {
-        // TODO: optimize and move upstream
-        self.value += rhs.value.clone();
+        self.value += &rhs.value;
     }
 }
 
@@ -524,52 +468,51 @@ impl<'a> Sub<&'a Felt252> for Felt252 {
     }
 }
 
-// a - b = a + (-b), but clippy doesn't know that
-#[allow(clippy::suspicious_arithmetic_impl)]
 impl Sub<&Felt252> for usize {
     type Output = Felt252;
     fn sub(self, rhs: &Self::Output) -> Self::Output {
-        let neg = Self::Output {
-            value: (&rhs.value).neg(),
-        };
-        neg + self
+        Self::Output {
+            value: self - &rhs.value,
+        }
     }
 }
 
 impl SubAssign for Felt252 {
     fn sub_assign(&mut self, rhs: Self) {
-        // TODO: optimize and move to upstream
-        self.value = &self.value - rhs.value
+        self.value -= rhs.value
     }
 }
 
 impl<'a> SubAssign<&'a Felt252> for Felt252 {
     fn sub_assign(&mut self, rhs: &Self) {
-        // TODO: optimize and move to upstream
-        self.value = &self.value - &rhs.value
+        self.value -= &rhs.value;
     }
 }
 
 impl Sub<u32> for Felt252 {
     type Output = Self;
     fn sub(self, rhs: u32) -> Self {
-        let value = self.value - FieldElement::new(UnsignedInteger::from_u64(rhs as u64));
-        Self { value }
+        Self {
+            value: self.value - rhs,
+        }
     }
 }
 
 impl<'a> Sub<u32> for &'a Felt252 {
     type Output = Felt252;
     fn sub(self, rhs: u32) -> Self::Output {
-        self.clone() - rhs
+        Self::Output {
+            value: &self.value - rhs,
+        }
     }
 }
 
 impl Sub<usize> for Felt252 {
     type Output = Self;
     fn sub(self, rhs: usize) -> Self {
-        let value = self.value - FieldElement::new(UnsignedInteger::from_u64(rhs as u64));
-        Self { value }
+        Self {
+            value: self.value - rhs,
+        }
     }
 }
 
@@ -602,7 +545,7 @@ impl<'a> Mul<&'a Felt252> for Felt252 {
 
 impl<'a> MulAssign<&'a Felt252> for Felt252 {
     fn mul_assign(&mut self, rhs: &Self) {
-        self.value = &self.value * &rhs.value;
+        self.value *= &rhs.value;
     }
 }
 
@@ -619,7 +562,7 @@ impl<'a> Pow<u32> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: u32) -> Self::Output {
         Self::Output {
-            value: self.value.pow(rhs),
+            value: (&self.value).pow(rhs),
         }
     }
 }
@@ -628,7 +571,7 @@ impl<'a> Pow<&'a Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn pow(self, rhs: &'a Felt252) -> Self::Output {
         Self::Output {
-            value: self.value.pow(rhs.value.representative()),
+            value: (&self.value).pow(&rhs.value),
         }
     }
 }
@@ -662,51 +605,56 @@ impl<'a> Div<Felt252> for &'a Felt252 {
 
 impl Rem for Felt252 {
     type Output = Self;
-    fn rem(self, _rhs: Self) -> Self {
-        Self::zero()
+    fn rem(self, rhs: Self) -> Self {
+        Self {
+            value: self.value % rhs.value,
+        }
     }
 }
 
 impl<'a> Rem<&'a Felt252> for Felt252 {
     type Output = Self;
-    fn rem(self, _rhs: &Self) -> Self {
-        Self::zero()
+    fn rem(self, rhs: &Self) -> Self {
+        Self {
+            value: self.value % &rhs.value,
+        }
     }
 }
 
 impl Zero for Felt252 {
     fn zero() -> Self {
         Self {
-            value: FieldElement::from_raw(&Stark252PrimeField::ZERO),
+            value: FeltBigInt::zero(),
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.value == FieldElement::from_raw(&Stark252PrimeField::ZERO)
+        self.value.is_zero()
     }
 }
 
 impl One for Felt252 {
     fn one() -> Self {
-        let value = FieldElement::from_raw(&Stark252PrimeField::ONE);
-        Self { value }
+        Self {
+            value: FeltBigInt::one(),
+        }
     }
 
     fn is_one(&self) -> bool {
-        self.value == FieldElement::from_raw(&Stark252PrimeField::ONE)
+        self.value.is_one()
     }
 }
 
 impl Bounded for Felt252 {
     fn min_value() -> Self {
         Self {
-            value: FieldElement::zero(),
+            value: FeltBigInt::min_value(),
         }
     }
 
     fn max_value() -> Self {
         Self {
-            value: FieldElement::zero() - FieldElement::one(),
+            value: FeltBigInt::max_value(),
         }
     }
 }
@@ -714,278 +662,353 @@ impl Bounded for Felt252 {
 impl Num for Felt252 {
     type FromStrRadixErr = ParseFeltError;
     fn from_str_radix(string: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        let res = if radix == 16 {
-            let value = FieldElement::from_hex(string).map_err(|_| ParseFeltError)?;
-            Self { value }
-        } else {
-            let biguint = BigInt::from_str_radix(string, radix).map_err(|_| ParseFeltError)?;
-            biguint.into()
-        };
-        Ok(res)
+        Ok(Self {
+            value: FeltBigInt::from_str_radix(string, radix)?,
+        })
     }
 }
 
 impl Integer for Felt252 {
     fn div_floor(&self, rhs: &Self) -> Self {
-        let (d, _) = self.div_rem(rhs);
-        d
-    }
-
-    fn mod_floor(&self, rhs: &Self) -> Self {
-        let (_, m) = self.div_rem(rhs);
-        m
+        Self {
+            value: self.value.div_floor(&rhs.value),
+        }
     }
 
     fn div_rem(&self, other: &Self) -> (Self, Self) {
-        let (div, rem) = self.to_biguint().div_mod_floor(&other.to_biguint());
-        (Self::from(div), Self::from(rem))
+        let (div, rem) = self.value.div_rem(&other.value);
+        (Self { value: div }, Self { value: rem })
     }
 
-    // NOTE: we overload because the default impl calls div_floor AND mod_floor.
-    fn div_mod_floor(&self, rhs: &Self) -> (Self, Self) {
-        // NOTE: for positive integers, to floor and truncate is the same, so div_rem == div_mod_floor.
-        self.div_rem(rhs)
-    }
-
-    fn divides(&self, _other: &Self) -> bool {
-        !self.is_zero()
+    fn divides(&self, other: &Self) -> bool {
+        self.value.divides(&other.value)
     }
 
     fn gcd(&self, other: &Self) -> Self {
-        Self::from(self.to_biguint().gcd(&other.to_biguint()))
+        Self {
+            value: self.value.gcd(&other.value),
+        }
     }
 
     fn is_even(&self) -> bool {
-        self.value.representative().limbs[3] & 1 == 0
+        self.value.is_even()
     }
 
     fn is_multiple_of(&self, other: &Self) -> bool {
-        !other.is_zero()
+        self.value.is_multiple_of(&other.value)
     }
 
     fn is_odd(&self) -> bool {
-        !self.is_even()
+        self.value.is_odd()
     }
 
     fn lcm(&self, other: &Self) -> Self {
-        self.max(other).clone()
+        Self {
+            value: self.value.lcm(&other.value),
+        }
+    }
+
+    fn mod_floor(&self, rhs: &Self) -> Self {
+        Self {
+            value: self.value.mod_floor(&rhs.value),
+        }
     }
 }
 
 impl Signed for Felt252 {
     fn abs(&self) -> Self {
-        self.clone()
+        Self {
+            value: self.value.abs(),
+        }
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
-        self.max(other) - self.min(other)
+        Self {
+            value: self.value.abs_sub(&other.value),
+        }
     }
 
     fn signum(&self) -> Self {
-        if self.is_zero() {
-            Self::zero()
-        } else {
-            Self::one()
+        Self {
+            value: self.value.signum(),
         }
     }
 
     fn is_positive(&self) -> bool {
-        !self.is_zero()
+        self.value.is_positive()
     }
 
     fn is_negative(&self) -> bool {
-        false
+        self.value.is_negative()
     }
 }
-
-// -------------------
-// Bit-wise operations
-// NOTE: these do bit shifting on the representative
 
 impl Shl<u32> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: u32) -> Self {
-        &self << rhs
+        Self {
+            value: self.value << rhs,
+        }
     }
 }
 
 impl<'a> Shl<u32> for &'a Felt252 {
     type Output = Felt252;
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn shl(self, rhs: u32) -> Self::Output {
-        // TODO: upstream should be able to receive usize
-        Felt252::from(2).pow(rhs) * self
+        Self::Output {
+            value: &self.value << rhs,
+        }
     }
 }
 
 impl Shl<usize> for Felt252 {
     type Output = Self;
     fn shl(self, rhs: usize) -> Self {
-        &self << rhs
+        Self {
+            value: self.value << rhs,
+        }
     }
 }
 
 impl<'a> Shl<usize> for &'a Felt252 {
     type Output = Felt252;
     fn shl(self, rhs: usize) -> Self::Output {
-        self << (rhs as u32)
+        Self::Output {
+            value: &self.value << rhs,
+        }
     }
 }
 
 impl Shr<u32> for Felt252 {
     type Output = Self;
     fn shr(self, rhs: u32) -> Self {
-        &self >> rhs
+        Self {
+            value: self.value >> rhs,
+        }
     }
 }
 
 impl<'a> Shr<u32> for &'a Felt252 {
     type Output = Felt252;
     fn shr(self, rhs: u32) -> Self::Output {
-        self >> (rhs as usize)
-    }
-}
-
-impl Shr<usize> for Felt252 {
-    type Output = Felt252;
-    fn shr(self, rhs: usize) -> Self::Output {
-        &self >> rhs
-    }
-}
-
-impl<'a> Shr<usize> for &'a Felt252 {
-    type Output = Felt252;
-    fn shr(self, rhs: usize) -> Self::Output {
-        // TODO: upstream should do this check
-        if rhs >= 64 * 4 {
-            Felt252::zero()
-        } else {
-            let value = FieldElement::new(self.value.representative() >> rhs);
-            Self::Output { value }
+        Self::Output {
+            value: &self.value >> rhs,
         }
     }
 }
 
 impl ShrAssign<usize> for Felt252 {
     fn shr_assign(&mut self, rhs: usize) {
-        // TODO: optimize and move upstream
-        *self = self.clone() >> rhs;
+        self.value >>= rhs
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self) -> Self::Output {
-        self.clone() & rhs
+        Self::Output {
+            value: &self.value & &rhs.value,
+        }
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd<&'a Felt252> for Felt252 {
     type Output = Self;
     fn bitand(self, rhs: &Self) -> Self {
-        rhs & self
+        Self {
+            value: self.value & &rhs.value,
+        }
     }
 }
 
 impl<'a> BitAnd<Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        // TODO: move to upstream
-        let a = self.value.representative();
-        let b = rhs.value.representative();
-        let value = FieldElement::new(a & b);
-        Self::Output { value }
+        Self::Output {
+            value: &self.value & rhs.value,
+        }
     }
 }
 
 impl<'a> BitOr for &'a Felt252 {
     type Output = Felt252;
     fn bitor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
-        let b = rhs.value.representative();
-
-        for i in 0..a.limbs.len() {
-            a.limbs[i] |= b.limbs[i];
+        Self::Output {
+            value: &self.value | &rhs.value,
         }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a | b);
-        Self::Output { value }
     }
 }
 
 impl<'a> BitXor for &'a Felt252 {
     type Output = Felt252;
     fn bitxor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
-        let b = rhs.value.representative();
-
-        for i in 0..a.limbs.len() {
-            a.limbs[i] ^= b.limbs[i];
+        Self::Output {
+            value: &self.value ^ &rhs.value,
         }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a ^ b);
-        Self::Output { value }
     }
 }
 
-// TODO: move to upstream
 impl ToPrimitive for Felt252 {
     fn to_u128(&self) -> Option<u128> {
-        match self.value.representative().limbs {
-            [0, 0, high, low] => Some(((high as u128) << 64) | low as u128),
-            _ => None,
-        }
+        self.value.to_u128()
     }
 
     fn to_u64(&self) -> Option<u64> {
-        match self.value.representative().limbs {
-            [0, 0, 0, val] => Some(val),
-            _ => None,
-        }
+        self.value.to_u64()
     }
 
     fn to_i64(&self) -> Option<i64> {
-        // NOTE: result can't be negative
-        self.to_u64().as_ref().and_then(u64::to_i64)
+        self.value.to_i64()
     }
 }
 
 impl FromPrimitive for Felt252 {
     fn from_u64(n: u64) -> Option<Self> {
-        Some(Felt252 {
-            value: FieldElement::from(n),
-        })
+        FeltBigInt::from_u64(n).map(|n| Self { value: n })
     }
 
     fn from_i64(n: i64) -> Option<Self> {
-        let res = (!n.is_negative()).then(|| FieldElement::from(n as u64));
-        res.map(|value| Felt252 { value })
+        FeltBigInt::from_i64(n).map(|n| Self { value: n })
     }
 }
 
 impl fmt::Display for Felt252 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_str_radix(10))
+        write!(f, "{}", self.value)
     }
 }
 
 impl fmt::Debug for Felt252 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_str_radix(10))
+        write!(f, "{}", self.value)
     }
 }
 
+macro_rules! assert_felt_methods {
+    ($type:ty) => {
+        const _: () = {
+            fn assert_felt_ops<T: FeltOps>() {}
+            fn assertion() {
+                assert_felt_ops::<$type>();
+            }
+        };
+    };
+}
+
+macro_rules! assert_felt_impl {
+    ($type:ty) => {
+        const _: () = {
+            fn assert_add<T: Add>() {}
+            fn assert_add_ref<'a, T: Add<&'a $type>>() {}
+            fn assert_add_u32<T: Add<u32>>() {}
+            fn assert_add_usize<T: Add<usize>>() {}
+            fn assert_add_assign<T: AddAssign>() {}
+            fn assert_add_assign_ref<'a, T: AddAssign<&'a $type>>() {}
+            fn assert_sum<T: Sum<$type>>() {}
+            fn assert_neg<T: Neg>() {}
+            fn assert_sub<T: Sub>() {}
+            fn assert_sub_ref<'a, T: Sub<&'a $type>>() {}
+            fn assert_sub_assign<T: SubAssign>() {}
+            fn assert_sub_assign_ref<'a, T: SubAssign<&'a $type>>() {}
+            fn assert_sub_u32<T: Sub<u32>>() {}
+            fn assert_sub_usize<T: Sub<usize>>() {}
+            fn assert_mul<T: Mul>() {}
+            fn assert_mul_ref<'a, T: Mul<&'a $type>>() {}
+            fn assert_mul_assign_ref<'a, T: MulAssign<&'a $type>>() {}
+            fn assert_pow_u32<T: Pow<u32>>() {}
+            fn assert_pow_felt<'a, T: Pow<&'a $type>>() {}
+            fn assert_div<T: Div>() {}
+            fn assert_ref_div<T: Div<$type>>() {}
+            fn assert_rem<T: Rem>() {}
+            fn assert_rem_ref<'a, T: Rem<&'a $type>>() {}
+            fn assert_zero<T: Zero>() {}
+            fn assert_one<T: One>() {}
+            fn assert_bounded<T: Bounded>() {}
+            fn assert_num<T: Num>() {}
+            fn assert_integer<T: Integer>() {}
+            fn assert_signed<T: Signed>() {}
+            fn assert_shl_u32<T: Shl<u32>>() {}
+            fn assert_shl_usize<T: Shl<usize>>() {}
+            fn assert_shr_u32<T: Shr<u32>>() {}
+            fn assert_shr_assign_usize<T: ShrAssign<usize>>() {}
+            fn assert_bitand<T: BitAnd>() {}
+            fn assert_bitand_ref<'a, T: BitAnd<&'a $type>>() {}
+            fn assert_ref_bitand<T: BitAnd<$type>>() {}
+            fn assert_bitor<T: BitOr>() {}
+            fn assert_bitxor<T: BitXor>() {}
+            fn assert_from_primitive<T: FromPrimitive>() {}
+            fn assert_to_primitive<T: ToPrimitive>() {}
+            fn assert_display<T: fmt::Display>() {}
+            fn assert_debug<T: fmt::Debug>() {}
+
+            #[allow(dead_code)]
+            fn assert_all() {
+                assert_add::<$type>();
+                assert_add::<&$type>();
+                assert_add_ref::<$type>();
+                assert_add_u32::<$type>();
+                assert_add_usize::<$type>();
+                assert_add_usize::<&$type>();
+                assert_add_assign::<$type>();
+                assert_add_assign_ref::<$type>();
+                assert_sum::<$type>();
+                assert_neg::<$type>();
+                assert_neg::<&$type>();
+                assert_sub::<$type>();
+                assert_sub::<&$type>();
+                assert_sub_ref::<$type>();
+                assert_sub_assign::<$type>();
+                assert_sub_assign_ref::<$type>();
+                assert_sub_u32::<$type>();
+                assert_sub_u32::<&$type>();
+                assert_sub_usize::<$type>();
+                assert_mul::<$type>();
+                assert_mul::<&$type>();
+                assert_mul_ref::<$type>();
+                assert_mul_assign_ref::<$type>();
+                assert_pow_u32::<$type>();
+                assert_pow_felt::<&$type>();
+                assert_div::<$type>();
+                assert_div::<&$type>();
+                assert_ref_div::<&$type>();
+                assert_rem::<$type>();
+                assert_rem_ref::<$type>();
+                assert_zero::<$type>();
+                assert_one::<$type>();
+                assert_bounded::<$type>();
+                assert_num::<$type>();
+                assert_integer::<$type>();
+                assert_signed::<$type>();
+                assert_shl_u32::<$type>();
+                assert_shl_u32::<&$type>();
+                assert_shl_usize::<$type>();
+                assert_shl_usize::<&$type>();
+                assert_shr_u32::<$type>();
+                assert_shr_u32::<&$type>();
+                assert_shr_assign_usize::<$type>();
+                assert_bitand::<&$type>();
+                assert_bitand_ref::<$type>();
+                assert_ref_bitand::<&$type>();
+                assert_bitor::<&$type>();
+                assert_bitxor::<&$type>();
+                assert_from_primitive::<$type>();
+                assert_to_primitive::<$type>();
+                assert_display::<$type>();
+                assert_debug::<$type>();
+            }
+        };
+    };
+}
+
+assert_felt_methods!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
+assert_felt_impl!(FeltBigInt<FIELD_HIGH, FIELD_LOW>);
+assert_felt_impl!(Felt252);
+
 #[cfg(test)]
 mod test {
-    use core::cmp;
-
     use super::*;
     use crate::arbitrary::nonzero_felt252;
-    use num_integer::Integer;
+    use core::cmp;
     use rstest::rstest;
 
     use proptest::prelude::*;
@@ -1171,7 +1194,7 @@ mod test {
         // Property-based test that ensures, for 100 {value}s that are randomly generated
         // each time tests are run, that performing a bit shift to the left by {shift_amount}
         // of bits (between 0 and 999) returns a result that is inside of the range [0, p].
-        fn shift_left_in_range(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
+        fn shift_left_in_range(value in any::<Felt252>(), shift_amount in 0..1000_u32){
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let result = (value.clone() << shift_amount).to_biguint();
@@ -1179,18 +1202,6 @@ mod test {
 
             let result = (&value << shift_amount).to_biguint();
             prop_assert!(&result < p);
-        }
-
-        #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn shift_left_equals_old_shl(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
-            let expected = (value.to_biguint() << shift_amount).mod_floor(&Felt252::prime());
-
-            let result = (&value << shift_amount).to_biguint();
-            prop_assert_eq!(&result, &expected);
-
-            let result = (value << shift_amount).to_biguint();
-            prop_assert_eq!(&result, &expected);
         }
 
         #[test]
@@ -1211,22 +1222,10 @@ mod test {
         // of bits (between 0 and 999), with assignment, returns a result that is inside of the range [0, p].
         // "With assignment" means that the result of the operation is autommatically assigned
         // to the variable value, replacing its previous content.
-        fn shift_right_assign_in_range(mut value in any::<Felt252>(), shift_amount in 0..1000_usize) {
+        fn shift_right_assign_in_range(mut value in any::<Felt252>(), shift_amount in 0..1000_usize){
             let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             value >>= shift_amount;
             prop_assert!(value.to_biguint() < p);
-        }
-
-        #[test]
-        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn shift_right_equals_old_shr(value in any::<Felt252>(), shift_amount in 0..1000_u32) {
-            let expected = (value.to_biguint() >> shift_amount).mod_floor(&Felt252::prime());
-
-            let result = (&value >> shift_amount).to_biguint();
-            prop_assert_eq!(&result, &expected);
-
-            let result = (value >> shift_amount).to_biguint();
-            prop_assert_eq!(&result, &expected);
         }
 
         #[test]
@@ -1346,10 +1345,10 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn from_i64_and_to_i64_primitive(x in any::<i64>()) {
-            let x = x.checked_abs().unwrap_or(0);
-            let x_felt: Felt252 = Felt252::from_i64(x).unwrap();
-            let x_i64: i64 = Felt252::to_i64(&x_felt).unwrap();
+        fn from_i64_and_to_i64_primitive(x in any::<u32>()) {
+            let x: i64 = x as i64;
+            let x_felt:Felt252 = Felt252::from_i64(x).unwrap();
+            let x_i64:i64 = Felt252::to_i64(&x_felt).unwrap();
             prop_assert_eq!(x, x_i64);
         }
 
@@ -1419,7 +1418,6 @@ mod test {
 
         #[test]
         fn felt_is_always_positive(x in any::<Felt252>()) {
-            prop_assume!(!x.is_zero());
             prop_assert!(x.is_positive())
         }
 
@@ -1447,10 +1445,18 @@ mod test {
         }
 
         #[test]
+        fn modpow_in_range(x in any::<Felt252>(), y in any::<Felt252>()) {
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+
+            let p_felt = Felt252::max_value();
+
+            let modpow = x.modpow(&y, &p_felt).to_biguint();
+            prop_assert!(modpow < p, "{}", modpow);
+        }
+
+        #[test]
         fn sqrt_in_range(x in any::<Felt252>()) {
-            // we use x = x' * x' so x has a square root
-            let x = &x * &x;
-            let p = Felt252::prime();
+            let p = BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
 
             let sqrt = x.sqrt().to_biguint();
             prop_assert!(sqrt < p, "{}", sqrt);
@@ -1458,8 +1464,6 @@ mod test {
 
         #[test]
         fn sqrt_is_inv_square(x in any::<Felt252>()) {
-            // we use x = x' * x' so x has a square root
-            let x = &x * &x;
             let x_sq = &x * &x;
             let sqrt = x_sq.sqrt();
 
@@ -1555,26 +1559,6 @@ mod test {
             let as_uint = &x.to_biguint();
             prop_assert!(as_uint < p, "{}", as_uint);
         }
-
-        #[test]
-        fn felt_to_str(x in any::<Felt252>(), radix in 2_u32..37) {
-            let str_x = x.to_str_radix(radix);
-            let int_x = x.to_biguint();
-            let expected = int_x.to_str_radix(radix);
-            prop_assert_eq!(str_x, expected);
-        }
-
-        #[test]
-        fn bigint_from_felt(x in any::<Felt252>()) {
-            prop_assert_eq!(BigInt::from(x.clone()), x.to_bigint());
-        }
-
-        #[test]
-        fn to_signed_felt_is_negative(x in any::<i128>()) {
-            let int = BigInt::from(x);
-            let felt = Felt252::from(x);
-            prop_assert_eq!(felt.to_signed_felt(), int);
-        }
     }
 
     #[rstest]
@@ -1591,9 +1575,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of adding two zeroes is zero
     fn sum_zeros_in_range() {
-        let x = Felt252::zero();
-        let y = Felt252::zero();
-        let z = Felt252::zero();
+        let x = Felt252::new(0);
+        let y = Felt252::new(0);
+        let z = Felt252::new(0);
         assert_eq!(x + y, z)
     }
 
@@ -1601,9 +1585,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of multiplying two zeroes is zero
     fn mul_zeros_in_range() {
-        let x = Felt252::zero();
-        let y = Felt252::zero();
-        let z = Felt252::zero();
+        let x = Felt252::new(0);
+        let y = Felt252::new(0);
+        let z = Felt252::new(0);
         assert_eq!(x * y, z)
     }
 
@@ -1611,9 +1595,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of performing a bit and operation between zeroes is zero
     fn bit_and_zeros_in_range() {
-        let x = Felt252::zero();
-        let y = Felt252::zero();
-        let z = Felt252::zero();
+        let x = Felt252::new(0);
+        let y = Felt252::new(0);
+        let z = Felt252::new(0);
         assert_eq!(&x & &y, z)
     }
 
@@ -1621,9 +1605,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit or operation between zeroes is zero
     fn bit_or_zeros_in_range() {
-        let x = Felt252::zero();
-        let y = Felt252::zero();
-        let z = Felt252::zero();
+        let x = Felt252::new(0);
+        let y = Felt252::new(0);
+        let z = Felt252::new(0);
         assert_eq!(&x | &y, z)
     }
 
@@ -1631,9 +1615,9 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     // Checks that the result of perfforming a bit xor operation between zeroes is zero
     fn bit_xor_zeros_in_range() {
-        let x = Felt252::zero();
-        let y = Felt252::zero();
-        let z = Felt252::zero();
+        let x = Felt252::new(0);
+        let y = Felt252::new(0);
+        let z = Felt252::new(0);
         assert_eq!(&x ^ &y, z)
     }
 
@@ -1666,7 +1650,7 @@ mod test {
     #[test]
     fn is_zero() {
         let felt_zero = Felt252::zero();
-        let felt_non_zero = Felt252::new(3_u32);
+        let felt_non_zero = Felt252::new(3);
         assert!(felt_zero.is_zero());
         assert!(!felt_non_zero.is_zero())
     }
@@ -1681,7 +1665,7 @@ mod test {
     #[test]
     fn is_one() {
         let felt_one = Felt252::one();
-        let felt_non_one = Felt252::new(8_u32);
+        let felt_non_one = Felt252::new(8);
         assert!(felt_one.is_one());
         assert!(!felt_non_one.is_one())
     }
@@ -1690,19 +1674,5 @@ mod test {
     fn signum_of_zero_is_zero() {
         let zero = Felt252::zero();
         assert_eq!(&zero.signum(), &zero)
-    }
-
-    #[test]
-    fn felt_from_str_radix_failed() {
-        let x = Felt252::from_str_radix("abcdefghijk", 16);
-        assert!(x.is_err());
-        let res = x.unwrap_err().to_string();
-        let expected = "ParseFeltError";
-        assert_eq!(res, expected)
-    }
-
-    #[test]
-    fn default_is_zero() {
-        assert_eq!(Felt252::default(), Felt252::zero())
     }
 }
