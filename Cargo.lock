@@ -289,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-felt"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "lambdaworks-math",
  "lazy_static",
@@ -702,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-take_until_unbalanced"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "nom",
  "wasm-bindgen-test",
@@ -710,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "ark-ff",
@@ -718,7 +718,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.7.0",
+ "cairo-felt 0.8.0",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "cairo-take_until_unbalanced",
@@ -753,7 +753,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1462,7 +1462,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "cairo-vm",
  "serde",
