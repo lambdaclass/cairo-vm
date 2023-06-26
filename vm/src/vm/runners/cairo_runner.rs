@@ -776,14 +776,16 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
-        vm.relocation_table = Some(relocation_table.clone());
 
         if relocate_mem {
             if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        vm.relocate_trace(&relocation_table)
+
+        vm.relocate_trace(&relocation_table)?;
+        vm.relocation_table = Some(relocation_table);
+        Ok(())
     }
 
     // Returns a map from builtin base's segment index to stop_ptr offset
