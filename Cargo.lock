@@ -1578,7 +1578,6 @@ version = "0.1.0"
 source = "git+https://github.com/lambdaclass/lambdaworks?rev=5d61e79#5d61e799e09b380d8fdcb38565cd2a2e2f84d192"
 dependencies = [
  "rand",
- "rayon",
  "thiserror",
 ]
 
