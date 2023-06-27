@@ -185,7 +185,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
+            .map(|x| MaybeRelocatable::from(Felt252::from(x.value.clone())))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc

@@ -81,28 +81,44 @@ pub struct RunResources {
     n_steps: Option<usize>,
 }
 
+pub trait ResourceTracker {
+    fn consumed(&self) -> bool;
+
+    fn consume_step(&mut self);
+
+    fn get_n_steps(&self) -> Option<usize>;
+
+    fn run_resources(&self) -> &RunResources;
+}
+
 impl RunResources {
     pub fn new(n_steps: usize) -> Self {
-        RunResources {
+        Self {
             n_steps: Some(n_steps),
         }
     }
+}
 
-    pub fn consumed(&self) -> bool {
+impl ResourceTracker for RunResources {
+    fn consumed(&self) -> bool {
         if self.n_steps == Some(0) {
             return true;
         }
         false
     }
 
-    pub fn consume_step(&mut self) {
+    fn consume_step(&mut self) {
         if let Some(n_steps) = self.n_steps {
             self.n_steps = Some(n_steps.saturating_sub(1));
         }
     }
 
-    pub fn get_n_steps(&self) -> Option<usize> {
+    fn get_n_steps(&self) -> Option<usize> {
         self.n_steps
+    }
+
+    fn run_resources(&self) -> &RunResources {
+        self
     }
 }
 
@@ -528,7 +544,6 @@ impl CairoRunner {
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
-        run_resources: &mut RunResources,
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
@@ -538,15 +553,14 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data_dictionary)?;
 
-        while vm.run_context.pc != address && !run_resources.consumed() {
+        while vm.run_context.pc != address && !hint_processor.consumed() {
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
-                run_resources,
             )?;
-            run_resources.consume_step()
+            hint_processor.consume_step();
         }
 
         if vm.run_context.pc != address {
@@ -576,7 +590,6 @@ impl CairoRunner {
                 &mut self.exec_scopes,
                 &hint_data_dictionary,
                 &self.program.constants,
-                &mut RunResources::default(),
             )?;
         }
 
@@ -896,7 +909,6 @@ impl CairoRunner {
         &mut self,
         entrypoint: usize,
         args: &[&CairoArg],
-        run_resources: &mut RunResources,
         verify_secure: bool,
         program_segment_size: Option<usize>,
         vm: &mut VirtualMachine,
@@ -911,7 +923,7 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, run_resources, vm, hint_processor)
+        self.run_until_pc(end, vm, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, vm, err))?;
         self.end_run(true, false, vm, hint_processor)?;
 
@@ -1933,12 +1945,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2014,12 +2021,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2134,12 +2136,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2278,12 +2275,7 @@ mod tests {
         cairo_runner.initialize_vm(&mut vm).unwrap();
         //Execution Phase
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         //Check final values against Python VM
@@ -2520,12 +2512,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2664,12 +2651,7 @@ mod tests {
         let end = cairo_runner.initialize_main_entrypoint(&mut vm).unwrap();
         cairo_runner.initialize_vm(&mut vm).unwrap();
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
         vm.segments.compute_effective_sizes();
@@ -2846,12 +2828,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2892,12 +2869,7 @@ mod tests {
         //Execution Phase
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -2983,12 +2955,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            cairo_runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            ),
+            cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
@@ -3481,12 +3448,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor,
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
             cairo_runner.end_run(false, false, &mut vm, &mut hint_processor),
@@ -3774,7 +3736,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perm_range_check_limits_no_builtins() {
         let program = program!();
-        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new());
+        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new(), RunResources::default());
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -4576,7 +4538,6 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ], //range_check_ptr
-                &mut RunResources::default(),
                 true,
                 None,
                 &mut vm,
@@ -4607,7 +4568,6 @@ mod tests {
                     &mayberelocatable!(2).into(),
                     &MaybeRelocatable::from((2, 0)).into()
                 ],
-                &mut RunResources::default(),
                 true,
                 None,
                 &mut new_vm,
@@ -4646,7 +4606,6 @@ mod tests {
                 &[
                     &MaybeRelocatable::from((2, 0)).into() //bitwise_ptr
                 ],
-                &mut RunResources::default(),
                 true,
                 None,
                 &mut vm,
@@ -4764,7 +4723,6 @@ mod tests {
         let result = cairo_runner.run_from_entrypoint(
             main_entrypoint,
             &[],
-            &mut RunResources::default(),
             true,
             None,
             &mut vm,
@@ -4794,12 +4752,7 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            )
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4822,12 +4775,7 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            )
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4850,12 +4798,7 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            )
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
             .unwrap();
         vm.segments.compute_effective_sizes();
         let initial_pointer = vm.get_ap();
@@ -4879,12 +4822,7 @@ mod tests {
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
         runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            )
+            .run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty())
             .unwrap();
         vm.segments.compute_effective_sizes();
         let mut exec = runner.get_execution_resources(&vm).unwrap();
@@ -4974,12 +4912,7 @@ mod tests {
 
         // program takes 80 steps
         assert_matches!(
-            runner.run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            ),
+            runner.run_until_pc(end, &mut vm, &mut BuiltinHintProcessor::new_empty(),),
             Ok(())
         )
     }
@@ -4995,19 +4928,14 @@ mod tests {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
-        let mut run_resources = RunResources::new(81);
-        // program takes 80 steps
+        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new(), RunResources::new(81));
+        // program takes 81 steps
         assert_matches!(
-            runner.run_until_pc(
-                end,
-                &mut run_resources,
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            ),
+            runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
-        assert_eq!(run_resources.get_n_steps(), Some(1));
+        assert_eq!(hint_processor.run_resources().get_n_steps(), Some(1));
     }
 
     #[test]
@@ -5021,19 +4949,14 @@ mod tests {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
-        let mut run_resources = RunResources::new(80);
+        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new(), RunResources::new(80));
         // program takes 80 steps
         assert_matches!(
-            runner.run_until_pc(
-                end,
-                &mut run_resources,
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            ),
+            runner.run_until_pc(end, &mut vm, &mut hint_processor),
             Ok(())
         );
 
-        assert_eq!(run_resources, RunResources::new(0));
+        assert_eq!(hint_processor.run_resources(), &RunResources::new(0));
     }
 
     #[test]
@@ -5047,17 +4970,12 @@ mod tests {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm).unwrap();
-        let mut run_resources = RunResources::new(9);
-        // program takes 80 steps
+        let mut hint_processor = BuiltinHintProcessor::new(HashMap::new(), RunResources::new(9));
+        // program takes 9 steps
         assert_matches!(
-            runner.run_until_pc(
-                end,
-                &mut run_resources,
-                &mut vm,
-                &mut BuiltinHintProcessor::new_empty(),
-            ),
+            runner.run_until_pc(end, &mut vm, &mut hint_processor,),
             Err(VirtualMachineError::UnfinishedExecution)
         );
-        assert_eq!(run_resources, RunResources::new(0));
+        assert_eq!(hint_processor.run_resources(), &RunResources::new(0));
     }
 }

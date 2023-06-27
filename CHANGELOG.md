@@ -2,7 +2,25 @@
 
 #### Upcoming Changes
 
-* build: remove unused implicit features from cairo-vm
+#### [0.8.0] - 2023-6-26
+
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
+
+    Changes under this feature:
+  * `Felt252` now uses _lambdaworks_' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
+
+#### [0.7.0] - 2023-6-26
+
+* BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)
+  * Rename trait `HintProcessor` to `HintProcessorLogic`
+  * Add trait `ResourceTracker`
+  * Trait `HintProcessor` is now `HintProcessor: HintProcessorLogic + ResourceTracker`
+  * `BuiltinHintProcessor::new` & `Cairo1HintProcessor::new` now receive the argumet `run_resources: RunResources`
+  * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
+  * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
+
+* build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
 
 * feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
 

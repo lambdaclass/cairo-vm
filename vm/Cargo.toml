@@ -1,6 +1,6 @@
 [package]
 name = "cairo-vm"
-version = "0.6.1"
+version = "0.8.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Blazing fast Cairo interpreter"
@@ -21,7 +21,9 @@ std = [
     "dep:num-prime",
 ]
 cairo-1-hints = ["dep:cairo-lang-starknet", "dep:cairo-lang-casm", "dep:ark-ff", "dep:ark-std"]
-
+lambdaworks-felt = [
+    "felt/lambdaworks-felt"
+]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [

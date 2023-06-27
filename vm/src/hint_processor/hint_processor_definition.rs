@@ -8,13 +8,13 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::runners::cairo_runner::RunResources;
+use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use felt::Felt252;
 
-pub trait HintProcessor {
+pub trait HintProcessorLogic {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     fn execute_hint(
         &mut self,
@@ -28,10 +28,6 @@ pub trait HintProcessor {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt252>,
-        // RunResources keeps track of the steps executed by the VirtualMachine.
-        // It is not used in cairo-rs, but it is utilized in starknet_in_rust and blockifier
-        // to limit recursive contract calls.
-        run_resources: &mut RunResources,
     ) -> Result<(), HintError>;
 
     //Transforms hint data outputed by the VM into whichever format will be later used by execute_hint
@@ -54,6 +50,9 @@ pub trait HintProcessor {
         }))
     }
 }
+
+pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
+impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
 
 fn get_ids_data(
     reference_ids: &HashMap<String, usize>,

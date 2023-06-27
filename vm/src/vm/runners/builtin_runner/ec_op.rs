@@ -280,7 +280,7 @@ mod tests {
     use crate::utils::{test_utils::*, CAIRO_PRIME};
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::cairo_runner::{CairoRunner, RunResources};
+    use crate::vm::runners::cairo_runner::CairoRunner;
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -444,12 +444,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(
-                address,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor,
-            )
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 7)));
@@ -494,12 +489,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(
-                address,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor,
-            )
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
