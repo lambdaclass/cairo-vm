@@ -16,7 +16,24 @@ use crate::{
 pub struct PublicMemoryEntry {
     address: usize,
     page: usize,
+    #[serde(serialize_with = "mem_value_serde::serialize")]
     value: Option<Felt252>,
+}
+
+mod mem_value_serde {
+    use super::*;
+    use serde::Serializer;
+
+    pub(crate) fn serialize<S: Serializer>(
+        value: &Option<Felt252>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        if let Some(value) = value {
+            serializer.serialize_str(&format!("0x{}", value.to_str_radix(16)))
+        } else {
+            serializer.serialize_none()
+        }
+    }
 }
 
 #[derive(Serialize, Debug)]
