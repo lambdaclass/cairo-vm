@@ -1,9 +1,11 @@
 [package]
 name = "hint_accountant"
-version = "0.8.0"
-edition = "2021"
-license = "Apache-2.0"
 description = "A script to check which whitelisted hints we're missing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
 
 [dependencies]
 cairo-vm = { path = "../vm", version = "0.8.0" }

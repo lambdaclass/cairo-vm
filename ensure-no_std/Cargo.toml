@@ -1,7 +1,10 @@
 [package]
 name = "ensure-no_std"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
 
 [dependencies]
 cairo-felt = { path = "../felt", default-features = false, features = [

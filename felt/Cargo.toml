@@ -1,9 +1,11 @@
 [package]
 name = "cairo-felt"
-version = "0.8.0"
-edition = "2021"
-license = "Apache-2.0"
 description = "Field elements representation for the Cairo VM"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
 
 [features]
 default = ["std"]
