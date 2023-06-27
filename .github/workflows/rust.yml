@@ -163,6 +163,7 @@ jobs:
     - name: Check no-std
       run: |
         cd ensure-no_std
+        cargo build --release --no-default-features
         cargo build --release
 
   tests:
