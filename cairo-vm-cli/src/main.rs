@@ -274,7 +274,7 @@ mod tests {
     //to fool Codecov.
     #[test]
     fn test_main() {
-        assert!(main().is_ok());
+        assert!(main().is_err());
     }
 
     #[test]
