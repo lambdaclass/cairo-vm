@@ -462,7 +462,7 @@ impl VirtualMachine {
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let pc = self.run_context.pc.offset;
 
-        if self.segments.memory.data[0].len() < pc {
+        if self.segments.memory.data[0].len() <= pc {
             return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
         }
 
