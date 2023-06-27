@@ -29,7 +29,6 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
-use super::runners::cairo_runner::RunResources;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -451,12 +450,11 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
-        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
             for (hint_index, hint_data) in hint_list.iter().enumerate() {
                 hint_executor
-                    .execute_hint(self, exec_scopes, hint_data, constants, run_resources)
+                    .execute_hint(self, exec_scopes, hint_data, constants)
                     .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
             }
         }
@@ -490,15 +488,8 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
         constants: &HashMap<String, Felt252>,
-        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(
-            hint_executor,
-            exec_scopes,
-            hint_data_dictionary,
-            constants,
-            run_resources,
-        )?;
+        self.step_hint(hint_executor, exec_scopes, hint_data_dictionary, constants)?;
 
         #[cfg(feature = "hooks")]
         self.execute_pre_step_instruction(
@@ -2711,7 +2702,6 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -2941,7 +2931,6 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -3024,7 +3013,6 @@ mod tests {
                     exec_scopes_ref!(),
                     &HashMap::new(),
                     &HashMap::new(),
-                    &mut RunResources::default(),
                 ),
                 Ok(())
             );
@@ -3121,7 +3109,6 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -3143,7 +3130,6 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -3166,7 +3152,6 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::new(),
                 &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -3732,7 +3717,6 @@ mod tests {
                     exec_scopes_ref!(),
                     &hint_data_dictionary,
                     &HashMap::new(),
-                    &mut RunResources::default(),
                 ),
                 Ok(())
             );
@@ -4209,12 +4193,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
@@ -4239,12 +4218,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);
@@ -4333,12 +4307,7 @@ mod tests {
                 .unwrap();
 
             assert!(cairo_runner
-                .run_until_pc(
-                    end,
-                    &mut RunResources::default(),
-                    &mut virtual_machine_from_builder,
-                    &mut hint_processor
-                )
+                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
                 .is_err());
         }
     }
