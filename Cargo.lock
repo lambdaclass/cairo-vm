@@ -701,14 +701,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cairo-take_until_unbalanced"
-version = "0.32.0"
-dependencies = [
- "nom",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "cairo-vm"
 version = "0.8.0"
 dependencies = [
@@ -721,7 +713,6 @@ dependencies = [
  "cairo-felt 0.8.0",
  "cairo-lang-casm",
  "cairo-lang-starknet",
- "cairo-take_until_unbalanced",
  "criterion",
  "generic-array",
  "hashbrown 0.13.2",
