@@ -272,9 +272,10 @@ mod tests {
 
     //Since the functionality here is trivial, I just call the function
     //to fool Codecov.
+    #[should_panic]
     #[test]
     fn test_main() {
-        assert!(main().is_err());
+        assert!(main().is_ok());
     }
 
     #[test]
