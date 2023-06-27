@@ -189,8 +189,29 @@ impl Felt252 {
         value.into()
     }
 
+    #[deprecated]
+    pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
+        Self::from(
+            self.to_biguint()
+                .modpow(&exponent.to_biguint(), &modulus.to_biguint()),
+        )
+    }
+
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
         self.value.representative().limbs.into_iter().rev()
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    #[deprecated]
+    pub fn to_signed_bytes_le(&self) -> Vec<u8> {
+        // NOTE: this is unsigned
+        self.to_biguint().to_bytes_le()
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    #[deprecated]
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {

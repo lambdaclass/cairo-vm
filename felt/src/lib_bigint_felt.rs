@@ -142,11 +142,14 @@ impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
         value.into()
     }
+
+    #[deprecated]
     pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
         Self {
             value: self.value.modpow(&exponent.value, &modulus.value),
         }
     }
+
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.value.iter_u64_digits()
     }
@@ -184,10 +187,13 @@ impl Felt252 {
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
+    #[deprecated]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
+        // NOTE: this is unsigned
         self.value.to_signed_bytes_le()
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
+    #[deprecated]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
