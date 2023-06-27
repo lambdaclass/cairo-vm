@@ -100,6 +100,6 @@ pub enum PublicInputError {
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
     VirtualMachine(#[from] VirtualMachineError),
-    #[error("Trace related error")]
+    #[error(transparent)]
     Trace(#[from] TraceError),
 }
