@@ -5,12 +5,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 readme.workspace = true
+publish = false
 
 [dependencies]
-cairo-felt = { path = "../felt", default-features = false, features = [
-    "alloc",
-] }
-cairo-vm = { path = "../vm", default-features = false }
+felt.workspace = true
+cairo-vm.workspace = true
 
 wee_alloc = "0.4.5"
 
