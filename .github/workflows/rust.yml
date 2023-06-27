@@ -171,7 +171,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special-features: ["", "lambdaworks-felt"]
+        special_features: ["", "lambdaworks-felt"]
         target: [ test, test-no_std, test-wasm ]
         # TODO: features
     name: Run tests
