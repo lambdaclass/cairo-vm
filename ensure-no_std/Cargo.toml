@@ -1,15 +1,13 @@
 [package]
 name = "ensure-no_std"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-readme.workspace = true
-publish = false
+version = "0.1.0"
+edition = "2021"
 
 [dependencies]
-felt.workspace = true
-cairo-vm.workspace = true
+cairo-felt = { path = "../felt", default-features = false, features = [
+    "alloc",
+] }
+cairo-vm = { path = "../vm", default-features = false }
 
 wee_alloc = "0.4.5"
 
