@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+
 #### [0.8.0] - 2023-6-26
 
 * feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
