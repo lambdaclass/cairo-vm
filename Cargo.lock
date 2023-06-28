@@ -737,7 +737,6 @@ dependencies = [
  "sha2",
  "sha3",
  "starknet-crypto",
- "thiserror",
  "thiserror-no-std",
  "wasm-bindgen-test",
 ]
