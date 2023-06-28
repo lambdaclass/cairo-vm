@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
+* chore: mark `modpow` and `to_signed_bytes_le` as *deprecated* [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
 * fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
 
 * build: remove dependecy to `thiserror` (use `thiserror-no-std/std` instead)
@@ -13,8 +17,8 @@
 * feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1281](https://github.com/lambdaclass/cairo-rs/pull/1281)
 
     Changes under this feature:
-  * `Felt252` now uses _lambdaworks_' `FieldElement` internally
-  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
+  * `Felt252` now uses *LambdaWorks*' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_signed_bytes_le`
 
 #### [0.7.0] - 2023-6-26
 
