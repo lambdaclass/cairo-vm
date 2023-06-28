@@ -4,9 +4,15 @@
 
 * fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
 
+* fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
+
+* build: remove dependency to `thiserror` (use `thiserror-no-std/std` instead)
+
+* chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
+
 #### [0.8.0] - 2023-6-26
 
-* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1281](https://github.com/lambdaclass/cairo-rs/pull/1281)
 
     Changes under this feature:
   * `Felt252` now uses _lambdaworks_' `FieldElement` internally
@@ -23,6 +29,7 @@
   * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
 
 * build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
+
 
 #### [0.6.1] - 2023-6-23
 
