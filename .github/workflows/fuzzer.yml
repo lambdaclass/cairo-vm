@@ -1,0 +1,57 @@
+name: "Fuzzer Workflow"
+on:
+  schedule:
+  # At the end of every day
+  - cron: "0 0 * * *"
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref }}
+
+
+    - name: Cache Inputs
+      id: cache-inputs
+      uses: actions/cache@v3
+      with:
+      # Path where the inputs for the fuzzer are stored
+        path: fuzzer/hfuzz_workspace/fuzz_json/input
+        key: ${{ runner.os }}-inputs
+
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        sudo apt-get install binutils-dev
+        sudo apt-get install libunwind-dev
+        sudo curl https://sh.rustup.rs -sSf | bash -s -- -y --default-toolchain nightly
+
+    - name: Set Environment Variable
+      run: echo "PATH="/root/.cargo/bin:${PATH}"" >> $GITHUB_ENV
+
+    - name: Install Honggfuzz
+      run: cargo install honggfuzz
+
+    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'true' }}
+    # If didn´t have any inputs starts from 0
+      name: Initializing fuzzer from 0 
+      run: |
+        cd fuzzer
+        HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --timeout 60 -T" cargo hfuzz run fuzz_json
+
+    # If has cached inputs starts with them and run with minimize 
+    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'false' }}
+      name: Initializing fuzzer with previous inputs 
+      run: |
+        cd fuzzer
+        HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --minimize --timeout 60 -T" cargo hfuzz run fuzz_json
+
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: changing report
+        file_pattern: '*/hfuzz_workspace/fuzzer/fuzz_json/HONGGFUZZ*  */hfuzz_workspace/fuzzer/fuzz_json/SIG*'
