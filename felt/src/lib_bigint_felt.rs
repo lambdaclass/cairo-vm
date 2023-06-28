@@ -19,6 +19,41 @@ use core::{
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
+pub(crate) trait FeltOps {
+    fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
+
+    fn modpow(
+        &self,
+        exponent: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+        modulus: &FeltBigInt<FIELD_HIGH, FIELD_LOW>,
+    ) -> Self;
+
+    fn iter_u64_digits(&self) -> U64Digits;
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn to_signed_bytes_le(&self) -> Vec<u8>;
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn to_bytes_be(&self) -> Vec<u8>;
+
+    fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
+
+    fn from_bytes_be(bytes: &[u8]) -> Self;
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn to_str_radix(&self, radix: u32) -> String;
+
+    fn to_signed_felt(&self) -> BigInt;
+
+    fn to_bigint(&self) -> BigInt;
+
+    fn to_biguint(&self) -> BigUint;
+
+    fn bits(&self) -> u64;
+
+    fn prime() -> BigUint;
+}
+
 #[macro_export]
 macro_rules! felt_str {
     ($val: expr) => {
@@ -78,7 +113,7 @@ impl Felt252 {
         value.into()
     }
 
-    #[deprecated]
+    // #[deprecated]
     pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
         Self {
             value: self.value.modpow(&exponent.value, &modulus.value),
@@ -122,12 +157,13 @@ impl Felt252 {
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
-    #[deprecated]
+    // #[deprecated]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
         // NOTE: this is unsigned
         self.value.to_signed_bytes_le()
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
+    // #[deprecated]
     pub fn to_bytes_be(&self) -> Vec<u8> {
         self.value.to_bytes_be()
     }
