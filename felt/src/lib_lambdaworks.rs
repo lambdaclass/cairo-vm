@@ -148,7 +148,6 @@ impl From<bool> for Felt252 {
     }
 }
 
-// TODO: bury BigUint?
 impl From<BigUint> for Felt252 {
     fn from(mut value: BigUint) -> Self {
         if value >= *CAIRO_PRIME_BIGUINT {
@@ -163,7 +162,21 @@ impl From<BigUint> for Felt252 {
     }
 }
 
-// TODO: bury BigInt?
+impl From<&BigUint> for Felt252 {
+    fn from(value: &BigUint) -> Self {
+        if value >= &CAIRO_PRIME_BIGUINT {
+            Self::from(value.clone())
+        } else {
+            let mut limbs = [0; 4];
+            for (i, l) in (0..4).rev().zip(value.iter_u64_digits()) {
+                limbs[i] = l;
+            }
+            let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
+            Self { value }
+        }
+    }
+}
+
 // NOTE: used for deserialization
 impl From<BigInt> for Felt252 {
     fn from(value: BigInt) -> Self {
@@ -191,6 +204,11 @@ impl Felt252 {
 
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
         self.value.representative().limbs.into_iter().rev()
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
