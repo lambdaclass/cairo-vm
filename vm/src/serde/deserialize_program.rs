@@ -358,7 +358,7 @@ pub fn serialize_program_data<S: Serializer>(
 ) -> Result<S::Ok, S::Error> {
     let v = v
         .iter()
-        .map(|val| match val.clone() {
+        .map(|val| match val {
             MaybeRelocatable::Int(value) => format!("0x{:x}", value.to_biguint()),
             MaybeRelocatable::RelocatableValue(_) => {
                 panic!("Got unexpected relocatable value in program data")
@@ -461,38 +461,41 @@ pub fn parse_program_json(
     })
 }
 
-pub fn parse_program(program: Program) -> ProgramJson {
-    let references = program
-        .shared_program_data
-        .reference_manager
-        .iter()
-        .map(|r| Reference {
-            value_address: ValueAddress {
-                offset1: r.offset1.clone(),
-                offset2: r.offset2.clone(),
-                dereference: r.dereference,
-                value_type: r.cairo_type.clone().unwrap_or_default(),
-            },
-            ap_tracking_data: r.ap_tracking_data.clone().unwrap_or_default(),
-            pc: None,
-        })
-        .collect::<Vec<_>>();
-
-    ProgramJson {
-        prime: program.prime().to_string(),
-        builtins: program.builtins.clone(),
-        data: program.shared_program_data.data.clone(),
-        identifiers: program.shared_program_data.identifiers.clone(),
-        hints: program.shared_program_data.hints.clone(),
-        attributes: program.shared_program_data.error_message_attributes.clone(),
-        debug_info: program
+impl From<Program> for ProgramJson {
+    fn from(program: Program) -> Self {
+        let references = program
             .shared_program_data
-            .instruction_locations
+            .reference_manager
             .clone()
-            .map(|instruction_locations| DebugInfo {
-                instruction_locations,
-            }),
-        reference_manager: ReferenceManager { references },
+            .into_iter()
+            .map(|r| Reference {
+                value_address: ValueAddress {
+                    offset1: r.offset1,
+                    offset2: r.offset2,
+                    dereference: r.dereference,
+                    value_type: r.cairo_type.unwrap_or_default(),
+                },
+                ap_tracking_data: r.ap_tracking_data.unwrap_or_default(),
+                pc: None,
+            })
+            .collect::<Vec<_>>();
+
+        Self {
+            prime: program.prime().into(),
+            builtins: program.builtins,
+            data: program.shared_program_data.data.clone(),
+            identifiers: program.shared_program_data.identifiers.clone(),
+            hints: program.shared_program_data.hints.clone(),
+            attributes: program.shared_program_data.error_message_attributes.clone(),
+            debug_info: program
+                .shared_program_data
+                .instruction_locations
+                .clone()
+                .map(|instruction_locations| DebugInfo {
+                    instruction_locations,
+                }),
+            reference_manager: ReferenceManager { references },
+        }
     }
 }
 
