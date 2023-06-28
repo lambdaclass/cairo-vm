@@ -1603,7 +1603,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.1.1"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=4cffcf2#4cffcf26c1e01e24456f4f02178c4c90621ad5f3"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=0a0c7e1#0a0c7e12ab3d0a66aa355b018f138ccd9db1048d"
 dependencies = [
  "heapless",
  "rand",
