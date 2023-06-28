@@ -871,7 +871,6 @@ impl ShrAssign<usize> for Felt252 {
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -879,7 +878,6 @@ impl<'a> BitAnd for &'a Felt252 {
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd<&'a Felt252> for Felt252 {
     type Output = Self;
     fn bitand(self, rhs: &Self) -> Self {
@@ -890,9 +888,9 @@ impl<'a> BitAnd<&'a Felt252> for Felt252 {
 impl<'a> BitAnd<Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        // TODO: move to upstream
         let a = self.value.representative();
         let b = rhs.value.representative();
+
         let value = FieldElement::new(a & b);
         Self::Output { value }
     }
@@ -901,15 +899,10 @@ impl<'a> BitAnd<Felt252> for &'a Felt252 {
 impl<'a> BitOr for &'a Felt252 {
     type Output = Felt252;
     fn bitor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
+        let a = self.value.representative();
         let b = rhs.value.representative();
 
-        for i in 0..a.limbs.len() {
-            a.limbs[i] |= b.limbs[i];
-        }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a | b);
+        let value = FieldElement::new(a | b);
         Self::Output { value }
     }
 }
@@ -917,15 +910,10 @@ impl<'a> BitOr for &'a Felt252 {
 impl<'a> BitXor for &'a Felt252 {
     type Output = Felt252;
     fn bitxor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
+        let a = self.value.representative();
         let b = rhs.value.representative();
 
-        for i in 0..a.limbs.len() {
-            a.limbs[i] ^= b.limbs[i];
-        }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a ^ b);
+        let value = FieldElement::new(a ^ b);
         Self::Output { value }
     }
 }
