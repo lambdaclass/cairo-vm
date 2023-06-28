@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
+
 * build: remove dependecy to `thiserror` (use `thiserror-no-std/std` instead)
 
 * chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
