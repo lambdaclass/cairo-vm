@@ -7,7 +7,18 @@ members = [
 ]
 exclude = ["ensure-no_std"]
 
+[workspace.package]
+version = "0.8.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/lambdaclass/cairo-vm/"
+readme = "README.md"
+
 [workspace.dependencies]
+felt = { package = "cairo-felt", path = "./felt", version = "0.8.0", default-features = false, features = [
+    "alloc",
+] }
+cairo-vm = { path = "./vm", version = "0.8.0", default-features = false }
 mimalloc = { version = "0.1.29", default-features = false }
 num-bigint = { version = "0.4", default-features = false, features = [
     "serde",
@@ -45,9 +56,6 @@ hashbrown = { version = "0.13.2", features = ["serde"] }
 anyhow = { version = "1.0.69", default-features = false }
 thiserror-no-std = { version = "2.0.2", default-features = false }
 
-felt = { package = "cairo-felt", path = "./felt", version = "0.8.0", default-features = false, features = [
-    "alloc",
-] }
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 
 # Dependencies for cairo-1-hints feature
