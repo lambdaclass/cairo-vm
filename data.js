@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687950540743,
+  "lastUpdate": 1687982259264,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -108652,6 +108652,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22680619,
             "range": "± 213258",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "05f2f4aa2c93219e6ed9e0ee5f89add23cb929bb",
+          "message": "Compile `ensure-no_std` in CI for new lambdaworks backend (#1293)\n\n* Ensure no-std for new lambdaworks backend\n\n* Fix: use correct matrix var name in job\n\n* Remove --release flag in ensure-no_std build\n\n* Update lambdaworks to fix-no-std commit\n\n* Update commit to main\n\n* Bump lambdaworks-math version\n\n* Update changelog",
+          "timestamp": "2023-06-28T19:33:42Z",
+          "tree_id": "a1d779bf31d0cbdb4ce53fd103fec6e8779fd4e7",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/05f2f4aa2c93219e6ed9e0ee5f89add23cb929bb"
+        },
+        "date": 1687982250732,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1267,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53214,
+            "range": "± 2183",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 17790104,
+            "range": "± 628822",
             "unit": "ns/iter"
           }
         ]
