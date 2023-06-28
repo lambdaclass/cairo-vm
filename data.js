@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687982259264,
+  "lastUpdate": 1687985127907,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -108748,6 +108748,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 17790104,
             "range": "± 628822",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mario.rugiero@lambdaclass.com",
+            "name": "Mario Rugiero",
+            "username": "Oppen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "a52ae0fc0d95fe904b67e48287a455796bc4a5ef",
+          "message": "\"chore: use workspace package metadata\" (#1292)\n\n* chore: use workspace package metadata\n\n* chore: use more workspace deps\n\n* fix: restore ensure-no_std\n\n---------\n\nCo-authored-by: Juan Bono <juanbono94@gmail.com>",
+          "timestamp": "2023-06-28T20:18:11Z",
+          "tree_id": "5ca1ff58b9bf70d1f9a9289c7a19a8712ebd2ccd",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/a52ae0fc0d95fe904b67e48287a455796bc4a5ef"
+        },
+        "date": 1687985120103,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1506,
+            "range": "± 48",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59256,
+            "range": "± 1520",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20780111,
+            "range": "± 570812",
             "unit": "ns/iter"
           }
         ]
