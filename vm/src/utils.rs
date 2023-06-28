@@ -597,6 +597,7 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
     use crate::{
         hint_processor::{
@@ -604,7 +605,7 @@ mod test {
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
                 dict_manager::{DictManager, DictTracker},
             },
-            hint_processor_definition::{HintProcessor, HintReference},
+            hint_processor_definition::HintReference,
         },
         serde::deserialize_program::{BuiltinName, ReferenceManager},
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},

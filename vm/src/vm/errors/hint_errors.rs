@@ -3,9 +3,6 @@
 
 use crate::stdlib::prelude::*;
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use felt::Felt252;
@@ -184,7 +181,7 @@ pub enum HintError {
     #[error("Invalid value for {}. Got: {}. Expected: {}", (*.0).0, (*.0).1, (*.0).2)]
     InvalidValue(Box<(&'static str, Felt252, Felt252)>),
     #[error("Attempt to subtract with overflow: ids.m - 1")]
-    NPairBitsMZero,
+    NPairBitsTooLowM,
 }
 
 #[cfg(test)]

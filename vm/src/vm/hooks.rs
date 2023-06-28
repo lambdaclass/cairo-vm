@@ -130,7 +130,6 @@ mod tests {
         types::program::Program,
         utils::test_utils::{cairo_runner, vm},
     };
-
     #[test]
     fn empty_hooks() {
         let program = Program::from_bytes(
@@ -146,7 +145,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 
@@ -194,7 +193,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Pre step fail
@@ -205,7 +204,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Post step fail
@@ -216,7 +215,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
     }
 
@@ -267,7 +266,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 }

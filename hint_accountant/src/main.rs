@@ -3,7 +3,7 @@
 use cairo_vm::{
     hint_processor::{
         builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        hint_processor_definition::HintProcessor,
+        hint_processor_definition::HintProcessorLogic,
     },
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
@@ -67,7 +67,7 @@ fn run() {
                 .compile_hint(h, &ap_tracking_data, &reference_ids, &references)
                 .expect("this implementation is infallible");
             matches!(
-                hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants),
+                hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants,),
                 Err(HintError::UnknownHint(_)),
             )
         })

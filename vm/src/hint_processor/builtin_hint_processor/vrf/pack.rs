@@ -79,7 +79,7 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;

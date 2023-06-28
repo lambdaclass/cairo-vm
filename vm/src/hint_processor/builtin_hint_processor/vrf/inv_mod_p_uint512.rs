@@ -53,7 +53,7 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::mayberelocatable;
     use crate::utils::test_utils::memory;

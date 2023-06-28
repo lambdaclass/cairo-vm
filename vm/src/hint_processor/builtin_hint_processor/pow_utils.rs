@@ -50,7 +50,7 @@ mod tests {
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
             builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
-            hint_processor_definition::HintProcessor,
+            hint_processor_definition::HintProcessorLogic,
         },
         types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
