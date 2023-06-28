@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687985127907,
+  "lastUpdate": 1687985867723,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -108844,6 +108844,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20780111,
             "range": "± 570812",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d46d2b67cac1e6428a1cd17aed0d21ecfab09281",
+          "message": "Add missing methods to lambdaworks implementation (#1290)\n\n* Add missing methods to lambdaworks impl\n\n* Remove `modpow` and `to_signed_bytes_le` from lw-felt\n\n* Add `From<&Big(U)Int>` to lw-felt\n* Move comments out of `FeltOps` and remove trait\n\n* Fix build\n\n* Update changelog\n\n* Uncomment deprecated tags",
+          "timestamp": "2023-06-28T20:30:43Z",
+          "tree_id": "da48155ba67487994d71a4adf7c9e1979369fa3d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/d46d2b67cac1e6428a1cd17aed0d21ecfab09281"
+        },
+        "date": 1687985861550,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1375,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 49526,
+            "range": "± 387",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 17414344,
+            "range": "± 80712",
             "unit": "ns/iter"
           }
         ]
