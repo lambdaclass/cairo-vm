@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1687899642398,
+  "lastUpdate": 1687924717622,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -108460,6 +108460,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21578548,
             "range": "± 101834",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "b7725bbfd2eb3b40d84de77f15d5240e73be84e4",
+          "message": "chore: use LambdaWorks' implementation of bit operations (#1291)\n\n* Use lambdaworks' implementation of bit operations\n\n* Update changelog",
+          "timestamp": "2023-06-28T03:34:34Z",
+          "tree_id": "1a424fdabc1d81bfaafb69aa68f176551b8eb078",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/b7725bbfd2eb3b40d84de77f15d5240e73be84e4"
+        },
+        "date": 1687924709984,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1613,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60533,
+            "range": "± 526",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21796258,
+            "range": "± 109795",
             "unit": "ns/iter"
           }
         ]
