@@ -737,7 +737,6 @@ dependencies = [
  "sha2",
  "sha3",
  "starknet-crypto",
- "thiserror",
  "thiserror-no-std",
  "wasm-bindgen-test",
 ]
@@ -1602,8 +1601,9 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-math"
-version = "0.1.1"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=0a0c7e1#0a0c7e12ab3d0a66aa355b018f138ccd9db1048d"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4220df08ebb5a3da17a9b0026e7e6c95e0e380786d76bbe5804c0eaab5fa898a"
 dependencies = [
  "heapless",
  "rand",

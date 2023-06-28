@@ -1,8 +1,5 @@
 use crate::stdlib::prelude::*;
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use felt::PRIME_STR;
