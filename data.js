@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688072356971,
+  "lastUpdate": 1688077684811,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109324,6 +109324,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20993229,
             "range": "± 1269468",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "9b72878c791ebfe4f6c63ede813eba73c554dff0",
+          "message": "chore: rename cairo-rs-py to cairo-vm-py (#1296)\n\n* Rename cairo-rs-py to cairo-vm-py\n\n* Update changelog\n\n* Run debian install as default user\n\n* Revert \"Run debian install as default user\"\n\nThis reverts commit 64925acadf55e63dec639c664317f303d46cb27d.\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-06-29T22:02:16Z",
+          "tree_id": "2870062cda677df6c2cb223af54753c7bcb762bd",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/9b72878c791ebfe4f6c63ede813eba73c554dff0"
+        },
+        "date": 1688077677974,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1331,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 52797,
+            "range": "± 450",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18395929,
+            "range": "± 78654",
             "unit": "ns/iter"
           }
         ]
