@@ -43,7 +43,7 @@ pub struct PublicInput<'a> {
     rc_min: Option<isize>,
     rc_max: Option<isize>,
     n_steps: usize,
-    memory_segments: HashMap<&'a str, (usize, Option<usize>)>,
+    memory_segments: HashMap<&'a str, (usize, usize)>,
     public_memory: Vec<PublicMemoryEntry>,
 }
 
@@ -53,7 +53,7 @@ impl<'a> PublicInput<'a> {
         layout: &'a str,
         dyn_layout_params: Option<&'a CairoLayout>,
         public_memory_addresses: &[(usize, &usize)],
-        memory_segment_addresses: HashMap<&'static str, (usize, Option<usize>)>,
+        memory_segment_addresses: HashMap<&'static str, (usize, usize)>,
         trace: &[TraceEntry],
         rc_limits: Option<(isize, isize)>,
     ) -> Result<Self, PublicInputError> {
@@ -91,8 +91,8 @@ impl<'a> PublicInput<'a> {
             n_steps: trace.len(),
             memory_segments: {
                 let mut memory_segment_addresses = memory_segment_addresses.clone();
-                memory_segment_addresses.insert("program", (trace_first.pc, Some(trace_last.pc)));
-                memory_segment_addresses.insert("execution", (trace_first.ap, Some(trace_last.ap)));
+                memory_segment_addresses.insert("program", (trace_first.pc, trace_last.pc));
+                memory_segment_addresses.insert("execution", (trace_first.ap, trace_last.ap));
                 memory_segment_addresses
             },
             public_memory,
