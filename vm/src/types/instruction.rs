@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
+#[cfg(feature = "fuzzing")]
+use arbitrary::Arbitrary;
+
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Register {
     AP,

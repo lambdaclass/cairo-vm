@@ -19,6 +19,9 @@ use felt::{Felt252, PRIME_STR};
 #[cfg(feature = "std")]
 use std::path::Path;
 
+#[cfg(feature = "fuzzing")]
+use arbitrary::Arbitrary;
+
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
 // and some that will be allocated on the heap inside an `Arc<_>`.
 // This is because it has been reported that cloning the whole structure when creating
@@ -40,6 +43,7 @@ use std::path::Path;
 // exceptional circumstances, such as when reconstructing a backtrace on execution
 // failures.
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
@@ -54,6 +58,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) reference_manager: Vec<HintReference>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,

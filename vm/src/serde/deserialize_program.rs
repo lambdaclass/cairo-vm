@@ -21,7 +21,11 @@ use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
+#[cfg(feature = "fuzzing")]
+use arbitrary::Arbitrary;
+
 // This enum is used to deserialize program builtins into &str and catch non-valid names
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
@@ -65,6 +69,7 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -72,6 +77,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -79,6 +85,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -100,6 +107,7 @@ impl Default for ApTracking {
     }
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -114,12 +122,14 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
@@ -129,6 +139,7 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
@@ -144,17 +155,20 @@ pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -211,6 +225,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
