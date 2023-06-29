@@ -2,13 +2,26 @@
 
 #### Upcoming Changes
 
+* fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
+* chore: mark `modpow` and `to_signed_bytes_le` as *deprecated* [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
+* fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
+
+* build: remove dependecy to `thiserror` (use `thiserror-no-std/std` instead)
+
+* chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
+* feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
+
+* fix: CLI errors bad formatting and handling
+
 #### [0.8.0] - 2023-6-26
 
-* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1218](https://github.com/lambdaclass/cairo-rs/pull/1281)
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1281](https://github.com/lambdaclass/cairo-rs/pull/1281)
 
     Changes under this feature:
-  * `Felt252` now uses _lambdaworks_' `FieldElement` internally
-  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_bytes_be`
+  * `Felt252` now uses *LambdaWorks*' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_signed_bytes_le`
 
 #### [0.7.0] - 2023-6-26
 
@@ -21,11 +34,6 @@
   * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
 
 * build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
-
-* feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
-
-* fix: CLI errors bad formatting and handling
-
 #### [0.6.1] - 2023-6-23
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)

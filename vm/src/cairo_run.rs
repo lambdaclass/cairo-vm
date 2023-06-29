@@ -12,9 +12,6 @@ use crate::{
 use bincode::enc::write::Writer;
 use felt::Felt252;
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 pub struct CairoRunConfig<'a> {
