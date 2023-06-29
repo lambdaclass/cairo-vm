@@ -1076,7 +1076,7 @@ impl CairoRunner {
     }
 
     // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
-    // This method is used by cairo_rs_py to replace starknet functionality
+    // This method is used by cairo-vm-py to replace starknet functionality
     pub fn get_builtins_final_stack(
         &self,
         vm: &mut VirtualMachine,
