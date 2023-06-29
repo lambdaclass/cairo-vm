@@ -331,7 +331,7 @@ jobs:
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
           extra-args: ''
-    name: Compute memory and execution traces with cairo-rs
+    name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
     steps:
@@ -402,7 +402,7 @@ jobs:
     strategy:
       matrix:
         program-target: [ cairo_proof_programs, cairo_test_programs ]
-    name: Compare memory and execution traces from cairo-lang and cairo-rs
+    name: Compare memory and execution traces from cairo-lang and cairo-vm
     needs: [ run-cairo-reference, run-cairo-release ]
     runs-on: ubuntu-22.04
     steps:
@@ -418,7 +418,7 @@ jobs:
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
-    - name: Fetch traces for cairo-rs
+    - name: Fetch traces for cairo-vm
       uses: actions/cache/restore@v3
       with:
         path: |
