@@ -2,13 +2,15 @@
 
 #### Upcoming Changes
 
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 
 * chore: mark `modpow` and `to_signed_bytes_le` as *deprecated* [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 
 * fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
 
-* build: remove dependecy to `thiserror` (use `thiserror-no-std/std` instead)
+* build: remove dependency to `thiserror` (use `thiserror-no-std/std` instead)
 
 * chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
 

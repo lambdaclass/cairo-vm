@@ -975,3 +975,10 @@ fn cairo_run_if_reloc_equal() {
     let program_data = include_bytes!("../../../cairo_programs/if_reloc_equal.json");
     run_program_simple_with_memory_holes(program_data, 4);
 }
+
+#[test]
+fn cairo_run_overflowing_dict() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
+    run_program_with_error(program_data, "Unknown memory cell at address");
+}
