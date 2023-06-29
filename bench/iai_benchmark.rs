@@ -37,11 +37,12 @@ fn build_runner() {
             include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
         Program::from_bytes(program.as_slice(), Some("main")).unwrap()
     };
-    let runner = CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap();
-    black_box(runner);
-    let runner =
+    let mut i = 100;
+    while i > 0 {
         black_box(CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap());
-    core::mem::drop(black_box(runner));
+        i += 1;
+    }
+    // core::mem::drop(black_box(runner));
 }
 
 #[export_name = "helper::build_runner"]
