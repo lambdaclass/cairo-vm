@@ -67,17 +67,23 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 ### Dependencies
 
-**Required**
+#### Required
 
-- [Rust 1.66.1](https://www.rust-lang.org/tools/install)
+These are needed in order to compile and use the project.
+
+- [Rust 1.69.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
-**Optional**
+#### Optional
 
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 
 - PyEnv with Python 3.9
 - cairo-lang
+
+#### Installation script
+
+You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
 
 ## 🚀 Usage
 
