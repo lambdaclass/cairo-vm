@@ -148,7 +148,6 @@ impl From<bool> for Felt252 {
     }
 }
 
-// TODO: bury BigUint?
 impl From<BigUint> for Felt252 {
     fn from(mut value: BigUint) -> Self {
         if value >= *CAIRO_PRIME_BIGUINT {
@@ -163,7 +162,21 @@ impl From<BigUint> for Felt252 {
     }
 }
 
-// TODO: bury BigInt?
+impl From<&BigUint> for Felt252 {
+    fn from(value: &BigUint) -> Self {
+        if value >= &CAIRO_PRIME_BIGUINT {
+            Self::from(value.clone())
+        } else {
+            let mut limbs = [0; 4];
+            for (i, l) in (0..4).rev().zip(value.iter_u64_digits()) {
+                limbs[i] = l;
+            }
+            let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
+            Self { value }
+        }
+    }
+}
+
 // NOTE: used for deserialization
 impl From<BigInt> for Felt252 {
     fn from(value: BigInt) -> Self {
@@ -191,6 +204,11 @@ impl Felt252 {
 
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
         self.value.representative().limbs.into_iter().rev()
+    }
+
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
     }
 
     pub fn to_le_bytes(&self) -> [u8; 32] {
@@ -853,7 +871,6 @@ impl ShrAssign<usize> for Felt252 {
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -861,7 +878,6 @@ impl<'a> BitAnd for &'a Felt252 {
     }
 }
 
-// TODO: move to upstream
 impl<'a> BitAnd<&'a Felt252> for Felt252 {
     type Output = Self;
     fn bitand(self, rhs: &Self) -> Self {
@@ -872,9 +888,9 @@ impl<'a> BitAnd<&'a Felt252> for Felt252 {
 impl<'a> BitAnd<Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn bitand(self, rhs: Self::Output) -> Self::Output {
-        // TODO: move to upstream
         let a = self.value.representative();
         let b = rhs.value.representative();
+
         let value = FieldElement::new(a & b);
         Self::Output { value }
     }
@@ -883,15 +899,10 @@ impl<'a> BitAnd<Felt252> for &'a Felt252 {
 impl<'a> BitOr for &'a Felt252 {
     type Output = Felt252;
     fn bitor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
+        let a = self.value.representative();
         let b = rhs.value.representative();
 
-        for i in 0..a.limbs.len() {
-            a.limbs[i] |= b.limbs[i];
-        }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a | b);
+        let value = FieldElement::new(a | b);
         Self::Output { value }
     }
 }
@@ -899,15 +910,10 @@ impl<'a> BitOr for &'a Felt252 {
 impl<'a> BitXor for &'a Felt252 {
     type Output = Felt252;
     fn bitxor(self, rhs: Self) -> Self::Output {
-        // TODO: move to upstream
-        let mut a = self.value.representative();
+        let a = self.value.representative();
         let b = rhs.value.representative();
 
-        for i in 0..a.limbs.len() {
-            a.limbs[i] ^= b.limbs[i];
-        }
-        let value = FieldElement::new(a);
-        // let value = FieldElement::new(a ^ b);
+        let value = FieldElement::new(a ^ b);
         Self::Output { value }
     }
 }

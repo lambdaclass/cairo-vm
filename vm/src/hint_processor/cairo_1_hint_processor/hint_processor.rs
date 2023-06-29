@@ -254,7 +254,9 @@ impl Cairo1HintProcessor {
                 quotient1, quotient2, quotient3, remainder0, remainder1,
             ),
 
-            hint => Err(HintError::UnknownHint(hint.to_string().into_boxed_str())),
+            hint => Err(HintError::UnknownHint(
+                format!("{:?}", hint).into_boxed_str(),
+            )),
         }
     }
 

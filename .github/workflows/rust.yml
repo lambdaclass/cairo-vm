@@ -163,14 +163,15 @@ jobs:
     - name: Check no-std
       run: |
         cd ensure-no_std
-        cargo build --release
+        cargo build --no-default-features
+        cargo build
 
   tests:
     needs: build-programs
     strategy:
       fail-fast: false
       matrix:
-        special-features: ["", "lambdaworks-felt"]
+        special_features: ["", "lambdaworks-felt"]
         target: [ test, test-no_std, test-wasm ]
         # TODO: features
     name: Run tests
