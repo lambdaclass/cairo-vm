@@ -26,4 +26,3 @@ source ~/cairo_venv/bin/activate
 
 # Install cairo & its dependencies
 pip3 install -r requirements.txt
-

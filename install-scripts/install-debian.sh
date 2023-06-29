@@ -41,4 +41,3 @@ source ~/cairo_venv/bin/activate
 # Install cairo & its dependencies
 apt install -y libgmp3-dev
 pip3 install -r requirements.txt
-

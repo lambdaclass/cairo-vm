@@ -17,13 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - if: matrix.os == 'ubuntu-22.04'
-        name: "Install on ubuntu-22.04"
-        run: install-scripts/install-ubuntu.sh
-
-      - if: matrix.os == 'macos-12'
-        name: "Install on macos-12"
-        run: install-scripts/install-macos.sh
+      - name: "Install dependencies"
+        run: bash install.sh
       
       - name: "Compile project"
         run: cargo build --release
@@ -33,12 +28,17 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: debian:11
+    defaults:
+      run:
+        shell: bash {0}
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Install on debian-11"
-        run: install-scripts/install-debian.sh
-      
+      - name: "Install dependencies"
+        run: bash install.sh
+
       - name: "Compile project"
-        run: cargo build --release
+        run: |
+          . "$HOME/.cargo/env"
+          cargo build --release
