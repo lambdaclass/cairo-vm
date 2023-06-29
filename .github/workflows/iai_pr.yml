@@ -10,6 +10,8 @@ jobs:
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
@@ -24,25 +26,28 @@ jobs:
         sudo apt update
         sudo apt install -y valgrind
         cargo install --version 0.3.1 iai-callgrind-runner
+
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache@v3
       id: cache-iai-results
       with:
         path: |
-          target/iai/
-          !target/iai/**.old
+          */target/iai/iai_benchmark/
         key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.pull_request.base.sha }}
-        restore-keys: |
-          ${{ runner.os }}-iai-benchmark-cache-
+        lookup-only: true
+
     - name: Run iai benchmarks
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: make iai-benchmark-action
+
   run-iai-benchmark:
     needs: fetch-iai-results
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
@@ -55,15 +60,14 @@ jobs:
         sudo apt update
         sudo apt install -y valgrind
         cargo install --version 0.3.1 iai-callgrind-runner
-    - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
-      uses: actions/cache@v3
-      id: cache-iai-results
+
+    - name: Restore cache for ${{ github.event.pull_request.base.sha }}
+      uses: actions/cache/restore@v3
       with:
         path: |
-          target/iai/
-          !target/iai/**.old
+          */target/iai/iai_benchmark/
         key: ${{ runner.os }}-iai-benchmark-cache-${{ github.event.pull_request.base.sha }}
-        restore-keys: |
-          ${{ runner.os }}-iai-benchmark-cache-
+        fail-on-cache-miss: true
+
     - name: Run iai benchmarks
       run: make iai-benchmark-action
