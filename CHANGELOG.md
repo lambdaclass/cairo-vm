@@ -12,6 +12,8 @@
 
 * chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
 
+* update `cairo-lang-starknet` and `cairo-lang-casm` dependencies to v2.0.0-rc5
+
 #### [0.8.0] - 2023-6-26
 
 * feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1281](https://github.com/lambdaclass/cairo-rs/pull/1281)
