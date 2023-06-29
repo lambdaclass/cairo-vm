@@ -32,8 +32,15 @@ fn parse_program_helper() -> Program {
 
 #[inline(never)]
 fn build_runner() {
-    let program = parse_program_helper();
+    let program = {
+        let program =
+            include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
+        Program::from_bytes(program.as_slice(), Some("main")).unwrap()
+    };
     let runner = CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap();
+    black_box(runner);
+    let runner =
+        black_box(CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap());
     core::mem::drop(black_box(runner));
 }
 
