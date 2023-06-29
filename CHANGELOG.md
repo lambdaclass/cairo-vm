@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: change mentions of *cairo-rs-py* to *cairo-vm-py*
+
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 
 * chore: mark `modpow` and `to_signed_bytes_le` as *deprecated* [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
