@@ -37,7 +37,7 @@ fn build_runner() {
             include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
         Program::from_bytes(program.as_slice(), Some("main")).unwrap()
     };
-    let mut i = 100;
+    let mut i = 10;
     while i > 0 {
         black_box(CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap());
         i += 1;
