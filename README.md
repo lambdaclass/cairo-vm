@@ -27,7 +27,8 @@ A faster and safer implementation of the Cairo VM in Rust
 - [Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
 - [Usage](#-usage)
-  - [Running cairo-vm](#running-cairo-vm)
+  - [Adding cairo-vm as a dependency](#adding-cairo-vm-as-a-dependency)
+  - [Running cairo-vm from the CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
@@ -78,8 +79,8 @@ These are needed in order to compile and use the project.
 
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 
-- PyEnv with Python 3.9
-- cairo-lang
+- make
+- PyEnv
 
 #### Installation script
 
