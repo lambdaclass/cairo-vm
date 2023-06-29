@@ -30,7 +30,6 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: debian:11
-      options: --user 1000:1000
 
     steps:
       - uses: actions/checkout@v3
