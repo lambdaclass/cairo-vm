@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
+* rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1289](https://github.com/lambdaclass/cairo-vm/pull/1289)
 
 * fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
 
