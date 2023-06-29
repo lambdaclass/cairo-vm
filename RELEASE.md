@@ -12,13 +12,8 @@
       `git checkout -b release-N`
 - [ ] Update the version field in the package entry of `Cargo.toml` files.
   - The versions must be the same.
-  - There are 4 relevant `Cargo.toml` files in the repo:
-    - `Cargo.toml`: update the version string.
-    - `cairo-vm-cli/Cargo.toml`: update the version string and also the
-      `cairo-vm` dependency version to match the above.
-    - `felt/Cargo.toml`: update the version string.
-  - [Here](https://github.com/lambdaclass/cairo-rs/pull/1257/files) is an
-    example pull request with these changes.
+  - You need to update the workspace dependencies `felt` and `cairo-vm`, which
+    you can find in the root cargo manifest under the section `[workspace.dependencies]`.
 - [ ] Run `cargo update` and `git add Cargo.lock`
 - [ ] Update `CHANGELOG.md`:
   - Verify that the changelog is up to date.
