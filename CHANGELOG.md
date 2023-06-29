@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
+
 * fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
 
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
