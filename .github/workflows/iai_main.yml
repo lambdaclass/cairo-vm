@@ -1,4 +1,4 @@
-name: iai benchmarks
+name: iai Benchmark
 
 on:
   push:
