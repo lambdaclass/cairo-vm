@@ -1,15 +1,15 @@
 <div align="center">
 <img src="./bonaparte.webp" height="150">
 
-### ⚡ Cairo-rs ⚡
+### ⚡ Cairo-vm ⚡
 
 A faster and safer implementation of the Cairo VM in Rust
 
-[Report Bug](https://github.com/lambdaclass/cairo-rs/issues/new?labels=bug&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-rs/issues/new?labels=enhancement&title=feat%3A+)
+[Report Bug](https://github.com/lambdaclass/cairo-vm/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-vm/issues/new?labels=enhancement&title=feat%3A+)
 
-[![rust](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-rs/actions/workflows/rust.yml)
-[![codecov](https://img.shields.io/codecov/c/github/lambdaclass/cairo-rs)](https://codecov.io/gh/lambdaclass/cairo-rs)
-[![license](https://img.shields.io/github/license/lambdaclass/cairo-rs)](/LICENSE)
+[![rust](https://github.com/lambdaclass/cairo-vm/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-vm/actions/workflows/rust.yml)
+[![codecov](https://img.shields.io/codecov/c/github/lambdaclass/cairo-vm)](https://codecov.io/gh/lambdaclass/cairo-vm)
+[![license](https://img.shields.io/github/license/lambdaclass/cairo-vm)](/LICENSE)
 [![pr-welcome]](#-contributing)
 [![Telegram Chat][tg-badge]][tg-url]
 
@@ -27,7 +27,7 @@ A faster and safer implementation of the Cairo VM in Rust
 - [Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
 - [Usage](#-usage)
-  - [Running cairo-rs](#running-cairo-rs)
+  - [Running cairo-vm](#running-cairo-vm)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
@@ -46,7 +46,7 @@ A faster and safer implementation of the Cairo VM in Rust
 
 ## ⚠️ Disclaimer
 
-🚧 `cairo-rs` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
+🚧 `cairo-vm` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
 Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
@@ -81,7 +81,7 @@ These dependencies are only necessary in order to run the original VM, compile C
 
 ## 🚀 Usage
 
-### Adding cairo-rs as a dependency
+### Adding cairo-vm as a dependency
 
 You can add the following to your rust project's `Cargo.toml`:
 
@@ -91,7 +91,7 @@ cairo-vm = { version = '0.7.0', features = ["lambdaworks-felt"] }
 
 The `features = ["lambdaworks-felt"]` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
 
-### Running cairo-rs from CLI
+### Running cairo-vm from CLI
 
 To run programs from the command line, first compile the repository from the cairo-vm-cli folder:
 
@@ -120,15 +120,15 @@ The flag `--layout` determines which builtins can be used. More info about layou
 To sum up, the following code will get you from zero to running a Cairo program:
 
 ```bash
-git clone https://github.com/lambdaclass/cairo-rs.git
+git clone https://github.com/lambdaclass/cairo-vm.git
 
-cd cairo-rs
+cd cairo-vm
 
 cargo build --release
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
-target/release/cairo-rs-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
+target/release/cairo-vm-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 
 ### Using hints
@@ -137,12 +137,12 @@ Currently, as this VM is under construction, it's missing some of the features o
 
 There are two ways to use non-standard hints in this VM:
 
-- Extend the cairo-rs code and build your own binary using the interface [HintProcessor](docs/hint_processor/README.md).
-- Use [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) which supports running any hint in a Python interpreter.
+- Extend the cairo-vm code and build your own binary using the interface [HintProcessor](docs/hint_processor/README.md).
+- Use [cairo-vm-py](https://github.com/lambdaclass/cairo-vm-py) which supports running any hint in a Python interpreter.
 
 ### Running a function in a Cairo program with arguments
 
-When running a Cairo program directly using the Cairo-rs repository you would first need to prepare a couple of things.
+When running a Cairo program directly using the Cairo-vm repository you would first need to prepare a couple of things.
 
 1. Specify the Cairo program you want to run
 
@@ -173,7 +173,7 @@ When running a Cairo program directly using the Cairo-rs repository you would fi
   cairo_runner.initialize_segments(&mut vm, None);
   ```
 
-When using cairo-rs with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
+When using cairo-vm with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
 
 ```rust
  let _var = cairo_runner.run_from_entrypoint(
@@ -190,7 +190,7 @@ When using cairo-rs with the Starknet devnet there are additional parameters tha
 
 ### WebAssembly Demo
 
-A demo on how to use `cairo-rs` with WebAssembly can be found
+A demo on how to use `cairo-vm` with WebAssembly can be found
 [here](https://github.com/lambdaclass/cairo-rs-wasm).
 
 ### Testing
@@ -213,9 +213,9 @@ Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.ca
 
 - Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 - [Flamegraph](./docs/benchmarks/flamegraph.svg)
-- Github action [results](https://lambdaclass.github.io/cairo-rs/)
+- Github action [results](https://lambdaclass.github.io/cairo-vm/)
 
-Note before running the benchmark suite: the benchmark named [iai_benchmark](https://github.com/lambdaclass/cairo-rs/blob/8dba86dbec935fa04a255e2edf3d5d184950fa22/Cargo.toml#L59) depends on Valgrind. Please make sure it is installed prior to running the `iai_benchmark` benchmark.
+Note before running the benchmark suite: the benchmark named [iai_benchmark](https://github.com/lambdaclass/cairo-vm/blob/8dba86dbec935fa04a255e2edf3d5d184950fa22/Cargo.toml#L59) depends on Valgrind. Please make sure it is installed prior to running the `iai_benchmark` benchmark.
 
 Run the complete benchmark suite with cargo:
 
@@ -257,8 +257,8 @@ You can find more detailed instructions in the [CONTRIBUTING.md](CONTRIBUTING.md
 
 ## 🌞 Related Projects
 
-- [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-rs VM.
-- [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py): Bindings for using cairo-rs from Python code.
+- [starknet_in_rust](https://github.com/lambdaclass/starknet_in_rust): implementation of Starknet in Rust, powered by the cairo-vm.
+- [cairo-vm-py](https://github.com/lambdaclass/cairo-vm-py): Bindings for using cairo-vm from Python code.
 
 ## 📚 Documentation
 
