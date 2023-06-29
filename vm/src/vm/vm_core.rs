@@ -462,6 +462,10 @@ impl VirtualMachine {
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let pc = self.run_context.pc.offset;
 
+        if self.segments.memory.data[0].len() <= pc {
+            return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
+        }
+
         let mut inst_cache = core::mem::take(&mut self.instruction_cache);
         inst_cache.resize((pc + 1).max(inst_cache.len()), None);
 
