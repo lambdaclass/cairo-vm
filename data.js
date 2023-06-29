@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688052012135,
+  "lastUpdate": 1688069794789,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109132,6 +109132,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22637280,
             "range": "± 1012738",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "3ad2613ec27a19cc3f12a9fbfcc5bec719aad6f5",
+          "message": "Rename cairo-rs to cairo-vm (#1289)\n\n* Rename cairo-rs to cairo-vm\n\n* Rename cairo-rs-py to cairo-vm\n\n* corrections\n\n* Add line to changelog\n\n* typo",
+          "timestamp": "2023-06-29T19:50:46Z",
+          "tree_id": "75ff02f05e976f594edd3f48e17acb7ee343fb02",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/3ad2613ec27a19cc3f12a9fbfcc5bec719aad6f5"
+        },
+        "date": 1688069786308,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1615,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 62014,
+            "range": "± 456",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22142077,
+            "range": "± 211439",
             "unit": "ns/iter"
           }
         ]
