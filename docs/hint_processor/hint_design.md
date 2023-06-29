@@ -67,7 +67,7 @@ Notes
 Notes
 - Learn to use wasm tooling
 - Learn how to compile python to wasm
-- Definir the interfaces between the embedded wasm vm and cairo-vm
+- Define the interfaces between the embedded wasm vm and cairo-vm
 - (-) More unknowns & possibly greater resulting complexity
 - (+) Greater flexibility, extensibility, and possibly performance
 

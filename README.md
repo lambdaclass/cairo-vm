@@ -5,7 +5,7 @@
 
 A faster and safer implementation of the Cairo VM in Rust
 
-[Report Bug](https://github.com/lambdaclass/cairo-vm/issues/new?labels=bug&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-vm/issues/new?labels=enhancement&title=feat%3A+)
+[Report Bug](https://github.com/lambdaclass/cairo-vm/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=bug%3A+) · [Request Feature](https://github.com/lambdaclass/cairo-vm/issues/new?labels=enhancement&title=feat%3A+)
 
 [![rust](https://github.com/lambdaclass/cairo-vm/actions/workflows/rust.yml/badge.svg)](https://github.com/lambdaclass/cairo-vm/actions/workflows/rust.yml)
 [![codecov](https://img.shields.io/codecov/c/github/lambdaclass/cairo-vm)](https://codecov.io/gh/lambdaclass/cairo-vm)
