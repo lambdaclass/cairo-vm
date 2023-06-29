@@ -1,20 +1,20 @@
 LambdaClass - StarkWare
-# Cairo-rs - Python FFI integration
+# Cairo-vm - Python FFI integration
 #### 20th September 2022
 
 ### OVERVIEW
 
-In order to allow cairo-rs to execute any Python code embedded into a Cairo program and to allow a Python context to call cairo-rs, we are adding support to provide communication of the VM state between Rust and Python via FFI bindings using PyO3, as an external crate.
+In order to allow cairo-vm to execute any Python code embedded into a Cairo program and to allow a Python context to call cairo-vm, we are adding support to provide communication of the VM state between Rust and Python via FFI bindings using PyO3, as an external crate.
 
 ### GOAL
 
-* Be able to efficiently and conveniently allow interactions between Python and cairo-rs.
-* Have an external crate which encapsulates the Python hint execution, and which is able to both run cairo-rs, and be imported as a Python module so that the VM can be ran from a Python process.
+* Be able to efficiently and conveniently allow interactions between Python and cairo-vm.
+* Have an external crate which encapsulates the Python hint execution, and which is able to both run cairo-vm, and be imported as a Python module so that the VM can be ran from a Python process.
 
 ### SPECIFICATION
 
-* FFI integration and functionality will be encapsulated in a crate external to cairo-rs. This crate will be called cairo-vm-py.
-* The crate cairo-vm-py will behave as a cairo-rs VM wrapper, which can also be imported as a Python module.
+* FFI integration and functionality will be encapsulated in a crate external to cairo-vm. This crate will be called cairo-vm-py.
+* The crate cairo-vm-py will behave as a cairo-vm VM wrapper, which can also be imported as a Python module.
 * The cairo-vm-py VM can be run for a set number of steps.
 * The cairo-vm-py VM can be run for a set number of steps, paused, and then continue its execution.
 * Variables defined by a hint can only be accessed by hints implemented in the same language, i.e., Rust hints are aware only of variables defined by Rust hints and Python hints are aware only of variables defined by Python hints. By Rust hints we refer to those implemented by the built-in hint processor.
