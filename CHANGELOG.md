@@ -2,13 +2,15 @@
 
 #### Upcoming Changes
 
+* feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
 
 * rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1289](https://github.com/lambdaclass/cairo-vm/pull/1289)
 
-* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses [#1285](https://github.com/lambdaclass/cairo-vm/pull/1285)
 
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 
