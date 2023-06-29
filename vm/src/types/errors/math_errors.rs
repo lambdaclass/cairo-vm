@@ -5,9 +5,6 @@ use crate::stdlib::boxed::Box;
 use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
