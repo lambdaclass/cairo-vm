@@ -2,6 +2,82 @@
 
 #### Upcoming Changes
 
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+
+* fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
+* chore: mark `modpow` and `to_signed_bytes_le` as *deprecated* [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
+
+* fix: bump *lambdaworks-math* to latest version, that fixes no-std support [#1293](https://github.com/lambdaclass/cairo-vm/pull/1293)
+
+* build: remove dependency to `thiserror` (use `thiserror-no-std/std` instead)
+
+* chore: use LambdaWorks' implementation of bit operations for `Felt252` [#1291](https://github.com/lambdaclass/cairo-rs/pull/1291)
+
+* update `cairo-lang-starknet` and `cairo-lang-casm` dependencies to v2.0.0-rc5 [#1297](https://github.com/lambdaclass/cairo-vm/pull/1297)
+
+#### [0.8.0] - 2023-6-26
+
+* feat: Add feature `lambdaworks-felt` to `felt` & `cairo-vm` crates [#1281](https://github.com/lambdaclass/cairo-rs/pull/1281)
+
+    Changes under this feature:
+  * `Felt252` now uses *LambdaWorks*' `FieldElement` internally
+  * BREAKING: some methods of `Felt252` were removed, namely: `modpow` and `to_signed_bytes_le`
+
+#### [0.7.0] - 2023-6-26
+
+* BREAKING: Integrate `RunResources` logic into `HintProcessor` trait [#1274](https://github.com/lambdaclass/cairo-rs/pull/1274)
+  * Rename trait `HintProcessor` to `HintProcessorLogic`
+  * Add trait `ResourceTracker`
+  * Trait `HintProcessor` is now `HintProcessor: HintProcessorLogic + ResourceTracker`
+  * `BuiltinHintProcessor::new` & `Cairo1HintProcessor::new` now receive the argumet `run_resources: RunResources`
+  * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
+  * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
+
+* build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
+
+
+#### [0.6.1] - 2023-6-23
+
+* fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
+
+* Add path to cairo-vm README.md [#1276](https://github.com/lambdaclass/cairo-rs/pull/1276)
+
+* fix: change error returned when subtracting two `MaybeRelocatable`s to better reflect the cause [#1271](https://github.com/lambdaclass/cairo-rs/pull/1271)
+
+* fix: CLI error message when using --help [#1270](https://github.com/lambdaclass/cairo-rs/pull/1270)
+
+#### [0.6.0] - 2023-6-18
+
+* fix: `dibit` hint no longer fails when called with an `m` of zero [#1247](https://github.com/lambdaclass/cairo-rs/pull/1247)
+
+* fix(security): avoid denial of service on malicious input exploiting the scientific notation parser [#1239](https://github.com/lambdaclass/cairo-rs/pull/1239)
+
+* BREAKING: Change `RunResources` usage:
+    * Modify field type `RunResources.n_steps: Option<usize>,`
+    
+    * Public Api Changes:
+        *  CairoRunner::run_until_pc: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        *  CairoRunner::run_from_entrypoint: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
+        * VirtualMachine::Step: Add `&mut RunResources` as input
+        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input 
+
+* perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-rs/pull/)
+  BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
+
+* perf: process reference list on `Program` creation only [#1214](https://github.com/lambdaclass/cairo-rs/pull/1214)
+  Also keep them in a `Vec<_>` instead of a `HashMap<_, _>` since it will be continuous anyway.
+  BREAKING:
+  * `HintProcessor::compile_hint` now receies a `&[HintReference]` rather than `&HashMap<usize, HintReference>`
+  * Public `CairoRunner::get_reference_list` has been removed
+
+* BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
+    * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215)
+
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-rs/pull/1215) [#1232](https://github.com/lambdaclass/cairo-rs/pull/1232) 
+
+    * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-rs/pull/1238)
+
 #### [0.5.2] - 2023-6-12
 
 * BREAKING: Compute `ExecutionResources.n_steps` without requiring trace [#1222](https://github.com/lambdaclass/cairo-rs/pull/1222)

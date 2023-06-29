@@ -9,11 +9,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: 1.66.1
-          override: true
-          profile: minimal
+      uses: dtolnay/rust-toolchain@1.69.0
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
@@ -46,11 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: 1.66.1
-          override: true
-          profile: minimal
+      uses: dtolnay/rust-toolchain@1.69.0
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:

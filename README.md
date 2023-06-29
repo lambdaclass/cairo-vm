@@ -81,13 +81,25 @@ These dependencies are only necessary in order to run the original VM, compile C
 
 ## 🚀 Usage
 
-### Running cairo-rs
+### Adding cairo-rs as a dependency
+
+You can add the following to your rust project's `Cargo.toml`:
+
+```toml
+cairo-vm = { version = '0.7.0', features = ["lambdaworks-felt"] }
+```
+
+The `features = ["lambdaworks-felt"]` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
+
+### Running cairo-rs from CLI
 
 To run programs from the command line, first compile the repository from the cairo-vm-cli folder:
 
 ```bash
-cd cairo-vm-cli; cargo build --release; cd ..
+cd cairo-vm-cli; cargo build --release -F lambdaworks-felt; cd ..
 ```
+
+The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
 
 Once the binary is built, it can be found in `target/release/` under the name `cairo-rvm-cli`.
 
