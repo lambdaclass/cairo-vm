@@ -9,7 +9,9 @@ edition = "2021"
 arbitrary = { version = "1.3.0", features = ["derive"] }
 honggfuzz = "0.5.55"
 bincode = { version = "2.0.0-rc.2", tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git" }
-cairo-vm = { path = "..", version = "0.5.2" }
+
+cairo-vm = { path = "../vm" }
+
 mimalloc = { version = "0.1.29", default-features = false, optional = true }
 nom = "7"
 thiserror = { version = "1.0.32" }
@@ -18,6 +20,9 @@ thiserror = { version = "1.0.32" }
 assert_matches = "1.5.0"
 rstest = "0.17.0"
 
+[workspace]
+members = ["."]
+
 [features]
 default = ["with_mimalloc"]
 with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
@@ -25,7 +30,3 @@ with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
 [[bin]]
 name = "fuzz_json"
 path = "src/fuzz_json.rs"
-
-[[bin]]
-name = "fuzz_cairo"
-path = "src/fuzz_cairo_source.rs"
