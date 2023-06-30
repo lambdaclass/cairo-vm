@@ -226,7 +226,7 @@ impl MemorySegmentManager {
             .take(len)
         {
             for (offset, page_id) in offsets.iter() {
-                addresses.push((segment_start + offset, page_id.clone()));
+                addresses.push((segment_start + offset, *page_id));
             }
         }
         addresses
