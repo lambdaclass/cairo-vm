@@ -40,7 +40,7 @@ fn build_runner() {
     let mut i = 10;
     while i > 0 {
         black_box(CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap());
-        i += 1;
+        i -= 1;
     }
     // core::mem::drop(black_box(runner));
 }
