@@ -23,7 +23,8 @@ jobs:
           cache-all-crates: 'true'
           cache-on-failure: 'true'
           cache-directories: ./cairo/target/
-      
+
+      # just to cache dependencies
       - name: Install python
         uses: actions/setup-python@v4
         with:
@@ -32,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: bash install.sh
-      
+
       - name: Compile project
         run: cargo check
 
@@ -58,12 +59,13 @@ jobs:
             ./cairo/target/
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
-      
+
       - name: Enable pip cache
         run: |
           mkdir -p ~/.cache/pip
           chown -R 1000:1000 ~/.cache/pip
-      
+
+      # NOTE: we don't use install-python because lsb_release isn't installed
       - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
