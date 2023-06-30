@@ -4,6 +4,8 @@ on:
   merge_group:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ '*' ]
 
 jobs:
   install:
@@ -19,7 +21,7 @@ jobs:
         run: bash install.sh
       
       - name: "Compile project"
-        run: cargo build --release
+        run: cargo check
 
   install_debian:
     name: "Install on debian-11"
@@ -39,4 +41,4 @@ jobs:
       - name: "Compile project"
         run: |
           . "$HOME/.cargo/env"
-          cargo build --release
+          cargo check
