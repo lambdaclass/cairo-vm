@@ -5,11 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = ["."]
+
 [dependencies]
 arbitrary = { version = "1.3.0", features = ["derive"] }
 honggfuzz = "0.5.55"
 bincode = { version = "2.0.0-rc.2", tag = "v2.0.0-rc.2", git = "https://github.com/bincode-org/bincode.git" }
-cairo-vm = { path = "..", version = "0.5.2" }
+cairo-vm = { path = "../vm" }
 mimalloc = { version = "0.1.29", default-features = false, optional = true }
 nom = "7"
 thiserror = { version = "1.0.32" }
