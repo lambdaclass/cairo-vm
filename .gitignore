@@ -18,3 +18,4 @@ cairo-vm-pypy-env/*
 *.tar
 
 ensure-no_std/Cargo.lock
+.idea
