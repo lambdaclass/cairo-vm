@@ -1109,7 +1109,7 @@ impl CairoRunner {
     }
 
     /// Return CairoRunner.layout
-    pub fn get_layout(&self) -> &CairoLayout {
+    fn get_layout(&self) -> &CairoLayout {
         &self.layout
     }
 
