@@ -17,10 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Install dependencies"
+      - name: Set up Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
         run: bash install.sh
       
-      - name: "Compile project"
+      - name: Compile project
         run: cargo check
 
   install_debian:
@@ -35,10 +38,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Install dependencies"
+      - name: Set up Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
         run: bash install.sh
 
-      - name: "Compile project"
+      - name: Compile project
         run: |
           . "$HOME/.cargo/env"
           cargo check
