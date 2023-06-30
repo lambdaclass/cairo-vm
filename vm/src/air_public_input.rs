@@ -37,13 +37,29 @@ mod mem_value_serde {
 }
 
 #[derive(Serialize, Debug)]
+struct MemorySegmentAddresses {
+    begin_addr: usize,
+    stop_addr: usize,
+}
+
+impl From<(usize, usize)> for MemorySegmentAddresses {
+    fn from(addresses: (usize, usize)) -> Self {
+        let (begin_addr, stop_addr) = addresses;
+        MemorySegmentAddresses {
+            begin_addr,
+            stop_addr,
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
 pub struct PublicInput<'a> {
     layout: &'a str,
     layout_params: Option<&'a CairoLayout>,
     rc_min: isize,
     rc_max: isize,
     n_steps: usize,
-    memory_segments: HashMap<&'a str, (usize, usize)>,
+    memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     public_memory: Vec<PublicMemoryEntry>,
 }
 
@@ -86,9 +102,14 @@ impl<'a> PublicInput<'a> {
             rc_max,
             n_steps: trace.len(),
             memory_segments: {
-                let mut memory_segment_addresses = memory_segment_addresses.clone();
-                memory_segment_addresses.insert("program", (trace_first.pc, trace_last.pc));
-                memory_segment_addresses.insert("execution", (trace_first.ap, trace_last.ap));
+                let mut memory_segment_addresses = memory_segment_addresses
+                    .into_iter()
+                    .map(|(n, s)| (n, s.into()))
+                    .collect::<HashMap<_, MemorySegmentAddresses>>();
+
+                memory_segment_addresses.insert("program", (trace_first.pc, trace_last.pc).into());
+                memory_segment_addresses
+                    .insert("execution", (trace_first.ap, trace_last.ap).into());
                 memory_segment_addresses
             },
             public_memory,
