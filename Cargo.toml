@@ -1,6 +1,11 @@
 [workspace]
-members = [".", "cairo-vm-cli", "felt", "hint_accountant", "./deps/parse-hyperlinks", "fuzzer"]
-
+members = [
+    "cairo-vm-cli",
+    "felt",
+    "vm",
+    "hint_accountant",
+]
+exclude = ["ensure-no_std"]
 
 [workspace.package]
 version = "0.8.1"
