@@ -40,8 +40,8 @@ mod mem_value_serde {
 pub struct PublicInput<'a> {
     layout: &'a str,
     layout_params: Option<&'a CairoLayout>,
-    rc_min: Option<isize>,
-    rc_max: Option<isize>,
+    rc_min: isize,
+    rc_max: isize,
     n_steps: usize,
     memory_segments: HashMap<&'a str, (usize, usize)>,
     public_memory: Vec<PublicMemoryEntry>,
@@ -55,7 +55,7 @@ impl<'a> PublicInput<'a> {
         public_memory_addresses: &[(usize, usize)],
         memory_segment_addresses: HashMap<&'static str, (usize, usize)>,
         trace: &[TraceEntry],
-        rc_limits: Option<(isize, isize)>,
+        rc_limits: (isize, isize),
     ) -> Result<Self, PublicInputError> {
         let memory_entry =
             |addresses: &(usize, usize)| -> Result<PublicMemoryEntry, PublicInputError> {
@@ -74,11 +74,7 @@ impl<'a> PublicInput<'a> {
             .map(memory_entry)
             .collect::<Result<Vec<_>, _>>()?;
 
-        let (rc_min, rc_max) = if let Some(rc_limits) = rc_limits {
-            (Some(rc_limits.0), Some(rc_limits.1))
-        } else {
-            (None, None)
-        };
+        let (rc_min, rc_max) = rc_limits;
 
         let trace_first = trace.first().ok_or(PublicInputError::EmptyTrace)?;
         let trace_last = trace.last().ok_or(PublicInputError::EmptyTrace)?;
@@ -111,6 +107,8 @@ pub enum PublicInputError {
     EmptyTrace,
     #[error("The provided memory doesn't contain public address {0}")]
     MemoryNotFound(usize),
+    #[error("Range check values are missing")]
+    NoRangeCheckLimits,
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
     #[error("Failed to (de)serialize data")]

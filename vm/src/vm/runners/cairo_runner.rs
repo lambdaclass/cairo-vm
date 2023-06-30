@@ -1130,7 +1130,8 @@ impl CairoRunner {
             &vm.get_public_memory_addresses()?,
             vm.get_memory_segment_addresses()?,
             vm.get_relocated_trace()?,
-            self.get_perm_range_check_limits(vm),
+            self.get_perm_range_check_limits(vm)
+                .ok_or(PublicInputError::NoRangeCheckLimits)?,
         )
     }
 }
