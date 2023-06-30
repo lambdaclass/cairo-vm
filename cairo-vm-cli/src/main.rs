@@ -138,10 +138,14 @@ fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), T
         Some(DebugInfo::new(instruction_locations.unwrap().clone()))
     };
 
+    let relocated_trace = vm
+        .get_relocated_trace()
+        .map_err(TraceDataError::FailedToRelocateTrace)?;
+
     run_tracer(
         cairo_runner.get_program().clone(),
         cairo_runner.relocated_memory.clone(),
-        vm.get_relocated_trace().unwrap().clone(),
+        relocated_trace.clone(),
         1,
         debug_info,
     )?;

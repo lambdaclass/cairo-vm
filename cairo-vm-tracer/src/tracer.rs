@@ -71,9 +71,10 @@ async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
             .memory
             .iter()
             .filter(|x| x.is_some()) // remoes the first element which is None
+            .map(|x| x.clone().unwrap())
             .map(|x| {
                 field_element_repr(
-                    &x.clone().unwrap().to_bigint(),
+                    &x.to_bigint(),
                     &BigInt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap(),
                 )
             })

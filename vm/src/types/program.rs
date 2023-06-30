@@ -330,8 +330,9 @@ impl TryFrom<CasmContractClass> for Program {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData, InputFile, Location};
     use crate::utils::test_utils::*;
     use felt::felt_str;
     use num_traits::Zero;
@@ -684,6 +685,61 @@ mod tests {
             program.get_identifier("missing"),
             identifiers.get("missing"),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_relocated_instruction_locations() {
+        fn build_instruction_location_for_test(start_line: u32) -> InstructionLocation {
+            InstructionLocation {
+                inst: Location {
+                    end_line: 0,
+                    end_col: 0,
+                    input_file: InputFile {
+                        filename: String::from("test"),
+                    },
+                    parent_location: None,
+                    start_line,
+                    start_col: 0,
+                },
+                hints: vec![],
+            }
+        }
+
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![];
+        let identifiers: HashMap<String, Identifier> = HashMap::new();
+        let mut instruction_locations: HashMap<usize, InstructionLocation> = HashMap::new();
+
+        let il_1 = build_instruction_location_for_test(0);
+        let il_2 = build_instruction_location_for_test(2);
+        let il_3 = build_instruction_location_for_test(3);
+        instruction_locations.insert(5, il_1.clone());
+        instruction_locations.insert(10, il_2.clone());
+        instruction_locations.insert(12, il_3.clone());
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            Some(instruction_locations),
+        )
+        .unwrap();
+
+        let relocated_instructions = program.get_relocated_instruction_locations(&[2]);
+        assert!(relocated_instructions.is_some());
+        let relocated_instructions = relocated_instructions.unwrap();
+        assert_eq!(relocated_instructions.len(), 3);
+        assert_eq!(relocated_instructions.get(&7), Some(&il_1));
+        assert_eq!(relocated_instructions.get(&12), Some(&il_2));
+        assert_eq!(relocated_instructions.get(&14), Some(&il_3));
     }
 
     #[test]

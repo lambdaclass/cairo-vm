@@ -136,11 +136,15 @@ impl TracerData {
                 let content = loc
                     .input_file
                     .get_content()
-                    .map_err(|_| TraceDataError::FailedToReadFile)?;
+                    .map_err(|_| TraceDataError::FailedToReadFile(filename.clone()))?;
                 if !input_files.contains_key(filename) {
                     input_files.insert(filename.clone(), InputCodeFile::new(content.as_str()));
                 }
-                let input_file = input_files.get_mut(filename).unwrap();
+                let input_file = input_files.get_mut(filename);
+                if input_file.is_none() {
+                    return Err(TraceDataError::InputFileIsNone(filename.clone()));
+                }
+                let input_file = input_file.unwrap();
 
                 input_file.mark_text(
                     loc.start_line as usize,
@@ -160,7 +164,12 @@ impl TracerData {
             let (instruction_encoding, _) =
                 get_instruction_encoding(entry.pc, &memory, program.prime())?;
 
-            let instruction = decode_instruction(instruction_encoding.to_u64().unwrap())?;
+            let instruction_encoding = instruction_encoding.to_u64();
+            if instruction_encoding.is_none() {
+                return Err(TraceDataError::FailedToConvertInstructionEncoding);
+            }
+            let instruction_encoding = instruction_encoding.unwrap();
+            let instruction = decode_instruction(instruction_encoding)?;
 
             // get dst_addr
             let dst_addr = run_context.compute_dst_addr(&instruction)?.offset;
@@ -169,18 +178,25 @@ impl TracerData {
             let op0_addr = run_context.compute_op0_addr(&instruction)?.offset;
 
             // get op1_addr
-            let mut op0 = None;
+            let mut op0: Result<Option<MaybeRelocatable>, TraceDataError> = Ok(None);
             if instruction.op1_addr == Op1Addr::Op0 {
                 let op0_memory = &memory[op0_addr];
                 op0 = match op0_memory {
-                    None => None,
-                    Some(felt) => Some(MaybeRelocatable::RelocatableValue(Relocatable {
-                        segment_index: 1 as isize,
-                        offset: felt.clone().to_usize().unwrap(),
-                    })),
+                    None => Ok(None),
+                    Some(felt) => {
+                        let offset = felt.clone().to_usize();
+                        if offset.is_none() {
+                            return Err(TraceDataError::FailedToConvertOffset);
+                        }
+                        let offset = offset.unwrap();
+                        Ok(Some(MaybeRelocatable::RelocatableValue(Relocatable {
+                            segment_index: 1 as isize,
+                            offset,
+                        })))
+                    }
                 };
             }
-
+            let op0 = op0?;
             let op1_addr = run_context
                 .compute_op1_addr(&instruction, op0.as_ref())?
                 .offset;
@@ -213,13 +229,14 @@ pub fn get_instruction_encoding(
     prime: &str,
 ) -> Result<(Felt252, Option<Felt252>), TraceDataError> {
     if memory[pc].is_none() {
-        return Err(TraceDataError::InstructionIsNone);
+        return Err(TraceDataError::InstructionIsNone(pc.to_string()));
     }
     let instruction_encoding = memory[pc].clone().unwrap();
     let prime = BigUint::parse_bytes(prime[2..].as_bytes(), 16).unwrap();
 
     let imm_addr = BigUint::from(pc + 1) % prime;
-    let imm_addr = usize::try_from(imm_addr).unwrap();
+    let imm_addr = usize::try_from(imm_addr.clone())
+        .map_err(|_| TraceDataError::FailedToImmAddress(imm_addr.to_string()))?;
     let optional_imm = memory[imm_addr].clone();
     return Ok((instruction_encoding.into(), optional_imm));
 }
