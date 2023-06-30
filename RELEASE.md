@@ -12,26 +12,23 @@
       `git checkout -b release-N`
 - [ ] Update the version field in the package entry of `Cargo.toml` files.
   - The versions must be the same.
-  - There are 4 relevant `Cargo.toml` files in the repo:
-    - `Cargo.toml`: update the version string.
-    - `cairo-vm-cli/Cargo.toml`: update the version string and also the `cairo-vm` dependency version to match the above.
-    - `felt/Cargo.toml`: update the version string.
-    - `deps/parse-hyperlinks/Cargo.toml`: this vendored dependency needs its version bumped, but does not need to match the other crate versions.
-  - [Here](https://github.com/lambdaclass/cairo-rs/pull/948/files) is an example pull request with these changes.
+  - You need to update the workspace dependencies `felt` and `cairo-vm`, which
+    you can find in the root cargo manifest under the section `[workspace.dependencies]`.
 - [ ] Run `cargo update` and `git add Cargo.lock`
 - [ ] Update `CHANGELOG.md`:
   - Verify that the changelog is up to date.
-  - Add a title with the release version string just below the `Upcoming Changes` section.
+  - Add a title with the release version string just below the `Upcoming
+    Changes` section.
 - [ ] Commit your changes, push your branch, and create a pull request.
 - [ ] Merge after CI and review passes.
 - [ ] Pull latest from `main` again.
 - [ ] Tag commit with version string and push tag.
       `git tag -a <version string> -m "Release..."`
 - [ ] Watch the `publish` workflow run in Github Actions.
-- [ ] Verify all the crates are available on crates.io with the correct versions.
+- [ ] Verify all the crates are available on crates.io with the correct
+      versions.
   - [cairo-vm](https://crates.io/crates/cairo-vm)
   - [cairo-felt](https://crates.io/crates/cairo-felt)
-  - [cairo-take-until-unbalanced](https://crates.io/crates/cairo-take_until_unbalanced)
 - [ ] Create a release in Github.
   - Select the recently created tag.
   - Set the title to the version string.
@@ -40,9 +37,17 @@
 
 ## Hotfix releases
 
-Sometimes there's a critical bug in a released version and we made breaking changes in `main` since. To push a non-breaking hotfix, you need the follow the original steps but basing using the release branch you created previously as base and bumping the patch level.
+Sometimes there's a critical bug in a released version and we made breaking
+changes in `main` since. To push a non-breaking hotfix, you need to  follow the
+original steps but basing using the release branch you created previously as
+base and bumping the patch level.
 
 ## Retroactive releases
 
-In the case we want to push a new release from a revision other than `HEAD` (say, we introduced features that we'd rather not ship yet), there would be no base commit to compare to for the normal GitHub PR, as it can only merge branches. This means we lose the review instance before publishing.
-A solution is branching twice, once to diverge from main and one for making the needed changes and creating a PR against the original commit.
+In the case we want to push a new release from a revision other than `HEAD`
+(say, we introduced features that we'd rather not ship yet), there would be no
+base commit to compare to for the normal GitHub PR, as it can only merge
+branches. This means we lose the review instance before publishing.
+A solution is branching twice, once to diverge from main and one for making the
+needed changes and creating a PR against the original commit.
+

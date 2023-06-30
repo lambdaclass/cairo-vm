@@ -63,7 +63,7 @@ jobs:
     name: Run Lints
     runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust 1.69.0
+    - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
       with:
           components: rustfmt, clippy
@@ -114,8 +114,11 @@ jobs:
     name: Make sure all builds work
     runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust 1.69.0
+    - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
+      with:
+        targets: wasm32-unknown-unknown
+
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Install cargo-all-features
@@ -154,21 +157,27 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
-    - name: Check
+    - name: Check all features
       run: cargo check-all-features --workspace --all-targets
 
+    - name: Check no-std
+      run: |
+        cd ensure-no_std
+        cargo build --no-default-features
+        cargo build
 
   tests:
     needs: build-programs
     strategy:
       fail-fast: false
       matrix:
+        special_features: ["", "lambdaworks-felt"]
         target: [ test, test-no_std, test-wasm ]
         # TODO: features
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust 1.69.0
+    - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
       with:
           components: llvm-tools-preview
@@ -214,14 +223,14 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}" 
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features test_utils --no-default-features
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node --no-default-features
+          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
           ;;
         esac
 
@@ -237,7 +246,7 @@ jobs:
     name: Build release binary for comparisons
     runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust 1.69.0
+    - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
@@ -322,7 +331,7 @@ jobs:
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
           extra-args: ''
-    name: Compute memory and execution traces with cairo-rs
+    name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
     steps:
@@ -393,7 +402,7 @@ jobs:
     strategy:
       matrix:
         program-target: [ cairo_proof_programs, cairo_test_programs ]
-    name: Compare memory and execution traces from cairo-lang and cairo-rs
+    name: Compare memory and execution traces from cairo-lang and cairo-vm
     needs: [ run-cairo-reference, run-cairo-release ]
     runs-on: ubuntu-22.04
     steps:
@@ -409,7 +418,7 @@ jobs:
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
         fail-on-cache-miss: true
 
-    - name: Fetch traces for cairo-rs
+    - name: Fetch traces for cairo-vm
       uses: actions/cache/restore@v3
       with:
         path: |
@@ -423,4 +432,4 @@ jobs:
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
           PROOF=proof
         fi
-        ./src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF

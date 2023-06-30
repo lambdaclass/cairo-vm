@@ -1,4 +1,5 @@
-use iai_callgrind::{black_box, main};
+use core::hint::black_box;
+use iai_callgrind::main;
 
 use cairo_vm::{
     types::program::Program,
@@ -18,7 +19,7 @@ fn parse_program() {
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
     let program =
         Program::from_bytes(black_box(program.as_slice()), black_box(Some("main"))).unwrap();
-    let _ = black_box(program);
+    core::mem::drop(black_box(program));
 }
 
 #[export_name = "helper::parse_program"]
@@ -33,7 +34,7 @@ fn parse_program_helper() -> Program {
 fn build_runner() {
     let program = parse_program_helper();
     let runner = CairoRunner::new(black_box(&program), "starknet_with_keccak", false).unwrap();
-    let _ = black_box(runner);
+    core::mem::drop(black_box(runner));
 }
 
 #[export_name = "helper::build_runner"]
@@ -54,6 +55,6 @@ fn load_program_data() {
 }
 
 main!(
-    callgrind_args = "toggle-collect=helper::*";
+    callgrind_args = "toggle-collect=helper::*,core::mem::drop";
     functions = parse_program, build_runner, load_program_data
 );
