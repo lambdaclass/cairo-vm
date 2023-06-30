@@ -59,11 +59,18 @@ jobs:
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
       
-      - name: Install Python
-        uses: actions/setup-python@v4
+      - name: Enable pip cache
+        run: |
+          mkdir -p ~/.cache/pip
+          chown -R 1000:1000 ~/.cache/pip
+      
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
         with:
-          python-version: '3.9'
-          cache: 'pip'
+          path: |
+            ~/.cache/pip/wheels
+          key: ${{ runner.os }}-python-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-python-install-
 
       - name: Install dependencies
         run: bash install.sh
