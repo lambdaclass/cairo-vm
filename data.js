@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688080215023,
+  "lastUpdate": 1688150682664,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109516,6 +109516,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18350085,
             "range": "± 276878",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "1932562465da7177810829d29e5d677ed2587440",
+          "message": "Cairo fuzzer (#1227)\n\n* Create fuzzer\n\n* Remove cli\n\n* Update fuzzer\n\n* Change fuzzer name\n\n* Update Cargo.toml\n\n* Update Cargo.toml\n\n* Add fuzzer workflow (#1240)\n\n* add workflow to run fuzzers\r\n\r\n* delete extra changes\r\n\r\n* add pulling inputs folder from outside repo\r\n\r\n* fix paths\r\n\r\n* change test workflow to use cache and store the report\r\n\r\n* actualice workflow\r\n\r\n* Update fuzzer.yml\r\n\r\n* delete extra files\r\n\r\n* Delete Cargo.toml\r\n\r\n* Delete main.rs\r\n\r\n---------\r\n\r\nCo-authored-by: dafifynn <slimbieber@gmail.com>\n\n* Update Cargo.toml\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\nCo-authored-by: daphneherlambda <94461321+daphneherlambda@users.noreply.github.com>\nCo-authored-by: dafifynn <slimbieber@gmail.com>",
+          "timestamp": "2023-06-30T18:19:06Z",
+          "tree_id": "2c95b9a238dd512edff2bc499742e08ebd8c1d85",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/1932562465da7177810829d29e5d677ed2587440"
+        },
+        "date": 1688150675354,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1822,
+            "range": "± 145",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 68773,
+            "range": "± 6728",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 26106074,
+            "range": "± 1490599",
             "unit": "ns/iter"
           }
         ]
