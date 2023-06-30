@@ -24,15 +24,15 @@ jobs:
           cache-on-failure: 'true'
           cache-directories: ./cairo/target/
       
-      - name: Create PyEnv cache dir
-        run: mkdir -p ${HOME}/.pyenv/cache
-      - name: Cache PyEnv dependencies
+      - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
+          # first one is unix and second one macos
           path: |
-            ${HOME}/.pyenv/cache
-          key: ${{ runner.os }}-pyenv-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-pyenv-install-
+            ${HOME}/.cache/pip/wheels/
+            ${HOME}/Library/Caches/pip/wheels/
+          key: ${{ runner.os }}-python-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-python-install-
 
       - name: Install dependencies
         run: bash install.sh
@@ -63,15 +63,13 @@ jobs:
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
       
-      - name: Create PyEnv cache dir
-        run: mkdir -p ${HOME}/.pyenv/cache
-      - name: Cache PyEnv dependencies
+      - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
           path: |
-            ${HOME}/.pyenv/cache
-          key: ${{ runner.os }}-pyenv-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-pyenv-install-
+            ${HOME}/.cache/pip/wheels
+          key: ${{ runner.os }}-python-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-python-install-
 
       - name: Install dependencies
         run: bash install.sh
