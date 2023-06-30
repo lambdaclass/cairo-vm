@@ -19,6 +19,9 @@ jobs:
 
       - name: Set up Cargo cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: 'true'
+          cache-on-failure: 'true'
 
       - name: Install dependencies
         run: bash install.sh
@@ -40,6 +43,9 @@ jobs:
 
       - name: Set up Cargo cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: 'true'
+          cache-on-failure: 'true'
 
       - name: Install dependencies
         run: bash install.sh
