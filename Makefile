@@ -1,5 +1,5 @@
-RELBIN:=target/release/cairo-rs-run
-DBGBIN:=target/debug/cairo-rs-run
+RELBIN:=target/release/cairo-vm-run
+DBGBIN:=target/debug/cairo-vm-run
 STARKNET_COMPILE:=cairo/target/release/starknet-compile
 STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
@@ -8,7 +8,7 @@ STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
-	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
+	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
 	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -125,23 +125,23 @@ cargo-deps:
 
 deps: cargo-deps build-cairo-1-compiler
 	pyenv install  -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
-	. cairo-rs-pypy-env/bin/activate ; \
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	. cairo-vm-pypy-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 	pyenv install  -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
-	. cairo-rs-env/bin/activate ; \
+	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
 deps-macos: cargo-deps build-cairo-1-compiler
 	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
-	. cairo-rs-pypy-env/bin/activate ; \
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	. cairo-vm-pypy-env/bin/activate ; \
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
 	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
-	. cairo-rs-env/bin/activate ; \
+	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	. cairo-vm-env/bin/activate ; \
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
 
 $(RELBIN):
@@ -161,10 +161,10 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(COMPILED_CASM_CONTRACTS)
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
-cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
 
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
-cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
+cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_CASM_CONTRACTS)
 	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
@@ -232,6 +232,6 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
-	rm -rf cairo-rs-env
-	rm -rf cairo-rs-pypy-env
+	rm -rf cairo-vm-env
+	rm -rf cairo-vm-pypy-env
 	rm -rf cairo

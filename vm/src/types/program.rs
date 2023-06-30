@@ -25,7 +25,7 @@ use std::path::Path;
 // a `CairoRunner` becomes a bottleneck, but the following solutions were tried and
 // discarded:
 // - Store only a reference in `CairoRunner` rather than cloning; this doesn't work
-//   because then we need to introduce explicit lifetimes, which broke `cairo-rs-py`
+//   because then we need to introduce explicit lifetimes, which broke `cairo-vm-py`
 //   since PyO3 doesn't support Python objects containing structures with lifetimes.
 // - Directly pass an `Arc<Program>` to `CairoRunner::new()` and simply copy that:
 //   there was a prohibitive performance hit of 10-15% when doing so, most likely
