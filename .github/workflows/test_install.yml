@@ -24,15 +24,11 @@ jobs:
           cache-on-failure: 'true'
           cache-directories: ./cairo/target/
       
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
+      - name: Install python
+        uses: actions/setup-python@v4
         with:
-          # first one is ubuntu and second one macos
-          path: |
-            /home/runner/.cache/pip/wheels/
-            /Users/runner/Library/Caches/pip/wheels/
-          key: ${{ runner.os }}-python-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-python-install-
+          python-version: '3.9'
+          cache: 'pip'
 
       - name: Install dependencies
         run: bash install.sh
@@ -63,18 +59,11 @@ jobs:
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
       
-      - name: Enable pip cache
-        run: |
-          mkdir -p /github/home/.cache/pip
-          chown -R 1000:1000 /github/home/.cache/pip
-      
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
+      - name: Install Python
+        uses: actions/setup-python@v4
         with:
-          path: |
-            /github/home/.cache/pip/wheels
-          key: ${{ runner.os }}-python-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-python-install-
+          python-version: '3.9'
+          cache: 'pip'
 
       - name: Install dependencies
         run: bash install.sh
