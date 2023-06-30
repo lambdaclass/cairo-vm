@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use felt::Felt252;
 use serde::Serialize;
 use thiserror_no_std::Error;
 
 use crate::{
+    stdlib::{collections::HashMap, prelude::Vec},
     types::layout::CairoLayout,
     vm::{
         errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
@@ -116,9 +115,8 @@ impl<'a> PublicInput<'a> {
         })
     }
 
-    pub fn write(&self, file_path: &str) -> Result<(), PublicInputError> {
-        std::fs::write(file_path, serde_json::to_string_pretty(&self)?)?;
-        Ok(())
+    pub fn serialize_json(&self) -> Result<String, PublicInputError> {
+        serde_json::to_string_pretty(&self).map_err(PublicInputError::from)
     }
 }
 
@@ -130,8 +128,6 @@ pub enum PublicInputError {
     MemoryNotFound(usize),
     #[error("Range check values are missing")]
     NoRangeCheckLimits,
-    #[error("Failed to interact with the file system")]
-    IO(#[from] std::io::Error),
     #[error("Failed to (de)serialize data")]
     Serde(#[from] serde_json::Error),
     #[error(transparent)]

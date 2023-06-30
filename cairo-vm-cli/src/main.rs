@@ -168,7 +168,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(file_path) = args.air_public_input {
-        cairo_runner.get_air_public_input(&vm)?.write(&file_path)?;
+        let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
+        std::fs::write(file_path, json)?;
     }
 
     Ok(())
