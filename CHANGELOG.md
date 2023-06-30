@@ -43,13 +43,9 @@
   * `HintProcessorLogic::execute_hint` no longer receives `run_resources: &mut RunResources`
   * Remove argument `run_resources: &mut RunResources` from `CairoRunner::run_until_pc` & `CairoRunner::run_from_entrypoint`
 
-<<<<<<< HEAD
-* build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-rs/pull/1266)
-=======
 * build: remove unused implicit features from cairo-vm [#1266](https://github.com/lambdaclass/cairo-vm/pull/1266)
 
 
->>>>>>> main
 #### [0.6.1] - 2023-6-23
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-vm/pull/1258)
