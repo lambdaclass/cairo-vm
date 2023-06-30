@@ -11,8 +11,8 @@
 **/*.swp
 bench/results
 .python-version
-cairo-rs-env/*
-cairo-rs-pypy-env/*
+cairo-vm-env/*
+cairo-vm-pypy-env/*
 cairo/
 
 ensure-no_std/Cargo.lock
