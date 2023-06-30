@@ -27,10 +27,10 @@ jobs:
       - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
-          # first one is unix and second one macos
+          # first one is ubuntu and second one macos
           path: |
-            ${HOME}/.cache/pip/wheels/
-            ${HOME}/Library/Caches/pip/wheels/
+            /home/runner/.cache/pip/wheels/
+            /Users/runner/Library/Caches/pip/wheels/
           key: ${{ runner.os }}-python-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-python-install-
 
@@ -63,11 +63,16 @@ jobs:
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
       
+      - name: Enable pip cache
+        run: |
+          mkdir -p /github/home/.cache/pip
+          chown -R 1000:1000 /github/home/.cache/pip
+      
       - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
           path: |
-            ${HOME}/.cache/pip/wheels
+            /github/home/.cache/pip/wheels
           key: ${{ runner.os }}-python-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-python-install-
 
