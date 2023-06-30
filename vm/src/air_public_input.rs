@@ -3,7 +3,10 @@ use serde::Serialize;
 use thiserror_no_std::Error;
 
 use crate::{
-    stdlib::{collections::HashMap, prelude::Vec},
+    stdlib::{
+        collections::HashMap,
+        prelude::{String, Vec},
+    },
     types::layout::CairoLayout,
     vm::{
         errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
