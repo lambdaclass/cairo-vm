@@ -63,7 +63,10 @@ jobs:
       - name: Enable pip cache
         run: |
           mkdir -p ~/.cache/pip
-          chown -R 1000:1000 ~/.cache/pip
+          chown -v -R $USER ~/.cache
+          chmod -v -R 770 ~/.cache
+          ls -al ~/
+          ls -al ~/.cache
 
       # NOTE: we don't use install-python because lsb_release isn't installed
       - name: Cache Python dependencies
