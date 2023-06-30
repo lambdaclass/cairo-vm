@@ -1,4 +1,4 @@
-name: Test dependencies and cairo-rs install
+name: Test dependencies and cairo-vm install
 
 on:
   merge_group:
