@@ -891,7 +891,6 @@ impl VirtualMachine {
         self.trace = None
     }
 
-    // TODO: add test cases
     pub fn get_relocation_table(&self) -> Result<Vec<usize>, MemoryError> {
         self.segments.relocate_segments()
     }
