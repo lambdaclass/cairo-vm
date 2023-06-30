@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use felt::Felt252;
 use serde::Serialize;
-use thiserror::Error;
+use thiserror_no_std::Error;
 
 use crate::{
     types::layout::CairoLayout,
@@ -52,17 +52,17 @@ impl<'a> PublicInput<'a> {
         memory: &[Option<Felt252>],
         layout: &'a str,
         dyn_layout_params: Option<&'a CairoLayout>,
-        public_memory_addresses: &[(usize, &usize)],
+        public_memory_addresses: &[(usize, usize)],
         memory_segment_addresses: HashMap<&'static str, (usize, usize)>,
         trace: &[TraceEntry],
         rc_limits: Option<(isize, isize)>,
     ) -> Result<Self, PublicInputError> {
         let memory_entry =
-            |addresses: &(usize, &usize)| -> Result<PublicMemoryEntry, PublicInputError> {
+            |addresses: &(usize, usize)| -> Result<PublicMemoryEntry, PublicInputError> {
                 let (address, page) = addresses;
                 Ok(PublicMemoryEntry {
                     address: *address,
-                    page: **page,
+                    page: *page,
                     value: memory
                         .get(*address)
                         .ok_or(PublicInputError::MemoryNotFound(*address))?
