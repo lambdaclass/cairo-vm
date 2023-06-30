@@ -10,9 +10,9 @@ use crate::{
 use num_traits::abs;
 
 pub struct RunContext {
-    pc: Relocatable,
-    ap: usize,
-    fp: usize,
+    pub(crate) pc: Relocatable,
+    pub(crate) ap: usize,
+    pub(crate) fp: usize,
 }
 
 impl RunContext {
@@ -24,6 +24,10 @@ impl RunContext {
     }
     pub fn get_pc(&self) -> Relocatable {
         self.pc
+    }
+
+    pub fn new(pc: Relocatable, ap: usize, fp: usize) -> Self {
+        RunContext { pc, ap, fp }
     }
 
     pub fn compute_dst_addr(

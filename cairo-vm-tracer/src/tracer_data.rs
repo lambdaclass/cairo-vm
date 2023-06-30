@@ -155,11 +155,7 @@ impl TracerData {
         let mut memory_accesses: Vec<MemoryAccess> = vec![];
         //loop of trace
         for entry in trace.iter() {
-            let run_context = RunContext {
-                ap: entry.ap,
-                fp: entry.fp,
-                pc: Relocatable::from((0, entry.pc)), // TODO: verify this value is correct
-            };
+            let run_context = RunContext::new(Relocatable::from((0, entry.pc)), entry.ap, entry.fp);
 
             let (instruction_encoding, _) =
                 get_instruction_encoding(entry.pc, &memory, program.prime())?;
