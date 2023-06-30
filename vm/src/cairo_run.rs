@@ -14,6 +14,10 @@ use felt::Felt252;
 
 use thiserror_no_std::Error;
 
+#[cfg(feature = "fuzzing")]
+use arbitrary::Arbitrary;
+
+#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
@@ -43,6 +47,44 @@ pub fn cairo_run(
 ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
     let program = Program::from_bytes(program_content, Some(cairo_run_config.entrypoint))?;
 
+    let secure_run = cairo_run_config
+        .secure_run
+        .unwrap_or(!cairo_run_config.proof_mode);
+
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        cairo_run_config.proof_mode,
+    )?;
+
+    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
+    let end = cairo_runner.initialize(&mut vm)?;
+    // check step calculation
+
+    cairo_runner
+        .run_until_pc(end, &mut vm, hint_executor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+    cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
+
+    vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(&mut vm)?;
+    if cairo_run_config.proof_mode {
+        cairo_runner.finalize_segments(&mut vm)?;
+    }
+    if secure_run {
+        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+    }
+    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
+
+    Ok((cairo_runner, vm))
+}
+
+#[cfg(feature = "fuzzing")]
+pub fn cairo_run_parsed_program(
+    program: Program,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut dyn HintProcessor,
+) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
     let secure_run = cairo_run_config
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
