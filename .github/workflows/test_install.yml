@@ -41,14 +41,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.66.0 # just so cache works
-
-      - name: Set up Cargo cache
-        uses: Swatinem/rust-cache@v2
+      # we don't use swatinem because rustc isn't installed yet
+      - name: Cache rust dependencies
+        uses: actions/cache@v3
+        id: cache
         with:
-          cache-all-crates: 'true'
-          cache-on-failure: 'true'
+          path: |
+            ${HOME}/.cargo/
+            ./target/
+          key: ${{ runner.os }}-install-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-install-
 
       - name: Install dependencies
         run: bash install.sh
