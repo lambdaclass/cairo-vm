@@ -276,7 +276,7 @@ function toggle_breakpoint(event) {
 
 function has_breakpoint(step) {
   return (
-    $(".inst" + trace[step].pc).hasClass("breakpoint") ||
+    $("#mem_row" + trace[step].pc).hasClass("breakpoint") ||
     $("#mem_row" + memory_accesses[step].dst).hasClass("breakpoint") ||
     $("#mem_row" + memory_accesses[step].op0).hasClass("breakpoint") ||
     $("#mem_row" + memory_accesses[step].op1).hasClass("breakpoint")
