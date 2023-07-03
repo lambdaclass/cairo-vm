@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `lambdaworks-felt` feature to `cairo-vm-cli` [#1308](https://github.com/lambdaclass/cairo-vm/pull/1308)
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
