@@ -4,7 +4,7 @@ on:
   # At the end of every day
   - cron: "0 0 * * *"
 jobs:
-  changelog:
+  run-fuzzers:
     runs-on: ubuntu-latest
     steps:
 
@@ -37,19 +37,17 @@ jobs:
     - name: Install Honggfuzz
       run: cargo install honggfuzz
 
-    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'true' }}
-    # If didn´t have any inputs starts from 0
-      name: Initializing fuzzer from 0 
+    # If has cached inputs starts with them or else starts from 0
+    - name: Initializing fuzzer with previous inputs 
       run: |
         cd fuzzer
         HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --timeout 60 -T" cargo hfuzz run fuzz_json
 
-    # If has cached inputs starts with them and run with minimize 
-    - if: ${{ steps.cache-inputs.outputs.cache-hit != 'false' }}
-      name: Initializing fuzzer with previous inputs 
+    # run the fuzzer with minimize to reduce inputs 
+    - name: Initializing fuzzer with minimize
       run: |
         cd fuzzer
-        HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --minimize --timeout 60 -T" cargo hfuzz run fuzz_json
+        HFUZZ_RUN_ARGS="--dict=json.dict --minimize --timeout 60 -T" cargo hfuzz run fuzz_json
 
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
