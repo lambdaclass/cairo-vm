@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
+
 * chore: remove unused dependencies [#1307](https://github.com/lambdaclass/cairo-vm/pull/1307)
   * rand_core
   * serde_bytes
