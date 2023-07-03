@@ -12,7 +12,6 @@ default = ["std", "with_mimalloc"]
 with_mimalloc = ["mimalloc"]
 std = [
     "serde_json/std",
-    "serde_bytes/std",
     "bincode/std",
     "anyhow/std",
     "starknet-crypto/std",
@@ -20,10 +19,13 @@ std = [
     "dep:num-prime",
     "thiserror-no-std/std",
 ]
-cairo-1-hints = ["dep:cairo-lang-starknet", "dep:cairo-lang-casm", "dep:ark-ff", "dep:ark-std"]
-lambdaworks-felt = [
-    "felt/lambdaworks-felt"
+cairo-1-hints = [
+    "dep:cairo-lang-starknet",
+    "dep:cairo-lang-casm",
+    "dep:ark-ff",
+    "dep:ark-std",
 ]
+lambdaworks-felt = ["felt/lambdaworks-felt"]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
@@ -40,13 +42,11 @@ rand = { workspace = true }
 num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
-serde_bytes = { workspace = true }
 serde_json = { workspace = true }
 hex = { workspace = true }
 bincode = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
-rand_core = { workspace = true }
 lazy_static = { workspace = true }
 nom = { workspace = true }
 sha2 = { workspace = true }
@@ -79,7 +79,6 @@ wasm-bindgen-test = "0.3.34"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.3.1"
-rusty-hook = "0.11"
 criterion = { version = "0.3", features = ["html_reports"] }
 proptest = "1.0.0"
 
