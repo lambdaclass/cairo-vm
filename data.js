@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688409205378,
+  "lastUpdate": 1688410816407,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109900,6 +109900,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18248909,
             "range": "± 292737",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "94461321+daphneherlambda@users.noreply.github.com",
+            "name": "daphneherlambda",
+            "username": "daphneherlambda"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "a1ec8d85ee9ebbc5c22427998ab55e1ed910c38d",
+          "message": "update fuzzer workflow (#1310)\n\nCo-authored-by: dafifynn <slimbieber@gmail.com>",
+          "timestamp": "2023-07-03T18:25:02Z",
+          "tree_id": "0ee1ab5b46baa69aa7b74c328731d8da7527f807",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/a1ec8d85ee9ebbc5c22427998ab55e1ed910c38d"
+        },
+        "date": 1688410809272,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1497,
+            "range": "± 92",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 55484,
+            "range": "± 2216",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20533285,
+            "range": "± 747038",
             "unit": "ns/iter"
           }
         ]
