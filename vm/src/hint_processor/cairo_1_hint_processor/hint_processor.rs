@@ -23,11 +23,11 @@ use cairo_lang_casm::{
     operand::{CellRef, ResOperand},
 };
 use core::any::Any;
+use core::ops::Shl;
 
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{cast::ToPrimitive, Zero};
-use std::ops::Shl;
 
 /// Execution scope for constant memory allocation.
 struct MemoryExecScope {
@@ -1066,7 +1066,7 @@ impl Cairo1HintProcessor {
         if let Some(root) = res.sqrt() {
             let root0: BigUint = root.into_bigint().into();
             let root1: BigUint = (-root).into_bigint().into();
-            let root = Felt252::from(std::cmp::min(root0, root1));
+            let root = Felt252::from(core::cmp::min(root0, root1));
             vm.insert_value(cell_ref_to_relocatable(sqrt, vm)?, root)
                 .map_err(HintError::from)
         } else {
