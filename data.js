@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688401149765,
+  "lastUpdate": 1688409024065,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109708,6 +109708,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22807144,
             "range": "± 139449",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "a079222a35fd24f92adc5cb1ce0c3d83c4bc1f29",
+          "message": "chore: rename fibonacci and factorial benchmark files (#1288)\n\n* Rename fibonacci and factorial benchmark files\n\n* Update README link\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-03T17:59:08Z",
+          "tree_id": "ee1bd2867bbebb0c4adf12309e6b2579e2b67597",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/a079222a35fd24f92adc5cb1ce0c3d83c4bc1f29"
+        },
+        "date": 1688409017240,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1581,
+            "range": "± 35",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 58080,
+            "range": "± 1246",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22023650,
+            "range": "± 389141",
             "unit": "ns/iter"
           }
         ]
