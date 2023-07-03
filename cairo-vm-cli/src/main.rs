@@ -23,23 +23,23 @@ static ALLOC: MiMalloc = MiMalloc;
 struct Args {
     #[clap(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long = "--trace_file", value_parser)]
+    #[clap(long = "trace_file", value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "--print_output")]
+    #[structopt(long = "print_output")]
     print_output: bool,
-    #[structopt(long = "--entrypoint", default_value = "main")]
+    #[structopt(long = "entrypoint", default_value = "main")]
     entrypoint: String,
-    #[structopt(long = "--memory_file")]
+    #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "--layout", default_value = "plain", validator=validate_layout)]
+    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
     layout: String,
-    #[structopt(long = "--proof_mode")]
+    #[structopt(long = "proof_mode")]
     proof_mode: bool,
-    #[structopt(long = "--secure_run")]
+    #[structopt(long = "secure_run")]
     secure_run: Option<bool>,
 }
 
-fn validate_layout(value: &str) -> Result<(), String> {
+fn validate_layout(value: &str) -> Result<String, String> {
     match value {
         "plain"
         | "small"
@@ -49,7 +49,7 @@ fn validate_layout(value: &str) -> Result<(), String> {
         | "recursive_large_output"
         | "all_cairo"
         | "all_solidity"
-        | "dynamic" => Ok(()),
+        | "dynamic" => Ok(value.to_string()),
         _ => Err(format!("{value} is not a valid layout")),
     }
 }
@@ -283,7 +283,7 @@ mod tests {
         ];
 
         for layout in valid_layouts {
-            assert_eq!(validate_layout(layout), Ok(()));
+            assert_eq!(validate_layout(layout), Ok(layout.to_string()));
         }
     }
 
