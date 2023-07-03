@@ -207,6 +207,7 @@ mod tests {
         assert_matches!(run(args), Err(Error::Cli(_)));
     }
 
+    #[deny(deny(warnings))]
     #[allow(clippy::too_many_arguments)]
     #[rstest]
     fn test_run_ok(
