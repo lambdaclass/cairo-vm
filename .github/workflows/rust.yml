@@ -121,6 +121,9 @@ jobs:
 
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
     - name: Install cargo-all-features
       uses: taiki-e/install-action@v2
       with:
