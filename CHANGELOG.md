@@ -4,6 +4,11 @@
 
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
 
+* chore: remove unused dependencies [#1307](https://github.com/lambdaclass/cairo-vm/pull/1307)
+  * rand_core
+  * serde_bytes
+  * rusty-hook (*dev-dependency*)
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
