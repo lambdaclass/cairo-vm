@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688409024065,
+  "lastUpdate": 1688409205378,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109804,6 +109804,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22023650,
             "range": "± 389141",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "6e7d83b687ecce504a32f8fa05ee95e2e97f09dc",
+          "message": "Fix iai-benchmarks workflow (#1300)\n\n* Fix iai benchmarks workflow\n\n* Add performance regression for testing purposes\n\n* Rename workflows\n\n* Test\n\n* Skip whole rebuilding if cache doesn't fail\n\n* Reduce runs\n\n* Fix infinite loop\n\n* Remove performance regression\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-03T18:03:49Z",
+          "tree_id": "54cbdd4d923da925ed3ee4b99e76a780ef014a0f",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/6e7d83b687ecce504a32f8fa05ee95e2e97f09dc"
+        },
+        "date": 1688409198946,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1330,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 49002,
+            "range": "± 255",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18248909,
+            "range": "± 292737",
             "unit": "ns/iter"
           }
         ]
