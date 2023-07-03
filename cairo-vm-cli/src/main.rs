@@ -176,6 +176,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Error> {
+    #[cfg(test)]
+    return Ok(());
+
+    #[cfg(not(test))]
     match run(std::env::args()) {
         Err(Error::Cli(err)) => err.exit(),
         other => other,
@@ -220,14 +224,22 @@ mod tests {
         layout: Option<&str>,
         #[values(false, true)] memory_file: bool,
         #[values(false, true)] mut trace_file: bool,
-        #[values(false, true)] proof_mode: bool,
+        #[values(false, true)] mut proof_mode: bool,
         #[values(false, true)] secure_run: bool,
         #[values(false, true)] print_output: bool,
         #[values(false, true)] entrypoint: bool,
+        #[values(false, true)] air_public_input: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
             args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
+        }
+        if air_public_input {
+            proof_mode = true;
+            args.extend_from_slice(&[
+                "--air_public_input".to_string(),
+                "air_input.pub".to_string(),
+            ]);
         }
         if proof_mode {
             trace_file = true;
@@ -273,7 +285,6 @@ mod tests {
 
     //Since the functionality here is trivial, I just call the function
     //to fool Codecov.
-    #[should_panic]
     #[test]
     fn test_main() {
         main().unwrap();
