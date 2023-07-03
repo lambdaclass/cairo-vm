@@ -767,17 +767,17 @@ impl Cairo1HintProcessor {
             .map_err(HintError::from)
     }
 
+    #[allow(unused_variables)]
     fn debug_print(
         &self,
         vm: &mut VirtualMachine,
         start: &ResOperand,
         end: &ResOperand,
     ) -> Result<(), HintError> {
-        let mut curr = as_relocatable(vm, start)?;
-        let end = as_relocatable(vm, end)?;
-
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(feature = "std")]
         {
+            let mut curr = as_relocatable(vm, start)?;
+            let end = as_relocatable(vm, end)?;
             while curr != end {
                 let value = vm.get_integer(curr)?;
                 if let Some(shortstring) = as_cairo_short_string(&value) {
