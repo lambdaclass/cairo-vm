@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* chore: update dependencies, particularly clap 3.2 -> 4.3
+  * this removes dependency on _atty_, that's no longer mantained
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
