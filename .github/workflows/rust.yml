@@ -157,12 +157,25 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
-    - name: Check all features
+    # NOTE: we do this separately because --workspace operates in weird ways
+    - name: Check all features (felt)
       run: |
-        # NOTE: we do this separately because --workspace operates in weird ways
-        cargo check-all-features -p cairo-felt
-        cargo check-all-features -p cairo-vm
-        cargo check-all-features -p cairo-vm-cli
+        cd felt
+        cargo check-all-features
+        cargo check-all-features --workspace --all-targets
+
+    - name: Check all features (vm)
+      run: |
+        cd vm
+        cargo check-all-features
+
+    - name: Check all features (CLI)
+      run: |
+        cd cairo-vm-cli
+        cargo check-all-features
+    
+    - name: Check all features (workspace)
+      run: |
         cargo check-all-features --workspace --all-targets
 
     - name: Check no-std
