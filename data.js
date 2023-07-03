@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688410816407,
+  "lastUpdate": 1688425382281,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -109996,6 +109996,102 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20533285,
             "range": "± 747038",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "87827390+SantiagoPittella@users.noreply.github.com",
+            "name": "Santiago Pittella",
+            "username": "SantiagoPittella"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cd6adae93033fb0bee0ffb3cac2d08fb2d392afe",
+          "message": "chore: bump version of starknet deps to 2.0.0 (#1313)\n\n* bump version of starknet deps to stable\n\n* update changelog",
+          "timestamp": "2023-07-03T22:37:17Z",
+          "tree_id": "c813a0445842e94a9aa8224bf88fe58f41a83c68",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/cd6adae93033fb0bee0ffb3cac2d08fb2d392afe"
+        },
+        "date": 1688425374782,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/0",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1285,
+            "range": "± 127",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 52324,
+            "range": "± 2718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18050338,
+            "range": "± 765654",
             "unit": "ns/iter"
           }
         ]
