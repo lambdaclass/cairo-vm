@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
+
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
 
 * feat: add `lambdaworks-felt` feature to `cairo-vm-cli` [#1308](https://github.com/lambdaclass/cairo-vm/pull/1308)
