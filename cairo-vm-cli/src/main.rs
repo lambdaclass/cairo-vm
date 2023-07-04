@@ -188,6 +188,7 @@ fn main() -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
     use rstest::rstest;
@@ -207,8 +208,6 @@ mod tests {
         assert_matches!(run(args), Err(Error::Cli(_)));
     }
 
-    #[deny(deny(warnings))]
-    #[allow(clippy::too_many_arguments)]
     #[rstest]
     fn test_run_ok(
         #[values(None,
