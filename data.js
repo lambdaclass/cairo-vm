@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688483343601,
+  "lastUpdate": 1688492971702,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -110272,6 +110272,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19771087,
             "range": "± 184188",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "ddf817bc1bdf8701d4ceb2c73d402018f3c4bc6a",
+          "message": "fix: check all features on each crate (#1312)\n\n* Remove some `std` uses from cairo 1 hint processor\n\n* Fix smoke job\n\n* Fix [\"alloc\"] compilation of cairo-felt\n\n* Split check-all-features into one for each crate\n\n* Cache on failure\n\n* Fix cairo-1-hints compilation",
+          "timestamp": "2023-07-04T17:26:19Z",
+          "tree_id": "ac6acc5c4ec2bfcb063424726bc323acaa4a0915",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/ddf817bc1bdf8701d4ceb2c73d402018f3c4bc6a"
+        },
+        "date": 1688492964045,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1614,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60206,
+            "range": "± 547",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23552101,
+            "range": "± 155570",
             "unit": "ns/iter"
           }
         ]
