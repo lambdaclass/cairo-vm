@@ -121,6 +121,9 @@ jobs:
 
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
     - name: Install cargo-all-features
       uses: taiki-e/install-action@v2
       with:
@@ -157,8 +160,26 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
-    - name: Check all features
-      run: cargo check-all-features --workspace --all-targets
+    # NOTE: we do this separately because --workspace operates in weird ways
+    - name: Check all features (felt)
+      run: |
+        cd felt
+        cargo check-all-features
+        cargo check-all-features --workspace --all-targets
+
+    - name: Check all features (vm)
+      run: |
+        cd vm
+        cargo check-all-features
+
+    - name: Check all features (CLI)
+      run: |
+        cd cairo-vm-cli
+        cargo check-all-features
+    
+    - name: Check all features (workspace)
+      run: |
+        cargo check-all-features --workspace --all-targets
 
     - name: Check no-std
       run: |
