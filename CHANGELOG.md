@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `lambdaworks-felt` feature to `cairo-vm-cli` [#1308](https://github.com/lambdaclass/cairo-vm/pull/1308)
+
 * chore: update dependencies, particularly clap 3.2 -> 4.3
   * this removes dependency on _atty_, that's no longer mantained
 
