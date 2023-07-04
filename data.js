@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688492971702,
+  "lastUpdate": 1688494571532,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -110362,6 +110362,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23552101,
             "range": "± 155570",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "6fc69cd8077d7b60976db22caf4647a570b45b84",
+          "message": "fix: explicitly set resolver version in virtual manifest (#1311)\n\n* Explicitly set resolver version in virtual manifest\n\nThe default for crates with edition >= 2021 is the version 2 of the resolver.\nVirtual manifests, however, default to version 1.\nSeems that when we moved the VM to its own directory, we also changed the resolver we used.\n\n* Update changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-04T17:47:38Z",
+          "tree_id": "d801db656367bb93a1cc91c90b722a338b67ab4b",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/6fc69cd8077d7b60976db22caf4647a570b45b84"
+        },
+        "date": 1688494563881,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1606,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 59426,
+            "range": "± 907",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22073672,
+            "range": "± 305070",
             "unit": "ns/iter"
           }
         ]
