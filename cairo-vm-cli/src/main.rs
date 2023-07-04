@@ -113,7 +113,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     if args.air_public_input.is_some() && !args.proof_mode {
         let error = Args::command().error(
-            clap::ErrorKind::ArgumentConflict,
+            clap::error::ErrorKind::ArgumentConflict,
             "--air_public_input can only be used in proof_mode.",
         );
         return Err(Error::Cli(error));
