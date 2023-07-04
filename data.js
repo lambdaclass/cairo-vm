@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1688494571532,
+  "lastUpdate": 1688509603388,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -110452,6 +110452,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22073672,
             "range": "± 305070",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "44dae41698608b1b1ec5235bd3f9737cbf3932a4",
+          "message": "feat: improve dependency installation experience (#1298)\n\n* Add installation instructions to README\n\n* Add compilation step to installation testing\n\n* Add script for universal dependency installation\n\n* Update changelog\n\n* Enable test_install workflow only on main\n\n* Update optional dependencies\n\nJust having PyEnv and make installed suffices for running `make deps`.\nI don't think we need to list cairo-lang as a dependency.\n\n* Don't compile, only check\n\n* Push again\n\n* Use swatinem cache\n\n* Cache all crates even on failure\n\n* Fix debian rust cache\n\n* Use manual cache\n\n* Test cache\n\n* Cache cairo compiler\n\n* Add pyenv dependency caching\n\n* Cache pip instead of pyenv\n\n* Try fixing cache\n\n* Use setup-python action\n\n* Use ~ instead of ${HOME}\n\n* Use manual cache in Debian container\n\n* Add some comments\n\n* Make cache owned by current user and add logs\n\n* Remove python install from script",
+          "timestamp": "2023-07-04T21:43:31Z",
+          "tree_id": "2cf8210d8ac5bdfb814627b2e85b3a0154728f7b",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/44dae41698608b1b1ec5235bd3f9737cbf3932a4"
+        },
+        "date": 1688509596605,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1304,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51370,
+            "range": "± 239",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18416601,
+            "range": "± 236918",
             "unit": "ns/iter"
           }
         ]
