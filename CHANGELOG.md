@@ -4,10 +4,15 @@
 
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
 
+* chore: update dependencies, particularly clap 3.2 -> 4.3 [#1309](https://github.com/lambdaclass/cairo-vm/pull/1309)
+  * this removes dependency on _atty_, that's no longer mantained
+
 * chore: remove unused dependencies [#1307](https://github.com/lambdaclass/cairo-vm/pull/1307)
   * rand_core
   * serde_bytes
-  * rusty-hook (*dev-dependency*)
+  * rusty-hook (_dev-dependency_)
+
+* chore: bump `cairo-lang-starknet` and `cairo-lang-casm` dependencies to 2.0.0 [#1313](https://github.com/lambdaclass/cairo-vm/pull/1313)
 
 #### [0.8.1] - 2023-6-29
 
