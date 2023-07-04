@@ -38,7 +38,7 @@ struct Args {
     proof_mode: bool,
     #[structopt(long = "secure_run")]
     secure_run: Option<bool>,
-    #[clap(long = "--air_public_input")]
+    #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
 }
 
