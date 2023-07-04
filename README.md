@@ -209,7 +209,7 @@ make test
 
 ## 📊 Benchmarks
 
-Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+Running a [Cairo program](./cairo_programs/benchmarks/big_fibonacci.cairo) that gets the 1.5 millionth Fibonacci number we got the following benchmarks:
 
 - Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 - [Flamegraph](./docs/benchmarks/flamegraph.svg)
