@@ -225,7 +225,7 @@ mod tests {
         layout: Option<&str>,
         #[values(false, true)] memory_file: bool,
         #[values(false, true)] mut trace_file: bool,
-        #[values(false, true)] mut proof_mode: bool,
+        #[values(false, true)] proof_mode: bool,
         #[values(false, true)] secure_run: bool,
         #[values(false, true)] print_output: bool,
         #[values(false, true)] entrypoint: bool,
@@ -236,7 +236,6 @@ mod tests {
             args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
         }
         if air_public_input {
-            proof_mode = true;
             args.extend_from_slice(&[
                 "--air_public_input".to_string(),
                 "air_input.pub".to_string(),
@@ -261,8 +260,13 @@ mod tests {
         if print_output {
             args.extend_from_slice(&["--print_output".to_string()]);
         }
+
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
-        assert_matches!(run(args.into_iter()), Ok(_));
+        if air_public_input && !proof_mode {
+            assert_matches!(run(args.into_iter()), Err(_));
+        } else {
+            assert_matches!(run(args.into_iter()), Ok(_));
+        }
     }
 
     #[test]
