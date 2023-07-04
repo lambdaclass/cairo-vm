@@ -2,12 +2,13 @@
 
 #### Upcoming Changes
 
+* feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
+
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
 
 * feat: add `lambdaworks-felt` feature to `cairo-vm-cli` [#1308](https://github.com/lambdaclass/cairo-vm/pull/1308)
 
 * chore: update dependencies, particularly clap 3.2 -> 4.3 [#1309](https://github.com/lambdaclass/cairo-vm/pull/1309)
-
   * this removes dependency on _atty_, that's no longer mantained
 
 * chore: remove unused dependencies [#1307](https://github.com/lambdaclass/cairo-vm/pull/1307)
@@ -23,7 +24,7 @@
 
 * rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1289](https://github.com/lambdaclass/cairo-vm/pull/1289)
 
-* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses [#1285](https://github.com/lambdaclass/cairo-vm/pull/1285)
 
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 

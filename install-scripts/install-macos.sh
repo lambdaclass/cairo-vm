@@ -9,21 +9,9 @@ source "$HOME/.cargo/env"
 rustc --version
 
 # Install pyenv
-brew install pyenv
+brew install pyenv gmp
 
 # Make sure pyenv has been installed correctly
 pyenv -v
 
-# Installing python 3.9 with pyenv
-pyenv install 3.9
-
-# Setting python 3.9 as the default local version
-pyenv local 3
-
-# Create and enter a virtual environment
-python3 -m venv ~/cairo_venv
-source ~/cairo_venv/bin/activate
-
-# Install cairo & its dependencies
-pip3 install -r requirements.txt
-
+make deps-macos
