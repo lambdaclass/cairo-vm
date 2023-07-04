@@ -2,6 +2,10 @@
 members = ["cairo-vm-cli", "felt", "vm", "hint_accountant"]
 exclude = ["ensure-no_std"]
 
+# Explicitly set the resolver to the default for edition >= 2021
+# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
+resolver = "2"
+
 [workspace.package]
 version = "0.8.1"
 edition = "2021"
