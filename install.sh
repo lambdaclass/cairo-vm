@@ -65,15 +65,11 @@ install_linux() {
         Debian*)    run_script "install-scripts/install-debian.sh" ;;
         *)          unsupported_os "linux: $OS" ;;
     esac
-
-    make deps
 }
 
 install_macos() {
     print_os "MacOS"
     run_script install-scripts/install-macos.sh 
-
-    make deps-macos
 }
 
 case "$OSTYPE" in

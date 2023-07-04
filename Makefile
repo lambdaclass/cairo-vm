@@ -134,7 +134,6 @@ deps: cargo-deps build-cairo-1-compiler
 	pip install -r requirements.txt ; \
 
 deps-macos: cargo-deps build-cairo-1-compiler
-	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
