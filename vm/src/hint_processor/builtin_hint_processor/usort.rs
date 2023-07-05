@@ -12,7 +12,6 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_traits::{ToPrimitive, Zero};
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     if let Ok(usort_max_size) = exec_scopes.get::<Felt252>("usort_max_size") {

@@ -54,6 +54,15 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
     }
 }
 
+pub fn felt_to_biguint(felt: crate::Felt252) -> BigUint {
+    let big_digits = felt
+        .to_le_digits()
+        .into_iter()
+        .flat_map(|limb| [limb as u32, (limb >> 32) as u32])
+        .collect();
+    BigUint::new(big_digits)
+}
+
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
