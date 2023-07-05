@@ -82,9 +82,9 @@ pub fn bigint_safe_div_hint(
 
     let k = safe_div_bigint(&(res * y - x), &p)?;
     let (value, flag) = if k.is_positive() {
-        (k.clone(), Felt252::one())
+        (k.clone(), Felt252::ONE)
     } else {
-        (-k.clone(), Felt252::zero())
+        (-k.clone(), Felt252::ZERO)
     };
 
     exec_scopes.insert_value("k", k);
@@ -217,6 +217,6 @@ mod test {
         check_memory![vm.segments.memory, ((1, 0), 1)];
         // let flag_result = get_integer_from_var_name("flag", vm, ids_data, ap_tracking);
         // assert!(flag_result.is_ok());
-        // assert_eq!(flag_result.unwrap().as_ref(), Felt252::one());
+        // assert_eq!(flag_result.unwrap().as_ref(), Felt252::ONE);
     }
 }

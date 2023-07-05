@@ -392,7 +392,7 @@ mod tests {
             fp: 6,
         };
 
-        let op0 = MaybeRelocatable::from(Felt252::new(7));
+        let op0 = MaybeRelocatable::from(Felt252::from(7));
         assert_matches!(
             run_context.compute_op1_addr(&instruction, Some(&op0)),
             Err::<Relocatable, VirtualMachineError>(VirtualMachineError::Memory(

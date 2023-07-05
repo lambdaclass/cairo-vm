@@ -188,7 +188,7 @@ lazy_static! {
         10
     )
     .unwrap();
-    static ref FELT_MAX_HALVED: BigUint = Felt252::max_value().to_biguint() / 2_u32;
+    static ref FELT_MAX_HALVED: BigUint = Felt252::MAX.to_biguint() / 2_u32;
 }
 
 // Recovers the corresponding y coordinate on the elliptic curve

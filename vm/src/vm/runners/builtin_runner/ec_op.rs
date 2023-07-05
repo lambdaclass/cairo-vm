@@ -115,9 +115,9 @@ impl EcOpBuiltinRunner {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: Felt252 = Felt252::one();
-        let beta_low: Felt252 = Felt252::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
-        let beta_high: Felt252 = Felt252::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
+        let alpha: Felt252 = Felt252::ONE;
+        let beta_low: Felt252 = Felt252::from(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
+        let beta_high: Felt252 = Felt252::from(0x6f21413efbe40de150e596d72f7a8c5_u128);
         let beta: Felt252 = (beta_high << 128_usize) + beta_low;
 
         let index = address
@@ -128,7 +128,7 @@ impl EcOpBuiltinRunner {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
-        let x_addr = (instance + (&Felt252::new(INPUT_CELLS_PER_EC_OP)))
+        let x_addr = (instance + (&Felt252::from(INPUT_CELLS_PER_EC_OP)))
             .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
@@ -195,8 +195,8 @@ impl EcOpBuiltinRunner {
             result.1.clone().into(),
         );
         match index - self.n_input_cells as usize {
-            0 => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.0)))),
-            _ => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.1)))),
+            0 => Ok(Some(MaybeRelocatable::Int(Felt252::from(result.0)))),
+            _ => Ok(Some(MaybeRelocatable::Int(Felt252::from(result.1)))),
             //Default case corresponds to 1, as there are no other possible cases
         }
     }
@@ -505,7 +505,7 @@ mod tests {
         let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = Felt252::one();
+        let alpha = Felt252::ONE;
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -521,7 +521,7 @@ mod tests {
         let y = felt_str!(
             "2119589567875935397690285099786081818522144748339117565577200220779667999801"
         );
-        let alpha = Felt252::one();
+        let alpha = Felt252::ONE;
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -537,7 +537,7 @@ mod tests {
         let y = felt_str!(
             "152666792071518830868575557812948353041420400780739481342941381225525861407"
         );
-        let alpha = Felt252::one();
+        let alpha = Felt252::ONE;
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -553,7 +553,7 @@ mod tests {
         let y = felt_str!(
             "2119589567875935397690885099786081818522144748339117565577200220779667999801"
         );
-        let alpha = Felt252::one();
+        let alpha = Felt252::ONE;
         let beta = felt_str!(
             "3141592653589793238462643383279502884197169399375105820974944592307816406665"
         );
@@ -579,7 +579,7 @@ mod tests {
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt252::new(34);
+        let m = Felt252::from(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
@@ -617,7 +617,7 @@ mod tests {
                 "152666792071518830868575557812948353041420400780739481342941381225525861407"
             ),
         );
-        let m = Felt252::new(34);
+        let m = Felt252::from(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
@@ -640,9 +640,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt252::one(), Felt252::new(9));
-        let doubled_point = (Felt252::one(), Felt252::new(12));
-        let m = Felt252::new(34);
+        let partial_sum = (Felt252::ONE, Felt252::from(9));
+        let doubled_point = (Felt252::ONE, Felt252::from(12));
+        let m = Felt252::from(34);
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();

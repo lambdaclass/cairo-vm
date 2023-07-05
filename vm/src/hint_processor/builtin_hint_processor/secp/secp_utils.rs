@@ -121,7 +121,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
+        constants.insert(BASE_86.to_string(), Felt252::ONE << 86_usize);
 
         let array_1 = bigint3_split(&BigUint::zero());
         #[allow(deprecated)]
@@ -189,9 +189,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_pack() {
         let pack_1 = bigint3_pack(Uint384 {
-            d0: Cow::Borrowed(&Felt252::new(10_i32)),
-            d1: Cow::Borrowed(&Felt252::new(10_i32)),
-            d2: Cow::Borrowed(&Felt252::new(10_i32)),
+            d0: Cow::Borrowed(&Felt252::from(10_i32)),
+            d1: Cow::Borrowed(&Felt252::from(10_i32)),
+            d2: Cow::Borrowed(&Felt252::from(10_i32)),
         });
         assert_eq!(
             pack_1,

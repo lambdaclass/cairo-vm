@@ -307,7 +307,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -332,7 +332,7 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -484,7 +484,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -554,7 +554,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -709,7 +709,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -808,7 +808,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -837,7 +837,7 @@ mod tests {
         .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::ZERO),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
                 felt_str!(
@@ -846,7 +846,7 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt252::new(3),
+                Felt252::from(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",

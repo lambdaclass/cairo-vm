@@ -186,13 +186,13 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (offset1, offset2) = if struct_ == "felt" && indirection_level.is_empty() {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::new(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
         let offset2 = match snd_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::new(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
@@ -500,7 +500,7 @@ mod tests {
                 "",
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    offset2: OffsetValue::Immediate(Felt252::one()),
+                    offset2: OffsetValue::Immediate(Felt252::ONE),
                     dereference: true,
                     value_type: "felt".to_string(),
                 }
@@ -579,8 +579,8 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    offset1: OffsetValue::Immediate(Felt252::new(825323_i32)),
-                    offset2: OffsetValue::Immediate(Felt252::zero()),
+                    offset1: OffsetValue::Immediate(Felt252::from(825323_i32)),
+                    offset2: OffsetValue::Immediate(Felt252::ZERO),
                     dereference: false,
                     value_type: "felt".to_string(),
                 }

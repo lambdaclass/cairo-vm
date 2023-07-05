@@ -41,17 +41,17 @@ pub fn set_add(
 
     for i in 0..range_limit {
         if vm.mem_eq(elm_ptr, (set_ptr + elm_size * i)?, elm_size) {
-            insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking)?;
+            insert_value_from_var_name("index", Felt252::from(i), vm, ids_data, ap_tracking)?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
-                Felt252::one(),
+                Felt252::ONE,
                 vm,
                 ids_data,
                 ap_tracking,
             );
         }
     }
-    insert_value_from_var_name("is_elm_in_set", Felt252::zero(), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("is_elm_in_set", Felt252::ZERO, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -127,7 +127,7 @@ mod tests {
                 .get(&MaybeRelocatable::from((1, 0)))
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt252::zero())
+            &MaybeRelocatable::Int(Felt252::ZERO)
         )
     }
 

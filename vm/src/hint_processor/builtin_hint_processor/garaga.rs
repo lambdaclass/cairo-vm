@@ -58,7 +58,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_simple() {
-        let bit_length_result = run_hint(Felt252::new(7));
+        let bit_length_result = run_hint(Felt252::from(7));
         assert!(bit_length_result.is_ok());
         assert_eq!(bit_length_result.unwrap(), Felt252::from(3));
     }
@@ -67,7 +67,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
         for i in 0..252_usize {
-            let x: Felt252 = Felt252::one() << i;
+            let x: Felt252 = Felt252::ONE << i;
 
             let bit_length_result = run_hint(x);
             assert!(bit_length_result.is_ok());
@@ -78,9 +78,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_wraparound() {
-        let x = Felt252::max_value() + Felt252::one();
+        let x = Felt252::MAX + Felt252::ONE;
         let bit_length_result = run_hint(x);
         assert!(bit_length_result.is_ok());
-        assert_eq!(bit_length_result.unwrap(), Felt252::zero());
+        assert_eq!(bit_length_result.unwrap(), Felt252::ZERO);
     }
 }

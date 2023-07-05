@@ -416,7 +416,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 7)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(8)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(8)))));
     }
 
     #[test]
@@ -425,7 +425,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 8)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(6)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(6)))));
     }
 
     #[test]
@@ -434,7 +434,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(14)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(14)))));
     }
 
     #[test]

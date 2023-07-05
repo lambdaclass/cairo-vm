@@ -59,6 +59,8 @@ pub enum MathError {
     Felt252ToUsizeConversion(Box<Felt252>),
     #[error("Conversion to u64 failed for Felt252 {0}")]
     Felt252ToU64Conversion(Box<Felt252>),
+    #[error("Byte conversion error")]
+    ByteConversionError,
 }
 
 #[cfg(test)]

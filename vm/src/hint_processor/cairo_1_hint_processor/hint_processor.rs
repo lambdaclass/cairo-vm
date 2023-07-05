@@ -382,8 +382,8 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?.to_biguint();
         let rhs_value = res_operand_get_val(vm, rhs)?.to_biguint();
-        let quotient_value = Felt252::new(&lhs_value / &rhs_value);
-        let remainder_value = Felt252::new(lhs_value % rhs_value);
+        let quotient_value = Felt252::from(&lhs_value / &rhs_value);
+        let remainder_value = Felt252::from(lhs_value % rhs_value);
         vm.insert_value(cell_ref_to_relocatable(quotient, vm)?, quotient_value)?;
         vm.insert_value(cell_ref_to_relocatable(remainder, vm)?, remainder_value)
             .map_err(HintError::from)
@@ -809,7 +809,7 @@ impl Cairo1HintProcessor {
             .get(&key.clone())
             .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
 
-        if n != Felt252::new(access_indices_at_key.len()) {
+        if n != Felt252::from(access_indices_at_key.len()) {
             return Err(HintError::NumUsedAccessesAssertFail(Box::new((
                 n,
                 access_indices_at_key.len(),
@@ -1056,7 +1056,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let value = Fq::from(res_operand_get_val(vm, val)?.to_biguint());
 
-        let three_fq = Fq::from(Felt252::new(3).to_biguint());
+        let three_fq = Fq::from(Felt252::from(3).to_biguint());
         let res = if value.legendre().is_qr() {
             value
         } else {

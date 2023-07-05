@@ -45,11 +45,11 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::one().shl(16 * n_parts);
+        let bound = Felt252::ONE.shl(16 * n_parts);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
-            Some(Felt252::new(bound))
+            Some(Felt252::from(bound))
         };
 
         RangeCheckBuiltinRunner {
@@ -96,7 +96,7 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one() << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt252::ONE << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },

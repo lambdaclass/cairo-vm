@@ -56,8 +56,8 @@ pub fn keccak_write_args(
     let low = low.as_ref();
     let high = high.as_ref();
 
-    let low_args = [low & Felt252::new(u64::MAX), low >> 64_u32];
-    let high_args = [high & Felt252::new(u64::MAX), high >> 64_u32];
+    let low_args = [low & Felt252::from(u64::MAX), low >> 64_u32];
+    let high_args = [high & Felt252::from(u64::MAX), high >> 64_u32];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
     vm.write_arg(inputs_ptr, &low_args)
@@ -91,11 +91,11 @@ pub fn compare_bytes_in_word_nondet(
     // One option is to try to convert n_bytes into usize, with failure to do so simply
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
-    // Felt252::new(BYTES_INTO_WORD) into a lazy_static!
+    // Felt252::from(BYTES_INTO_WORD) into a lazy_static!
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BYTES_IN_WORD)))?;
-    let value = Felt252::new((n_bytes < bytes_in_word) as usize);
+    let value = Felt252::from((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -120,7 +120,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
         .get(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK)
         .or_else(|| constants.get(KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK))
         .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_FULL_RATE_IN_BYTES)))?;
-    let value = Felt252::new((n_bytes >= keccak_full_rate_in_bytes) as usize);
+    let value = Felt252::from((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -154,7 +154,7 @@ pub(crate) fn block_permutation_v1(
     let keccak_state_size_felts = constants
         .get(KECCAK_STATE_SIZE_FELTS)
         .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
-    if keccak_state_size_felts >= &Felt252::new(100_i32) {
+    if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             keccak_state_size_felts.clone(),
         )));
@@ -262,13 +262,13 @@ fn cairo_keccak_finalize(
         .get(BLOCK_SIZE)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BLOCK_SIZE)))?;
 
-    if keccak_state_size_felts >= &Felt252::new(100_i32) {
+    if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             keccak_state_size_felts.clone(),
         )));
     }
 
-    if block_size >= &Felt252::new(block_size_limit) {
+    if block_size >= &Felt252::from(block_size_limit) {
         return Err(HintError::InvalidBlockSize(Box::new(block_size.clone())));
     };
 
@@ -280,7 +280,7 @@ fn cairo_keccak_finalize(
         .map_err(|_| VirtualMachineError::SliceToArrayError)?;
     keccak::f1600(&mut inp);
 
-    let mut padding = vec![Felt252::zero().into(); keccak_state_size_felts];
+    let mut padding = vec![Felt252::ZERO.into(); keccak_state_size_felts];
     padding.extend(u64_array_to_mayberelocatable_vec(&inp));
 
     let base_padding = padding.clone();
@@ -361,7 +361,7 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
 }
 
 pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable> {
-    array.iter().map(|n| Felt252::new(*n).into()).collect()
+    array.iter().map(|n| Felt252::from(*n).into()).collect()
 }
 
 #[cfg(test)]
@@ -456,7 +456,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -485,7 +485,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -513,7 +513,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::new(136))]
+                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

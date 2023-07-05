@@ -1,5 +1,6 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::types::errors::math_errors::MathError;
 use crate::Felt252;
 use crate::{
     types::{
@@ -52,15 +53,11 @@ impl SignatureBuiltinRunner {
         relocatable: Relocatable,
         (r, s): &(Felt252, Felt252),
     ) -> Result<(), MemoryError> {
-        let r_string = r.to_str_radix(10);
-        let s_string = s.to_str_radix(10);
+        let r_be_bytes = r.to_bytes_be();
+        let s_be_bytes = s.to_bytes_be();
         let (r_felt, s_felt) = (
-            FieldElement::from_dec_str(&r_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(r_string.into_boxed_str())
-            })?,
-            FieldElement::from_dec_str(&s_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(s_string.into_boxed_str())
-            })?,
+            FieldElement::from_bytes_be(&r_be_bytes).map_err(|_| MathError::ByteConversionError)?,
+            FieldElement::from_bytes_be(&s_be_bytes).map_err(|_| MathError::ByteConversionError)?,
         );
 
         let signature = Signature {
@@ -126,14 +123,11 @@ impl SignatureBuiltinRunner {
                     .get(&pubkey_addr)
                     .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key =
-                    FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {
-                        MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10).into_boxed_str())
-                    })?;
+                let public_key = FieldElement::from_bytes_be(&pubkey.to_bytes_be())
+                    .map_err(|_| MathError::ByteConversionError)?;
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).map_err(|_| {
-                    MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10).into_boxed_str())
-                })?;
+                let message = FieldElement::from_bytes_be(&msg.to_bytes_be())
+                    .map_err(|_| MathError::ByteConversionError)?;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((

@@ -849,7 +849,6 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -962,7 +961,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt252::ONE)];
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.segments = segments![((1, 2), 5)];
@@ -999,7 +998,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt252::ONE)];
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 1), 5)];
@@ -1011,8 +1010,8 @@ mod tests {
                 MemoryError::InconsistentMemory(bx)
             )) if *bx ==
                     (Relocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt252::new(5)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt252::from(5)),
+                    MaybeRelocatable::from(Felt252::ZERO))
         );
     }
 
@@ -1023,7 +1022,7 @@ mod tests {
         let mut vm = vm!();
         // Create new vm scope with dummy variable
         let mut exec_scopes = ExecutionScopes::new();
-        let a_value: Box<dyn Any> = Box::new(Felt252::one());
+        let a_value: Box<dyn Any> = Box::new(Felt252::ONE);
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
         // Initialize memory segments
         add_segments!(vm, 1);
@@ -1083,7 +1082,7 @@ mod tests {
             ((1, 5), 0)
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(500))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt252::from(500))];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
 
@@ -1105,10 +1104,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(2))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt252::from(2))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::KeccakMaxSize(bx)) if *bx == (Felt252::new(5), Felt252::new(2))
+            Err(HintError::KeccakMaxSize(bx)) if *bx == (Felt252::from(5), Felt252::from(2))
         );
     }
 
@@ -1153,10 +1152,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(10))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt252::from(10))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::InvalidWordSize(bx)) if *bx == Felt252::new(-1)
+            Err(HintError::InvalidWordSize(bx)) if *bx == Felt252::from(-1)
         );
     }
 

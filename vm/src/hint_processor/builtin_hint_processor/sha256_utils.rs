@@ -37,10 +37,10 @@ pub fn sha256_input(
 
     insert_value_from_var_name(
         "full_word",
-        if n_bytes >= &Felt252::new(4_i32) {
-            Felt252::one()
+        if n_bytes >= &Felt252::from(4_i32) {
+            Felt252::ONE
         } else {
-            Felt252::zero()
+            Felt252::ZERO
         },
         vm,
         ids_data,
@@ -87,7 +87,7 @@ fn sha256_main(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(iv.len());
 
     for new_state in iv {
-        output.push(Felt252::new(*new_state).into());
+        output.push(Felt252::from(*new_state).into());
     }
 
     let output_base = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
@@ -183,7 +183,7 @@ pub fn sha256_finalize(
 
     let mut iv = IV;
 
-    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| Felt252::new(*n).into()).collect();
+    let iv_static: Vec<MaybeRelocatable> = iv.iter().map(|n| Felt252::from(*n).into()).collect();
 
     let new_message = GenericArray::clone_from_slice(&message);
     compress256(&mut iv, &[new_message]);
@@ -191,13 +191,13 @@ pub fn sha256_finalize(
     let mut output: Vec<MaybeRelocatable> = Vec::with_capacity(SHA256_STATE_SIZE_FELTS);
 
     for new_state in iv {
-        output.push(Felt252::new(new_state).into());
+        output.push(Felt252::from(new_state).into());
     }
 
     let sha256_ptr_end = get_ptr_from_var_name("sha256_ptr_end", vm, ids_data, ap_tracking)?;
 
     let mut padding: Vec<MaybeRelocatable> = Vec::new();
-    let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt252::zero().into(); 16];
+    let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt252::ZERO.into(); 16];
 
     for _ in 0..BLOCK_SIZE - 1 {
         padding.extend_from_slice(zero_vector_message.as_slice());

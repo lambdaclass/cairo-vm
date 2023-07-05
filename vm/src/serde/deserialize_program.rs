@@ -608,12 +608,12 @@ mod tests {
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -688,7 +688,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Felt252::new(2)),
+                        offset2: OffsetValue::Immediate(Felt252::from(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },
@@ -804,12 +804,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -863,12 +863,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -973,7 +973,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::new(3)),
+                value: Some(Felt252::from(3)),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -984,7 +984,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1407,7 +1407,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+            Ok(x) if x == Some(Felt252::ONE * Felt252::from(10).pow(27))
         );
     }
 

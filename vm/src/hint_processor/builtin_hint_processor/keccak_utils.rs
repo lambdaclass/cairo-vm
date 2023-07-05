@@ -82,7 +82,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &(Felt252::one() << (8 * (n_bytes as u32))) {
+        if word.is_negative() || word.as_ref() >= &(Felt252::ONE << (8 * (n_bytes as u32))) {
             return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
         }
 
@@ -211,7 +211,7 @@ pub fn split_input(
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
     let input = binding.as_ref();
-    let low = input & ((Felt252::one() << (8 * exponent)) - 1u32);
+    let low = input & ((Felt252::ONE << (8 * exponent)) - 1u32);
     let high = input >> (8 * exponent);
     insert_value_from_var_name(
         &format!("high{}", input_key),

@@ -364,8 +364,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 7)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(221)))
+                    MaybeRelocatable::from(Felt252::from(2)),
+                    MaybeRelocatable::from(Felt252::from(221)))
         );
     }
 
@@ -451,8 +451,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128)))
+                    MaybeRelocatable::from(Felt252::from(2)),
+                    MaybeRelocatable::from(Felt252::from(34895349583295832495320945304_i128)))
         );
     }
 
@@ -488,7 +488,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::one().shl(128_u32))]
+                &[("path.path.path.SHIFT", Felt252::ONE.shl(128_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

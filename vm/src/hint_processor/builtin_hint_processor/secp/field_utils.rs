@@ -44,7 +44,7 @@ pub fn verify_zero(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::from(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -70,7 +70,7 @@ pub fn verify_zero_with_external_const(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::from(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -143,9 +143,9 @@ pub fn is_zero_nondet(
     let x = exec_scopes.get::<BigInt>("x")?;
 
     let value = if x.is_zero() {
-        Felt252::one()
+        Felt252::ONE
     } else {
-        Felt252::zero()
+        Felt252::ZERO
     };
     insert_value_into_ap(vm, value)
 }
@@ -335,8 +335,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 9)),
-                    MaybeRelocatable::from(Felt252::new(55_i32)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt252::from(55_i32)),
+                    MaybeRelocatable::from(Felt252::ZERO))
         );
     }
 
@@ -567,8 +567,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (vm.run_context.get_ap(),
-                MaybeRelocatable::from(Felt252::new(55i32)),
-                MaybeRelocatable::from(Felt252::new(1i32)))
+                MaybeRelocatable::from(Felt252::from(55i32)),
+                MaybeRelocatable::from(Felt252::from(1i32)))
         );
     }
 

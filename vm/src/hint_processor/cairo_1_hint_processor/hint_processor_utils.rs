@@ -125,7 +125,7 @@ mod tests {
     fn simple_as_cairo_short_string() {
         // Values extracted from cairo book example
         let s = "Hello, Scarb!";
-        let x = Felt252::new(5735816763073854913753904210465_u128);
+        let x = Felt252::from(5735816763073854913753904210465_u128);
         assert!(s.is_ascii());
         let cairo_string = as_cairo_short_string(&x).expect("call to as_cairo_short_string failed");
         assert_eq!(cairo_string, s);

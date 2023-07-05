@@ -189,8 +189,8 @@ mod tests {
     use super::*;
     #[test]
     fn test_multiple_members_variant_message_format() {
-        let a = Felt252::new(42);
-        let b = Felt252::new(53);
+        let a = Felt252::from(42);
+        let b = Felt252::from(53);
         let string = "test";
 
         let error_msg =
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_single_felt_variant_message_format() {
-        let x = Felt252::new(15131);
+        let x = Felt252::from(15131);
 
         let error_msg = HintError::InvalidKeccakStateSizeFelt252s(Box::new(x.clone())).to_string();
 

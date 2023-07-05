@@ -48,7 +48,6 @@ mod stdlib {
     pub use crate::without_std::*;
 }
 
-pub extern crate felt;
 pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;

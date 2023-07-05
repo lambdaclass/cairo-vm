@@ -32,7 +32,7 @@ pub fn pow(
     let locs_bit = prev_locs_exp.is_odd();
     insert_value_from_var_name(
         "locs",
-        Felt252::new(locs_bit as u8),
+        Felt252::from(locs_bit as u8),
         vm,
         ids_data,
         ap_tracking,
@@ -146,8 +146,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 11)),
-                    MaybeRelocatable::from(Felt252::new(3)),
-                    MaybeRelocatable::from(Felt252::one()))
+                    MaybeRelocatable::from(Felt252::from(3)),
+                    MaybeRelocatable::from(Felt252::ONE))
         );
     }
 }

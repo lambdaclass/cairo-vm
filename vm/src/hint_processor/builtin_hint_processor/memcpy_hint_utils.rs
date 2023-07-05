@@ -75,7 +75,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
                 .unwrap()
                 .as_ref(),
-            &Felt252::new(10)
+            &Felt252::from(10)
         );
     }
 

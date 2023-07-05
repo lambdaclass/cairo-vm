@@ -15,7 +15,6 @@ std = [
     "bincode/std",
     "anyhow/std",
     "starknet-crypto/std",
-    "felt/std",
     "dep:num-prime",
     "thiserror-no-std/std",
 ]
@@ -25,7 +24,6 @@ cairo-1-hints = [
     "dep:ark-ff",
     "dep:ark-std",
 ]
-lambdaworks-felt = ["felt/lambdaworks-felt"]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
@@ -55,11 +53,10 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
-stark-felt = { git = "https://github.com/lambdaclass/types-rs", rev = "1b6aaaa" }
+stark-felt = {path = "../../types-rs/crates/stark-felt" }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
-felt = { workspace = true }
 bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature

@@ -369,27 +369,27 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
-        let x = Felt252::new(26);
-        let y = Felt252::new(13);
-        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::new(2));
+        let x = Felt252::from(26);
+        let y = Felt252::from(13);
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::from(2));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
-        let x = Felt252::new(25);
-        let y = Felt252::new(4);
+        let x = Felt252::from(25);
+        let y = Felt252::from(4);
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
-            Err(MathError::SafeDivFail(bx)) if *bx == (Felt252::new(25), Felt252::new(4)));
+            Err(MathError::SafeDivFail(bx)) if *bx == (Felt252::from(25), Felt252::from(4)));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
-        let x = Felt252::new(25);
-        let y = Felt252::zero();
+        let x = Felt252::from(25);
+        let y = Felt252::ZERO;
         let result = safe_div(&x, &y);
         assert_matches!(result, Err(MathError::DividedByZero));
     }

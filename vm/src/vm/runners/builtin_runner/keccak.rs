@@ -1,5 +1,6 @@
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
+use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -10,7 +11,6 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
-use num_traits::One;
 
 use super::KECCAK_BUILTIN_NAME;
 
@@ -92,7 +92,7 @@ impl KeccakBuiltinRunner {
                             KECCAK_BUILTIN_NAME,
                             (first_input_addr + i)?,
                         ))))?;
-                    if num >= &(Felt252::one() << self.state_rep[i]) {
+                    if num >= &(Felt252::ONE << self.state_rep[i] as usize) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                             (first_input_addr + i)?,
                             self.state_rep[i],
@@ -109,7 +109,7 @@ impl KeccakBuiltinRunner {
 
         let input_message: Vec<u8> = input_felts
             .iter()
-            .flat_map(|x| Self::right_pad(&x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| Self::right_pad(&x.to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
             .collect();
         let keccak_result = Self::keccak_f(&input_message)?;
 
@@ -118,9 +118,8 @@ impl KeccakBuiltinRunner {
             let end_index = start_index + *bits as usize / 8;
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
-                Felt252::from(BigUint::from_bytes_le(
-                    &keccak_result[start_index..end_index],
-                )),
+                Felt252::from_bytes_le(&keccak_result[start_index..end_index])
+                    .map_err(|_| MathError::ByteConversionError)?,
             );
             start_index = end_index;
         }
@@ -231,15 +230,13 @@ impl KeccakBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::Num;
-
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -538,13 +535,9 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(
-                Felt252::from_str_radix(
-                    "1006979841721999878391288827876533441431370448293338267890891",
-                    10
-                )
-                .unwrap()
-            )))
+            Ok(Some(MaybeRelocatable::from(felt_hex!(
+                "0xa06bd018ba91b93146f53563cff2efba46fee2eabe9d89b4cb"
+            ))))
         );
     }
 

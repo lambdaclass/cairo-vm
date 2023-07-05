@@ -416,7 +416,7 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt252::one());
+        .bitand(&Felt252::ONE);
     insert_value_into_ap(vm, scalar)
 }
 
@@ -1272,7 +1272,7 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.d0.as_ref(), &Felt252::one());
+        assert_eq!(e.x.d0.as_ref(), &Felt252::ONE);
         assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
         assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
         assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));

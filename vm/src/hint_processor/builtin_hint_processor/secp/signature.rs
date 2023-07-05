@@ -256,7 +256,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -286,7 +286,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

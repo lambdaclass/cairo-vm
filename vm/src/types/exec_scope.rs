@@ -211,7 +211,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_local_variables_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -224,7 +224,7 @@ mod tests {
                 .get("a")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::new(2))
+            Some(&Felt252::from(2))
         );
     }
 
@@ -232,14 +232,14 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn enter_new_scope_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2_i32));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2_i32));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes {
             data: vec![HashMap::from([(
                 String::from("b"),
-                (Box::new(Felt252::one()) as Box<dyn Any>),
+                (Box::new(Felt252::ONE) as Box<dyn Any>),
             )])],
         };
 
@@ -251,7 +251,7 @@ mod tests {
                 .get("b")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::one())
+            Some(&Felt252::ONE)
         );
 
         scopes.enter_scope(new_scope);
@@ -267,7 +267,7 @@ mod tests {
                 .get("a")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::new(2))
+            Some(&Felt252::from(2))
         );
     }
 
@@ -275,7 +275,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn exit_scope_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2));
 
         let new_scope = HashMap::from([(var_name, var_value)]);
 
@@ -293,7 +293,7 @@ mod tests {
                 .get("a")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::new(2))
+            Some(&Felt252::from(2))
         );
 
         // exit the current scope
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assign_local_variable_test() {
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2));
 
         let mut scopes = ExecutionScopes::new();
 
@@ -325,7 +325,7 @@ mod tests {
                 .get("a")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::new(2))
+            Some(&Felt252::from(2))
         );
     }
 
@@ -333,13 +333,13 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn re_assign_local_variable_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
         let mut scopes = ExecutionScopes { data: vec![scope] };
 
-        let var_value_new: Box<dyn Any> = Box::new(Felt252::new(3));
+        let var_value_new: Box<dyn Any> = Box::new(Felt252::from(3));
 
         scopes.assign_or_update_variable("a", var_value_new);
 
@@ -351,7 +351,7 @@ mod tests {
                 .get("a")
                 .unwrap()
                 .downcast_ref::<Felt252>(),
-            Some(&Felt252::new(3))
+            Some(&Felt252::from(3))
         );
     }
 
@@ -359,7 +359,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn delete_local_variable_test() {
         let var_name = String::from("a");
-        let var_value: Box<dyn Any> = Box::new(Felt252::new(2));
+        let var_value: Box<dyn Any> = Box::new(Felt252::from(2));
 
         let scope = HashMap::from([(var_name, var_value)]);
 
@@ -437,14 +437,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_mut_int_ref_test() {
-        let bigint: Box<dyn Any> = Box::new(Felt252::new(12));
+        let bigint: Box<dyn Any> = Box::new(Felt252::from(12));
 
         let mut scopes = ExecutionScopes::new();
         scopes.assign_or_update_variable("bigint", bigint);
 
         assert_matches!(
             scopes.get_mut_ref::<Felt252>("bigint"),
-            Ok(x) if x == &mut Felt252::new(12)
+            Ok(x) if x == &mut Felt252::from(12)
         );
     }
 
