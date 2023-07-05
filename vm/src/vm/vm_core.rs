@@ -1,3 +1,4 @@
+use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::{
@@ -988,7 +989,7 @@ impl VirtualMachine {
                 .get(&Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.neg()),
+                    MaybeRelocatable::Int(num) => format!("{}", signed_felt(*num)),
                     MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
                 },
                 _ => "<missing>".to_string(),
