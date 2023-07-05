@@ -6,11 +6,39 @@ use core::cmp::min;
 
 use crate::stdlib::{boxed::Box, ops::Shr};
 use crate::types::errors::math_errors::MathError;
+use crate::utils::{felt_to_biguint, CAIRO_PRIME};
 use crate::Felt252;
-use num_bigint::{BigInt, BigUint, RandBigInt};
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
+
+lazy_static! {
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
+}
+
+/// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
+///
+/// # Examples
+///
+/// ```
+/// # use crate::Felt252;
+/// let positive = Felt252::new(5);
+/// assert_eq!(signed_felt(positive), Felt252::from(5));
+///
+/// let negative = Felt252::max_value();
+/// assert_eq!(signed_felt(negative), Felt252::from(-1));
+/// ```
+
+pub fn signed_felt(felt: Felt252) -> BigInt {
+    let biguint = felt_to_biguint(felt);
+    if biguint > *SIGNED_FELT_MAX {
+        BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &biguint)
+    } else {
+        biguint.to_bigint().expect("cannot fail")
+    }
+}
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -47,7 +75,7 @@ pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
         return Err(MathError::DividedByZero);
     }
 
-    let (q, r) = x.div_mod_floor(y);
+    let (q, r) = x.floor_div(y);
 
     if !r.is_zero() {
         return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));

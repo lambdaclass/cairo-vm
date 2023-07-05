@@ -19,11 +19,7 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(
-        "0x800000000000011000000000000000000000000000000000000000000000001",
-        16
-    )
-    .unwrap();
+    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(PRIME_STR, 16).unwrap();
 }
 
 #[macro_export]
