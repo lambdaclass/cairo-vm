@@ -1,56 +1,87 @@
-//use honggfuzz::fuzz;
-use cairo_vm::cairo_run::{CairoRunConfig, cairo_run};
-use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use cairo_vm::vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
-use cairo_vm::types::relocatable::Relocatable;
-use std::process::Command;
+use cairo_vm::{
+    cairo_run::{CairoRunConfig, cairo_run},
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME,
+    types::relocatable::Relocatable,
+};
 
 fn main() {
-    let config = CairoRunConfig {
-        layout: "all_cairo",
-        ..Default::default()
-    };
+    loop {
+        honggfuzz::fuzz!(|data: [u32;8]| {
+            match build_program(data) {
+                Ok((program, filename)) => {
+                    let config = CairoRunConfig {
+                        layout: "all_cairo",
+                        ..Default::default()
+                    };
+                    let (_, vm) = cairo_run(&program, &config, &mut BuiltinHintProcessor::new_empty()).unwrap();
+                    let output_builtin = vm.get_builtin_runners().iter().find(|b| b.name() == OUTPUT_BUILTIN_NAME).unwrap();
+                    let low = vm.get_integer(Relocatable::from((output_builtin.base() as isize, 0))).unwrap();
+                    let high = vm.get_integer(Relocatable::from((output_builtin.base() as isize, 1))).unwrap();
 
-    let (_, vm) = cairo_run(&BLAKE_PROGRAM.as_bytes(), &config, &mut BuiltinHintProcessor::new_empty()).unwrap();
-    let output_builtin = vm.get_builtin_runners().iter().find(|b| b.name() == OUTPUT_BUILTIN_NAME).unwrap();
-    let low = vm.get_maybe(&Relocatable::from((output_builtin.base() as isize, 0)));
-    let high = vm.get_maybe(&Relocatable::from((output_builtin.base() as isize, 1)));
-    let stdout = Command::new("cairo-run").args(["--program", "blake2s_hello_world_hash.json", "--layout", "all", "--print_output"]).output().unwrap().stdout;
-    let str_output = String::from_utf8(stdout).unwrap();
-    let low_py = str_output.split('\n').collect::<Vec<_>>()[1].trim();
-    let high_py = str_output.split('\n').collect::<Vec<_>>()[2].trim();
+                    let stdout = std::process::Command::new("cairo-run")
+                        .args([
+                              "--program", &filename, 
+                              "--layout", "all_solidity", 
+                              "--print_output"
+                        ]).output().unwrap().stdout;
+                    let str_output = String::from_utf8(stdout).unwrap();
+                    let low_py = str_output.split('\n').collect::<Vec<_>>()[1].trim();
+                    let high_py = str_output.split('\n').collect::<Vec<_>>()[2].trim();
 
-    assert_eq!(low_py, low.unwrap().get_int_ref().unwrap().to_string());
-    assert_eq!(high_py, high.unwrap().get_int_ref().unwrap().to_string());
+                    let _ = std::fs::remove_file(filename);
+                    assert_eq!(low_py, low.to_string());
+                    assert_eq!(high_py, high.to_string());
+                },
+                Err(_) => {}
+            };
+        });
+    }
 }
 
-fn replaceable(blake_intpus: &[u32; 8]) -> &str {
+fn build_program(data: [u32; 8]) -> std::io::Result<(Vec<u8>, String)> {
+    let program = replaceable(&data);
+    let filename = data[0].to_string();
+    std::fs::write(&filename, &program)?;
+    Ok((program.into(), filename))
+}
+
+fn replaceable(blake_intpus: &[u32; 8]) -> String {
     let data_slice = [
-        blake_intpus[0],
+        u64::from(blake_intpus[0]),
+        0x400080007ffe7fff,
+        0x480680017fff8000,
+        u64::from(blake_intpus[1]),
         0x400080017ffd7fff,
         0x480680017fff8000,
-        0x32323232,
+        u64::from(blake_intpus[2]),
         0x400080027ffc7fff,
         0x480680017fff8000,
-        0x33333333,
+        u64::from(blake_intpus[3]),
         0x400080037ffb7fff,
         0x480680017fff8000,
-        0x34343434,
+        u64::from(blake_intpus[4]),
         0x400080047ffa7fff,
         0x480680017fff8000,
-        0x35353535,
+        u64::from(blake_intpus[5]),
         0x400080057ff97fff,
         0x480680017fff8000,
-        0x36363636,
+        u64::from(blake_intpus[6]),
         0x400080067ff87fff,
         0x480680017fff8000,
-        0x37373737,
+        u64::from(blake_intpus[7]),
     ];
     let mut program_string = String::new();
-    program_string.extend([format!("{:x}", data_slice[0])]);
+    for num in data_slice {
+        program_string.extend([format!("\"0x{:x}\",\n", num)]);
+    }
+    BLAKE_PROGRAM.replace(BLAKE_REPLACEABLE, &program_string)
 }
 
 const BLAKE_REPLACEABLE: &str = r#"
+        "0x30303030",
+        "0x400080007ffe7fff",
+        "0x480680017fff8000",
         "0x31313131",
         "0x400080017ffd7fff",
         "0x480680017fff8000",
