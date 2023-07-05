@@ -803,7 +803,7 @@ mod memory_tests {
             error,
             Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                 Felt252::from(-10),
-                Felt252::ONE.shl(128_u32)
+                Felt252::ONE.shl(128_usize)
             ))))
         );
     }
@@ -1548,7 +1548,7 @@ mod memory_tests {
         assert_eq!(cell.get_value(), &mayberelocatable!(2));
     }
 
-    use core::cmp::Ordering::*;
+    use core::{cmp::Ordering::*, ops::Shl};
 
     fn check_memcmp(
         lhs: (isize, usize),

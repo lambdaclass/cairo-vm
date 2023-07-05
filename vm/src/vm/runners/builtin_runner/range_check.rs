@@ -18,7 +18,6 @@ use crate::{
         },
     },
 };
-use num_traits::{One, Zero};
 
 use super::RANGE_CHECK_BUILTIN_NAME;
 
@@ -45,7 +44,7 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::ONE.shl(16 * n_parts);
+        let bound = Felt252::ONE.shl(16 * n_parts as usize);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
@@ -91,12 +90,12 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if num.bits() <= N_PARTS * INNER_RC_BOUND_SHIFT {
+                if num.bits() as u64 <= N_PARTS * INNER_RC_BOUND_SHIFT {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::ONE << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt252::ONE << ((N_PARTS * INNER_RC_BOUND_SHIFT) as usize),
                     ))))
                 }
             },

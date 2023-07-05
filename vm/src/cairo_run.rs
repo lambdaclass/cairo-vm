@@ -177,7 +177,7 @@ mod tests {
         assert!(cairo_runner.relocate(&mut vm, true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(123)));
     }
 
     #[test]

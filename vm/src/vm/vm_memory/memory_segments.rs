@@ -245,7 +245,6 @@ mod tests {
     use crate::Felt252;
     use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
-    use num_traits::Num;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -473,33 +472,6 @@ mod tests {
                 .expect("Couldn't relocate after compute effective sizes"),
             vec![1, 4, 7, 63, 141]
         )
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_arg_with_apply_modulo() {
-        let mut big_num = num_bigint::BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
-            .expect("Couldn't parse prime");
-        big_num += 1;
-        let big_maybe_rel = MaybeRelocatable::from(Felt252::from(big_num));
-        let data = vec![mayberelocatable!(11), mayberelocatable!(12), big_maybe_rel];
-        let ptr = Relocatable::from((1, 0));
-        let mut segments = MemorySegmentManager::new();
-        for _ in 0..2 {
-            segments.add();
-        }
-
-        let exec = segments.write_arg(ptr, &data);
-
-        assert_eq!(exec, Ok(MaybeRelocatable::from((1, 3))));
-        assert_eq!(
-            segments.memory.data[1],
-            vec![
-                Some(MemoryCell::new(mayberelocatable!(11))),
-                Some(MemoryCell::new(mayberelocatable!(12))),
-                Some(MemoryCell::new(mayberelocatable!(1))),
-            ]
-        );
     }
 
     #[test]

@@ -1,8 +1,9 @@
-use crate::stdlib::prelude::*;
+use crate::{stdlib::prelude::*, types::errors::math_errors::MathError};
 
 use crate::types::relocatable::Relocatable;
 use lazy_static::lazy_static;
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_integer::Integer;
 use num_traits::Num;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
@@ -61,6 +62,25 @@ pub fn felt_to_biguint(felt: crate::Felt252) -> BigUint {
         .flat_map(|limb| [limb as u32, (limb >> 32) as u32])
         .collect();
     BigUint::new(big_digits)
+}
+
+pub fn felt_to_bigint(felt: crate::Felt252) -> BigInt {
+    felt_to_biguint(felt).to_bigint().unwrap()
+}
+
+pub fn biguint_to_felt(biguint: &BigUint) -> Result<crate::Felt252, MathError> {
+    crate::Felt252::from_bytes_be(&biguint.to_bytes_be())
+        .map_err(|_| MathError::ByteConversionError)
+}
+
+pub fn bigint_to_felt(bigint: &BigInt) -> Result<crate::Felt252, MathError> {
+    crate::Felt252::from_bytes_be(
+        &bigint
+            .mod_floor(&CAIRO_PRIME.to_bigint().unwrap())
+            .to_bytes_be()
+            .1,
+    )
+    .map_err(|_| MathError::ByteConversionError)
 }
 
 #[cfg(test)]
@@ -841,10 +861,7 @@ mod test {
     #[should_panic]
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
-        tracker.insert_value(
-            &MaybeRelocatable::from(Felt252::from_bytes_le(5)),
-            &MaybeRelocatable::from(Felt252::from_bytes_le(10)),
-        );
+        tracker.insert_value(&MaybeRelocatable::from(5), &MaybeRelocatable::from(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();

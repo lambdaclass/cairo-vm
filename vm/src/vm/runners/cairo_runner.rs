@@ -1421,8 +1421,8 @@ mod tests {
             offset: 0,
         });
         let stack = vec![
-            MaybeRelocatable::from(Felt252::new(4_i32)),
-            MaybeRelocatable::from(Felt252::new(6_i32)),
+            MaybeRelocatable::from(Felt252::from(4_i32)),
+            MaybeRelocatable::from(Felt252::from(6_i32)),
         ];
         assert!(cairo_runner.initialize_state(&mut vm, 1, stack).is_err());
     }
@@ -3204,8 +3204,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_constants() {
         let program_constants = HashMap::from([
-            ("MAX".to_string(), Felt252::new(300)),
-            ("MIN".to_string(), Felt252::new(20)),
+            ("MAX".to_string(), Felt252::from(300)),
+            ("MIN".to_string(), Felt252::from(20)),
         ]);
         let program = program!(constants = program_constants.clone(),);
         let cairo_runner = cairo_runner!(program);

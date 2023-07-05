@@ -1129,6 +1129,7 @@ impl VirtualMachineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::vm::runners::builtin_runner::{
@@ -3334,45 +3335,45 @@ mod tests {
             (
                 (0, 0),
                 (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
                 )
             ),
             (
                 (0, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (0, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             (
                 (0, 3),
                 (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
                 )
             ),
             ((0, 4), 34),
             (
                 (0, 5),
                 (
-                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
-                    10
+                    "0x6245403e2fafe5df3b79ea28d050d477771bc560fc59e915b302cc9b70a92f5",
+                    16
                 )
             )
         ];
 
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 6))),
-            Ok(i) if i == Some(MaybeRelocatable::from(felt_str!(
-                "3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            Ok(i) if i == Some(MaybeRelocatable::from(felt_hex!(
+                "0x7f49de2c3a7d1671437406869edb1805ba43e1c0173b35f8c2e8fcc13c3fa6d"
             )))
         );
     }
@@ -4018,7 +4019,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
-        let prime = felt_str!(felt::PRIME_STR[2..], 16);
+        let prime = felt_hex!(crate::utils::PRIME_STR);
         let prime_maybe = MaybeRelocatable::from(prime);
 
         assert_matches!(vm.gen_arg(&prime_maybe), Ok(x) if x == mayberelocatable!(0));
