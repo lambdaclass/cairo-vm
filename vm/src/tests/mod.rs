@@ -3,6 +3,8 @@ use crate::vm::errors::cairo_run_errors::CairoRunError;
 #[cfg(feature = "cairo-1-hints")]
 use crate::vm::runners::cairo_runner::RunResources;
 #[cfg(feature = "cairo-1-hints")]
+use crate::Felt252;
+#[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     serde::deserialize_program::BuiltinName,
@@ -14,8 +16,6 @@ use crate::{
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-#[cfg(feature = "cairo-1-hints")]
-use felt::Felt252;
 
 use crate::stdlib::prelude::*;
 

@@ -6,7 +6,7 @@ use core::cmp::min;
 
 use crate::stdlib::{boxed::Box, ops::Shr};
 use crate::types::errors::math_errors::MathError;
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::{BigInt, BigUint, RandBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};

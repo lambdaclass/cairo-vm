@@ -20,6 +20,7 @@ use super::{
         pack::*,
     },
 };
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::ec_utils::{
@@ -111,7 +112,6 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;

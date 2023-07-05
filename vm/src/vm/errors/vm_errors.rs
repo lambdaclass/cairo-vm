@@ -5,6 +5,7 @@ use crate::stdlib::prelude::*;
 
 use thiserror_no_std::Error;
 
+use crate::Felt252;
 use crate::{
     types::{
         errors::math_errors::MathError,
@@ -15,7 +16,6 @@ use crate::{
         runner_errors::RunnerError, trace_errors::TraceError,
     },
 };
-use felt::Felt252;
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {

@@ -1,3 +1,4 @@
+use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
         get_integer_from_var_name, get_relocatable_from_var_name, insert_value_from_var_name,
@@ -16,7 +17,6 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};

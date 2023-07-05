@@ -9,6 +9,7 @@ use crate::{
     vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
 };
 
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div_usize,
@@ -44,7 +45,6 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::Zero;
 use serde::Deserialize;

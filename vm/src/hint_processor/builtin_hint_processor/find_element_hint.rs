@@ -1,4 +1,5 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,7 +13,6 @@ use crate::{
     types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 

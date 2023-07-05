@@ -49,7 +49,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
 
-    use felt::Felt252;
+    use crate::Felt252;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

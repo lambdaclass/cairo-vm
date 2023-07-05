@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,7 +13,6 @@ use crate::{
     vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
     vm::vm_core::VirtualMachine,
 };
-use felt::Felt252;
 use generic_array::GenericArray;
 use num_traits::{One, ToPrimitive, Zero};
 use sha2::compress256;

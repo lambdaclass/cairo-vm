@@ -57,5 +57,8 @@ pub mod types;
 pub mod utils;
 pub mod vm;
 
+// This is to make my life easier for now, will move to Felt soon
+pub use stark_felt::Felt as Felt252;
+
 #[cfg(test)]
 mod tests;

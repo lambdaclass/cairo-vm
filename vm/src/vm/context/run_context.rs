@@ -105,8 +105,8 @@ mod tests {
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
+    use crate::Felt252;
     use assert_matches::assert_matches;
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

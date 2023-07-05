@@ -1,7 +1,7 @@
 use crate::stdlib::prelude::*;
 
 use crate::types::relocatable::Relocatable;
-use felt::Felt252;
+use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 
@@ -599,6 +599,7 @@ pub mod test_utils {
 mod test {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
+    use crate::Felt252;
     use crate::{
         hint_processor::{
             builtin_hint_processor::{
@@ -612,7 +613,6 @@ mod test {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
     };
-    use felt::Felt252;
     use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]

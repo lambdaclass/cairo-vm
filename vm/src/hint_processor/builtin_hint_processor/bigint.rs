@@ -4,6 +4,7 @@ use crate::math_utils::{div_mod, safe_div_bigint};
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::bigint_utils::BigInt3,
@@ -12,7 +13,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::BigInt;
 use num_traits::{One, Signed, Zero};
 

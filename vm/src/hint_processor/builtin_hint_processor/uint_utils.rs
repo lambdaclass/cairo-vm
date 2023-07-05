@@ -1,4 +1,4 @@
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::BigUint;
 use num_traits::One;
 

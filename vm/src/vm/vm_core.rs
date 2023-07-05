@@ -23,9 +23,8 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use core::cmp::Ordering;
-use felt::Felt252;
-use num_traits::{ToPrimitive, Zero};
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;

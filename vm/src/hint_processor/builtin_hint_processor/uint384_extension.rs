@@ -2,6 +2,7 @@ use super::secp::bigint_utils::Uint384;
 use super::uint_utils::{pack, split};
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
@@ -11,7 +12,6 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::Zero;

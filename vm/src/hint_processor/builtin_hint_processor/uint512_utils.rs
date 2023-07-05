@@ -1,3 +1,4 @@
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
@@ -5,7 +6,6 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::BigUint;
 
 use super::{

@@ -91,9 +91,9 @@ mod test {
 
     use crate::types::relocatable::Relocatable;
 
+    use crate::Felt252;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use felt::Felt252;
     use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]

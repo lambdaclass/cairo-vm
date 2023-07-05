@@ -12,7 +12,7 @@ use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-use felt::Felt252;
+use crate::Felt252;
 
 pub trait HintProcessorLogic {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint

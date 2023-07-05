@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::utils::CAIRO_PRIME;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -10,7 +11,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;

@@ -242,9 +242,9 @@ impl Default for MemorySegmentManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Felt252;
     use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
-    use felt::Felt252;
     use num_traits::Num;
 
     #[cfg(target_arch = "wasm32")]

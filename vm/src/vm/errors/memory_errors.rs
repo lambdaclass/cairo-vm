@@ -5,7 +5,7 @@ use crate::stdlib::prelude::*;
 
 use thiserror_no_std::Error;
 
-use felt::Felt252;
+use crate::Felt252;
 
 use crate::types::{
     errors::math_errors::MathError,

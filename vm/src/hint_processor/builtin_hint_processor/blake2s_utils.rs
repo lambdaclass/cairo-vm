@@ -1,6 +1,7 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -14,7 +15,6 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_traits::ToPrimitive;
 
 use super::hint_utils::get_integer_from_var_name;

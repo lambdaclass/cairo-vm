@@ -4,10 +4,10 @@ use crate::stdlib::{
     prelude::*,
 };
 
+use crate::Felt252;
 use crate::{
     relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
 };
-use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 

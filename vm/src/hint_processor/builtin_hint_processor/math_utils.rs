@@ -12,6 +12,7 @@ use num_traits::{Bounded, Pow};
 
 use crate::utils::CAIRO_PRIME;
 
+use crate::Felt252;
 use crate::{
     any_box,
     hint_processor::{
@@ -29,7 +30,6 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt252;
 use num_bigint::{BigUint, Sign};
 use num_integer::Integer;
 use num_traits::One;

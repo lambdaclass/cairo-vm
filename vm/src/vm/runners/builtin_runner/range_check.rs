@@ -4,6 +4,7 @@ use crate::stdlib::{
     prelude::*,
 };
 
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
@@ -17,7 +18,6 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
 use num_traits::{One, Zero};
 
 use super::RANGE_CHECK_BUILTIN_NAME;

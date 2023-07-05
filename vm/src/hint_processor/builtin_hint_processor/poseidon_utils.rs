@@ -1,6 +1,6 @@
 use crate::stdlib::{collections::HashMap, string::String};
 
-use felt::Felt252;
+use crate::Felt252;
 use num_traits::ToPrimitive;
 
 use crate::{

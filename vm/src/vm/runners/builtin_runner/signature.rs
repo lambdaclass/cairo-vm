@@ -1,5 +1,6 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
@@ -13,7 +14,6 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{verify, FieldElement, Signature};
 

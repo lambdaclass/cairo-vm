@@ -1,6 +1,6 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 
-use felt::Felt252;
+use crate::Felt252;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::{

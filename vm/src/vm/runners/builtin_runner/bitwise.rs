@@ -190,11 +190,11 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

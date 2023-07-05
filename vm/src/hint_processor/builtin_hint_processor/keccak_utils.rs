@@ -1,6 +1,7 @@
 use crate::stdlib::{boxed::Box, cmp, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -12,7 +13,6 @@ use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_integer::Integer;
 use num_traits::{One, Signed, ToPrimitive};
 use sha3::{Digest, Keccak256};

@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
+use crate::Felt252;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
@@ -7,7 +8,6 @@ use crate::{
 };
 use bitvec::prelude as bv;
 use core::cmp::Ordering;
-use felt::Felt252;
 use num_traits::ToPrimitive;
 
 pub struct ValidationRule(

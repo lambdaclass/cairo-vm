@@ -193,8 +193,8 @@ impl Default for ExecutionScopes {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Felt252;
     use assert_matches::assert_matches;
-    use felt::Felt252;
     use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]

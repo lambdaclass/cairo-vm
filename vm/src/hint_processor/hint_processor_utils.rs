@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::hint_processor_definition::HintReference;
-use felt::Felt252;
+use crate::Felt252;
 use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable

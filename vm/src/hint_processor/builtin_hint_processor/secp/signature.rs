@@ -1,3 +1,4 @@
+use crate::Felt252;
 use crate::{
     any_box,
     hint_processor::{
@@ -14,7 +15,6 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use core::ops::Add;
-use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 

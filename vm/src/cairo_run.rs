@@ -9,8 +9,8 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use bincode::enc::write::Writer;
-use felt::Felt252;
 
 use thiserror_no_std::Error;
 
@@ -127,6 +127,7 @@ pub fn write_encoded_memory(
 mod tests {
     use super::*;
     use crate::stdlib::prelude::*;
+    use crate::Felt252;
     use crate::{
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -135,7 +136,6 @@ mod tests {
         utils::test_utils::*,
     };
     use bincode::enc::write::SliceWriter;
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

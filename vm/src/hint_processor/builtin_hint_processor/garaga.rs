@@ -31,8 +31,8 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::Felt252;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
-    use felt::Felt252;
     use num_traits::{Bounded, One, Zero};
 
     #[cfg(target_arch = "wasm32")]
