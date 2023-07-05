@@ -208,6 +208,10 @@ impl MemorySegmentManager {
                     Box::new((i, accessed_amount, segment_size)),
                 ));
             }
+            let mem_holes = segment_size - accessed_amount;
+            if &mem_holes > &0 {
+                dbg!(i, mem_holes);
+            }
             memory_holes += segment_size - accessed_amount;
         }
         Ok(memory_holes)
