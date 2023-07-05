@@ -25,6 +25,7 @@ use crate::{
 
 use crate::Felt252;
 use core::cmp::Ordering;
+use core::ops::Neg;
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
@@ -228,9 +229,12 @@ impl VirtualMachine {
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => {
-                    Ok((Some(MaybeRelocatable::Int(num_dst / num_op1)), dst.cloned()))
-                }
+                ) if !num_op1.is_zero() => Ok((
+                    Some(MaybeRelocatable::Int(num_dst.field_div(
+                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
+                    ))),
+                    dst.cloned(),
+                )),
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -260,7 +264,12 @@ impl VirtualMachine {
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
                     ) if !num_op0.is_zero() => {
-                        return Ok((Some(MaybeRelocatable::Int(num_dst / num_op0)), dst.cloned()))
+                        return Ok((
+                            Some(MaybeRelocatable::Int(num_dst.field_div(
+                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
+                            ))),
+                            dst.cloned(),
+                        ))
                     }
                     _ => (),
                 },
@@ -979,7 +988,7 @@ impl VirtualMachine {
                 .get(&Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.to_signed_felt()),
+                    MaybeRelocatable::Int(num) => format!("{}", num.neg()),
                     MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
                 },
                 _ => "<missing>".to_string(),

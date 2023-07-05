@@ -2,6 +2,8 @@ use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+use crate::utils::PRIME_STR;
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
@@ -14,7 +16,6 @@ use crate::{
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
 use std::path::Path;

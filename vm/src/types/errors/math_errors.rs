@@ -4,7 +4,6 @@
 use crate::stdlib::boxed::Box;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
-
 use thiserror_no_std::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};

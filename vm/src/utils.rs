@@ -1,9 +1,11 @@
 use crate::stdlib::prelude::*;
 
 use crate::types::relocatable::Relocatable;
-use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
+use num_traits::Num;
+
+pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 
 #[macro_export]
 macro_rules! relocatable {
@@ -16,7 +18,11 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = Felt252::prime();
+    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(
+        "0x800000000000011000000000000000000000000000000000000000000000001",
+        16
+    )
+    .unwrap();
 }
 
 #[macro_export]

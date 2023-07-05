@@ -114,7 +114,7 @@ pub fn write_encoded_memory(
             Some(unwrapped_memory_cell) => {
                 dest.write(&(i as u64).to_le_bytes())
                     .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write(&unwrapped_memory_cell.to_le_bytes())
+                dest.write(&unwrapped_memory_cell.to_bytes_le())
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }

@@ -8,7 +8,6 @@ use crate::Felt252;
 use crate::{
     relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
 };
-use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -40,7 +39,7 @@ impl From<(isize, usize)> for MaybeRelocatable {
 
 impl From<usize> for MaybeRelocatable {
     fn from(num: usize) -> Self {
-        MaybeRelocatable::Int(Felt252::new(num))
+        MaybeRelocatable::Int(Felt252::from(num))
     }
 }
 

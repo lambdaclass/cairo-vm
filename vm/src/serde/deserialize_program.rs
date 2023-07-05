@@ -1,6 +1,7 @@
 use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
 
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
+use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
     types::{
@@ -15,7 +16,6 @@ use crate::{
         SIGNATURE_BUILTIN_NAME,
     },
 };
-use felt::{Felt252, PRIME_STR};
 use num_traits::float::FloatCore;
 use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
