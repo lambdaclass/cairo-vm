@@ -117,6 +117,11 @@ impl VirtualMachine {
         }
     }
 
+    //return trace
+    pub fn get_trace(&mut self) -> &Vec<TraceEntry> {
+        return self.trace.as_ref().clone().unwrap();
+    }
+
     pub fn compute_segments_effective_sizes(&mut self) {
         self.segments.compute_effective_sizes();
     }
