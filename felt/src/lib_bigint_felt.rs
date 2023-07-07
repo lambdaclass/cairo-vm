@@ -1442,6 +1442,7 @@ mod test {
 
             let p_felt = Felt252::max_value();
 
+            #[allow(deprecated)]
             let modpow = x.modpow(&y, &p_felt).to_biguint();
             prop_assert!(modpow < p, "{}", modpow);
         }
