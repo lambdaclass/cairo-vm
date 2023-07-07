@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: add `arbitrary` feature to enable arbitrary derive in Program
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
 
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
 
