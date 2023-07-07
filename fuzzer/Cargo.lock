@@ -123,25 +123,17 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "bincode"
-version = "2.0.0-rc.2"
-source = "git+https://github.com/bincode-org/bincode.git?tag=v2.0.0-rc.2#6c219e9214bda2bdce1327db6ed7f66d2fa4bf02"
+version = "2.0.0-rc.3"
+source = "git+https://github.com/bincode-org/bincode.git?tag=v2.0.0-rc.3#aada4bb4cb457677a4b8e47572ae7ca8dd44927c"
 dependencies = [
  "bincode_derive",
  "serde",
 ]
 
 [[package]]
-name = "bincode"
+name = "bincode_derive"
 version = "2.0.0-rc.3"
 source = "git+https://github.com/bincode-org/bincode.git?tag=v2.0.0-rc.3#aada4bb4cb457677a4b8e47572ae7ca8dd44927c"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "bincode_derive"
-version = "2.0.0-rc.2"
-source = "git+https://github.com/bincode-org/bincode.git?tag=v2.0.0-rc.2#6c219e9214bda2bdce1327db6ed7f66d2fa4bf02"
 dependencies = [
  "virtue",
 ]
@@ -189,7 +181,7 @@ name = "cairo-vm"
 version = "0.8.1"
 dependencies = [
  "anyhow",
- "bincode 2.0.0-rc.3",
+ "bincode",
  "bitvec",
  "cairo-felt",
  "generic-array",
@@ -400,7 +392,7 @@ version = "0.1.0"
 dependencies = [
  "arbitrary",
  "assert_matches",
- "bincode 2.0.0-rc.2",
+ "bincode",
  "cairo-vm",
  "honggfuzz",
  "mimalloc",
@@ -1014,9 +1006,9 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "virtue"
-version = "0.0.8"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b60dcd6a64dd45abf9bd426970c9843726da7fc08f44cd6fcebf68c21220a63"
+checksum = "9dcc60c0624df774c82a0ef104151231d37da4962957d691c011c852b2473314"
 
 [[package]]
 name = "wasi"
