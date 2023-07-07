@@ -150,7 +150,6 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
