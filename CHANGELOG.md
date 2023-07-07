@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
+
 #### [0.8.2] - 2023-7-10
 
 * chore: update dependencies, particularly lamdaworks 0.1.2 -> 0.1.3 [#1323](https://github.com/lambdaclass/cairo-vm/pull/1323)
