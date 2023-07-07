@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `arbitrary` feature to enable arbitrary derive in Program
+
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
 
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
@@ -19,8 +21,6 @@
 * chore: bump `cairo-lang-starknet` and `cairo-lang-casm` dependencies to 2.0.0 [#1313](https://github.com/lambdaclass/cairo-vm/pull/1313)
 
 #### [0.8.1] - 2023-6-29
-
-* feat: add `arbitrary` feature to enable arbitrary derive in Program
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
 
