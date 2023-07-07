@@ -1,5 +1,5 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
-use crate::utils::CAIRO_PRIME;
+use crate::utils::{bigint_to_felt, biguint_to_felt, felt_to_biguint, CAIRO_PRIME};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -14,7 +14,7 @@ use crate::{
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;
-use num_traits::{Bounded, Num, One, Pow, ToPrimitive, Zero};
+use num_traits::{Num, One, Pow, Zero};
 use sha2::{Digest, Sha256};
 
 use super::hint_utils::get_ptr_from_var_name;
@@ -65,7 +65,7 @@ pub fn random_ec_point_hint(
     let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
-        .flat_map(|x| x.to_be_bytes())
+        .flat_map(|x| x.to_bytes_be())
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -121,7 +121,7 @@ pub fn chained_ec_op_random_ec_point_hint(
         .iter()
         .chain(m_range.iter())
         .chain(q_range.iter())
-        .flat_map(|x| x.to_be_bytes())
+        .flat_map(|x| x.to_bytes_be())
         .collect();
     let (x, y) = random_ec_point_seeded(bytes)?;
     let s_addr = get_relocatable_from_var_name("s", vm, ids_data, ap_tracking)?;
@@ -144,10 +144,10 @@ pub fn recover_y_hint(
     let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
     vm.insert_value(p_addr, &p_x)?;
-    let p_y = Felt252::from(
-        recover_y(&p_x.to_biguint())
+    let p_y = biguint_to_felt(
+        &recover_y(&felt_to_biguint(p_x))
             .ok_or_else(|| HintError::RecoverYPointNotOnCurve(Box::new(p_x)))?,
-    );
+    )?;
     vm.insert_value((p_addr + 1)?, p_y)?;
     Ok(())
 }
@@ -174,8 +174,8 @@ fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt252, Felt252), Hin
         if let Some(y) = y {
             // Conversion from BigUint to BigInt doesnt fail
             return Ok((
-                Felt252::from(x),
-                Felt252::from(y.to_bigint().unwrap() * y_coef),
+                biguint_to_felt(&x)?,
+                bigint_to_felt(&(y.to_bigint().unwrap() * y_coef))?,
             ));
         }
     }
@@ -188,7 +188,7 @@ lazy_static! {
         10
     )
     .unwrap();
-    static ref FELT_MAX_HALVED: BigUint = Felt252::MAX.to_biguint() / 2_u32;
+    static ref FELT_MAX_HALVED: BigUint = felt_to_biguint(Felt252::MAX) / 2_u32;
 }
 
 // Recovers the corresponding y coordinate on the elliptic curve
@@ -198,7 +198,7 @@ lazy_static! {
 fn recover_y(x: &BigUint) -> Option<BigUint> {
     let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &CAIRO_PRIME) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
-        Some(Felt252::from(y_squared).sqrt().to_biguint())
+        Some(felt_to_biguint(biguint_to_felt(&y_squared).ok()?).sqrt())
     } else {
         None
     }
@@ -215,6 +215,7 @@ fn is_quad_residue(a: &BigUint) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::any_box;
+    use crate::felt_hex;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
@@ -263,7 +264,7 @@ mod tests {
     #[test]
     fn test_recover_y_valid() {
         let x = BigUint::from_str_radix(
-            "2497468900767850684421727063357792717599762502387246235265616708902555305129",
+            "0x585846e142b5ca5b13e6632bdf5ac1f094fb925544a8cbcb84ae28f4c0544a9",
             10,
         )
         .unwrap();
@@ -297,16 +298,8 @@ mod tests {
             102, 152, 72, 44, 4, 250, 210, 105, 203, 248, 96, 152, 14, 56, 118, 143, 233, 203, 107,
             11, 154, 176, 62, 227, 254, 132, 207, 222, 46, 204, 206, 89, 124, 135, 79, 216,
         ];
-        let x = Felt252::from_str_radix(
-            "2497468900767850684421727063357792717599762502387246235265616708902555305129",
-            10,
-        )
-        .unwrap();
-        let y = Felt252::from_str_radix(
-            "3412645436898503501401619513420382337734846074629040678138428701431530606439",
-            10,
-        )
-        .unwrap();
+        let x = felt_hex!("0x585846e142b5ca5b13e6632bdf5ac1f094fb925544a8cbcb84ae28f4c0544a9");
+        let y = felt_hex!("0x78b7d267253e9cf7d606712891d3352857b7816d5d8ec94a23d267bc4bd4f67");
         assert_eq!(random_ec_point_seeded(seed).unwrap(), (x, y));
     }
 
@@ -319,70 +312,46 @@ mod tests {
         vm.run_context.fp = 6;
         //Create hint_data
         let ids_data = non_continuous_ids_data![("p", -6), ("q", -3), ("m", -4), ("s", -1)];
-        /*  p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
-           p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
+        /*  p.x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
+           p.y = 0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f
            m = 34
-           q.x = 2864041794633455918387139831609347757720597354645583729611044800117714995244
-           q.y = 2252415379535459416893084165764951913426528160630388985542241241048300343256
+           q.x = 0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c
+           q.y = 0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8
         */
         add_segments!(vm, 2);
         vm.insert_value(
             (1, 0).into(),
-            Felt252::from_str_radix(
-                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc"),
         )
         .unwrap();
         vm.insert_value(
             (1, 1).into(),
-            Felt252::from_str_radix(
-                "3232266734070744637901977159303149980795588196503166389060831401046564401743",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f"),
         )
         .unwrap();
         vm.insert_value((1, 2).into(), Felt252::from(34)).unwrap();
         vm.insert_value(
             (1, 3).into(),
-            Felt252::from_str_radix(
-                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c"),
         )
         .unwrap();
         vm.insert_value(
             (1, 4).into(),
-            Felt252::from_str_radix(
-                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8"),
         )
         .unwrap();
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         // Check post-hint memory values
-        // s.x = 96578541406087262240552119423829615463800550101008760434566010168435227837635
-        // s.y = 3412645436898503501401619513420382337734846074629040678138428701431530606439
+        // s.x = 0xd585846e142b5e5fb13e6632bdf5ac1f094fb925544a8cbcb84ae28f4c0544c3
+        // s.y = 0x78b7d267253e9cf7d606712891d3352857b7816d5d8ec94a23d267bc4bd4f67
         assert_eq!(
             vm.get_integer((1, 5).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "96578541406087262240552119423829615463800550101008760434566010168435227837635",
-                10
-            )
-            .unwrap()
+            &felt_hex!("0xd585846e142b5e5fb13e6632bdf5ac1f094fb925544a8cbcb84ae28f4c0544c3")
         );
         assert_eq!(
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "3412645436898503501401619513420382337734846074629040678138428701431530606439",
-                10
-            )
-            .unwrap()
+            &felt_hex!("0x78b7d267253e9cf7d606712891d3352857b7816d5d8ec94a23d267bc4bd4f67")
         );
     }
 
@@ -397,11 +366,11 @@ mod tests {
         let ids_data =
             non_continuous_ids_data![("p", -6), ("m", -4), ("q", -3), ("len", -2), ("s", -1)];
         /*
-            p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
-            p.y = 3232266734070744637901977159303149980795588196503166389060831401046564401743
+            p.x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
+            p.y = 0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f
             _m = 34
-            -q.x = 2864041794633455918387139831609347757720597354645583729611044800117714995244
-            -q.y = 2252415379535459416893084165764951913426528160630388985542241241048300343256
+            -q.x = 0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c
+            -q.y = 0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8
             q = [q,q,q]
             m = [m,m,m]
             len = 3
@@ -410,20 +379,12 @@ mod tests {
         //p
         vm.insert_value(
             (1, 0).into(),
-            Felt252::from_str_radix(
-                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc"),
         )
         .unwrap();
         vm.insert_value(
             (1, 1).into(),
-            Felt252::from_str_radix(
-                "3232266734070744637901977159303149980795588196503166389060831401046564401743",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x72565ec81bc09ff53fbfad99324a92aa5b39fb58267e395e8abe36290ebf24f"),
         )
         .unwrap();
         //m
@@ -435,56 +396,32 @@ mod tests {
         vm.insert_value((1, 3).into(), relocatable!(3, 0)).unwrap();
         vm.insert_value(
             (3, 0).into(),
-            Felt252::from_str_radix(
-                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c"),
         )
         .unwrap();
         vm.insert_value(
             (3, 1).into(),
-            Felt252::from_str_radix(
-                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8"),
         )
         .unwrap();
         vm.insert_value(
             (3, 2).into(),
-            Felt252::from_str_radix(
-                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c"),
         )
         .unwrap();
         vm.insert_value(
             (3, 3).into(),
-            Felt252::from_str_radix(
-                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8"),
         )
         .unwrap();
         vm.insert_value(
             (3, 4).into(),
-            Felt252::from_str_radix(
-                "2864041794633455918387139831609347757720597354645583729611044800117714995244",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x654fd7e67a123dd13868093b3b7777f1ffef596c2e324f25ceaf9146698482c"),
         )
         .unwrap();
         vm.insert_value(
             (3, 5).into(),
-            Felt252::from_str_radix(
-                "2252415379535459416893084165764951913426528160630388985542241241048300343256",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x4fad269cbf860980e38768fe9cb6b0b9ab03ee3fe84cfde2eccce597c874fd8"),
         )
         .unwrap();
         //len
@@ -492,23 +429,15 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         // Check post-hint memory values
-        // s.x = 1354562415074475070179359167082942891834423311678180448592849484844152837347
-        // s.y = 907662328694455187848008017177970257426839229889571025406355869359245158736
+        // s.x = 0x2fea7b86a331e5d50154955f3c8e7fe5dcb91d5ba19ee60fcf23acd1d0ed4e3
+        // s.y = 0x201b7faec646d99408d51f63964c3a3b551f6a6550d6c59114caf833178e950
         assert_eq!(
             vm.get_integer((1, 5).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "1354562415074475070179359167082942891834423311678180448592849484844152837347",
-                10
-            )
-            .unwrap()
+            &felt_hex!("0x2fea7b86a331e5d50154955f3c8e7fe5dcb91d5ba19ee60fcf23acd1d0ed4e3")
         );
         assert_eq!(
             vm.get_integer((1, 6).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "907662328694455187848008017177970257426839229889571025406355869359245158736",
-                10
-            )
-            .unwrap()
+            &felt_hex!("0x201b7faec646d99408d51f63964c3a3b551f6a6550d6c59114caf833178e950")
         );
     }
 
@@ -521,37 +450,27 @@ mod tests {
         vm.run_context.fp = 3;
         //Create hint_data
         let ids_data = non_continuous_ids_data![("x", -3), ("p", -1)];
-        // x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+        // x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
         add_segments!(vm, 2);
         vm.insert_value(
             (1, 0).into(),
-            Felt252::from_str_radix(
-                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
-                10,
-            )
-            .unwrap(),
+            felt_hex!("0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc"),
         )
         .unwrap();
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         // Check post-hint memory values
-        // p.x = 3004956058830981475544150447242655232275382685012344776588097793621230049020
+        // p.x = 0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc
         // p.y = 386236054595386575795345623791920124827519018828430310912260655089307618738
         assert_eq!(
             vm.get_integer((1, 2).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "3004956058830981475544150447242655232275382685012344776588097793621230049020",
-                10
-            )
-            .unwrap()
+            &felt_hex!("0x6a4beaef5a93425b973179cdba0c9d42f30e01a5f1e2db73da0884b8d6756fc")
         );
         assert_eq!(
             vm.get_integer((1, 3).into()).unwrap().as_ref(),
-            &Felt252::from_str_radix(
-                "386236054595386575795345623791920124827519018828430310912260655089307618738",
-                10
+            &felt_hex!(
+                "386236054595386575795345623791920124827519018828430310912260655089307618738"
             )
-            .unwrap()
         );
     }
 }

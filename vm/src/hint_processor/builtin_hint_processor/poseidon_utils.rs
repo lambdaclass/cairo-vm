@@ -1,7 +1,6 @@
 use crate::stdlib::{collections::HashMap, string::String};
 
 use crate::Felt252;
-use num_traits::ToPrimitive;
 
 use crate::{
     hint_processor::hint_processor_definition::HintReference,

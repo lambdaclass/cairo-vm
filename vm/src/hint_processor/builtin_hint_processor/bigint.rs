@@ -1,6 +1,6 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt5;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE;
-use crate::math_utils::{div_mod, safe_div_bigint};
+use crate::math_utils::{div_mod, safe_div_bigint, signed_felt};
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
@@ -14,7 +14,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
-use num_traits::{One, Signed, Zero};
+use num_traits::Signed;
 
 use super::hint_utils::insert_value_from_var_name;
 
@@ -47,8 +47,8 @@ pub fn bigint_pack_div_mod_hint(
             d2: x_bigint5.d2,
         };
         let x_lower = x_lower.pack86();
-        let d3 = x_bigint5.d3.as_ref().to_signed_felt();
-        let d4 = x_bigint5.d4.as_ref().to_signed_felt();
+        let d3 = signed_felt(*x_bigint5.d3.as_ref());
+        let d4 = signed_felt(*x_bigint5.d4.as_ref());
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();

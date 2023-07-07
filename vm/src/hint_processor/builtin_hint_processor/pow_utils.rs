@@ -11,7 +11,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_integer::Integer;
 
 /*
 Implements hint:
@@ -29,14 +28,8 @@ pub fn pow(
         .map_err(|_| {
             HintError::IdentifierHasNoMember(Box::new(("prev_locs".to_string(), "exp".to_string())))
         })?;
-    let locs_bit = prev_locs_exp.is_odd();
-    insert_value_from_var_name(
-        "locs",
-        Felt252::from(locs_bit as u8),
-        vm,
-        ids_data,
-        ap_tracking,
-    )?;
+    let locs_bit = prev_locs_exp.as_ref() & Felt252::ONE;
+    insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
@@ -57,7 +50,6 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

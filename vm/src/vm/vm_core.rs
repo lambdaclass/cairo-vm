@@ -26,7 +26,6 @@ use crate::{
 
 use crate::Felt252;
 use core::cmp::Ordering;
-use core::ops::Neg;
 
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;

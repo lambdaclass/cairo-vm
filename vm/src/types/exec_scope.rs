@@ -195,7 +195,6 @@ mod tests {
     use super::*;
     use crate::Felt252;
     use assert_matches::assert_matches;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

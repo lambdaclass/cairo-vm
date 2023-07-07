@@ -366,7 +366,7 @@ pub fn relocate_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{felt_hex, felt_str};
+    use crate::felt_hex;
     use crate::{relocatable, utils::test_utils::mayberelocatable};
 
     #[cfg(target_arch = "wasm32")]
@@ -479,7 +479,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_relocatable_prime() {
         let addr = MaybeRelocatable::from((1, 9));
-        let added_addr = addr.add_int(&felt_str!(
+        let added_addr = addr.add_int(&felt_hex!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         ));
         assert_eq!(
@@ -494,7 +494,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_int() {
-        let addr_a = &MaybeRelocatable::from(felt_str!(
+        let addr_a = &MaybeRelocatable::from(felt_hex!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020488"
         ));
         let addr_b = &MaybeRelocatable::from(Felt252::from(17_i32));
@@ -551,9 +551,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
-        let addr_b = &MaybeRelocatable::Int(felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000001",
-            16
+        let addr_b = &MaybeRelocatable::Int(felt_hex!(
+            "800000000000011000000000000000000000000000000000000000000000001"
         ));
         let added_addr = addr_a.add(addr_b);
         assert_eq!(
@@ -569,12 +568,12 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_rel_int_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
-        let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
+        let error = addr.add(&MaybeRelocatable::from(felt_hex!("0x10000000000000000")));
         assert_eq!(
             error,
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                felt_str!("18446744073709551616")
+                felt_hex!("0x10000000000000000")
             ))))
         );
     }
@@ -582,7 +581,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_int_rel_offset_exceeded() {
-        let addr = MaybeRelocatable::Int(felt_str!("18446744073709551616"));
+        let addr = MaybeRelocatable::Int(felt_hex!("0x10000000000000000"));
         let relocatable = Relocatable {
             offset: 0,
             segment_index: 0,
@@ -592,7 +591,7 @@ mod tests {
             error,
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                felt_str!("18446744073709551616")
+                felt_hex!("0x10000000000000000")
             ))))
         );
     }
@@ -659,7 +658,9 @@ mod tests {
         let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
         assert_eq!(
             q,
-            MaybeRelocatable::from(Felt252::from(10) / Felt252::from(3))
+            MaybeRelocatable::from(
+                Felt252::from(10).field_div(&Felt252::from(3).try_into().unwrap())
+            )
         );
         assert_eq!(r, MaybeRelocatable::from(Felt252::ZERO));
     }

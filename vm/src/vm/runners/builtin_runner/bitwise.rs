@@ -81,14 +81,14 @@ impl BitwiseBuiltinRunner {
             num_x.as_ref().map(|x| x.as_ref()),
             num_y.as_ref().map(|x| x.as_ref()),
         ) {
-            if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
+            if num_x.bits() > self.bitwise_builtin.total_n_bits {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
                     num_x.clone(),
                 ))));
             };
-            if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
+            if num_y.bits() > self.bitwise_builtin.total_n_bits {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     y_addr,
                     self.bitwise_builtin.total_n_bits,

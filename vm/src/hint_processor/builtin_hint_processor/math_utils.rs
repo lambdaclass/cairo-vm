@@ -6,9 +6,10 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
+    utils::{biguint_to_felt, felt_to_biguint},
 };
 use lazy_static::lazy_static;
-use num_traits::{Bounded, Pow};
+use num_traits::Pow;
 
 use crate::utils::CAIRO_PRIME;
 
@@ -33,7 +34,6 @@ use crate::{
 use num_bigint::{BigUint, Sign};
 use num_integer::Integer;
 use num_traits::One;
-use num_traits::{Signed, Zero};
 
 use super::{
     hint_utils::{get_maybe_relocatable_from_var_name, get_relocatable_from_var_name},
@@ -115,8 +115,8 @@ pub fn assert_le_felt(
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
-    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
-    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
+    let a = felt_to_biguint(*get_integer_from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = felt_to_biguint(*get_integer_from_var_name("b", vm, ids_data, ap_tracking)?);
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     // TODO: use UnsignedInteger for this
@@ -124,36 +124,33 @@ pub fn assert_le_felt(
     let prime_div3 = prime_div_constant(3)?;
 
     if a > b {
-        return Err(HintError::NonLeFelt252(Box::new((
-            Felt252::from(a),
-            Felt252::from(b),
-        ))));
+        return Err(HintError::NonLeFelt252(Box::new((a, b))));
     }
 
     let arc1 = &b - &a;
-    let arc2 = Felt252::prime() - 1_u32 - &b;
+    let arc2 = &*CAIRO_PRIME - 1_u32 - &b;
     let mut lengths_and_indices = [(&a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
     // TODO: I believe this check can be removed
     if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
         return Err(HintError::ArcTooBig(Box::new((
-            Felt252::from(lengths_and_indices[0].0.clone()),
-            Felt252::from(prime_div2),
-            Felt252::from(lengths_and_indices[1].0.clone()),
-            Felt252::from(prime_div3),
+            biguint_to_felt(&lengths_and_indices[0].0.clone())?,
+            biguint_to_felt(&prime_div2)?,
+            biguint_to_felt(&lengths_and_indices[1].0.clone())?,
+            biguint_to_felt(&prime_div3)?,
         ))));
     }
 
     let excluded = lengths_and_indices[2].1;
     exec_scopes.assign_or_update_variable("excluded", any_box!(Felt252::from(excluded)));
 
-    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&prime_over_3_high.to_biguint());
-    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&prime_over_2_high.to_biguint());
+    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&felt_to_biguint(*prime_over_3_high));
+    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&felt_to_biguint(*prime_over_2_high));
 
-    vm.insert_value(range_check_ptr, Felt252::from(r_0))?;
-    vm.insert_value((range_check_ptr + 1_i32)?, Felt252::from(q_0))?;
-    vm.insert_value((range_check_ptr + 2_i32)?, Felt252::from(r_1))?;
-    vm.insert_value((range_check_ptr + 3_i32)?, Felt252::from(q_1))?;
+    vm.insert_value(range_check_ptr, biguint_to_felt(&r_0)?)?;
+    vm.insert_value((range_check_ptr + 1_i32)?, biguint_to_felt(&q_0)?)?;
+    vm.insert_value((range_check_ptr + 2_i32)?, biguint_to_felt(&r_1)?)?;
+    vm.insert_value((range_check_ptr + 3_i32)?, biguint_to_felt(&q_1)?)?;
     Ok(())
 }
 
@@ -420,7 +417,7 @@ pub fn split_felt(
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
     let low: Felt252 = value & ((Felt252::ONE.shl(128_u32)) - Felt252::ONE);
-    let high: Felt252 = value.shr(128_u32);
+    let high: Felt252 = value.shr(128_usize);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }

@@ -1,8 +1,6 @@
 use crate::stdlib::prelude::*;
-
+use crate::utils::PRIME_STR;
 use thiserror_no_std::Error;
-
-use felt::PRIME_STR;
 
 #[derive(Debug, Error)]
 pub enum ProgramError {

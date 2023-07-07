@@ -12,7 +12,6 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_traits::{One, Signed};
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}

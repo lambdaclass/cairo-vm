@@ -71,17 +71,11 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
-    if y.is_zero() {
-        return Err(MathError::DividedByZero);
-    }
+    Ok(x.floor_div(&y.try_into().map_err(|_| MathError::DividedByZero)?))
 
-    let (q, r) = x.floor_div(y);
-
-    if !r.is_zero() {
-        return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));
-    }
-
-    Ok(q)
+    // if !r.is_zero() {
+    //     return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));
+    // }
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
@@ -347,7 +341,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
         );
     }
@@ -368,7 +363,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
         );
     }
@@ -389,7 +385,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
         );
     }

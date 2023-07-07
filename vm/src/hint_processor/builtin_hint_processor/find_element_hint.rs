@@ -13,8 +13,6 @@ use crate::{
     types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_traits::Signed;
-use num_traits::ToPrimitive;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -62,8 +60,9 @@ pub fn find_element(
             }
         }
         let n_elms_iter: i32 = n_elms
-            .to_i32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?;
+            .to_u32()
+            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?
+            as i32;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
@@ -99,7 +98,7 @@ pub fn search_sorted_lower(
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
-    if !elm_size.is_positive() {
+    if elm_size.as_ref() <= Felt252::ZERO.as_ref() {
         return Err(HintError::ValueOutOfRange(Box::new(elm_size.into_owned())));
     }
 
@@ -151,7 +150,7 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
-    use num_traits::{One, Zero};
+    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

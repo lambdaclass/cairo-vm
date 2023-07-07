@@ -226,11 +226,12 @@ impl TryFrom<CasmContractClass> for Program {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Neg;
+
     use super::*;
+    use crate::felt_hex;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
-    use felt::felt_str;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -840,9 +841,7 @@ mod tests {
             ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::ZERO),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                felt_str!(
-                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
-                ),
+                felt_hex!("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
@@ -850,13 +849,12 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                felt_str!(
-                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                ),
+                felt_hex!("-0x800000000000011000000000000000000000000000000000000000000000001")
+                    .neg(),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
-                felt_str!("340282366920938463463374607431768211456"),
+                felt_hex!("0x100000000000000000000000000000000"),
             ),
         ]
         .into_iter()
