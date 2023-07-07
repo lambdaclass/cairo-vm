@@ -19,7 +19,7 @@ use core::{
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
-#[cfg(feature = "fuzzing")]
+#[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
 pub(crate) trait FeltOps {
@@ -67,7 +67,7 @@ macro_rules! felt_str {
     };
 }
 
-#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
     pub(crate) value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,

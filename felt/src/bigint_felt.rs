@@ -14,7 +14,7 @@ use core::{
 
 use crate::{lib_bigint_felt::FeltOps, ParseFeltError};
 
-#[cfg(feature = "fuzzing")]
+#[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
@@ -34,7 +34,7 @@ lazy_static! {
         .expect("Conversion BigUint -> BigInt can't fail");
 }
 
-#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub(crate) struct FeltBigInt<const PH: u128, const PL: u128> {
     val: BigUint,

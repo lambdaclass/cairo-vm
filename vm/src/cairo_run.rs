@@ -14,10 +14,10 @@ use felt::Felt252;
 
 use thiserror_no_std::Error;
 
-#[cfg(feature = "fuzzing")]
+#[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(feature = "fuzzing", derive(Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
@@ -79,7 +79,7 @@ pub fn cairo_run(
     Ok((cairo_runner, vm))
 }
 
-#[cfg(feature = "fuzzing")]
+#[cfg(feature = "arbitrary")]
 pub fn cairo_run_parsed_program(
     program: Program,
     cairo_run_config: &CairoRunConfig,
