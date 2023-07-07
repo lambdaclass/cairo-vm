@@ -20,6 +20,8 @@
 
 #### [0.8.1] - 2023-6-29
 
+* feat: add `arbitrary` feature to enable arbitrary derive in Program
+
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
 
 * rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1289](https://github.com/lambdaclass/cairo-vm/pull/1289)
