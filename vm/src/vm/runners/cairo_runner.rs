@@ -896,6 +896,30 @@ impl CairoRunner {
         Ok(())
     }
 
+    pub fn run_from_entrypoint_fuzz(
+        &mut self,
+        entrypoint: usize,
+        args: Vec<MaybeRelocatable>,
+        verify_secure: bool,
+        vm: &mut VirtualMachine,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let stack = args;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+
+        self.initialize_vm(vm)?;
+
+        self.run_until_pc(end, vm, hint_processor)?;
+        self.end_run(true, false, vm, hint_processor)?;
+
+        if verify_secure {
+            verify_secure_runner(self, false, None, vm)?;
+        }
+
+        Ok(())
+    }
+
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
