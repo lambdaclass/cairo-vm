@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: unpin sha minor version [#1318](https://github.com/lambdaclass/cairo-vm/pull/1318)
+
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
 
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
