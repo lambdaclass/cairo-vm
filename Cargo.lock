@@ -311,7 +311,7 @@ dependencies = [
 name = "cairo-felt"
 version = "0.8.1"
 dependencies = [
- "lambdaworks-math 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lambdaworks-math 0.1.3",
  "lazy_static",
  "num-bigint",
  "num-integer",
@@ -730,7 +730,6 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.8.1",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
@@ -1546,8 +1545,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4220df08ebb5a3da17a9b0026e7e6c95e0e380786d76bbe5804c0eaab5fa898a"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=bfd91d4e8116ab8b0bf25f75a9f1e8bb61d355d9#bfd91d4e8116ab8b0bf25f75a9f1e8bb61d355d9"
 dependencies = [
  "heapless",
  "rand",
@@ -1555,8 +1553,9 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-math"
-version = "0.1.2"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=bfd91d4e8116ab8b0bf25f75a9f1e8bb61d355d9#bfd91d4e8116ab8b0bf25f75a9f1e8bb61d355d9"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66ebb7299e567bbc393b50eef9de8db7728605567b7e5cc31634e34b4c8875ba"
 dependencies = [
  "heapless",
  "rand",
@@ -2461,10 +2460,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "stark-felt"
 version = "0.0.3"
-source = "git+https://github.com/lambdaclass/types-rs?rev=1b6aaaa#1b6aaaa6072144fa7c83bfbe3041690e239166f4"
 dependencies = [
  "bitvec",
- "lambdaworks-math 0.1.2 (git+https://github.com/lambdaclass/lambdaworks.git?rev=bfd91d4e8116ab8b0bf25f75a9f1e8bb61d355d9)",
+ "lambdaworks-math 0.1.2",
  "serde",
 ]
 
