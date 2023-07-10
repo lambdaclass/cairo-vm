@@ -431,10 +431,10 @@ pub fn uint256_mul_div_mod(
     let div_high = div_high.as_ref();
 
     // Main Logic
-    let a = a_high.shl(128_usize) + a_low;
-    let b = b_high.shl(128_usize) + b_low;
-    let div = div_high.shl(128_usize) + div_low;
-    let (quotient, remainder) = (a.to_biguint() * b.to_biguint()).div_mod_floor(&div.to_biguint());
+    let a = a_high.to_biguint().shl(128_usize) + a_low.to_biguint();
+    let b = b_high.to_biguint().shl(128_usize) + b_low.to_biguint();
+    let div = div_high.to_biguint().shl(128_usize) + div_low.to_biguint();
+    let (quotient, remainder) = (a * b).div_mod_floor(&div);
 
     // ids.quotient_low.low
     vm.insert_value(
