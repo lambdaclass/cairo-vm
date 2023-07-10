@@ -44,9 +44,10 @@ impl fmt::Display for ReferenceParseError {
 
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
+// Asumes hex string is prefixed by '0x'
 pub fn maybe_add_padding(mut hex: String) -> String {
     if hex.len().is_odd() {
-        hex.insert(0, '0');
+        hex.insert(3, '0');
         return hex;
     }
     hex

@@ -2,7 +2,9 @@ use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
-use crate::utils::{biguint_to_felt, PRIME_STR};
+#[cfg(feature = "cairo-1-hints")]
+use crate::utils::biguint_to_felt;
+use crate::utils::PRIME_STR;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
