@@ -351,7 +351,7 @@ impl<'a> Add for &'a Felt252 {
     type Output = Felt252;
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            value: &self.value + &rhs.value,
+            value: self.value + rhs.value,
         }
     }
 }
@@ -360,7 +360,7 @@ impl<'a> Add<&'a Felt252> for Felt252 {
     type Output = Self;
     fn add(self, rhs: &Self) -> Self::Output {
         Self::Output {
-            value: self.value + &rhs.value,
+            value: self.value + rhs.value,
         }
     }
 }
@@ -390,7 +390,7 @@ impl<'a> Add<usize> for &'a Felt252 {
     fn add(self, rhs: usize) -> Self::Output {
         let rhs = UnsignedInteger::from_u64(rhs as u64);
         Self::Output {
-            value: &self.value + FieldElement::new(rhs),
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -400,7 +400,7 @@ impl Add<u64> for &Felt252 {
     fn add(self, rhs: u64) -> Self::Output {
         let rhs = UnsignedInteger::from_u64(rhs);
         Self::Output {
-            value: &self.value + FieldElement::new(rhs),
+            value: self.value + FieldElement::new(rhs),
         }
     }
 }
@@ -464,7 +464,7 @@ impl AddAssign for Felt252 {
 impl<'a> AddAssign<&'a Felt252> for Felt252 {
     fn add_assign(&mut self, rhs: &Self) {
         // TODO: optimize and move upstream
-        self.value += rhs.value.clone();
+        self.value += rhs.value;
     }
 }
 
@@ -508,7 +508,7 @@ impl<'a> Sub for &'a Felt252 {
     type Output = Felt252;
     fn sub(self, rhs: Self) -> Self::Output {
         Self::Output {
-            value: &self.value - &rhs.value,
+            value: self.value - rhs.value,
         }
     }
 }
@@ -517,7 +517,7 @@ impl<'a> Sub<&'a Felt252> for Felt252 {
     type Output = Self;
     fn sub(self, rhs: &Self) -> Self {
         Self {
-            value: self.value - &rhs.value,
+            value: self.value - rhs.value,
         }
     }
 }
@@ -537,14 +537,14 @@ impl Sub<&Felt252> for usize {
 impl SubAssign for Felt252 {
     fn sub_assign(&mut self, rhs: Self) {
         // TODO: optimize and move to upstream
-        self.value = &self.value - rhs.value
+        self.value = self.value - rhs.value
     }
 }
 
 impl<'a> SubAssign<&'a Felt252> for Felt252 {
     fn sub_assign(&mut self, rhs: &Self) {
         // TODO: optimize and move to upstream
-        self.value = &self.value - &rhs.value
+        self.value = self.value - rhs.value
     }
 }
 
@@ -584,7 +584,7 @@ impl<'a> Mul for &'a Felt252 {
     type Output = Felt252;
     fn mul(self, rhs: Self) -> Self::Output {
         Self::Output {
-            value: &self.value * &rhs.value,
+            value: self.value * rhs.value,
         }
     }
 }
@@ -593,14 +593,14 @@ impl<'a> Mul<&'a Felt252> for Felt252 {
     type Output = Self;
     fn mul(self, rhs: &Self) -> Self {
         Self {
-            value: self.value * &rhs.value,
+            value: self.value * rhs.value,
         }
     }
 }
 
 impl<'a> MulAssign<&'a Felt252> for Felt252 {
     fn mul_assign(&mut self, rhs: &Self) {
-        self.value = &self.value * &rhs.value;
+        self.value = self.value * rhs.value;
     }
 }
 
@@ -644,7 +644,7 @@ impl<'a> Div for &'a Felt252 {
     type Output = Felt252;
     fn div(self, rhs: Self) -> Self::Output {
         Self::Output {
-            value: &self.value / &rhs.value,
+            value: self.value / rhs.value,
         }
     }
 }
@@ -653,7 +653,7 @@ impl<'a> Div<Felt252> for &'a Felt252 {
     type Output = Felt252;
     fn div(self, rhs: Self::Output) -> Self::Output {
         Self::Output {
-            value: &self.value / rhs.value,
+            value: self.value / rhs.value,
         }
     }
 }

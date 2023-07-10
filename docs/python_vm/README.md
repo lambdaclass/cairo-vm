@@ -20,7 +20,7 @@ The memory itself is a list of continuous segments, the size of each segment may
 
 The different segments:
 * Program Segment: Contains cairo bytecode. pc starts at the beginning of this segment
-* Execution Segment: Where data is generated during the run of a Cairo program. Lenght is variable(depends on program input). Allocation Pointer (ap) and Frame Pointer (fp) start here.
+* Execution Segment: Where data is generated during the run of a Cairo program. Length is variable(depends on program input). Allocation Pointer (ap) and Frame Pointer (fp) start here.
 * Builtin Segment: Each builtin has its own continuous area in memory. Length is variable
 
 ## Registers
@@ -53,14 +53,14 @@ The [VirtualMachine](https://github.com/starkware-libs/cairo-lang/blob/b614d1867
 * [`run_context`](#context)
 * `program` : [ProgramBase](#progbase)
 * `program_base` : Optional(MaybeRelocatable)(if none, it is set to run_context.pc)
-* `builtin_runners` (Optional Dict or set to {})
-* `hint_locals` (Dict)
-* `static_locals`(Optional Dict)
+* `builtin_runners` : (Optional Dict or set to {})
+* `hint_locals` : (Dict)
+* `static_locals` : (Optional Dict)
 VirtualMachineBase's init is used to set these values (plus other ones), the next ones are exclusive to the VirtualMachine:
-* `accessed_addresses` (Set that keeps track of memory adresses accessed by cairo instructions)
-* `trace` (List of TraceEntry, that each contain the run_context's pc, ap and fp at that moment. A TraceEntry is added after every instruction (Before update_registers is called))
-* `current_step` (initialized with 0)
-* `skip_instruction_execution` (= False), used by hints to skip execution of current step
+* `accessed_addresses` : (Set that keeps track of memory adresses accessed by cairo instructions)
+* `trace` : (List of TraceEntry, that each contain the run_context's pc, ap and fp at that moment. A TraceEntry is added after every instruction (Before update_registers is called))
+* `current_step` : (initialized with 0)
+* `skip_instruction_execution` : (= False), used by hints to skip execution of current step
 
 Functions:
 * `[update_registers(instruction, operands)]`(https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L143): Updates fp, ap, and pc, based on the instruction's [FpUpdate, ApUpdate and PcUpdate](#updatereg)
