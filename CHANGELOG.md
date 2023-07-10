@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: update dependencies, particularly lamdaworks 0.1.2 -> 0.1.3 [#1323](https://github.com/lambdaclass/cairo-vm/pull/1323)
+
 * fix: fix `UINT256_MUL_DIV_MOD` hint [#1320](https://github.com/lambdaclass/cairo-vm/pull/1320)
 
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
