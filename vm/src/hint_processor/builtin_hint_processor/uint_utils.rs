@@ -1,4 +1,7 @@
-use crate::Felt252;
+use crate::{
+    utils::{biguint_to_felt, felt_to_biguint},
+    Felt252,
+};
 use num_bigint::BigUint;
 use num_traits::One;
 
@@ -8,7 +11,7 @@ pub(crate) fn split<const T: usize>(num: &BigUint, num_bits_shift: u32) -> [Felt
     [0; T].map(|_| {
         let a = &num & bitmask;
         num >>= num_bits_shift;
-        Felt252::from(a)
+        biguint_to_felt(&a).unwrap()
     })
 }
 
@@ -19,6 +22,6 @@ pub(crate) fn pack<const T: usize>(
     limbs
         .into_iter()
         .enumerate()
-        .map(|(i, limb)| limb.as_ref().to_biguint() << (i * num_bits_shift))
+        .map(|(i, limb)| felt_to_biguint(*limb.as_ref()) << (i * num_bits_shift))
         .sum()
 }

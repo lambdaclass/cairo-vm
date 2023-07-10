@@ -51,6 +51,7 @@ pub fn inv_mod_p_uint512(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::felt_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
@@ -132,12 +133,12 @@ mod tests {
         ];
         vm.insert_value(
             Relocatable::from((1, 15)),
-            Felt252::from_str_radix("201385395114098847380338600778089168199", 10).unwrap(),
+            felt_str!("201385395114098847380338600778089168199"),
         )
         .expect("error setting ids.p");
         vm.insert_value(
             Relocatable::from((1, 16)),
-            Felt252::from_str_radix("64323764613183177041862057485226039389", 10).unwrap(),
+            felt_str!("64323764613183177041862057485226039389"),
         )
         .expect("error setting ids.p");
 
@@ -150,13 +151,13 @@ mod tests {
             vm.get_integer(Relocatable::from((1, 5)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("80275402838848031859800366538378848249", 10).unwrap()
+            felt_str!("80275402838848031859800366538378848249")
         );
         assert_eq!(
             vm.get_integer(Relocatable::from((1, 6)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("5810892639608724280512701676461676039", 10).unwrap()
+            felt_str!("5810892639608724280512701676461676039")
         );
     }
 }

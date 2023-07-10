@@ -110,7 +110,7 @@ mod tests {
     use super::*;
     use crate::stdlib::{borrow::Cow, collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
-    use crate::{felt_hex, Felt252};
+    use crate::{felt_str, Felt252};
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
 

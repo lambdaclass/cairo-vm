@@ -1,3 +1,4 @@
+use crate::utils::{biguint_to_felt, felt_to_biguint};
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
@@ -19,7 +20,7 @@ use crate::{
 };
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
-use num_traits::{One, Signed, Zero};
+use num_traits::One;
 
 // TODO: use this type in all uint256 functions
 pub(crate) struct Uint256<'a> {
@@ -75,13 +76,13 @@ impl<'a> Uint256<'a> {
     }
 
     pub(crate) fn pack(self) -> BigUint {
-        (self.high.to_biguint() << 128) + self.low.to_biguint()
+        (felt_to_biguint(*self.high) << 128) + felt_to_biguint(*self.low)
     }
 
     pub(crate) fn split(num: &BigUint) -> Self {
         let mask_low: BigUint = u128::MAX.into();
-        let low = Felt252::from(num & mask_low);
-        let high = Felt252::from(num >> 128);
+        let low = biguint_to_felt(&(num & mask_low)).unwrap();
+        let high = biguint_to_felt(&(num >> 128)).unwrap();
         Self::from_values(low, high)
     }
 }
@@ -95,7 +96,7 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
         let low = Felt252::from(u128::MAX) & &value;
-        let high = value >> 128_u32;
+        let high = value >> 128_usize;
         Self::from_values(low, high)
     }
 }
@@ -119,7 +120,7 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
     low_only: bool,
 ) -> Result<(), HintError> {
-    let shift = Felt252::from(1_u32) << 128_u32;
+    let shift = Felt252::from(1_u32) << 128_usize;
 
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -158,7 +159,7 @@ pub fn uint128_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt252::from(1_u32) << 128_u32;
+    let shift = Felt252::from(1_u32) << 128_usize;
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();
@@ -229,9 +230,9 @@ pub fn split_64(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let mut digits = a.iter_u64_digits();
-    let low = Felt252::from(digits.next().unwrap_or(0u64));
-    let high = a.as_ref() >> 64_u32;
+    let digits = a.to_le_digits();
+    let low = Felt252::from(*digits.get(0).unwrap_or(&0u64));
+    let high = a.as_ref() >> 64_usize;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -271,7 +272,7 @@ pub fn uint256_sqrt(
         ));
     }
 
-    let root = Felt252::from(root);
+    let root = biguint_to_felt(&root)?;
 
     if only_low {
         insert_value_from_var_name("root", root, vm, ids_data, ap_tracking)?;
@@ -295,11 +296,12 @@ pub fn uint256_signed_nn(
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: Felt252 = if !a_high.is_negative() && a_high.as_ref() <= &Felt252::from(i128::MAX) {
-        Felt252::ONE
-    } else {
-        Felt252::ZERO
-    };
+    let result: Felt252 =
+        if *a_high >= Felt252::ZERO && a_high.as_ref() <= &Felt252::from(i128::MAX) {
+            Felt252::ONE
+        } else {
+            Felt252::ZERO
+        };
     insert_value_into_ap(vm, result)
 }
 
@@ -372,8 +374,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
-    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
+    let a = (felt_to_biguint(*a_high) << 128_u32) + felt_to_biguint(*a_low);
+    let div = (felt_to_biguint(*div_high) << 128_u32) + felt_to_biguint(*div_low);
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
@@ -434,35 +436,39 @@ pub fn uint256_mul_div_mod(
     let a = a_high.shl(128_usize) + a_low;
     let b = b_high.shl(128_usize) + b_low;
     let div = div_high.shl(128_usize) + div_low;
-    let (quotient, remainder) = (a.to_biguint() * b.to_biguint()).div_mod_floor(&div.to_biguint());
+    let (quotient, remainder) =
+        (felt_to_biguint(a) * felt_to_biguint(b)).div_mod_floor(&felt_to_biguint(div));
 
     // ids.quotient_low.low
     vm.insert_value(
         quotient_low_addr,
-        Felt252::from(&quotient & &BigUint::from(u128::MAX)),
+        biguint_to_felt(&(&quotient & &BigUint::from(u128::MAX)))?,
     )?;
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
-        Felt252::from((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)),
+        biguint_to_felt(&((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)))?,
     )?;
     // ids.quotient_high.low
     vm.insert_value(
         quotient_high_addr,
-        Felt252::from((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)),
+        biguint_to_felt(&((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)))?,
     )?;
     // ids.quotient_high.high
     vm.insert_value(
         (quotient_high_addr + 1)?,
-        Felt252::from((&quotient).shr(384_u32)),
+        biguint_to_felt(&((&quotient).shr(384_u32)))?,
     )?;
     //ids.remainder.low
     vm.insert_value(
         remainder_addr,
-        Felt252::from(&remainder & &BigUint::from(u128::MAX)),
+        biguint_to_felt(&(&remainder & &BigUint::from(u128::MAX)))?,
     )?;
     //ids.remainder.high
-    vm.insert_value((remainder_addr + 1)?, Felt252::from(remainder.shr(128_u32)))?;
+    vm.insert_value(
+        (remainder_addr + 1)?,
+        biguint_to_felt(&remainder.shr(128_u32))?,
+    )?;
 
     Ok(())
 }
@@ -470,6 +476,7 @@ pub fn uint256_mul_div_mod(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -487,7 +494,6 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

@@ -806,6 +806,7 @@ pub fn split_xx(
 mod tests {
     use super::*;
     use crate::stdlib::ops::Shl;
+    use crate::{felt_hex, felt_str};
 
     use crate::{
         any_box,
@@ -969,11 +970,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_str!("4000000000000088000000000000001", 16),
+            felt_hex!("4000000000000088000000000000001"),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
+            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
         );
         let mut vm = vm_with_range_check!();
         let mut exec_scopes = scope![("excluded", 1)];
@@ -1161,11 +1162,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_str!("4000000000000088000000000000001", 16),
+            felt_hex!("4000000000000088000000000000001"),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
+            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
         );
         let mut exec_scopes = scope![("excluded", Felt252::ONE)];
         //Initialize fp
@@ -1188,11 +1189,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_str!("4000000000000088000000000000001", 16),
+            felt_hex!("4000000000000088000000000000001"),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
+            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
         );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
@@ -1214,11 +1215,11 @@ mod tests {
         let mut constants = HashMap::new();
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_str!("4000000000000088000000000000001", 16),
+            felt_hex!("4000000000000088000000000000001"),
         );
         constants.insert(
             "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_str!("2AAAAAAAAAAAAB05555555555555556", 16),
+            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
         );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
@@ -1423,7 +1424,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::AssertNotZero(bx)) if *bx == (Felt252::ZERO, felt::PRIME_STR.to_string())
+            Err(HintError::AssertNotZero(bx)) if *bx == (Felt252::ZERO, crate::utils::PRIME_STR.to_string())
         );
     }
 
@@ -1842,7 +1843,7 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(bx))
-            if *bx == (bound.unwrap(), builtin_bound >> 1_u32)
+            if *bx == (bound.unwrap(), builtin_bound >> 1_usize)
         )
     }
 
@@ -1955,7 +1956,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
-            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::ONE.shl(251_u32)
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::ONE.shl(251_usize)
         );
     }
 
@@ -2370,14 +2371,14 @@ mod tests {
 
             assert_matches!(run_hint!(vm, ids_data, hint_code::IS_QUAD_RESIDUE), Ok(()));
 
-            let x = &Felt252::parse_bytes(x.as_bytes(), 10).unwrap();
+            let x = felt_str!(x);
 
-            if x.is_zero() || x.is_one() {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
-            } else if x.pow(&(Felt252::MAX >> 1_u32)).is_one() {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt());
+            if x.is_zero() || x == Felt252::ONE {
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), &x);
+            } else if felt_to_biguint(x).pow(&felt_to_biguint(Felt252::MAX >> 1_usize)).is_one() {
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt().unwrap());
             } else {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x / Felt252::from(3)).sqrt());
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(Felt252::from(3).try_into().unwrap()).sqrt().unwrap()));
             }
         }
     }

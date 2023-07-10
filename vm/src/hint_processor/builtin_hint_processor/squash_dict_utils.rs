@@ -19,8 +19,6 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use num_integer::Integer;
-use num_traits::{One, ToPrimitive, Zero};
 
 fn get_access_indices(
     exec_scopes: &mut ExecutionScopes,
@@ -301,6 +299,7 @@ pub fn squash_dict(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -314,7 +313,6 @@ mod tests {
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

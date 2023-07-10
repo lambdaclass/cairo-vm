@@ -5,7 +5,6 @@ use crate::stdlib::{
     prelude::*,
 };
 use crate::{
-    felt::Felt252,
     hint_processor::{
         builtin_hint_processor::hint_utils::{
             get_integer_from_var_name, get_ptr_from_var_name, insert_value_from_var_name,
@@ -19,8 +18,8 @@ use crate::{
         errors::{hint_errors::HintError, vm_errors::VirtualMachineError},
         vm_core::VirtualMachine,
     },
+    Felt252,
 };
-use num_traits::{ToPrimitive, Zero};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -56,8 +55,8 @@ pub fn keccak_write_args(
     let low = low.as_ref();
     let high = high.as_ref();
 
-    let low_args = [low & Felt252::from(u64::MAX), low >> 64_u32];
-    let high_args = [high & Felt252::from(u64::MAX), high >> 64_u32];
+    let low_args = [low & Felt252::from(u64::MAX), low >> 64_usize];
+    let high_args = [high & Felt252::from(u64::MAX), high >> 64_usize];
 
     let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
     vm.write_arg(inputs_ptr, &low_args)

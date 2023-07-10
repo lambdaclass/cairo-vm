@@ -46,7 +46,7 @@ pub fn memset_step_loop(
     *n -= Felt252::ONE;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let flag = Felt252::from(n.is_positive());
+    let flag = Felt252::from((*n > Felt252::ZERO) as u8);
     insert_value_from_var_name(i_name, flag, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
@@ -71,7 +71,6 @@ mod tests {
         vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

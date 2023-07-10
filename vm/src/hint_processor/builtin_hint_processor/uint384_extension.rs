@@ -174,8 +174,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use felt::felt_str;
-    use num_traits::One;
+    use crate::felt_str;
     use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

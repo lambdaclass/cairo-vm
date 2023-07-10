@@ -1,3 +1,5 @@
+use num_traits::Zero;
+
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::Felt252;
@@ -12,7 +14,6 @@ use crate::{
     types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_traits::{One, ToPrimitive, Zero};
 
 pub fn set_add(
     vm: &mut VirtualMachine,

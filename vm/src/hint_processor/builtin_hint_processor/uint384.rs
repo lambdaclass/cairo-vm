@@ -1,3 +1,4 @@
+use crate::utils::felt_to_biguint;
 use crate::Felt252;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -87,7 +88,7 @@ pub fn uint384_split_128(
         ids_data,
         ap_tracking,
     )?;
-    insert_value_from_var_name("high", a >> 128_u32, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("high", a >> 128_usize, vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -109,13 +110,13 @@ pub fn add_no_uint384_check(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
+    let shift = felt_to_biguint(*get_constant_from_var_name("SHIFT", constants)?);
 
-    let sum_d0 = a.d0.to_biguint() + b.d0.to_biguint();
+    let sum_d0 = felt_to_biguint(*a.d0) + felt_to_biguint(*b.d0);
     let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
-    let sum_d1 = a.d1.to_biguint() + b.d1.to_biguint() + carry_d0.to_biguint();
+    let sum_d1 = felt_to_biguint(*a.d1) + felt_to_biguint(*b.d1) + felt_to_biguint(carry_d0);
     let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
-    let sum_d2 = a.d2.to_biguint() + b.d2.to_biguint() + carry_d1.to_biguint();
+    let sum_d2 = felt_to_biguint(*a.d2) + felt_to_biguint(*b.d2) + felt_to_biguint(carry_d1);
     let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
@@ -232,6 +233,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use core::ops::Shl;
 
+    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -248,9 +250,7 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
 
-    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -488,7 +488,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::ONE.shl(128_u32))]
+                &[("path.path.path.SHIFT", Felt252::ONE.shl(128_usize))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
