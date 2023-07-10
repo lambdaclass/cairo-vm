@@ -1,5 +1,6 @@
 use crate::stdlib::prelude::*;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
+use crate::utils::bigint_to_felt;
 use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
 use crate::vm::vm_core::VirtualMachine;
 use crate::Felt252;
@@ -11,7 +12,7 @@ pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252),
         ResOperand::Deref(cell) => (cell, 0.into()),
         ResOperand::BinOp(bin_op) => {
             if let DerefOrImmediate::Immediate(val) = &bin_op.b {
-                (&bin_op.a, val.clone().value.into())
+                (&bin_op.a, bigint_to_felt(&val.value)?)
             } else {
                 return Err(HintError::CustomHint(
                     "Failed to extract buffer, expected ResOperand of BinOp type to have Inmediate b value".to_owned().into_boxed_str()
@@ -82,13 +83,15 @@ pub(crate) fn res_operand_get_val(
 ) -> Result<Felt252, VirtualMachineError> {
     match res_operand {
         ResOperand::Deref(cell) => get_cell_val(vm, cell),
-        ResOperand::DoubleDeref(cell, offset) => get_double_deref_val(vm, cell, &(*offset).into()),
-        ResOperand::Immediate(x) => Ok(Felt252::from(x.value.clone())),
+        ResOperand::DoubleDeref(cell, offset) => {
+            get_double_deref_val(vm, cell, &Felt252::from(*offset as i32)).into()
+        }
+        ResOperand::Immediate(x) => Ok(bigint_to_felt(&x.value)?),
         ResOperand::BinOp(op) => {
             let a = get_cell_val(vm, &op.a)?;
             let b = match &op.b {
                 DerefOrImmediate::Deref(cell) => get_cell_val(vm, cell)?,
-                DerefOrImmediate::Immediate(x) => Felt252::from(x.value.clone()),
+                DerefOrImmediate::Immediate(x) => bigint_to_felt(&x.value)?,
             };
             match op.op {
                 Operation::Add => Ok(a + b),
@@ -103,7 +106,7 @@ pub(crate) fn as_cairo_short_string(value: &Felt252) -> Option<String> {
     let mut as_string = String::default();
     let mut is_end = false;
     for byte in value
-        .to_be_bytes()
+        .to_bytes_be()
         .into_iter()
         .skip_while(num_traits::Zero::is_zero)
     {

@@ -1,5 +1,3 @@
-use num_traits::Num;
-
 use crate::{tests::*, vm::runners::cairo_runner::ResourceTracker};
 use assert_matches::assert_matches;
 
@@ -106,9 +104,8 @@ fn factorial_50() {
         program_data.as_slice(),
         0,
         &[50.into()],
-        &[Felt252::from_str_radix(
+        &[Felt252::from_dec_str(
             "30414093201713378043612608166064768844377641568960512000000000000",
-            10,
         )
         .unwrap()],
     );
@@ -121,9 +118,8 @@ fn factorial_2000() {
         program_data.as_slice(),
         0,
         &[2000.into()],
-        &[Felt252::from_str_radix(
+        &[Felt252::from_dec_str(
             "2570376556569900799903105814841036176886569861654260254942280653735904624674",
-            10,
         )
         .unwrap()],
     );
