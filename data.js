@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689005194756,
+  "lastUpdate": 1689005694372,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -110632,6 +110632,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 26092640,
             "range": "± 354609",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "91828241+alonh5@users.noreply.github.com",
+            "name": "Alon Haramati",
+            "username": "alonh5"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ce73104c534316eaed671c7cb3d879df027ee102",
+          "message": "Fix uint256_mul_div_mod bug. (#1320)",
+          "timestamp": "2023-07-10T15:45:39Z",
+          "tree_id": "825379f09141ef007c518ff561082929e1f898a5",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/ce73104c534316eaed671c7cb3d879df027ee102"
+        },
+        "date": 1689005686453,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1632,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60143,
+            "range": "± 454",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22711679,
+            "range": "± 131695",
             "unit": "ns/iter"
           }
         ]
