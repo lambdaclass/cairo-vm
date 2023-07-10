@@ -5,8 +5,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-readme.workspace = true
+readme = "README.md"
 keywords.workspace = true
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -15,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-serde_json = "1.0.87"
+serde_json.workspace = true
 wasm-bindgen = "0.2.87"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -32,4 +33,4 @@ wee_alloc = { version = "0.4.5", optional = true }
 cairo-vm = { workspace = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.13"
+wasm-bindgen-test = "0.3.34"
