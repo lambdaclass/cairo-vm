@@ -3488,16 +3488,15 @@ mod tests {
             )
         ];
         let error = vm.verify_auto_deductions();
-        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op_builtin, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(bx))
             if *bx == (EC_OP_BUILTIN_NAME,
-                    MaybeRelocatable::Int(crate::felt_hex!(
-                        "0x60e3a9b450260672e2fdd7b12f8c0a08f1ed75b5b4e9cea796801ca32f82299"
+                    MaybeRelocatable::Int(crate::felt_str!(
+                        "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )),
-                    Some(MaybeRelocatable::Int(crate::felt_hex!(
-                        "0x6245403e2fafe5df3b79ea28d050d477771bc560fc59e915b302cc9b70a92f5"
+                    Some(MaybeRelocatable::Int(crate::felt_str!(
+                        "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                     ))))
         );
     }
