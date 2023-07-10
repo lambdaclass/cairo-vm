@@ -14,6 +14,8 @@
   - The versions must be the same.
   - You need to update the workspace dependencies `felt` and `cairo-vm`, which
     you can find in the root cargo manifest under the section `[workspace.dependencies]`.
+  - [Here](https://github.com/lambdaclass/cairo-rs/pull/1301/files) is an
+    example pull request with these changes.
 - [ ] Run `cargo update` and `git add Cargo.lock`
 - [ ] Update `CHANGELOG.md`:
   - Verify that the changelog is up to date.
