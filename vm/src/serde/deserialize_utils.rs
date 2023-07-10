@@ -4,7 +4,9 @@ use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
-use felt::{Felt252, ParseFeltError};
+
+use crate::Felt252;
+
 use nom::{
     branch::alt,
     bytes::{
@@ -22,7 +24,6 @@ use num_integer::Integer;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ReferenceParseError {
     IntError(ParseIntError),
-    Felt252Error(ParseFeltError),
     InvalidStringError(String),
 }
 
@@ -31,10 +32,6 @@ impl fmt::Display for ReferenceParseError {
         match self {
             ReferenceParseError::IntError(error) => {
                 write!(f, "Int parsing error: ")?;
-                error.fmt(f)
-            }
-            ReferenceParseError::Felt252Error(error) => {
-                write!(f, "Felt252 parsing error: ")?;
                 error.fmt(f)
             }
             ReferenceParseError::InvalidStringError(error) => {
@@ -292,7 +289,6 @@ pub fn take_until_unbalanced(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

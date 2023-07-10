@@ -1,5 +1,6 @@
 use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
 
+use crate::utils::PRIME_STR;
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::Felt252;
 use crate::{
@@ -17,7 +18,6 @@ use crate::{
     },
 };
 use num_traits::float::FloatCore;
-use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
@@ -166,7 +166,7 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    match Felt252::parse_bytes(n.to_string().as_bytes(), 10) {
+    match Felt252::from_dec_str(&n.to_string()).ok() {
         Some(x) => Ok(Some(x)),
         None => {
             // Handle de Number with scientific notation cases
@@ -189,11 +189,11 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
 
-            let exponent = list[1].parse::<u32>().ok()?;
-            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+            let exponent = list[1].parse::<u128>().ok()?;
+            let base = Felt252::from_dec_str(list[0]).ok()?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::parse_bytes(FloatCore::round(float).to_string().as_bytes(), 10),
+        Some(float) => Felt252::from_dec_str(&FloatCore::round(float).to_string()).ok(),
     }
 }
 
@@ -258,14 +258,9 @@ impl<'de> de::Visitor<'de> for Felt252Visitor {
     where
         E: de::Error,
     {
-        // Strip the '0x' prefix from the encoded hex string
-        if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-            // Add padding if necessary
-            let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
-        } else {
-            Err(String::from("hex prefix error")).map_err(de::Error::custom)
-        }
+        // Add padding if necessary
+        let value = deserialize_utils::maybe_add_padding(value.to_string());
+        Felt252::from_hex(&value).map_err(de::Error::custom)
     }
 }
 
@@ -285,15 +280,11 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
         let mut data: Vec<MaybeRelocatable> = vec![];
 
         while let Some(value) = seq.next_element::<String>()? {
-            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-                // Add padding if necessary
-                let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                data.push(MaybeRelocatable::Int(
-                    Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
-                ));
-            } else {
-                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
-            };
+            // Add padding if necessary
+            let value = deserialize_utils::maybe_add_padding(value.to_string());
+            data.push(MaybeRelocatable::Int(
+                Felt252::from_dec_str(&value).map_err(de::Error::custom)?,
+            ));
         }
         Ok(data)
     }
@@ -445,10 +436,8 @@ pub fn parse_program_json(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use assert_matches::assert_matches;
-    use felt::felt_str;
-    use num_traits::One;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -1418,7 +1407,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::from_str_radix("64", 10).unwrap() * Felt252::from(10).pow(74))
+            Ok(x) if x == Some(Felt252::from_dec_str("64").unwrap() * Felt252::from(10).pow(74))
         );
     }
 
@@ -1429,9 +1418,8 @@ mod tests {
         assert_eq!(
             felt_from_number(n).unwrap(),
             Some(
-                Felt252::from_str_radix(
+                Felt252::from_dec_str(
                     "2082797363194934431336897723140298717588791783575467744530053896730196177808",
-                    10
                 )
                 .unwrap()
             )
@@ -1457,9 +1445,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             f,
-            Felt252::from_str_radix(
+            Felt252::from_dec_str(
                 "2471602022505793130446032259107029522557827898253184929958153020344968292412",
-                10
             )
             .unwrap()
         );
