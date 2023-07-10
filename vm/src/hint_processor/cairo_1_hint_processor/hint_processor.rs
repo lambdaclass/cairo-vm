@@ -921,7 +921,7 @@ impl Cairo1HintProcessor {
             ))?
             .clone()
             - prev_access_index
-            - 1_u32;
+            - 1_u64;
 
         vm.insert_value(
             cell_ref_to_relocatable(index_delta_minus1, vm)?,

@@ -19,7 +19,7 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(PRIME_STR, 16).unwrap();
+    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(&PRIME_STR[2..], 16).unwrap();
 }
 
 #[macro_export]

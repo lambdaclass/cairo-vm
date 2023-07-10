@@ -283,7 +283,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
             // Add padding if necessary
             let value = deserialize_utils::maybe_add_padding(value.to_string());
             data.push(MaybeRelocatable::Int(
-                Felt252::from_dec_str(&value).map_err(de::Error::custom)?,
+                Felt252::from_hex(&value).map_err(de::Error::custom)?,
             ));
         }
         Ok(data)
