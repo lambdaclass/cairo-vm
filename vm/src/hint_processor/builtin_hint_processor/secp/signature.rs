@@ -1,3 +1,4 @@
+use crate::utils::{felt_to_bigint, felt_to_biguint};
 use crate::Felt252;
 use crate::{
     any_box,
@@ -113,10 +114,11 @@ pub fn get_point_from_x(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     #[allow(deprecated)]
-    let beta = constants
-        .get(BETA)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
-        .to_bigint();
+    let beta = felt_to_bigint(
+        *constants
+            .get(BETA)
+            .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?,
+    );
 
     let x_cube_int = bigint3_pack(Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?)
         .mod_floor(&SECP_P);
@@ -125,7 +127,7 @@ pub fn get_point_from_x(
     let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
 
     #[allow(deprecated)]
-    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
+    let v = felt_to_biguint(*get_integer_from_var_name("v", vm, ids_data, ap_tracking)?);
     if v.is_even() != y.is_even() {
         y = &*SECP_P - y;
     }

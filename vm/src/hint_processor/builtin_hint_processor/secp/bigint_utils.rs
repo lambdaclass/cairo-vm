@@ -1,7 +1,10 @@
 use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
+use crate::math_utils::signed_felt;
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
+use crate::types::errors::math_errors::MathError;
+use crate::utils::biguint_to_felt;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -19,7 +22,6 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, BigUint};
-use num_traits::Bounded;
 
 // Uint384 and BigInt3 are used interchangeably with BigInt3
 pub(crate) type Uint384<'a> = BigInt3<'a>;
@@ -93,7 +95,7 @@ impl BigInt3<'_> {
         limbs
             .into_iter()
             .enumerate()
-            .map(|(idx, value)| signed_felt(value).shl(idx * 86))
+            .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
             .sum()
     }
 
@@ -168,8 +170,8 @@ pub fn nondet_bigint3(
         .ok_or(HintError::BigIntToBigUintFail)?;
     let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
-        .map(|n| MaybeRelocatable::from(Felt252::from(n)))
-        .collect();
+        .map(|ref n| biguint_to_felt(n).map(MaybeRelocatable::from))
+        .collect::<Result<Vec<MaybeRelocatable>, MathError>>()?;
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }
@@ -237,7 +239,6 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
 
     use assert_matches::assert_matches;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -263,7 +264,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt252::ONE.shl(86_u32))]
+                &[(BASE_86, Felt252::ONE.shl(86_usize))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

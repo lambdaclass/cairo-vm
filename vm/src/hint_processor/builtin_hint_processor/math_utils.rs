@@ -7,10 +7,11 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
+    types::errors::math_errors::MathError,
     utils::{bigint_to_felt, biguint_to_felt, felt_to_bigint, felt_to_biguint},
 };
 use lazy_static::lazy_static;
-use num_traits::{Pow, Signed};
+use num_traits::{Pow, Signed, Zero};
 
 use crate::utils::CAIRO_PRIME;
 
@@ -549,7 +550,7 @@ pub fn unsigned_div_rem(
         _ => {}
     }
 
-    let (q, r) = value.div_rem(div.as_ref());
+    let (q, r) = value.div_rem(&(*div).try_into().map_err(|_| MathError::DividedByZero)?);
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
 }
@@ -575,14 +576,17 @@ pub fn assert_250_bit(
     let shift = constants
         .get(SHIFT)
         .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
-    let value = Felt252::from(
-        get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.to_signed_felt(),
-    );
+    let value = bigint_to_felt(&signed_felt(*get_integer_from_var_name(
+        "value",
+        vm,
+        ids_data,
+        ap_tracking,
+    )?))?;
     //Main logic
     if &value > upper_bound {
         return Err(HintError::ValueOutside250BitRange(Box::new(value)));
     }
-    let (high, low) = value.div_rem(shift);
+    let (high, low) = value.div_rem(&shift.try_into().map_err(|_| MathError::DividedByZero)?);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -620,21 +624,22 @@ pub fn is_addr_bounded(
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
-    let prime = Felt252::prime();
 
-    let addr_bound = constants
+    let addr_bound = *constants
         .get(ADDR_BOUND)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?
-        .to_biguint();
+        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?;
 
-    let lower_bound = BigUint::one() << 250_u32;
-    let upper_bound = BigUint::one() << 251_u32;
+    let lower_bound = Felt252::ONE << 250_usize;
+    let upper_bound = Felt252::ONE << 251_usize;
 
     // assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
     //      ADDR_BOUND * 2 > PRIME), \
     //      'normalize_address() cannot be used with the current constants.'
     // The second check is not needed, as it's true for the CAIRO_PRIME
-    if !(lower_bound < addr_bound && addr_bound <= upper_bound && (&addr_bound << 1_u32) > prime) {
+    if !(lower_bound < addr_bound
+        && addr_bound <= upper_bound
+        && (&addr_bound << 1_usize) >= Felt252::MAX)
+    {
         return Err(HintError::AssertionFailed(
             "normalize_address() cannot be used with the current constants."
                 .to_string()
@@ -684,16 +689,24 @@ pub fn is_quad_residue(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let x = *get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
-    if x.is_zero() || x.is_one() {
+    if x.is_zero() || x == Felt252::ONE {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
-    } else if Pow::pow(x.as_ref(), &(Felt252::MAX >> 1_u32)).is_one() {
-        insert_value_from_var_name("y", &x.sqrt(), vm, ids_data, ap_tracking)
+    } else if Pow::pow(felt_to_biguint(x), &(&*CAIRO_PRIME >> 1_u32)).is_one() {
+        insert_value_from_var_name(
+            "y",
+            &x.sqrt().unwrap_or_default(),
+            vm,
+            ids_data,
+            ap_tracking,
+        )
     } else {
         insert_value_from_var_name(
             "y",
-            (x.as_ref() / Felt252::from(3_i32)).sqrt(),
+            (x.field_div(&Felt252::THREE.try_into().unwrap()))
+                .sqrt()
+                .unwrap_or_default(),
             vm,
             ids_data,
             ap_tracking,
@@ -704,8 +717,8 @@ pub fn is_quad_residue(
 fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     let prime: &BigUint = &CAIRO_PRIME;
     #[allow(deprecated)]
-    let limit = prime / bound.to_biguint();
-    Ok(Felt252::from(limit))
+    let limit = prime / felt_to_biguint(bound);
+    Ok(biguint_to_felt(&limit)?)
 }
 
 fn prime_div_constant(bound: u32) -> Result<BigUint, VirtualMachineError> {
@@ -768,7 +781,7 @@ pub fn split_xx(
 ) -> Result<(), HintError> {
     let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
     let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let xx = xx.low.to_biguint() + (xx.high.to_biguint() << 128_u32);
+    let xx: BigUint = felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high << 128_usize);
     let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
@@ -782,9 +795,9 @@ pub fn split_xx(
 
     vm.insert_value(
         x_addr,
-        Felt252::from(&x & &BigUint::from(u128::max_value())),
+        biguint_to_felt(&(&x & &BigUint::from(u128::max_value())))?,
     )?;
-    vm.insert_value((x_addr + 1)?, Felt252::from(x >> 128_u32))?;
+    vm.insert_value((x_addr + 1)?, biguint_to_felt(&(x >> 128_u32))?)?;
 
     Ok(())
 }
@@ -810,8 +823,6 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
-    use num_traits::Zero;
 
     #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;

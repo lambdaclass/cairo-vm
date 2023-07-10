@@ -1,5 +1,6 @@
 use core::str::FromStr;
 
+use crate::math_utils::signed_felt;
 use crate::stdlib::{boxed::Box, ops::Shl, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
@@ -100,7 +101,7 @@ pub(crate) fn bigint3_pack(num: Uint384) -> num_bigint::BigInt {
     limbs
         .into_iter()
         .enumerate()
-        .map(|(idx, value)| signed_felt(value).shl(idx * 86))
+        .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
         .sum()
 }
 
@@ -109,11 +110,10 @@ mod tests {
     use super::*;
     use crate::stdlib::{borrow::Cow, collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
+    use crate::{felt_hex, Felt252};
     use assert_matches::assert_matches;
-    use felt::{felt_str, Felt252};
     use num_bigint::BigUint;
 
-    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

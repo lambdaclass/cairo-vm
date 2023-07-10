@@ -1,3 +1,4 @@
+use crate::utils::{biguint_to_felt, felt_to_biguint};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -22,7 +23,7 @@ use crate::{
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{One, Zero};
 
 use super::secp_utils::SECP256R1_P;
 
@@ -502,7 +503,7 @@ pub fn n_pair_bits(
         return Err(HintError::NPairBitsTooLowM);
     }
 
-    let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
+    let (scalar_v, scalar_u) = (felt_to_biguint(*scalar_v), felt_to_biguint(*scalar_u));
 
     // Each step, fetches the bits in mth position for v and u,
     // and appends them to the accumulator. i.e:
@@ -511,21 +512,22 @@ pub fn n_pair_bits(
     //  1010101__ -> 101010110
     let get_bit =
         |x: &BigUint, i| m.checked_sub(i).map(|i| x.bit(i.into())).unwrap_or(false) as u32;
-    let res: Felt252 = (0..number_of_pairs)
-        .map(|i| {
-            // This code is definitely verbose, but it's the only way I found to avoid a `panic`
-            // when `m < number_of_pairs` while still being correct and hopefully fast.
-            let bit_1 = get_bit(&scalar_v, i);
-            // 1 * ((ids.scalar_u >> ids.m) & 1)
-            let bit_0 = get_bit(&scalar_u, i);
-            bit_0 | (bit_1 << 1)
-        })
-        .fold(BigUint::zero(), |mut acc, x| {
-            acc <<= 2_u32;
-            acc += x;
-            acc
-        })
-        .into();
+    let res: Felt252 = biguint_to_felt(
+        &(0..number_of_pairs)
+            .map(|i| {
+                // This code is definitely verbose, but it's the only way I found to avoid a `panic`
+                // when `m < number_of_pairs` while still being correct and hopefully fast.
+                let bit_1 = get_bit(&scalar_v, i);
+                // 1 * ((ids.scalar_u >> ids.m) & 1)
+                let bit_0 = get_bit(&scalar_u, i);
+                bit_0 | (bit_1 << 1)
+            })
+            .fold(BigUint::zero(), |mut acc, x| {
+                acc <<= 2_u32;
+                acc += x;
+                acc
+            }),
+    )?;
     /*
         ids.quad_bit = (
             8 * ((ids.scalar_v >> ids.m) & 1)

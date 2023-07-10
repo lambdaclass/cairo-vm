@@ -1,7 +1,7 @@
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
-use crate::Felt252;
+use crate::utils::bigint_to_felt;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
     serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
@@ -39,7 +39,7 @@ pub fn inv_mod_p_uint512(
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
     let x_inverse_mod_p =
-        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
+        bigint_to_felt(&div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)))?;
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
@@ -59,6 +59,7 @@ mod tests {
     use crate::utils::test_utils::memory;
     use crate::utils::test_utils::memory_from_memory;
     use crate::utils::test_utils::memory_inner;
+    use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::hint_code::INV_MOD_P_UINT512,
         types::exec_scope::ExecutionScopes,
@@ -67,7 +68,7 @@ mod tests {
         },
     };
     use num_bigint::BigUint;
-    use num_traits::{FromPrimitive, Num};
+    use num_traits::Num;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -104,7 +105,7 @@ mod tests {
                 Felt252::from(90812398),
                 Felt252::from(55),
                 Felt252::from(83127),
-                Felt252::from_i128(45312309123).unwrap()
+                Felt252::from(45312309123)
             ]).pack(),
             BigUint::from_str_radix("1785395884837388090117385402351420305430103423113021825538726783888669416377532493875431795584456624829488631993250169127284718", 10).unwrap()
         );

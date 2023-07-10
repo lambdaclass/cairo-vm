@@ -619,9 +619,12 @@ mod tests {
             result,
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
-                    (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
-                    m.to_bigint(),
-                    (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
+                    (felt_to_bigint(partial_sum.0), felt_to_bigint(partial_sum.1)),
+                    felt_to_bigint(m),
+                    (
+                        felt_to_bigint(doubled_point.0),
+                        felt_to_bigint(doubled_point.1)
+                    )
                 )
                 .into_boxed_str()
             ))

@@ -94,6 +94,13 @@ pub mod test_utils {
     }
 
     #[macro_export]
+    macro_rules! felt_str {
+        ($val: expr) => {
+            $crate::Felt252::from_dec_str($val).expect("Couldn't parse bytes")
+        };
+    }
+
+    #[macro_export]
     macro_rules! bigint {
         ($val : expr) => {
             Into::<num_bigint::BigInt>::into($val)
@@ -133,8 +140,11 @@ pub mod test_utils {
 
     impl From<(&str, u8)> for MaybeRelocatable {
         fn from((string, radix): (&str, u8)) -> Self {
-            assert!(radix == 16);
-            MaybeRelocatable::Int(crate::felt_hex!(string))
+            match radix {
+                16 => MaybeRelocatable::Int(crate::felt_hex!(string)),
+                10 => MaybeRelocatable::Int(crate::felt_str!(string)),
+                _ => panic!(" Invalid radix"),
+            }
         }
     }
 
