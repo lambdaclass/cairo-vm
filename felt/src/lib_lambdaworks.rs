@@ -22,7 +22,18 @@ use serde::{Deserialize, Serialize};
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
+#[cfg(feature = "arbitrary")]
+use arbitrary::{Arbitrary, Unstructured};
+
 use crate::{ParseFeltError, FIELD_HIGH, FIELD_LOW};
+
+#[cfg(feature = "arbitrary")]
+impl<'a> Arbitrary<'a> for Felt252 {
+    fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
+        let num: BigUint = BigUint::arbitrary(u)?;
+        Ok(Felt252::from(num))
+    }
+}
 
 lazy_static! {
     pub static ref CAIRO_PRIME_BIGUINT: BigUint =
