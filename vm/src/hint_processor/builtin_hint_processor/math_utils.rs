@@ -2378,7 +2378,7 @@ mod tests {
             } else if felt_to_biguint(x).pow(&felt_to_biguint(Felt252::MAX >> 1_usize)).is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt().unwrap());
             } else {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(Felt252::from(3).try_into().unwrap()).sqrt().unwrap()));
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(&(Felt252::from(3).try_into().unwrap())).sqrt().unwrap()));
             }
         }
     }
