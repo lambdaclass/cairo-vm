@@ -47,7 +47,7 @@ impl fmt::Display for ReferenceParseError {
 // Asumes hex string is prefixed by '0x'
 pub fn maybe_add_padding(mut hex: String) -> String {
     if hex.len().is_odd() {
-        hex.insert(3, '0');
+        hex.insert(2, '0');
         return hex;
     }
     hex
