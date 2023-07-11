@@ -173,8 +173,14 @@ test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COM
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 
+
+check-fmt:
+	cargo fmt --all -- --check
+	cargo fmt --manifest-path fuzzer/Cargo.toml --all -- --check
+
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
+	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
