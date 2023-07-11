@@ -1,8 +1,8 @@
-use crate::{stdlib::prelude::*, types::errors::math_errors::MathError};
-
 use crate::types::relocatable::Relocatable;
+use crate::{stdlib::prelude::*, types::errors::math_errors::MathError};
+use core::ops::Neg;
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
 use num_integer::Integer;
 use num_traits::Num;
 
@@ -70,13 +70,16 @@ pub fn biguint_to_felt(biguint: &BigUint) -> Result<crate::Felt252, MathError> {
 }
 
 pub fn bigint_to_felt(bigint: &BigInt) -> Result<crate::Felt252, MathError> {
-    crate::Felt252::from_bytes_be(
-        &bigint
-            .mod_floor(&CAIRO_PRIME.to_bigint().unwrap())
-            .to_bytes_be()
-            .1,
-    )
-    .map_err(|_| MathError::ByteConversionError)
+    let (sign, mut bytes) = bigint
+        .mod_floor(&CAIRO_PRIME.to_bigint().unwrap())
+        .to_bytes_le();
+    bytes.resize(32, 0);
+    let felt = crate::Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)?;
+    if sign == Sign::Minus {
+        Ok(felt.neg())
+    } else {
+        Ok(felt)
+    }
 }
 
 #[cfg(test)]
