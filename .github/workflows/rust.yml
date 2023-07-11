@@ -247,10 +247,12 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}" 
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --release --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features --features "${{ matrix.special_features }}"
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --release --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
@@ -262,8 +264,8 @@ jobs:
       if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
-        path: lcov-${{ matrix.target }}.info
-        key: codecov-cache-${{ matrix.target }}-${{ github.sha }}
+        path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
+        key: codecov-cache-${{ matrix.target }}-${{ matrix.special_features }}-${{ github.sha }}
 
 
   build-release:
@@ -405,14 +407,27 @@ jobs:
     - name: Fetch results for tests with stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test.info
-        key: codecov-cache-test-${{ github.sha }}
+        path: lcov-test-.info
+        key: codecov-cache-test--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std.info
-        key: codecov-cache-test-no_std-${{ github.sha }}
+        path: lcov-test-no_std-.info
+        key: codecov-cache-test-no_std--${{ github.sha }}
+        fail-on-cache-miss: true
+
+    - name: Fetch results for tests with stdlib (w/lambdaworks)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-lambdaworks-felt.info
+        key: codecov-cache-test-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/lambdaworks)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std-lambdaworks-felt.info
+        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
