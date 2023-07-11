@@ -258,6 +258,7 @@ impl Felt252 {
     }
 
     pub fn from_bytes_ne(bytes: &[u8]) -> Self {
+        // Call either version depending on target endianness
         #[cfg(target_endian = "little")]
         let res = Self::from_bytes_le(bytes);
         #[cfg(target_endian = "big")]

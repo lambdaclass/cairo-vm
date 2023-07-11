@@ -170,20 +170,11 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        let value = BigUint::from_bytes_be(bytes);
-        Self::from(value)
+        Self::from(BigUint::from_bytes_be(bytes))
     }
 
     fn from_bytes_le(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         Self::from(BigUint::from_bytes_le(bytes))
-    }
-
-    fn from_bytes_ne(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        #[cfg(target_endian = "little")]
-        let res = Self::from_bytes_le(bytes);
-        #[cfg(target_endian = "big")]
-        let res = Self::from_bytes_be(bytes);
-        res
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]

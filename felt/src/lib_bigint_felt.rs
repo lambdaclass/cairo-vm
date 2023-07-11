@@ -42,8 +42,6 @@ pub(crate) trait FeltOps {
 
     fn from_bytes_le(bytes: &[u8]) -> Self;
 
-    fn from_bytes_ne(bytes: &[u8]) -> Self;
-
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
 
@@ -187,9 +185,12 @@ impl Felt252 {
         }
     }
     pub fn from_bytes_ne(bytes: &[u8]) -> Self {
-        Self {
-            value: FeltBigInt::from_bytes_ne(bytes),
-        }
+        // Call either version depending on target endianness
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
