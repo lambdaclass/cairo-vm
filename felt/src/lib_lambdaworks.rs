@@ -248,10 +248,12 @@ impl Felt252 {
     }
 
     pub fn from_bytes_be(bytes: &[u8]) -> Self {
+        // TODO: use upstream's version when it's more lenient
         Self::from(BigUint::from_bytes_be(bytes))
     }
 
     pub fn from_bytes_le(bytes: &[u8]) -> Self {
+        // TODO: use upstream's version when it's more lenient
         Self::from(BigUint::from_bytes_le(bytes))
     }
 
