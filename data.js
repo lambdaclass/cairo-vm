@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689107931786,
+  "lastUpdate": 1689113431543,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111172,6 +111172,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18827092,
             "range": "± 151381",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d5b2cce6fe11495db46d7baf5ba2fa79fbd4f4d",
+          "message": "Add abitrary fuzzing (#1306)\n\n* Create fuzzer\n\n* Remove cli\n\n* Update fuzzer\n\n* Change fuzzer name\n\n* Add arbitrary\n\n* Add fuzzer using arbitrary\n\n* Add fuzzer\n\n* Use run until steps\n\n* Remove end\n\n* Update changelog\n\n* Update CHANGELOG.md\n\n* Update CHANGELOG.md\n\n* Change macro cfg\n\n* Update bincode\n\n* Update Arbitrary deps\n\n* Check for std with arbitrary\n\n* Update Cargo.toml\n\n* Revert \"Update bincode\"\n\nThis reverts commit 6b5a95ad3d61becfb5aa9414e996eb06c03a3bde.\n\n* Revert to update bincode\n\n* Fix arbitrary imports\n\n* Run linter\n\n* Run linter\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-11T21:15:42Z",
+          "tree_id": "f09f6c0473e31eca39f0100ea67ccb26e3ea7932",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/2d5b2cce6fe11495db46d7baf5ba2fa79fbd4f4d"
+        },
+        "date": 1689113423780,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1575,
+            "range": "± 107",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 65358,
+            "range": "± 4536",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23514895,
+            "range": "± 1650391",
             "unit": "ns/iter"
           }
         ]
