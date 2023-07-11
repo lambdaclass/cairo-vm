@@ -211,9 +211,6 @@ jobs:
       with:
         fetch-depth: 1
 
-    - name: (Debug) Print base disk usage
-      run: du -h
-
     - name: Fetch test programs
       uses: actions/cache/restore@v3
       with:
@@ -237,15 +234,13 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
-    - name: (Debug) Print base (+ programs) disk usage
-      run: du -h
-
     - name: Install testing tools
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
 
     - name: (Debug) Print disk usage right before tests
+      if:  runner.debug == '1'
       run: du -h
 
     - name: Run ${{ matrix.target }}
@@ -272,7 +267,10 @@ jobs:
         esac
 
     - name: (Debug) Print disk usage after tests
-      run: du -h
+      if:  runner.debug == '1'
+      run: |
+        du -hd 1
+        du -hd 1 target/llvm-cov-target
 
     - name: Save coverage
       if: matrix.target != 'test-wasm'
