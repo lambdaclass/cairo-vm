@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+
 * perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
 
 * feat: add `from_bytes_le` and `from_bytes_ne` methods [#1326](https://github.com/lambdaclass/cairo-vm/pull/1326)
