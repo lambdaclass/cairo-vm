@@ -7,17 +7,17 @@ exclude = ["ensure-no_std"]
 resolver = "2"
 
 [workspace.package]
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/lambdaclass/cairo-vm/"
 readme = "README.md"
 
 [workspace.dependencies]
-felt = { package = "cairo-felt", path = "./felt", version = "0.8.1", default-features = false, features = [
+felt = { package = "cairo-felt", path = "./felt", version = "0.8.2", default-features = false, features = [
     "alloc",
 ] }
-cairo-vm = { path = "./vm", version = "0.8.1", default-features = false }
+cairo-vm = { path = "./vm", version = "0.8.2", default-features = false }
 mimalloc = { version = "0.1.37", default-features = false }
 num-bigint = { version = "0.4", default-features = false, features = [
     "serde",
