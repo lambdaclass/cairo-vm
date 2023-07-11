@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `from_bytes_le` and `from_bytes_ne` methods [#1326](https://github.com/lambdaclass/cairo-vm/pull/1326)
+
 #### [0.8.2] - 2023-7-10
 
 * chore: update dependencies, particularly lamdaworks 0.1.2 -> 0.1.3 [#1323](https://github.com/lambdaclass/cairo-vm/pull/1323)

@@ -40,6 +40,10 @@ pub(crate) trait FeltOps {
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
+    fn from_bytes_le(bytes: &[u8]) -> Self;
+
+    fn from_bytes_ne(bytes: &[u8]) -> Self;
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
 

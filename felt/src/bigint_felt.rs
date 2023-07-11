@@ -174,6 +174,18 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         Self::from(value)
     }
 
+    fn from_bytes_le(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        Self::from(BigUint::from_bytes_le(bytes))
+    }
+
+    fn from_bytes_ne(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
+    }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String {
         self.val.to_str_radix(radix)
@@ -201,20 +213,6 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn prime() -> BigUint {
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
-    }
-}
-
-impl FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-    pub(crate) fn from_bytes_le(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        Self::from(BigUint::from_bytes_le(bytes))
-    }
-
-    pub(crate) fn from_bytes_ne(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        #[cfg(target_endian = "little")]
-        let res = Self::from_bytes_le(bytes);
-        #[cfg(target_endian = "big")]
-        let res = Self::from_bytes_be(bytes);
-        res
     }
 }
 
