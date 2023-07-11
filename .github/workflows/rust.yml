@@ -196,7 +196,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "lambdaworks-felt"]
-        target: [ test+1/2, test+2/2, test-no_std, test-wasm ]
+        target: [ test#1, test#2, test-no_std, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
@@ -248,18 +248,17 @@ jobs:
     - name: (Debug) Print disk usage right before tests
       run: du -h
 
-    - name: Run
+    - name: Run ${{ matrix.target }}
       run: |
+        # this splits the `test#1` into `test` and `1`
         export MATRIX_TARGET=${{ matrix.target }}
-        export NAME=${MATRIX_TARGET%+*}
-        echo ${NAME}       # TODO: remove
-        export PARTITION=${MATRIX_TARGET#*+}
-        echo ${PARTITION}  # TODO: remove
+        export NAME=${MATRIX_TARGET%#*}
+        export PARTITION=${MATRIX_TARGET#*#}
         # FIXME: we need to update the Makefile to do this correctly
         case ${NAME} in
         'test')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
-              --partition count:${PARTITION} \
+              --partition count:${PARTITION}/2 \
               --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
@@ -423,13 +422,13 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: lcov-test-.info
-        key: codecov-cache-test+1/2--${{ github.sha }}
+        key: codecov-cache-test#1--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 2)
       uses: actions/cache/restore@v3
       with:
         path: lcov-test-.info
-        key: codecov-cache-test+2/2--${{ github.sha }}
+        key: codecov-cache-test#2--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
@@ -442,13 +441,13 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: lcov-test-lambdaworks-felt.info
-        key: codecov-cache-test+1/2-lambdaworks-felt-${{ github.sha }}
+        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
       uses: actions/cache/restore@v3
       with:
         path: lcov-test-lambdaworks-felt.info
-        key: codecov-cache-test+2/2-lambdaworks-felt-${{ github.sha }}
+        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib (w/lambdaworks)
       uses: actions/cache/restore@v3
