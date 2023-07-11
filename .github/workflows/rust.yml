@@ -209,11 +209,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0
-    # This is not pretty, but we need `make` to see the compiled programs are
-    # actually newer than the sources, otherwise it will try to rebuild them
-    - name: Restore timestamps
-      uses: chetan/git-restore-mtime-action@v1
+        fetch-depth: 1
+
+    - name: (Debug) Print base disk usage
+      run: du -h
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -238,10 +237,17 @@ jobs:
           cairo_programs/**/*.json
         key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
 
+    - name: (Debug) Print base (+ programs) disk usage
+      run: du -h
+
     - name: Install testing tools
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
+
+    - name: (Debug) Print disk usage right before tests
+      run: du -h
+
     - name: Run
       run: |
         # FIXME: we need to update the Makefile to do this correctly
@@ -259,6 +265,9 @@ jobs:
           wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
           ;;
         esac
+
+    - name: (Debug) Print disk usage after tests
+      run: du -h
 
     - name: Save coverage
       if: matrix.target != 'test-wasm'
