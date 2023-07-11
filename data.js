@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689029512154,
+  "lastUpdate": 1689084513947,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -110902,6 +110902,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22478031,
             "range": "± 144223",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "52ada39715bf8f244d7c5bf5cbf6ddc08412a65b",
+          "message": "fix: compile fuzzer in CI (#1317)\n\n* Check that fuzzer compiles on workflow\n\n* Commit fuzzer's Cargo.lock\n\n* Fix compile errors\n\nIt was because of mismatched versions of the bincode crate\n\n* Re-run workflows\n\n* Re-run workflows",
+          "timestamp": "2023-07-11T13:38:00Z",
+          "tree_id": "0768a6df89835e01412bf294f0220580d06224c8",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/52ada39715bf8f244d7c5bf5cbf6ddc08412a65b"
+        },
+        "date": 1689084507757,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1402,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53144,
+            "range": "± 386",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18719624,
+            "range": "± 247742",
             "unit": "ns/iter"
           }
         ]
