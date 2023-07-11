@@ -11,12 +11,17 @@ use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::Arbitrary;
+
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
