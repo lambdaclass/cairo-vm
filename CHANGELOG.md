@@ -4,7 +4,10 @@
 
 * feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
 
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+
 * perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
+
 
 #### [0.8.2] - 2023-7-10
 
