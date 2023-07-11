@@ -177,6 +177,16 @@ impl Felt252 {
             value: FeltBigInt::from_bytes_be(bytes),
         }
     }
+    pub fn from_bytes_le(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_le(bytes),
+        }
+    }
+    pub fn from_bytes_ne(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_ne(bytes),
+        }
+    }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)

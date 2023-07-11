@@ -251,6 +251,18 @@ impl Felt252 {
         Self::from(BigUint::from_bytes_be(bytes))
     }
 
+    pub fn from_bytes_le(bytes: &[u8]) -> Self {
+        Self::from(BigUint::from_bytes_le(bytes))
+    }
+
+    pub fn from_bytes_ne(bytes: &[u8]) -> Self {
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
+    }
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         if radix == 16 {

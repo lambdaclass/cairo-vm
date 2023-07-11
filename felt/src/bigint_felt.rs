@@ -170,10 +170,7 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        let mut value = BigUint::from_bytes_be(bytes);
-        if value >= *CAIRO_PRIME_BIGUINT {
-            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
-        }
+        let value = BigUint::from_bytes_be(bytes);
         Self::from(value)
     }
 
@@ -204,6 +201,20 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
     fn prime() -> BigUint {
         (Into::<BigUint>::into(FIELD_HIGH) << 128) + Into::<BigUint>::into(FIELD_LOW)
+    }
+}
+
+impl FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+    pub(crate) fn from_bytes_le(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        Self::from(BigUint::from_bytes_le(bytes))
+    }
+
+    pub(crate) fn from_bytes_ne(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
     }
 }
 
