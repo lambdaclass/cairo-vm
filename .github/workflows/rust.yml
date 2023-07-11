@@ -237,10 +237,6 @@ jobs:
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
 
-    - name: (Debug) Print disk usage right before tests
-      if:  runner.debug == '1'
-      run: du -h
-
     - name: Run ${{ matrix.target }}
       run: |
         # this splits the `test#1` into `test` and `1`
@@ -263,12 +259,6 @@ jobs:
           wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
           ;;
         esac
-
-    - name: (Debug) Print disk usage after tests
-      if:  runner.debug == '1'
-      run: |
-        du -hd 1
-        du -hd 1 target/llvm-cov-target
 
     - name: Save coverage
       if: matrix.target != 'test-wasm'
