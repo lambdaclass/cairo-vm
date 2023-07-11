@@ -405,15 +405,10 @@ impl VirtualMachine {
             instruction.off1 + (1_isize << (OFFSET_BITS - 1)),
             instruction.off2 + (1_isize << (OFFSET_BITS - 1)),
         );
+        let (min, max) = self.rc_limits.unwrap_or((off0, off0));
         self.rc_limits = Some((
-            [self.rc_limits.unwrap_or((off0, off0)).0, off0, off1, off2]
-                .into_iter()
-                .min()
-                .unwrap(),
-            [self.rc_limits.unwrap_or((off0, off0)).1, off0, off1, off2]
-                .into_iter()
-                .max()
-                .unwrap(),
+            min.min(off0).min(off1).min(off2),
+            max.max(off0).max(off1).max(off2),
         ));
 
         self.segments
