@@ -248,11 +248,11 @@ jobs:
         case ${{ matrix.target }} in
         'test')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
-              --release --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
+              --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
-              --release --workspace --no-default-features --features "${{ matrix.special_features }}"
+              --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
