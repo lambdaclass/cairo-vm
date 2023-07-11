@@ -1032,6 +1032,31 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_be(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // big-endian order: [ high, low ]
+            bytes[..16].copy_from_slice(&high.to_be_bytes());
+            bytes[16..].copy_from_slice(&low.to_be_bytes());
+            let got = Felt252::from_bytes_be(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_le(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // little-endian order: [ low, high ]
+            bytes[..16].copy_from_slice(&low.to_le_bytes());
+            bytes[16..].copy_from_slice(&high.to_le_bytes());
+            let got = Felt252::from_bytes_le(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_be_bytes(ref x in any::<Felt252>()) {
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
@@ -1678,5 +1703,13 @@ mod test {
     fn signum_of_zero_is_zero() {
         let zero = Felt252::zero();
         assert_eq!(&zero.signum(), &zero)
+    }
+
+    #[test]
+    fn from_bytes_ne() {
+        let expected = Felt252::zero();
+        let bytes = [0; 32];
+        let got = Felt252::from_bytes_ne(&bytes);
+        assert_eq!(got, expected);
     }
 }

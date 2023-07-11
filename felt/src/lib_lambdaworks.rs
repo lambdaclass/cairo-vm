@@ -999,10 +999,42 @@ mod test {
         // In this and some of the following tests, The value of {x} can be either [0] or a
         // very large number, in order to try to overflow the value of {p} and thus ensure the
         // modular arithmetic is working correctly.
-        fn new_in_range(ref x in any::<[u8; 40]>()) {
+        fn new_in_range_be(ref x in any::<[u8; 40]>()) {
             let x = Felt252::from_bytes_be(x);
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn new_in_range_le(ref x in any::<[u8; 40]>()) {
+            let x = Felt252::from_bytes_le(x);
+            let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
+            prop_assert!(&x.to_biguint() < p);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_be(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // big-endian order: [ high, low ]
+            bytes[..16].copy_from_slice(&high.to_be_bytes());
+            bytes[16..].copy_from_slice(&low.to_be_bytes());
+            let got = Felt252::from_bytes_be(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_le(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // little-endian order: [ low, high ]
+            bytes[..16].copy_from_slice(&low.to_le_bytes());
+            bytes[16..].copy_from_slice(&high.to_le_bytes());
+            let got = Felt252::from_bytes_le(&bytes);
+            prop_assert_eq!(got, expected);
         }
 
         #[test]
@@ -1705,5 +1737,13 @@ mod test {
     #[test]
     fn default_is_zero() {
         assert_eq!(Felt252::default(), Felt252::zero())
+    }
+
+    #[test]
+    fn from_bytes_ne() {
+        let expected = Felt252::zero();
+        let bytes = [0; 32];
+        let got = Felt252::from_bytes_ne(&bytes);
+        assert_eq!(got, expected);
     }
 }
