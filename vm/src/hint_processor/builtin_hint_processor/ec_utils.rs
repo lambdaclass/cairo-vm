@@ -198,7 +198,7 @@ lazy_static! {
 fn recover_y(x: &BigUint) -> Option<BigUint> {
     let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &CAIRO_PRIME) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
-        Some(felt_to_biguint(biguint_to_felt(&y_squared).ok()?).sqrt())
+        Some(felt_to_biguint(biguint_to_felt(&y_squared).ok()?.sqrt()?))
     } else {
         None
     }
