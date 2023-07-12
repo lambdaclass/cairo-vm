@@ -625,12 +625,14 @@ pub fn is_addr_bounded(
 ) -> Result<(), HintError> {
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
 
-    let addr_bound = *constants
-        .get(ADDR_BOUND)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?;
+    let addr_bound = felt_to_biguint(
+        *constants
+            .get(ADDR_BOUND)
+            .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?,
+    );
 
-    let lower_bound = Felt252::ONE << 250_usize;
-    let upper_bound = Felt252::ONE << 251_usize;
+    let lower_bound = BigUint::one() << 250_usize;
+    let upper_bound = BigUint::one() << 251_usize;
 
     // assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
     //      ADDR_BOUND * 2 > PRIME), \
@@ -638,7 +640,7 @@ pub fn is_addr_bounded(
     // The second check is not needed, as it's true for the CAIRO_PRIME
     if !(lower_bound < addr_bound
         && addr_bound <= upper_bound
-        && (&addr_bound << 1_usize) >= Felt252::MAX)
+        && (&addr_bound << 1_usize) > *CAIRO_PRIME)
     {
         return Err(HintError::AssertionFailed(
             "normalize_address() cannot be used with the current constants."
@@ -648,7 +650,7 @@ pub fn is_addr_bounded(
     }
 
     // Main logic: ids.is_small = 1 if ids.addr < ADDR_BOUND else 0
-    let is_small = Felt252::from((addr.as_ref() < &Felt252::from(addr_bound)) as u8);
+    let is_small = Felt252::from((addr.as_ref() < &biguint_to_felt(&addr_bound)?) as u8);
 
     insert_value_from_var_name("is_small", is_small, vm, ids_data, ap_tracking)
 }
