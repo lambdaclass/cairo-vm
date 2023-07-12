@@ -366,7 +366,7 @@ pub fn relocate_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_hex;
+    use crate::{felt_hex, felt_str};
     use crate::{relocatable, utils::test_utils::mayberelocatable};
 
     #[cfg(target_arch = "wasm32")]
@@ -479,7 +479,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_relocatable_prime() {
         let addr = MaybeRelocatable::from((1, 9));
-        let added_addr = addr.add_int(&felt_hex!(
+        let added_addr = addr.add_int(&felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
         ));
         assert_eq!(
@@ -494,7 +494,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_int() {
-        let addr_a = &MaybeRelocatable::from(felt_hex!(
+        let addr_a = &MaybeRelocatable::from(felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020488"
         ));
         let addr_b = &MaybeRelocatable::from(Felt252::from(17_i32));
