@@ -65,8 +65,9 @@ pub fn felt_to_bigint(felt: crate::Felt252) -> BigInt {
 }
 
 pub fn biguint_to_felt(biguint: &BigUint) -> Result<crate::Felt252, MathError> {
-    crate::Felt252::from_bytes_be(&biguint.to_bytes_be())
-        .map_err(|_| MathError::ByteConversionError)
+    let mut bytes = biguint.to_bytes_le();
+    bytes.resize(32, 0);
+    crate::Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)
 }
 
 pub fn bigint_to_felt(bigint: &BigInt) -> Result<crate::Felt252, MathError> {
