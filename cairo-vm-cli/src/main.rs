@@ -127,7 +127,7 @@ impl FileWriter {
 #[cfg(feature = "with_tracer")]
 fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
     let relocation_table = vm
-        .get_relocation_table()
+        .relocate_segments()
         .map_err(TraceDataError::FailedToGetRelocationTable)?;
     let instruction_locations = cairo_runner
         .get_program()

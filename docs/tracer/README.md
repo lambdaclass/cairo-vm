@@ -1,6 +1,6 @@
 # Cairo Tracer
 
-Cairo-rs offers a tracer which gives you a visualization of how your memory and registers change line after line as the VM executes the code.
+Cairo-vm offers a tracer which gives you a visualization of how your memory and registers change line after line as the VM executes the code.
 
 ## Setting up the tracer
 

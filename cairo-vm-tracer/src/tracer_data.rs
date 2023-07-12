@@ -19,19 +19,9 @@ use num_traits::ToPrimitive;
 use crate::{error::trace_data_errors::TraceDataError, types::memory_access::MemoryAccess};
 
 #[derive(Clone)]
-struct TextMark {
-    _line_start: usize,
-    _col_start: usize,
-    _line_end: usize,
-    _col_end: usize,
-    _classes: Vec<String>,
-}
-
-#[derive(Clone)]
 pub struct InputCodeFile {
     content: String,
     lines: Vec<String>,
-    marks: Vec<TextMark>,
     tags: Vec<(usize, isize, String)>,
 }
 
@@ -41,7 +31,6 @@ impl InputCodeFile {
         InputCodeFile {
             content: content.to_string(),
             lines,
-            marks: Vec::new(),
             tags: Vec::new(),
         }
     }
@@ -54,14 +43,6 @@ impl InputCodeFile {
         col_end: usize,
         classes: &[&str],
     ) {
-        self.marks.push(TextMark {
-            _line_start: line_start,
-            _col_start: col_start,
-            _line_end: line_end,
-            _col_end: col_end,
-            _classes: classes.iter().map(|s| s.to_string()).collect(),
-        });
-
         let offset_start = self
             .lines
             .iter()

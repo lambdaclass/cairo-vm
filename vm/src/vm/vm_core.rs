@@ -891,7 +891,8 @@ impl VirtualMachine {
         self.trace = None
     }
 
-    pub fn get_relocation_table(&self) -> Result<Vec<usize>, MemoryError> {
+    #[cfg(feature = "with_tracer")]
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         self.segments.relocate_segments()
     }
 
