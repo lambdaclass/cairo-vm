@@ -25,20 +25,20 @@ fuzz_target!(|data: (u128, &[u8])| {
     let cairo_content_unsafe_keccak = program_content_unsafe_keccak(data.0.to_string());
 
     // Create programs names and program
-    let cairo_path_array_sum = format!("fuzz/cairo_programs/array_sum-{}.cairo", iteration_count);
-    let json_path_array_sum = format!("fuzz/cairo_programs/array_sum-{}.json", iteration_count);
+    let cairo_path_array_sum = format!("cairo_programs/array_sum-{}.cairo", iteration_count);
+    let json_path_array_sum = format!("cairo_programs/array_sum-{}.json", iteration_count);
     let _ = fs::write(&cairo_path_array_sum, cairo_content_array_sum.as_bytes());
 
-    let cairo_path_random = format!("fuzz/cairo_programs/random-{}.cairo", iteration_count);
-    let json_path_random= format!("fuzz/cairo_programs/random-{}.json", iteration_count);
+    let cairo_path_random = format!("cairo_programs/random-{}.cairo", iteration_count);
+    let json_path_random= format!("cairo_programs/random-{}.json", iteration_count);
     let _ = fs::write(&cairo_path_random, cairo_content_random.as_bytes());
 
-    let cairo_path_serialize_word = format!("fuzz/cairo_programs/serialize_word-{}.cairo", iteration_count);
-    let json_path_serialize_word= format!("fuzz/cairo_programs/serialize_word-{}.json", iteration_count);
+    let cairo_path_serialize_word = format!("cairo_programs/serialize_word-{}.cairo", iteration_count);
+    let json_path_serialize_word= format!("cairo_programs/serialize_word-{}.json", iteration_count);
     let _ = fs::write(&cairo_path_serialize_word, cairo_content_serialize_word.as_bytes());
 
-    let cairo_path_unsafe_keccak = format!("fuzz/cairo_programs/unsafe_keccak-{}.cairo", iteration_count);
-    let json_path_unsafe_keccak = format!("fuzz/cairo_programs/unsafe_keccak-{}.json", iteration_count);
+    let cairo_path_unsafe_keccak = format!("cairo_programs/unsafe_keccak-{}.cairo", iteration_count);
+    let json_path_unsafe_keccak = format!("cairo_programs/unsafe_keccak-{}.json", iteration_count);
     let _ = fs::write(&cairo_path_unsafe_keccak, cairo_content_unsafe_keccak.as_bytes());
 
     // Get .json file with .cairo file
@@ -91,8 +91,8 @@ fuzz_target!(|data: (u128, &[u8])| {
     fs::remove_file(json_path_random);
     fs::remove_file(cairo_path_serialize_word);
     fs::remove_file(json_path_serialize_word);
-    // fs::remove_file(cairo_path_unsafe_keccak);
-    // fs::remove_file(json_path_unsafe_keccak);
+    fs::remove_file(cairo_path_unsafe_keccak);
+    fs::remove_file(json_path_unsafe_keccak);
 
 });
 
