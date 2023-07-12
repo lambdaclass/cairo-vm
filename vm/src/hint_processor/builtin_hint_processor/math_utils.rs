@@ -809,6 +809,7 @@ mod tests {
     use super::*;
     use crate::stdlib::ops::Shl;
     use crate::{felt_hex, felt_str};
+    use core::ops::Neg;
 
     use crate::{
         any_box,
@@ -879,13 +880,15 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
-        vm.segments = segments![(
-            (1, 4),
-            (
-                "-3618502788666131213697322783095070105623107215331596699973092056135872020480",
-                10
+        add_segments!(vm, 2);
+        vm.insert_value(
+            (1, 4).into(),
+            felt_str!(
+                "3618502788666131213697322783095070105623107215331596699973092056135872020480"
             )
-        )];
+            .neg(),
+        )
+        .unwrap();
         //Create ids_data
         let ids_data = ids_data!["a"];
         //Execute the hint
