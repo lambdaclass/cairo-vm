@@ -280,7 +280,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-felt"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "lazy_static",
  "num-bigint",
@@ -700,7 +700,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "ark-ff",
@@ -708,7 +708,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.6.1",
+ "cairo-felt 0.6.2",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "cairo-take_until_unbalanced",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1424,7 +1424,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "cairo-vm",
  "serde",
