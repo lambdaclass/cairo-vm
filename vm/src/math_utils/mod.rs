@@ -71,11 +71,13 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
-    Ok(x.floor_div(&y.try_into().map_err(|_| MathError::DividedByZero)?))
+    let (q, r) = x.div_rem(&y.try_into().map_err(|_| MathError::DividedByZero)?);
 
-    // if !r.is_zero() {
-    //     return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));
-    // }
+    if !r.is_zero() {
+        Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))))
+    } else {
+        Ok(q)
+    }
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
