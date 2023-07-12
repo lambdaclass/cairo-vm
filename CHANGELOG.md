@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+#### [0.6.2] - 2023-7-12
+
+* fix: fix `UINT256_MUL_DIV_MOD` hint [#1320](https://github.com/lambdaclass/cairo-vm/pull/1320)
+
+
 #### [0.6.1] - 2023-6-23
 
 * fix: updated the `custom_hint_example` and added it to the workspace [#1258](https://github.com/lambdaclass/cairo-rs/pull/1258)
