@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: remove private function `bigint3_pack` in favor of equivalent `BigInt3::pack86` method [#1329](https://github.com/lambdaclass/cairo-vm/pull/1329)
+
 * feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
 
 * perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
