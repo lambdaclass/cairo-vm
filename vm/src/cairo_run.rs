@@ -98,6 +98,8 @@ pub fn cairo_run_parsed_program(
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
+    let _end = cairo_runner.initialize(&mut vm)?;
+
     cairo_runner
         .run_until_steps(steps_limit, &mut vm, hint_executor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
