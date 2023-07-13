@@ -63,7 +63,7 @@ jobs:
     # Check if any new crashes were added
     - name: Check diff
       id: check_file_changed
-      run:  echo "report=$(git diff --name-only HEAD^ HEAD -- test_fuzzer/hfuzz_workspace/test_fuzzer/*.fuzz)" >> $GITHUB_OUTPUT 
+      run:  echo "report=$(git diff --name-only HEAD^ HEAD -- fuzzer/hfuzz_workspace/fuzz_json/*.fuzz)" >> $GITHUB_OUTPUT 
 
     # If a new crash was found, create an issue
     - name: Create issue 
