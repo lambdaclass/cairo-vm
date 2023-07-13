@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+* perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
+
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306)
 
 * perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
 
