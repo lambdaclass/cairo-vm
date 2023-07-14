@@ -3022,6 +3022,18 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(&program);
+        let mut vm = vm!(true);
+        assert_matches!(
+            cairo_runner.initialize(&mut vm),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
