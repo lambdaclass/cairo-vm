@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689304781032,
+  "lastUpdate": 1689305754405,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111532,6 +111532,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21884239,
             "range": "± 1392095",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "9bf15bdd6cc3e85be04136d03dbdca0d3c42c4cd",
+          "message": "Add test for uint256_mul_div_mod possible overflow (#1328)\n\n* Add test\n\n* Fix Makefile compare commands\n\n* Fix memory holes",
+          "timestamp": "2023-07-14T02:49:13Z",
+          "tree_id": "84c90608e4039395a87d97d40e16a10182e325c1",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/9bf15bdd6cc3e85be04136d03dbdca0d3c42c4cd"
+        },
+        "date": 1689305747032,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1296,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51282,
+            "range": "± 105",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18279545,
+            "range": "± 143299",
             "unit": "ns/iter"
           }
         ]
