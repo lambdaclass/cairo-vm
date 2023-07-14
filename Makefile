@@ -124,17 +124,16 @@ cargo-deps:
 	cargo install --version 0.11.0 wasm-pack
 
 deps: cargo-deps build-cairo-1-compiler
-	pyenv install  -s pypy3.9-7.3.9
+	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
 	pip install -r requirements.txt ; \
-	pyenv install  -s 3.9.15
+	pyenv install -s 3.9.15
 	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
 deps-macos: cargo-deps build-cairo-1-compiler
-	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -174,8 +173,14 @@ test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COM
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 
+
+check-fmt:
+	cargo fmt --all -- --check
+	cargo fmt --manifest-path fuzzer/Cargo.toml --all -- --check
+
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
+	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
@@ -200,22 +205,22 @@ compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
 
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh trace memory
+	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
-	cd src/tests; ./compare_vm_state.sh trace
+	cd vm/src/tests; ./compare_vm_state.sh trace
 
 compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh memory
+	cd vm/src/tests; ./compare_vm_state.sh memory
 
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace memory proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh trace proof_mode
 
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh memory proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:

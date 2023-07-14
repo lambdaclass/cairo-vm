@@ -21,7 +21,11 @@ use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::Arbitrary;
+
 // This enum is used to deserialize program builtins into &str and catch non-valid names
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
@@ -65,6 +69,7 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -72,6 +77,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -79,6 +85,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -100,6 +107,7 @@ impl Default for ApTracking {
     }
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -114,12 +122,14 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
@@ -129,6 +139,7 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
@@ -144,17 +155,20 @@ pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -211,6 +225,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
@@ -418,9 +433,12 @@ pub fn parse_program_json(
         }
     }
 
+    let (hints, hints_ranges) = Program::flatten_hints(&program_json.hints);
+
     let shared_program_data = SharedProgramData {
         data: program_json.data,
-        hints: program_json.hints,
+        hints,
+        hints_ranges,
         main: entrypoint_pc,
         start,
         end,
@@ -446,6 +464,7 @@ pub fn parse_program_json(
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
+    use core::num::NonZeroUsize;
     use felt::felt_str;
     use num_traits::One;
     use num_traits::Zero;
@@ -616,7 +635,7 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        let mut hints = HashMap::new();
         hints.insert(
             0,
             vec![HintParams {
@@ -793,6 +812,25 @@ mod tests {
         );
     }
 
+    fn get_hints_as_map(program: &Program) -> HashMap<usize, Vec<HintParams>> {
+        let (hints, ranges) = (
+            &program.shared_program_data.hints,
+            &program.shared_program_data.hints_ranges,
+        );
+        let mut hints_map = HashMap::new();
+
+        for (pc, range) in ranges.iter().enumerate() {
+            let Some((start, len)) = range else {
+                continue;
+            };
+            // Associate the PC with its corresponding hints by mapping them
+            // to the elements in the proper range converted to vec.
+            hints_map.insert(pc, hints[*start..start + len.get()].to_vec());
+        }
+
+        hints_map
+    }
+
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
@@ -812,43 +850,53 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
-        hints.insert(
-            0,
-            vec![HintParams {
-                code: "memory[ap] = segments.add()".to_string(),
-                accessible_scopes: vec![
-                    String::from("starkware.cairo.common.alloc"),
-                    String::from("starkware.cairo.common.alloc.alloc"),
-                ],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 0,
-                        offset: 0,
+        let hints: HashMap<_, _> = [
+            (
+                0,
+                vec![HintParams {
+                    code: "memory[ap] = segments.add()".to_string(),
+                    accessible_scopes: vec![
+                        String::from("starkware.cairo.common.alloc"),
+                        String::from("starkware.cairo.common.alloc.alloc"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 0,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
-        hints.insert(
-            46,
-            vec![HintParams {
-                code: "import math".to_string(),
-                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 5,
-                        offset: 0,
+                }],
+            ),
+            (
+                46,
+                vec![HintParams {
+                    code: "import math".to_string(),
+                    accessible_scopes: vec![
+                        String::from("__main__"),
+                        String::from("__main__.main"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 5,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
+                }],
+            ),
+        ]
+        .into();
+        let mut hints_ranges = vec![None; 47];
+        hints_ranges[0] = Some((0, NonZeroUsize::new(1).unwrap()));
+        hints_ranges[46] = Some((1, NonZeroUsize::new(1).unwrap()));
 
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
-        assert_eq!(program.shared_program_data.hints, hints);
+
+        let program_hints = get_hints_as_map(&program);
+        assert_eq!(program_hints, hints);
     }
 
     /// Deserialize a program without an entrypoint.
@@ -871,43 +919,50 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
-        hints.insert(
-            0,
-            vec![HintParams {
-                code: "memory[ap] = segments.add()".to_string(),
-                accessible_scopes: vec![
-                    String::from("starkware.cairo.common.alloc"),
-                    String::from("starkware.cairo.common.alloc.alloc"),
-                ],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 0,
-                        offset: 0,
+        let hints: HashMap<_, _> = [
+            (
+                0,
+                vec![HintParams {
+                    code: "memory[ap] = segments.add()".to_string(),
+                    accessible_scopes: vec![
+                        String::from("starkware.cairo.common.alloc"),
+                        String::from("starkware.cairo.common.alloc.alloc"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 0,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
-        hints.insert(
-            46,
-            vec![HintParams {
-                code: "import math".to_string(),
-                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 5,
-                        offset: 0,
+                }],
+            ),
+            (
+                46,
+                vec![HintParams {
+                    code: "import math".to_string(),
+                    accessible_scopes: vec![
+                        String::from("__main__"),
+                        String::from("__main__.main"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 5,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
+                }],
+            ),
+        ]
+        .into();
 
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
-        assert_eq!(program.shared_program_data.hints, hints);
+
+        let program_hints = get_hints_as_map(&program);
+        assert_eq!(program_hints, hints);
     }
 
     #[test]
