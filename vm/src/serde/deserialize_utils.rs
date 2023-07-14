@@ -1,3 +1,10 @@
+//! # Deserialization utils
+//!
+//! This module contains some helper functions used in [`Program`](crate::types::program::Program) deserialization.
+//! Namely, [`maybe_add_padding`] and [`take_until_unbalanced`].
+//!
+//! See [the docs](/docs/references_parsing/README.md) for context and grammar explanation.
+
 use crate::stdlib::{fmt, num::ParseIntError, prelude::*, str::FromStr};
 
 use crate::{
@@ -55,11 +62,9 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-/*
-NOM PARSERS
-See the docs for context and grammar explanation:
-cleopatra_cairo/docs/references_parsing/README.md
-*/
+// -----------------------
+//       NOM PARSERS
+// -----------------------
 
 // Checks if the input has outer brackets. This is used to set
 // the `dereference` field of ValueAddress.
