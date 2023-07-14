@@ -52,4 +52,25 @@ jobs:
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: changing report
-        file_pattern: '*/hfuzz_workspace/fuzzer/fuzz_json/HONGGFUZZ*  */hfuzz_workspace/fuzzer/fuzz_json/SIG*'
+        file_pattern: '*/hfuzz_workspace/fuzzer/fuzz_json/HONGGFUZZ*  */hfuzz_workspace/fuzzer/fuzz_json/*.fuzz'
+
+    # Checkout current and last commit for the diff
+    - name: Checkout commits  
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
+
+    # Check if any new crashes were added
+    - name: Check diff
+      id: check_file_changed
+      run:  echo "report=$(git diff --name-only HEAD^ HEAD -- fuzzer/hfuzz_workspace/fuzz_json/*.fuzz)" >> $GITHUB_OUTPUT 
+
+    # If a new crash was found, create an issue
+    - name: Create issue 
+      uses: JasonEtco/create-an-issue@v2
+      if: ${{ steps.check_file_changed.outputs.report != '' }} 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CRASH_REPORT: ${{ steps.check_file_changed.outputs.report }}
+      with:
+        filename: .github/ISSUE_TEMPLATE/crash_report.md

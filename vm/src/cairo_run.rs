@@ -86,6 +86,8 @@ pub fn cairo_run_parsed_program(
     hint_executor: &mut dyn HintProcessor,
     steps_limit: usize,
 ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    use crate::vm::errors::vm_errors::VirtualMachineError;
+
     let secure_run = cairo_run_config
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
@@ -98,9 +100,15 @@ pub fn cairo_run_parsed_program(
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
-    cairo_runner
-        .run_until_steps(steps_limit, &mut vm, hint_executor)
-        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+    let _end = cairo_runner.initialize(&mut vm)?;
+
+    let res = match cairo_runner.run_until_steps(steps_limit, &mut vm, hint_executor) {
+        Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
+        res => res,
+    };
+
+    res.map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
