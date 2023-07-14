@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689192885481,
+  "lastUpdate": 1689304207752,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111352,6 +111352,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19475079,
             "range": "± 185596",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "3876ae7465804b33a33d9da077a8dc35d6b1c5eb",
+          "message": "crash report issue workflow (#1331)\n\n* Add issue creation functionality\n\n* Correct template body\n\n* Add bug lable to issue\n\n* Correct diff check path\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>",
+          "timestamp": "2023-07-14T02:29:21Z",
+          "tree_id": "05b0dfb3390ac7a579d8583ddbf007a2ae0f5312",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/3876ae7465804b33a33d9da077a8dc35d6b1c5eb"
+        },
+        "date": 1689304200500,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1681,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 63924,
+            "range": "± 437",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23000109,
+            "range": "± 287268",
             "unit": "ns/iter"
           }
         ]
