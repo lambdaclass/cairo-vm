@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* docs: improve crate documentation [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+
 * feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
 
 * feat(fuzzing): add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306) [#1330](https://github.com/lambdaclass/cairo-vm/pull/1330)
