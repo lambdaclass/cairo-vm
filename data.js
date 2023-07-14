@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689304207752,
+  "lastUpdate": 1689304781032,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111442,6 +111442,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23000109,
             "range": "± 287268",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "cecba20ef80ce8d9067182489a38abba9b1ed40e",
+          "message": "fix: add missing call to `initialize` in `cairo_run_parsed_program` (#1330)\n\n* fix: add missing `CairoRunner::initialize` call\n\n* Ignore `VirtualMachineError::EndOfProgram` error\n\n* Update changelog\n\n* Add \"fuzzing\" scope to changelog entry\n\n* Remove whitespace",
+          "timestamp": "2023-07-14T02:33:16Z",
+          "tree_id": "da5633a5f8a406543c4aa30879e5cd1133230588",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/cecba20ef80ce8d9067182489a38abba9b1ed40e"
+        },
+        "date": 1689304774521,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1531,
+            "range": "± 116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 62141,
+            "range": "± 5858",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21884239,
+            "range": "± 1392095",
             "unit": "ns/iter"
           }
         ]
