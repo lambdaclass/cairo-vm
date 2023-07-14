@@ -2,11 +2,19 @@
 
 #### Upcoming Changes
 
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+
 * feat(fuzzing): add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306) [#1330](https://github.com/lambdaclass/cairo-vm/pull/1330)
 
 * perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
 
 * feat(felt): add `from_bytes_le` and `from_bytes_ne` methods to `Felt252` [#1326](https://github.com/lambdaclass/cairo-vm/pull/1326)
+
+* perf: change `Program::shared_program_data::hints` from `HashMap<usize, Vec<Box<dyn Any>>>` to `Vec<Box<dyn Any>>` and refer to them as ranges stored in a `Vec<_>` indexed by PC with run time reductions of up to 12% [#931](https://github.com/lambdaclass/cairo-vm/pull/931)
+  BREAKING:
+  * `get_hint_dictionary(&self, &[HintReference], &mut dyn HintProcessor) -> Result<HashMap<usize, Vec<Box<dyn Any>>, VirtualMachineError>` ->
+    `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
+  * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
 
 #### [0.8.2] - 2023-7-10
 
