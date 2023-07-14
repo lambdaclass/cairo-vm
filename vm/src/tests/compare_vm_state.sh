@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 
+# move to the directory where the script is located
+cd $(dirname "$0")
+
 tests_path="../../../cairo_programs"
+proof_tests_path="${tests_path}/proof_programs"
 exit_code=0
 trace=false
 memory=false
@@ -13,7 +17,7 @@ for i in $@; do
         ;;
         "memory") memory=true
         ;;
-        "proof_mode") tests_path="../../../cairo_programs/proof_programs"
+        "proof_mode") tests_path=$proof_tests_path
         ;;
         *)
         ;;
