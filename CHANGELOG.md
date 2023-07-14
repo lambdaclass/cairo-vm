@@ -8,6 +8,12 @@
     `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
   * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
 
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+
+* perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
+
+* feat: add `from_bytes_le` and `from_bytes_ne` methods [#1326](https://github.com/lambdaclass/cairo-vm/pull/1326)
+
 #### [0.8.2] - 2023-7-10
 
 * chore: update dependencies, particularly lamdaworks 0.1.2 -> 0.1.3 [#1323](https://github.com/lambdaclass/cairo-vm/pull/1323)
@@ -15,6 +21,7 @@
 * fix: fix `UINT256_MUL_DIV_MOD` hint [#1320](https://github.com/lambdaclass/cairo-vm/pull/1320)
 
 * feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
+
 
 * fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
 

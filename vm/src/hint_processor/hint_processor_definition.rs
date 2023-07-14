@@ -14,6 +14,9 @@ use crate::vm::vm_core::VirtualMachine;
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use felt::Felt252;
 
+#[cfg(feature = "arbitrary")]
+use arbitrary::Arbitrary;
+
 pub trait HintProcessorLogic {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     fn execute_hint(
@@ -75,6 +78,7 @@ fn get_ids_data(
     Ok(ids_data)
 }
 
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HintReference {
     pub offset1: OffsetValue,
