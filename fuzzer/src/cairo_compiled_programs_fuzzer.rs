@@ -1,16 +1,15 @@
 #![no_main]
-use libfuzzer_sys::fuzz_target;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::process::Command;
-use std::fs;
-use cairo_vm::cairo_run::{self, EncodeTraceError, CairoRunConfig};
+use cairo_vm::cairo_run::{self, CairoRunConfig, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use libfuzzer_sys::fuzz_target;
+use std::fs;
+use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 // Global counter for fuzz iteration
 static FUZZ_ITERATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 fuzz_target!(|data: (u128, u8, u8, u128, u128)| {
-
     // Define fuzzer iteration with id purposes
     let iteration_count = FUZZ_ITERATION_COUNT.fetch_add(1, Ordering::SeqCst);
 
@@ -22,16 +21,37 @@ fuzz_target!(|data: (u128, u8, u8, u128, u128)| {
     program_array_sum(data.0.to_string(), &cairo_run_config, &mut hint_executor);
     program_unsafe_keccak(data.0.to_string(), &cairo_run_config, &mut hint_executor);
     program_bitwise(data.1, data.2, &cairo_run_config, &mut hint_executor);
-    program_poseidon(data.1, data.2, data.0, &cairo_run_config, &mut hint_executor);
-    program_range_check(data.1, data.0, data.3, &cairo_run_config, &mut hint_executor);
+    program_poseidon(
+        data.1,
+        data.2,
+        data.0,
+        &cairo_run_config,
+        &mut hint_executor,
+    );
+    program_range_check(
+        data.1,
+        data.0,
+        data.3,
+        &cairo_run_config,
+        &mut hint_executor,
+    );
     program_ec_op(data.1, &cairo_run_config, &mut hint_executor);
     program_pedersen(data.0, data.3, &cairo_run_config, &mut hint_executor);
-    program_ecdsa(data.0, data.3, data.4, data.1, &cairo_run_config, &mut hint_executor);
-
+    program_ecdsa(
+        data.0,
+        data.3,
+        data.4,
+        data.1,
+        &cairo_run_config,
+        &mut hint_executor,
+    );
 });
 
-fn program_array_sum(array: String, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
+fn program_array_sum(
+    array: String,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
     let mut populated_array = array
         .chars()
         .enumerate()
@@ -40,8 +60,8 @@ fn program_array_sum(array: String, cairo_run_config: &CairoRunConfig, hint_exec
         .join("            ")
         .repeat(array.len());
 
-
-    let file_content = format!("
+    let file_content = format!(
+        "
         %builtins output
 
         from starkware.cairo.common.alloc import alloc
@@ -76,7 +96,10 @@ fn program_array_sum(array: String, cairo_run_config: &CairoRunConfig, hint_exec
         
             return ();
     }}
-    ", array.len(), populated_array);
+    ",
+        array.len(),
+        populated_array
+    );
 
     // Create programs names and program
     let cairo_path_array_sum = format!("cairo_programs/array_sum_{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -94,17 +117,26 @@ fn program_array_sum(array: String, cairo_run_config: &CairoRunConfig, hint_exec
     delete_files(&cairo_path_array_sum, &json_path_array_sum);
 }
 
-
-fn program_unsafe_keccak(array: String, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
+fn program_unsafe_keccak(
+    array: String,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
     let mut populated_array = array
         .chars()
         .enumerate()
-        .map(|(index, num)| format!("assert data[{}] = {}; \n", index, num.to_string().repeat(array.len() - (index + 1))))
+        .map(|(index, num)| {
+            format!(
+                "assert data[{}] = {}; \n",
+                index,
+                num.to_string().repeat(array.len() - (index + 1))
+            )
+        })
         .collect::<Vec<_>>()
         .join("            ");
 
-    let file_content = format!("
+    let file_content = format!(
+        "
     %builtins output
 
     from starkware.cairo.common.alloc import alloc
@@ -125,11 +157,20 @@ fn program_unsafe_keccak(array: String, cairo_run_config: &CairoRunConfig, hint_
 
         return ();
     }}
-    ", populated_array, array.len());
+    ",
+        populated_array,
+        array.len()
+    );
 
     // Create programs names and program
-    let cairo_path_unsafe_keccak = format!("cairo_programs/unsafe_keccak_{:?}.cairo", FUZZ_ITERATION_COUNT);
-    let json_path_unsafe_keccak = format!("cairo_programs/unsafe_keccak_{:?}.json", FUZZ_ITERATION_COUNT);
+    let cairo_path_unsafe_keccak = format!(
+        "cairo_programs/unsafe_keccak_{:?}.cairo",
+        FUZZ_ITERATION_COUNT
+    );
+    let json_path_unsafe_keccak = format!(
+        "cairo_programs/unsafe_keccak_{:?}.json",
+        FUZZ_ITERATION_COUNT
+    );
     let _ = fs::write(&cairo_path_unsafe_keccak, file_content.as_bytes());
 
     compile_program(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak);
@@ -137,17 +178,25 @@ fn program_unsafe_keccak(array: String, cairo_run_config: &CairoRunConfig, hint_
     let program_content_unsafe_keccak = std::fs::read(&json_path_unsafe_keccak).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_unsafe_keccak, &cairo_run_config, hint_executor);
+    cairo_run::cairo_run(
+        &program_content_unsafe_keccak,
+        &cairo_run_config,
+        hint_executor,
+    );
 
     // Remove files to save memory
     delete_files(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak);
 }
 
-fn program_bitwise(num1: u8, num2: u8, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
+fn program_bitwise(
+    num1: u8,
+    num2: u8,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
     let and = num1 & num2;
     let xor = num1 ^ num2;
-    let or = num1 | num2; 
+    let or = num1 | num2;
 
     let file_content = format!("
     %builtins bitwise
@@ -187,9 +236,15 @@ fn program_bitwise(num1: u8, num2: u8, cairo_run_config: &CairoRunConfig, hint_e
     delete_files(&cairo_path_bitwise, &json_path_bitwise);
 }
 
-fn program_poseidon(num1: u8, num2: u8, num3: u128, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
-    let file_content = format!("
+fn program_poseidon(
+    num1: u8,
+    num2: u8,
+    num3: u128,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
+    let file_content = format!(
+        "
     %builtins poseidon
     from starkware.cairo.common.cairo_builtins import PoseidonBuiltin
     from starkware.cairo.common.poseidon_state import PoseidonBuiltinState
@@ -216,7 +271,9 @@ fn program_poseidon(num1: u8, num2: u8, num3: u128, cairo_run_config: &CairoRunC
         return ();
     }}
 
-    ", num3, num1, num2, num1, num2, num3);
+    ",
+        num3, num1, num2, num1, num2, num3
+    );
 
     // Create programs names and program
     let cairo_path_poseidon = format!("cairo_programs/poseidon_{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -234,9 +291,15 @@ fn program_poseidon(num1: u8, num2: u8, num3: u128, cairo_run_config: &CairoRunC
     delete_files(&cairo_path_poseidon, &json_path_poseidon);
 }
 
-fn program_range_check(num1: u8, num2: u128, num3: u128, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
-    let file_content = format!("
+fn program_range_check(
+    num1: u8,
+    num2: u128,
+    num3: u128,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
+    let file_content = format!(
+        "
     %builtins range_check
 
     from starkware.cairo.common.math import assert_250_bit
@@ -269,11 +332,17 @@ fn program_range_check(num1: u8, num2: u128, num3: u128, cairo_run_config: &Cair
         return ();
     }}
     
-    ", num1, num2, num3);
+    ",
+        num1, num2, num3
+    );
 
     // Create programs names and program
-    let cairo_path_range_check = format!("cairo_programs/range_check_{:?}.cairo", FUZZ_ITERATION_COUNT);
-    let json_path_range_check = format!("cairo_programs/range_check_{:?}.json", FUZZ_ITERATION_COUNT);
+    let cairo_path_range_check = format!(
+        "cairo_programs/range_check_{:?}.cairo",
+        FUZZ_ITERATION_COUNT
+    );
+    let json_path_range_check =
+        format!("cairo_programs/range_check_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_range_check, file_content.as_bytes());
 
     compile_program(&cairo_path_range_check, &json_path_range_check);
@@ -281,15 +350,23 @@ fn program_range_check(num1: u8, num2: u128, num3: u128, cairo_run_config: &Cair
     let program_content_range_check = std::fs::read(&json_path_range_check).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_range_check, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(
+        &program_content_range_check,
+        cairo_run_config,
+        hint_executor,
+    );
 
     // Remove files to save memory
     delete_files(&cairo_path_range_check, &json_path_range_check);
 }
 
-fn program_ec_op(num1: u8, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
-    let file_content = format!("
+fn program_ec_op(
+    num1: u8,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
+    let file_content = format!(
+        "
     %builtins ec_op
 
     from starkware.cairo.common.cairo_builtins import EcOpBuiltin
@@ -303,7 +380,9 @@ fn program_ec_op(num1: u8, cairo_run_config: &CairoRunConfig, hint_executor: &mu
         return ();
     }}
     
-    ", num1, num1);
+    ",
+        num1, num1
+    );
 
     // Create programs names and program
     let cairo_path_ec_op = format!("cairo_programs/ec_op_{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -321,9 +400,14 @@ fn program_ec_op(num1: u8, cairo_run_config: &CairoRunConfig, hint_executor: &mu
     delete_files(&cairo_path_ec_op, &json_path_ec_op);
 }
 
-fn program_pedersen(num1: u128, num2: u128, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
-    let file_content = format!("
+fn program_pedersen(
+    num1: u128,
+    num2: u128,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
+    let file_content = format!(
+        "
     %builtins pedersen
 
     from starkware.cairo.common.cairo_builtins import HashBuiltin
@@ -369,7 +453,9 @@ fn program_pedersen(num1: u128, num2: u128, cairo_run_config: &CairoRunConfig, h
     
         return ();
     }}
-    ", num1, num2);
+    ",
+        num1, num2
+    );
 
     // Create programs names and program
     let cairo_path_pedersen = format!("cairo_programs/pedersen_{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -387,9 +473,16 @@ fn program_pedersen(num1: u128, num2: u128, cairo_run_config: &CairoRunConfig, h
     delete_files(&cairo_path_pedersen, &json_path_pedersen);
 }
 
-fn program_ecdsa(num1: u128, num2: u128, num3: u128, num4: u8, cairo_run_config: &CairoRunConfig, hint_executor: &mut BuiltinHintProcessor){
-
-    let file_content = format!("
+fn program_ecdsa(
+    num1: u128,
+    num2: u128,
+    num3: u128,
+    num4: u8,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut BuiltinHintProcessor,
+) {
+    let file_content = format!(
+        "
     %builtins ecdsa
     from starkware.cairo.common.serialize import serialize_word
     from starkware.cairo.common.cairo_builtins import SignatureBuiltin
@@ -405,7 +498,9 @@ fn program_ecdsa(num1: u128, num2: u128, num3: u128, num4: u8, cairo_run_config:
         return ();
     }}
     
-    ", num4, num1, num2, num3);
+    ",
+        num4, num1, num2, num3
+    );
 
     // Create programs names and program
     let cairo_path_ecdsa = format!("cairo_programs/ecdsa_{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -423,7 +518,7 @@ fn program_ecdsa(num1: u128, num2: u128, num3: u128, num4: u8, cairo_run_config:
     delete_files(&cairo_path_ecdsa, &json_path_ecdsa);
 }
 
-fn compile_program(cairo_path: &str, json_path: &str ){
+fn compile_program(cairo_path: &str, json_path: &str) {
     let output = Command::new("cairo-compile")
         .arg(cairo_path)
         .arg("--output")
@@ -432,7 +527,7 @@ fn compile_program(cairo_path: &str, json_path: &str ){
         .expect("failed to execute process");
 }
 
-fn delete_files(cairo_path: &str, json_path: &str){
+fn delete_files(cairo_path: &str, json_path: &str) {
     fs::remove_file(cairo_path);
     fs::remove_file(json_path);
 }
