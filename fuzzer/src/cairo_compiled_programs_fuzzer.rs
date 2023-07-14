@@ -1,5 +1,5 @@
 #![no_main]
-use cairo_vm::cairo_run::{self, CairoRunConfig, EncodeTraceError};
+use cairo_vm::cairo_run::{self, CairoRunConfig};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use libfuzzer_sys::fuzz_target;
 use std::fs;
@@ -11,7 +11,7 @@ static FUZZ_ITERATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 fuzz_target!(|data: (u128, u8, u8, u128, u128)| {
     // Define fuzzer iteration with id purposes
-    let iteration_count = FUZZ_ITERATION_COUNT.fetch_add(1, Ordering::SeqCst);
+    let _iteration_count = FUZZ_ITERATION_COUNT.fetch_add(1, Ordering::SeqCst);
 
     // Define default configuration
     let cairo_run_config = CairoRunConfig::default();
@@ -52,7 +52,7 @@ fn program_array_sum(
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
-    let mut populated_array = array
+    let populated_array = array
         .chars()
         .enumerate()
         .map(|(index, num)| format!("assert [ptr + {}] = {};  \n", index, num))
@@ -111,7 +111,8 @@ fn program_array_sum(
     let program_content_array_sum = std::fs::read(&json_path_array_sum).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_array_sum, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_array_sum, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_array_sum, &json_path_array_sum);
@@ -122,7 +123,7 @@ fn program_unsafe_keccak(
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
-    let mut populated_array = array
+    let populated_array = array
         .chars()
         .enumerate()
         .map(|(index, num)| {
@@ -180,9 +181,10 @@ fn program_unsafe_keccak(
     // Run the program with default configurations
     cairo_run::cairo_run(
         &program_content_unsafe_keccak,
-        &cairo_run_config,
+        cairo_run_config,
         hint_executor,
-    );
+    )
+    .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak);
@@ -230,7 +232,8 @@ fn program_bitwise(
     let program_content_bitwise = std::fs::read(&json_path_bitwise).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_bitwise, &cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_bitwise, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_bitwise, &json_path_bitwise);
@@ -285,7 +288,8 @@ fn program_poseidon(
     let program_content_poseidon = std::fs::read(&json_path_poseidon).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_poseidon, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_poseidon, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_poseidon, &json_path_poseidon);
@@ -354,7 +358,8 @@ fn program_range_check(
         &program_content_range_check,
         cairo_run_config,
         hint_executor,
-    );
+    )
+    .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_range_check, &json_path_range_check);
@@ -394,7 +399,8 @@ fn program_ec_op(
     let program_content_ec_op = std::fs::read(&json_path_ec_op).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_ec_op, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_ec_op, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_ec_op, &json_path_ec_op);
@@ -467,7 +473,8 @@ fn program_pedersen(
     let program_content_pedersen = std::fs::read(&json_path_pedersen).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_pedersen, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_pedersen, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_pedersen, &json_path_pedersen);
@@ -512,14 +519,15 @@ fn program_ecdsa(
     let program_content_ecdsa = std::fs::read(&json_path_ecdsa).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_ecdsa, cairo_run_config, hint_executor);
+    cairo_run::cairo_run(&program_content_ecdsa, cairo_run_config, hint_executor)
+        .expect("failed to run program");
 
     // Remove files to save memory
     delete_files(&cairo_path_ecdsa, &json_path_ecdsa);
 }
 
 fn compile_program(cairo_path: &str, json_path: &str) {
-    let output = Command::new("cairo-compile")
+    let _output = Command::new("cairo-compile")
         .arg(cairo_path)
         .arg("--output")
         .arg(json_path)
@@ -528,6 +536,6 @@ fn compile_program(cairo_path: &str, json_path: &str) {
 }
 
 fn delete_files(cairo_path: &str, json_path: &str) {
-    fs::remove_file(cairo_path);
-    fs::remove_file(json_path);
+    fs::remove_file(cairo_path).expect("failed to remove file");
+    fs::remove_file(json_path).expect("failed to remove file");
 }
