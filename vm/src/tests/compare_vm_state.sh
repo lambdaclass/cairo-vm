@@ -14,10 +14,13 @@ failed_tests=0
 for i in $@; do
     case $i in
         "trace") trace=true
+        echo "Requested trace comparison"
         ;;
         "memory") memory=true
+        echo "Requested memory comparison"
         ;;
         "proof_mode") tests_path=$proof_tests_path
+        echo "Requested proof mode usage"
         ;;
         *)
         ;;
