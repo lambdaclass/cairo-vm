@@ -21,8 +21,9 @@ for i in $@; do
 done
 
 files=$(ls $tests_path)
-if [ $? != 0 ]; then
-    exit $?
+EXIT_CODE=$?
+if [ ${EXIT_CODE} != 0 ]; then
+    exit ${EXIT_CODE}
 fi
 
 for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
