@@ -50,10 +50,13 @@ for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
     fi
 done
 
-if test $failed_tests = 0; then
-    echo "All $passed_tests tests passed; no discrepancies found"
-else
+if test $failed_tests != 0; then
     echo "Comparisons: $failed_tests failed, $passed_tests passed, $((failed_tests + passed_tests)) total"
+elif test $passed_tests = 0; then
+    echo "No tests ran!"
+    exit_code=2
+else
+    echo "All $passed_tests tests passed; no discrepancies found"
 fi
 
 exit "${exit_code}"
