@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689310309666,
+  "lastUpdate": 1689430583932,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111712,6 +111712,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22084997,
             "range": "± 303692",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8bc9215cb6139662417411153899f2af63bf9c0f",
+          "message": "feat: add WASM example (#1315)\n\n* Add example to workspace\n\n* Rename example to wasm-demo, and add keywords\n\n* Update example\n\n* Update readme and links\n\n* Make example show result\n\n* Remove license, makefile, cairo contract\n\n* Add contract source\n\n* Update readme\n\n* Update main readme\n\n* Update changelog\n\n* Compile example program in CI\n\n* Build example program also in CI\n\n* Modify dependencies in Makefile\n\n* Compile example program in test_install workflow\n\n* Cache correctly\n\n* Activate venv before running make check\n\n* Set pyenv local version in install scripts\n\n* Remove venv activation from test_install\n\n* Install requirements also in pyenv\n\n* Add pyenv shims to PATH\n\n* Add pyenv shims to path (now for real)\n\n* Remove unneeded command and add instructions\n\n* Fix workflow\n\n* Merge install and compile steps\n\n* Source script\n\n* Apply Oppen's suggestions\n\n* Add keywords to cli; use check instead of build\n\n* Upload coverage from both runs and run on release\n\n* Don't run in release\n\n* Shallow clone repo before tests (+prints)\n\n* Partition tests to reduce .profraw amount\n\n* Fix: don't use '/' in the name\n\n* Fix cache path\n\n* Print only on debug\n\n* Remove fetch-depth: 1 as it's the default\n\n* Remove prints",
+          "timestamp": "2023-07-15T13:21:08Z",
+          "tree_id": "699cd6c9bb0e65807a2cff2820dfe4c7b9c15b2e",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/8bc9215cb6139662417411153899f2af63bf9c0f"
+        },
+        "date": 1689430576851,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1315,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51577,
+            "range": "± 181",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18467312,
+            "range": "± 163238",
             "unit": "ns/iter"
           }
         ]
