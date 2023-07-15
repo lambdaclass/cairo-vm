@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689430583932,
+  "lastUpdate": 1689439731655,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111802,6 +111802,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18467312,
             "range": "± 163238",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "bdac2935b671d491bd40d67295063c0bab87e457",
+          "message": "perf: change expensive usage of `ok_or` for `ok_or_else` (#1332)\n\n* Change expensive usage of `ok_or` for `ok_or_else`\n\n* Update changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-15T16:06:17Z",
+          "tree_id": "65ffbd43caefa69112528787b9956a3e49185dbb",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/bdac2935b671d491bd40d67295063c0bab87e457"
+        },
+        "date": 1689439724724,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1692,
+            "range": "± 85",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 62779,
+            "range": "± 2310",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19571854,
+            "range": "± 1156934",
             "unit": "ns/iter"
           }
         ]
