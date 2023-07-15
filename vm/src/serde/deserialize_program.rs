@@ -166,22 +166,14 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    let mut n_string = n.to_string();
-    let negative = n_string.starts_with('-');
-    if negative {
-        n_string = n_string.strip_prefix('-').unwrap().to_string();
-    }
 
-    match Felt252::from_dec_str(&n_string).ok() {
-        Some(x) => Ok(Some(if negative { Felt252::ZERO - x } else { x })),
+    match Felt252::from_dec_str(&n.to_string()).ok() {
+        Some(x) => Ok(Some(x)),
         None => {
             // Handle de Number with scientific notation cases
             // e.g.: n = Number(1e27)
             let felt = deserialize_scientific_notation(n);
             if felt.is_some() {
-                if negative {
-                    return Ok(Some(Felt252::ZERO - felt.unwrap()));
-                }
                 return Ok(felt);
             }
 
