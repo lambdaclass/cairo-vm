@@ -5,6 +5,8 @@
 
 * fix: CLI errors bad formatting and handling
 
+* feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
+
 * feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
 
 * feat(fuzzing): add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306) [#1330](https://github.com/lambdaclass/cairo-vm/pull/1330)
