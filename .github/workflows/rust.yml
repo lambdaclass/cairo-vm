@@ -31,7 +31,8 @@ jobs:
         path: |
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+          examples/wasm-demo/src/array_sum.json
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-cache-
 
     # This is not pretty, but we need `make` to see the compiled programs are
@@ -81,7 +82,8 @@ jobs:
         path: |
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
-        key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+          examples/wasm-demo/src/array_sum.json
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
@@ -137,7 +139,8 @@ jobs:
         path: |
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
-        key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+          examples/wasm-demo/src/array_sum.json
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
@@ -184,8 +187,8 @@ jobs:
     - name: Check no-std
       run: |
         cd ensure-no_std
-        cargo build --no-default-features
-        cargo build
+        cargo check --no-default-features
+        cargo check
 
   tests:
     needs: build-programs
@@ -193,8 +196,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "lambdaworks-felt"]
-        target: [ test, test-no_std, test-wasm ]
-        # TODO: features
+        target: [ test#1, test#2, test-no_std, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
@@ -206,12 +208,6 @@ jobs:
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    # This is not pretty, but we need `make` to see the compiled programs are
-    # actually newer than the sources, otherwise it will try to rebuild them
-    - name: Restore timestamps
-      uses: chetan/git-restore-mtime-action@v1
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -219,7 +215,8 @@ jobs:
         path: |
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
-        key: cairo_test_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+          examples/wasm-demo/src/array_sum.json
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
@@ -239,15 +236,23 @@ jobs:
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-nextest,cargo-llvm-cov,wasm-pack
-    - name: Run
+
+    - name: Run ${{ matrix.target }}
       run: |
+        # this splits the `test#1` into `test` and `1`
+        export MATRIX_TARGET=${{ matrix.target }}
+        export NAME=${MATRIX_TARGET%#*}
+        export PARTITION=${MATRIX_TARGET#*#}
         # FIXME: we need to update the Makefile to do this correctly
-        case ${{ matrix.target }} in
+        case ${NAME} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}" 
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --partition count:${PARTITION}/2 \
+              --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features --features "${{ matrix.special_features }}"
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
@@ -259,8 +264,8 @@ jobs:
       if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
-        path: lcov-${{ matrix.target }}.info
-        key: codecov-cache-${{ matrix.target }}-${{ github.sha }}
+        path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
+        key: codecov-cache-${{ matrix.target }}-${{ matrix.special_features }}-${{ github.sha }}
 
 
   build-release:
@@ -399,17 +404,42 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Fetch results for tests with stdlib
+    - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test.info
-        key: codecov-cache-test-${{ github.sha }}
+        path: lcov-test#1-.info
+        key: codecov-cache-test#1--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-.info
+        key: codecov-cache-test#2--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std.info
-        key: codecov-cache-test-no_std-${{ github.sha }}
+        path: lcov-test-no_std-.info
+        key: codecov-cache-test-no_std--${{ github.sha }}
+        fail-on-cache-miss: true
+
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-lambdaworks-felt.info
+        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-lambdaworks-felt.info
+        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/lambdaworks)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std-lambdaworks-felt.info
+        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
