@@ -109,18 +109,22 @@ impl KeccakBuiltinRunner {
 
         let input_message: Vec<u8> = input_felts
             .iter()
-            .flat_map(|x| Self::right_pad(&x.to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| {
+                let mut bytes = x.to_bytes_le().to_vec();
+                bytes.resize(KECCAK_FELT_BYTE_SIZE, 0);
+                bytes
+            })
             .collect();
         let keccak_result = Self::keccak_f(&input_message)?;
 
         let mut start_index = 0_usize;
         for (i, bits) in self.state_rep.iter().enumerate() {
             let end_index = start_index + *bits as usize / 8;
-            self.cache.borrow_mut().insert(
-                (first_output_addr + i)?,
-                Felt252::from_bytes_le(&keccak_result[start_index..end_index])
-                    .map_err(|_| MathError::ByteConversionError)?,
-            );
+            self.cache.borrow_mut().insert((first_output_addr + i)?, {
+                let mut bytes = keccak_result[start_index..end_index].to_vec();
+                bytes.resize(32, 0);
+                Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)?
+            });
             start_index = end_index;
         }
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
@@ -208,13 +212,6 @@ impl KeccakBuiltinRunner {
         // real cells, and we don't free the unused ones.
         // So the real number is 4 * 64 * 1024 = 262144.
         safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or(0)
-    }
-
-    fn right_pad(bytes: &[u8], final_size: usize) -> Vec<u8> {
-        let zeros: Vec<u8> = vec![0; final_size - bytes.len()];
-        let mut bytes_vector = bytes.to_vec();
-        bytes_vector.extend(zeros);
-        bytes_vector
     }
 
     fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
@@ -677,13 +674,6 @@ mod tests {
         let result: usize = builtin.get_used_diluted_check_units(16);
 
         assert_eq!(result, 16384);
-    }
-
-    #[test]
-    fn right_pad() {
-        let num = [1_u8];
-        let padded_num = KeccakBuiltinRunner::right_pad(&num, 5);
-        assert_eq!(padded_num, vec![1, 0, 0, 0, 0]);
     }
 
     #[test]

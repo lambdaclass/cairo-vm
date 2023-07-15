@@ -283,7 +283,7 @@ mod tests {
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::{felt_hex, relocatable};
+    use crate::{felt_hex, felt_str, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -684,7 +684,7 @@ mod tests {
                 (3, 5),
                 (
                     "2778063437308421278851140253538604815869848682781135193774472480292420096757",
-                    16
+                    10
                 )
             )
         ];
@@ -693,7 +693,7 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(felt_hex!(
+            Ok(Some(MaybeRelocatable::from(felt_str!(
                 "3598390311618116577316045819420613574162151407434885460365915347732568210029"
             ))))
         );
