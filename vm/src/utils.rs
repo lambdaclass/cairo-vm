@@ -100,7 +100,14 @@ pub mod test_utils {
     #[macro_export]
     macro_rules! felt_str {
         ($val: expr) => {
-            $crate::Felt252::from_dec_str($val).expect("Couldn't parse bytes")
+            if $val.starts_with('-') {
+                core::ops::Neg::neg(
+                    crate::Felt252::from_dec_str($val.strip_prefix('-').unwrap())
+                        .expect("Couldn't parse bytes"),
+                )
+            } else {
+                $crate::Felt252::from_dec_str($val).expect("Couldn't parse bytes")
+            }
         };
     }
 
