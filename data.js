@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689439731655,
+  "lastUpdate": 1689516529798,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111892,6 +111892,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19571854,
             "range": "± 1156934",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "424b53ef98b562dd008a84fae3ffbd35a5a445c2",
+          "message": "fix: memory comparison script failing silently (#1333)\n\n* Make the memory comparison script fail correctly\n\n* Make the script fail if no tests were run\n\n* Make script `cd` into script's dir at startup\n\n* Remove strange whitespace in workflow file\n\n* Add prints\n\n* Fix: option name is `proof_mode`, not `proof`\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-16T13:27:02Z",
+          "tree_id": "03699d2a98aa3fb2ff4d9882959051c556d1d9f5",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/424b53ef98b562dd008a84fae3ffbd35a5a445c2"
+        },
+        "date": 1689516523623,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1399,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53558,
+            "range": "± 351",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18169800,
+            "range": "± 110953",
             "unit": "ns/iter"
           }
         ]
