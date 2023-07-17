@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore(examples): remove _wee_alloc_ dependency from _wasm-demo_ example and _ensure-no_std_ dummy crate [#1337](https://github.com/lambdaclass/cairo-vm/pull/1337)
+
 * perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
 
 * feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306)
