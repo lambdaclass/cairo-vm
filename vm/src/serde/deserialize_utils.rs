@@ -1,7 +1,7 @@
 //! # Deserialization utils
 //!
 //! This module contains some helper functions used in [`Program`](crate::types::program::Program) deserialization.
-//! Namely, [`maybe_add_padding`] and [`take_until_unbalanced`].
+//! Namely, [`maybe_add_padding`] and [`parse_value`].
 //!
 //! See [the docs](/docs/references_parsing/README.md) for context and grammar explanation.
 
@@ -194,10 +194,15 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 /// work inside the `nom::sequence::delimited()` parser.
 ///
 /// # Basic usage
-/// ```
+/// ```no_run
 /// use nom::bytes::complete::tag;
 /// use nom::sequence::delimited;
-/// use cairo_take_until_unbalanced::take_until_unbalanced;
+/// # use nom::IResult;
+///
+/// # fn take_until_unbalanced(
+/// #     opening_bracket: char,
+/// #     closing_bracket: char,
+/// # ) -> impl Fn(&str) -> IResult<&str, &str> { |_| Ok(("", "")) }
 ///
 /// let mut parser = delimited(tag("<"), take_until_unbalanced('<', '>'), tag(">"));
 /// assert_eq!(parser("<<inside>inside>abc"), Ok(("abc", "<inside>inside")));
