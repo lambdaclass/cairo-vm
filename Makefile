@@ -1,5 +1,5 @@
-RELBIN:=target/release/cairo-rs-run
-DBGBIN:=target/debug/cairo-rs-run
+RELBIN:=target/release/cairo-vm-run
+DBGBIN:=target/debug/cairo-vm-run
 STARKNET_COMPILE:=cairo/target/release/starknet-compile
 STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
@@ -8,8 +8,9 @@ STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs \
-	cairo_trace cairo-rs_trace cairo_proof_trace cairo-rs_proof_trace \
-	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE)
+	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
+	$(RELBIN) $(DBGBIN) $(STARKNET_COMPILE) $(STARKNET_SIERRA_COMPILE) \
+	example_programs
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -111,7 +112,7 @@ cairo-repo-dir = cairo
 build-cairo-1-compiler: | $(cairo-repo-dir)
 
 $(cairo-repo-dir):
-	git clone https://github.com/starkware-libs/cairo.git
+	git clone --depth 1 -b v1.1.0 https://github.com/starkware-libs/cairo.git
 	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
 
 cargo-deps:
@@ -124,24 +125,23 @@ cargo-deps:
 	cargo install --version 0.11.0 wasm-pack
 
 deps: cargo-deps build-cairo-1-compiler
-	pyenv install  -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
-	. cairo-rs-pypy-env/bin/activate ; \
+	pyenv install -s pypy3.9-7.3.9
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	. cairo-vm-pypy-env/bin/activate ; \
 	pip install -r requirements.txt ; \
-	pyenv install  -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
-	. cairo-rs-env/bin/activate ; \
+	pyenv install -s 3.9.15
+	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
 deps-macos: cargo-deps build-cairo-1-compiler
-	brew install gmp
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-rs-pypy-env
-	. cairo-rs-pypy-env/bin/activate ; \
+	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	. cairo-vm-pypy-env/bin/activate ; \
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
 	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-rs-env
-	. cairo-rs-env/bin/activate ; \
+	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	. cairo-vm-env/bin/activate ; \
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
 
 $(RELBIN):
@@ -152,19 +152,25 @@ build: $(RELBIN)
 run:
 	cargo run -p cairo-vm-cli
 
-check:
+check: example_programs
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
+examples/wasm-demo/src/array_sum.json: examples/wasm-demo/src/array_sum.cairo
+	cairo-compile --no_debug_info examples/wasm-demo/src/array_sum.cairo \
+		--output examples/wasm-demo/src/array_sum.json
+
+example_programs: examples/wasm-demo/src/array_sum.json
+
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) example_programs
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(COMPILED_CASM_CONTRACTS)
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
-cairo-rs_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
 
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
-cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
+cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_CASM_CONTRACTS)
 	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
@@ -172,10 +178,15 @@ test-no_std: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(C
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
 test-wasm: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
 	# NOTE: release mode is needed to avoid "too many locals" error
-	wasm-pack test --release --node --no-default-features
+	wasm-pack test --release --node vm --no-default-features
+
+check-fmt:
+	cargo fmt --all -- --check
+	cargo fmt --manifest-path fuzzer/Cargo.toml --all -- --check
 
 clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
+	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
 coverage:
 	cargo llvm-cov report --lcov --output-path lcov.info
@@ -200,22 +211,22 @@ compare_benchmarks: $(COMPILED_BENCHES)
 	cd bench && ./run_benchmarks.sh
 
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh trace memory
+	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
-	cd src/tests; ./compare_vm_state.sh trace
+	cd vm/src/tests; ./compare_vm_state.sh trace
 
 compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
-	cd src/tests; ./compare_vm_state.sh memory
+	cd vm/src/tests; ./compare_vm_state.sh memory
 
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace memory proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
-	cd src/tests; ./compare_vm_state.sh trace proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh trace proof_mode
 
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
-	cd src/tests; ./compare_vm_state.sh memory proof_mode
+	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
@@ -232,6 +243,6 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
-	rm -rf cairo-rs-env
-	rm -rf cairo-rs-pypy-env
+	rm -rf cairo-vm-env
+	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
