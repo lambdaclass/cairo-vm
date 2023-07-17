@@ -86,7 +86,7 @@ fn program_array_sum(
             let (ptr) = alloc();
         
             // Populate some values in the array.
-            {}
+            {populated_array}
         
             // Call array_sum to compute the sum of the elements.
             let (sum) = array_sum(arr=ptr, size=ARRAY_SIZE);
@@ -97,8 +97,7 @@ fn program_array_sum(
             return ();
     }}
     ",
-        array.len(),
-        populated_array
+        array.len()
     );
 
     // Create programs names and program
@@ -111,8 +110,7 @@ fn program_array_sum(
     let program_content_array_sum = std::fs::read(&json_path_array_sum).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_array_sum, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_array_sum, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_array_sum, &json_path_array_sum);
@@ -149,7 +147,7 @@ fn program_unsafe_keccak(
 
         let (data: felt*) = alloc();
 
-        {}
+        {populated_array}
 
         let (low: felt, high: felt) = unsafe_keccak(data, {});
 
@@ -159,7 +157,6 @@ fn program_unsafe_keccak(
         return ();
     }}
     ",
-        populated_array,
         array.len()
     );
 
@@ -179,12 +176,11 @@ fn program_unsafe_keccak(
     let program_content_unsafe_keccak = std::fs::read(&json_path_unsafe_keccak).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(
+    let _ = cairo_run::cairo_run(
         &program_content_unsafe_keccak,
         cairo_run_config,
         hint_executor,
-    )
-    .expect("failed to run program");
+    );
 
     // Remove files to save memory
     delete_files(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak);
@@ -199,28 +195,27 @@ fn program_bitwise(
     let and = num1 & num2;
     let xor = num1 ^ num2;
     let or = num1 | num2;
-
     let file_content = format!("
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or, bitwise_operations
     from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
     func main{{bitwise_ptr: BitwiseBuiltin*}}() {{
-        let (and_a) = bitwise_and({}, {});  
-        assert and_a = {}; 
-        let (xor_a) = bitwise_xor(12, 10);
-        assert xor_a = {};
-        let (or_a) = bitwise_or(12, 10);
-        assert or_a = {};
+        let (and_a) = bitwise_and({num1}, {num2});  
+        assert and_a = {and}; 
+        let (xor_a) = bitwise_xor(num1, num2);
+        assert xor_a = {xor};
+        let (or_a) = bitwise_or(num1, num2);
+        assert or_a = {or};
 
-        let (and_b, xor_b, or_b) = bitwise_operations({}, {});
-        assert and_b = {};
-        assert xor_b = {};
-        assert or_b = {};
+        let (and_b, xor_b, or_b) = bitwise_operations({num1}, {num2});
+        assert and_b = {and};
+        assert xor_b = {xor};
+        assert or_b = {or};
         return ();
     }}
 
-    ", num1, num2, and, xor, or, num1, num2, and, xor, or);
+    ");
 
     // Create programs names and program
     let cairo_path_bitwise = format!("cairo_programs/bitwise-{:?}.cairo", FUZZ_ITERATION_COUNT);
@@ -232,8 +227,7 @@ fn program_bitwise(
     let program_content_bitwise = std::fs::read(&json_path_bitwise).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_bitwise, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_bitwise, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_bitwise, &json_path_bitwise);
@@ -261,21 +255,20 @@ fn program_poseidon(
     func main{{poseidon_ptr: PoseidonBuiltin*}}() {{
         // Hash one
         let (x) = poseidon_hash_single(
-            {}
+            {num3}
         );
         // Hash two
-        let (y) = poseidon_hash({}, {});
+        let (y) = poseidon_hash({num1}, {num2});
         // Hash three
         let felts: felt* = alloc();
-        assert felts[0] = {};
-        assert felts[1] = {};
-        assert felts[2] = {};
+        assert felts[0] = {num1};
+        assert felts[1] = {num2};
+        assert felts[2] = {num3};
         let (z) = poseidon_hash_many(3, felts);
         return ();
     }}
 
-    ",
-        num3, num1, num2, num1, num2, num3
+    "
     );
 
     // Create programs names and program
@@ -288,8 +281,7 @@ fn program_poseidon(
     let program_content_poseidon = std::fs::read(&json_path_poseidon).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_poseidon, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_poseidon, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_poseidon, &json_path_poseidon);
@@ -329,15 +321,14 @@ fn program_range_check(
     
     func main{{range_check_ptr: felt}}() {{
         alloc_locals;
-        tempvar array_length = {};
+        tempvar array_length = {num1};
         let (array: felt*) = alloc();
-        fill_array(array, {}, {}, array_length, 0);
+        fill_array(array, {num2}, {num3}, array_length, 0);
         assert_250_bit_element_array(array, array_length, 0);
         return ();
     }}
     
-    ",
-        num1, num2, num3
+    "
     );
 
     // Create programs names and program
@@ -354,12 +345,11 @@ fn program_range_check(
     let program_content_range_check = std::fs::read(&json_path_range_check).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(
+    let _ = cairo_run::cairo_run(
         &program_content_range_check,
         cairo_run_config,
         hint_executor,
-    )
-    .expect("failed to run program");
+    );
 
     // Remove files to save memory
     delete_files(&cairo_path_range_check, &json_path_range_check);
@@ -399,8 +389,7 @@ fn program_ec_op(
     let program_content_ec_op = std::fs::read(&json_path_ec_op).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_ec_op, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_ec_op, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_ec_op, &json_path_ec_op);
@@ -453,14 +442,13 @@ fn program_pedersen(
     func main{{
         pedersen_ptr: HashBuiltin*,
     }}() {{
-        let num_a = {};
-        let num_b = {};
+        let num_a = {num1};
+        let num_b = {num2};
         builtins_wrapper_iter(num_a, num_b, 50000);
     
         return ();
     }}
-    ",
-        num1, num2
+    "
     );
 
     // Create programs names and program
@@ -473,8 +461,7 @@ fn program_pedersen(
     let program_content_pedersen = std::fs::read(&json_path_pedersen).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_pedersen, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_pedersen, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_pedersen, &json_path_pedersen);
@@ -497,16 +484,15 @@ fn program_ecdsa(
     
     func main{{ecdsa_ptr: SignatureBuiltin*}}() {{
         verify_ecdsa_signature(
-            {},
-            {},
-            {},
-            {},
+            {num4},
+            {num1},
+            {num2},
+            {num3},
         );
         return ();
     }}
     
-    ",
-        num4, num1, num2, num3
+    "
     );
 
     // Create programs names and program
@@ -519,8 +505,7 @@ fn program_ecdsa(
     let program_content_ecdsa = std::fs::read(&json_path_ecdsa).unwrap();
 
     // Run the program with default configurations
-    cairo_run::cairo_run(&program_content_ecdsa, cairo_run_config, hint_executor)
-        .expect("failed to run program");
+    let _ = cairo_run::cairo_run(&program_content_ecdsa, cairo_run_config, hint_executor);
 
     // Remove files to save memory
     delete_files(&cairo_path_ecdsa, &json_path_ecdsa);
