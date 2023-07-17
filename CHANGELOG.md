@@ -2,9 +2,11 @@
 
 #### Upcoming Changes
 
-* feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
+* perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
 
-* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig`
+* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306)
+
+* feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
 
 * feat(fuzzing): add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306) [#1330](https://github.com/lambdaclass/cairo-vm/pull/1330)
 
