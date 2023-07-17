@@ -481,7 +481,7 @@ jobs:
 
     - name: Run comparison script
       run: |
-        if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
-          PROOF=proof
+        if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
+          PROOF=proof_mode
         fi
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
