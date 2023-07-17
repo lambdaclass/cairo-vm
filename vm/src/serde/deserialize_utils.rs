@@ -207,7 +207,7 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 /// very similar to `nom::bytes::complete::take_until(">")`, except it also takes nested brackets.
 /// NOTE: trimmed down from https://docs.rs/parse-hyperlinks to fix bugs. The project itself seems
 /// abandonned.
-pub(crate) fn take_until_unbalanced(
+fn take_until_unbalanced(
     opening_bracket: char,
     closing_bracket: char,
 ) -> impl Fn(&str) -> IResult<&str, &str> {
