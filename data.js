@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689516529798,
+  "lastUpdate": 1689624315248,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -111982,6 +111982,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18169800,
             "range": "± 110953",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7ee9be88d794d6f63186f106bbdb4d74187ff1a5",
+          "message": "Bump actions/checkout from v2 to v3 (#1336)\n\nUsing the old version is causing the following warning:\n> The following actions uses node12 which is deprecated and will be forced to run on node16: actions/checkout@v2",
+          "timestamp": "2023-07-17T19:15:15Z",
+          "tree_id": "c55db4cc01f23be3fc4d8d3109eb2de2a68c5012",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/7ee9be88d794d6f63186f106bbdb4d74187ff1a5"
+        },
+        "date": 1689624307205,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1682,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 63677,
+            "range": "± 423",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21596211,
+            "range": "± 233231",
             "unit": "ns/iter"
           }
         ]
