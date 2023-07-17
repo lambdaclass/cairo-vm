@@ -2,7 +2,13 @@
 
 #### Upcoming Changes
 
-* docs: improve crate documentation [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+* docs: improved crate documentation [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+
+* chore!: made `deserialize_utils` module private [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+  BREAKING:
+  * `deserialize_utils` is no longer exported
+  * functions `maybe_add_padding`, `parse_value`, and `take_until_unbalanced` are no longer exported
+  * `ReferenceParseError` is no more
 
 * perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
 
