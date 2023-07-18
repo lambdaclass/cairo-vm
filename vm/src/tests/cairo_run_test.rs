@@ -982,3 +982,10 @@ fn cairo_run_overflowing_dict() {
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
     run_program_with_error(program_data, "Unknown memory cell at address");
 }
+
+#[test]
+fn cairo_run_big_hint_pcs() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/manually_compiled/hint_index_crash.json");
+    run_program_with_error(program_data, "TODO: update to actual error message");
+}
