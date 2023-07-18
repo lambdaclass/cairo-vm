@@ -1,12 +1,15 @@
 #![no_main]
+use cairo_felt::Felt252;
 use cairo_vm::cairo_run::{self, CairoRunConfig};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use libfuzzer_sys::{fuzz_target, arbitrary::{Arbitrary, Unstructured}};
+use libfuzzer_sys::{
+    arbitrary::{Arbitrary, Unstructured},
+    fuzz_target,
+};
+use proptest::prelude::*;
 use std::fs;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use cairo_felt::Felt252;
-use proptest::prelude::*;
 
 // Global counter for fuzz iteration
 static FUZZ_ITERATION_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -23,8 +26,8 @@ fuzz_target!(|data: (&[u8], Felt252, Felt252, Felt252, Felt252, u128)| {
     let mut unstructured = Unstructured::new(data.0);
 
     for _x in 0..(data.5 as u8) {
-        array.push( Felt252::arbitrary(&mut unstructured).unwrap())
-    };
+        array.push(Felt252::arbitrary(&mut unstructured).unwrap())
+    }
 
     // Create and run the programs
     program_array_sum(&array, &cairo_run_config, &mut hint_executor);
@@ -61,7 +64,6 @@ fn program_array_sum(
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
-
     let populated_array = array
         .iter()
         .enumerate()
@@ -134,13 +136,7 @@ fn program_unsafe_keccak(
     let populated_array = array
         .iter()
         .enumerate()
-        .map(|(index, num)| {
-            format!(
-                "assert data[{}] = {}; \n",
-                index,
-                num
-            )
-        })
+        .map(|(index, num)| format!("assert data[{}] = {}; \n", index, num))
         .collect::<Vec<_>>()
         .join("            ");
 
