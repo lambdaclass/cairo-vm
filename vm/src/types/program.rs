@@ -91,7 +91,7 @@ impl Program {
             }
         }
 
-        let (hints, hints_ranges) = Self::flatten_hints(&hints);
+        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
             data,
@@ -114,18 +114,23 @@ impl Program {
 
     pub(crate) fn flatten_hints(
         hints: &HashMap<usize, Vec<HintParams>>,
-    ) -> (Vec<HintParams>, Vec<Option<(usize, NonZeroUsize)>>) {
+        program_length: usize,
+    ) -> Result<(Vec<HintParams>, Vec<Option<(usize, NonZeroUsize)>>), ProgramError> {
         let bounds = hints
             .iter()
             .map(|(pc, hs)| (*pc, hs.len()))
-            .reduce(|(max_pc, full_len), (pc, len)| (max_pc.max(pc), full_len + len));
+            .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
 
-        let Some((max_pc, full_len)) = bounds else {
-            return (Vec::new(), Vec::new());
+        let Some((max_hint_pc, full_len)) = bounds else {
+            return Ok((Vec::new(), Vec::new()));
         };
 
+        if max_hint_pc >= program_length {
+            return Err(ProgramError::InvalidHintPc(max_hint_pc, program_length));
+        }
+
         let mut hints_values = Vec::with_capacity(full_len);
-        let mut hints_ranges = vec![None; max_pc + 1];
+        let mut hints_ranges = vec![None; max_hint_pc + 1];
 
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (
@@ -136,7 +141,7 @@ impl Program {
             hints_values.extend_from_slice(&hs[..]);
         }
 
-        (hints_values, hints_ranges)
+        Ok((hints_values, hints_ranges))
     }
 
     #[cfg(feature = "std")]

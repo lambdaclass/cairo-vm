@@ -987,5 +987,8 @@ fn cairo_run_overflowing_dict() {
 fn cairo_run_big_hint_pcs() {
     let program_data =
         include_bytes!("../../../cairo_programs/manually_compiled/hint_index_crash.json");
-    run_program_with_error(program_data, "TODO: update to actual error message");
+    run_program_with_error(
+        program_data,
+        "Hint PC (18446744073709551615) is greater or equal to program length (0)",
+    );
 }

@@ -343,7 +343,8 @@ pub mod test_utils {
 
     impl From<ProgramFlat> for Program {
         fn from(val: ProgramFlat) -> Self {
-            let (hints, hints_ranges) = Program::flatten_hints(&val.hints);
+            let (hints, hints_ranges) =
+                Program::flatten_hints(&val.hints, val.data.len()).expect("hints are valid");
             Program {
                 shared_program_data: Arc::new(SharedProgramData {
                     data: val.data,
