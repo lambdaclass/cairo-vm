@@ -1,15 +1,17 @@
 #![no_main]
 use cairo_vm::cairo_run::{self, CairoRunConfig};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-use libfuzzer_sys::fuzz_target;
+use libfuzzer_sys::{fuzz_target, arbitrary::{Arbitrary, Unstructured}};
 use std::fs;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use cairo_felt::Felt252;
+use proptest::prelude::*;
 
 // Global counter for fuzz iteration
 static FUZZ_ITERATION_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-fuzz_target!(|data: (u128, u8, u8, u128, u128)| {
+fuzz_target!(|data: (&[u8], Felt252, Felt252, Felt252, Felt252, u128)| {
     // Define fuzzer iteration with id purposes
     let _iteration_count = FUZZ_ITERATION_COUNT.fetch_add(1, Ordering::SeqCst);
 
@@ -17,43 +19,51 @@ fuzz_target!(|data: (u128, u8, u8, u128, u128)| {
     let cairo_run_config = CairoRunConfig::default();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
 
+    let mut array = Vec::new();
+    let mut unstructured = Unstructured::new(data.0);
+
+    for _x in 0..(data.5 as u8) {
+        array.push( Felt252::arbitrary(&mut unstructured).unwrap())
+    };
+
     // Create and run the programs
-    program_array_sum(data.0.to_string(), &cairo_run_config, &mut hint_executor);
-    program_unsafe_keccak(data.0.to_string(), &cairo_run_config, &mut hint_executor);
-    program_bitwise(data.1, data.2, &cairo_run_config, &mut hint_executor);
+    program_array_sum(&array, &cairo_run_config, &mut hint_executor);
+    program_unsafe_keccak(&array, &cairo_run_config, &mut hint_executor);
+    program_bitwise(&data.1, &data.2, &cairo_run_config, &mut hint_executor);
     program_poseidon(
-        data.1,
-        data.2,
-        data.0,
+        &data.1,
+        &data.2,
+        &data.3,
         &cairo_run_config,
         &mut hint_executor,
     );
     program_range_check(
-        data.1,
-        data.0,
-        data.3,
+        &data.1,
+        &data.2,
+        &data.3,
         &cairo_run_config,
         &mut hint_executor,
     );
-    program_ec_op(data.1, &cairo_run_config, &mut hint_executor);
-    program_pedersen(data.0, data.3, &cairo_run_config, &mut hint_executor);
+    program_ec_op(data.5, &cairo_run_config, &mut hint_executor);
+    program_pedersen(&data.1, &data.2, &cairo_run_config, &mut hint_executor);
     program_ecdsa(
-        data.0,
-        data.3,
-        data.4,
-        data.1,
+        &data.1,
+        &data.2,
+        &data.3,
+        &data.4,
         &cairo_run_config,
         &mut hint_executor,
     );
 });
 
 fn program_array_sum(
-    array: String,
+    array: &Vec<Felt252>,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
+
     let populated_array = array
-        .chars()
+        .iter()
         .enumerate()
         .map(|(index, num)| format!("assert [ptr + {}] = {};  \n", index, num))
         .collect::<Vec<_>>()
@@ -117,18 +127,18 @@ fn program_array_sum(
 }
 
 fn program_unsafe_keccak(
-    array: String,
+    array: &Vec<Felt252>,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
     let populated_array = array
-        .chars()
+        .iter()
         .enumerate()
         .map(|(index, num)| {
             format!(
                 "assert data[{}] = {}; \n",
                 index,
-                num.to_string().repeat(array.len() - (index + 1))
+                num
             )
         })
         .collect::<Vec<_>>()
@@ -187,8 +197,8 @@ fn program_unsafe_keccak(
 }
 
 fn program_bitwise(
-    num1: u8,
-    num2: u8,
+    num1: &Felt252,
+    num2: &Felt252,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
@@ -234,9 +244,9 @@ fn program_bitwise(
 }
 
 fn program_poseidon(
-    num1: u8,
-    num2: u8,
-    num3: u128,
+    num1: &Felt252,
+    num2: &Felt252,
+    num3: &Felt252,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
@@ -288,9 +298,9 @@ fn program_poseidon(
 }
 
 fn program_range_check(
-    num1: u8,
-    num2: u128,
-    num3: u128,
+    num1: &Felt252,
+    num2: &Felt252,
+    num3: &Felt252,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
@@ -356,7 +366,7 @@ fn program_range_check(
 }
 
 fn program_ec_op(
-    num1: u8,
+    num1: u128,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
@@ -396,8 +406,8 @@ fn program_ec_op(
 }
 
 fn program_pedersen(
-    num1: u128,
-    num2: u128,
+    num1: &Felt252,
+    num2: &Felt252,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
@@ -468,10 +478,10 @@ fn program_pedersen(
 }
 
 fn program_ecdsa(
-    num1: u128,
-    num2: u128,
-    num3: u128,
-    num4: u8,
+    num1: &Felt252,
+    num2: &Felt252,
+    num3: &Felt252,
+    num4: &Felt252,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
