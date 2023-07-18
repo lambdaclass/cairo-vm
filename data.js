@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689690565513,
+  "lastUpdate": 1689697261859,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112162,6 +112162,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22069019,
             "range": "± 336748",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e1bfb732761345241f62ccfe07101ab104844597",
+          "message": "docs: document deserialization modules and update lib module's doc (#1334)\n\n* Document Program deserialization modules\n\n* Update lib.rs module documentation\n\n* Update changelog\n\n* Make deserialize utils private\n\n* Update fuzzer's Cargo.lock\n\n* Make take_until_unbalanced private\n\n* Update docs\n\n* Fix links\n\n* Update changelog entry\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-18T15:41:20Z",
+          "tree_id": "ea0d96d4cc3e84fe41e55d9fbea51850f4ca3339",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/e1bfb732761345241f62ccfe07101ab104844597"
+        },
+        "date": 1689697255778,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1397,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53576,
+            "range": "± 300",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 17651049,
+            "range": "± 74319",
             "unit": "ns/iter"
           }
         ]
