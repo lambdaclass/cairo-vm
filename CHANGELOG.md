@@ -2,9 +2,15 @@
 
 #### Upcoming Changes
 
-* perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
+* docs: improved crate documentation [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
 
-* feat: add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306)
+* chore!: made `deserialize_utils` module private [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+  BREAKING:
+  * `deserialize_utils` is no longer exported
+  * functions `maybe_add_padding`, `parse_value`, and `take_until_unbalanced` are no longer exported
+  * `ReferenceParseError` is no more
+
+* perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
 
 * feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
 
