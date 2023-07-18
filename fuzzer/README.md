@@ -8,3 +8,5 @@ To run this fuzzer you need to be inside a py_env and be able to run cairo-compi
 To run the fuzzer you need to have installed Cargo-fuzz, if you don´t use the command `cargo +nightly install cargo-fuzz`
 
 To run simply use `cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer`
+
+We use nightly for this fuzzer cause cargo fuzz runs with the -Z flag, this only works with +nightly.
