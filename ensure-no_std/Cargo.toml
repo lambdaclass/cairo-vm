@@ -11,6 +11,10 @@ cairo-vm = { path = "../vm", default-features = false }
 
 wee_alloc = "0.4.5"
 
+[features]
+default = ["lambdaworks-felt"]
+lambdaworks-felt = ["cairo-felt/lambdaworks-felt"]
+
 
 [profile.dev]
 panic = "abort"

@@ -4,7 +4,7 @@ use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
 use crate::vm::vm_core::VirtualMachine;
 use cairo_lang_casm::operand::{CellRef, DerefOrImmediate, Operation, Register, ResOperand};
 use felt::Felt252;
-use num_traits::Zero;
+
 /// Extracts a parameter assumed to be a buffer.
 pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252), HintError> {
     let (cell, base_offset) = match buffer {
@@ -58,6 +58,7 @@ pub(crate) fn get_ptr(
     Ok((vm.get_relocatable(cell_ref_to_relocatable(cell, vm)?)? + offset)?)
 }
 
+#[cfg(feature = "std")]
 pub(crate) fn as_relocatable(
     vm: &mut VirtualMachine,
     value: &ResOperand,
@@ -97,10 +98,15 @@ pub(crate) fn res_operand_get_val(
     }
 }
 
+#[cfg(feature = "std")]
 pub(crate) fn as_cairo_short_string(value: &Felt252) -> Option<String> {
     let mut as_string = String::default();
     let mut is_end = false;
-    for byte in value.to_be_bytes().into_iter().skip_while(Zero::is_zero) {
+    for byte in value
+        .to_be_bytes()
+        .into_iter()
+        .skip_while(num_traits::Zero::is_zero)
+    {
         if byte == 0 {
             is_end = true;
         } else if is_end || !byte.is_ascii() {

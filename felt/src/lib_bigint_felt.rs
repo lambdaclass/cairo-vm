@@ -19,6 +19,9 @@ use core::{
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::Arbitrary;
+
 pub(crate) trait FeltOps {
     fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
 
@@ -40,43 +43,15 @@ pub(crate) trait FeltOps {
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
 
+    fn from_bytes_le(bytes: &[u8]) -> Self;
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
 
-    /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::Felt252;
-    /// # use num_bigint::BigInt;
-    /// # use num_traits::Bounded;
-    /// let positive = Felt252::new(5);
-    /// assert_eq!(positive.to_signed_felt(), Into::<num_bigint::BigInt>::into(5));
-    ///
-    /// let negative = Felt252::max_value();
-    /// assert_eq!(negative.to_signed_felt(), Into::<num_bigint::BigInt>::into(-1));
-    /// ```
     fn to_signed_felt(&self) -> BigInt;
 
-    // Converts [`Felt252`]'s representation directly into a [`BigInt`].
-    // Equivalent to doing felt.to_biguint().to_bigint().
     fn to_bigint(&self) -> BigInt;
 
-    /// Converts [`Felt252`] into a [`BigUint`] number.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crate::cairo_felt::Felt252;
-    /// # use num_bigint::BigUint;
-    /// # use num_traits::{Num, Bounded};
-    /// let positive = Felt252::new(5);
-    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
-    ///
-    /// let negative = Felt252::max_value();
-    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
-    /// ```
     fn to_biguint(&self) -> BigUint;
 
     fn bits(&self) -> u64;
@@ -94,6 +69,7 @@ macro_rules! felt_str {
     };
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
     pub(crate) value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
@@ -142,11 +118,14 @@ impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
         value.into()
     }
+
+    #[deprecated]
     pub fn modpow(&self, exponent: &Felt252, modulus: &Felt252) -> Self {
         Self {
             value: self.value.modpow(&exponent.value, &modulus.value),
         }
     }
+
     pub fn iter_u64_digits(&self) -> U64Digits {
         self.value.iter_u64_digits()
     }
@@ -184,7 +163,9 @@ impl Felt252 {
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
+    #[deprecated]
     pub fn to_signed_bytes_le(&self) -> Vec<u8> {
+        // NOTE: this is unsigned
         self.value.to_signed_bytes_le()
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
@@ -202,21 +183,64 @@ impl Felt252 {
             value: FeltBigInt::from_bytes_be(bytes),
         }
     }
+    pub fn from_bytes_le(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_le(bytes),
+        }
+    }
+    pub fn from_bytes_ne(bytes: &[u8]) -> Self {
+        // Call either version depending on target endianness
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
+    }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
         self.value.to_str_radix(radix)
     }
 
+    /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::cairo_felt::Felt252;
+    /// # use num_bigint::BigInt;
+    /// # use num_traits::Bounded;
+    /// let positive = Felt252::new(5);
+    /// assert_eq!(positive.to_signed_felt(), Into::<num_bigint::BigInt>::into(5));
+    ///
+    /// let negative = Felt252::max_value();
+    /// assert_eq!(negative.to_signed_felt(), Into::<num_bigint::BigInt>::into(-1));
+    /// ```
     pub fn to_signed_felt(&self) -> BigInt {
         #[allow(deprecated)]
         self.value.to_signed_felt()
     }
 
+    // Converts [`Felt252`]'s representation directly into a [`BigInt`].
+    // Equivalent to doing felt.to_biguint().to_bigint().
     pub fn to_bigint(&self) -> BigInt {
         #[allow(deprecated)]
         self.value.to_bigint()
     }
 
+    /// Converts [`Felt252`] into a [`BigUint`] number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::cairo_felt::Felt252;
+    /// # use num_bigint::BigUint;
+    /// # use num_traits::{Num, Bounded};
+    /// let positive = Felt252::new(5);
+    /// assert_eq!(positive.to_biguint(), Into::<num_bigint::BigUint>::into(5_u32));
+    ///
+    /// let negative = Felt252::max_value();
+    /// assert_eq!(negative.to_biguint(), BigUint::from_str_radix("800000000000011000000000000000000000000000000000000000000000000", 16).unwrap());
+    /// ```
     pub fn to_biguint(&self) -> BigUint {
         #[allow(deprecated)]
         self.value.to_biguint()
@@ -1012,6 +1036,31 @@ mod test {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_be(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // big-endian order: [ high, low ]
+            bytes[..16].copy_from_slice(&high.to_be_bytes());
+            bytes[16..].copy_from_slice(&low.to_be_bytes());
+            let got = Felt252::from_bytes_be(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_le(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // little-endian order: [ low, high ]
+            bytes[..16].copy_from_slice(&low.to_le_bytes());
+            bytes[16..].copy_from_slice(&high.to_le_bytes());
+            let got = Felt252::from_bytes_le(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn to_be_bytes(ref x in any::<Felt252>()) {
             let bytes = x.to_be_bytes();
             let y = &Felt252::from_bytes_be(&bytes);
@@ -1433,6 +1482,7 @@ mod test {
 
             let p_felt = Felt252::max_value();
 
+            #[allow(deprecated)]
             let modpow = x.modpow(&y, &p_felt).to_biguint();
             prop_assert!(modpow < p, "{}", modpow);
         }
@@ -1657,5 +1707,13 @@ mod test {
     fn signum_of_zero_is_zero() {
         let zero = Felt252::zero();
         assert_eq!(&zero.signum(), &zero)
+    }
+
+    #[test]
+    fn from_bytes_ne() {
+        let expected = Felt252::zero();
+        let bytes = [0; 32];
+        let got = Felt252::from_bytes_ne(&bytes);
+        assert_eq!(got, expected);
     }
 }

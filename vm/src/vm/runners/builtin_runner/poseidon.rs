@@ -76,17 +76,18 @@ impl PoseidonBuiltinRunner {
         let first_input_addr = (address - index)?;
         let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
 
-        let mut input_felts = Vec::<FieldElement>::new();
+        let mut input_felts = vec![];
 
         for i in 0..self.n_input_cells as usize {
-            let val = match memory.get(&(first_input_addr + i)?) {
+            let m_index = (first_input_addr + i)?;
+            let val = match memory.get(&m_index) {
                 Some(value) => {
-                    let num = value
-                        .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
+                    let num = value.get_int_ref().ok_or_else(|| {
+                        RunnerError::BuiltinExpectedInteger(Box::new((
                             POSEIDON_BUILTIN_NAME,
-                            (first_input_addr + i)?,
-                        ))))?;
+                            m_index,
+                        )))
+                    })?;
                     FieldElement::from_dec_str(&num.to_str_radix(10))
                         .map_err(|_| RunnerError::FailedStringConversion)?
                 }
