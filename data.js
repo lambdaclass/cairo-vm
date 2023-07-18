@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689697261859,
+  "lastUpdate": 1689708262265,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112252,6 +112252,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 17651049,
             "range": "± 74319",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2a1f7322dd42e5ffa663f133d554a9adf612b570",
+          "message": "chore(examples): remove `wee_alloc` from wasm-demo and ensure-no_std (#1337)\n\n* Remove wee_alloc from wasm-demo\n\nThe allocator wasn't being used anyways (it was an optional dependency).\nAlso, using it results in a 1.2 MB size, compared to the original 1.1 MB.\n\n* Remove wee_alloc from ensure-no_std\n\n* Update changelog",
+          "timestamp": "2023-07-18T18:38:06Z",
+          "tree_id": "a017e2e9a9c6a0ab81f03ad22aa2205cf394ff5d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/2a1f7322dd42e5ffa663f133d554a9adf612b570"
+        },
+        "date": 1689708254450,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1587,
+            "range": "± 102",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60679,
+            "range": "± 3775",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23981937,
+            "range": "± 1183606",
             "unit": "ns/iter"
           }
         ]
