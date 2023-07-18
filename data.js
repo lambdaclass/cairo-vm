@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689624315248,
+  "lastUpdate": 1689690565513,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112072,6 +112072,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21596211,
             "range": "± 233231",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "0eb52a1b3c4adbe9081d8e1f024cfac4a799c5e6",
+          "message": "refactor: change `bigint3_pack` uses for `BigInt3::pack86` (#1329)\n\n* Use `Felt252::bits` instead of shift + compare\n\n* Use `BigInt3::pack86` instead of bigint3_pack\n\n* Rename generic size\n\n* Update changelog\n\n* Remove changelog entry\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-18T13:47:17Z",
+          "tree_id": "82f8dc7731b2e78ef5180679fae32feb366c3115",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/0eb52a1b3c4adbe9081d8e1f024cfac4a799c5e6"
+        },
+        "date": 1689690557607,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1631,
+            "range": "± 15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60194,
+            "range": "± 363",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22069019,
+            "range": "± 336748",
             "unit": "ns/iter"
           }
         ]
