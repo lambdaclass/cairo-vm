@@ -1,2 +1,2 @@
 pub mod deserialize_program;
-pub mod deserialize_utils;
+mod deserialize_utils;

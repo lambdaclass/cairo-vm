@@ -9,7 +9,7 @@ cairo-felt = { path = "../felt", default-features = false, features = [
 ] }
 cairo-vm = { path = "../vm", default-features = false }
 
-wee_alloc = "0.4.5"
+esp-alloc = "0.3.0"
 
 [features]
 default = ["lambdaworks-felt"]

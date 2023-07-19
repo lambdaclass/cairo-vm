@@ -1,3 +1,11 @@
+//! # Program deserialization
+//!
+//! This module contains the logic for [`Program`] deserialization.
+//! Users shouldn't need to use it directly (except for [`BuiltinName`]).
+//!
+//! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
+//! To do the same from a JSON file, see [`Program::from_file()`].
+
 use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
 
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
