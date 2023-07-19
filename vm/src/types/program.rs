@@ -49,7 +49,7 @@ use arbitrary::Arbitrary;
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
     pub(crate) hints: Vec<HintParams>,
-    pub(crate) hints_ranges: Vec<Option<(usize, NonZeroUsize)>>,
+    pub(crate) hints_ranges: Vec<HintRange>,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub(crate) start: Option<usize>,
@@ -59,6 +59,10 @@ pub(crate) struct SharedProgramData {
     pub(crate) identifiers: HashMap<String, Identifier>,
     pub(crate) reference_manager: Vec<HintReference>,
 }
+
+/// Represents a range of "hinted" PCs. Is [`None`] if the range is empty,
+/// and it is a tuple of `(start, length)` otherwise.
+type HintRange = Option<(usize, NonZeroUsize)>;
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,7 +119,7 @@ impl Program {
     pub(crate) fn flatten_hints(
         hints: &HashMap<usize, Vec<HintParams>>,
         program_length: usize,
-    ) -> Result<(Vec<HintParams>, Vec<Option<(usize, NonZeroUsize)>>), ProgramError> {
+    ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
         let bounds = hints
             .iter()
             .map(|(pc, hs)| (*pc, hs.len()))
