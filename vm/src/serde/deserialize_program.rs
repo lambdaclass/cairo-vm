@@ -30,7 +30,7 @@ use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Seriali
 use serde_json::Number;
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
-use arbitrary::Arbitrary;
+use arbitrary::{self, Arbitrary, Unstructured};
 
 // This enum is used to deserialize program builtins into &str and catch non-valid names
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -148,7 +148,7 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+//#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
@@ -157,6 +157,45 @@ pub struct Location {
     pub parent_location: Option<(Box<Location>, String)>,
     pub start_line: u32,
     pub start_col: u32,
+}
+
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+impl<'a> Arbitrary<'a> for Location {
+    fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
+        let mut locations = Vec::new();
+        
+        u.arbitrary_loop(Some(0), Some(512), |u| {
+            locations.push(
+                Location {
+                    end_line: u32::arbitrary(u)?,
+                    end_col: u32::arbitrary(u)?, 
+                    input_file: InputFile::arbitrary(u)?, 
+                    parent_location: None,
+                    start_line: u32::arbitrary(u)?, 
+                    start_col: u32::arbitrary(u)?, 
+                }
+            );
+            Ok(std::ops::ControlFlow::Continue(()))
+        })?;
+
+        let mut iter_location = locations.pop().unwrap_or_else(||
+            Location {
+                end_line: 0,
+                end_col: 0,
+                input_file: InputFile { filename: "".to_string() },
+                parent_location: None,
+                start_line: 0,
+                start_col: 0
+            }
+        );
+
+        while let Some(mut location) = locations.pop() {
+            location.parent_location = Some((Box::new(iter_location), String::arbitrary(u)?));
+            iter_location = location;
+        }
+
+        Ok(iter_location)
+    }
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
