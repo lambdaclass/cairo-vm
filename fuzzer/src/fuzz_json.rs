@@ -10,6 +10,13 @@ fn main() {
         fuzz!(|data: (CairoRunConfig, ProgramJson)| {
             let (cairo_run_config, program_json) = data;
             let _ = cairo_run_parsed_program(
+                Some(program_json.clone()),
+                None,
+                &CairoRunConfig::default(),
+                &mut BuiltinHintProcessor::new_empty(),
+                STEPS_LIMIT,
+            );
+            let _ = cairo_run_parsed_program(
                 Some(program_json),
                 None,
                 &cairo_run_config,
