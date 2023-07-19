@@ -64,7 +64,7 @@ impl BuiltinName {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
@@ -159,7 +159,7 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,

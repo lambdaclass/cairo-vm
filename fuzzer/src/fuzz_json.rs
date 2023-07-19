@@ -5,6 +5,7 @@ use cairo_vm::{
     serde::deserialize_program::ProgramJson,
 };
 
+const STEPS_LIMIT: usize = 1000000;
 fn main() {
     loop {
         fuzz!(|data: (CairoRunConfig, ProgramJson)| {
