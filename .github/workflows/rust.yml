@@ -93,6 +93,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
@@ -101,6 +102,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
@@ -109,6 +111,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Run clippy
       run: make clippy
@@ -154,6 +157,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
@@ -162,6 +166,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
@@ -170,6 +175,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
     # NOTE: we do this separately because --workspace operates in weird ways
@@ -234,6 +240,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
@@ -242,6 +249,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
     - name: Install testing tools
@@ -347,6 +355,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
@@ -391,6 +400,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
+          examples/wasm-demo/src/array_sum.json
         key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
