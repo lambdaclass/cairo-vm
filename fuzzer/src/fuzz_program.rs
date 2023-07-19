@@ -43,13 +43,15 @@ fn main() {
             match Program::new(builtins, mem, main, hints, reference_manager, identifiers, error_message_attributes, instruction_locations) {
                 Ok(program) => {
                     let _ = cairo_run_parsed_program(
-                        program.clone(),
+                        None,
+                        Some(program.clone()),
                         &CairoRunConfig::default(),
                         &mut BuiltinHintProcessor::new_empty(),
                         STEPS_LIMIT,
                     );
                     let _ = cairo_run_parsed_program(
-                        program,
+                        None,
+                        Some(program),
                         &cairo_config,
                         &mut BuiltinHintProcessor::new_empty(),
                         STEPS_LIMIT,

@@ -16,6 +16,8 @@ use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
+#[cfg(feature = "arbitrary")]
+use crate::serde::deserialize_program::{parse_program_json, ProgramJson};
 
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
@@ -81,7 +83,8 @@ pub fn cairo_run(
 
 #[cfg(feature = "arbitrary")]
 pub fn cairo_run_parsed_program(
-    program: Program,
+    program_json: Option<ProgramJson>,
+    program: Option<Program>,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut dyn HintProcessor,
     steps_limit: usize,
@@ -92,11 +95,29 @@ pub fn cairo_run_parsed_program(
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
 
-    let mut cairo_runner = CairoRunner::new(
-        &program,
-        cairo_run_config.layout,
-        cairo_run_config.proof_mode,
-    )?;
+    let mut cairo_runner = match (program_json, program) {
+        (Some(program_json), None) => {
+            CairoRunner::new(
+                &parse_program_json(program_json, Some(cairo_run_config.entrypoint))?,
+                cairo_run_config.layout,
+                cairo_run_config.proof_mode,
+            )?
+        },
+        (None, Some(program)) => {
+            CairoRunner::new(
+                &program,
+                cairo_run_config.layout,
+                cairo_run_config.proof_mode,
+            )?
+        },
+        _ => {
+            CairoRunner::new(
+                &Program::default(),
+                cairo_run_config.layout,
+                cairo_run_config.proof_mode,
+            )?
+        }
+    };
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
