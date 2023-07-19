@@ -7,11 +7,12 @@ use cairo_vm::{
 
 fn main() {
     loop {
-        fuzz!(|data: ProgramJson| {
+        fuzz!(|data: (CairoRunConfig, ProgramJson)| {
+            let (cairo_run_config, program_json) = data;
             let _ = cairo_run_parsed_program(
-                Some(data),
+                Some(program_json),
                 None,
-                &CairoRunConfig::default(),
+                &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),
                 STEPS_LIMIT,
             );
