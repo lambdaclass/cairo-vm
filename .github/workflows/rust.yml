@@ -93,7 +93,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
@@ -101,7 +101,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
@@ -109,7 +109,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Run clippy
       run: make clippy
 
@@ -154,7 +154,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
@@ -162,7 +162,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_bench_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
@@ -170,7 +170,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
     # NOTE: we do this separately because --workspace operates in weird ways
     - name: Check all features (felt)
@@ -234,7 +234,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_proof_programs-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
     - name: Fetch test contracts
       uses: actions/cache/restore@v3
       with:
@@ -242,7 +242,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: cairo_1_test_contracts-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
@@ -326,7 +326,7 @@ jobs:
         path: |
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
     - name: Python3 Build
@@ -347,7 +347,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
     # This is not pretty, but we need `make` to see the compiled programs are
@@ -391,7 +391,7 @@ jobs:
           cairo_programs/**/*.casm
           cairo_programs/**/*.json
           !cairo_programs/manually_compiled/*
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
     - name: Generate traces
@@ -481,7 +481,7 @@ jobs:
         path: |
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles( 'cairo_programs/**/*.cairo' ) }}
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
     - name: Fetch traces for cairo-vm
