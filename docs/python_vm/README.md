@@ -396,7 +396,7 @@ The compiled hints are obtained by using python's [`compile`](https://github.com
 Hints are the first thing to be handled once a [`step`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L443) starts.
 The current steps are taken to execute hints with each iteration:
 1. We obtain the list of the hints at our current pc (if any) and iterate over it
-2. We create an `exec_locals` dictionary that will contain our program’s input, memory (validated_memory), current registers (ap, fp, pc), the current step, ids which contains memory, ap, fp and pc as constants, the functions load_program, enter_scope and exit_scope, and the static_locals. The static_locals add to the exec_locals the program’s prime, the MemorySegmentManager (for example, this is used by alloc to add a memory segment for an undetermined-lengh array), and basic operations such as fadd, fsub, fdiv, etc.
+2. We create an `exec_locals` dictionary that will contain our program’s input, memory (validated_memory), current registers (ap, fp, pc), the current step, ids (which contains memory), ap, fp, and pc as constants, the functions load_program, enter_scope and exit_scope, and the static_locals. The static_locals add to the exec_locals the program’s prime, the MemorySegmentManager (for example, this is used by alloc to add a memory segment for an undetermined-length array), and basic operations such as fadd, fsub, fdiv, etc.
 3. We [execute](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L285) the hint using python’s exec function, using exec_locals as globals.
 
 
