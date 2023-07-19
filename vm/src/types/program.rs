@@ -49,6 +49,7 @@ use arbitrary::Arbitrary;
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
     pub(crate) hints: Vec<HintParams>,
+    /// This maps a PC to the range of hints in `hints` that correspond to it.
     pub(crate) hints_ranges: Vec<HintRange>,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
@@ -60,8 +61,9 @@ pub(crate) struct SharedProgramData {
     pub(crate) reference_manager: Vec<HintReference>,
 }
 
-/// Represents a range of "hinted" PCs. Is [`None`] if the range is empty,
-/// and it is a tuple of `(start, length)` otherwise.
+/// Represents a range of hints corresponding to a PC.
+///
+/// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
 type HintRange = Option<(usize, NonZeroUsize)>;
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
