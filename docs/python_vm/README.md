@@ -58,7 +58,7 @@ The [VirtualMachine](https://github.com/starkware-libs/cairo-lang/blob/b614d1867
 * `static_locals` : (Optional Dict)
 VirtualMachineBase's init is used to set these values (plus other ones), the next ones are exclusive to the VirtualMachine:
 * `accessed_addresses` : (Set that keeps track of memory addresses accessed by cairo instructions)
-* `trace` : (List of TraceEntry, that each contains the run_context's pc, ap and fp at that moment. A TraceEntry is added after every instruction (Before update_registers is called))
+* `trace` : (List of `TraceEntry`s, each containing the run_context's pc, ap, and fp at that moment. A `TraceEntry` is added after every instruction (Before update_registers is called))
 * `current_step` : (initialized with 0)
 * `skip_instruction_execution` : (= False), used by hints to skip execution of current step
 
