@@ -1,10 +1,16 @@
-use crate::stdlib::{fmt, num::ParseIntError, prelude::*, str::FromStr};
+//! # Deserialization utils
+//!
+//! This module contains some helper functions used in [`Program`](crate::types::program::Program) deserialization.
+//! Namely, [`maybe_add_padding`] and [`parse_value`].
+//!
+//! See [the docs](/docs/references_parsing/README.md) for context and grammar explanation.
 
+use crate::stdlib::{prelude::*, str::FromStr};
 use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
-use felt::{Felt252, ParseFeltError};
+use felt::Felt252;
 use nom::{
     branch::alt,
     bytes::{
@@ -19,35 +25,9 @@ use nom::{
 };
 use num_integer::Integer;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum ReferenceParseError {
-    IntError(ParseIntError),
-    Felt252Error(ParseFeltError),
-    InvalidStringError(String),
-}
-
-impl fmt::Display for ReferenceParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ReferenceParseError::IntError(error) => {
-                write!(f, "Int parsing error: ")?;
-                error.fmt(f)
-            }
-            ReferenceParseError::Felt252Error(error) => {
-                write!(f, "Felt252 parsing error: ")?;
-                error.fmt(f)
-            }
-            ReferenceParseError::InvalidStringError(error) => {
-                write!(f, "Invalid reference string error: ")?;
-                error.fmt(f)
-            }
-        }
-    }
-}
-
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
-pub fn maybe_add_padding(mut hex: String) -> String {
+pub(crate) fn maybe_add_padding(mut hex: String) -> String {
     if hex.len().is_odd() {
         hex.insert(0, '0');
         return hex;
@@ -55,11 +35,9 @@ pub fn maybe_add_padding(mut hex: String) -> String {
     hex
 }
 
-/*
-NOM PARSERS
-See the docs for context and grammar explanation:
-cleopatra_cairo/docs/references_parsing/README.md
-*/
+// -----------------------
+//       NOM PARSERS
+// -----------------------
 
 // Checks if the input has outer brackets. This is used to set
 // the `dereference` field of ValueAddress.
@@ -162,7 +140,7 @@ fn no_inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
     Ok((rem_input, offset_value))
 }
 
-pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
+pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (rem_input, (dereference, second_arg, fst_offset, snd_offset)) = tuple((
         outer_brackets,
         take_cast_first_arg,
@@ -216,10 +194,15 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 /// work inside the `nom::sequence::delimited()` parser.
 ///
 /// # Basic usage
-/// ```
+/// ```no_run
 /// use nom::bytes::complete::tag;
 /// use nom::sequence::delimited;
-/// use cairo_take_until_unbalanced::take_until_unbalanced;
+/// # use nom::IResult;
+///
+/// # fn take_until_unbalanced(
+/// #     opening_bracket: char,
+/// #     closing_bracket: char,
+/// # ) -> impl Fn(&str) -> IResult<&str, &str> { |_| Ok(("", "")) }
 ///
 /// let mut parser = delimited(tag("<"), take_until_unbalanced('<', '>'), tag(">"));
 /// assert_eq!(parser("<<inside>inside>abc"), Ok(("abc", "<inside>inside")));
@@ -229,7 +212,7 @@ pub fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
 /// very similar to `nom::bytes::complete::take_until(">")`, except it also takes nested brackets.
 /// NOTE: trimmed down from https://docs.rs/parse-hyperlinks to fix bugs. The project itself seems
 /// abandonned.
-pub fn take_until_unbalanced(
+fn take_until_unbalanced(
     opening_bracket: char,
     closing_bracket: char,
 ) -> impl Fn(&str) -> IResult<&str, &str> {
