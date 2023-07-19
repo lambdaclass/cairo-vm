@@ -343,6 +343,7 @@ pub mod test_utils {
 
     impl From<ProgramFlat> for Program {
         fn from(val: ProgramFlat) -> Self {
+            // NOTE: panics if hints have PCs higher than the program length
             let (hints, hints_ranges) =
                 Program::flatten_hints(&val.hints, val.data.len()).expect("hints are valid");
             Program {
