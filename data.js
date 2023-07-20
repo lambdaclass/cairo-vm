@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689708262265,
+  "lastUpdate": 1689865581825,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112342,6 +112342,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23981937,
             "range": "± 1183606",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7e5378a8fd0c44718fcab523273334b7f75a27dc",
+          "message": "fix: return error when hint's PC is invalid (#1340)\n\n* Add test for failing program\n\n* Return error when some hint's PC isn't valid\n\n* Fix tests (+add test)\n\n* Appease clippy\n\n* Add some docs\n\n* Update changelog\n\n* Ignore manually compiled jsons in workflows cache\n\n* Fix warning in wasm-demo\n\n* Fix hash not hashing wasm-demo program\n\n* Fix mismatching paths",
+          "timestamp": "2023-07-20T14:10:33Z",
+          "tree_id": "9a671308cfd0ff8710c907e2c730081a8d7dddc6",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/7e5378a8fd0c44718fcab523273334b7f75a27dc"
+        },
+        "date": 1689865573230,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1626,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60683,
+            "range": "± 677",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22601028,
+            "range": "± 165998",
             "unit": "ns/iter"
           }
         ]
