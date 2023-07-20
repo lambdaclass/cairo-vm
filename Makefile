@@ -3,7 +3,8 @@ DBGBIN:=target/debug/cairo-vm-run
 STARKNET_COMPILE:=cairo/target/release/starknet-compile
 STARKNET_SIERRA_COMPILE:=cairo/target/release/starknet-sierra-compile
 
-.PHONY: build-cairo-1-compiler deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+.PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
@@ -107,13 +108,49 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	$(STARKNET_SIERRA_COMPILE) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
 
-cairo-repo-dir = cairo
+# ======================
+# Setup Cairo 1 Compiler
+# ======================
 
-build-cairo-1-compiler: | $(cairo-repo-dir)
+cairo-repo-1-dir = cairo1
+cairo-repo-1-dir-macos = cairo1-macos
 
-$(cairo-repo-dir):
-	git clone --depth 1 -b v1.1.0 https://github.com/starkware-libs/cairo.git
-	cd cairo; cargo b --release --bin starknet-compile --bin starknet-sierra-compile
+build-cairo-1-compiler-macos: | $(cairo-repo-1-dir-macos)
+
+$(cairo-repo-1-dir-macos):
+	curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v1.1.1/release-aarch64-apple-darwin.tar \
+	&& tar -xzvf cairo-1.1.1.tar \
+	&& mv cairo/ cairo1/
+
+build-cairo-1-compiler: | $(cairo-repo-1-dir)
+
+$(cairo-repo-1-dir):
+	curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v1.1.1/release-x86_64-unknown-linux-musl.tar.gz \
+	&& tar -xzvf cairo-1.1.1.tar \
+	&& mv cairo/ cairo1/
+
+# ======================
+# Setup Cairo 2 Compiler
+# ======================
+
+cairo-repo-2-dir = cairo2
+cairo-repo-2-dir-macos = cairo2-macos
+
+build-cairo-2-compiler-macos: | $(cairo-repo-2-dir-macos)
+
+CAIRO_2_VERSION=2.1.0-rc1
+
+$(cairo-repo-2-dir-macos):
+	curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-aarch64-apple-darwin.tar \
+	&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
+	&& mv cairo/ cairo2/
+
+build-cairo-2-compiler: | $(cairo-repo-2-dir)
+
+$(cairo-repo-2-dir):
+	curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-x86_64-unknown-linux-musl.tar.gz \
+	&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
+	&& mv cairo/ cairo2/
 
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
@@ -124,7 +161,7 @@ cargo-deps:
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.11.0 wasm-pack
 
-deps: cargo-deps build-cairo-1-compiler
+deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -134,7 +171,7 @@ deps: cargo-deps build-cairo-1-compiler
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler
+deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
