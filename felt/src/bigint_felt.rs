@@ -12,7 +12,7 @@ use core::{
     },
 };
 
-use crate::{FeltOps, ParseFeltError};
+use crate::{lib_bigint_felt::FeltOps, ParseFeltError};
 
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
@@ -182,22 +182,20 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
         self.val.to_str_radix(radix)
     }
 
-    fn to_bigint(&self) -> BigInt {
-        if self.is_negative() {
+    fn to_signed_felt(&self) -> BigInt {
+        if self.val > *SIGNED_FELT_MAX {
             BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME_BIGUINT - &self.val)
         } else {
             self.val.clone().into()
         }
     }
 
-    fn to_biguint(&self) -> BigUint {
-        self.val.clone()
+    fn to_bigint(&self) -> BigInt {
+        self.val.clone().into()
     }
 
-    fn sqrt(&self) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        FeltBigInt {
-            val: self.val.sqrt(),
-        }
+    fn to_biguint(&self) -> BigUint {
+        self.val.clone()
     }
 
     fn bits(&self) -> u64 {
@@ -269,6 +267,17 @@ impl<const PH: u128, const PL: u128> Add<usize> for FeltBigInt<PH, PL> {
 impl<'a, const PH: u128, const PL: u128> Add<usize> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
     fn add(self, rhs: usize) -> Self::Output {
+        let mut sum = &self.val + rhs;
+        if sum >= *CAIRO_PRIME_BIGUINT {
+            sum -= &*CAIRO_PRIME_BIGUINT;
+        }
+        FeltBigInt { val: sum }
+    }
+}
+
+impl<const PH: u128, const PL: u128> Add<u64> for &FeltBigInt<PH, PL> {
+    type Output = FeltBigInt<PH, PL>;
+    fn add(self, rhs: u64) -> Self::Output {
         let mut sum = &self.val + rhs;
         if sum >= *CAIRO_PRIME_BIGUINT {
             sum -= &*CAIRO_PRIME_BIGUINT;
@@ -486,17 +495,16 @@ impl<const PH: u128, const PL: u128> Pow<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn pow(self, rhs: u32) -> Self {
         FeltBigInt {
-            val: self.val.pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
+            val: self.val.modpow(&BigUint::from(rhs), &CAIRO_PRIME_BIGUINT),
         }
     }
 }
 
 impl<'a, const PH: u128, const PL: u128> Pow<u32> for &'a FeltBigInt<PH, PL> {
     type Output = FeltBigInt<PH, PL>;
-    #[allow(clippy::needless_borrow)] // the borrow of self.val is necessary becase it's of the type BigUInt, which doesn't implement the Copy trait
     fn pow(self, rhs: u32) -> Self::Output {
         FeltBigInt {
-            val: (&self.val).pow(rhs).mod_floor(&CAIRO_PRIME_BIGUINT),
+            val: self.val.modpow(&BigUint::from(rhs), &CAIRO_PRIME_BIGUINT),
         }
     }
 }
@@ -655,11 +663,7 @@ impl Integer for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
 
 impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn abs(&self) -> Self {
-        if self.is_negative() {
-            self.neg()
-        } else {
-            self.clone()
-        }
+        self.clone()
     }
 
     fn abs_sub(&self, other: &Self) -> Self {
@@ -673,15 +677,13 @@ impl Signed for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     fn signum(&self) -> Self {
         if self.is_zero() {
             FeltBigInt::zero()
-        } else if self.is_positive() {
-            FeltBigInt::one()
         } else {
-            FeltBigInt::max_value()
+            FeltBigInt::one()
         }
     }
 
     fn is_positive(&self) -> bool {
-        !self.is_zero() && self.val < *SIGNED_FELT_MAX
+        !self.is_zero()
     }
 
     fn is_negative(&self) -> bool {
@@ -729,7 +731,7 @@ impl<const PH: u128, const PL: u128> Shr<u32> for FeltBigInt<PH, PL> {
     type Output = Self;
     fn shr(self, other: u32) -> Self::Output {
         FeltBigInt {
-            val: self.val.shr(other).mod_floor(&CAIRO_PRIME_BIGUINT),
+            val: self.val.shr(other),
         }
     }
 }
@@ -835,12 +837,6 @@ impl<const PH: u128, const PL: u128> fmt::Display for FeltBigInt<PH, PL> {
 impl<const PH: u128, const PL: u128> fmt::Debug for FeltBigInt<PH, PL> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.val)
-    }
-}
-
-impl fmt::Display for ParseFeltError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{ParseFeltError:?}")
     }
 }
 
@@ -1087,7 +1083,7 @@ mod tests {
             let p = &CAIRO_PRIME_BIGUINT;
             let result = x + y;
             let as_uint = &result.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
 
         }
         #[test]
@@ -1098,7 +1094,7 @@ mod tests {
             let p = &CAIRO_PRIME_BIGUINT;
             x += y;
             let as_uint = &x.to_biguint();
-            prop_assert!(as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
 
         #[test]
@@ -1211,10 +1207,10 @@ mod tests {
             let y = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(y.as_bytes(), 10).unwrap();
             let z = FeltBigInt::<FIELD_HIGH, FIELD_LOW>::parse_bytes(z.as_bytes(), 10).unwrap();
             let p:BigUint = BigUint::parse_bytes(CAIRO_PRIME_BIGUINT.to_string().as_bytes(), 16).unwrap();
-            let v = vec![x.clone(), y, z];
+            let v = vec![x, y, z];
             let result: FeltBigInt<FIELD_HIGH, FIELD_LOW> = v.into_iter().sum();
             let as_uint = result.to_biguint();
-            prop_assert!(&as_uint < &p, "{}", as_uint);
+            prop_assert!(as_uint < p, "{}", as_uint);
         }
     }
 }

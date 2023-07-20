@@ -1,0 +1,14 @@
+[package]
+name = "hint_accountant"
+description = "A script to check which whitelisted hints we're missing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+publish = false
+
+[dependencies]
+cairo-vm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
