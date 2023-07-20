@@ -1,9 +1,14 @@
-//! An implementation of the Cairo virtual machine
+//! # An implementation of the Cairo virtual machine
 //!
-//! # Feature Flags
+//! ## Feature Flags
+//! - `std`: Enables usage of the [`std`] standard library. Enabled by default.
 //! - `skip_next_instruction_hint`: Enable the `skip_next_instruction()` hint. Not enabled by default.
-//! - `hooks`: Enable [Hooks](vm::hooks) support for the [VirtualMachine](vm::vm_core::VirtualMachine). Not enabled by default.
-//! - `with_mimalloc`: Use [MiMalloc](https://crates.io/crates/mimalloc) as the program global allocator.
+//! - `hooks`: Enable [`Hooks`](crate::vm::hooks::Hooks) support for the [VirtualMachine](vm::vm_core::VirtualMachine). Not enabled by default.
+//! - `test_utils`: Enables test utils (`hooks` and `skip_next_instruction` features). Not enabled by default.
+//! - `with_mimalloc`: Use [`MiMalloc`](https://crates.io/crates/mimalloc) as the program global allocator.
+//! - `cairo-1-hints`: Enable hints that were introduced in Cairo 1. Not enabled by default.
+//! - `arbitrary`: Enables implementations of [`arbitrary::Arbitrary`](https://docs.rs/arbitrary/latest/arbitrary/) for some structs. Not enabled by default.
+//! - `lambdaworks-felt`: Enables usage of the [**lambdaworks**](https://github.com/lambdaclass/lambdaworks) backend for [`felt::Felt252`]. Not enabled by default.
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(warnings)]

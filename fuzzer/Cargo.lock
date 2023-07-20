@@ -169,6 +169,7 @@ checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 name = "cairo-felt"
 version = "0.8.2"
 dependencies = [
+ "arbitrary",
  "lazy_static",
  "num-bigint",
  "num-integer",
@@ -181,6 +182,7 @@ name = "cairo-vm"
 version = "0.8.2"
 dependencies = [
  "anyhow",
+ "arbitrary",
  "bincode",
  "bitvec",
  "cairo-felt",
@@ -590,6 +592,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
 dependencies = [
+ "arbitrary",
  "autocfg",
  "num-integer",
  "num-traits",
