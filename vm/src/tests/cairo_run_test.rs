@@ -982,3 +982,13 @@ fn cairo_run_overflowing_dict() {
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
     run_program_with_error(program_data, "Unknown memory cell at address");
 }
+
+#[test]
+fn cairo_run_big_hint_pcs() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/manually_compiled/invalid_hint_pc.json");
+    run_program_with_error(
+        program_data,
+        "Hint PC (18446744073709551615) is greater or equal to program length (0)",
+    );
+}
