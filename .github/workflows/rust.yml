@@ -15,7 +15,13 @@ jobs:
     strategy:
       matrix:
         # NOTE: we build cairo_proof_programs so clippy can check the benchmarks too
-        program-target: [ cairo_bench_programs, cairo_proof_programs, cairo_test_programs, cairo_1_test_contracts ]
+        program-target: [
+          cairo_bench_programs,
+          cairo_proof_programs,
+          cairo_test_programs,
+          cairo_1_test_contracts,
+          cairo_2_test_contracts,
+        ]
     name: Build Cairo programs
     runs-on: ubuntu-22.04
     steps:
@@ -49,12 +55,19 @@ jobs:
         cache: 'pip'
 
     - name: Install cairo-lang and deps
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'cairo_1_test_contracts'
+      if: |
+        steps.cache-programs.outputs.cache-hit != 'true'
+        && matrix.program-target != 'cairo_1_test_contracts'
+        && matrix.program-target != 'cairo_2_test_contracts'
       run: pip install -r requirements.txt
-    
+
     - name: Install cairo 1 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
       run: make build-cairo-1-compiler
+
+    - name: Install cairo 2 compiler
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
+      run: make build-cairo-2-compiler
 
     - name: Build programs
       if: steps.cache-programs.outputs.cache-hit != 'true'
