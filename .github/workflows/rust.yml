@@ -42,21 +42,22 @@ jobs:
       uses: chetan/git-restore-mtime-action@v1
 
     - name: Python3 Build
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'cairo_1_test_contracts'
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
         cache: 'pip'
+
     - name: Install cairo-lang and deps
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'cairo_1_test_contracts'
       run: pip install -r requirements.txt
     
     - name: Install cairo 1 compiler
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
       run: make build-cairo-1-compiler
 
     - name: Build programs
-      if: ${{ steps.cache-programs.outputs.cache-hit != 'true' }}
+      if: steps.cache-programs.outputs.cache-hit != 'true'
       run: make -j ${{ matrix.program-target }}
 
 
@@ -343,6 +344,7 @@ jobs:
       with:
         python-version: '3.9'
         cache: 'pip'
+
     - name: Install cairo-lang and deps
       if: steps.trace-cache.outputs.cache-hit != 'true'
       run: pip install -r requirements.txt
@@ -365,7 +367,7 @@ jobs:
       uses: chetan/git-restore-mtime-action@v1
 
     - name: Generate traces
-      if: ${{ steps.trace-cache.outputs.cache-hit != 'true' }}
+      if: steps.trace-cache.outputs.cache-hit != 'true'
       run: make -j ${{ matrix.nprocs }} ${{ matrix.trace-target }}
 
 
