@@ -21,7 +21,7 @@ use felt::{Felt252, PRIME_STR};
 use std::path::Path;
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
-use arbitrary::Arbitrary;
+use arbitrary::{Arbitrary, Unstructured};
 
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
 // and some that will be allocated on the heap inside an `Arc<_>`.
@@ -44,7 +44,6 @@ use arbitrary::Arbitrary;
 // exceptional circumstances, such as when reconstructing a backtrace on execution
 // failures.
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
@@ -59,6 +58,29 @@ pub(crate) struct SharedProgramData {
     pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     pub(crate) identifiers: HashMap<String, Identifier>,
     pub(crate) reference_manager: Vec<HintReference>,
+}
+
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+impl<'a> Arbitrary<'a> for SharedProgramData {
+    /// Create an arbitary [`SharedProgramData`] using `flatten_hints` to generate `hints` and
+    /// `hints_ranges`
+    fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
+        let data = Vec::<MaybeRelocatable>::arbitrary(u)?;
+        let raw_hints = HashMap::<usize, Vec<HintParams>>::arbitrary(u)?;
+        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len()).map_err(|_| arbitrary::Error::IncorrectFormat)?;
+        Ok(SharedProgramData {
+            data,
+            hints,
+            hints_ranges,
+            main: Option::<usize>::arbitrary(u)?,
+            start: Option::<usize>::arbitrary(u)?,
+            end: Option::<usize>::arbitrary(u)?,
+            error_message_attributes: Vec::<Attribute>::arbitrary(u)?,
+            instruction_locations: Option::<HashMap<usize, InstructionLocation>>::arbitrary(u)?,
+            identifiers: HashMap::<String, Identifier>::arbitrary(u)?,
+            reference_manager: Vec::<HintReference>::arbitrary(u)?,
+        })
+    }
 }
 
 /// Represents a range of hints corresponding to a PC.
