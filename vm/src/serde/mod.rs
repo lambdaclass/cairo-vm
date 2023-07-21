@@ -1,7 +1,7 @@
 pub mod deserialize_program;
 mod deserialize_utils;
 
-pub(crate) fn from_slice<'a, T>(v: &'a [u8]) -> serde_json::Result<T>
+pub(crate) fn from_slice<T>(v: &[u8]) -> serde_json::Result<T>
 where
     T: serde::de::DeserializeOwned,
 {
@@ -18,7 +18,7 @@ where
 }
 
 #[cfg(test)]
-pub(crate) fn from_str<'a, T>(s: &'a str) -> serde_json::Result<T>
+pub(crate) fn from_str<T>(s: &str) -> serde_json::Result<T>
 where
     T: serde::de::DeserializeOwned,
 {
