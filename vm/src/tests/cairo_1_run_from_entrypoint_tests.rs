@@ -605,13 +605,13 @@ fn uint512_div_mod_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_ok() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
+    let contract_class: CasmContractClass = crate::serde::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(621));
     assert_matches!(
         run_cairo_1_entrypoint_with_run_resources(
-            serde_json::from_slice(program_data.as_slice()).unwrap(),
+            crate::serde::from_slice(program_data.as_slice()).unwrap(),
             0,
             &mut hint_processor,
             &[1_usize.into(), 1_usize.into(), 20_usize.into()],
@@ -626,7 +626,7 @@ fn fibonacci_with_run_resources_ok() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_2_ok() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
+    let contract_class: CasmContractClass = crate::serde::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(1000));
@@ -649,7 +649,7 @@ fn fibonacci_with_run_resources_2_ok() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_with_run_resources_error() {
     let program_data = include_bytes!("../../../cairo_programs/cairo-1-contracts/fib.casm");
-    let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
+    let contract_class: CasmContractClass = crate::serde::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(100));

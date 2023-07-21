@@ -391,7 +391,7 @@ pub fn deserialize_value_address<'de, D: Deserializer<'de>>(
 }
 
 pub fn deserialize_program_json(reader: &[u8]) -> Result<ProgramJson, ProgramError> {
-    let program_json = serde_json::from_slice(reader)?;
+    let program_json = crate::serde::from_slice(reader)?;
     Ok(program_json)
 }
 pub fn deserialize_and_parse_program(
@@ -491,7 +491,7 @@ mod tests {
 
         // ProgramJson result instance for the json with an even length encoded hex.
         let even_result: Result<ProgramJson, _> =
-            serde_json::from_str(invalid_even_length_hex_json);
+            crate::serde::from_str(invalid_even_length_hex_json);
 
         assert!(even_result.is_err());
 
@@ -501,7 +501,8 @@ mod tests {
             }"#;
 
         // ProgramJson result instance for the json with an odd length encoded hex.
-        let odd_result: Result<ProgramJson, _> = serde_json::from_str(invalid_odd_length_hex_json);
+        let odd_result: Result<ProgramJson, _> =
+            crate::serde::from_str(invalid_odd_length_hex_json);
 
         assert!(odd_result.is_err());
     }
@@ -514,7 +515,7 @@ mod tests {
                 "prime": "0xlambda"
             }"#;
 
-        let invalid_char_error: Result<ProgramJson, _> = serde_json::from_str(invalid_char);
+        let invalid_char_error: Result<ProgramJson, _> = crate::serde::from_str(invalid_char);
 
         assert!(invalid_char_error.is_err());
     }
@@ -528,7 +529,7 @@ mod tests {
             }"#;
 
         // ProgramJson result instance for the json with an odd length encoded hex.
-        let no_prefix_error: Result<ProgramJson, _> = serde_json::from_str(no_prefix);
+        let no_prefix_error: Result<ProgramJson, _> = crate::serde::from_str(no_prefix);
 
         assert!(no_prefix_error.is_err());
     }
@@ -633,7 +634,7 @@ mod tests {
             }"#;
 
         // ProgramJson instance for the json with an even length encoded hex.
-        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+        let program_json: ProgramJson = crate::serde::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
             MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
@@ -755,7 +756,7 @@ mod tests {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
 
-        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
+        let program_json: ProgramJson = crate::serde::from_slice(reader).unwrap();
 
         assert_eq!(
             program_json.prime,
@@ -773,7 +774,7 @@ mod tests {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_b.json");
 
-        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
+        let program_json: ProgramJson = crate::serde::from_slice(reader).unwrap();
         let builtins: Vec<BuiltinName> = vec![BuiltinName::output, BuiltinName::range_check];
 
         assert_eq!(
@@ -793,7 +794,7 @@ mod tests {
             "../../../cairo_programs/manually_compiled/invalid_even_length_hex.json"
         );
 
-        let even_result: Result<ProgramJson, _> = serde_json::from_slice(reader);
+        let even_result: Result<ProgramJson, _> = crate::serde::from_slice(reader);
 
         assert!(even_result.is_err());
 
@@ -801,7 +802,7 @@ mod tests {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/invalid_odd_length_hex.json");
 
-        let odd_result: Result<ProgramJson, _> = serde_json::from_slice(reader);
+        let odd_result: Result<ProgramJson, _> = crate::serde::from_slice(reader);
 
         assert!(odd_result.is_err());
     }
@@ -981,7 +982,7 @@ mod tests {
             "../../../cairo_programs/manually_compiled/deserialize_constant_test.json"
         );
 
-        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
+        let program_json: ProgramJson = crate::serde::from_slice(reader).unwrap();
         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
 
         identifiers.insert(
@@ -1100,7 +1101,7 @@ mod tests {
                 }
             }"#;
 
-        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+        let program_json: ProgramJson = crate::serde::from_str(valid_json).unwrap();
 
         let reference_manager = ReferenceManager {
             references: vec![Reference {
@@ -1176,7 +1177,7 @@ mod tests {
                 }
             }"#;
 
-        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+        let program_json: ProgramJson = crate::serde::from_str(valid_json).unwrap();
 
         let attributes: Vec<Attribute> = vec![
             Attribute {
@@ -1281,7 +1282,7 @@ mod tests {
                 }
             }"#;
 
-        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+        let program_json: ProgramJson = crate::serde::from_str(valid_json).unwrap();
 
         let debug_info: DebugInfo = DebugInfo {
             instruction_locations: HashMap::from([
@@ -1386,7 +1387,7 @@ mod tests {
                 }
             }"#;
 
-        let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
+        let program_json: ProgramJson = crate::serde::from_str(valid_json).unwrap();
 
         let debug_info: DebugInfo = DebugInfo { instruction_locations: HashMap::from(
             [
@@ -1425,7 +1426,7 @@ mod tests {
     fn deserialize_program_with_type_definition() {
         let reader = include_bytes!("../../../cairo_programs/uint256_integration_tests.json");
 
-        let program_json: ProgramJson = serde_json::from_slice(reader).unwrap();
+        let program_json: ProgramJson = crate::serde::from_slice(reader).unwrap();
 
         assert_eq!(
             program_json.identifiers["starkware.cairo.common.alloc.alloc.Return"]
@@ -1458,7 +1459,7 @@ mod tests {
             "value" : 0x123
         }"#;
 
-        let iden: Result<Identifier, serde_json::Error> = serde_json::from_str(valid_json);
+        let iden: Result<Identifier, serde_json::Error> = crate::serde::from_str(valid_json);
         assert!(iden.err().is_some());
     }
 
@@ -1515,7 +1516,7 @@ mod tests {
             String::from_utf8(vec![b'9'; 1000]).unwrap(),
             u32::MAX
         );
-        let f = serde_json::from_str::<Test>(malicious_input)
+        let f = crate::serde::from_str::<Test>(malicious_input)
             .unwrap()
             .f
             .unwrap();

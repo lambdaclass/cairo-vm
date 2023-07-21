@@ -114,7 +114,7 @@ pub(self) fn run_cairo_1_entrypoint(
     args: &[MaybeRelocatable],
     expected_retdata: &[Felt252],
 ) {
-    let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
+    let contract_class: CasmContractClass = crate::serde::from_slice(program_content).unwrap();
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::default());
 

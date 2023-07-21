@@ -19,6 +19,7 @@ std = [
     "felt/std",
     "dep:num-prime",
     "thiserror-no-std/std",
+    "dep:simd-json",
 ]
 cairo-1-hints = [
     "dep:cairo-lang-starknet",
@@ -45,6 +46,7 @@ num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+simd-json = { workspace = true, optional = true }
 hex = { workspace = true }
 bincode = { workspace = true }
 starknet-crypto = { workspace = true }
