@@ -17,6 +17,8 @@ pub enum ProgramError {
     ConstWithoutValue(String),
     #[error("Expected prime {PRIME_STR}, got {0}")]
     PrimeDiffers(String),
+    #[error("Hint PC ({0}) is greater or equal to program length ({1})")]
+    InvalidHintPc(usize, usize),
 }
 
 #[cfg(test)]

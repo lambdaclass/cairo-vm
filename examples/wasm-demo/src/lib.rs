@@ -12,7 +12,6 @@ extern "C" {
     fn log(msg: &str);
 }
 
-#[cfg(feature = "console_error_panic_hook")]
 #[wasm_bindgen(start)]
 pub fn start() {
     crate::utils::set_panic_hook();
