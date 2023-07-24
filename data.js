@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1689865581825,
+  "lastUpdate": 1690227765764,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112432,6 +112432,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22601028,
             "range": "± 165998",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b232d695bb0879a12ea58515372dc0f4d1b83f34",
+          "message": "chore(deps): bump cairo-lang dependencies to v2.1.0-rc1 (#1339)\n\n* Bump cairo-lang dependencies to v2.1.0-rc1\n\n* Fix errors\n\n* Download Cairo compiler instead of building\n\nAlso add the Cairo 2 version too\n\n* Optimize build-programs with specific if checks\n\n* Enable Cairo 2 compilation and move divmod test\n\n* Update changelog\n\n* Compile Cairo 2 programs in build-programs job\n\n* Merge caches after building programs",
+          "timestamp": "2023-07-24T18:59:14Z",
+          "tree_id": "8edc8c73edee581c41e610c64e11e889ee3b7060",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/b232d695bb0879a12ea58515372dc0f4d1b83f34"
+        },
+        "date": 1690227759135,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1294,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 50619,
+            "range": "± 280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18647234,
+            "range": "± 83010",
             "unit": "ns/iter"
           }
         ]
