@@ -16,9 +16,6 @@ use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
-#[cfg(feature = "arbitrary")]
-use crate::serde::deserialize_program::{parse_program_json, ProgramJson};
-
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
@@ -82,8 +79,8 @@ pub fn cairo_run(
 }
 
 #[cfg(feature = "arbitrary")]
-pub fn cairo_run_parsed_program(
-    program_json: Option<ProgramJson>,
+pub fn cairo_run_fuzzed_program(
+    program_json: Option<&[u8]>,
     program: Option<Program>,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut dyn HintProcessor,
@@ -97,8 +94,9 @@ pub fn cairo_run_parsed_program(
 
     let mut cairo_runner = match (program_json, program) {
         (Some(program_json), None) => {
+            let program = Program::from_bytes(program_json, Some(cairo_run_config.entrypoint))?;
             CairoRunner::new(
-                &parse_program_json(program_json, Some(cairo_run_config.entrypoint))?,
+                &program,
                 cairo_run_config.layout,
                 cairo_run_config.proof_mode,
             )?

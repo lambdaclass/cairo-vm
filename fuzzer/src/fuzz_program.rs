@@ -1,5 +1,5 @@
 use cairo_vm::{
-    cairo_run::{cairo_run_parsed_program, CairoRunConfig},
+    cairo_run::{cairo_run_fuzzed_program, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     types::program::Program,
 };
@@ -10,14 +10,14 @@ fn main() {
     loop {
         fuzz!(|data: (CairoRunConfig, Program)| {
             let (cairo_config, program) = data;
-            let _ = cairo_run_parsed_program(
+            let _ = cairo_run_fuzzed_program(
                 None,
                 Some(program.clone()),
                 &CairoRunConfig::default(),
                 &mut BuiltinHintProcessor::new_empty(),
                 STEPS_LIMIT,
             );
-            let _ = cairo_run_parsed_program(
+            let _ = cairo_run_fuzzed_program(
                 None,
                 Some(program),
                 &cairo_config,
