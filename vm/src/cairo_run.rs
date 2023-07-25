@@ -30,10 +30,17 @@ pub struct CairoRunConfig<'a> {
 
 #[cfg(feature = "arbitrary")]
 fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<&'a str> {
-    let layouts = ["plain", "small", "dex", 
-        "starknet", "starknet_with_keccak", 
-        "recursive_large_output", "all_cairo", 
-        "all_solidity", "dynamic"];
+    let layouts = [
+        "plain",
+        "small",
+        "dex",
+        "starknet",
+        "starknet_with_keccak",
+        "recursive_large_output",
+        "all_cairo",
+        "all_solidity",
+        "dynamic",
+    ];
     Ok(u.choose(&layouts)?)
 }
 

@@ -163,31 +163,29 @@ pub struct Location {
 impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let mut locations = Vec::new();
-        
+
         u.arbitrary_loop(Some(0), Some(512), |u| {
-            locations.push(
-                Location {
-                    end_line: u32::arbitrary(u)?,
-                    end_col: u32::arbitrary(u)?, 
-                    input_file: InputFile::arbitrary(u)?, 
-                    parent_location: None,
-                    start_line: u32::arbitrary(u)?, 
-                    start_col: u32::arbitrary(u)?, 
-                }
-            );
+            locations.push(Location {
+                end_line: u32::arbitrary(u)?,
+                end_col: u32::arbitrary(u)?,
+                input_file: InputFile::arbitrary(u)?,
+                parent_location: None,
+                start_line: u32::arbitrary(u)?,
+                start_col: u32::arbitrary(u)?,
+            });
             Ok(std::ops::ControlFlow::Continue(()))
         })?;
 
-        let mut iter_location = locations.pop().unwrap_or_else(||
-            Location {
-                end_line: 0,
-                end_col: 0,
-                input_file: InputFile { filename: "".to_string() },
-                parent_location: None,
-                start_line: 0,
-                start_col: 0
-            }
-        );
+        let mut iter_location = locations.pop().unwrap_or_else(|| Location {
+            end_line: 0,
+            end_col: 0,
+            input_file: InputFile {
+                filename: "".to_string(),
+            },
+            parent_location: None,
+            start_line: 0,
+            start_col: 0,
+        });
 
         while let Some(mut location) = locations.pop() {
             location.parent_location = Some((Box::new(iter_location), String::arbitrary(u)?));

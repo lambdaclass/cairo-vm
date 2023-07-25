@@ -67,7 +67,8 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let data = Vec::<MaybeRelocatable>::arbitrary(u)?;
         let raw_hints = HashMap::<usize, Vec<HintParams>>::arbitrary(u)?;
-        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len()).map_err(|_| arbitrary::Error::IncorrectFormat)?;
+        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len())
+            .map_err(|_| arbitrary::Error::IncorrectFormat)?;
         Ok(SharedProgramData {
             data,
             hints,

@@ -1,8 +1,8 @@
-use honggfuzz::fuzz;
 use cairo_vm::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
+use honggfuzz::fuzz;
 
 fn main() {
     loop {
