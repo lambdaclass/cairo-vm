@@ -15,15 +15,26 @@ use felt::Felt252;
 use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
-use arbitrary::Arbitrary;
+use arbitrary::{self, Arbitrary, Unstructured};
+
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
+    #[cfg_attr(feature = "arbitrary", arbitrary(with = arbitrary_layout))]
     pub layout: &'a str,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
+}
+
+#[cfg(feature = "arbitrary")]
+fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<&'a str> {
+    let layouts = ["plain", "small", "dex", 
+        "starknet", "starknet_with_keccak", 
+        "recursive_large_output", "all_cairo", 
+        "all_solidity", "dynamic"];
+    Ok(u.choose(&layouts)?)
 }
 
 impl<'a> Default for CairoRunConfig<'a> {
