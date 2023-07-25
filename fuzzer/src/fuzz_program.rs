@@ -11,15 +11,13 @@ fn main() {
         fuzz!(|data: (CairoRunConfig, Program)| {
             let (cairo_config, program) = data;
             let _ = cairo_run_fuzzed_program(
-                None,
-                Some(program.clone()),
+                program.clone(),
                 &CairoRunConfig::default(),
                 &mut BuiltinHintProcessor::new_empty(),
                 STEPS_LIMIT,
             );
             let _ = cairo_run_fuzzed_program(
-                None,
-                Some(program),
+                program,
                 &cairo_config,
                 &mut BuiltinHintProcessor::new_empty(),
                 STEPS_LIMIT,

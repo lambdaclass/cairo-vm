@@ -91,8 +91,7 @@ pub fn cairo_run(
 
 #[cfg(feature = "arbitrary")]
 pub fn cairo_run_fuzzed_program(
-    program_json: Option<&[u8]>,
-    program: Option<Program>,
+    program: Program,
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut dyn HintProcessor,
     steps_limit: usize,
@@ -103,30 +102,11 @@ pub fn cairo_run_fuzzed_program(
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
 
-    let mut cairo_runner = match (program_json, program) {
-        (Some(program_json), None) => {
-            let program = Program::from_bytes(program_json, Some(cairo_run_config.entrypoint))?;
-            CairoRunner::new(
-                &program,
-                cairo_run_config.layout,
-                cairo_run_config.proof_mode,
-            )?
-        },
-        (None, Some(program)) => {
-            CairoRunner::new(
-                &program,
-                cairo_run_config.layout,
-                cairo_run_config.proof_mode,
-            )?
-        },
-        _ => {
-            CairoRunner::new(
-                &Program::default(),
-                cairo_run_config.layout,
-                cairo_run_config.proof_mode,
-            )?
-        }
-    };
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        cairo_run_config.proof_mode,
+    )?;
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
