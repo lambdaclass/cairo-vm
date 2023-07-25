@@ -13,6 +13,8 @@ bench/results
 .python-version
 cairo-vm-env/*
 cairo-vm-pypy-env/*
-cairo/
+/cairo1/
+/cairo2/
+*.tar
 
 ensure-no_std/Cargo.lock
