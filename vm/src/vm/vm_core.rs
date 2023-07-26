@@ -27,6 +27,7 @@ use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
+use super::errors::runner_errors::RunnerError;
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
@@ -85,6 +86,7 @@ pub struct VirtualMachine {
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
 impl VirtualMachine {
@@ -114,6 +116,7 @@ impl VirtualMachine {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
+            relocation_table: None,
         }
     }
 
@@ -1002,6 +1005,46 @@ impl VirtualMachine {
             Err(TraceError::TraceNotRelocated)
         }
     }
+
+    /// Returns a list of addresses of memory cells that constitute the public memory.
+    pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
+        if let Some(relocation_table) = &self.relocation_table {
+            Ok(self.segments.get_public_memory_addresses(relocation_table))
+        } else {
+            Err(MemoryError::UnrelocatedMemory.into())
+        }
+    }
+
+    pub fn get_memory_segment_addresses(
+        &self,
+    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
+        let relocation_table = self
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
+            let (index, stop_ptr_offset) = segment;
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((*base, base + stop_ptr_offset))
+        };
+
+        self.builtin_runners
+            .iter()
+            .map(|builtin| -> Result<_, VirtualMachineError> {
+                let addresses =
+                    if let (base, Some(stop_ptr)) = builtin.get_memory_segment_addresses() {
+                        (base, stop_ptr)
+                    } else {
+                        return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
+                    };
+
+                Ok((builtin.name(), relocate(addresses)?))
+            })
+            .collect()
+    }
 }
 
 pub struct VirtualMachineBuilder {
@@ -1097,6 +1140,7 @@ impl VirtualMachineBuilder {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
+            relocation_table: None,
         }
     }
 }

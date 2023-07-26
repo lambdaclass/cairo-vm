@@ -1,4 +1,5 @@
 use crate::{
+    air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -797,12 +798,16 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
+
         if relocate_mem {
             if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        vm.relocate_trace(&relocation_table)
+
+        vm.relocate_trace(&relocation_table)?;
+        vm.relocation_table = Some(relocation_table);
+        Ok(())
     }
 
     // Returns a map from builtin base's segment index to stop_ptr offset
@@ -1110,6 +1115,33 @@ impl CairoRunner {
     /// Return CairoRunner.program
     pub fn get_program(&self) -> &Program {
         &self.program
+    }
+
+    /// Return CairoRunner.layout
+    fn get_layout(&self) -> &CairoLayout {
+        &self.layout
+    }
+
+    pub fn get_air_public_input(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<PublicInput, PublicInputError> {
+        let layout_name = self.get_layout()._name.as_str();
+        let dyn_layout = match layout_name {
+            "dynamic" => Some(self.get_layout()),
+            _ => None,
+        };
+
+        PublicInput::new(
+            &self.relocated_memory,
+            layout_name,
+            dyn_layout,
+            &vm.get_public_memory_addresses()?,
+            vm.get_memory_segment_addresses()?,
+            vm.get_relocated_trace()?,
+            self.get_perm_range_check_limits(vm)
+                .ok_or(PublicInputError::NoRangeCheckLimits)?,
+        )
     }
 }
 
