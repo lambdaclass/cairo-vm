@@ -125,6 +125,8 @@ pub enum VirtualMachineError {
     MissingAccessedAddresses,
     #[error("Failed to write the output builtin content")]
     FailedToWriteOutput,
+    #[error("Failed to find index {0} in the vm's relocation table")]
+    RelocationNotFound(usize),
 }
 
 #[cfg(test)]

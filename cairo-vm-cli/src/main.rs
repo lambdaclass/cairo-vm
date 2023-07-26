@@ -1,12 +1,13 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use bincode::enc::write::Writer;
+use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{Parser, ValueHint};
+use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -37,6 +38,8 @@ struct Args {
     proof_mode: bool,
     #[structopt(long = "secure_run")]
     secure_run: Option<bool>,
+    #[clap(long = "air_public_input")]
+    air_public_input: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -68,6 +71,8 @@ enum Error {
     VirtualMachine(#[from] VirtualMachineError),
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error(transparent)]
+    PublicInput(#[from] PublicInputError),
 }
 
 struct FileWriter {
@@ -104,20 +109,22 @@ impl FileWriter {
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
-    let args = Args::try_parse_from(args);
-    let args = match args {
-        Ok(args) => args,
-        Err(error) => {
-            eprintln!("{error}");
-            return Err(Error::Cli(error));
-        }
-    };
-    let trace_enabled = args.trace_file.is_some();
+    let args = Args::try_parse_from(args)?;
+
+    if args.air_public_input.is_some() && !args.proof_mode {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--air_public_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
         trace_enabled,
-        relocate_mem: args.memory_file.is_some(),
+        relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
@@ -160,21 +167,28 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         memory_writer.flush()?;
     }
 
+    if let Some(file_path) = args.air_public_input {
+        let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
+        std::fs::write(file_path, json)?;
+    }
+
     Ok(())
 }
 
 fn main() -> Result<(), Error> {
+    #[cfg(test)]
+    return Ok(());
+
+    #[cfg(not(test))]
     match run(std::env::args()) {
-        Ok(()) => Ok(()),
-        Err(Error::Cli(_)) => {
-            Ok(()) // Exit with code 0 to avoid printing CLI error message
-        }
-        Err(error) => Err(error),
+        Err(Error::Cli(err)) => err.exit(),
+        other => other,
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
     use rstest::rstest;
@@ -215,10 +229,17 @@ mod tests {
         #[values(false, true)] secure_run: bool,
         #[values(false, true)] print_output: bool,
         #[values(false, true)] entrypoint: bool,
+        #[values(false, true)] air_public_input: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
             args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
+        }
+        if air_public_input {
+            args.extend_from_slice(&[
+                "--air_public_input".to_string(),
+                "air_input.pub".to_string(),
+            ]);
         }
         if proof_mode {
             trace_file = true;
@@ -239,8 +260,13 @@ mod tests {
         if print_output {
             args.extend_from_slice(&["--print_output".to_string()]);
         }
+
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
-        assert_matches!(run(args.into_iter()), Ok(_));
+        if air_public_input && !proof_mode {
+            assert_matches!(run(args.into_iter()), Err(_));
+        } else {
+            assert_matches!(run(args.into_iter()), Ok(_));
+        }
     }
 
     #[test]
@@ -266,7 +292,7 @@ mod tests {
     //to fool Codecov.
     #[test]
     fn test_main() {
-        assert!(main().is_ok());
+        main().unwrap();
     }
 
     #[test]
