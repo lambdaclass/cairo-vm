@@ -4,7 +4,7 @@
 
 * fix: return error when a parsed hint's PC is invalid [#1340](https://github.com/lambdaclass/cairo-vm/pull/1340)
 
-* chore(deps): bump _cairo-lang_ dependencies to v2.1.0-rc1 [#1339](https://github.com/lambdaclass/cairo-vm/pull/1339)
+* chore(deps): bump _cairo-lang_ dependencies to v2.1.0-rc2 [#1345](https://github.com/lambdaclass/cairo-vm/pull/1345)
 
 * chore(examples): remove _wee_alloc_ dependency from _wasm-demo_ example and _ensure-no_std_ dummy crate [#1337](https://github.com/lambdaclass/cairo-vm/pull/1337)
 
