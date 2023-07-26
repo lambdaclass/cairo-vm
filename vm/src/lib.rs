@@ -54,6 +54,7 @@ mod stdlib {
 }
 
 pub extern crate felt;
+pub mod air_public_input;
 pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;
