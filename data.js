@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690227765764,
+  "lastUpdate": 1690387143451,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112522,6 +112522,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18647234,
             "range": "± 83010",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c73b728bf5704892e2934fa1b00d1f5c0b66968c",
+          "message": "Fuzz cairo compiled programs (#1236)\n\n* Create fuzzer\n\n* Remove cli\n\n* Update fuzzer\n\n* Change fuzzer name\n\n* Move functions to utils; Create new fuzzer\n\n* Remove file and update readme\n\n* Change filename\n\n* Fix filenames\n\n* delete extra changes\n\n* Move to fuzzing dir\n\n* update and refactor cairo compiled programs fuzzer\n\n* fmt\n\n* add cairo_programs folder\n\n* fix warnings\n\n* fix formatting\n\n* add felt arbitrary\n\n* add felt arbitrary\n\n* add info to readme\n\n* add fuzzer makefile command\n\n* fix corrections\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\nCo-authored-by: dafifynn <slimbieber@gmail.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-26T15:17:22Z",
+          "tree_id": "8ff114fdaf3752130ed1ad253dde57bac131c252",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/c73b728bf5704892e2934fa1b00d1f5c0b66968c"
+        },
+        "date": 1690387137091,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1354,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 49736,
+            "range": "± 280",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 17755187,
+            "range": "± 465531",
             "unit": "ns/iter"
           }
         ]
