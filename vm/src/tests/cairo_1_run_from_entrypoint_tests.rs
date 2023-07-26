@@ -28,7 +28,7 @@ fn dict_hint_test() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_uint256_div_mod_hint_max_value() {
     let program_data =
-        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+        include_bytes!("../../../cairo_programs/cairo-2-contracts/uint256_div_mod.casm");
 
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
 }
@@ -37,11 +37,11 @@ fn test_uint256_div_mod_hint_max_value() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_uint256_div_mod_hint() {
     let program_data =
-        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+        include_bytes!("../../../cairo_programs/cairo-2-contracts/uint256_div_mod.casm");
 
     run_cairo_1_entrypoint(
         program_data.as_slice(),
-        118,
+        107,
         &[36_usize.into(), 2_usize.into()],
         &[Felt252::from(18_usize)],
     );
