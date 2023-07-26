@@ -303,3 +303,10 @@ clean:
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
+
+fuzzer-deps: 
+	cargo +nightly install cargo-fuzz
+
+run-cairo-compiled-fuzzer:
+	cd fuzzer
+	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
