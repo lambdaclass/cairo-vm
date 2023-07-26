@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690402431980,
+  "lastUpdate": 1690405563021,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -112702,6 +112702,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21747750,
             "range": "± 215174",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "estefano.bargas@fing.edu.uy",
+            "name": "Estéfano Bargas",
+            "username": "xqft"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "01fcea479b03cfef10ae5a0d99337c9b04c0578f",
+          "message": "Add `--air_public_input` to runner (#1268)\n\n* Add air_public_input arg\n\n* Added get_public_memory_addresses()\n\n* Added get_memory_segment_addresses\n\n* Added write_air_public_input skeleton\n\n* Added air_public_input.rs\n\n* Added fixme for unwrap\n\n* Fix get_memory_segment_addresses()\n\n* Finished implementation\n\n* Fixed relocated memory issue\n\n* Fixed trace issue\n\n* Removed rc limits unwrap\n\n* Refactor\n\n* Added changelog entry\n\n* Remove memory addresses structs\n\n* Fix changelog\n\n* Refactor get_public_memory_addresses\n\n* Fixed relocation issue on builtin addresses\n\n* Replaced get_trace() with get_relocated_trace()\n\n* Use references on new()\n\n* Removed trace indexing\n\n* Remove allow unused from air public input\n\n* Fix all builtins stop_ptr\n\n* Handle write result\n\n* Removed indexing\n\n* Remove indexing\n\n* Partial fix cli error\n\n* Fixed error formatting\n\n* Added get_air_public_input() to cairo runner\n\n* Fix clippy\n\n* Change to clearer code\n\n* Update vm/src/air_public_input.rs\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Update changelog\n\n* Update vm/src/air_public_input.rs\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* Reorder to avoid cloning\n\n* Fix main test\n\n* Custom ser for mem value\n\n* Another fix for main test\n\n* Return NoStopPtr err instead of using Option\n\n* Make get_layout private\n\n* Clone page_id\n\n* Return err if rc values are missing\n\n* Added new MemorySegmentAddresses\n\n* Fix changelog\n\n* Fix test main\n\n* Fix wasm build\n\n* Fix clippy\n\n* Fix nostd again\n\n* Dummy commit\n\n* Revert \"Dummy commit\"\n\nThis reverts commit 6b01c6628f1d6b28325827d8d219d17a2790897b.\n\n* New main test\n\n* Added air_public_input test, changed main\n\n* Allow too many args in test\n\n* Try deny deny\n\n* Fix clippy\n\n* Fix clap\n\n* Fix argument\n\n* Changed run rstest\n\n---------\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-07-26T20:09:13Z",
+          "tree_id": "359b76024d6d02030e7dd928b0b3b922b8ac51bb",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/01fcea479b03cfef10ae5a0d99337c9b04c0578f"
+        },
+        "date": 1690405554320,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1751,
+            "range": "± 50",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 66951,
+            "range": "± 1924",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 24463122,
+            "range": "± 706365",
             "unit": "ns/iter"
           }
         ]
