@@ -4,18 +4,18 @@ use bincode::enc::write::Writer;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 use cairo_vm::vm::vm_core::VirtualMachine;
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::tracer::run_tracer;
 use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
@@ -50,8 +50,8 @@ struct Args {
     secure_run: Option<bool>,
     #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
-    #[cfg(feature = "tracer")]
     #[structopt(long = "--tracer")]
+    #[cfg(feature = "with_tracer")]
     tracer: Option<bool>,
 }
 
@@ -87,7 +87,7 @@ enum Error {
     #[error(transparent)]
     PublicInput(#[from] PublicInputError),
     #[error(transparent)]
-    #[cfg(feature = "tracer")]
+    #[cfg(feature = "with_tracer")]
     TraceDataErroe(#[from] TraceDataError),
 }
 
@@ -124,7 +124,7 @@ impl FileWriter {
     }
 }
 
-#[cfg(feature = "tracer")]
+#[cfg(feature = "with_tracer")]
 fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
     let instruction_locations = cairo_runner
         .get_program()
@@ -180,11 +180,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             }
         };
 
-    #[cfg(feature = "tracer")]
-    if args.tracer.is_some() && args.tracer.unwrap() {
-        start_tracer(&cairo_runner, &vm)?;
-    }
-
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();
         vm.write_output(&mut output_buffer)?;
@@ -214,6 +209,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     if let Some(file_path) = args.air_public_input {
         let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
         std::fs::write(file_path, json)?;
+    }
+
+    #[cfg(feature = "with_tracer")]
+    if args.tracer.is_some() && args.tracer.unwrap() {
+        start_tracer(&cairo_runner, &vm)?;
     }
 
     Ok(())
