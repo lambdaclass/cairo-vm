@@ -227,9 +227,7 @@ impl Program {
         &self,
         relocation_table: &[usize],
     ) -> Option<HashMap<usize, InstructionLocation>> {
-        if self.shared_program_data.instruction_locations.is_none() {
-            return None;
-        }
+        self.shared_program_data.instruction_locations.as_ref()?;
         let relocated_instructions = self
             .shared_program_data
             .instruction_locations

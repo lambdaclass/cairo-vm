@@ -73,13 +73,13 @@ impl InputCodeFile {
     }
 
     pub fn to_html(&self) -> String {
-        let mut res = self.content.replace(" ", "\0");
+        let mut res = self.content.replace(' ', "\0");
         let mut sorted_tags = self.tags.clone();
         sorted_tags.sort_by_key(|&(key, _, _)| key);
         for &(pos, _, ref tag_content) in sorted_tags.iter().rev() {
             res.insert_str(pos, tag_content);
         }
-        res.replace("\0", "&nbsp;").replace("\n", "<br/>\n")
+        res.replace('\0', "&nbsp;").replace('\n', "<br/>\n")
     }
 }
 
@@ -171,7 +171,7 @@ impl TracerData {
                         }
                         let offset = offset.unwrap();
                         Ok(Some(MaybeRelocatable::RelocatableValue(Relocatable {
-                            segment_index: 1 as isize,
+                            segment_index: 1_isize,
                             offset,
                         })))
                     }
@@ -206,7 +206,7 @@ impl TracerData {
 // pc + 1, if it exists in the memory).
 pub fn get_instruction_encoding(
     pc: usize,
-    memory: &Vec<Option<Felt252>>,
+    memory: &[Option<Felt252>],
     prime: &str,
 ) -> Result<(Felt252, Option<Felt252>), TraceDataError> {
     if memory[pc].is_none() {
@@ -219,5 +219,5 @@ pub fn get_instruction_encoding(
     let imm_addr = usize::try_from(imm_addr.clone())
         .map_err(|_| TraceDataError::FailedToImmAddress(imm_addr.to_string()))?;
     let optional_imm = memory[imm_addr].clone();
-    return Ok((instruction_encoding.into(), optional_imm));
+    Ok((instruction_encoding, optional_imm))
 }

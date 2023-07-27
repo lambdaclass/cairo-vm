@@ -70,8 +70,7 @@ async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
         memory: tracer_data
             .memory
             .iter()
-            .filter(|x| x.is_some()) // remoes the first element which is None
-            .map(|x| x.clone().unwrap())
+            .filter_map(|x| x.as_ref().map(|_| x.clone().unwrap()))
             .map(|x| {
                 field_element_repr(
                     &x.to_bigint(),
@@ -125,7 +124,7 @@ fn field_element_repr(val: &BigInt, prime: &BigInt) -> String {
     if shifted_val.abs() < two_pow_100 {
         return format!("0x{:x}", shifted_val);
     }
-    return format!("0x{:x}", val);
+    format!("0x{:x}", val)
 }
 
 #[derive(Serialize)]

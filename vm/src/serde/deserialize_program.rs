@@ -230,13 +230,10 @@ pub struct InputFile {
 impl InputFile {
     pub fn get_content(&self) -> Result<String, String> {
         let content = std::fs::read_to_string(self.filename.clone());
-        if content.is_ok() {
-            return Ok(content.unwrap());
+        if let Ok(content) = content {
+            return Ok(content);
         }
-        Err(String::from(format!(
-            "Failed to read file {}",
-            self.filename.clone()
-        )))
+        Err(format!("Failed to read file {}", self.filename.clone()))
     }
 }
 
