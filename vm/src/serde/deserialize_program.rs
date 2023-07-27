@@ -196,7 +196,7 @@ impl<'a> Arbitrary<'a> for Location {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone, Serialize))]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
