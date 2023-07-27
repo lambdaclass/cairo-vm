@@ -237,6 +237,8 @@ function create_watch_row() {
 var update_watch_ajax = { abort: function () {} };
 
 function update_watch() {
+  // REMOVE RETURN TO EVALUATION EXPRESSION
+  return;
   var query_str = "eval.json?step=" + encodeURIComponent(current_step);
   for (const entry of watch_exprs) {
     const expr_txt = entry.watch_expr.val();
