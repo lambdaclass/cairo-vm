@@ -294,9 +294,9 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cairo-felt"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f8de851723a7d13ed8b0b588a78ffa6b38d8e1f3eb4b6e71a96376510e5504a"
+checksum = "9ce04b099042dc52ad1579cfa54aca08a1049b0026c4c62d0f64944621c05de2"
 dependencies = [
  "lazy_static",
  "num-bigint",
@@ -307,7 +307,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-felt"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "arbitrary",
  "lambdaworks-math",
@@ -626,7 +626,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32af568d896f497bc7154b6b38cf3a63634cd1a49625e788132b897b206aa117"
 dependencies = [
  "assert_matches",
- "cairo-felt 0.8.2",
+ "cairo-felt 0.8.3",
  "cairo-lang-casm",
  "cairo-lang-sierra",
  "cairo-lang-sierra-ap-change",
@@ -658,7 +658,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fc16911988deeaa242f3b9111d27a07033c09c720af10970ea30c3091a7cfe7"
 dependencies = [
  "anyhow",
- "cairo-felt 0.8.2",
+ "cairo-felt 0.8.3",
  "cairo-lang-casm",
  "cairo-lang-compiler",
  "cairo-lang-defs",
@@ -737,7 +737,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -746,7 +746,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.8.3",
+ "cairo-felt 0.8.4",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
@@ -776,7 +776,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1396,7 +1396,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2345,18 +2345,18 @@ checksum = "b0293b4b29daaf487284529cc2f5675b8e57c61f70167ba415a463651fd6a918"
 
 [[package]]
 name = "serde"
-version = "1.0.176"
+version = "1.0.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76dc28c9523c5d70816e393136b86d48909cfb27cecaa902d338c19ed47164dc"
+checksum = "63ba2516aa6bf82e0b19ca8b50019d52df58455d3cf9bdaf6315225fdd0c560a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.176"
+version = "1.0.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4e7b8c5dc823e3b90651ff1d3808419cd14e5ad76de04feaf37da114e7a306f"
+checksum = "401797fe7833d72109fedec6bfcbe67c0eed9b99772f26eb8afd261f0abc6fd3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2882,7 +2882,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
