@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-#### [0.8.3] - 2023-7-26
+#### [0.8.4] - 2023-7-28
 
 * feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
 
@@ -39,6 +39,9 @@
   * `get_hint_dictionary(&self, &[HintReference], &mut dyn HintProcessor) -> Result<HashMap<usize, Vec<Box<dyn Any>>, VirtualMachineError>` ->
     `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
   * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
+
+#### [0.8.3]
+**YANKED**
 
 #### [0.8.2] - 2023-7-10
 
