@@ -2,10 +2,10 @@ use cairo_vm::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
-use cairo_vm::serde::deserialize_program::{DebugInfo, Attribute, Identifier, HintParams, ReferenceManager};
+use cairo_vm::serde::deserialize_program::{DebugInfo, Attribute, HintParams, ReferenceManager, Member};
 use cairo_felt::Felt252;
-use honggfuzz::fuzz;
-use serde::{Serialize, Deserialize, Serializer, ser::{SerializeSeq, SerializeMap}};
+//use honggfuzz::fuzz;
+use serde::{Serialize, Deserialize, Serializer};
 use arbitrary::{self, Unstructured, Arbitrary};
 use std::collections::HashMap;
 
@@ -21,6 +21,8 @@ const BUILTIN_NAMES: [&str; 9] = [
     "segment_arena"
 ];
 
+const HEX_SYMBOLS: [&str; 16] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"];
+
 #[derive(Arbitrary, Serialize, Deserialize)]
 struct ProgramJson {
     attributes: Vec::<Attribute>,
@@ -28,19 +30,58 @@ struct ProgramJson {
     builtins: Vec::<String>,
     #[arbitrary(value = "0.11.0".to_string())]
     compiler_version: String,
-    #[arbitrary(with = arbitrary_data)] 
-    #[serde(serialize_with = "hex_notation")]
-    data: Vec<Felt252>,
+    data: Vec<TextFelt>,
     debug_info: DebugInfo,
     #[arbitrary(with = prepend_main_identifier)] 
-    #[serde(serialize_with = "only_print_somes")]
-    identifiers: HashMap<String, Identifier>,
+    identifiers: HashMap<String, TextIdentifier>,
     hints: HashMap<usize, Vec<HintParams>>,
     #[arbitrary(value = "__main__".to_string())]
     main_scope: String,
     #[arbitrary(value = "0x800000000000011000000000000000000000000000000000000000000000001".to_string())]
     prime: String,
     reference_manager: ReferenceManager
+}
+
+#[derive(Deserialize)]
+struct TextFelt {
+    value: String
+}
+
+#[derive(Serialize, Deserialize, Arbitrary)]
+struct TextIdentifier {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pc: Option<usize>,
+    #[serde(rename(serialize = "type"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    type_: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    value: Option<Felt252>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    full_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    members: Option<HashMap<String, Member>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cairo_type: Option<String>,
+}
+
+impl<'a> Arbitrary<'a> for TextFelt {
+    fn arbitrary(u: &mut Unstructured) -> arbitrary::Result<TextFelt> {
+        let felt_size = 16;
+        let mut digits = Vec::with_capacity(felt_size);
+        for _ in 0..felt_size {
+            digits.push(*u.choose(&HEX_SYMBOLS)?)
+        }
+        Ok(TextFelt { value: digits.join("") })
+    }
+}
+
+impl Serialize for TextFelt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(&format!("0x{}", self.value))
+    }
 }
 
 fn arbitrary_builtins(u: &mut Unstructured) -> arbitrary::Result<Vec<String>> {
@@ -56,35 +97,11 @@ fn arbitrary_builtins(u: &mut Unstructured) -> arbitrary::Result<Vec<String>> {
     Ok(selected_builtins)
 }
 
-fn arbitrary_data(u: &mut Unstructured) -> arbitrary::Result<Vec<Felt252>> {
-    let data_size = u.arbitrary_len::<Felt252>()?;
-    let mut data = Vec::with_capacity(data_size);
-
-    for _ in 0..data_size{
-        data.push(Felt252::arbitrary(u)?);
-    }
-
-    Ok(data)
-}
-
-fn hex_notation<S>(data: &Vec::<Felt252>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer
-{
-    let mut seq = serializer.serialize_seq(Some(data.len()))?;
-    for element in data {
-        let mut number = String::from("0x");
-        number.push_str(&element.to_str_radix(16));
-        seq.serialize_element(&number)?;
-    }
-    seq.end()
-}
-
-fn prepend_main_identifier(u: &mut Unstructured) -> arbitrary::Result<HashMap<String, Identifier>> {
-    let mut identifiers = HashMap::<String, Identifier>::arbitrary(u)?;
+fn prepend_main_identifier(_u: &mut Unstructured) -> arbitrary::Result<HashMap<String, TextIdentifier>> {
+    let mut identifiers = HashMap::new();//HashMap::<String, Identifier>::arbitrary(u)?;
     identifiers.insert(
         String::from("__main__.main"),
-        Identifier {
+        TextIdentifier {
             pc: Some(0),
             type_: Some(String::from("function")),
             value: None,
@@ -96,41 +113,19 @@ fn prepend_main_identifier(u: &mut Unstructured) -> arbitrary::Result<HashMap<St
     Ok(identifiers)
 }
 
-fn only_print_somes<S>(identifiers: &HashMap::<String, Identifier>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer
-{
-    let mut map = serializer.serialize_map(Some(identifiers.len()))?;
-    for (k, v) in identifiers {
-        map.serialize_entry(k, &identifier_to_hashmap(&v))?;
-    }
-    map.end()
-}
-
-fn identifier_to_hashmap<'a>(identifier: &Identifier) -> HashMap<&'a str, String> {
-    let mut mapped_identifier = HashMap::new();
-    if let Some(pc) = &identifier.pc {
-        mapped_identifier.insert("pc", pc.to_string());
-    }
-    if let Some(type_) = &identifier.type_ {
-        mapped_identifier.insert("type", type_.to_string());
-    }
-    if let Some(value) = &identifier.value {
-        mapped_identifier.insert("value", value.to_string());
-    }
-    if let Some(full_name) = &identifier.full_name{
-        mapped_identifier.insert("full_name", full_name.to_string());
-    }
-    if let Some(cairo_type) = &identifier.cairo_type {
-        mapped_identifier.insert("cairo_type", cairo_type.to_string());
-    }
-    mapped_identifier
-}
-
 fn main() {
-    loop {
-        fuzz!(|data: (CairoRunConfig, ProgramJson)| {
-            let (cairo_run_config, program_json) = data;
+    //loop {
+    //    fuzz!(|data: (CairoRunConfig, ProgramJson)| {
+        let mut data = vec![
+            Unstructured::new(include_bytes!("../../cairo_programs/example_blake2s.cairo")),
+            Unstructured::new(include_bytes!("../../cairo_programs/abs_value_array.cairo")),
+            Unstructured::new(include_bytes!("../../cairo_programs/keccak_copy_inputs.cairo")),
+            Unstructured::new(include_bytes!("../../cairo_programs/fibonacci.cairo")),
+            Unstructured::new(include_bytes!("../../cairo_programs/simple_print.cairo")),
+            Unstructured::new(include_bytes!("../../cairo_programs/jmp_if_condition.cairo"))
+        ]; 
+        for u in data.iter_mut() {
+            let (cairo_run_config, program_json) = <(CairoRunConfig, ProgramJson)>::arbitrary(u).unwrap();
             match serde_json::to_string_pretty(&program_json) {
                 Ok(program_raw) => {
                     let _ = cairo_run(
@@ -146,13 +141,14 @@ fn main() {
                 },
                 Err(_) => {}
             }
-        });
-    }
+        }
+     //   });
+    //}
     
     //let mut u = Unstructured::new(&[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,5,6,7,8,9,0,11,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9]);
-    /*let mut u = Unstructured::new(include_bytes!("../../cairo_programs/example_blake2s.cairo"));
-    let program_json = ProgramJson::arbitrary(&mut u).unwrap();
-    let serialized = serde_json::to_string_pretty(&program_json).unwrap();
-    println!("{serialized}");*/
+    //let mut u = Unstructured::new(include_bytes!("../../cairo_programs/example_blake2s.cairo"));
+    //let program_json = ProgramJson::arbitrary(&mut u).unwrap();
+    //let serialized = serde_json::to_string_pretty(&program_json).unwrap();
+    //println!("{serialized}");
 }
 

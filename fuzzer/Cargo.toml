@@ -27,3 +27,6 @@ path = "src/fuzz_program.rs"
 [[bin]]
 name = "playground"
 path = "src/playground.rs"
+
+[profile.release]
+debug = true
