@@ -153,7 +153,6 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
-//#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
