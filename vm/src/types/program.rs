@@ -1,4 +1,8 @@
-use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    prelude::*,
+    sync::Arc,
+};
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
@@ -66,7 +70,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     /// `hints_ranges`
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let data = Vec::<MaybeRelocatable>::arbitrary(u)?;
-        let raw_hints = HashMap::<usize, Vec<HintParams>>::arbitrary(u)?;
+        let raw_hints = BTreeMap::<usize, Vec<HintParams>>::arbitrary(u)?;
         let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len())
             .map_err(|_| arbitrary::Error::IncorrectFormat)?;
         Ok(SharedProgramData {
@@ -119,6 +123,7 @@ impl Program {
                 constants.insert(key.clone(), value);
             }
         }
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
 
         let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
 
@@ -142,7 +147,7 @@ impl Program {
     }
 
     pub(crate) fn flatten_hints(
-        hints: &HashMap<usize, Vec<HintParams>>,
+        hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
     ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
         let bounds = hints
