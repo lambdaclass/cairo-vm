@@ -19,6 +19,7 @@ use arbitrary::{self, Arbitrary, Unstructured};
 
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
+    #[cfg_attr(feature = "arbitrary", arbitrary(value = "main"))]
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,

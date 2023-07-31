@@ -4,7 +4,7 @@ use cairo_vm::{
 };
 use cairo_vm::serde::deserialize_program::{DebugInfo, Attribute, HintParams, ReferenceManager, Member};
 use cairo_felt::Felt252;
-//use honggfuzz::fuzz;
+use honggfuzz::fuzz;
 use serde::{Serialize, Deserialize, Serializer};
 use arbitrary::{self, Unstructured, Arbitrary};
 use std::collections::HashMap;
@@ -98,7 +98,7 @@ fn arbitrary_builtins(u: &mut Unstructured) -> arbitrary::Result<Vec<String>> {
 }
 
 fn prepend_main_identifier(_u: &mut Unstructured) -> arbitrary::Result<HashMap<String, TextIdentifier>> {
-    let mut identifiers = HashMap::new();//HashMap::<String, Identifier>::arbitrary(u)?;
+    let mut identifiers = HashMap::new();
     identifiers.insert(
         String::from("__main__.main"),
         TextIdentifier {
@@ -114,18 +114,9 @@ fn prepend_main_identifier(_u: &mut Unstructured) -> arbitrary::Result<HashMap<S
 }
 
 fn main() {
-    //loop {
-    //    fuzz!(|data: (CairoRunConfig, ProgramJson)| {
-        let mut data = vec![
-            Unstructured::new(include_bytes!("../../cairo_programs/example_blake2s.cairo")),
-            Unstructured::new(include_bytes!("../../cairo_programs/abs_value_array.cairo")),
-            Unstructured::new(include_bytes!("../../cairo_programs/keccak_copy_inputs.cairo")),
-            Unstructured::new(include_bytes!("../../cairo_programs/fibonacci.cairo")),
-            Unstructured::new(include_bytes!("../../cairo_programs/simple_print.cairo")),
-            Unstructured::new(include_bytes!("../../cairo_programs/jmp_if_condition.cairo"))
-        ]; 
-        for u in data.iter_mut() {
-            let (cairo_run_config, program_json) = <(CairoRunConfig, ProgramJson)>::arbitrary(u).unwrap();
+    loop {
+        fuzz!(|data: (CairoRunConfig, ProgramJson)| {
+            let (cairo_run_config, program_json) = data;
             match serde_json::to_string_pretty(&program_json) {
                 Ok(program_raw) => {
                     let _ = cairo_run(
@@ -141,14 +132,7 @@ fn main() {
                 },
                 Err(_) => {}
             }
-        }
-     //   });
-    //}
-    
-    //let mut u = Unstructured::new(&[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,5,6,7,8,9,0,11,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9]);
-    //let mut u = Unstructured::new(include_bytes!("../../cairo_programs/example_blake2s.cairo"));
-    //let program_json = ProgramJson::arbitrary(&mut u).unwrap();
-    //let serialized = serde_json::to_string_pretty(&program_json).unwrap();
-    //println!("{serialized}");
+        });
+    }
 }
 
