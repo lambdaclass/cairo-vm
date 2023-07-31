@@ -293,7 +293,7 @@ pub mod test_utils {
 
     pub(crate) struct ProgramFlat {
         pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
-        pub(crate) hints: crate::stdlib::collections::HashMap<
+        pub(crate) hints: crate::stdlib::collections::BTreeMap<
             usize,
             crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
         >,

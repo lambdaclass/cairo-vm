@@ -1,4 +1,8 @@
-use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    prelude::*,
+    sync::Arc,
+};
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
@@ -96,6 +100,7 @@ impl Program {
                 constants.insert(key.clone(), value);
             }
         }
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
 
         let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
 
@@ -119,7 +124,7 @@ impl Program {
     }
 
     pub(crate) fn flatten_hints(
-        hints: &HashMap<usize, Vec<HintParams>>,
+        hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
     ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
         let bounds = hints
