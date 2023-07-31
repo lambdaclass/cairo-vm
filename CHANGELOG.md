@@ -2,9 +2,9 @@
 
 #### Upcoming Changes
 
-* fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
+#### [0.8.5] - 2023-7-31
 
-#### [0.8.4] - 2023-7-28
+* fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
 
 * feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
 
@@ -39,6 +39,9 @@
   * `get_hint_dictionary(&self, &[HintReference], &mut dyn HintProcessor) -> Result<HashMap<usize, Vec<Box<dyn Any>>, VirtualMachineError>` ->
     `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
   * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
+
+#### [0.8.4] 
+**YANKED**
 
 #### [0.8.3]
 **YANKED**
