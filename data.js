@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690826329358,
+  "lastUpdate": 1690845173409,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -113152,6 +113152,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 24621362,
             "range": "± 1670002",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e7a0022232e5f9e947524c5b3216ed829fc92971",
+          "message": "perf: remove unneeded bitshift in validated addresses insertion (#1208)\n\n* Remove unneeded plus one\n\n* Clean up `validate_*`'s code\n\n* Replace `insert` with `push` in extend\n\n* Change approach\n\nThe +1 in resize is used to avoid having to allocate in the case the next push falls outside capacity.\nInstead, we use a replace in the place of the insert.\n\n* Update changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-07-31T22:24:23Z",
+          "tree_id": "0f0373920960b2f4f7cb5de7d51935e7d587ff6a",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/e7a0022232e5f9e947524c5b3216ed829fc92971"
+        },
+        "date": 1690845165265,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1662,
+            "range": "± 97",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 62538,
+            "range": "± 5589",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23152162,
+            "range": "± 964695",
             "unit": "ns/iter"
           }
         ]
