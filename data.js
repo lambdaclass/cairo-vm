@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690845173409,
+  "lastUpdate": 1690923408952,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -113242,6 +113242,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23152162,
             "range": "± 964695",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73983677+omahs@users.noreply.github.com",
+            "name": "omahs",
+            "username": "omahs"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47c0411890c8605410cfc7bb8507141eb136ff87",
+          "message": "Fix: typos (#1341)\n\n* Fix: typos\n\n* Fix: typo\n\n* Fix: typo\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n* Fix: typos\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n* Fix: typo\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n* Fix: typo\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>\n\n---------\n\nCo-authored-by: Tomás <47506558+MegaRedHand@users.noreply.github.com>",
+          "timestamp": "2023-08-01T20:12:27Z",
+          "tree_id": "8b1fd5f19e825053744d4d4f1181db4767ab5bb0",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/47c0411890c8605410cfc7bb8507141eb136ff87"
+        },
+        "date": 1690923402151,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1336,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51638,
+            "range": "± 249",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18922393,
+            "range": "± 144304",
             "unit": "ns/iter"
           }
         ]
