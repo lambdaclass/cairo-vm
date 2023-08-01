@@ -69,12 +69,13 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     /// Create an arbitary [`SharedProgramData`] using `flatten_hints` to generate `hints` and
     /// `hints_ranges`
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        let mut data = Vec::new(); //arbitrary(u)?;
-        for _ in 0..usize::arbitrary(u)? {
+        let mut data = Vec::new();
+        let len = usize::arbitrary(u)?;
+        for i in 0..len {
             let instruction = u64::arbitrary(u)?;
             data.push(MaybeRelocatable::from(Felt252::from(instruction)));
             // Check if the Imm flag is on and add an immediate value if it is
-            if instruction & 0x0004000000000000 != 0 {
+            if instruction & 0x0004000000000000 != 0 && i < len - 1 {
                 data.push(MaybeRelocatable::from(Felt252::arbitrary(u)?));
             }
         }
