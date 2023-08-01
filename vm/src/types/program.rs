@@ -73,7 +73,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
         for _ in 0..usize::arbitrary(u)? {
             let instruction = u64::arbitrary(u)?;
             data.push(MaybeRelocatable::from(Felt252::from(instruction)));
-            // Check if the Imm falg is on and add an immediate value if it is
+            // Check if the Imm flag is on and add an immediate value if it is
             if instruction & 0x0004000000000000 != 0 {
                 data.push(MaybeRelocatable::from(Felt252::arbitrary(u)?));
             }
