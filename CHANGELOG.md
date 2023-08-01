@@ -10,6 +10,8 @@
 
 * fix: CLI errors bad formatting and handling
 
+* perf: replace insertion with bit-setting in validated addresses [#1208](https://github.com/lambdaclass/cairo-vm/pull/1208)
+
 * fix: return error when a parsed hint's PC is invalid [#1340](https://github.com/lambdaclass/cairo-vm/pull/1340)
 
 * chore(deps): bump _cairo-lang_ dependencies to v2.1.0-rc2 [#1345](https://github.com/lambdaclass/cairo-vm/pull/1345)
