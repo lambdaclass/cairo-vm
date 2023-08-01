@@ -148,7 +148,6 @@ pub struct Attribute {
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
-//#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Location {
     pub end_line: u32,
@@ -164,7 +163,7 @@ impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let mut locations = Vec::new();
 
-        u.arbitrary_loop(Some(0), Some(512), |u| {
+        u.arbitrary_loop(Some(0), Some(64), |u| {
             locations.push(Location {
                 end_line: u32::arbitrary(u)?,
                 end_col: u32::arbitrary(u)?,
