@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+feat: add "proptest" feature, that makes public `proptest` related implementations [#1355](https://github.com/lambdaclass/cairo-vm/pull/1355)
+
 #### [0.8.5] - 2023-7-31
 
 * fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
