@@ -229,7 +229,7 @@ cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
-test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts
+test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
 	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
 	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
@@ -303,3 +303,10 @@ clean:
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
+
+fuzzer-deps: 
+	cargo +nightly install cargo-fuzz
+
+run-cairo-compiled-fuzzer:
+	cd fuzzer
+	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer

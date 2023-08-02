@@ -6,7 +6,12 @@
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+    prelude::*,
+    sync::Arc,
+};
 
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::{
@@ -72,7 +77,7 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
-    pub hints: HashMap<usize, Vec<HintParams>>,
+    pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub attributes: Vec<Attribute>,
     pub debug_info: Option<DebugInfo>,
@@ -675,7 +680,7 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints = HashMap::new();
+        let mut hints = BTreeMap::new();
         hints.insert(
             0,
             vec![HintParams {
