@@ -5,10 +5,6 @@
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 pub extern crate alloc;
 
-#[cfg(all(test, not(feature = "lambdaworks-felt")))]
-mod arbitrary_bigint_felt;
-#[cfg(all(test, feature = "lambdaworks-felt"))]
-mod arbitrary_lambdaworks;
 #[cfg(not(feature = "lambdaworks-felt"))]
 mod bigint_felt;
 #[cfg(not(feature = "lambdaworks-felt"))]
@@ -19,10 +15,10 @@ mod lib_lambdaworks;
 use core::fmt;
 
 #[cfg(feature = "lambdaworks-felt")]
-pub use lib_lambdaworks::Felt252;
+pub use lib_lambdaworks::*;
 
 #[cfg(not(feature = "lambdaworks-felt"))]
-pub use lib_bigint_felt::Felt252;
+pub use lib_bigint_felt::*;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001"; // in decimal, this is equal to 3618502788666131213697322783095070105623107215331596699973092056135872020481
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
@@ -36,3 +32,8 @@ impl fmt::Display for ParseFeltError {
         write!(f, "{ParseFeltError:?}")
     }
 }
+
+#[cfg(any(feature = "proptest", test))]
+#[cfg_attr(feature = "lambdaworks-felt", path = "arbitrary_lambdaworks.rs")]
+#[cfg_attr(not(feature = "lambdaworks-felt"), path = "arbitrary_bigint_felt.rs")]
+pub mod arbitrary;
