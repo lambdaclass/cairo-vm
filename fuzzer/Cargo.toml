@@ -23,10 +23,3 @@ path = "src/fuzz_json.rs"
 [[bin]]
 name = "fuzz_program"
 path = "src/fuzz_program.rs"
-
-[[bin]]
-name = "playground"
-path = "src/playground.rs"
-
-[profile.release]
-debug = true
