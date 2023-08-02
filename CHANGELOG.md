@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Add HintError::SyscallError and VmErrors::HINT_ERROR_STR constant [#1357](https://github.com/lambdaclass/cairo-rs/pull/1357)
+
 #### [0.8.5] - 2023-7-31
 
 * fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
