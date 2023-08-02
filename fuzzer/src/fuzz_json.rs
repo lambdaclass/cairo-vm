@@ -4,7 +4,7 @@ use cairo_vm::{
     serde::deserialize_program::{DebugInfo, Attribute, ReferenceManager, Member, FlowTrackingData},
 };
 use cairo_felt::Felt252;
-//use honggfuzz::fuzz;
+use honggfuzz::fuzz;
 use serde::{Serialize, Deserialize, Serializer};
 use arbitrary::{self, Unstructured, Arbitrary};
 use std::collections::HashMap;
@@ -173,14 +173,8 @@ fn prepend_mod_name(u: &mut Unstructured) -> arbitrary::Result<Vec<String>> {
 }
 
 fn main() {
-    //loop {
-        //fuzz!(|data: (CairoRunConfig, ProgramJson)| {
-    let paths = std::fs::read_dir("./json_corpus").unwrap();
-
-    for path in paths {
-        let file_contents = std::fs::read(path.unwrap().path()).unwrap();
-            let mut u = Unstructured::new(&file_contents);
-            let data = <(CairoRunConfig, ProgramJson)>::arbitrary(&mut u).unwrap();
+    loop {
+        fuzz!(|data: (CairoRunConfig, ProgramJson)| {
             let (cairo_run_config, program_json) = data;
             match serde_json::to_string_pretty(&program_json) {
                 Ok(program_raw) => {
@@ -197,8 +191,7 @@ fn main() {
                 },
                 Err(_) => {}
             }
+        });
     }
-        //});
-    //}
 }
 
