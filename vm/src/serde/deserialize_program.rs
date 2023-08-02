@@ -145,6 +145,7 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    #[cfg_attr(all(feature = "arbitrary", feature = "std"), serde(skip_serializing_if = "Option::is_none"))]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
