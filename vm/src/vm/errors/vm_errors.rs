@@ -17,7 +17,7 @@ use crate::{
 };
 use felt::Felt252;
 
-pub const HINT_ERROR_STR: &str = "Got an exception while executing a hint ";
+pub const HINT_ERROR_STR: &str = "Got an exception while executing a hint: ";
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
