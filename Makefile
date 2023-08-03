@@ -304,9 +304,15 @@ clean:
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
 
-fuzzer-deps: 
+fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
+	. cairo-vm-env/bin/activate; pip install atheris==2.2.2
 
 run-cairo-compiled-fuzzer:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
+
+diff-fuzz:
+	. cairo-vm-env/bin/activate ; \
+	cd fuzzer/diff_fuzzer/; \
+	../../cairo-vm-env/bin/python mul_div_mod_hint.py -len_control=0
