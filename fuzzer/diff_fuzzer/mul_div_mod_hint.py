@@ -48,7 +48,7 @@ def diff_fuzzer(data):
     with open(filename, 'w', encoding='utf-8') as file:
         file.writelines(data)
 
-    rust_output = subprocess.run(["./../target/release/cairo-vm-cli", "--layout", "starknet", "--print_output", filename], stdout=subprocess.PIPE)
+    rust_output = subprocess.run(["./../../target/release/cairo-vm-cli", "--layout", "starknet", "--print_output", filename], stdout=subprocess.PIPE)
     python_output = subprocess.run(["cairo-run", "--layout", "starknet", "--print_output", "--program", filename], stdout=subprocess.PIPE)
 
     os.remove(filename)
