@@ -10,3 +10,8 @@ To run the fuzzer you need to have installed `cargo-fuzz`. If not, use the comma
 To run simply use `cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer`
 
 We use nightly for this fuzzer because cargo fuzz runs with the -Z flag, which only works with +nightly.
+
+## diff_fuzzer
+To run de diff fuzzer on the uint256_mul_div_mod function, go to the root of the project and run
+`make fuzzer-deps` if you haven't before, this should only be run once.
+`make diff-fuzz`
