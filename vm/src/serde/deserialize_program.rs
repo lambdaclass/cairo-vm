@@ -150,7 +150,10 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
-    #[cfg_attr(all(feature = "arbitrary", feature = "std"), serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(
+        all(feature = "arbitrary", feature = "std"),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -176,7 +179,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     let parent_location = if depth > 0 {
         Some((
             Box::new(arbitrary_parent_location(u, depth - 1)?),
-            String::arbitrary(u)?
+            String::arbitrary(u)?,
         ))
     } else {
         None
@@ -191,7 +194,10 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone, Serialize))]
+#[cfg_attr(
+    all(feature = "arbitrary", feature = "std"),
+    derive(Arbitrary, Clone, Serialize)
+)]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
