@@ -21,7 +21,7 @@ readme = "README.md"
 keywords = ["starknet", "cairo", "vm", "wasm", "no_std"]
 
 [workspace.dependencies]
-felt = { package = "cairo-felt", path = "./felt", version = "0.8.5", default-features = false, features = [
+felt = { path = "../types-rs/crates/stark-felt", default-features = false, features = [
     "alloc",
 ] }
 cairo-vm = { path = "./vm", version = "0.8.5", default-features = false }

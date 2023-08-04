@@ -746,10 +746,10 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.8.5",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
+ "felt",
  "generic-array",
  "hashbrown 0.14.0",
  "hex",
@@ -1150,6 +1150,15 @@ name = "fastrand"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6999dc1837253364c2ebb0704ba97994bd874e8f195d665c50b7548f6ea92764"
+
+[[package]]
+name = "felt"
+version = "0.0.3"
+dependencies = [
+ "bitvec",
+ "lambdaworks-math",
+ "serde",
+]
 
 [[package]]
 name = "fixedbitset"
