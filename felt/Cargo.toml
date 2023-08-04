@@ -13,8 +13,7 @@ default = ["std"]
 std = []
 alloc = []
 lambdaworks-felt = ["dep:lambdaworks-math"]
-arbitrary = ["dep:arbitrary", "num-bigint/arbitrary"]
-proptest = ["dep:proptest"]
+arbitrary = ["dep:arbitrary", "num-bigint/arbitrary", "dep:proptest"]
 
 [dependencies]
 num-integer = { version = "0.1.45", default-features = false }

@@ -33,7 +33,10 @@ impl fmt::Display for ParseFeltError {
     }
 }
 
-#[cfg(any(feature = "proptest", test))]
+#[cfg(any(feature = "arbitrary", test))]
 #[cfg_attr(feature = "lambdaworks-felt", path = "arbitrary_lambdaworks.rs")]
 #[cfg_attr(not(feature = "lambdaworks-felt"), path = "arbitrary_bigint_felt.rs")]
+/// [`proptest::arbitrary::Arbitrary`] implementation for [`Felt252`], and [`Strategy`] generating functions.
+///
+/// Not to be confused with [`arbitrary::Arbitrary`], which is also enabled by the _arbitrary_ feature.
 pub mod arbitrary;
