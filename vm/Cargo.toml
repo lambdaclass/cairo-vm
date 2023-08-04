@@ -27,7 +27,6 @@ cairo-1-hints = [
     "dep:ark-std",
 ]
 arbitrary = ["dep:arbitrary", "felt/arbitrary", "felt/std", "std"]
-lambdaworks-felt = ["felt/lambdaworks-felt"]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
