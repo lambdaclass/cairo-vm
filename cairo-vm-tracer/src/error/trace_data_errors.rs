@@ -10,4 +10,6 @@ pub enum TraceDataError {
     InstructionDecodeError(#[from] VirtualMachineError),
     #[error(transparent)]
     FailedToGetRelocationTable(#[from] MemoryError),
+    #[error("Failed to read file")]
+    FailedToReadFile,
 }

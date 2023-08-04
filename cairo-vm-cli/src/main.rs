@@ -88,7 +88,7 @@ enum Error {
     PublicInput(#[from] PublicInputError),
     #[error(transparent)]
     #[cfg(feature = "with_tracer")]
-    TraceDataErroe(#[from] TraceDataError),
+    TraceDataError(#[from] TraceDataError),
 }
 
 struct FileWriter {
@@ -126,15 +126,16 @@ impl FileWriter {
 
 #[cfg(feature = "with_tracer")]
 fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
+    let relocation_table = vm
+        .get_relocation_table()
+        .map_err(TraceDataError::FailedToGetRelocationTable)?;
     let instruction_locations = cairo_runner
         .get_program()
-        .get_relocated_instruction_locations(vm.get_relocation_table().unwrap());
+        .get_relocated_instruction_locations(relocation_table.as_ref());
     let debug_info = if instruction_locations.is_none() {
         None
     } else {
-        Some(DebugInfo {
-            instruction_locations: instruction_locations.unwrap().clone(),
-        })
+        Some(DebugInfo::new(instruction_locations.unwrap().clone()))
     };
 
     run_tracer(
@@ -212,7 +213,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     #[cfg(feature = "with_tracer")]
-    if args.tracer.is_some() && args.tracer.unwrap() {
+    if args.tracer.unwrap_or(false) {
         start_tracer(&cairo_runner, &vm)?;
     }
 

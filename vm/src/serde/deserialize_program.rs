@@ -200,7 +200,18 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
 )]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
-    pub instruction_locations: HashMap<usize, InstructionLocation>,
+    instruction_locations: HashMap<usize, InstructionLocation>,
+}
+
+impl DebugInfo {
+    pub fn new(instruction_locations: HashMap<usize, InstructionLocation>) -> Self {
+        Self {
+            instruction_locations,
+        }
+    }
+    pub fn get_instruction_locations(&self) -> HashMap<usize, InstructionLocation> {
+        self.instruction_locations.clone()
+    }
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -217,8 +228,15 @@ pub struct InputFile {
 }
 
 impl InputFile {
-    pub fn get_content(&self) -> String {
-        std::fs::read_to_string(self.filename.clone()).unwrap()
+    pub fn get_content(&self) -> Result<String, String> {
+        let content = std::fs::read_to_string(self.filename.clone());
+        if content.is_ok() {
+            return Ok(content.unwrap());
+        }
+        Err(String::from(format!(
+            "Failed to read file {}",
+            self.filename.clone()
+        )))
     }
 }
 

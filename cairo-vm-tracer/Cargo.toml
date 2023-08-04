@@ -1,9 +1,10 @@
 [package]
 name = "cairo-vm-tracer"
-version = "0.5.2"
-edition = "2021"
-license = "Apache-2.0"
-description = "Tracer to see step wise execution of Cairo instructions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
 
 [features]
 default = ["std"]
@@ -25,5 +26,3 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 include_dir = "0.7.3"
 mime_guess = "2.0.4"
-
-[dev-dependencies]

@@ -129,15 +129,16 @@ impl TracerData {
 
             //sort hashmap by key
             let instruction_locations: BTreeMap<usize, InstructionLocation> =
-                debug_info.instruction_locations.into_iter().collect();
+                debug_info.get_instruction_locations().into_iter().collect();
             for (pc_offset, instruction_location) in instruction_locations.iter() {
                 let loc = &instruction_location.inst;
                 let filename = &loc.input_file.filename;
+                let content = loc
+                    .input_file
+                    .get_content()
+                    .map_err(|_| TraceDataError::FailedToReadFile)?;
                 if !input_files.contains_key(filename) {
-                    input_files.insert(
-                        filename.clone(),
-                        InputCodeFile::new(loc.input_file.get_content().as_str()),
-                    );
+                    input_files.insert(filename.clone(), InputCodeFile::new(content.as_str()));
                 }
                 let input_file = input_files.get_mut(filename).unwrap();
 

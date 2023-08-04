@@ -225,7 +225,7 @@ impl Program {
 
     pub fn get_relocated_instruction_locations(
         &self,
-        relocation_table: Vec<usize>,
+        relocation_table: &[usize],
     ) -> Option<HashMap<usize, InstructionLocation>> {
         if self.shared_program_data.instruction_locations.is_none() {
             return None;
