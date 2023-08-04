@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691174190665,
+  "lastUpdate": 1691179006437,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -113692,6 +113692,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22030348,
             "range": "± 1027981",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "47506558+MegaRedHand@users.noreply.github.com",
+            "name": "Tomás",
+            "username": "MegaRedHand"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e763cef8f0f7acbc9b8403c308b8933ed212d998",
+          "message": "feat: make \"arbitrary\" feature enable `proptest` features (#1355)\n\n* Add proptest feature\n\n* Update changelog\n\n* Revert star import change\n\n* Unify \"proptest\" feature with \"arbitrary\" and doc\n\n* Update updated changelog\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-08-04T19:16:33Z",
+          "tree_id": "8cc36db50a9e8c4468c3de6dd6c777caacd1c81a",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/e763cef8f0f7acbc9b8403c308b8933ed212d998"
+        },
+        "date": 1691178999916,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1327,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53012,
+            "range": "± 347",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18378123,
+            "range": "± 82759",
             "unit": "ns/iter"
           }
         ]
