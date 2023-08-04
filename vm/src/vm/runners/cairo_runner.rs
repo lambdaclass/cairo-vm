@@ -795,8 +795,7 @@ impl CairoRunner {
         // relocate_segments can fail if compute_effective_sizes is not called before.
         // The expect should be unreachable.
         let relocation_table = vm
-            .segments
-            .relocate_segments()
+            .get_relocation_table()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
 
         if relocate_mem {

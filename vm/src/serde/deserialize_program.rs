@@ -200,7 +200,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
 )]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
-    instruction_locations: HashMap<usize, InstructionLocation>,
+    pub instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -214,6 +214,12 @@ pub struct InstructionLocation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
+}
+
+impl InputFile {
+    pub fn get_content(&self) -> String {
+        std::fs::read_to_string(self.filename.clone()).unwrap()
+    }
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]

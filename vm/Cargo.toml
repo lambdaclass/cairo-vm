@@ -10,6 +10,7 @@ keywords.workspace = true
 
 [features]
 default = ["std", "with_mimalloc"]
+with_tracer = ["tracer"]
 with_mimalloc = ["mimalloc"]
 std = [
     "serde_json/std",
@@ -28,6 +29,7 @@ cairo-1-hints = [
 ]
 arbitrary = ["dep:arbitrary", "felt/arbitrary", "felt/std", "std"]
 lambdaworks-felt = ["felt/lambdaworks-felt"]
+tracer = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [

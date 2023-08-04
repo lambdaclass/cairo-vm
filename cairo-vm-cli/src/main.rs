@@ -4,9 +4,19 @@ use bincode::enc::write::Writer;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+#[cfg(feature = "tracer")]
+use cairo_vm::serde::deserialize_program::DebugInfo;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+#[cfg(feature = "tracer")]
+use cairo_vm::vm::runners::cairo_runner::CairoRunner;
+#[cfg(feature = "tracer")]
+use cairo_vm::vm::vm_core::VirtualMachine;
+#[cfg(feature = "tracer")]
+use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
+#[cfg(feature = "tracer")]
+use cairo_vm_tracer::tracer::run_tracer;
 use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -40,6 +50,9 @@ struct Args {
     secure_run: Option<bool>,
     #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
+    #[cfg(feature = "tracer")]
+    #[structopt(long = "--tracer")]
+    tracer: Option<bool>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -73,6 +86,9 @@ enum Error {
     Trace(#[from] TraceError),
     #[error(transparent)]
     PublicInput(#[from] PublicInputError),
+    #[error(transparent)]
+    #[cfg(feature = "tracer")]
+    TraceDataErroe(#[from] TraceDataError),
 }
 
 struct FileWriter {
@@ -108,6 +124,29 @@ impl FileWriter {
     }
 }
 
+#[cfg(feature = "tracer")]
+fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
+    let instruction_locations = cairo_runner
+        .get_program()
+        .get_relocated_instruction_locations(vm.get_relocation_table().unwrap());
+    let debug_info = if instruction_locations.is_none() {
+        None
+    } else {
+        Some(DebugInfo {
+            instruction_locations: instruction_locations.unwrap().clone(),
+        })
+    };
+
+    run_tracer(
+        cairo_runner.get_program().clone(),
+        cairo_runner.relocated_memory.clone(),
+        vm.get_relocated_trace().unwrap().clone(),
+        1,
+        debug_info,
+    )?;
+    Ok(())
+}
+
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
@@ -140,6 +179,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
                 return Err(Error::Runner(error));
             }
         };
+
+    #[cfg(feature = "tracer")]
+    if args.tracer.is_some() && args.tracer.unwrap() {
+        start_tracer(&cairo_runner, &vm)?;
+    }
 
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();

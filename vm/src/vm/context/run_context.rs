@@ -10,9 +10,9 @@ use crate::{
 use num_traits::abs;
 
 pub struct RunContext {
-    pub(crate) pc: Relocatable,
-    pub(crate) ap: usize,
-    pub(crate) fp: usize,
+    pub pc: Relocatable,
+    pub ap: usize,
+    pub fp: usize,
 }
 
 impl RunContext {

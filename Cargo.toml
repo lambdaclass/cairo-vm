@@ -5,6 +5,7 @@ members = [
     "vm",
     "hint_accountant",
     "examples/wasm-demo",
+    "cairo-vm-tracer",
 ]
 exclude = ["ensure-no_std"]
 

@@ -1,0 +1,223 @@
+use std::collections::{BTreeMap, HashMap};
+
+use cairo_vm::{
+    felt::Felt252,
+    serde::deserialize_program::{DebugInfo, InstructionLocation},
+    types::{
+        program::Program,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{
+        context::run_context::RunContext, decoding::decoder::decode_instruction,
+        trace::trace_entry::TraceEntry,
+    },
+};
+use num_bigint::BigUint;
+use num_traits::ToPrimitive;
+
+use crate::{error::trace_data_errors::TraceDataError, types::memory_access::MemoryAccess};
+
+#[derive(Clone)]
+struct TextMark {
+    _line_start: usize,
+    _col_start: usize,
+    _line_end: usize,
+    _col_end: usize,
+    _classes: Vec<String>,
+}
+
+#[derive(Clone)]
+pub struct InputCodeFile {
+    content: String,
+    lines: Vec<String>,
+    marks: Vec<TextMark>,
+    tags: Vec<(usize, isize, String)>,
+}
+
+impl InputCodeFile {
+    fn new(content: &str) -> Self {
+        let lines: Vec<String> = content.lines().map(|line| line.to_string()).collect();
+        InputCodeFile {
+            content: content.to_string(),
+            lines,
+            marks: Vec::new(),
+            tags: Vec::new(),
+        }
+    }
+
+    fn mark_text(
+        &mut self,
+        line_start: usize,
+        col_start: usize,
+        line_end: usize,
+        col_end: usize,
+        classes: &[&str],
+    ) {
+        self.marks.push(TextMark {
+            _line_start: line_start,
+            _col_start: col_start,
+            _line_end: line_end,
+            _col_end: col_end,
+            _classes: classes.iter().map(|s| s.to_string()).collect(),
+        });
+
+        let offset_start = self
+            .lines
+            .iter()
+            .take(line_start - 1)
+            .map(|line| line.len())
+            .sum::<usize>()
+            + line_start
+            + col_start
+            - 2;
+
+        let offset_end = self
+            .lines
+            .iter()
+            .take(line_end - 1)
+            .map(|line| line.len())
+            .sum::<usize>()
+            + line_end
+            + col_end
+            - 2;
+
+        self.tags.push((
+            offset_start,
+            -(offset_end as isize),
+            format!("<span class=\"{}\">", classes.join(" ")),
+        ));
+        self.tags
+            .push((offset_end, -std::isize::MAX, "</span>".to_string()));
+    }
+
+    pub fn to_html(&self) -> String {
+        let mut res = self.content.replace(" ", "\0");
+        let mut sorted_tags = self.tags.clone();
+        sorted_tags.sort_by_key(|&(key, _, _)| key);
+        for &(pos, _, ref tag_content) in sorted_tags.iter().rev() {
+            res.insert_str(pos, tag_content);
+        }
+        res.replace("\0", "&nbsp;").replace("\n", "<br/>\n")
+    }
+}
+
+// TODO: add support for taking air_public_input as an argument
+#[derive(Clone)]
+pub struct TracerData {
+    pub(crate) _program: Program,
+    pub(crate) memory: Vec<Option<Felt252>>,
+    pub(crate) trace: Vec<TraceEntry>,
+    pub(crate) _program_base: u64, // TODO: adjust size based on maximum instructions possible
+    pub(crate) _debug_info: Option<DebugInfo>,
+    pub(crate) memory_accesses: Vec<MemoryAccess>,
+    pub(crate) input_files: HashMap<String, InputCodeFile>,
+}
+
+impl TracerData {
+    pub fn new(
+        program: Program,
+        memory: Vec<Option<Felt252>>,
+        trace: Vec<TraceEntry>,
+        program_base: u64,
+        debug_info: Option<DebugInfo>,
+    ) -> Result<TracerData, TraceDataError> {
+        let mut input_files = HashMap::<String, InputCodeFile>::new();
+
+        if let Some(debug_info) = debug_info.clone() {
+            // loop over debug_info
+
+            //sort hashmap by key
+            let instruction_locations: BTreeMap<usize, InstructionLocation> =
+                debug_info.instruction_locations.into_iter().collect();
+            for (pc_offset, instruction_location) in instruction_locations.iter() {
+                let loc = &instruction_location.inst;
+                let filename = &loc.input_file.filename;
+                if !input_files.contains_key(filename) {
+                    input_files.insert(
+                        filename.clone(),
+                        InputCodeFile::new(loc.input_file.get_content().as_str()),
+                    );
+                }
+                let input_file = input_files.get_mut(filename).unwrap();
+
+                input_file.mark_text(
+                    loc.start_line as usize,
+                    loc.start_col as usize,
+                    loc.end_line as usize,
+                    loc.end_col as usize,
+                    &[format!("inst{}", pc_offset).as_str(), "instruction"],
+                );
+            }
+        }
+
+        let mut memory_accesses: Vec<MemoryAccess> = vec![];
+        //loop of trace
+        for entry in trace.iter() {
+            let run_context = RunContext {
+                ap: entry.ap,
+                fp: entry.fp,
+                pc: Relocatable::from((0, entry.pc)), // TODO: verify this value is correct
+            };
+
+            let (instruction_encoding, _) =
+                get_instruction_encoding(entry.pc, &memory, program.prime())?;
+
+            let instruction = decode_instruction(instruction_encoding.to_u64().unwrap())?;
+
+            // get dst_addr
+            let dst_addr = run_context.compute_dst_addr(&instruction)?.offset;
+
+            // get op0_addr
+            let op0_addr = run_context.compute_op0_addr(&instruction)?.offset;
+
+            // get op1_addr
+            let op0_memory = &memory[op0_addr];
+            let op0 = match op0_memory {
+                None => None,
+                Some(felt) => Some(MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 1 as isize,
+                    offset: felt.clone().to_usize().unwrap(),
+                })),
+            };
+            let op1_addr = run_context
+                .compute_op1_addr(&instruction, op0.as_ref())?
+                .offset;
+
+            // add to memory access
+            memory_accesses.push(MemoryAccess {
+                dst: dst_addr,
+                op0: op0_addr,
+                op1: op1_addr,
+            });
+        }
+
+        Ok(TracerData {
+            _program: program,
+            memory,
+            trace,
+            _program_base: program_base,
+            _debug_info: debug_info,
+            memory_accesses,
+            input_files,
+        })
+    }
+}
+
+// Returns the encoded instruction (the value at pc) and the immediate value (the value at
+// pc + 1, if it exists in the memory).
+pub fn get_instruction_encoding(
+    pc: usize,
+    memory: &Vec<Option<Felt252>>,
+    prime: &str,
+) -> Result<(Felt252, Option<Felt252>), TraceDataError> {
+    if memory[pc].is_none() {
+        return Err(TraceDataError::InstructionIsNone);
+    }
+    let instruction_encoding = memory[pc].clone().unwrap();
+    let prime = BigUint::parse_bytes(prime[2..].as_bytes(), 16).unwrap();
+
+    let imm_addr = BigUint::from(pc + 1) % prime;
+    let imm_addr = usize::try_from(imm_addr).unwrap();
+    let optional_imm = memory[imm_addr].clone();
+    return Ok((instruction_encoding.into(), optional_imm));
+}

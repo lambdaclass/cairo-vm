@@ -223,6 +223,24 @@ impl Program {
         self.shared_program_data.identifiers.get(id)
     }
 
+    pub fn get_relocated_instruction_locations(
+        &self,
+        relocation_table: Vec<usize>,
+    ) -> Option<HashMap<usize, InstructionLocation>> {
+        if self.shared_program_data.instruction_locations.is_none() {
+            return None;
+        }
+        let relocated_instructions = self
+            .shared_program_data
+            .instruction_locations
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k + relocation_table[0], v.clone()))
+            .collect();
+        Some(relocated_instructions)
+    }
+
     pub fn iter_identifiers(&self) -> impl Iterator<Item = (&str, &Identifier)> {
         self.shared_program_data
             .identifiers
