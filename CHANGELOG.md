@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-feat: add "proptest" feature, that makes public `proptest` related implementations [#1355](https://github.com/lambdaclass/cairo-vm/pull/1355)
+feat: make *arbitrary* feature also enable a `proptest::arbitrary::Arbitrary` implementation for `Felt252` [#1355](https://github.com/lambdaclass/cairo-vm/pull/1355)
 
 #### [0.8.5] - 2023-7-31
 
