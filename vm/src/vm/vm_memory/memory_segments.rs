@@ -263,7 +263,7 @@ mod tests {
     use super::*;
     use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::MemoryCell};
     use assert_matches::assert_matches;
-    use felt::Felt252;
+    use felt::Felt;
     use num_traits::Num;
 
     #[cfg(target_arch = "wasm32")]
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn load_data_one_element() {
-        let data = vec![MaybeRelocatable::from(Felt252::new(4))];
+        let data = vec![MaybeRelocatable::from(Felt::new(4))];
         let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
         segments.add();
@@ -340,7 +340,7 @@ mod tests {
         assert_eq!(current_ptr, Relocatable::from((0, 1)));
         assert_eq!(
             segments.memory.get(&ptr).unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt252::new(4))
+            &MaybeRelocatable::from(Felt::new(4))
         );
     }
 
@@ -348,9 +348,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn load_data_three_elements() {
         let data = vec![
-            MaybeRelocatable::from(Felt252::new(4)),
-            MaybeRelocatable::from(Felt252::new(5)),
-            MaybeRelocatable::from(Felt252::new(6)),
+            MaybeRelocatable::from(Felt::new(4)),
+            MaybeRelocatable::from(Felt::new(5)),
+            MaybeRelocatable::from(Felt::new(6)),
         ];
         let ptr = Relocatable::from((0, 0));
         let mut segments = MemorySegmentManager::new();
@@ -360,7 +360,7 @@ mod tests {
 
         assert_eq!(
             segments.memory.get(&ptr).unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt252::new(4))
+            &MaybeRelocatable::from(Felt::new(4))
         );
         assert_eq!(
             segments
@@ -368,7 +368,7 @@ mod tests {
                 .get(&MaybeRelocatable::from((0, 1)))
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(Felt252::new(5))
+            &MaybeRelocatable::from(Felt::new(5))
         );
         assert_eq!(
             segments
@@ -376,7 +376,7 @@ mod tests {
                 .get(&MaybeRelocatable::from((0, 2)))
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::from(Felt252::new(6))
+            &MaybeRelocatable::from(Felt::new(6))
         );
     }
     #[test]
@@ -396,7 +396,7 @@ mod tests {
             .memory
             .insert(
                 Relocatable::from((0, 6)),
-                &MaybeRelocatable::from(Felt252::new(1)),
+                &MaybeRelocatable::from(Felt::new(1)),
             )
             .unwrap();
         segments.compute_effective_sizes();
@@ -500,7 +500,7 @@ mod tests {
         let mut big_num = num_bigint::BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
             .expect("Couldn't parse prime");
         big_num += 1;
-        let big_maybe_rel = MaybeRelocatable::from(Felt252::new(big_num));
+        let big_maybe_rel = MaybeRelocatable::from(Felt::new(big_num));
         let data = vec![mayberelocatable!(11), mayberelocatable!(12), big_maybe_rel];
         let ptr = Relocatable::from((1, 0));
         let mut segments = MemorySegmentManager::new();

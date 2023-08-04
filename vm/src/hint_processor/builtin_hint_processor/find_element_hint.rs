@@ -12,7 +12,7 @@ use crate::{
     types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_traits::Signed;
 use num_traits::ToPrimitive;
 
@@ -26,7 +26,7 @@ pub fn find_element(
     let elm_size_bigint = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let array_start = get_ptr_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let find_element_index = exec_scopes.get::<Felt252>("find_element_index").ok();
+    let find_element_index = exec_scopes.get::<Felt>("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
         .ok_or_else(|| HintError::ValueOutOfRange(Box::new(elm_size_bigint.as_ref().clone())))?;
@@ -53,7 +53,7 @@ pub fn find_element(
         exec_scopes.delete_variable("find_element_index");
         Ok(())
     } else {
-        if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
+        if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
                 return Err(HintError::FindElemMaxSize(Box::new((
                     find_element_max_size.clone(),
@@ -73,7 +73,7 @@ pub fn find_element(
             if iter_key.as_ref() == key.as_ref() {
                 return insert_value_from_var_name(
                     "index",
-                    Felt252::new(i),
+                    Felt::new(i),
                     vm,
                     ids_data,
                     ap_tracking,
@@ -93,7 +93,7 @@ pub fn search_sorted_lower(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let find_element_max_size = exec_scopes.get::<Felt252>("find_element_max_size");
+    let find_element_max_size = exec_scopes.get::<Felt>("find_element_max_size");
     let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
     let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
@@ -119,7 +119,7 @@ pub fn search_sorted_lower(
     for i in 0..n_elms_usize {
         let value = vm.get_integer(array_iter)?;
         if value.as_ref() >= key.as_ref() {
-            return insert_value_from_var_name("index", Felt252::new(i), vm, ids_data, ap_tracking);
+            return insert_value_from_var_name("index", Felt::new(i), vm, ids_data, ap_tracking);
         }
         array_iter.offset += elm_size_usize;
     }
@@ -175,13 +175,13 @@ mod tests {
 
         let default_values = vec![
             ("array_ptr", MaybeRelocatable::from((2, 0))),
-            ("elm_size", MaybeRelocatable::from(Felt252::new(2_i32))),
-            ("n_elms", MaybeRelocatable::from(Felt252::new(2_i32))),
-            ("key", MaybeRelocatable::from(Felt252::new(3_i32))),
-            ("arr[0].a", MaybeRelocatable::from(Felt252::one())),
-            ("arr[0].b", MaybeRelocatable::from(Felt252::new(2_i32))),
-            ("arr[1].a", MaybeRelocatable::from(Felt252::new(3_i32))),
-            ("arr[1].b", MaybeRelocatable::from(Felt252::new(4_i32))),
+            ("elm_size", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("n_elms", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("key", MaybeRelocatable::from(Felt::new(3_i32))),
+            ("arr[0].a", MaybeRelocatable::from(Felt::ONE)),
+            ("arr[0].b", MaybeRelocatable::from(Felt::new(2_i32))),
+            ("arr[1].a", MaybeRelocatable::from(Felt::new(3_i32))),
+            ("arr[1].b", MaybeRelocatable::from(Felt::new(4_i32))),
         ];
 
         /* array_ptr = (1,0) -> [Struct{1, 2}, Struct{3, 4}]
@@ -229,7 +229,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_found_by_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_index", Felt252::one())];
+        let mut exec_scopes = scope![("find_element_index", Felt::ONE)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Ok(())
@@ -242,11 +242,11 @@ mod tests {
     fn element_not_found_search() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
-            MaybeRelocatable::from(Felt252::new(7)),
+            MaybeRelocatable::from(Felt::new(7)),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::NoValueForKeyFindElement(bx)) if *bx == Felt252::new(7)
+            Err(HintError::NoValueForKeyFindElement(bx)) if *bx == Felt::new(7)
         );
     }
 
@@ -254,7 +254,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn element_not_found_oracle() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_index", Felt252::new(2))];
+        let mut exec_scopes = scope![("find_element_index", Felt::new(2))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
             Err(HintError::KeyNotFound)
@@ -291,11 +291,11 @@ mod tests {
     fn find_elm_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(Felt252::zero()),
+            MaybeRelocatable::Int(Felt::ZERO),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::ValueOutOfRange(bx)) if *bx == Felt252::zero()
+            Err(HintError::ValueOutOfRange(bx)) if *bx == Felt::ZERO
         );
     }
 
@@ -304,11 +304,11 @@ mod tests {
     fn find_elm_negative_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(Felt252::new(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::ValueOutOfRange(bx)) if *bx == Felt252::new(-1)
+            Err(HintError::ValueOutOfRange(bx)) if *bx == Felt::new(-1)
         );
     }
 
@@ -329,11 +329,11 @@ mod tests {
     fn find_elm_negative_n_elms() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "n_elms".to_string(),
-            MaybeRelocatable::Int(Felt252::new(-1)),
+            MaybeRelocatable::Int(Felt::new(-1)),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::Math(MathError::Felt252ToI32Conversion(bx))) if *bx == Felt252::new(-1)
+            Err(HintError::Math(MathError::Felt252ToI32Conversion(bx))) if *bx == Felt::new(-1)
         );
     }
 
@@ -348,10 +348,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn find_elm_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", Felt252::one())];
+        let mut exec_scopes = scope![("find_element_max_size", Felt::ONE)];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT, &mut exec_scopes),
-            Err(HintError::FindElemMaxSize(bx)) if *bx == (Felt252::one(), Felt252::new(2))
+            Err(HintError::FindElemMaxSize(bx)) if *bx == (Felt::ONE, Felt::new(2))
         );
     }
 
@@ -384,7 +384,7 @@ mod tests {
     fn search_sorted_lower_no_matches() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "key".to_string(),
-            MaybeRelocatable::Int(Felt252::new(7)),
+            MaybeRelocatable::Int(Felt::new(7)),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -411,7 +411,7 @@ mod tests {
     fn search_sorted_lower_zero_elm_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::from([(
             "elm_size".to_string(),
-            MaybeRelocatable::Int(Felt252::zero()),
+            MaybeRelocatable::Int(Felt::ZERO),
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
@@ -446,7 +446,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn search_sorted_lower_n_elms_gt_max_size() {
         let (mut vm, ids_data) = init_vm_ids_data(HashMap::new());
-        let mut exec_scopes = scope![("find_element_max_size", Felt252::one())];
+        let mut exec_scopes = scope![("find_element_max_size", Felt::ONE)];
         assert_matches!(
             run_hint!(
                 vm,
@@ -454,7 +454,7 @@ mod tests {
                 hint_code::SEARCH_SORTED_LOWER,
                 &mut exec_scopes
             ),
-            Err(HintError::FindElemMaxSize(bx)) if *bx == (Felt252::one(), Felt252::new(2))
+            Err(HintError::FindElemMaxSize(bx)) if *bx == (Felt::ONE, Felt::new(2))
         );
     }
 }

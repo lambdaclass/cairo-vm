@@ -2,14 +2,14 @@ use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::*;
 use num_traits::One;
 
-use crate::felt::Felt252;
+use crate::felt::Felt;
 use crate::vm::errors::hint_errors::HintError;
 use crate::{types::relocatable::Relocatable, vm::vm_core::VirtualMachine};
 
 /// Stores the data of a specific dictionary.
 pub struct DictTrackerExecScope {
     /// The data of the dictionary.
-    data: HashMap<Felt252, Felt252>,
+    data: HashMap<Felt, Felt>,
     /// The index of the dictionary in the dict_infos segment.
     #[allow(dead_code)]
     idx: usize,
@@ -79,13 +79,13 @@ impl DictManagerExecScope {
     }
 
     /// Inserts a value to the dict tracker corresponding to a given pointer to a dict segment.
-    pub fn insert_to_tracker(&mut self, dict_end: Relocatable, key: Felt252, value: Felt252) {
+    pub fn insert_to_tracker(&mut self, dict_end: Relocatable, key: Felt, value: Felt) {
         self.get_dict_tracker_mut(dict_end).data.insert(key, value);
     }
 
     /// Gets a value from the dict tracker corresponding to a given pointer to a dict segment.
     /// None if the key does not exist in the tracker data.
-    pub fn get_from_tracker(&self, dict_end: Relocatable, key: &Felt252) -> Option<Felt252> {
+    pub fn get_from_tracker(&self, dict_end: Relocatable, key: &Felt) -> Option<Felt> {
         self.get_dict_tracker(dict_end).ok()?.data.get(key).cloned()
     }
 }
@@ -94,14 +94,14 @@ impl DictManagerExecScope {
 #[derive(Default, Debug)]
 pub struct DictSquashExecScope {
     /// A map from key to the list of indices accessing it, each list in reverse order.
-    pub(crate) access_indices: HashMap<Felt252, Vec<Felt252>>,
+    pub(crate) access_indices: HashMap<Felt, Vec<Felt>>,
     /// Descending list of keys.
-    pub(crate) keys: Vec<Felt252>,
+    pub(crate) keys: Vec<Felt>,
 }
 
 impl DictSquashExecScope {
     /// Returns the current key to process.
-    pub fn current_key(&self) -> Option<Felt252> {
+    pub fn current_key(&self) -> Option<Felt> {
         self.keys.last().cloned()
     }
 
@@ -126,18 +126,18 @@ impl DictSquashExecScope {
     }
 
     /// Returns a reference to the access indices list of the current key.
-    pub fn current_access_indices(&mut self) -> Option<&mut Vec<Felt252>> {
+    pub fn current_access_indices(&mut self) -> Option<&mut Vec<Felt>> {
         let current_key = self.current_key()?;
         self.access_indices.get_mut(&current_key)
     }
 
     /// Returns a reference to the last index in the current access indices list.
-    pub fn current_access_index(&mut self) -> Option<&Felt252> {
+    pub fn current_access_index(&mut self) -> Option<&Felt> {
         self.current_access_indices()?.last()
     }
 
     /// Returns and removes the current access index.
-    pub fn pop_current_access_index(&mut self) -> Option<Felt252> {
+    pub fn pop_current_access_index(&mut self) -> Option<Felt> {
         self.current_access_indices()?.pop()
     }
 }

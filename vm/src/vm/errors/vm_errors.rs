@@ -15,7 +15,7 @@ use crate::{
         runner_errors::RunnerError, trace_errors::TraceError,
     },
 };
-use felt::Felt252;
+use felt::Felt;
 
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
@@ -84,7 +84,7 @@ pub enum VirtualMachineError {
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
     #[error("Div out of range: 0 < {} <= {}", (*.0).0, (*.0).1)]
-    OutOfValidRange(Box<(Felt252, Felt252)>),
+    OutOfValidRange(Box<(Felt, Felt)>),
     #[error("Failed to compare {} and {}, cant compare a relocatable to an integer value", (*.0).0, (*.0).1)]
     DiffTypeComparison(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Failed to compare {} and  {}, cant compare two relocatable values of different segment indexes", (*.0).0, (*.0).1)]

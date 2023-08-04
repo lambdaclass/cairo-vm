@@ -43,7 +43,7 @@ fn test_uint256_div_mod_hint() {
         program_data.as_slice(),
         107,
         &[36_usize.into(), 2_usize.into()],
-        &[Felt252::from(18_usize)],
+        &[Felt::from(18_usize)],
     );
 }
 
@@ -106,7 +106,7 @@ fn factorial_50() {
         program_data.as_slice(),
         0,
         &[50.into()],
-        &[Felt252::from_str_radix(
+        &[Felt::from_str_radix(
             "30414093201713378043612608166064768844377641568960512000000000000",
             10,
         )
@@ -121,7 +121,7 @@ fn factorial_2000() {
         program_data.as_slice(),
         0,
         &[2000.into()],
-        &[Felt252::from_str_radix(
+        &[Felt::from_str_radix(
             "2570376556569900799903105814841036176886569861654260254942280653735904624674",
             10,
         )

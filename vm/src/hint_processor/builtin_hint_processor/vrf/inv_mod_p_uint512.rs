@@ -6,7 +6,7 @@ use crate::{
     serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
     vm::errors::hint_errors::HintError,
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigInt;
 use num_traits::One;
 
@@ -38,8 +38,7 @@ pub fn inv_mod_p_uint512(
 
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
-    let x_inverse_mod_p =
-        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
+    let x_inverse_mod_p = Felt::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
@@ -75,10 +74,10 @@ mod tests {
     fn test_pack_512() {
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(13123),
-                Felt252::new(534354),
-                Felt252::new(9901823),
-                Felt252::new(7812371)
+                Felt::new(13123),
+                Felt::new(534354),
+                Felt::new(9901823),
+                Felt::new(7812371)
             ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
@@ -87,10 +86,10 @@ mod tests {
         );
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(13123),
-                Felt252::new(534354),
-                Felt252::new(9901823),
-                Felt252::new(7812371)
+                Felt::new(13123),
+                Felt::new(534354),
+                Felt::new(9901823),
+                Felt::new(7812371)
             ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
@@ -101,10 +100,10 @@ mod tests {
 
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(90812398),
-                Felt252::new(55),
-                Felt252::new(83127),
-                Felt252::from_i128(45312309123).unwrap()
+                Felt::new(90812398),
+                Felt::new(55),
+                Felt::new(83127),
+                Felt::from_i128(45312309123).unwrap()
             ]).pack(),
             BigUint::from_str_radix("1785395884837388090117385402351420305430103423113021825538726783888669416377532493875431795584456624829488631993250169127284718", 10).unwrap()
         );
@@ -131,12 +130,12 @@ mod tests {
         ];
         vm.insert_value(
             Relocatable::from((1, 15)),
-            Felt252::from_str_radix("201385395114098847380338600778089168199", 10).unwrap(),
+            Felt::from_str_radix("201385395114098847380338600778089168199", 10).unwrap(),
         )
         .expect("error setting ids.p");
         vm.insert_value(
             Relocatable::from((1, 16)),
-            Felt252::from_str_radix("64323764613183177041862057485226039389", 10).unwrap(),
+            Felt::from_str_radix("64323764613183177041862057485226039389", 10).unwrap(),
         )
         .expect("error setting ids.p");
 
@@ -149,13 +148,13 @@ mod tests {
             vm.get_integer(Relocatable::from((1, 5)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("80275402838848031859800366538378848249", 10).unwrap()
+            Felt::from_str_radix("80275402838848031859800366538378848249", 10).unwrap()
         );
         assert_eq!(
             vm.get_integer(Relocatable::from((1, 6)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("5810892639608724280512701676461676039", 10).unwrap()
+            Felt::from_str_radix("5810892639608724280512701676461676039", 10).unwrap()
         );
     }
 }

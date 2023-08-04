@@ -14,13 +14,13 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_traits::ToPrimitive;
 
 use super::hint_utils::get_integer_from_var_name;
 
 fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Cow<Felt252>>,
+    h_range: &Vec<Cow<Felt>>,
 ) -> Result<[u32; T], HintError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
@@ -34,12 +34,12 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(Felt252::new(*element)));
+        new_array.push(MaybeRelocatable::from(Felt::new(*element)));
     }
     new_array
 }
 
-fn get_maybe_relocatable_array_from_felt(array: &[Felt252]) -> Vec<MaybeRelocatable> {
+fn get_maybe_relocatable_array_from_felt(array: &[Felt]) -> Vec<MaybeRelocatable> {
     array.iter().map(MaybeRelocatable::from).collect()
 }
 /*Helper function for the Cairo blake2s() implementation.
@@ -190,9 +190,9 @@ pub fn blake2s_add_uint256(
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to felt
-    let mask = Felt252::new(MASK);
+    let mask = Felt::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * i)) & &mask);
     }
@@ -200,7 +200,7 @@ pub fn blake2s_add_uint256(
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * i)) & &mask);
     }
@@ -233,9 +233,9 @@ pub fn blake2s_add_uint256_bigend(
     const MASK: u32 = u32::MAX;
     const B: u32 = 32;
     //Convert MASK to felt
-    let mask = Felt252::new(MASK);
+    let mask = Felt::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&high >> (B * (3 - i))) & &mask);
     }
@@ -243,7 +243,7 @@ pub fn blake2s_add_uint256_bigend(
     let data = get_maybe_relocatable_array_from_felt(&inner_data);
     vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
+    let mut inner_data = Vec::<Felt>::new();
     for i in 0..4 {
         inner_data.push((&low >> (B * (3 - i))) & &mask);
     }
@@ -500,7 +500,7 @@ mod tests {
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 0)),
                     MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(Felt252::new(1795745351)))
+                    MaybeRelocatable::from(Felt::new(1795745351)))
         );
     }
 
@@ -662,7 +662,7 @@ mod tests {
         vm.segments = segments![((1, 0), 9999999999_u64), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["n_bytes", "output", "blake2s_start"];
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt252::from(9999999999_u64));
+        assert_matches!(run_hint!(vm, ids_data, hint_code::EXAMPLE_BLAKE2S_COMPRESS), Err(HintError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt::from(9999999999_u64));
     }
 
     #[test]

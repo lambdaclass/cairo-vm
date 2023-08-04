@@ -1,4 +1,4 @@
-use felt::Felt252;
+use felt::Felt;
 use serde::Serialize;
 use thiserror_no_std::Error;
 
@@ -19,7 +19,7 @@ pub struct PublicMemoryEntry {
     address: usize,
     page: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
-    value: Option<Felt252>,
+    value: Option<Felt>,
 }
 
 mod mem_value_serde {
@@ -27,7 +27,7 @@ mod mem_value_serde {
     use serde::Serializer;
 
     pub(crate) fn serialize<S: Serializer>(
-        value: &Option<Felt252>,
+        value: &Option<Felt>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
@@ -67,7 +67,7 @@ pub struct PublicInput<'a> {
 
 impl<'a> PublicInput<'a> {
     pub fn new(
-        memory: &[Option<Felt252>],
+        memory: &[Option<Felt>],
         layout: &'a str,
         dyn_layout_params: Option<&'a CairoLayout>,
         public_memory_addresses: &[(usize, usize)],

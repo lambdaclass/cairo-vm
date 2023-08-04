@@ -16,15 +16,15 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
 use num_traits::{One, Signed, Zero};
 
 // TODO: use this type in all uint256 functions
 pub(crate) struct Uint256<'a> {
-    pub low: Cow<'a, Felt252>,
-    pub high: Cow<'a, Felt252>,
+    pub low: Cow<'a, Felt>,
+    pub high: Cow<'a, Felt>,
 }
 
 impl<'a> Uint256<'a> {
@@ -53,7 +53,7 @@ impl<'a> Uint256<'a> {
         Self::from_base_addr(base_addr, name, vm)
     }
 
-    pub(crate) fn from_values(low: Felt252, high: Felt252) -> Self {
+    pub(crate) fn from_values(low: Felt, high: Felt) -> Self {
         let low = Cow::Owned(low);
         let high = Cow::Owned(high);
         Self { low, high }
@@ -80,8 +80,8 @@ impl<'a> Uint256<'a> {
 
     pub(crate) fn split(num: &BigUint) -> Self {
         let mask_low: BigUint = u128::MAX.into();
-        let low = Felt252::from(num & mask_low);
-        let high = Felt252::from(num >> 128);
+        let low = Felt::from(num & mask_low);
+        let high = Felt::from(num >> 128);
         Self::from_values(low, high)
     }
 }
@@ -92,9 +92,9 @@ impl<'a> From<&BigUint> for Uint256<'a> {
     }
 }
 
-impl<'a> From<Felt252> for Uint256<'a> {
-    fn from(value: Felt252) -> Self {
-        let low = Felt252::new(u128::MAX) & &value;
+impl<'a> From<Felt> for Uint256<'a> {
+    fn from(value: Felt) -> Self {
+        let low = Felt::new(u128::MAX) & &value;
         let high = value >> 128_u32;
         Self::from_values(low, high)
     }
@@ -119,7 +119,7 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
     low_only: bool,
 ) -> Result<(), HintError> {
-    let shift = Felt252::new(1_u32) << 128_u32;
+    let shift = Felt::new(1_u32) << 128_u32;
 
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -129,7 +129,7 @@ pub fn uint256_add(
     // Main logic
     // sum_low = ids.a.low + ids.b.low
     // ids.carry_low = 1 if sum_low >= ids.SHIFT else 0
-    let carry_low = Felt252::from((a_low + b_low >= shift) as u8);
+    let carry_low = Felt::from((a_low + b_low >= shift) as u8);
 
     if !low_only {
         let a_high = a.high.as_ref();
@@ -138,7 +138,7 @@ pub fn uint256_add(
         // Main logic
         // sum_high = ids.a.high + ids.b.high + ids.carry_low
         // ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
-        let carry_high = Felt252::from((a_high + b_high + &carry_low >= shift) as u8);
+        let carry_high = Felt::from((a_high + b_high + &carry_low >= shift) as u8);
 
         insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     }
@@ -158,7 +158,7 @@ pub fn uint128_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt252::new(1_u32) << 128_u32;
+    let shift = Felt::new(1_u32) << 128_u32;
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();
@@ -167,7 +167,7 @@ pub fn uint128_add(
     // Main logic
     // res = ids.a + ids.b
     // ids.carry = 1 if res >= ids.SHIFT else 0
-    let carry = Felt252::from((a + b >= shift) as u8);
+    let carry = Felt::from((a + b >= shift) as u8);
 
     insert_value_from_var_name("carry", carry, vm, ids_data, ap_tracking)
 }
@@ -230,7 +230,7 @@ pub fn split_64(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
-    let low = Felt252::new(digits.next().unwrap_or(0u64));
+    let low = Felt::new(digits.next().unwrap_or(0u64));
     let high = a.as_ref() >> 64_u32;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
@@ -271,12 +271,12 @@ pub fn uint256_sqrt(
         ));
     }
 
-    let root = Felt252::new(root);
+    let root = Felt::new(root);
 
     if only_low {
         insert_value_from_var_name("root", root, vm, ids_data, ap_tracking)?;
     } else {
-        let root_u256 = Uint256::from_values(root, Felt252::zero());
+        let root_u256 = Uint256::from_values(root, Felt::ZERO);
         root_u256.insert_from_var_name("root", vm, ids_data, ap_tracking)?;
     }
     Ok(())
@@ -295,10 +295,10 @@ pub fn uint256_signed_nn(
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: Felt252 = if !a_high.is_negative() && a_high.as_ref() <= &Felt252::new(i128::MAX) {
-        Felt252::one()
+    let result: Felt = if !a_high.is_negative() && a_high.as_ref() <= &Felt::new(i128::MAX) {
+        Felt::ONE
     } else {
-        Felt252::zero()
+        Felt::ZERO
     };
     insert_value_into_ap(vm, result)
 }
@@ -439,30 +439,30 @@ pub fn uint256_mul_div_mod(
     // ids.quotient_low.low
     vm.insert_value(
         quotient_low_addr,
-        Felt252::from(&quotient & &BigUint::from(u128::MAX)),
+        Felt::from(&quotient & &BigUint::from(u128::MAX)),
     )?;
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
-        Felt252::from((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)),
+        Felt::from((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)),
     )?;
     // ids.quotient_high.low
     vm.insert_value(
         quotient_high_addr,
-        Felt252::from((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)),
+        Felt::from((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)),
     )?;
     // ids.quotient_high.high
     vm.insert_value(
         (quotient_high_addr + 1)?,
-        Felt252::from((&quotient).shr(384_u32)),
+        Felt::from((&quotient).shr(384_u32)),
     )?;
     //ids.remainder.low
     vm.insert_value(
         remainder_addr,
-        Felt252::from(&remainder & &BigUint::from(u128::MAX)),
+        Felt::from(&remainder & &BigUint::from(u128::MAX)),
     )?;
     //ids.remainder.high
-    vm.insert_value((remainder_addr + 1)?, Felt252::from(remainder.shr(128_u32)))?;
+    vm.insert_value((remainder_addr + 1)?, Felt::from(remainder.shr(128_u32)))?;
 
     Ok(())
 }
@@ -579,8 +579,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 12)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt::new(2)),
+                    MaybeRelocatable::from(Felt::ZERO))
         );
     }
 
@@ -715,7 +715,7 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 10)),
-                    MaybeRelocatable::from(Felt252::zero()),
+                    MaybeRelocatable::from(Felt::ZERO),
                     MaybeRelocatable::from(felt_str!("7249717543555297151")))
         );
     }
@@ -795,7 +795,7 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 5)),
-                    MaybeRelocatable::from(Felt252::one()),
+                    MaybeRelocatable::from(Felt::ONE),
                     MaybeRelocatable::from(felt_str!("48805497317890012913")))
         );
     }
@@ -864,8 +864,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 5)),
-                    MaybeRelocatable::from(Felt252::new(55)),
-                    MaybeRelocatable::from(Felt252::one()))
+                    MaybeRelocatable::from(Felt::new(55)),
+                    MaybeRelocatable::from(Felt::ONE))
         );
     }
 
@@ -953,8 +953,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 10)),
-                    MaybeRelocatable::from(Felt252::zero()),
-                    MaybeRelocatable::from(Felt252::new(10)))
+                    MaybeRelocatable::from(Felt::ZERO),
+                    MaybeRelocatable::from(Felt::new(10)))
         );
     }
 
@@ -982,8 +982,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 11)),
-                    MaybeRelocatable::from(Felt252::one()),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt::ONE),
+                    MaybeRelocatable::from(Felt::ZERO))
         );
     }
 

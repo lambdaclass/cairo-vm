@@ -1,4 +1,4 @@
-use felt::Felt252;
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::Zero;
 
@@ -82,7 +82,7 @@ pub fn uint384_split_128(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.into_owned();
     insert_value_from_var_name(
         "low",
-        &a & &Felt252::from(u128::MAX),
+        &a & &Felt::from(u128::MAX),
         vm,
         ids_data,
         ap_tracking,
@@ -104,7 +104,7 @@ pub fn add_no_uint384_check(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -112,11 +112,11 @@ pub fn add_no_uint384_check(
     let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
 
     let sum_d0 = a.d0.to_biguint() + b.d0.to_biguint();
-    let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
+    let carry_d0 = Felt::from((sum_d0 >= shift) as usize);
     let sum_d1 = a.d1.to_biguint() + b.d1.to_biguint() + carry_d0.to_biguint();
-    let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
+    let carry_d1 = Felt::from((sum_d1 >= shift) as usize);
     let sum_d2 = a.d2.to_biguint() + b.d2.to_biguint() + carry_d1.to_biguint();
-    let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
+    let carry_d2 = Felt::from((sum_d2 >= shift) as usize);
 
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
@@ -177,7 +177,7 @@ pub fn uint384_signed_nn(
     let a_d2 = vm.get_integer((a_addr + 2)?).map_err(|_| {
         HintError::IdentifierHasNoMember(Box::new(("a".to_string(), "d2".to_string())))
     })?;
-    let res = Felt252::from((a_d2.bits() <= 127) as u32);
+    let res = Felt::from((a_d2.bits() <= 127) as u32);
     insert_value_into_ap(vm, res)
 }
 
@@ -364,8 +364,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 7)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(221)))
+                    MaybeRelocatable::from(Felt::new(2)),
+                    MaybeRelocatable::from(Felt::new(221)))
         );
     }
 
@@ -407,10 +407,7 @@ mod tests {
         vm.segments.add();
         vm.segments
             .memory
-            .insert(
-                (1, 0).into(),
-                Felt252::from(u128::MAX) * Felt252::from(20_u32),
-            )
+            .insert((1, 0).into(), Felt::from(u128::MAX) * Felt::from(20_u32))
             .unwrap();
         //Execute the hint
         assert_matches!(
@@ -451,8 +448,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128)))
+                    MaybeRelocatable::from(Felt::new(2)),
+                    MaybeRelocatable::from(Felt::new(34895349583295832495320945304_i128)))
         );
     }
 
@@ -488,7 +485,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::one().shl(128_u32))]
+                &[("path.path.path.SHIFT", Felt::ONE.shl(128_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

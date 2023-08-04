@@ -32,7 +32,7 @@ mod tests {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
-    use felt::Felt252;
+    use felt::Felt;
     use num_traits::{Bounded, One, Zero};
 
     #[cfg(target_arch = "wasm32")]
@@ -40,7 +40,7 @@ mod tests {
 
     use super::*;
 
-    fn run_hint(x: Felt252) -> Result<Felt252, HintError> {
+    fn run_hint(x: Felt) -> Result<Felt, HintError> {
         let ids_data = non_continuous_ids_data![
             ("x", 0),          // located at `fp + 0`.
             ("bit_length", 1)  // located at `fp + 1`.
@@ -58,29 +58,29 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_simple() {
-        let bit_length_result = run_hint(Felt252::new(7));
+        let bit_length_result = run_hint(Felt::new(7));
         assert!(bit_length_result.is_ok());
-        assert_eq!(bit_length_result.unwrap(), Felt252::from(3));
+        assert_eq!(bit_length_result.unwrap(), Felt::from(3));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
         for i in 0..252_usize {
-            let x: Felt252 = Felt252::one() << i;
+            let x: Felt = Felt::ONE << i;
 
             let bit_length_result = run_hint(x);
             assert!(bit_length_result.is_ok());
-            assert_eq!(bit_length_result.unwrap(), Felt252::from(i + 1));
+            assert_eq!(bit_length_result.unwrap(), Felt::from(i + 1));
         }
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_wraparound() {
-        let x = Felt252::max_value() + Felt252::one();
+        let x = Felt::max_value() + Felt::ONE;
         let bit_length_result = run_hint(x);
         assert!(bit_length_result.is_ok());
-        assert_eq!(bit_length_result.unwrap(), Felt252::zero());
+        assert_eq!(bit_length_result.unwrap(), Felt::ZERO);
     }
 }

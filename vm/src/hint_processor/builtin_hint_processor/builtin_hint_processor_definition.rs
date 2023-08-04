@@ -111,7 +111,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 
 #[cfg(feature = "skip_next_instruction_hint")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
@@ -142,7 +142,7 @@ pub struct HintFunc(
                 &mut ExecutionScopes,
                 &HashMap<String, HintReference>,
                 &ApTracking,
-                &HashMap<String, Felt252>,
+                &HashMap<String, Felt>,
             ) -> Result<(), HintError>
             + Sync,
     >,
@@ -177,7 +177,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, Felt252>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
@@ -962,7 +962,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize vm scope with variable `n`
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt::ONE)];
         // initialize ids.continue_copying
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_copying
         vm.segments = segments![((1, 2), 5)];
@@ -999,7 +999,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 2;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt::ONE)];
         // initialize ids.continue_copying
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 1), 5)];
@@ -1011,8 +1011,8 @@ mod tests {
                 MemoryError::InconsistentMemory(bx)
             )) if *bx ==
                     (Relocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt252::new(5)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt::new(5)),
+                    MaybeRelocatable::from(Felt::ZERO))
         );
     }
 
@@ -1023,7 +1023,7 @@ mod tests {
         let mut vm = vm!();
         // Create new vm scope with dummy variable
         let mut exec_scopes = ExecutionScopes::new();
-        let a_value: Box<dyn Any> = Box::new(Felt252::one());
+        let a_value: Box<dyn Any> = Box::new(Felt::ONE);
         exec_scopes.enter_scope(HashMap::from([(String::from("a"), a_value)]));
         // Initialize memory segments
         add_segments!(vm, 1);
@@ -1083,7 +1083,7 @@ mod tests {
             ((1, 5), 0)
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(500))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(500))];
         assert!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes).is_ok());
     }
 
@@ -1105,10 +1105,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(2))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(2))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::KeccakMaxSize(bx)) if *bx == (Felt252::new(5), Felt252::new(2))
+            Err(HintError::KeccakMaxSize(bx)) if *bx == (Felt::new(5), Felt::new(2))
         );
     }
 
@@ -1153,10 +1153,10 @@ mod tests {
             ((1, 2), (2, 0))
         ];
         let ids_data = ids_data!["length", "data", "high", "low"];
-        let mut exec_scopes = scope![("__keccak_max_size", Felt252::new(10))];
+        let mut exec_scopes = scope![("__keccak_max_size", Felt::new(10))];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::InvalidWordSize(bx)) if *bx == Felt252::new(-1)
+            Err(HintError::InvalidWordSize(bx)) if *bx == Felt::new(-1)
         );
     }
 
@@ -1230,7 +1230,7 @@ mod tests {
         exec_scopes: &mut ExecutionScopes,
         _ids_data: &HashMap<String, HintReference>,
         _ap_tracking: &ApTracking,
-        _constants: &HashMap<String, Felt252>,
+        _constants: &HashMap<String, Felt>,
     ) -> Result<(), HintError> {
         exec_scopes.enter_scope(HashMap::new());
         Ok(())

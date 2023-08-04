@@ -11,7 +11,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use core::ops::Add;
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 
@@ -106,7 +106,7 @@ pub fn get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     #[allow(deprecated)]
@@ -258,7 +258,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt::new(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -288,7 +288,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt::new(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

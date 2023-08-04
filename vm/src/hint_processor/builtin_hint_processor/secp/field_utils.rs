@@ -12,7 +12,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -41,7 +41,7 @@ pub fn verify_zero(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -67,7 +67,7 @@ pub fn verify_zero_with_external_const(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", Felt252::new(q), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt::new(q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -139,11 +139,7 @@ pub fn is_zero_nondet(
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
-    let value = if x.is_zero() {
-        Felt252::one()
-    } else {
-        Felt252::zero()
-    };
+    let value = if x.is_zero() { Felt::ONE } else { Felt::ZERO };
     insert_value_into_ap(vm, value)
 }
 
@@ -332,8 +328,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 9)),
-                    MaybeRelocatable::from(Felt252::new(55_i32)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt::new(55_i32)),
+                    MaybeRelocatable::from(Felt::ZERO))
         );
     }
 
@@ -564,8 +560,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (vm.run_context.get_ap(),
-                MaybeRelocatable::from(Felt252::new(55i32)),
-                MaybeRelocatable::from(Felt252::new(1i32)))
+                MaybeRelocatable::from(Felt::new(55i32)),
+                MaybeRelocatable::from(Felt::new(1i32)))
         );
     }
 

@@ -17,7 +17,7 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
+use felt::Felt;
 use num_traits::{One, Zero};
 
 use super::RANGE_CHECK_BUILTIN_NAME;
@@ -37,7 +37,7 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    pub _bound: Option<Felt252>,
+    pub _bound: Option<Felt>,
     pub(crate) included: bool,
     pub(crate) n_parts: u32,
     pub(crate) instances_per_component: u32,
@@ -45,11 +45,11 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::one().shl(16 * n_parts);
+        let bound = Felt::ONE.shl(16 * n_parts);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
-            Some(Felt252::new(bound))
+            Some(Felt::new(bound))
         };
 
         RangeCheckBuiltinRunner {
@@ -96,7 +96,7 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one() << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt::ONE << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },

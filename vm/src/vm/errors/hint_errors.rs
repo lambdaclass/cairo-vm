@@ -5,7 +5,7 @@ use crate::stdlib::prelude::*;
 
 use thiserror_no_std::Error;
 
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 
 use crate::types::{
@@ -49,11 +49,11 @@ pub enum HintError {
     #[error("Fail to get constants for hint execution")]
     FailedToGetConstant,
     #[error("Arc too big, {} must be <= {} and {} <= {}", (*.0).0, (*.0).1, (*.0).2, (*.0).3)]
-    ArcTooBig(Box<(Felt252, Felt252, Felt252, Felt252)>),
+    ArcTooBig(Box<(Felt, Felt, Felt, Felt)>),
     #[error("Excluded is supposed to be 2, got {0}")]
-    ExcludedNot2(Box<Felt252>),
+    ExcludedNot2(Box<Felt>),
     #[error("Value: {0} is outside of the range [0, 2**250)")]
-    ValueOutside250BitRange(Box<Felt252>),
+    ValueOutside250BitRange(Box<Felt>),
     #[error("Failed to get scope variables")]
     ScopeError,
     #[error("Variable {0} not present in current execution scope")]
@@ -65,15 +65,15 @@ pub enum HintError {
     #[error("Dict Error: No value found for key: {0}")]
     NoValueForKey(Box<MaybeRelocatable>),
     #[error("find_element(): No value found for key: {0}")]
-    NoValueForKeyFindElement(Box<Felt252>),
+    NoValueForKeyFindElement(Box<Felt>),
     #[error("Assertion failed, a = {} % PRIME is not less than b = {} % PRIME", (*.0).0, (*.0).1)]
-    AssertLtFelt252(Box<(Felt252, Felt252)>),
+    AssertLtFelt252(Box<(Felt, Felt)>),
     #[error("find_element() can only be used with n_elms <= {}.\nGot: n_elms = {}", (*.0).0, (*.0).1)]
-    FindElemMaxSize(Box<(Felt252, Felt252)>),
+    FindElemMaxSize(Box<(Felt, Felt)>),
     #[error(
         "Invalid index found in find_element_index. Index: {}.\nExpected key: {}, found_key {}", (*.0).0, (*.0).1, (*.0).2
     )]
-    InvalidIndex(Box<(Felt252, Felt252, Felt252)>),
+    InvalidIndex(Box<(Felt, Felt, Felt)>),
     #[error("Found Key is None")]
     KeyNotFound,
     #[error("AP tracking data is None; could not apply correction to address")]
@@ -85,7 +85,7 @@ pub enum HintError {
     #[error("Dict Error: Tried to create a dict without an initial dict")]
     NoInitialDict,
     #[error("squash_dict_inner fail: couldnt find key {0} in accesses_indices")]
-    NoKeyInAccessIndices(Box<Felt252>),
+    NoKeyInAccessIndices(Box<Felt>),
     #[error("squash_dict_inner fail: local accessed_indices is empty")]
     EmptyAccessIndices,
     #[error("squash_dict_inner fail: local current_accessed_indices is empty")]
@@ -95,7 +95,7 @@ pub enum HintError {
     #[error("Dict Error: Got the wrong value for dict_update, expected value: {}, got: {} for key: {}", (*.0).0, (*.0).1, (*.0).2)]
     WrongPrevValue(Box<(MaybeRelocatable, MaybeRelocatable, MaybeRelocatable)>),
     #[error("squash_dict_inner fail: Number of used accesses:{} doesnt match the lengh: {} of the access_indices at key: {}", (*.0).0, (*.0).1, (*.0).2)]
-    NumUsedAccessesAssertFail(Box<(Felt252, usize, Felt252)>),
+    NumUsedAccessesAssertFail(Box<(Felt, usize, Felt)>),
     #[error("squash_dict_inner fail: local keys is not empty")]
     KeysNotEmpty,
     #[error("squash_dict_inner fail: No keys left but remaining_accesses > 0")]
@@ -103,13 +103,13 @@ pub enum HintError {
     #[error("squash_dict fail: Accesses array size must be divisible by DictAccess.SIZE")]
     PtrDiffNotDivisibleByDictAccessSize,
     #[error("squash_dict() can only be used with n_accesses<={}. ' \nGot: n_accesses={}", (*.0).0, (*.0).1)]
-    SquashDictMaxSizeExceeded(Box<(Felt252, Felt252)>),
+    SquashDictMaxSizeExceeded(Box<(Felt, Felt)>),
     #[error("squash_dict fail: n_accesses: {0} is too big to be converted into an iterator")]
-    NAccessesTooBig(Box<Felt252>),
+    NAccessesTooBig(Box<Felt>),
     #[error("Couldn't convert BigInt to usize")]
     BigintToUsizeFail,
     #[error("usort() can only be used with input_len<={}. Got: input_len={}.", (*.0).0, (*.0).1)]
-    UsortOutOfRange(Box<(u64, Felt252)>),
+    UsortOutOfRange(Box<(u64, Felt)>),
     #[error("unexpected usort fail: positions_dict or key value pair not found")]
     UnexpectedPositionsDictFail,
     #[error("unexpected verify multiplicity fail: positions not found")]
@@ -135,37 +135,37 @@ pub enum HintError {
     #[error("verify_zero: Invalid input {0}")]
     SecpVerifyZero(Box<BigInt>),
     #[error("unsafe_keccak() can only be used with length<={}. Got: length={}", (*.0).0, (*.0).1)]
-    KeccakMaxSize(Box<(Felt252, Felt252)>),
+    KeccakMaxSize(Box<(Felt, Felt)>),
     #[error("Invalid word size: {0}")]
-    InvalidWordSize(Box<Felt252>),
+    InvalidWordSize(Box<Felt>),
     #[error("Invalid input length, Got: length={0}")]
-    InvalidKeccakInputLength(Box<Felt252>),
+    InvalidKeccakInputLength(Box<Felt>),
     #[error("assert_not_equal failed: {} =  {}", (*.0).0, (*.0).1)]
     AssertNotEqualFail(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("split_int(): value is out of range")]
     SplitIntNotZero,
     #[error("split_int(): Limb {0} is out of range.")]
-    SplitIntLimbOutOfRange(Box<Felt252>),
+    SplitIntLimbOutOfRange(Box<Felt>),
     #[error("Expected size to be in the range from [0, 100), got: {0}")]
-    InvalidKeccakStateSizeFelt252s(Box<Felt252>),
+    InvalidKeccakStateSizeFelt252s(Box<Felt>),
     #[error("Expected size to be in range from [0, 10), got: {0}")]
-    InvalidBlockSize(Box<Felt252>),
+    InvalidBlockSize(Box<Felt>),
     #[error("Couldn't convert BigInt to u32")]
     BigintToU32Fail,
     #[error("BigInt to BigUint failed, BigInt is negative")]
     BigIntToBigUintFail,
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
-    ValueOutOfRange(Box<Felt252>),
+    ValueOutOfRange(Box<Felt>),
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
-    AssertNNValueOutOfRange(Box<Felt252>),
+    AssertNNValueOutOfRange(Box<Felt>),
     #[error("Assertion failed, {} % {} is equal to 0", (*.0).0, (*.0).1)]
-    AssertNotZero(Box<(Felt252, String)>),
+    AssertNotZero(Box<(Felt, String)>),
     #[error("Div out of range: 0 < {} <= {}", (*.0).0, (*.0).1)]
-    OutOfValidRange(Box<(Felt252, Felt252)>),
+    OutOfValidRange(Box<(Felt, Felt)>),
     #[error("Value: {0} is outside valid range")]
-    ValueOutsideValidRange(Box<Felt252>),
+    ValueOutsideValidRange(Box<Felt>),
     #[error("Assertion failed, {}, is not less or equal to {}", (*.0).0, (*.0).1)]
-    NonLeFelt252(Box<(Felt252, Felt252)>),
+    NonLeFelt252(Box<(Felt, Felt)>),
     #[error("Unknown Hint: {0}")]
     UnknownHint(Box<str>),
     #[error("Signature hint must point to the signature builtin segment, not {0}.")]
@@ -175,11 +175,11 @@ pub enum HintError {
     #[error("random_ec_point: Could not find a point on the curve.")]
     RandomEcPointNotOnCurve,
     #[error("Invalid value for len. Got: {0}.")]
-    InvalidLenValue(Box<Felt252>),
+    InvalidLenValue(Box<Felt>),
     #[error("recover_y: {0} does not represent the x coordinate of a point on the curve.")]
-    RecoverYPointNotOnCurve(Box<Felt252>),
+    RecoverYPointNotOnCurve(Box<Felt>),
     #[error("Invalid value for {}. Got: {}. Expected: {}", (*.0).0, (*.0).1, (*.0).2)]
-    InvalidValue(Box<(&'static str, Felt252, Felt252)>),
+    InvalidValue(Box<(&'static str, Felt, Felt)>),
     #[error("Attempt to subtract with overflow: ids.m - 1")]
     NPairBitsTooLowM,
 }
@@ -189,8 +189,8 @@ mod tests {
     use super::*;
     #[test]
     fn test_multiple_members_variant_message_format() {
-        let a = Felt252::new(42);
-        let b = Felt252::new(53);
+        let a = Felt::new(42);
+        let b = Felt::new(53);
         let string = "test";
 
         let error_msg =
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_single_felt_variant_message_format() {
-        let x = Felt252::new(15131);
+        let x = Felt::new(15131);
 
         let error_msg = HintError::InvalidKeccakStateSizeFelt252s(Box::new(x.clone())).to_string();
 

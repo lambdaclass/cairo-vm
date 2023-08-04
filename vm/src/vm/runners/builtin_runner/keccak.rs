@@ -7,7 +7,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_traits::One;
@@ -26,7 +26,7 @@ pub struct KeccakBuiltinRunner {
     pub(crate) included: bool,
     state_rep: Vec<u32>,
     pub(crate) instances_per_component: u32,
-    cache: RefCell<HashMap<Relocatable, Felt252>>,
+    cache: RefCell<HashMap<Relocatable, Felt>>,
 }
 
 impl KeccakBuiltinRunner {
@@ -93,7 +93,7 @@ impl KeccakBuiltinRunner {
                             m_index,
                         )))
                     })?;
-                    if num >= &(Felt252::one() << self.state_rep[i]) {
+                    if num >= &(Felt::ONE << self.state_rep[i]) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                             m_index,
                             self.state_rep[i],
@@ -119,7 +119,7 @@ impl KeccakBuiltinRunner {
             let end_index = start_index + *bits as usize / 8;
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
-                Felt252::from(BigUint::from_bytes_le(
+                Felt::from(BigUint::from_bytes_le(
                     &keccak_result[start_index..end_index],
                 )),
             );
@@ -539,7 +539,7 @@ mod tests {
         assert_eq!(
             result,
             Ok(Some(MaybeRelocatable::from(
-                Felt252::from_str_radix(
+                Felt::from_str_radix(
                     "1006979841721999878391288827876533441431370448293338267890891",
                     10
                 )

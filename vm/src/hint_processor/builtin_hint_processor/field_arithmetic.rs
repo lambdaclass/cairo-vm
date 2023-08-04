@@ -1,4 +1,4 @@
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Zero;
@@ -96,14 +96,14 @@ pub fn u384_get_square_root(
     }
     insert_value_from_var_name(
         "success_x",
-        Felt252::from(success_x as u8),
+        Felt::from(success_x as u8),
         vm,
         ids_data,
         ap_tracking,
     )?;
     insert_value_from_var_name(
         "success_gx",
-        Felt252::from(success_gx as u8),
+        Felt::from(success_gx as u8),
         vm,
         ids_data,
         ap_tracking,
@@ -188,14 +188,14 @@ pub fn u256_get_square_root(
     }
     insert_value_from_var_name(
         "success_x",
-        Felt252::from(success_x as u8),
+        Felt::from(success_x as u8),
         vm,
         ids_data,
         ap_tracking,
     )?;
     insert_value_from_var_name(
         "success_gx",
-        Felt252::from(success_gx as u8),
+        Felt::from(success_gx as u8),
         vm,
         ids_data,
         ap_tracking,

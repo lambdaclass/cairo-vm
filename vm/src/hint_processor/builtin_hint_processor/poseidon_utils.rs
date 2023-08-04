@@ -1,6 +1,6 @@
 use crate::stdlib::{collections::HashMap, string::String};
 
-use felt::Felt252;
+use felt::Felt;
 use num_traits::ToPrimitive;
 
 use crate::{
@@ -20,7 +20,7 @@ pub fn n_greater_than_10(
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
         .to_usize()
         .unwrap_or(10); // This suffices to signal it was >= 10
-    let value = Felt252::from((n >= 10) as usize);
+    let value = Felt::from((n >= 10) as usize);
     insert_value_into_ap(vm, value)
 }
 
@@ -33,7 +33,7 @@ pub fn n_greater_than_2(
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
         .to_usize()
         .unwrap_or(2);
-    let value = Felt252::from((n >= 2) as usize);
+    let value = Felt::from((n >= 2) as usize);
     insert_value_into_ap(vm, value)
 }
 

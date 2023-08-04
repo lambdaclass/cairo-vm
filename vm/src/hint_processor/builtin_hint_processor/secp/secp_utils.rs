@@ -93,7 +93,7 @@ mod tests {
     use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
-    use felt::Felt252;
+    use felt::Felt;
     use num_bigint::BigUint;
 
     use num_traits::One;
@@ -104,7 +104,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
+        constants.insert(BASE_86.to_string(), Felt::ONE << 86_usize);
 
         let array_1 = bigint3_split(&BigUint::zero());
         #[allow(deprecated)]

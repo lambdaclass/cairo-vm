@@ -5,7 +5,7 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigUint;
 
 use super::{
@@ -14,10 +14,10 @@ use super::{
 };
 
 pub(crate) struct Uint512<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
-    pub d3: Cow<'a, Felt252>,
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
+    pub d3: Cow<'a, Felt>,
 }
 
 impl<'a> Uint512<'a> {
@@ -52,7 +52,7 @@ impl<'a> Uint512<'a> {
         Self::from_base_addr(base_addr, name, vm)
     }
 
-    pub(crate) fn from_values(limbs: [Felt252; 4]) -> Self {
+    pub(crate) fn from_values(limbs: [Felt; 4]) -> Self {
         let [d0, d1, d2, d3] = limbs;
         let d0 = Cow::Owned(d0);
         let d1 = Cow::Owned(d1);

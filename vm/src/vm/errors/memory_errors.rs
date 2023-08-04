@@ -5,7 +5,7 @@ use crate::stdlib::prelude::*;
 
 use thiserror_no_std::Error;
 
-use felt::Felt252;
+use felt::Felt;
 
 use crate::types::{
     errors::math_errors::MathError,
@@ -23,7 +23,7 @@ pub enum MemoryError {
     #[error("Memory addresses must be relocatable")]
     AddressNotRelocatable,
     #[error("Range-check validation failed, number {} is out of valid range [0, {}]", (*.0).0, (*.0).1)]
-    RangeCheckNumOutOfBounds(Box<(Felt252, Felt252)>),
+    RangeCheckNumOutOfBounds(Box<(Felt, Felt)>),
     #[error("Range-check validation failed, encountered non-int value at address {0}")]
     RangeCheckFoundNonInt(Box<Relocatable>),
     #[error("Inconsistent memory assignment at address {:?}. {:?} != {:?}", (*.0).0, (*.0).1, (*.0).2)]
@@ -58,7 +58,7 @@ pub enum MemoryError {
         "Signature {}, is invalid, with respect to the public key {}, 
     and the message hash {}.", (*.0).0, (*.0).1, (*.0).2
     )]
-    InvalidSignature(Box<(String, Felt252, Felt252)>),
+    InvalidSignature(Box<(String, Felt, Felt)>),
     #[error(
         "Signature hint is missing for ECDSA builtin at address {0}.
     Add it using 'ecdsa_builtin.add_signature'."

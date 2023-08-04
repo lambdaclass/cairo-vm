@@ -17,7 +17,7 @@ use crate::{
     },
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Bounded;
 
@@ -26,9 +26,9 @@ pub(crate) type Uint384<'a> = BigInt3<'a>;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt3<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
 }
 
 impl BigInt3<'_> {
@@ -60,7 +60,7 @@ impl BigInt3<'_> {
         BigInt3::from_base_addr(base_addr, name, vm)
     }
 
-    pub(crate) fn from_values(limbs: [Felt252; 3]) -> Self {
+    pub(crate) fn from_values(limbs: [Felt; 3]) -> Self {
         let [d0, d1, d2] = limbs;
         let d0 = Cow::Owned(d0);
         let d1 = Cow::Owned(d1);
@@ -105,11 +105,11 @@ impl BigInt3<'_> {
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigInt5<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
-    pub d3: Cow<'a, Felt252>,
-    pub d4: Cow<'a, Felt252>,
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
+    pub d3: Cow<'a, Felt>,
+    pub d4: Cow<'a, Felt>,
 }
 
 impl BigInt5<'_> {
@@ -168,7 +168,7 @@ pub fn nondet_bigint3(
         .ok_or(HintError::BigIntToBigUintFail)?;
     let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
-        .map(|n| MaybeRelocatable::from(Felt252::new(n)))
+        .map(|n| MaybeRelocatable::from(Felt::new(n)))
         .collect();
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
@@ -180,7 +180,7 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    constants: &HashMap<String, Felt>,
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(x_struct)?;
@@ -190,7 +190,7 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
-    let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
+    let low = (d0 + &(d1 * base_86)) & &Felt::new(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -211,7 +211,7 @@ pub fn hi_max_bitlen(
 
     // equal to `len_hi.wrapping_sub(1)`
     let res = if len_hi == 0 {
-        Felt252::max_value()
+        Felt::max_value()
     } else {
         (len_hi - 1).into()
     };
@@ -264,7 +264,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt252::one().shl(86_u32))]
+                &[(BASE_86, Felt::ONE.shl(86_u32))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -318,9 +318,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
         let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
     }
 
     #[test]
@@ -335,11 +335,11 @@ mod tests {
             ((0, 4), 5)
         ];
         let x = BigInt5::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(x.d3.as_ref(), &Felt252::from(4));
-        assert_eq!(x.d4.as_ref(), &Felt252::from(5));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(x.d3.as_ref(), &Felt::from(4));
+        assert_eq!(x.d4.as_ref(), &Felt::from(5));
     }
 
     #[test]
@@ -373,9 +373,9 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
     }
 
     #[test]
@@ -392,11 +392,11 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(x.d3.as_ref(), &Felt252::from(4));
-        assert_eq!(x.d4.as_ref(), &Felt252::from(5));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(x.d3.as_ref(), &Felt::from(4));
+        assert_eq!(x.d4.as_ref(), &Felt::from(5));
     }
 
     #[test]
@@ -481,9 +481,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn u384_pack86() {
         let pack_1 = Uint384 {
-            d0: Cow::Borrowed(&Felt252::new(10_i32)),
-            d1: Cow::Borrowed(&Felt252::new(10_i32)),
-            d2: Cow::Borrowed(&Felt252::new(10_i32)),
+            d0: Cow::Borrowed(&Felt::new(10_i32)),
+            d1: Cow::Borrowed(&Felt::new(10_i32)),
+            d2: Cow::Borrowed(&Felt::new(10_i32)),
         }
         .pack86();
         assert_eq!(

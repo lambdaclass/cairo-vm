@@ -7,7 +7,7 @@ use thiserror_no_std::Error;
 
 use super::memory_errors::MemoryError;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
-use felt::Felt252;
+use felt::Felt;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
@@ -30,15 +30,15 @@ pub enum RunnerError {
     #[error("Failed to convert string to FieldElement")]
     FailedStringConversion,
     #[error("EcOpBuiltin: m should be at most {0}")]
-    EcOpBuiltinScalarLimit(Box<Felt252>),
+    EcOpBuiltinScalarLimit(Box<Felt>),
     #[error("Given builtins are not in appropiate order")]
     DisorderedBuiltins,
     #[error("Expected integer at address {:?} to be smaller than 2^{}, Got {}", (*.0).0, (*.0).1, (*.0).2)]
-    IntegerBiggerThanPowerOfTwo(Box<(Relocatable, u32, Felt252)>),
+    IntegerBiggerThanPowerOfTwo(Box<(Relocatable, u32, Felt)>),
     #[error("{0}")]
     EcOpSameXCoordinate(Box<str>),
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
-    PointNotOnCurve(Box<(Felt252, Felt252)>),
+    PointNotOnCurve(Box<(Felt, Felt)>),
     #[error("Builtin(s) {:?} not present in layout {}", (*.0).0, (*.0).1)]
     NoBuiltinForInstance(Box<(HashSet<&'static str>, String)>),
     #[error("Invalid layout {0}")]

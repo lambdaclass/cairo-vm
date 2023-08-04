@@ -18,7 +18,7 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
@@ -416,7 +416,7 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt252::one());
+        .bitand(&Felt::ONE);
     insert_value_into_ap(vm, scalar)
 }
 
@@ -511,7 +511,7 @@ pub fn n_pair_bits(
     //  1010101__ -> 101010110
     let get_bit =
         |x: &BigUint, i| m.checked_sub(i).map(|i| x.bit(i.into())).unwrap_or(false) as u32;
-    let res: Felt252 = (0..number_of_pairs)
+    let res: Felt = (0..number_of_pairs)
         .map(|i| {
             // This code is definitely verbose, but it's the only way I found to avoid a `panic`
             // when `m < number_of_pairs` while still being correct and hopefully fast.
@@ -1272,12 +1272,12 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.d0.as_ref(), &Felt252::one());
-        assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));
-        assert_eq!(e.y.d1.as_ref(), &Felt252::from(5));
-        assert_eq!(e.y.d2.as_ref(), &Felt252::from(6));
+        assert_eq!(e.x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(e.x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(e.x.d2.as_ref(), &Felt::from(3));
+        assert_eq!(e.y.d0.as_ref(), &Felt::from(4));
+        assert_eq!(e.y.d1.as_ref(), &Felt::from(5));
+        assert_eq!(e.y.d2.as_ref(), &Felt::from(6));
     }
 
     #[test]

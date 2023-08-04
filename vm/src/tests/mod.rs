@@ -15,7 +15,7 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 #[cfg(feature = "cairo-1-hints")]
-use felt::Felt252;
+use felt::Felt;
 
 use crate::stdlib::prelude::*;
 
@@ -112,7 +112,7 @@ pub(self) fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
     args: &[MaybeRelocatable],
-    expected_retdata: &[Felt252],
+    expected_retdata: &[Felt],
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor =
@@ -202,7 +202,7 @@ pub(self) fn run_cairo_1_entrypoint(
     let return_values = vm.get_return_values(5).unwrap();
     let retdata_start = return_values[3].get_relocatable().unwrap();
     let retdata_end = return_values[4].get_relocatable().unwrap();
-    let retdata: Vec<Felt252> = vm
+    let retdata: Vec<Felt> = vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()
@@ -219,7 +219,7 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     entrypoint_offset: usize,
     hint_processor: &mut Cairo1HintProcessor,
     args: &[MaybeRelocatable],
-) -> Result<Vec<Felt252>, CairoRunError> {
+) -> Result<Vec<Felt>, CairoRunError> {
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
         "all_cairo",
@@ -302,7 +302,7 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     let return_values = vm.get_return_values(5).unwrap();
     let retdata_start = return_values[3].get_relocatable().unwrap();
     let retdata_end = return_values[4].get_relocatable().unwrap();
-    let retdata: Vec<Felt252> = vm
+    let retdata: Vec<Felt> = vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()

@@ -19,7 +19,7 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
-use felt::{Felt252, PRIME_STR};
+use felt::{Felt, PRIME_STR};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -73,10 +73,10 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
         let len = usize::arbitrary(u)?;
         for i in 0..len {
             let instruction = u64::arbitrary(u)?;
-            data.push(MaybeRelocatable::from(Felt252::from(instruction)));
+            data.push(MaybeRelocatable::from(Felt::from(instruction)));
             // Check if the Imm flag is on and add an immediate value if it is
             if instruction & 0x0004000000000000 != 0 && i < len - 1 {
-                data.push(MaybeRelocatable::from(Felt252::arbitrary(u)?));
+                data.push(MaybeRelocatable::from(Felt::arbitrary(u)?));
             }
         }
 
@@ -107,7 +107,7 @@ type HintRange = Option<(usize, NonZeroUsize)>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
-    pub(crate) constants: HashMap<String, Felt252>,
+    pub(crate) constants: HashMap<String, Felt>,
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
@@ -272,7 +272,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(Felt252::from(x.value.clone())))
+            .map(|x| MaybeRelocatable::from(Felt::from(x.value.clone())))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
@@ -458,7 +458,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -483,7 +483,7 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -635,7 +635,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -705,7 +705,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -860,7 +860,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -959,7 +959,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -988,7 +988,7 @@ mod tests {
         .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt::ZERO),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
                 felt_str!(
@@ -997,7 +997,7 @@ mod tests {
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt252::new(3),
+                Felt::new(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",

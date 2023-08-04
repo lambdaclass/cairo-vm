@@ -11,19 +11,19 @@ use crate::{
     types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+use felt::Felt;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::Zero;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Uint768<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
-    pub d3: Cow<'a, Felt252>,
-    pub d4: Cow<'a, Felt252>,
-    pub d5: Cow<'a, Felt252>,
+    pub d0: Cow<'a, Felt>,
+    pub d1: Cow<'a, Felt>,
+    pub d2: Cow<'a, Felt>,
+    pub d3: Cow<'a, Felt>,
+    pub d4: Cow<'a, Felt>,
+    pub d5: Cow<'a, Felt>,
 }
 
 impl Uint768<'_> {
@@ -64,7 +64,7 @@ impl Uint768<'_> {
         Uint768::from_base_addr(base_addr, name, vm)
     }
 
-    pub(crate) fn from_values(limbs: [Felt252; 6]) -> Self {
+    pub(crate) fn from_values(limbs: [Felt; 6]) -> Self {
         let [d0, d1, d2, d3, d4, d5] = limbs;
         Self {
             d0: Cow::Owned(d0),
@@ -193,9 +193,9 @@ mod tests {
             ((1, 5), 6)
         ];
         let x = Uint768::from_base_addr((1, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
     }
 
     fn assert_is_err_identifier_has_no_member(
@@ -281,9 +281,9 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.d0.as_ref(), &Felt::ONE);
+        assert_eq!(x.d1.as_ref(), &Felt::from(2));
+        assert_eq!(x.d2.as_ref(), &Felt::from(3));
     }
 
     #[test]

@@ -11,7 +11,7 @@
 
 use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
 
-use felt::Felt252;
+use felt::Felt;
 
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor, types::exec_scope::ExecutionScopes,
@@ -38,7 +38,7 @@ type StepHookFunc = Arc<
             &mut dyn HintProcessor,
             &mut ExecutionScopes,
             &[Box<dyn Any>],
-            &HashMap<String, Felt252>,
+            &HashMap<String, Felt>,
         ) -> Result<(), VirtualMachineError>
         + Sync
         + Send,
@@ -86,7 +86,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
         hint_data: &[Box<dyn Any>],
-        constants: &HashMap<String, Felt252>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().pre_step_instruction {
             (hook_func)(self, hint_executor, exec_scope, hint_data, constants)?;
@@ -100,7 +100,7 @@ impl VirtualMachine {
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
         hint_data: &[Box<dyn Any>],
-        constants: &HashMap<String, Felt252>,
+        constants: &HashMap<String, Felt>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().post_step_instruction {
             (hook_func)(self, hint_executor, exec_scope, hint_data, constants)?;
@@ -158,7 +158,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &[Box<dyn Any>],
-            _constants: &HashMap<String, Felt252>,
+            _constants: &HashMap<String, Felt>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -168,7 +168,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &[Box<dyn Any>],
-            _constants: &HashMap<String, Felt252>,
+            _constants: &HashMap<String, Felt>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -228,7 +228,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &[Box<dyn Any>],
-            _constants: &HashMap<String, Felt252>,
+            _constants: &HashMap<String, Felt>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
         }
@@ -238,7 +238,7 @@ mod tests {
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
             _hint_data: &[Box<dyn Any>],
-            _constants: &HashMap<String, Felt252>,
+            _constants: &HashMap<String, Felt>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
         }

@@ -18,19 +18,19 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
-use felt::Felt252;
+use felt::Felt;
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
 fn get_access_indices(
     exec_scopes: &mut ExecutionScopes,
-) -> Result<&HashMap<Felt252, Vec<Felt252>>, HintError> {
-    let mut access_indices: Option<&HashMap<Felt252, Vec<Felt252>>> = None;
+) -> Result<&HashMap<Felt, Vec<Felt>>, HintError> {
+    let mut access_indices: Option<&HashMap<Felt, Vec<Felt>>> = None;
     if let Some(variable) = exec_scopes
         .get_local_variables_mut()?
         .get_mut("access_indices")
     {
-        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<Felt252, Vec<Felt252>>>() {
+        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<Felt, Vec<Felt>>>() {
             access_indices = Some(py_access_indices);
         }
     }
@@ -51,7 +51,7 @@ pub fn squash_dict_inner_first_iteration(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that access_indices and key are in scope
-    let key = exec_scopes.get::<Felt252>("key")?;
+    let key = exec_scopes.get::<Felt>("key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Get current_indices from access_indices
@@ -81,12 +81,12 @@ pub fn squash_dict_inner_skip_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
-        Felt252::one()
+        Felt::ONE
     } else {
-        Felt252::zero()
+        Felt::ZERO
     };
     insert_value_from_var_name(
         "should_skip_loop",
@@ -109,14 +109,13 @@ pub fn squash_dict_inner_check_access_index(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = exec_scopes.get::<Felt252>("current_access_index")?;
-    let current_access_indices =
-        exec_scopes.get_mut_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_index = exec_scopes.get::<Felt>("current_access_index")?;
+    let current_access_indices = exec_scopes.get_mut_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
         .ok_or(HintError::EmptyCurrentAccessIndices)?;
-    let index_delta_minus1 = new_access_index.clone() - current_access_index - Felt252::one();
+    let index_delta_minus1 = new_access_index.clone() - current_access_index - Felt::ONE;
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     insert_value_from_var_name("loop_temps", index_delta_minus1, vm, ids_data, ap_tracking)?;
@@ -136,12 +135,12 @@ pub fn squash_dict_inner_continue_loop(
     //Get addr for ids variables
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", vm, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
-        Felt252::zero()
+        Felt::ZERO
     } else {
-        Felt252::one()
+        Felt::ONE
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
@@ -153,7 +152,7 @@ pub fn squash_dict_inner_continue_loop(
 // Implements Hint: assert len(current_access_indices) == 0
 pub fn squash_dict_inner_len_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(HintError::CurrentAccessIndicesNotEmpty);
     }
@@ -167,7 +166,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = exec_scopes.get::<Felt252>("key")?;
+    let key = exec_scopes.get::<Felt>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Main Logic
@@ -175,7 +174,7 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
 
-    if n_used_accesses.as_ref() != &Felt252::new(access_indices_at_key.len()) {
+    if n_used_accesses.as_ref() != &Felt::new(access_indices_at_key.len()) {
         return Err(HintError::NumUsedAccessesAssertFail(Box::new((
             n_used_accesses.into_owned(),
             access_indices_at_key.len(),
@@ -190,7 +189,7 @@ pub fn squash_dict_inner_assert_len_keys(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_list_ref::<Felt252>("keys")?;
+    let keys = exec_scopes.get_list_ref::<Felt>("keys")?;
     if !keys.is_empty() {
         return Err(HintError::KeysNotEmpty);
     };
@@ -207,7 +206,7 @@ pub fn squash_dict_inner_next_key(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_mut_list_ref::<Felt252>("keys")?;
+    let keys = exec_scopes.get_mut_list_ref::<Felt>("keys")?;
     let next_key = keys.pop().ok_or(HintError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name("next_key", next_key.clone(), vm, ids_data, ap_tracking)?;
@@ -251,10 +250,10 @@ pub fn squash_dict(
     let range_check_builtin = vm.get_range_check_builtin()?;
     let range_check_bound = range_check_builtin._bound.clone();
     //Main Logic
-    if ptr_diff.mod_floor(&Felt252::new(DICT_ACCESS_SIZE)) != Felt252::zero() {
+    if ptr_diff.mod_floor(&Felt::new(DICT_ACCESS_SIZE)) != Felt::ZERO {
         return Err(HintError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = exec_scopes.get::<Felt252>("__squash_dict_max_size");
+    let squash_dict_max_size = exec_scopes.get::<Felt>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
             return Err(HintError::SquashDictMaxSizeExceeded(Box::new((
@@ -267,7 +266,7 @@ pub fn squash_dict(
         .to_usize()
         .ok_or_else(|| HintError::NAccessesTooBig(Box::new(n_accesses.into_owned())))?;
     //A map from key to the list of indices accessing it.
-    let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
+    let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
     for i in 0..n_accesses_usize {
         let key_addr = (address + DICT_ACCESS_SIZE * i)?;
         let key = vm
@@ -276,17 +275,17 @@ pub fn squash_dict(
         access_indices
             .entry(key.into_owned())
             .or_default()
-            .push(Felt252::new(i));
+            .push(Felt::new(i));
     }
     //Descending list of keys.
-    let mut keys: Vec<Felt252> = access_indices.keys().cloned().collect();
+    let mut keys: Vec<Felt> = access_indices.keys().cloned().collect();
     keys.sort();
     keys.reverse();
     //Are the keys used bigger than the range_check bound.
     let big_keys = if keys[0] >= range_check_bound.unwrap() {
-        Felt252::one()
+        Felt::ONE
     } else {
-        Felt252::zero()
+        Felt::ZERO
     };
     insert_value_from_var_name("big_keys", big_keys, vm, ids_data, ap_tracking)?;
     let key = keys.pop().ok_or(HintError::EmptyKeys)?;
@@ -337,18 +336,14 @@ mod tests {
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
-        let current_accessed_indices = vec![
-            Felt252::new(9),
-            Felt252::new(3),
-            Felt252::new(10),
-            Felt252::new(7),
-        ];
-        access_indices.insert(Felt252::new(5), current_accessed_indices);
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
+        let current_accessed_indices =
+            vec![Felt::new(9), Felt::new(3), Felt::new(10), Felt::new(7)];
+        access_indices.insert(Felt::new(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt252::new(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt::new(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
@@ -364,9 +359,9 @@ mod tests {
             [
                 (
                     "current_access_indices",
-                    vec![Felt252::new(10), Felt252::new(9), Felt252::new(7)]
+                    vec![Felt::new(10), Felt::new(9), Felt::new(7)]
                 ),
-                ("current_access_index", Felt252::new(3))
+                ("current_access_index", Felt::new(3))
             ]
         );
         //Check that current_access_index is now at range_check_ptr
@@ -378,14 +373,14 @@ mod tests {
     fn squash_dict_inner_first_iteration_empty_accessed_indices() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
         //Leave current_accessed_indices empty
-        let current_accessed_indices = Vec::<Felt252>::new();
-        access_indices.insert(Felt252::new(5), current_accessed_indices);
+        let current_accessed_indices = Vec::<Felt>::new();
+        access_indices.insert(Felt::new(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt252::new(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt::new(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (range_check_ptr)
@@ -427,7 +422,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt252>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -446,10 +441,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![(
-            "current_access_indices",
-            vec![Felt252::new(4), Felt252::new(7)]
-        )];
+        let mut exec_scopes = scope![("current_access_indices", vec![Felt::new(4), Felt::new(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -471,14 +463,9 @@ mod tests {
         let mut exec_scopes = scope![
             (
                 "current_access_indices",
-                vec![
-                    Felt252::new(10),
-                    Felt252::new(9),
-                    Felt252::new(7),
-                    Felt252::new(5)
-                ]
+                vec![Felt::new(10), Felt::new(9), Felt::new(7), Felt::new(5)]
             ),
-            ("current_access_index", Felt252::one())
+            ("current_access_index", Felt::ONE)
         ];
         //Initialize fp
         vm.run_context.fp = 1;
@@ -492,10 +479,10 @@ mod tests {
             [
                 (
                     "current_access_indices",
-                    vec![Felt252::new(10), Felt252::new(9), Felt252::new(7)]
+                    vec![Felt::new(10), Felt::new(9), Felt::new(7)]
                 ),
-                ("new_access_index", Felt252::new(5)),
-                ("current_access_index", Felt252::new(5))
+                ("new_access_index", Felt::new(5)),
+                ("current_access_index", Felt::new(5))
             ]
         );
         //Check the value of loop_temps.index_delta_minus_1
@@ -512,8 +499,8 @@ mod tests {
         let mut vm = vm!();
         //Store scope variables
         let mut exec_scopes = scope![
-            ("current_access_indices", Vec::<Felt252>::new()),
-            ("current_access_index", Felt252::one())
+            ("current_access_indices", Vec::<Felt>::new()),
+            ("current_access_index", Felt::ONE)
         ];
         //Initialize fp
         vm.run_context.fp = 1;
@@ -536,10 +523,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![(
-            "current_access_indices",
-            vec![Felt252::new(4), Felt252::new(7)]
-        )];
+        let mut exec_scopes = scope![("current_access_indices", vec![Felt::new(4), Felt::new(7)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -558,7 +542,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt252>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create ids_data
@@ -576,7 +560,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt252>::new())];
+        let mut exec_scopes = scope![("current_access_indices", Vec::<Felt>::new())];
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_matches!(
@@ -592,7 +576,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("current_access_indices", vec![Felt252::new(29)])];
+        let mut exec_scopes = scope![("current_access_indices", vec![Felt::new(29)])];
         //Execute the hint
         //Hint should produce an error if assertion fails
         assert_matches!(
@@ -606,18 +590,14 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_valid() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
-        let current_accessed_indices = vec![
-            Felt252::new(9),
-            Felt252::new(3),
-            Felt252::new(10),
-            Felt252::new(7),
-        ];
-        access_indices.insert(Felt252::new(5), current_accessed_indices);
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
+        let current_accessed_indices =
+            vec![Felt::new(9), Felt::new(3), Felt::new(10), Felt::new(7)];
+        access_indices.insert(Felt::new(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt252::new(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt::new(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -634,18 +614,14 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
-        let current_accessed_indices = vec![
-            Felt252::new(9),
-            Felt252::new(3),
-            Felt252::new(10),
-            Felt252::new(7),
-        ];
-        access_indices.insert(Felt252::new(5), current_accessed_indices);
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
+        let current_accessed_indices =
+            vec![Felt::new(9), Felt::new(3), Felt::new(10), Felt::new(7)];
+        access_indices.insert(Felt::new(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt252::new(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt::new(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -655,7 +631,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::NumUsedAccessesAssertFail(bx)) if *bx == (Felt252::new(5), 4, Felt252::new(5))
+            Err(HintError::NumUsedAccessesAssertFail(bx)) if *bx == (Felt::new(5), 4, Felt::new(5))
         );
     }
 
@@ -664,18 +640,14 @@ mod tests {
     fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
-        let current_accessed_indices = vec![
-            Felt252::new(9),
-            Felt252::new(3),
-            Felt252::new(10),
-            Felt252::new(7),
-        ];
-        access_indices.insert(Felt252::new(5), current_accessed_indices);
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
+        let current_accessed_indices =
+            vec![Felt::new(9), Felt::new(3), Felt::new(10), Felt::new(7)];
+        access_indices.insert(Felt::new(5), current_accessed_indices);
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt252::new(5))];
+        let mut exec_scopes = scope![("access_indices", access_indices), ("key", Felt::new(5))];
         //Initialize fp
         vm.run_context.fp = 1;
         //Insert ids into memory (n_used_accesses)
@@ -696,7 +668,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", Vec::<Felt252>::new())];
+        let mut exec_scopes = scope![("keys", Vec::<Felt>::new())];
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
@@ -711,7 +683,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", vec![Felt252::new(3)])];
+        let mut exec_scopes = scope![("keys", vec![Felt::new(3)])];
         //Execute the hint
         assert_matches!(
             run_hint!(vm, HashMap::new(), hint_code, &mut exec_scopes),
@@ -740,7 +712,7 @@ mod tests {
         let mut vm = vm!();
         add_segments!(vm, 2);
         //Store scope variables
-        let mut exec_scopes = scope![("keys", vec![Felt252::one(), Felt252::new(3)])];
+        let mut exec_scopes = scope![("keys", vec![Felt::ONE, Felt::new(3)])];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
@@ -752,7 +724,7 @@ mod tests {
         //Check local variables
         check_scope!(
             &exec_scopes,
-            [("keys", vec![Felt252::one()]), ("key", Felt252::new(3))]
+            [("keys", vec![Felt::ONE]), ("key", Felt::new(3))]
         );
     }
 
@@ -763,7 +735,7 @@ mod tests {
         //Create vm
         let mut vm = vm!();
         //Store scope variables
-        let mut exec_scopes = scope![("keys", Vec::<Felt252>::new())];
+        let mut exec_scopes = scope![("keys", Vec::<Felt>::new())];
         //Initialize fp
         vm.run_context.fp = 1;
         //Create hint_data
@@ -808,14 +780,14 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
-        let access_indices_scope_value: HashMap<Felt252, Vec<Felt252>> =
-            HashMap::from([(Felt252::one(), vec![Felt252::zero(), Felt252::one()])]);
+        let access_indices_scope_value: HashMap<Felt, Vec<Felt>> =
+            HashMap::from([(Felt::ONE, vec![Felt::ZERO, Felt::ONE])]);
         check_scope!(
             &exec_scopes,
             [
                 ("access_indices", access_indices_scope_value),
-                ("keys", Vec::<Felt252>::new()),
-                ("key", Felt252::one())
+                ("keys", Vec::<Felt>::new()),
+                ("key", Felt::ONE)
             ]
         );
         //Check ids variables
@@ -861,20 +833,20 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
-        let access_indices_scope_value: HashMap<Felt252, Vec<Felt252>> = HashMap::from([
-            (Felt252::one(), vec![Felt252::zero(), Felt252::one()]),
-            (Felt252::new(2), vec![Felt252::new(2), Felt252::new(3)]),
+        let access_indices_scope_value: HashMap<Felt, Vec<Felt>> = HashMap::from([
+            (Felt::ONE, vec![Felt::ZERO, Felt::ONE]),
+            (Felt::new(2), vec![Felt::new(2), Felt::new(3)]),
         ]);
         check_scope!(
             &exec_scopes,
             [
                 ("access_indices", access_indices_scope_value),
-                ("keys", vec![Felt252::new(2)]),
-                ("key", Felt252::one())
+                ("keys", vec![Felt::new(2)]),
+                ("key", Felt::ONE)
             ]
         );
-        let keys = exec_scopes.get_list_ref::<Felt252>("keys").unwrap();
-        assert_eq!(*keys, vec![Felt252::new(2)]);
+        let keys = exec_scopes.get_list_ref::<Felt>("keys").unwrap();
+        assert_eq!(*keys, vec![Felt::new(2)]);
         //Check ids variables
         check_memory![vm.segments.memory, ((1, 1), 0), ((1, 2), 1)];
     }
@@ -887,7 +859,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         //Create scope variables
-        let mut exec_scopes = scope![("__squash_dict_max_size", Felt252::new(12))];
+        let mut exec_scopes = scope![("__squash_dict_max_size", Felt::new(12))];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
@@ -913,14 +885,14 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
-        let access_indices_scope_value: HashMap<Felt252, Vec<Felt252>> =
-            HashMap::from([(Felt252::one(), vec![Felt252::zero(), Felt252::one()])]);
+        let access_indices_scope_value: HashMap<Felt, Vec<Felt>> =
+            HashMap::from([(Felt::ONE, vec![Felt::ZERO, Felt::ONE])]);
         check_scope!(
             &exec_scopes,
             [
                 ("access_indices", access_indices_scope_value),
-                ("keys", Vec::<Felt252>::new()),
-                ("key", Felt252::one())
+                ("keys", Vec::<Felt>::new()),
+                ("key", Felt::ONE)
             ]
         );
         //Check ids variables
@@ -935,7 +907,7 @@ mod tests {
         //Create vm
         let mut vm = vm_with_range_check!();
         //Create scope variables
-        let mut exec_scopes = scope![("__squash_dict_max_size", Felt252::one())];
+        let mut exec_scopes = scope![("__squash_dict_max_size", Felt::ONE)];
         //Initialize fp
         vm.run_context.fp = 5;
         //Insert ids into memory
@@ -961,7 +933,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes),
-            Err(HintError::SquashDictMaxSizeExceeded(bx)) if *bx == (Felt252::one(), Felt252::new(2))
+            Err(HintError::SquashDictMaxSizeExceeded(bx)) if *bx == (Felt::ONE, Felt::new(2))
         );
     }
 
@@ -1089,13 +1061,13 @@ mod tests {
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
         //Check scope variables
-        let access_indices_scope_value: HashMap<Felt252, Vec<Felt252>> = HashMap::from([(
+        let access_indices_scope_value: HashMap<Felt, Vec<Felt>> = HashMap::from([(
             felt_str!(
                 "3618502761706184546546682988428055018603476541694452277432519575032261771265"
             ),
-            vec![Felt252::zero(), Felt252::one()],
+            vec![Felt::ZERO, Felt::ONE],
         )]);
-        check_scope!(&exec_scopes, [("access_indices", access_indices_scope_value), ("keys", Vec::<Felt252>::new()), ("key", felt_str!("3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
+        check_scope!(&exec_scopes, [("access_indices", access_indices_scope_value), ("keys", Vec::<Felt>::new()), ("key", felt_str!("3618502761706184546546682988428055018603476541694452277432519575032261771265"))]);
         //Check ids variables
         check_memory![
             vm.segments.memory,
