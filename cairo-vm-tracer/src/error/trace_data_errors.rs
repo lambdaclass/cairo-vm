@@ -1,7 +1,6 @@
 use cairo_vm::vm::errors::{
     memory_errors::MemoryError, trace_errors::TraceError, vm_errors::VirtualMachineError,
 };
-#[cfg(feature = "std")]
 use thiserror_no_std::Error;
 
 #[derive(Debug, Error)]
