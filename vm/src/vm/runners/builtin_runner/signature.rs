@@ -137,7 +137,7 @@ impl SignatureBuiltinRunner {
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
-                        signature.to_string(),
+                        format!("({}, {})", signature.r, signature.s),
                         pubkey.into_owned(),
                         msg.into_owned(),
                     )))),
