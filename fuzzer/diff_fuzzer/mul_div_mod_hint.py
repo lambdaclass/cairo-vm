@@ -2,72 +2,7 @@
 import os 
 import sys 
 import subprocess
-#import atheris
-
-#@atheris.instrument_func
-def generate_limb(fdp):
-    range_check_max = 340282366920938463463374607431768211456 
-    return range_check_max -1
-    #if fdp.ConsumeProbability() > 0.3:
-    #    return fdp.ConsumeIntInRange(range_check_max >> 1, range_check_max) 
-    #elif fdp.ConsumeBool():
-    #    return fdp.ConsumeIntInRange(0, 10) 
-    #else:
-    #    return fdp.ConsumeIntInRange(0, range_check_max)
-
-#@atheris.instrument_func
-def diff_fuzzer():
-    #fdp = atheris.FuzzedDataProvider(data)
-    fdp = 1
-    a_low = generate_limb(fdp)
-    a_high = generate_limb(fdp)
-    b_low = generate_limb(fdp)
-    b_high = generate_limb(fdp)
-    div_low = generate_limb(fdp)
-    div_high = generate_limb(fdp)
-
-    # Ensure div != 0
-    #if div_low + div_high == 0:
-    #    new_limb = fdp.ConsumeIntInRange(1, 340282366920938463463374607431768211456)     
-    #    if fdp.ConsumeBool():
-    #        div_low = new_limb
-    #    else:
-    #        div_high = new_limb
-
-    """
-    with open('uint256_mul_div_mod.json', 'r', encoding='utf-8') as file:
-        data = file.readlines()
-
-    data[326] = '"' + hex(a_low) + '"' + ",\n" 
-    data[328] = '"' + hex(a_high) + '"' + ",\n" 
-    data[330] = '"' + hex(b_low) + '"' + ",\n" 
-    data[332] = '"' + hex(b_high) + '"' + ",\n" 
-    data[334] = '"' + hex(div_low) + '"' + ",\n" 
-    data[336] = '"' + hex(div_high) + '"' + ",\n" 
-
-    filename = hex(5555555) + ".input"
-
-    with open(filename, 'w', encoding='utf-8') as file:
-        file.writelines(data)
-
-    rust_output = subprocess.run(["./../../target/release/cairo-vm-cli", "--layout", "starknet", filename, "--memory_file", filename + "rs_mem"], stdout=subprocess.PIPE)
-    python_output = subprocess.run(["cairo-run", "--layout", "starknet", "--program", "uint256_mul_div_mod.json", "--memory_file", filename + "py_mem"], stdout=subprocess.PIPE)
-
-    check_mem(filename + "py_mem", filename + "rs_mem")
-    """
-    check_mem("py.mem", "rs.mem")
-
-    #os.remove(filename)
-    #os.remove(filename + "rs_mem")
-    #os.remove(filename + "py_mem")
-
-    #rust_nums = [int(n) for n in rust_output.stdout.split() if n.isdigit()]
-    #python_nums = [int(n) for n in python_output.stdout.split() if n.isdigit()]
-
-    #assert rust_nums == python_nums
-
-#atheris.Setup(sys.argv, diff_fuzzer)
-#atheris.Fuzz()
+import atheris
 
 def check_mem(filename1, filename2):
     cairo_mem = {}
@@ -117,4 +52,109 @@ def check_mem(filename1, filename2):
             print(f'{k}:({cairo_mem[k]} <-> {cairo_rs_mem[k]})')
         exit(1)
 
-diff_fuzzer()
+@atheris.instrument_func
+def generate_limb(fdp):
+    range_check_max = 340282366920938463463374607431768211456 
+    return range_check_max -1
+    if fdp.ConsumeProbability() > 0.3:
+       return fdp.ConsumeIntInRange(range_check_max >> 1, range_check_max) 
+    elif fdp.ConsumeBool():
+       return fdp.ConsumeIntInRange(0, 10) 
+    else:
+       return fdp.ConsumeIntInRange(0, range_check_max)
+
+def generalize_variable(line, data):
+    trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
+    trimed_var_line = "(" + trimed_var_line + ")"
+    fdp = atheris.FuzzedDataProvider(data)
+
+    trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
+    trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
+
+    return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+
+def generalize_main(main, data):
+    # Find variables to replace and inject rand data
+    new_main = []
+
+    for line in main:
+        # Find variables
+        if line.rfind(' let ') != -1 :
+            new_main.append(generalize_variable(line, data))
+        else:
+            new_main.append(line)
+    return new_main
+
+def get_main_lines(program):
+    main_begin = False
+    main_end = False
+    main = []
+    it = 0
+    init = 0
+    end = 0
+
+    while not main_end: 
+        if program[it].rfind('func main') != -1 :
+            main_begin = True
+            init = it
+
+        if main_begin == True :
+            main.append(program[it])
+
+        if program[it].rfind('}') != -1 :
+            main_end = True
+            end = it
+        it = it + 1
+    
+    return (main, init, end)
+
+def change_main(program, new_main, init, end):
+    it = 0 
+    main_it = 0
+
+    for line in program:
+        if it >= init and it <= end:
+            program[it] = new_main[main_it]
+            main_it = main_it + 1
+        it = it + 1
+    return program
+
+@atheris.instrument_func
+def diff_fuzzer(data):
+    
+    with open('fuzzer/diff_fuzzer/uint256_mul_div_mod.cairo', 'r', encoding='utf-8') as file:
+        program = file.readlines()
+        
+    (main, init, end) = get_main_lines(program)
+
+    new_main = generalize_main(main, data)
+
+    new_program = change_main(program, new_main, init, end)
+
+    with open('uint256_mul_div_mod_modif.cairo', 'w', encoding='utf-8') as file:
+        data = file.writelines(new_program)
+
+    cairo_filename = "uint256_mul_div_mod_2_modif.cairo"
+    json_filename = "uint256_mul_div_mod_2_modif.json"
+
+    rust_output = subprocess.run("cairo-compile", cairo_filename, "--output", )
+    rust_output = subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"], stdout=subprocess.PIPE)
+    python_output = subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", json_filename + "py_mem"], stdout=subprocess.PIPE)
+
+    check_mem(json_filename + "py_mem", json_filename + "rs_mem")
+    
+    check_mem("py.mem", "rs.mem")
+
+    os.remove(json_filename)
+    os.remove(json_filename + "rs_mem")
+    os.remove(json_filename + "py_mem")
+
+    rust_nums = [int(n) for n in rust_output.stdout.split() if n.isdigit()]
+    python_nums = [int(n) for n in python_output.stdout.split() if n.isdigit()]
+
+    assert rust_nums == python_nums
+
+atheris.Setup(sys.argv, diff_fuzzer)
+atheris.Fuzz()
+
+diff_fuzzer(23424)
