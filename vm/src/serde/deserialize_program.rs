@@ -228,6 +228,7 @@ pub struct InputFile {
 }
 
 impl InputFile {
+    #[cfg(feature = "std")]
     pub fn get_content(&self) -> Result<String, String> {
         let content = std::fs::read_to_string(self.filename.clone());
         if let Ok(content) = content {
