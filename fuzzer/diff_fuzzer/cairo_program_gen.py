@@ -27,13 +27,20 @@ Generate a cairo program with the following rules:
 def generate_cairo_hint_program(hint_code):
     input_vars = dict()
     output_vars = dict()
+    inout_vars = dict()
     lines = [line for line in hint_code.split("\n") if all(substr in line for substr in ["=", "ids."])]
 
     for line in lines:
         variables = [v[v.find("ids.") + len("ids."):] for v in line.split() if "ids." in v]
-        dict_to_insert = input_vars if line.find("=") < line.find("ids.") else output_vars
 
         for var in variables:
+            dict_to_insert = dict()
+            if line.find(var) < line.find("=") < line.find(var, line.find("=")):
+                dict_to_insert = inout_vars
+            elif line.find("=") < line.find(var):
+                dict_to_insert = input_vars
+            else:
+                dict_to_insert = output_vars
             var_field = var.split(".")
             if len(var_field) == 1:
                 dict_to_insert[var_field[0]] = "felt"
@@ -45,6 +52,9 @@ def generate_cairo_hint_program(hint_code):
 
     input_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in input_vars.items())
     output_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in output_vars.items())
+    inout_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in inout_vars.items())
+
+    input_vars = (input_vars | inout_vars)
 
     fields = { v for v in (input_vars | output_vars).values() }
     structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
@@ -92,7 +102,7 @@ def generate_cairo_hint_program(hint_code):
             hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
         ]) + \
         ") -> (" + \
-        ", ".join([structs_dict[var_fields] for var_fields in output_vars.values()]) + \
+        ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
         ")"
 
     local_vars = "\n".join([
@@ -103,7 +113,7 @@ def generate_cairo_hint_program(hint_code):
         signature = signature, 
         local_declarations = local_vars, 
         hint = hint_code,
-        output_return = ", ".join([res for res in output_vars.keys()])
+        output_return = ", ".join([res for res in (output_vars | inout_vars).keys()])
     )
 
     return declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")
