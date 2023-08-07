@@ -315,4 +315,4 @@ run-cairo-compiled-fuzzer:
 diff-fuzz:
 	. cairo-vm-env/bin/activate ; \
 	cd fuzzer/diff_fuzzer/; \
-	../../cairo-vm-env/bin/python mul_div_mod_hint.py -len_control=0
+	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0
