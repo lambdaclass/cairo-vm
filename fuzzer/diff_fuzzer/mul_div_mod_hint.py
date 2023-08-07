@@ -64,14 +64,17 @@ def generate_limb(fdp):
        return fdp.ConsumeIntInRange(0, range_check_max)
 
 def generalize_variable(line, data):
-    trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
-    trimed_var_line = "(" + trimed_var_line + ")"
     fdp = atheris.FuzzedDataProvider(data)
-
-    trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
-    trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
-
-    return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+    if line.rfind('(') != -1 :
+        trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
+        trimed_var_line = "(" + trimed_var_line + ")"
+        trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
+        trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
+        return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+    else :
+        rand_line = line.replace(";", str(generate_limb(fdp)) + ";")
+        return rand_line
+    
 
 def generalize_main(main, data):
     # Find variables to replace and inject rand data
@@ -122,7 +125,7 @@ def change_main(program, new_main, init, end):
 @atheris.instrument_func
 def diff_fuzzer(data):
     
-    with open('fuzzer/diff_fuzzer/uint256_mul_div_mod.cairo', 'r', encoding='utf-8') as file:
+    with open('fuzzer/diff_fuzzer/uint256_split64.cairo', 'r', encoding='utf-8') as file:
         program = file.readlines()
         
     (main, init, end) = get_main_lines(program)
@@ -131,11 +134,11 @@ def diff_fuzzer(data):
 
     new_program = change_main(program, new_main, init, end)
 
-    with open('uint256_mul_div_mod_modif.cairo', 'w', encoding='utf-8') as file:
+    with open('uint256_split64_modif.cairo', 'w', encoding='utf-8') as file:
         data = file.writelines(new_program)
 
-    cairo_filename = "uint256_mul_div_mod_2_modif.cairo"
-    json_filename = "uint256_mul_div_mod_2_modif.json"
+    cairo_filename = "uint256_split64_modif.cairo"
+    json_filename = "uint256_split64_modif.json"
 
     rust_output = subprocess.run(["cairo-compile", cairo_filename, "--output",  json_filename])
     rust_output = subprocess.run(["target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"], stdout=subprocess.PIPE)
