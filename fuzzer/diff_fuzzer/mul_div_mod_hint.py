@@ -3,6 +3,7 @@ import os
 import sys 
 import subprocess
 import atheris
+import json
 
 def check_mem(filename1, filename2):
     cairo_mem = {}
@@ -63,8 +64,8 @@ def generate_limb(fdp):
     else:
        return fdp.ConsumeIntInRange(0, range_check_max)
 
-def generalize_variable(line, data):
-    fdp = atheris.FuzzedDataProvider(data)
+def generalize_variable(line, fdp):
+    
     if line.rfind('(') != -1 :
         trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
         trimed_var_line = "(" + trimed_var_line + ")"
@@ -76,14 +77,14 @@ def generalize_variable(line, data):
         return rand_line
     
 
-def generalize_main(main, data):
+def generalize_main(main, fdp):
     # Find variables to replace and inject rand data
     new_main = []
 
     for line in main:
         # Find variables
         if line.rfind(' let ') != -1 :
-            new_main.append(generalize_variable(line, data))
+            new_main.append(generalize_variable(line, fdp))
         else:
             new_main.append(line)
     return new_main
@@ -122,15 +123,32 @@ def change_main(program, new_main, init, end):
         it = it + 1
     return program
 
+def get_random_hint(fdp):
+    hint_number = fdp.ConsumeIntInRange(1, 102)
+    f = open('hint_accountant/whitelists/latest.json')
+    data = json.load(f)
+    it = 1
+
+    rand_hint_lines = []
+    for entry in data["allowed_reference_expressions_for_hint"]:
+        hint_lines = entry["hint_lines"]
+        if it == hint_number:
+            rand_hint_lines.extend(hint_lines)
+        it = it +1
+
+    return rand_hint_lines
+
 @atheris.instrument_func
 def diff_fuzzer(data):
+    fdp = atheris.FuzzedDataProvider(data)
+    hint = get_random_hint(fdp)
     
     with open('fuzzer/diff_fuzzer/uint256_split64.cairo', 'r', encoding='utf-8') as file:
         program = file.readlines()
         
     (main, init, end) = get_main_lines(program)
 
-    new_main = generalize_main(main, data)
+    new_main = generalize_main(main, fdp)
 
     new_program = change_main(program, new_main, init, end)
 
