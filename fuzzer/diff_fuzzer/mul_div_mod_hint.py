@@ -7,6 +7,12 @@ from cairo_program_gen import generate_cairo_hint_program
 
 hint_code = """
 %{
+    ids.low = ids.a & ((1<<64) - 1)
+    ids.high = ids.a >> 64
+%}
+"""
+hint_code_2 = """
+%{
     a = (ids.a.high << 128) + ids.a.low
     b = (ids.b.high << 128) + ids.b.low
     div = (ids.div.high << 128) + ids.div.low
@@ -81,14 +87,17 @@ def generate_limb(fdp):
        return fdp.ConsumeIntInRange(0, range_check_max)
 
 def generalize_variable(line, data):
-    trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
-    trimed_var_line = "(" + trimed_var_line + ")"
     fdp = atheris.FuzzedDataProvider(data)
-
-    trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
-    trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
-
-    return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+    if line.rfind('(') != -1 :
+        trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
+        trimed_var_line = "(" + trimed_var_line + ")"
+        trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
+        trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
+        return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+    else :
+        rand_line = line.replace(";", str(generate_limb(fdp)) + ";")
+        return rand_line
+    
 
 def generalize_main(main, data):
     # Find variables to replace and inject rand data
