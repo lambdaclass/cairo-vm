@@ -3,29 +3,8 @@ import os
 import sys 
 import subprocess
 import atheris
+import json
 from cairo_program_gen import generate_cairo_hint_program
-
-hint_code = """
-%{
-    ids.low = ids.a & ((1<<64) - 1)
-    ids.high = ids.a >> 64
-%}
-"""
-hint_code_2 = """
-%{
-    a = (ids.a.high << 128) + ids.a.low
-    b = (ids.b.high << 128) + ids.b.low
-    div = (ids.div.high << 128) + ids.div.low
-    quotient, remainder = divmod(a * b, div)
-
-    ids.quotient_low.low = quotient & ((1 << 128) - 1)
-    ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
-    ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
-    ids.quotient_high.high = quotient >> 384
-    ids.remainder.low = remainder & ((1 << 128) - 1)
-    ids.remainder.high = remainder >> 128
-%}
-"""
 
 def check_mem(filename1, filename2):
     cairo_mem = {}
@@ -78,7 +57,7 @@ def check_mem(filename1, filename2):
 @atheris.instrument_func
 def generate_limb(fdp):
     range_check_max = 340282366920938463463374607431768211456 
-    return range_check_max -1
+
     if fdp.ConsumeProbability() > 0.3:
        return fdp.ConsumeIntInRange(range_check_max >> 1, range_check_max) 
     elif fdp.ConsumeBool():
@@ -86,27 +65,27 @@ def generate_limb(fdp):
     else:
        return fdp.ConsumeIntInRange(0, range_check_max)
 
-def generalize_variable(line, data):
-    fdp = atheris.FuzzedDataProvider(data)
+def generalize_variable(line, fdp):
+    
     if line.rfind('(') != -1 :
         trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
         trimed_var_line = "(" + trimed_var_line + ")"
         trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
         trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
         return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
-    else :
+    else:
         rand_line = line.replace(";", str(generate_limb(fdp)) + ";")
         return rand_line
     
 
-def generalize_main(main, data):
+def generalize_main(main, fdp):
     # Find variables to replace and inject rand data
     new_main = []
 
     for line in main:
         # Find variables
         if line.rfind('let ') != -1 :
-            new_main.append(generalize_variable(line, data))
+            new_main.append(generalize_variable(line, fdp))
         else:
             new_main.append(line)
     return new_main
@@ -145,31 +124,43 @@ def change_main(program, new_main, init, end):
         it = it + 1
     return program
 
+def get_random_hint(fdp):
+    hint_number = fdp.ConsumeIntInRange(0, 102)
+    print("\n\n", hint_number, "\n\n")
+    f = open('../../hint_accountant/whitelists/latest.json')
+    data = json.load(f)
+
+    return "\n".join(data["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"])
+
 @atheris.instrument_func
 def diff_fuzzer(data):
-    program = generate_cairo_hint_program(hint_code)
-        
+    fdp = atheris.FuzzedDataProvider(data)
+    hint = get_random_hint(fdp)
+    program = generate_cairo_hint_program(hint)
+    
     (main, init, end) = get_main_lines(program)
-
-    new_main = generalize_main(main, data)
-
+    new_main = generalize_main(main, fdp)
     new_program = "\n".join(change_main(program, new_main, init, end))
 
-    with open('uint256_mul_div_mod_modif.cairo', 'w', encoding='utf-8') as file:
+    base_filename = hex(fdp.ConsumeUInt(8))
+    cairo_filename = base_filename + ".cairo"
+    json_filename = base_filename + ".json"
+    py_mem_filename = base_filename + ".py_mem"
+    rs_mem_filename = base_filename + ".rs_mem"
+
+    with open(cairo_filename, 'w', encoding='utf-8') as file:
         data = file.write(new_program)
 
-    cairo_filename = "uint256_mul_div_mod_modif.cairo"
-    json_filename = "uint256_mul_div_mod_modif.json"
-
     subprocess.run(["cairo-compile", cairo_filename, "--output", json_filename])
-    subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"])
-    subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", json_filename + "py_mem"])
+    subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", rs_mem_filename])
+    subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", py_mem_filename])
 
-    check_mem(json_filename + "py_mem", json_filename + "rs_mem")
+    check_mem(py_mem_filename, rs_mem_filename)
     
+    os.remove(cairo_filename)
     os.remove(json_filename)
-    os.remove(json_filename + "rs_mem")
-    os.remove(json_filename + "py_mem")
+    os.remove(rs_mem_filename)
+    os.remove(py_mem_filename)
 
 atheris.Setup(sys.argv, diff_fuzzer)
 atheris.Fuzz()

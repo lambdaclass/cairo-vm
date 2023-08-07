@@ -31,7 +31,7 @@ def generate_cairo_hint_program(hint_code):
     lines = [line for line in hint_code.split("\n") if all(substr in line for substr in ["=", "ids."])]
 
     for line in lines:
-        variables = [v[v.find("ids.") + len("ids."):] for v in line.split() if "ids." in v]
+        variables = [v[v.find("ids.") + len("ids."):].replace(")", "") for v in line.split() if "ids." in v]
 
         for var in variables:
             dict_to_insert = dict()
@@ -93,7 +93,7 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in input_vars.keys()])
     )
 
-    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n\t{hint}\n\treturn({output_return});\n}}"
+    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
