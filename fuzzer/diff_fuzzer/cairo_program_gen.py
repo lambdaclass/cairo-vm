@@ -36,18 +36,19 @@ def generate_cairo_hint_program(hint_code):
         for var in variables:
             var_field = var.split(".")
             if len(var_field) == 1:
-                dict_to_insert[var_field[0]] = []
+                dict_to_insert[var_field[0]] = "felt"
             else:
                 if not var_field[0] in dict_to_insert:
                     dict_to_insert[var_field[0]] = { var_field[1] }
                 else:
                     dict_to_insert[var_field[0]].add(var_field[1])
 
-    input_vars.update( (k, tuple(v)) for (k, v) in input_vars.items())
-    output_vars.update( (k, tuple(v)) for (k, v) in output_vars.items())
+    input_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in input_vars.items())
+    output_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in output_vars.items())
 
-    fields = { v for v in (input_vars | output_vars).values() if v != []}
-    structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) }
+    fields = { v for v in (input_vars | output_vars).values() }
+    structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
+    structs_dict["felt"] = "felt"
 
     structs_fmt = "struct {struct_name} {{\n{struct_fields}\n}}"
     fields_fmt = "\t{field_name}: felt,"
@@ -57,23 +58,25 @@ def generate_cairo_hint_program(hint_code):
             struct_name = name,
             struct_fields = "\n".join([fields_fmt.format(field_name=field_name) for field_name in fields])
         )
-        for (fields, name) in structs_dict.items()
+        for (fields, name) in structs_dict.items() if name != "felt"
     ])
 
 
-    main_func_fmt = "func main() {{\n{variables}\n\thint_func({input_var_names});\n\treturn();\n}}"
-    main_var_assignment_fmt = "\tlet {var_name} = {struct_name}({assign_fields});"
+    main_func_fmt = "func main() {{{variables}\n\thint_func({input_var_names});\n\treturn();\n}}"
+    main_struct_assignment_fmt = "\n\tlet {var_name} = {struct_name}({assign_fields});"
+    main_var_felt_assingment_fmt = "\n\tlet {var_name} =;"
 
-    main_var_assignments = "\n".join([
-        main_var_assignment_fmt.format(
-            var_name = name,
-            struct_name = structs_dict[var_fields],
-            assign_fields = ", ".join([
-                field_name + "=" for field_name in var_fields
-            ])
-        )
-        for name, var_fields in input_vars.items()
-    ])
+    main_var_assignments = ""
+    for name, var_fields in input_vars.items():
+        main_var_assignments += \
+            main_var_felt_assingment_fmt.format(var_name = name) if structs_dict[var_fields] == "felt" else \
+            main_struct_assignment_fmt.format(
+                var_name = name,
+                struct_name = structs_dict[var_fields],
+                assign_fields = ", ".join([
+                    field_name + "=" for field_name in var_fields
+                ])
+            )
 
     main_func = main_func_fmt.format(
         variables = main_var_assignments,
