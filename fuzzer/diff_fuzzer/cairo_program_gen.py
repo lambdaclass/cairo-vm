@@ -61,7 +61,7 @@ def generate_cairo_hint_program(hint_code):
     ])
 
 
-    main_func_fmt = "func main() {{\n{variables}\n\thint_func();\n\treturn();\n}}"
+    main_func_fmt = "func main() {{\n{variables}\n\thint_func({input_var_names});\n\treturn();\n}}"
     main_var_assignment_fmt = "\tlet {var_name} = {struct_name}({assign_fields});"
 
     main_var_assignments = "\n".join([
@@ -75,9 +75,12 @@ def generate_cairo_hint_program(hint_code):
         for name, var_fields in input_vars.items()
     ])
 
-    main_func = main_func_fmt.format(variables = main_var_assignments)
+    main_func = main_func_fmt.format(
+        variables = main_var_assignments,
+        input_var_names = ", ".join([var for var in input_vars.keys()])
+    )
 
-    hint_func_fmt = "hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n\t{hint}\n\treturn({output_return});\n}}"
+    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n\t{hint}\n\treturn({output_return});\n}}"
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 

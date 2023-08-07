@@ -17,7 +17,7 @@ hint_code = """
     ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
     ids.quotient_high.high = quotient >> 384
     ids.remainder.low = remainder & ((1 << 128) - 1)
-    ids.remainder.high = (remainder >> 128) + 1
+    ids.remainder.high = remainder >> 128
 %}
 """
 
@@ -96,7 +96,7 @@ def generalize_main(main, data):
 
     for line in main:
         # Find variables
-        if line.rfind(' let ') != -1 :
+        if line.rfind('let ') != -1 :
             new_main.append(generalize_variable(line, data))
         else:
             new_main.append(line)
@@ -118,11 +118,11 @@ def get_main_lines(program):
         if main_begin == True :
             main.append(program[it])
 
-        if program[it].rfind('}') != -1 :
+        if program[it].rfind('}') != -1 and main_begin:
             main_end = True
             end = it
         it = it + 1
-    
+     
     return (main, init, end)
 
 def change_main(program, new_main, init, end):
@@ -139,16 +139,15 @@ def change_main(program, new_main, init, end):
 @atheris.instrument_func
 def diff_fuzzer(data):
     program = generate_cairo_hint_program(hint_code)
-    print(program)
         
     (main, init, end) = get_main_lines(program)
 
     new_main = generalize_main(main, data)
 
-    new_program = change_main(program, new_main, init, end)
+    new_program = "\n".join(change_main(program, new_main, init, end))
 
     with open('uint256_mul_div_mod_modif.cairo', 'w', encoding='utf-8') as file:
-        data = file.writelines(new_program)
+        data = file.write(new_program)
 
     cairo_filename = "uint256_mul_div_mod_modif.cairo"
     json_filename = "uint256_mul_div_mod_modif.json"
@@ -163,12 +162,6 @@ def diff_fuzzer(data):
     os.remove(json_filename + "rs_mem")
     os.remove(json_filename + "py_mem")
 
-    #rust_nums = [int(n) for n in rust_output.stdout.split() if n.isdigit()]
-    #python_nums = [int(n) for n in python_output.stdout.split() if n.isdigit()]
-
-    #assert rust_nums == python_nums
-
 atheris.Setup(sys.argv, diff_fuzzer)
 atheris.Fuzz()
 
-diff_fuzzer(23424)
