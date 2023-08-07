@@ -137,8 +137,8 @@ def diff_fuzzer(data):
     cairo_filename = "uint256_mul_div_mod_2_modif.cairo"
     json_filename = "uint256_mul_div_mod_2_modif.json"
 
-    rust_output = subprocess.run("cairo-compile", cairo_filename, "--output", )
-    rust_output = subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"], stdout=subprocess.PIPE)
+    rust_output = subprocess.run(["cairo-compile", cairo_filename, "--output",  json_filename])
+    rust_output = subprocess.run(["target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"], stdout=subprocess.PIPE)
     python_output = subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", json_filename + "py_mem"], stdout=subprocess.PIPE)
 
     check_mem(json_filename + "py_mem", json_filename + "rs_mem")
