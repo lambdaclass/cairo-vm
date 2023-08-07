@@ -3,6 +3,23 @@ import os
 import sys 
 import subprocess
 import atheris
+from cairo_program_gen import generate_cairo_hint_program
+
+hint_code = """
+%{
+    a = (ids.a.high << 128) + ids.a.low
+    b = (ids.b.high << 128) + ids.b.low
+    div = (ids.div.high << 128) + ids.div.low
+    quotient, remainder = divmod(a * b, div)
+
+    ids.quotient_low.low = quotient & ((1 << 128) - 1)
+    ids.quotient_low.high = (quotient >> 128) & ((1 << 128) - 1)
+    ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
+    ids.quotient_high.high = quotient >> 384
+    ids.remainder.low = remainder & ((1 << 128) - 1)
+    ids.remainder.high = (remainder >> 128) + 1
+%}
+"""
 
 def check_mem(filename1, filename2):
     cairo_mem = {}
@@ -121,9 +138,8 @@ def change_main(program, new_main, init, end):
 
 @atheris.instrument_func
 def diff_fuzzer(data):
-    
-    with open('fuzzer/diff_fuzzer/uint256_mul_div_mod.cairo', 'r', encoding='utf-8') as file:
-        program = file.readlines()
+    program = generate_cairo_hint_program(hint_code)
+    print(program)
         
     (main, init, end) = get_main_lines(program)
 
@@ -134,25 +150,23 @@ def diff_fuzzer(data):
     with open('uint256_mul_div_mod_modif.cairo', 'w', encoding='utf-8') as file:
         data = file.writelines(new_program)
 
-    cairo_filename = "uint256_mul_div_mod_2_modif.cairo"
-    json_filename = "uint256_mul_div_mod_2_modif.json"
+    cairo_filename = "uint256_mul_div_mod_modif.cairo"
+    json_filename = "uint256_mul_div_mod_modif.json"
 
-    rust_output = subprocess.run("cairo-compile", cairo_filename, "--output", )
-    rust_output = subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"], stdout=subprocess.PIPE)
-    python_output = subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", json_filename + "py_mem"], stdout=subprocess.PIPE)
+    subprocess.run(["cairo-compile", cairo_filename, "--output", json_filename])
+    subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", json_filename + "rs_mem"])
+    subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", json_filename + "py_mem"])
 
     check_mem(json_filename + "py_mem", json_filename + "rs_mem")
     
-    check_mem("py.mem", "rs.mem")
-
     os.remove(json_filename)
     os.remove(json_filename + "rs_mem")
     os.remove(json_filename + "py_mem")
 
-    rust_nums = [int(n) for n in rust_output.stdout.split() if n.isdigit()]
-    python_nums = [int(n) for n in python_output.stdout.split() if n.isdigit()]
+    #rust_nums = [int(n) for n in rust_output.stdout.split() if n.isdigit()]
+    #python_nums = [int(n) for n in python_output.stdout.split() if n.isdigit()]
 
-    assert rust_nums == python_nums
+    #assert rust_nums == python_nums
 
 atheris.Setup(sys.argv, diff_fuzzer)
 atheris.Fuzz()

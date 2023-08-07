@@ -25,7 +25,7 @@ func hint_func(a: Uint256, b: Uint256, div: Uint256) -> (Uint256, Uint256, Uint2
         ids.quotient_high.low = (quotient >> 256) & ((1 << 128) - 1)
         ids.quotient_high.high = quotient >> 384
         ids.remainder.low = remainder & ((1 << 128) - 1)
-        ids.remainder.high = (remainder >> 128) + 1
+        ids.remainder.high = remainder >> 128
     %}
     return (quotient_low, quotient_high, remainder);
 }
