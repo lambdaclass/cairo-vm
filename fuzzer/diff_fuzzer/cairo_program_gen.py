@@ -119,4 +119,4 @@ def generate_cairo_hint_program(hint_code):
         output_return = ", ".join([res for res in (output_vars | inout_vars).keys()])
     )
 
-    return declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")
+    return (declared_structs + "\n\n" + main_func + "\n\n" + hint_func).split("\n")
