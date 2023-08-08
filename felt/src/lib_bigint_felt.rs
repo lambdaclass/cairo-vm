@@ -1014,7 +1014,7 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{arbitrary_bigint_felt::nonzero_felt252, PRIME_STR};
+    use crate::{arbitrary::nonzero_felt252, PRIME_STR};
     use core::cmp;
     use rstest::rstest;
 

@@ -4,6 +4,10 @@
 
 * Add HintError::SyscallError and VmErrors::HINT_ERROR_STR constant [#1357](https://github.com/lambdaclass/cairo-rs/pull/1357)
 
+* feat: make *arbitrary* feature also enable a `proptest::arbitrary::Arbitrary` implementation for `Felt252` [#1355](https://github.com/lambdaclass/cairo-vm/pull/1355)
+
+* fix: correctly display invalid signature error message [#1361](https://github.com/lambdaclass/cairo-vm/pull/1361)
+
 #### [0.8.5] - 2023-7-31
 
 * fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
@@ -11,6 +15,8 @@
 * feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
 
 * fix: CLI errors bad formatting and handling
+
+* perf: replace insertion with bit-setting in validated addresses [#1208](https://github.com/lambdaclass/cairo-vm/pull/1208)
 
 * fix: return error when a parsed hint's PC is invalid [#1340](https://github.com/lambdaclass/cairo-vm/pull/1340)
 

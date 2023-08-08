@@ -55,7 +55,7 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("An integer value as Res cannot be used with PcUpdate.JUMP_REL")]
+    #[error("A relocatable value as Res cannot be used with PcUpdate.JUMP_REL")]
     JumpRelNotInt,
     #[error(
         "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
