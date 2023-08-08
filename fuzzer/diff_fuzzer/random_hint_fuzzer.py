@@ -126,7 +126,6 @@ def change_main(program, new_main, init, end):
 
 def get_random_hint(fdp):
     hint_number = fdp.ConsumeIntInRange(0, 102)
-    print("\n\n", hint_number, "\n\n")
     f = open('../../hint_accountant/whitelists/latest.json')
     data = json.load(f)
 
