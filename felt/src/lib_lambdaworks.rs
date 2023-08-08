@@ -996,7 +996,7 @@ mod test {
     use core::cmp;
 
     use super::*;
-    use crate::{arbitrary_lambdaworks::nonzero_felt252, PRIME_STR};
+    use crate::{arbitrary::nonzero_felt252, PRIME_STR};
     use num_integer::Integer;
     use rstest::rstest;
 
