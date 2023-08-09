@@ -515,6 +515,7 @@ impl CairoRunner {
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
         self.program
             .shared_program_data
+            .hints_collection
             .hints
             .iter()
             .map(|hint| {
@@ -552,6 +553,7 @@ impl CairoRunner {
             let hint_data = self
                 .program
                 .shared_program_data
+                .hints_collection
                 .hints_ranges
                 .get(vm.run_context.pc.offset)
                 .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
@@ -590,6 +592,7 @@ impl CairoRunner {
             let hint_data = self
                 .program
                 .shared_program_data
+                .hints_collection
                 .hints_ranges
                 .get(vm.run_context.pc.offset)
                 .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))

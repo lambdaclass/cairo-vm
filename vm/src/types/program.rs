@@ -51,9 +51,7 @@ use arbitrary::{Arbitrary, Unstructured};
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
-    pub(crate) hints: Vec<HintParams>,
-    /// This maps a PC to the range of hints in `hints` that correspond to it.
-    pub(crate) hints_ranges: Vec<HintRange>,
+    pub(crate) hints_collection: HintsCollection,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub(crate) start: Option<usize>,
@@ -81,12 +79,11 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
         }
 
         let raw_hints = BTreeMap::<usize, Vec<HintParams>>::arbitrary(u)?;
-        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len())
+        let hints_collection = Program::flatten_hints(&raw_hints, data.len())
             .map_err(|_| arbitrary::Error::IncorrectFormat)?;
         Ok(SharedProgramData {
             data,
-            hints,
-            hints_ranges,
+            hints_collection,
             main: Option::<usize>::arbitrary(u)?,
             start: Option::<usize>::arbitrary(u)?,
             end: Option::<usize>::arbitrary(u)?,
@@ -96,6 +93,12 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
             reference_manager: Vec::<HintReference>::arbitrary(u)?,
         })
     }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
+pub struct HintsCollection {
+    pub hints: Vec<HintParams>,
+    pub hints_ranges: Vec<HintRange>,
 }
 
 /// Represents a range of hints corresponding to a PC.
@@ -135,15 +138,14 @@ impl Program {
         }
         let hints: BTreeMap<_, _> = hints.into_iter().collect();
 
-        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
+        let hints_collection = Self::flatten_hints(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
             data,
             main,
             start: None,
             end: None,
-            hints,
-            hints_ranges,
+            hints_collection,
             error_message_attributes,
             instruction_locations,
             identifiers,
@@ -159,14 +161,15 @@ impl Program {
     pub(crate) fn flatten_hints(
         hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
-    ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
+    ) -> Result<HintsCollection, ProgramError> {
         let bounds = hints
             .iter()
             .map(|(pc, hs)| (*pc, hs.len()))
             .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
 
-        let Some((max_hint_pc, full_len)) = bounds else {
-            return Ok((Vec::new(), Vec::new()));
+        let (max_hint_pc, full_len) = match bounds {
+            Some(bounds) => bounds,
+            None => return Ok(HintsCollection::default()),
         };
 
         if max_hint_pc >= program_length {
@@ -185,7 +188,10 @@ impl Program {
             hints_values.extend_from_slice(&hs[..]);
         }
 
-        Ok((hints_values, hints_ranges))
+        Ok(HintsCollection {
+            hints: hints_values,
+            hints_ranges,
+        })
     }
 
     #[cfg(feature = "std")]
@@ -312,6 +318,8 @@ impl TryFrom<CasmContractClass> for Program {
 
 #[cfg(test)]
 mod tests {
+    use core::hint;
+
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
@@ -1020,10 +1028,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
-        let shared_program_data = SharedProgramData {
-            data: Vec::new(),
+        let hints_collection = HintsCollection {
             hints: Vec::new(),
             hints_ranges: Vec::new(),
+        };
+
+        let shared_program_data = SharedProgramData {
+            data: Vec::new(),
+            hints_collection,
             main: None,
             start: None,
             end: None,

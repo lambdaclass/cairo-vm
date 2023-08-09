@@ -486,13 +486,11 @@ pub fn parse_program_json(
         }
     }
 
-    let (hints, hints_ranges) =
-        Program::flatten_hints(&program_json.hints, program_json.data.len())?;
+    let hints_collection = Program::flatten_hints(&program_json.hints, program_json.data.len())?;
 
     let shared_program_data = SharedProgramData {
         data: program_json.data,
-        hints,
-        hints_ranges,
+        hints_collection,
         main: entrypoint_pc,
         start,
         end,
