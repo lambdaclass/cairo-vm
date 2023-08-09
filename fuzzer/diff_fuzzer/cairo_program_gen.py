@@ -62,7 +62,6 @@ def generate_cairo_hint_program(hint_code):
     inout_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in inout_vars.items())
 
     input_vars = (input_vars | inout_vars)
-    print(input_vars, output_vars)
 
     fields = { v for v in (input_vars | output_vars).values() }
     structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
