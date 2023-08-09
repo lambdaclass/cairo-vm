@@ -24,6 +24,19 @@ Generate a cairo program with the following rules:
           }
 """
 
+PACKED_KECCAK_CONSTS = { "from starkware.cairo.common.cairo_keccak.packed_keccak import": [
+    "ALL_ONES",
+    "BLOCK_SIZE"
+    "SHIFTS"
+]}
+KECCACK_CONSTS = { "from starkware.cairo.common.cairo_keccak.keccak import": [
+    "KECCAK_STATE_SIZE_FELTS",
+    "KECCAK_FULL_RATE_IN_WORDS",
+    "KECCAK_FULL_RATE_IN_BYTES",
+    "KECCAK_CAPACITY_IN_WORDS",
+    "BYTES_IN_WORD"
+]}
+
 def multi_replace(in_str, patterns):
     return "".join([ c if c not in patterns else " " for c in in_str ])
 
@@ -36,6 +49,8 @@ def var_in_pack(line, stripped_var):
     pack_end = line.find(")", pack_start)
     return var in line[pack_start:pack_end]
      
+def is_in_const_list(var):
+    return any(var in consts for consts in (KECCACK_CONSTS, PACKED_KECCAK_CONSTS).values())
     
 def generate_cairo_hint_program(hint_code):
     input_vars = dict()
