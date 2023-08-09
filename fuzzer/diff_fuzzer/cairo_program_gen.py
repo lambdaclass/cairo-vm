@@ -25,7 +25,7 @@ Generate a cairo program with the following rules:
 """
 
 def multi_replace(in_str, patterns):
-    return "".join([ c for c in in_str if c not in patterns])
+    return "".join([ c if c not in patterns else " " for c in in_str ])
 
 def var_in_pack(line, stripped_var):
     if "pack(" not in line:
