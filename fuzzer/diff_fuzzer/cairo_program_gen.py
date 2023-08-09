@@ -26,6 +26,16 @@ Generate a cairo program with the following rules:
 
 def multi_replace(in_str, patterns):
     return "".join([ c for c in in_str if c not in patterns])
+
+def var_in_pack(line, stripped_var):
+    if "pack(" not in line:
+        return False
+    var = "ids." + stripped_var
+    # Assuming there is no inner parenthesis in pack(...)
+    pack_start = line.find("pack(")
+    pack_end = line.find(")", pack_start)
+    return var in line[pack_start:pack_end]
+     
     
 def generate_cairo_hint_program(hint_code):
     input_vars = dict()
@@ -49,7 +59,10 @@ def generate_cairo_hint_program(hint_code):
 
             # Remove "ids."
             var_field = var.split(".")[1:]
-            if len(var_field) == 1:
+            if var_in_pack(line, var_field[0]):
+                # If the variable is inside a pack(...) function, make sure it's a point
+                dict_to_insert[var_field[0]] = { "d0", "d1", "d2" }
+            elif len(var_field) == 1:
                 dict_to_insert[var_field[0]] = "felt"
             else:
                 if not var_field[0] in dict_to_insert or dict_to_insert[var_field[0]] == "felt":
