@@ -34,7 +34,7 @@ def generate_cairo_hint_program(hint_code):
     lines = [multi_replace(line, '",)]}') for line in hint_code.split("\n") if "ids." in line]
 
     for line in lines:
-        variables = [v[v.find("ids.") + len("ids."):] for v in line.split() if "ids." in v]
+        variables = [v for v in line.split() if "ids." in v]
 
         for var in variables:
             var.replace(".", "", -1)
@@ -47,7 +47,8 @@ def generate_cairo_hint_program(hint_code):
             else:
                 dict_to_insert = output_vars
 
-            var_field = var.split(".")
+            # Remove "ids."
+            var_field = var.split(".")[1:]
             if len(var_field) == 1:
                 dict_to_insert[var_field[0]] = "felt"
             else:
@@ -61,6 +62,7 @@ def generate_cairo_hint_program(hint_code):
     inout_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in inout_vars.items())
 
     input_vars = (input_vars | inout_vars)
+    print(input_vars, output_vars)
 
     fields = { v for v in (input_vars | output_vars).values() }
     structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
