@@ -31,24 +31,27 @@ def generate_cairo_hint_program(hint_code):
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
-    lines = [line for line in hint_code.split("\n") if "ids." in line]
+    lines = [multi_replace(line, '",)]}') for line in hint_code.split("\n") if "ids." in line]
 
     for line in lines:
-        variables = [multi_replace(v[v.find("ids.") + len("ids."):], ",)]}") for v in line.split() if "ids." in v]
+        variables = [v[v.find("ids.") + len("ids."):] for v in line.split() if "ids." in v]
 
         for var in variables:
+            var.replace(".", "", -1)
             dict_to_insert = dict()
+
             if line.find(var) < line.find("=") < line.find(var, line.find("=")):
                 dict_to_insert = inout_vars
             elif line.find("=") < line.find(var):
                 dict_to_insert = input_vars
             else:
                 dict_to_insert = output_vars
+
             var_field = var.split(".")
             if len(var_field) == 1:
                 dict_to_insert[var_field[0]] = "felt"
             else:
-                if not var_field[0] in dict_to_insert:
+                if not var_field[0] in dict_to_insert or dict_to_insert[var_field[0]] == "felt":
                     dict_to_insert[var_field[0]] = { var_field[1] }
                 else:
                     dict_to_insert[var_field[0]].add(var_field[1])
