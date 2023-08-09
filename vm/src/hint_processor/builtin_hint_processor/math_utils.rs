@@ -6,6 +6,7 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
+    types::errors::math_errors::MathError,
 };
 use lazy_static::lazy_static;
 use num_traits::{Bounded, Pow};
@@ -147,6 +148,9 @@ pub fn assert_le_felt(
     let excluded = lengths_and_indices[2].1;
     exec_scopes.assign_or_update_variable("excluded", any_box!(Felt252::new(excluded)));
 
+    if prime_over_3_high.is_zero() || prime_over_2_high.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&prime_over_3_high.to_biguint());
     let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&prime_over_2_high.to_biguint());
 
@@ -486,6 +490,10 @@ pub fn signed_div_rem(
             ))));
         }
         _ => {}
+    }
+
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
     }
 
     let int_value = value.to_signed_felt();
