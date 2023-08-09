@@ -17,6 +17,7 @@ honggfuzz = "0.5.55"
 libfuzzer-sys = "0.4"
 cairo-vm = { path = "../vm", features = ["arbitrary"] }
 cairo-felt = { path = "../felt", features = ["arbitrary"] }
+pyo3 = { version = "0.19.2", features = ["extension-module"] }
 
 [[bin]]
 name = "fuzz_json"
@@ -29,3 +30,8 @@ path = "src/cairo_compiled_programs_fuzzer.rs"
 [[bin]]
 name = "fuzz_program"
 path = "src/fuzz_program.rs"
+
+[lib]
+name = "cairo_vm_rs"
+path = "src/py_export.rs"
+crate-type = ["cdylib"]
