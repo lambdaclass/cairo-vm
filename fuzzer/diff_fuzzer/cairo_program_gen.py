@@ -41,7 +41,7 @@ def generate_cairo_hint_program(hint_code):
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
-    lines = [multi_replace(line, '",)]}') for line in hint_code.split("\n") if "ids." in line]
+    lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
 
     for line in lines:
         variables = [v for v in line.split() if "ids." in v]
