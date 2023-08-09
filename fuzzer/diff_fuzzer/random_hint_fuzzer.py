@@ -125,10 +125,26 @@ def change_main(program, new_main, init, end):
     return program
 
 def get_random_hint(fdp):
-    hint_number = fdp.ConsumeIntInRange(0, 102)
-    print("\n\n", hint_number, "\n\n")
-    f = open('../../hint_accountant/whitelists/latest.json')
-    data = json.load(f)
+    hints_list = [ 0, 4, 5, 6, 25, 26, 27, 29, 
+    30, 32, 38, 49, 55, 72, 102, 
+    103, 104, 105, 107, 108, 110, 
+    111, 113, 116, 120, 121]
+
+    hint_number = fdp.PickValueInList(hints_list)
+
+    data = ""
+    if hint_number > 119 :
+        f = open('../../hint_accountant/whitelists/uint256_improvements.json')
+        data = json.load(f)
+        hint_number = hint_number - 119
+        
+    elif hint_number > 101 :
+        f = open('../../hint_accountant/whitelists/vrf.json')
+        data = json.load(f)
+        hint_number = hint_number - 102
+    else:
+        f = open('../../hint_accountant/whitelists/latest.json')
+        data = json.load(f)
 
     return "\n".join(data["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"])
 
