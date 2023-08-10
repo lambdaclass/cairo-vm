@@ -195,7 +195,11 @@ def diff_fuzzer(data):
         print("py error: ", py_stderr , "\n")
         print("rs error: ", rs_stderr , "\n")
     else:
-        raise "py subprocess: \noutput: {py_stdout} \nerror: {py_stderr} \nrs subprocess: \noutput: {rs_stdout} \nerror: {rs_stderr} "
+        print("py stdout: ", py_stdout , "\n")
+        print("rs stdout: ", rs_stdout , "\n")
+        print("py error: ", py_stderr , "\n")
+        print("rs error: ", rs_stderr , "\n")
+        raise TypeError("the results differ")
     
 
 atheris.Setup(sys.argv, diff_fuzzer)
