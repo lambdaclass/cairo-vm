@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691701573803,
+  "lastUpdate": 1691711610764,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -113962,6 +113962,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20934955,
             "range": "± 314602",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "21eff709a7b1f0b7e489f5f6e9f290f076b8dc46",
+          "message": "Handle error in hint `UINT256_MUL_DIV_MOD` when divides by zero (#1367)\n\n* fix bug\n\n* Add test\n\n* Add some checks to div_mod_floors of BigUints\n\n* Update Changelog\n\n* Remove unnecesarry zero check\n\n* Remove unnecesarry zero check\n\n* Remove unnecesary import",
+          "timestamp": "2023-08-10T22:45:58Z",
+          "tree_id": "4736a89104d81a0134e68edf5a3639c38654eb5d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/21eff709a7b1f0b7e489f5f6e9f290f076b8dc46"
+        },
+        "date": 1691711602511,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1726,
+            "range": "± 124",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 67011,
+            "range": "± 3313",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25197038,
+            "range": "± 953828",
             "unit": "ns/iter"
           }
         ]
