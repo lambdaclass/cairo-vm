@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691179006437,
+  "lastUpdate": 1691696809430,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -113782,6 +113782,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18378123,
             "range": "± 82759",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fced1223fec01184e61a6b99bbb5b1d4b8bf3020",
+          "message": "Better json generation (#1356)\n\n* Generate program with\n\n* Simplify fuzz_json\n\n* Fuzz config\n\n* Test more args\n\n* Declare STEPS_LIMIT; derive Clone\n\n* Implement location arbitrary by hand\n\n* Implement arbitrary by hand\n\n* Use raw bytes for fuzz_json\n\n* Specify arbitrary for CairoConfig\n\n* Use  and  for json programs\n\n* Add words to dict\n\n* Run carg fix\n\n* Remove unused crates\n\n* Remove unused crates\n\n* Reduce likeliness of programs triggering parsing errors\n\n* Order crates and test input\n\n* Clean comments\n\n* Add hint code\n\n* Make arbitrary location generation better\n\n* Clean Cargo.toml\n\n* Remove testing code\n\n* Avoid serializing if None\n\n* Update fuzzer.yml\n\n* Run cargo fmt\n\n* Run cargo fmt\n\n---------\n\nCo-authored-by: Juanma <juanma@Juanmas-MacBook-Air.local>\nCo-authored-by: juan.mv <juan@lambdaclass.com>",
+          "timestamp": "2023-08-10T19:02:22Z",
+          "tree_id": "9f5915d99dd938e835cec6fbc322e55a25e1252e",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/fced1223fec01184e61a6b99bbb5b1d4b8bf3020"
+        },
+        "date": 1691696800858,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1792,
+            "range": "± 104",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 68028,
+            "range": "± 3718",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 26099777,
+            "range": "± 1327201",
             "unit": "ns/iter"
           }
         ]
