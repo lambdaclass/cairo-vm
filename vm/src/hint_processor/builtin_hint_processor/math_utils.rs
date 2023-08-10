@@ -492,10 +492,6 @@ pub fn signed_div_rem(
         _ => {}
     }
 
-    if div.is_zero() {
-        return Err(MathError::DividedByZero.into());
-    }
-
     let int_value = value.to_signed_felt();
     let int_div = div.to_bigint();
     let int_bound = bound.to_bigint();
