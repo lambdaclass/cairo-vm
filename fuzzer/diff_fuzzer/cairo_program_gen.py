@@ -23,32 +23,88 @@ Generate a cairo program with the following rules:
             return(b);
           }
 """
+import json
+
+PACKED_KECCAK_CONSTS = { "from starkware.cairo.common.cairo_keccak.packed_keccak import": [
+    "ALL_ONES",
+    "BLOCK_SIZE",
+    "SHIFTS"
+]}
+KECCAK_CONSTS = { "from starkware.cairo.common.cairo_keccak.keccak import": [
+    "KECCAK_STATE_SIZE_FELTS",
+    "KECCAK_FULL_RATE_IN_WORDS",
+    "KECCAK_FULL_RATE_IN_BYTES",
+    "KECCAK_CAPACITY_IN_WORDS",
+    "BYTES_IN_WORD"
+]}
+
+KECCAK_UTILS_IMPORT = "from starkware.cairo.common.keccak_utils.keccak_utils import"
+
+KECCAK_UTILS = { KECCAK_UTILS_IMPORT: [
+    "keccak_func"
+]}
 
 def multi_replace(in_str, patterns):
-    return "".join([ c for c in in_str if c not in patterns])
+    return "".join([ c if c not in patterns else " " for c in in_str ])
+
+def var_in_pack(line, stripped_var):
+    if "pack(" not in line:
+        return False
+    var = "ids." + stripped_var
+    # Assuming there is no inner parenthesis in pack(...)
+    pack_start = line.find("pack(")
+    pack_end = line.find(")", pack_start)
+    return var in line[pack_start:pack_end]
+     
+def get_import_if_needed(var):
+    if any(var in consts for consts in (PACKED_KECCAK_CONSTS["from starkware.cairo.common.cairo_keccak.packed_keccak import"])):
+        return "from starkware.cairo.common.cairo_keccak.packed_keccak import"
+    elif any(var in consts for consts in (KECCAK_CONSTS["from starkware.cairo.common.cairo_keccak.keccak import"])):
+        return "from starkware.cairo.common.cairo_keccak.keccak import"
+    else: None
     
 def generate_cairo_hint_program(hint_code):
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
-    lines = [line for line in hint_code.split("\n") if all(substr in line for substr in ["=", "ids."])]
-
+    imported_variables = []
+    extra_hints = ""
+    block_permutation_set = False
+    lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
+  
     for line in lines:
-        variables = [multi_replace(v[v.find("ids.") + len("ids."):], ",)]}") for v in line.split() if "ids." in v]
+        for value in KECCAK_UTILS[KECCAK_UTILS_IMPORT]:
+            if line.rfind(value) and block_permutation_set == False:
+                f = open('../../hint_accountant/whitelists/latest.json')
+                data = json.load(f)
+                hint = "\n".join(data["allowed_reference_expressions_for_hint"][23]["hint_lines"])
+                extra_hints = extra_hints + hint
+                lines.extend([multi_replace(line, '",)]}(') for line in hint.split("\n") if "ids." in line])
+                imported_variables.append("from starkware.cairo.common.alloc import alloc")
+                block_permutation_set = True
+
+        variables = [v for v in line.split() if "ids." in v]
 
         for var in variables:
+            var.replace(".", "", -1)
             dict_to_insert = dict()
+
             if line.find(var) < line.find("=") < line.find(var, line.find("=")):
                 dict_to_insert = inout_vars
             elif line.find("=") < line.find(var):
                 dict_to_insert = input_vars
             else:
                 dict_to_insert = output_vars
-            var_field = var.split(".")
-            if len(var_field) == 1:
+
+            # Remove "ids."
+            var_field = var.split(".")[1:]
+            if var_in_pack(line, var_field[0]):
+                # If the variable is inside a pack(...) function, make sure it's a point
+                dict_to_insert[var_field[0]] = { "d0", "d1", "d2" }
+            elif len(var_field) == 1:
                 dict_to_insert[var_field[0]] = "felt"
             else:
-                if not var_field[0] in dict_to_insert:
+                if not var_field[0] in dict_to_insert or dict_to_insert[var_field[0]] == "felt":
                     dict_to_insert[var_field[0]] = { var_field[1] }
                 else:
                     dict_to_insert[var_field[0]].add(var_field[1])
@@ -65,7 +121,7 @@ def generate_cairo_hint_program(hint_code):
 
     structs_fmt = "struct {struct_name} {{\n{struct_fields}\n}}"
     fields_fmt = "\t{field_name}: felt,"
-
+    
     declared_structs = "\n".join([
         structs_fmt.format(
             struct_name = name,
@@ -81,6 +137,9 @@ def generate_cairo_hint_program(hint_code):
 
     main_var_assignments = ""
     for name, var_fields in input_vars.items():
+        if get_import_if_needed(name) != None:
+            imported_variables.append(get_import_if_needed(name)+ " " + name + " ")
+            
         main_var_assignments += \
             main_var_felt_assingment_fmt.format(var_name = name) if structs_dict[var_fields] == "felt" else \
             main_struct_assignment_fmt.format(
@@ -96,7 +155,11 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in input_vars.keys()])
     )
 
-    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
+    if extra_hints != "" :
+        hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{extra_hints}\n%}}\n\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
+    else: 
+        hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
+
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
@@ -115,8 +178,9 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
+        extra_hints = extra_hints,
         hint = hint_code,
         output_return = ", ".join([res for res in (output_vars | inout_vars).keys()])
     )
 
-    return (declared_structs + "\n\n" + main_func + "\n\n" + hint_func).split("\n")
+    return imported_variables + declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")

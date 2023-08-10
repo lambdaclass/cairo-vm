@@ -63,16 +63,21 @@ def generate_limb(fdp):
     elif fdp.ConsumeBool():
        return fdp.ConsumeIntInRange(0, 10) 
     else:
-       return fdp.ConsumeIntInRange(0, range_check_max)
+       return fdp.ConsumeIntInRange(1, range_check_max)
 
 def generalize_variable(line, fdp):
-    
     if line.rfind('(') != -1 :
         trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
         trimed_var_line = "(" + trimed_var_line + ")"
         trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
         trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
         return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
+    elif line.rfind('keccak_ptr ') != -1 : 
+
+        return "\tlet (keccak_ptr: felt*) = alloc();"
+    elif line.rfind('keccak_ptr_end') != -1 : 
+
+        return "\tlet keccak_ptr_end=keccak_ptr;"
     else:
         rand_line = line.replace(";", str(generate_limb(fdp)) + ";")
         return rand_line
@@ -125,12 +130,18 @@ def change_main(program, new_main, init, end):
     return program
 
 def get_random_hint(fdp):
+    # hints_list = [ 0, 4, 5, 6, 25, 26, 27, 29, 
+    # 30, 32, 38, 49, 55, 72, 102, 
+    # 103, 104, 105, 107, 108, 110, 
+    # 111, 113, 116, 120, 121]
+
     hints_list = [ 0, 4, 5, 6, 25, 26, 27, 29, 
     30, 32, 38, 49, 55, 72, 102, 
     103, 104, 105, 107, 108, 110, 
     111, 113, 116, 120, 121]
 
     hint_number = fdp.PickValueInList(hints_list)
+    print("hint numberrrrr",hint_number)
 
     data = ""
     if hint_number > 119 :
@@ -156,6 +167,7 @@ def diff_fuzzer(data):
     
     (main, init, end) = get_main_lines(program)
     new_main = generalize_main(main, fdp)
+    print("mainnn",new_main)
     new_program = "\n".join(change_main(program, new_main, init, end))
 
     base_filename = hex(fdp.ConsumeUInt(8))
