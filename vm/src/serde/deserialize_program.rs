@@ -150,6 +150,10 @@ pub struct Attribute {
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    #[cfg_attr(
+        all(feature = "arbitrary", feature = "std"),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -166,41 +170,34 @@ pub struct Location {
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        let mut locations = Vec::new();
-
-        u.arbitrary_loop(Some(0), Some(512), |u| {
-            locations.push(Location {
-                end_line: u32::arbitrary(u)?,
-                end_col: u32::arbitrary(u)?,
-                input_file: InputFile::arbitrary(u)?,
-                parent_location: None,
-                start_line: u32::arbitrary(u)?,
-                start_col: u32::arbitrary(u)?,
-            });
-            Ok(std::ops::ControlFlow::Continue(()))
-        })?;
-
-        let mut iter_location = locations.pop().unwrap_or_else(|| Location {
-            end_line: 0,
-            end_col: 0,
-            input_file: InputFile {
-                filename: "".to_string(),
-            },
-            parent_location: None,
-            start_line: 0,
-            start_col: 0,
-        });
-
-        while let Some(mut location) = locations.pop() {
-            location.parent_location = Some((Box::new(iter_location), String::arbitrary(u)?));
-            iter_location = location;
-        }
-
-        Ok(iter_location)
+        arbitrary_parent_location(u, 20)
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Result<Location> {
+    let parent_location = if depth > 0 {
+        Some((
+            Box::new(arbitrary_parent_location(u, depth - 1)?),
+            String::arbitrary(u)?,
+        ))
+    } else {
+        None
+    };
+    Ok(Location {
+        end_line: u32::arbitrary(u)?,
+        end_col: u32::arbitrary(u)?,
+        input_file: InputFile::arbitrary(u)?,
+        parent_location,
+        start_line: u32::arbitrary(u)?,
+        start_col: u32::arbitrary(u)?,
+    })
+}
+
+#[cfg_attr(
+    all(feature = "arbitrary", feature = "std"),
+    derive(Arbitrary, Clone, Serialize)
+)]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
