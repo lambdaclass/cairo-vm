@@ -64,7 +64,6 @@ def get_import_if_needed(var):
     else: None
     
 def generate_cairo_hint_program(hint_code):
-    print(hint_code)
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
