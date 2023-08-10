@@ -64,6 +64,7 @@ def get_import_if_needed(var):
     else: None
     
 def generate_cairo_hint_program(hint_code):
+    print(hint_code)
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
@@ -73,16 +74,7 @@ def generate_cairo_hint_program(hint_code):
     lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
   
     for line in lines:
-        for value in KECCAK_UTILS[KECCAK_UTILS_IMPORT]:
-            if line.rfind(value) and block_permutation_set == False:
-                f = open('../../hint_accountant/whitelists/latest.json')
-                data = json.load(f)
-                hint = "\n".join(data["allowed_reference_expressions_for_hint"][23]["hint_lines"])
-                extra_hints = extra_hints + hint
-                lines.extend([multi_replace(line, '",)]}(') for line in hint.split("\n") if "ids." in line])
-                imported_variables.append("from starkware.cairo.common.alloc import alloc")
-                block_permutation_set = True
-
+        
         variables = [v for v in line.split() if "ids." in v]
 
         for var in variables:
@@ -163,14 +155,24 @@ def generate_cairo_hint_program(hint_code):
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
-    signature = "(" + \
-        ", ".join([
-            hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
-        ]) + \
-        ") -> (" + \
-        ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
-        ")"
 
+    if len(output_vars | inout_vars) == 1:
+        signature =  "(" + \
+            ", ".join([
+                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
+            ]) + \
+            ") -> " + \
+            "".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) 
+            
+    else: 
+        signature = "(" + \
+            ", ".join([
+                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
+            ]) + \
+            ") -> (" + \
+            ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
+            ")"
+    
     local_vars = "\n".join([
         local_declare_fmt.format(res_var_name = name, res_struct = structs_dict[var_fields]) for name, var_fields in output_vars.items()
     ])
