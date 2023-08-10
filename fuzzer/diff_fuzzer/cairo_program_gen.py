@@ -23,31 +23,21 @@ Generate a cairo program with the following rules:
             return(b);
           }
 """
-import json
-
-PACKED_KECCAK_CONSTS = { "from starkware.cairo.common.cairo_keccak.packed_keccak import": [
-    "ALL_ONES",
-    "BLOCK_SIZE",
-    "SHIFTS"
-]}
-KECCAK_CONSTS = { "from starkware.cairo.common.cairo_keccak.keccak import": [
-    "KECCAK_STATE_SIZE_FELTS",
-    "KECCAK_FULL_RATE_IN_WORDS",
-    "KECCAK_FULL_RATE_IN_BYTES",
-    "KECCAK_CAPACITY_IN_WORDS",
-    "BYTES_IN_WORD"
-]}
-
-KECCAK_UTILS_IMPORT = "from starkware.cairo.common.keccak_utils.keccak_utils import"
-
-KECCAK_UTILS = { KECCAK_UTILS_IMPORT: [
-    "keccak_func"
-]}
 
 def multi_replace(in_str, patterns):
+    """
+    multi_replace(String, String) -> String
+    Replace multiple characters for space
+    """
     return "".join([ c if c not in patterns else " " for c in in_str ])
 
 def var_in_pack(line, stripped_var):
+    """
+    var_in_pack(String, String) -> bool
+    Check if a variable is inside a pack(variable, PRIME) call.
+    This function expects a stripped variable, without the `ids.` prefix.
+    Also, the current implemenation doesn't deal with parenthesis inside the `pack` call
+    """
     if "pack(" not in line:
         return False
     var = "ids." + stripped_var
@@ -56,33 +46,22 @@ def var_in_pack(line, stripped_var):
     pack_end = line.find(")", pack_start)
     return var in line[pack_start:pack_end]
      
-def get_import_if_needed(var):
-    if any(var in consts for consts in (PACKED_KECCAK_CONSTS["from starkware.cairo.common.cairo_keccak.packed_keccak import"])):
-        return "from starkware.cairo.common.cairo_keccak.packed_keccak import"
-    elif any(var in consts for consts in (KECCAK_CONSTS["from starkware.cairo.common.cairo_keccak.keccak import"])):
-        return "from starkware.cairo.common.cairo_keccak.keccak import"
-    else: None
     
-def generate_cairo_hint_program(hint_code):
+def classify_variables(hint_code):
+    """
+    classify_varables(String) -> (Dict, Dict, Dict)
+    Takes a hint code block and extract all the variables with the `ids.` prefix, classifying each one into
+    dictionaries representing input, output and inout variables.
+    Then if the variable has fields, annotate them in the corresponding dictionary, otherwise it's normally
+    considered a felt execpt for special cases like being passed as an argument to a `pack(variable, PRIME)`
+    function.
+    """
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
-    imported_variables = []
-    extra_hints = ""
-    block_permutation_set = False
-    lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
-  
-    for line in lines:
-        for value in KECCAK_UTILS[KECCAK_UTILS_IMPORT]:
-            if line.rfind(value) and block_permutation_set == False:
-                f = open('../../hint_accountant/whitelists/latest.json')
-                data = json.load(f)
-                hint = "\n".join(data["allowed_reference_expressions_for_hint"][23]["hint_lines"])
-                extra_hints = extra_hints + hint
-                lines.extend([multi_replace(line, '",)]}(') for line in hint.split("\n") if "ids." in line])
-                imported_variables.append("from starkware.cairo.common.alloc import alloc")
-                block_permutation_set = True
 
+    lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
+    for line in lines:
         variables = [v for v in line.split() if "ids." in v]
 
         for var in variables:
@@ -114,6 +93,15 @@ def generate_cairo_hint_program(hint_code):
     inout_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in inout_vars.items())
 
     input_vars = (input_vars | inout_vars)
+    return input_vars, output_vars, inout_vars
+
+def generate_cairo_hint_program(hint_code):
+    """
+    generate_cairo_hint_program(String) -> [String]
+    Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
+    code block that was passed as parameter
+    """
+    input_vars, output_vars, inout_vars = classify_variables(hint_code)
 
     fields = { v for v in (input_vars | output_vars).values() }
     structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
@@ -137,9 +125,6 @@ def generate_cairo_hint_program(hint_code):
 
     main_var_assignments = ""
     for name, var_fields in input_vars.items():
-        if get_import_if_needed(name) != None:
-            imported_variables.append(get_import_if_needed(name)+ " " + name + " ")
-            
         main_var_assignments += \
             main_var_felt_assingment_fmt.format(var_name = name) if structs_dict[var_fields] == "felt" else \
             main_struct_assignment_fmt.format(
@@ -155,10 +140,7 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in input_vars.keys()])
     )
 
-    if extra_hints != "" :
-        hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{extra_hints}\n%}}\n\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
-    else: 
-        hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
+    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
 
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
@@ -178,9 +160,8 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
-        extra_hints = extra_hints,
         hint = hint_code,
         output_return = ", ".join([res for res in (output_vars | inout_vars).keys()])
     )
 
-    return imported_variables + declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")
+    return declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")
