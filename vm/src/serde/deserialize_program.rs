@@ -196,9 +196,9 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
 
 #[cfg_attr(
     all(feature = "arbitrary", feature = "std"),
-    derive(Arbitrary, Clone, Serialize)
+    derive(Arbitrary, Serialize)
 )]
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
