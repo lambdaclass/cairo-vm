@@ -4,7 +4,7 @@ import sys
 import subprocess
 import atheris
 import json
-from cairo_program_gen import generate_cairo_hint_program
+from cairo_program_gen import generate_cairo_hint_program, REPLACEABLE_TOKEN
 
 def check_mem(filename1, filename2):
     cairo_mem = {}
@@ -65,70 +65,6 @@ def generate_limb(fdp):
     else:
        return fdp.ConsumeIntInRange(1, range_check_max)
 
-def generalize_variable(line, fdp):
-    if line.rfind('(') != -1 :
-        trimed_var_line = line.split("(", 1)[1].split(")", 1)[0]
-        trimed_var_line = "(" + trimed_var_line + ")"
-        trimed_var_line = trimed_var_line.replace("=,", "=" + str(generate_limb(fdp)) + ",")
-        trimed_var_line = trimed_var_line.replace(")", str(generate_limb(fdp)) + ")")
-        return line.split("(", 1)[0] + trimed_var_line + line.split(")", 1)[1]
-    elif line.rfind('keccak_ptr ') != -1 : 
-
-        return "\tlet (keccak_ptr: felt*) = alloc();"
-    elif line.rfind('keccak_ptr_end') != -1 : 
-
-        return "\tlet keccak_ptr_end=keccak_ptr;"
-    else:
-        rand_line = line.replace(";", str(generate_limb(fdp)) + ";")
-        return rand_line
-    
-
-def generalize_main(main, fdp):
-    # Find variables to replace and inject rand data
-    new_main = []
-
-    for line in main:
-        # Find variables
-        if line.rfind('let ') != -1 :
-            new_main.append(generalize_variable(line, fdp))
-        else:
-            new_main.append(line)
-    return new_main
-
-def get_main_lines(program):
-    main_begin = False
-    main_end = False
-    main = []
-    it = 0
-    init = 0
-    end = 0
-
-    while not main_end: 
-        if program[it].rfind('func main') != -1 :
-            main_begin = True
-            init = it
-
-        if main_begin == True :
-            main.append(program[it])
-
-        if program[it].rfind('}') != -1 and main_begin:
-            main_end = True
-            end = it
-        it = it + 1
-     
-    return (main, init, end)
-
-def change_main(program, new_main, init, end):
-    it = 0 
-    main_it = 0
-
-    for line in program:
-        if it >= init and it <= end:
-            program[it] = new_main[main_it]
-            main_it = main_it + 1
-        it = it + 1
-    return program
-
 def get_random_hint(fdp):
     hints_list = [4, 5, 6, 26, 27, 29, 
     30, 32, 38, 49, 55, 72, 102, 
@@ -157,12 +93,12 @@ def get_random_hint(fdp):
 def diff_fuzzer(data):
     fdp = atheris.FuzzedDataProvider(data)
     hint = get_random_hint(fdp)
-    program = generate_cairo_hint_program(hint)
-    
-    (main, init, end) = get_main_lines(program)
-    new_main = generalize_main(main, fdp)
-    new_program = "\n".join(change_main(program, new_main, init, end))
 
+    program = generate_cairo_hint_program(hint)
+    replace_count = program.count(REPLACEABLE_TOKEN))
+    for _ in range(replace_count):
+        program = program.replace(REPLACEABLE_TOKEN, generate_limb(fdp), 1)
+    
     base_filename = hex(fdp.ConsumeUInt(8))
     cairo_filename = base_filename + ".cairo"
     json_filename = base_filename + ".json"
@@ -170,7 +106,7 @@ def diff_fuzzer(data):
     rs_mem_filename = base_filename + ".rs_mem"
 
     with open(cairo_filename, 'w', encoding='utf-8') as file:
-        data = file.write(new_program)
+        data = file.write(program)
     
     subprocess.run(["cairo-compile", cairo_filename, "--output", json_filename])
 

@@ -24,14 +24,59 @@ Generate a cairo program with the following rules:
           }
 """
 
-def multi_replace(in_str, patterns):
-    """
-    multi_replace(String, String) -> String
-    Replace multiple characters for space
-    """
-    return "".join([ c if c not in patterns else " " for c in in_str ])
+ASSIGN_EX_TYPE = "assign"
+LEFT = "left"
+RIGHT = "right"
+OTHER_EX_TYPE = "other"
+PACK_PARAM_EX = "var_in_pack"
+CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
 
-def var_in_pack(line, stripped_var):
+def get_expr_type(line):
+    """
+    Check if the line has an `==` operator and classify it as a `OTHER_EX_TYPE` expression, this is done before
+    it looks for the `=` operator, wich is assumed to be an `ASSIGN_EX_TYPE` expression
+    """
+    if any(token in line for token in ["==", "assert"]):
+        return OTHER_EX_TYPE
+    elif "=" in line:
+        return ASSIGN_EX_TYPE
+    else:
+        return OTHER_EX_TYPE
+
+def process_line(line):
+    """
+    process_line(String) -> [ [EX_TYPE_CONST, ..., EX_TYPE_CONST, [String]] ]
+    Return the expression type of the line, adding relevant information if the an assignment was made or if the
+    variable in the line is inside a `pack(var, PRIME)` function. Return the variable as [name, fields...]
+    """
+    if get_expr_type(line) == ASSIGN_EX_TYPE:
+        equals_pos = line.rfind("=")
+        variables = [ clean_trailing(v) for v in line.split() if "ids." in v ]
+        return [
+            [ASSIGN_EX_TYPE, LEFT if line.find(v) < equals_pos else RIGHT] + \
+            ([PACK_PARAM_EX] if var_in_pack(line, v) else []) + \
+            [v[v.find("ids.") + 4:].split(".")] \
+            for v in variables 
+        ]
+    else:
+        return [
+            [OTHER_EX_TYPE] + \
+            ([PACK_PARAM_EX] if var_in_pack(line, v) else []) + \
+            [clean_trailing(v)[v.find("ids.") + 4:].split(".")] 
+            for v in line.split() if "ids." in v 
+        ]
+         
+def clean_trailing(var):
+    """
+    clean_trailing(String) -> String
+    Make sure variable doesn't end with any non-alfanumeric characters
+    """
+    i = 1
+    while not var[len(var) - i].isalnum():
+        i += 1
+    return var[:len(var) - i + 1]
+
+def var_in_pack(line, var):
     """
     var_in_pack(String, String) -> bool
     Check if a variable is inside a pack(variable, PRIME) call.
@@ -40,64 +85,63 @@ def var_in_pack(line, stripped_var):
     """
     if "pack(" not in line:
         return False
-    var = "ids." + stripped_var
     # Assuming there is no inner parenthesis in pack(...)
     pack_start = line.find("pack(")
     pack_end = line.find(")", pack_start)
     return var in line[pack_start:pack_end]
      
-    
 def classify_variables(hint_code):
     """
-    classify_varables(String) -> (Dict, Dict, Dict)
+    classify_varables(String) -> (Dict<String, set>, Dict<String, set>)
     Takes a hint code block and extract all the variables with the `ids.` prefix, classifying each one into
-    dictionaries representing input, output and inout variables.
+    dictionaries: varables to declare in the main function and variables to declare in the hint function.
     Then if the variable has fields, annotate them in the corresponding dictionary, otherwise it's normally
-    considered a felt execpt for special cases like being passed as an argument to a `pack(variable, PRIME)`
+    considered a felt execpt for the special case: being passed as an argument to a `pack(variable, PRIME)`
     function.
     """
-    input_vars = dict()
-    output_vars = dict()
-    inout_vars = dict()
-    imported_variables = []
-    extra_hints = ""
-    block_permutation_set = False
-    lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
-  
-    for line in lines:
-        
-        variables = [v for v in line.split() if "ids." in v]
+    declare_in_main = dict()
+    declare_in_hint_fn = dict()
 
-        for var in variables:
-            var.replace(".", "", -1)
-            dict_to_insert = dict()
+    # Get all lines with the `ids.` identifier and then dump them into an array of expressions (other or assign)
+    # Doesn't consider lines with a comment on them
+    # expressions: [ [EX_TYPE_CONSTs..., [String]], ... ]
+    expressions = []
+    for line in hint_code.split("\n"):
+        if "ids." in line and "#" not in line:
+            expressions += process_line(line)
 
-            if line.find(var) < line.find("=") < line.find(var, line.find("=")):
-                dict_to_insert = inout_vars
-            elif line.find("=") < line.find(var):
-                dict_to_insert = input_vars
+    # Create a var_name: { set of fields or cairo type } pair to insert in one of the output dictionaries
+    for expr in expressions:
+        expression_type = expr[:-1]
+        variable_name = expr[-1][0]
+        variable_type = expr[-1][1:]
+
+        # Overrite fields with EcPoint or BigInt3 if necessary
+        if PACK_PARAM_EX in expression_type:
+            if any(ec_point_fields in variable_type for ec_point_fields in ["x", "y"]):
+                variable_type = {"EcPoint"}
             else:
-                dict_to_insert = output_vars
+                variable_type = {"BigInt3"}
 
-            # Remove "ids."
-            var_field = var.split(".")[1:]
-            if var_in_pack(line, var_field[0]):
-                # If the variable is inside a pack(...) function, make sure it's a point
-                dict_to_insert[var_field[0]] = { "d0", "d1", "d2" }
-            elif len(var_field) == 1:
-                dict_to_insert[var_field[0]] = "felt"
-            else:
-                if not var_field[0] in dict_to_insert or dict_to_insert[var_field[0]] == "felt":
-                    dict_to_insert[var_field[0]] = { var_field[1] }
-                else:
-                    dict_to_insert[var_field[0]].add(var_field[1])
+        dict_to_insert = declare_in_main
+        if ASSIGN_EX_TYPE in expression_type:
+            if RIGHT in expression_type:
+                dict_to_insert = declare_in_main
+            if LEFT in expression_type:
+                dict_to_insert = declare_in_hint_fn
 
-    input_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in input_vars.items())
-    output_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in output_vars.items())
-    inout_vars.update((k, tuple(v) if v != "felt" else "felt") for (k, v) in inout_vars.items())
+        if variable_type == []: variable_type = {"felt"}
 
-    input_vars = (input_vars | inout_vars)
-    return input_vars, output_vars, inout_vars
+        # Make sure not to lose info if the variable already had an EcPoint or BigInt3 type
+        if variable_name in dict_to_insert and not dict_to_insert[variable_name].issubset({"EcPoint", "BigInt3"}):
+            dict_to_insert[variable_name].update(variable_type)
+        elif variable_name not in dict_to_insert:
+            dict_to_insert[variable_name] = set(variable_type)
+
+    # Freeze sets
+    declare_in_main.update((k, frozenset(v)) for (k, v) in declare_in_main.items())
+    declare_in_hint_fn.update((k, frozenset(v)) for (k, v) in declare_in_hint_fn.items())
+    return declare_in_main, declare_in_hint_fn
 
 def generate_cairo_hint_program(hint_code):
     """
@@ -105,11 +149,15 @@ def generate_cairo_hint_program(hint_code):
     Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
     code block that was passed as parameter
     """
-    input_vars, output_vars, inout_vars = classify_variables(hint_code)
+    declare_in_main, declare_in_hint_fn = classify_variables(hint_code)
 
-    fields = { v for v in (input_vars | output_vars).values() }
-    structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(fields) if v != "felt"}
-    structs_dict["felt"] = "felt"
+    all_types = (declare_in_main | declare_in_hint_fn).values()
+
+    import_ecpoint = "from starkware.cairo.common.cairo_secp.ec import EcPoint\n" if any("EcPoint" in types for types in all_types) else ""
+    import_bigint3 = "from starkware.cairo.common.cairo_secp.bigint import BigInt3\n" if import_ecpoint != "" or any("BigInt3" in types for types in all_types) else ""
+
+    structs_fields = { f for f in all_types if not f.issubset(CAIRO_TYPES) }
+    structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(structs_fields) }
 
     structs_fmt = "struct {struct_name} {{\n{struct_fields}\n}}"
     fields_fmt = "\t{field_name}: felt,"
@@ -119,19 +167,25 @@ def generate_cairo_hint_program(hint_code):
             struct_name = name,
             struct_fields = "\n".join([fields_fmt.format(field_name=field_name) for field_name in fields])
         )
-        for (fields, name) in structs_dict.items() if name != "felt"
+        for (fields, name) in structs_dict.items()
     ])
 
-
-    main_func_fmt = "func main() {{{variables}\n\thint_func({input_var_names});\n\treturn();\n}}"
+    main_func_fmt = "\nfunc main() {{{variables}\n\thint_func({input_var_names});\n\treturn();\n}}\n"
     main_struct_assignment_fmt = "\n\tlet {var_name} = {struct_name}({assign_fields});"
+    main_ecpoint_assignment_fmt = "\n\tlet {var_name} = EcPoint(BigInt3(d0=, d1=, d2=), BigInt3(d0=, d1=, d2=));"
+    main_bigint_assignment_fmt = "\n\tlet {var_name} = BigInt3(d0=, d1=, d2=);"
     main_var_felt_assingment_fmt = "\n\tlet {var_name} =;"
 
     main_var_assignments = ""
-    for name, var_fields in input_vars.items():
-        main_var_assignments += \
-            main_var_felt_assingment_fmt.format(var_name = name) if structs_dict[var_fields] == "felt" else \
-            main_struct_assignment_fmt.format(
+    for name, var_fields in declare_in_main.items():
+        if "felt" in var_fields:
+            main_var_assignments += main_var_felt_assingment_fmt.format(var_name = name)
+        elif "EcPoint" in var_fields:
+            main_var_assignments += main_ecpoint_assignment_fmt.format(var_name = name)
+        elif "BigInt3" in var_fields:
+            main_var_assignments += main_bigint_assignment_fmt.format(var_name = name)
+        else:
+            main_var_assignments += main_struct_assignment_fmt.format(
                 var_name = name,
                 struct_name = structs_dict[var_fields],
                 assign_fields = ", ".join([
@@ -141,41 +195,32 @@ def generate_cairo_hint_program(hint_code):
 
     main_func = main_func_fmt.format(
         variables = main_var_assignments,
-        input_var_names = ", ".join([var for var in input_vars.keys()])
+        input_var_names = ", ".join([var for var in declare_in_main.keys()])
     )
 
-    hint_func_fmt = "func hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}"
+    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}\n"
 
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
+    signature = "(" + \
+        ", ".join([
+            hint_input_var_fmt.format(var_name = name, struct_name = next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields]) for name, var_fields in declare_in_main.items()
+        ]) + \
+        ") -> (" + \
+        ", ".join([next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields] for var_fields in (declare_in_main | declare_in_hint_fn).values()]) + \
+        ")"
 
-    if len(output_vars | inout_vars) == 1:
-        signature =  "(" + \
-            ", ".join([
-                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
-            ]) + \
-            ") -> " + \
-            "".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) 
-            
-    else: 
-        signature = "(" + \
-            ", ".join([
-                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
-            ]) + \
-            ") -> (" + \
-            ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
-            ")"
-    
     local_vars = "\n".join([
-        local_declare_fmt.format(res_var_name = name, res_struct = structs_dict[var_fields]) for name, var_fields in output_vars.items()
+        local_declare_fmt.format(res_var_name = name, res_struct = next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields]) for name, var_fields in declare_in_hint_fn.items()
     ])
 
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
         hint = hint_code,
-        output_return = ", ".join([res for res in (output_vars | inout_vars).keys()])
+        output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 
-    return declared_structs.split("\n") + main_func.split("\n") + hint_func.split("\n")
+    return (import_ecpoint + import_bigint3 + declared_structs + main_func + hint_func).split("\n")
+
