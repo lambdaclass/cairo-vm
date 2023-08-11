@@ -223,5 +223,5 @@ def generate_cairo_hint_program(hint_code):
         output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 
-    return (import_ecpoint + import_bigint3 + declared_structs + main_func + hint_func).split("\n")
+    return import_ecpoint + import_bigint3 + declared_structs + main_func + hint_func
 

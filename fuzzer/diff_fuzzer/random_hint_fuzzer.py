@@ -97,7 +97,7 @@ def diff_fuzzer(data):
     program = generate_cairo_hint_program(hint)
     replace_count = program.count(REPLACEABLE_TOKEN)
     for _ in range(replace_count):
-        program = program.replace(REPLACEABLE_TOKEN, generate_limb(fdp), 1)
+        program = program.replace(REPLACEABLE_TOKEN, str(generate_limb(fdp)), 1)
     
     base_filename = hex(fdp.ConsumeUInt(8))
     cairo_filename = base_filename + ".cairo"
