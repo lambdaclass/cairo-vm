@@ -3,7 +3,7 @@ name: QA
 on:
   merge_group:
   push:
-    branches: [ main, releases/0.6.x ]
+    branches: [ main ]
   pull_request:
     branches: [ '*' ]
 
