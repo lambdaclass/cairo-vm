@@ -725,7 +725,7 @@ mod tests {
             None,
             HashMap::new(),
             reference_manager,
-            identifiers.clone(),
+            identifiers,
             Vec::new(),
             Some(instruction_locations),
         )

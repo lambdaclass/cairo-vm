@@ -132,10 +132,9 @@ fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), T
     let instruction_locations = cairo_runner
         .get_program()
         .get_relocated_instruction_locations(relocation_table.as_ref());
-    let debug_info = if instruction_locations.is_none() {
-        None
-    } else {
-        Some(DebugInfo::new(instruction_locations.unwrap().clone()))
+    let debug_info = match instruction_locations {
+        Some(instruction_locations) => Some(DebugInfo::new(instruction_locations)),
+        None => None,
     };
 
     let relocated_trace = vm
