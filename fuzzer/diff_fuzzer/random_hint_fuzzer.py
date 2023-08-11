@@ -95,7 +95,7 @@ def diff_fuzzer(data):
     hint = get_random_hint(fdp)
 
     program = generate_cairo_hint_program(hint)
-    replace_count = program.count(REPLACEABLE_TOKEN))
+    replace_count = program.count(REPLACEABLE_TOKEN)
     for _ in range(replace_count):
         program = program.replace(REPLACEABLE_TOKEN, generate_limb(fdp), 1)
     
