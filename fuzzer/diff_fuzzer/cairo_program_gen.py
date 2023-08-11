@@ -30,6 +30,7 @@ RIGHT = "right"
 OTHER_EX_TYPE = "other"
 PACK_PARAM_EX = "var_in_pack"
 CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
+REPLACEABLE_TOKEN = "__TOKEN_TO_REPLACE__"
 
 def get_expr_type(line):
     """
@@ -172,9 +173,9 @@ def generate_cairo_hint_program(hint_code):
 
     main_func_fmt = "\nfunc main() {{{variables}\n\thint_func({input_var_names});\n\treturn();\n}}\n"
     main_struct_assignment_fmt = "\n\tlet {var_name} = {struct_name}({assign_fields});"
-    main_ecpoint_assignment_fmt = "\n\tlet {var_name} = EcPoint(BigInt3(d0=, d1=, d2=), BigInt3(d0=, d1=, d2=));"
-    main_bigint_assignment_fmt = "\n\tlet {var_name} = BigInt3(d0=, d1=, d2=);"
-    main_var_felt_assingment_fmt = "\n\tlet {var_name} =;"
+    main_ecpoint_assignment_fmt = "\n\tlet {var_name} = EcPoint(BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + "), BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + "));"
+    main_bigint_assignment_fmt = "\n\tlet {var_name} = BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + ");"
+    main_var_felt_assingment_fmt = "\n\tlet {var_name} =" + REPLACEABLE_TOKEN + ";"
 
     main_var_assignments = ""
     for name, var_fields in declare_in_main.items():
@@ -189,7 +190,7 @@ def generate_cairo_hint_program(hint_code):
                 var_name = name,
                 struct_name = structs_dict[var_fields],
                 assign_fields = ", ".join([
-                    field_name + "=" for field_name in var_fields
+                    field_name + "=" + REPLACEABLE_TOKEN for field_name in var_fields
                 ])
             )
 
