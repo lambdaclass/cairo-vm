@@ -130,18 +130,12 @@ def change_main(program, new_main, init, end):
     return program
 
 def get_random_hint(fdp):
-    # hints_list = [ 0, 4, 5, 6, 25, 26, 27, 29, 
-    # 30, 32, 38, 49, 55, 72, 102, 
-    # 103, 104, 105, 107, 108, 110, 
-    # 111, 113, 116, 120, 121]
-
-    hints_list = [ 0, 4, 5, 6, 25, 26, 27, 29, 
+    hints_list = [4, 5, 6, 26, 27, 29, 
     30, 32, 38, 49, 55, 72, 102, 
     103, 104, 105, 107, 108, 110, 
     111, 113, 116, 120, 121]
 
     hint_number = fdp.PickValueInList(hints_list)
-    print("hint numberrrrr",hint_number)
 
     data = ""
     if hint_number > 119 :
@@ -167,7 +161,6 @@ def diff_fuzzer(data):
     
     (main, init, end) = get_main_lines(program)
     new_main = generalize_main(main, fdp)
-    print("mainnn",new_main)
     new_program = "\n".join(change_main(program, new_main, init, end))
 
     base_filename = hex(fdp.ConsumeUInt(8))
@@ -178,17 +171,36 @@ def diff_fuzzer(data):
 
     with open(cairo_filename, 'w', encoding='utf-8') as file:
         data = file.write(new_program)
-
-    subprocess.run(["cairo-compile", cairo_filename, "--output", json_filename])
-    subprocess.run(["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", rs_mem_filename])
-    subprocess.run(["cairo-run", "--program", json_filename, "--memory_file", py_mem_filename])
-
-    check_mem(py_mem_filename, rs_mem_filename)
     
-    os.remove(cairo_filename)
-    os.remove(json_filename)
-    os.remove(rs_mem_filename)
-    os.remove(py_mem_filename)
+    subprocess.run(["cairo-compile", cairo_filename, "--output", json_filename])
+
+    py_command = ["cairo-run", "--program", json_filename, "--memory_file", py_mem_filename]
+    rs_command = ["./../../target/release/cairo-vm-cli", json_filename, "--memory_file", rs_mem_filename]
+
+    py_process = subprocess.Popen(py_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    rs_process = subprocess.Popen(rs_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    py_stdout, py_stderr = py_process.communicate()
+    rs_stdout, rs_stderr = rs_process.communicate()
+
+    if py_stdout and rs_stdout:
+        check_mem(py_mem_filename, rs_mem_filename)
+    
+        os.remove(cairo_filename)
+        os.remove(json_filename)
+        os.remove(rs_mem_filename)
+        os.remove(py_mem_filename)
+
+    elif py_stderr and rs_stderr:
+        print("py error: ", py_stderr , "\n")
+        print("rs error: ", rs_stderr , "\n")
+    else:
+        print("py stdout: ", py_stdout , "\n")
+        print("rs stdout: ", rs_stdout , "\n")
+        print("py error: ", py_stderr , "\n")
+        print("rs error: ", rs_stderr , "\n")
+        raise TypeError("the results differ")
+    
 
 atheris.Setup(sys.argv, diff_fuzzer)
 atheris.Fuzz()

@@ -59,9 +59,13 @@ def classify_variables(hint_code):
     input_vars = dict()
     output_vars = dict()
     inout_vars = dict()
-
+    imported_variables = []
+    extra_hints = ""
+    block_permutation_set = False
     lines = [multi_replace(line, '",)]}(') for line in hint_code.split("\n") if "ids." in line]
+  
     for line in lines:
+        
         variables = [v for v in line.split() if "ids." in v]
 
         for var in variables:
@@ -145,14 +149,24 @@ def generate_cairo_hint_program(hint_code):
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
-    signature = "(" + \
-        ", ".join([
-            hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
-        ]) + \
-        ") -> (" + \
-        ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
-        ")"
 
+    if len(output_vars | inout_vars) == 1:
+        signature =  "(" + \
+            ", ".join([
+                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
+            ]) + \
+            ") -> " + \
+            "".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) 
+            
+    else: 
+        signature = "(" + \
+            ", ".join([
+                hint_input_var_fmt.format(var_name = name, struct_name = structs_dict[var_fields]) for name, var_fields in input_vars.items()
+            ]) + \
+            ") -> (" + \
+            ", ".join([structs_dict[var_fields] for var_fields in (output_vars | inout_vars).values()]) + \
+            ")"
+    
     local_vars = "\n".join([
         local_declare_fmt.format(res_var_name = name, res_struct = structs_dict[var_fields]) for name, var_fields in output_vars.items()
     ])
