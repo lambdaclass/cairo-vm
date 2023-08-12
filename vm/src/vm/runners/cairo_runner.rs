@@ -516,8 +516,7 @@ impl CairoRunner {
         self.program
             .shared_program_data
             .hints_collection
-            .hints
-            .iter()
+            .iter_hints()
             .map(|hint| {
                 hint_executor
                     .compile_hint(
@@ -529,6 +528,144 @@ impl CairoRunner {
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
             .collect()
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .flat_map(|(pc, hints)| {
+        //         hints.iter().map(|hint| {
+        //             hint_executor
+        //                 .compile_hint(
+        //                     &hint.code,
+        //                     &hint.flow_tracking_data.ap_tracking,
+        //                     &hint.flow_tracking_data.reference_ids,
+        //                     references,
+        //                 )
+        //                 .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+        //         })
+        //     })
+        //     .collect()
+
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .flat_map(|(pc, _)| {
+        //         let hints_range = self.get_hint_range_for_pc(*pc);
+        //         hints_range.and_then(|range| {
+        //             let (start, len) = range.unwrap();
+        //             let len = len.get();
+        //             let end = start + len;
+        //             if end <= self.hints.len() {
+        //                 Some(&self.hints[start..end])
+        //             } else {
+        //                 None
+        //             }
+        //         })
+        //     })
+        //     .map(|hint| {
+        //         hint_executor
+        //             .compile_hint(
+        //                 &hint[0].code,
+        //                 &hint[0].flow_tracking_data.ap_tracking,
+        //                 &hint[0].flow_tracking_data.reference_ids,
+        //                 references,
+        //             )
+        //             .map_err(|_| VirtualMachineError::CompileHintFail(hint[0].code.clone().into()))
+        //     })
+        //     .collect()
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .flat_map(|(_pc, hints)| {
+        //         hints.iter().map(|hint| {
+        //             hint_executor
+        //                 .compile_hint(
+        //                     &hint.code,
+        //                     &hint.flow_tracking_data.ap_tracking,
+        //                     &hint.flow_tracking_data.reference_ids,
+        //                     references,
+        //                 )
+        //                 .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+        //         })
+        //     })
+        //     .collect()
+
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .flat_map(|(pc, hints)| {
+        //         self.program
+        //             .shared_program_data
+        //             .hints_collection
+        //             .get_hint_range_for_pc(pc)
+        //             .and_then(|hint_range| hint_range)
+        //             .map(|(start, len)| {
+        //                 let len = len.get();
+        //                 let end = start + len;
+        //                 if end <= hints.len() {
+        //                     Some((pc, &hints[start..end]))
+        //                 } else {
+        //                     None
+        //                 }
+        //             })
+        //     })
+        //     .flatten()
+        //     .map(|(_pc, hint)| {
+        //         hint_executor
+        //             .compile_hint(
+        //                 &hint[0].code,
+        //                 &hint[0].flow_tracking_data.ap_tracking,
+        //                 &hint[0].flow_tracking_data.reference_ids,
+        //                 references,
+        //             )
+        //             .map_err(|_| VirtualMachineError::CompileHintFail(hint[0].code.clone().into()))
+        //     })
+        //     .collect()
+
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .flat_map(|(_pc, hints)| {
+        //         hints.iter().map(|hint| {
+        //             hint_executor
+        //                 .compile_hint(
+        //                     &hint.code,
+        //                     &hint.flow_tracking_data.ap_tracking,
+        //                     &hint.flow_tracking_data.reference_ids,
+        //                     references,
+        //                 )
+        //                 .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+        //         })
+        //     })
+        //     .collect::<Result<Vec<_>, _>>()
+        // let mut hint_data = Vec::new();
+
+        // self.program
+        //     .shared_program_data
+        //     .hints_collection
+        //     .iter()
+        //     .try_for_each(|(_pc, hints)| {
+        //         hints
+        //             .iter()
+        //             .try_for_each(|hint| -> Result<(), VirtualMachineError> {
+        //                 let compiled_hint = hint_executor.compile_hint(
+        //                     &hint.code,
+        //                     &hint.flow_tracking_data.ap_tracking,
+        //                     &hint.flow_tracking_data.reference_ids,
+        //                     references,
+        //                 )?;
+
+        //                 hint_data.push(Box::new(compiled_hint) as Box<dyn Any>);
+
+        //                 Ok(())
+        //             })
+        //     })?;
+
+        // Ok(hint_data)
     }
 
     pub fn get_constants(&self) -> &HashMap<String, Felt252> {
@@ -550,13 +687,14 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = self
+            let hint_data = &self
                 .program
                 .shared_program_data
                 .hints_collection
-                .hints_ranges
-                .get(vm.run_context.pc.offset)
-                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
                 .unwrap_or(&[]);
             vm.step(
                 hint_processor,
@@ -593,9 +731,10 @@ impl CairoRunner {
                 .program
                 .shared_program_data
                 .hints_collection
-                .hints_ranges
-                .get(vm.run_context.pc.offset)
-                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
                 .unwrap_or(&[]);
             vm.step(
                 hint_processor,

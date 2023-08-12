@@ -96,9 +96,75 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct HintsCollection {
-    pub hints: Vec<HintParams>,
-    pub hints_ranges: Vec<HintRange>,
+pub(crate) struct HintsCollection {
+    hints: Vec<HintParams>,
+    /// This maps a PC to the range of hints in `hints` that correspond to it.
+    hints_ranges: Vec<HintRange>,
+}
+
+impl HintsCollection {
+    pub(crate) fn new(
+        hints: HashMap<usize, Vec<HintParams>>,
+        program_length: usize,
+    ) -> Result<Self, ProgramError> {
+        let bounds = hints
+            .iter()
+            .map(|(pc, hs)| (*pc, hs.len()))
+            .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
+
+        let Some((max_hint_pc, full_len)) = bounds else {
+            return Ok(HintsCollection {
+                hints: Vec::new(),
+                hints_ranges: Vec::new(),
+            });
+        };
+
+        if max_hint_pc >= program_length {
+            return Err(ProgramError::InvalidHintPc(max_hint_pc, program_length));
+        }
+
+        let mut hints_values = Vec::with_capacity(full_len);
+        let mut hints_ranges = vec![None; max_hint_pc + 1];
+
+        for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
+            let range = (
+                hints_values.len(),
+                NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
+            );
+            hints_ranges[*pc] = Some(range);
+            hints_values.extend_from_slice(&hs[..]);
+        }
+
+        Ok(HintsCollection {
+            hints: hints_values,
+            hints_ranges,
+        })
+    }
+
+    pub fn iter_hints(&self) -> impl Iterator<Item = &HintParams> {
+        self.hints.iter()
+    }
+
+    pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
+        self.hints_ranges.get(pc).cloned()
+    }
+
+    #[allow(dead_code)]
+    pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
+        self.hints_ranges
+            .iter()
+            .enumerate()
+            .filter_map(|(pc, range)| {
+                range.and_then(|(start, len)| {
+                    let end = start + len.get();
+                    if end <= self.hints.len() {
+                        Some((pc, &self.hints[start..end]))
+                    } else {
+                        None
+                    }
+                })
+            })
+    }
 }
 
 /// Represents a range of hints corresponding to a PC.
@@ -162,36 +228,8 @@ impl Program {
         hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
     ) -> Result<HintsCollection, ProgramError> {
-        let bounds = hints
-            .iter()
-            .map(|(pc, hs)| (*pc, hs.len()))
-            .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
-
-        let (max_hint_pc, full_len) = match bounds {
-            Some(bounds) => bounds,
-            None => return Ok(HintsCollection::default()),
-        };
-
-        if max_hint_pc >= program_length {
-            return Err(ProgramError::InvalidHintPc(max_hint_pc, program_length));
-        }
-
-        let mut hints_values = Vec::with_capacity(full_len);
-        let mut hints_ranges = vec![None; max_hint_pc + 1];
-
-        for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
-            let range = (
-                hints_values.len(),
-                NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
-            );
-            hints_ranges[*pc] = Some(range);
-            hints_values.extend_from_slice(&hs[..]);
-        }
-
-        Ok(HintsCollection {
-            hints: hints_values,
-            hints_ranges,
-        })
+        let hints_map: HashMap<usize, Vec<HintParams>> = hints.clone().into_iter().collect();
+        HintsCollection::new(hints_map, program_length)
     }
 
     #[cfg(feature = "std")]
@@ -318,8 +356,6 @@ impl TryFrom<CasmContractClass> for Program {
 
 #[cfg(test)]
 mod tests {
-    use core::hint;
-
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
@@ -362,8 +398,14 @@ mod tests {
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-        assert_eq!(program.shared_program_data.hints, Vec::new());
-        assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
     }
 
     #[test]
@@ -420,11 +462,17 @@ mod tests {
 
         let program_hints: HashMap<_, _> = program
             .shared_program_data
+            .hints_collection
             .hints_ranges
             .iter()
             .enumerate()
             .filter_map(|(pc, r)| r.map(|(s, l)| (pc, (s, s + l.get()))))
-            .map(|(pc, (s, e))| (pc, program.shared_program_data.hints[s..e].to_vec()))
+            .map(|(pc, (s, e))| {
+                (
+                    pc,
+                    program.shared_program_data.hints_collection.hints[s..e].to_vec(),
+                )
+            })
             .collect();
         assert_eq!(program_hints, hints);
     }

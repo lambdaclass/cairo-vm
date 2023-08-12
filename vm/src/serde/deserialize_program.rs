@@ -865,20 +865,11 @@ mod tests {
     }
 
     fn get_hints_as_map(program: &Program) -> HashMap<usize, Vec<HintParams>> {
-        let (hints, ranges) = (
-            &program.shared_program_data.hints,
-            &program.shared_program_data.hints_ranges,
-        );
-        let mut hints_map = HashMap::new();
-
-        for (pc, range) in ranges.iter().enumerate() {
-            let Some((start, len)) = range else {
-                continue;
-            };
-            // Associate the PC with its corresponding hints by mapping them
-            // to the elements in the proper range converted to vec.
-            hints_map.insert(pc, hints[*start..start + len.get()].to_vec());
-        }
+        let hints_collection = &program.shared_program_data.hints_collection;
+        let hints_map: HashMap<usize, Vec<HintParams>> = hints_collection
+            .iter()
+            .map(|(pc, hints)| (pc, hints.to_vec()))
+            .collect();
 
         hints_map
     }
