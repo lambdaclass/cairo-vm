@@ -51,7 +51,7 @@ use serde::Deserialize;
 
 use super::{
     builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
-    cairo_pie::CairoPie,
+    cairo_pie::{CairoPie, CairoPieMetadata},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -819,6 +819,29 @@ impl CairoRunner {
         Ok(builtin_segment_info)
     }
 
+    // Returns a map from builtin's name to its base's segment index and stop_ptr offset
+    // Aka the builtin's segment number and its maximum offset
+    pub fn get_builtin_named_segments_info(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<String, (isize, usize)>, RunnerError> {
+        let mut builtin_segment_info = HashMap::new();
+
+        for builtin in &vm.builtin_runners {
+            let (index, stop_ptr) = builtin.get_memory_segment_addresses();
+
+            builtin_segment_info.insert(
+                builtin.name().to_string(),
+                (
+                    index as isize,
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
+                ),
+            );
+        }
+
+        Ok(builtin_segment_info)
+    }
+
     pub fn get_execution_resources(
         &self,
         vm: &VirtualMachine,
@@ -1108,14 +1131,16 @@ impl CairoRunner {
 
     // Constructs and returns a CairoPie representing the current VM run.
     pub fn get_cairo_pie(&self, vm: &VirtualMachine) -> Result<CairoPie, RunnerError> {
-        let builtin_segments = self.get_builtin_segments_info(vm)?;
+        let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+
+        let builtin_segments = self.get_builtin_named_segments_info(vm)?;
         let mut known_segment_indices = HashSet::new();
-        for (index, _) in builtin_segments {
+        for (_, (index, _)) in &builtin_segments {
             known_segment_indices.insert(index);
         }
         let n_used_builtins = self.program.builtins_len();
-        let return_fp_addr =
-            (self.execution_base.ok_or(RunnerError::NoExecBase)? + n_used_builtins)?;
+        let return_fp_addr = (execution_base + n_used_builtins)?;
         let return_fp = vm.segments.memory.get_relocatable(return_fp_addr)?;
         let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?)?;
 
@@ -1141,7 +1166,50 @@ impl CairoRunner {
             return Err(RunnerError::UnexpectedRetPcSegmentSize);
         }
 
-        Ok(CairoPie {})
+        if program_base.offset != 0 {
+            return Err(RunnerError::ProgramBaseOffsetNotZero);
+        }
+        known_segment_indices.insert(&program_base.segment_index);
+
+        if execution_base.offset != 0 {
+            return Err(RunnerError::ExecBaseOffsetNotZero);
+        }
+        known_segment_indices.insert(&execution_base.segment_index);
+
+        if return_fp.offset != 0 {
+            return Err(RunnerError::RetFpOffsetNotZero);
+        }
+        known_segment_indices.insert(&return_fp.segment_index);
+
+        if return_pc.offset != 0 {
+            return Err(RunnerError::RetPcOffsetNotZero);
+        }
+        known_segment_indices.insert(&return_pc.segment_index);
+
+        // Put all the remaining segments in extra_segments.
+        let mut extra_segments = Vec::default();
+        for index in 0..vm.segments.num_segments() {
+            if !known_segment_indices.contains(&(index as isize)) {
+                extra_segments.push((
+                    index as isize,
+                    vm.get_segment_size(index)
+                        .ok_or(MemoryError::MissingSegmentUsedSizes)?,
+                ));
+            }
+        }
+
+        let execution_size = (vm.get_ap() - execution_base)?;
+        let metadata = CairoPieMetadata {
+            program: self.get_program().clone(),
+            program_segment: (program_base.segment_index, self.program.data_len()),
+            execution_segment: (execution_base.segment_index, execution_size),
+            ret_fp_segment: (return_fp.segment_index, 0),
+            ret_pc_segment: (return_pc.segment_index, 0),
+            builtin_segments,
+            extra_segments,
+        };
+
+        Ok(CairoPie { metadata })
     }
 }
 

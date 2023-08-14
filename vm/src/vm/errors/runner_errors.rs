@@ -89,6 +89,14 @@ pub enum RunnerError {
     UnexpectedRetFpSegmentSize,
     #[error("Unexpected ret_pc_segment size")]
     UnexpectedRetPcSegmentSize,
+    #[error("Expected program base offset to be zero")]
+    ProgramBaseOffsetNotZero,
+    #[error("Expected execution base offset to be zero")]
+    ExecBaseOffsetNotZero,
+    #[error("Expected ret_fp offset to be zero")]
+    RetFpOffsetNotZero,
+    #[error("Expected ret_pc offset to be zero")]
+    RetPcOffsetNotZero,
 }
 
 #[cfg(test)]
