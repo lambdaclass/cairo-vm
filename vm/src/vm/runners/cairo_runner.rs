@@ -46,10 +46,13 @@ use crate::{
 };
 use felt::Felt252;
 use num_integer::div_rem;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use serde::Deserialize;
 
-use super::builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner};
+use super::{
+    builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
+    cairo_pie::CairoPie,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -1101,6 +1104,44 @@ impl CairoRunner {
     /// Return CairoRunner.program
     pub fn get_program(&self) -> &Program {
         &self.program
+    }
+
+    // Constructs and returns a CairoPie representing the current VM run.
+    pub fn get_cairo_pie(&self, vm: &VirtualMachine) -> Result<CairoPie, RunnerError> {
+        let builtin_segments = self.get_builtin_segments_info(vm)?;
+        let mut known_segment_indices = HashSet::new();
+        for (index, _) in builtin_segments {
+            known_segment_indices.insert(index);
+        }
+        let n_used_builtins = self.program.builtins_len();
+        let return_fp_addr =
+            (self.execution_base.ok_or(RunnerError::NoExecBase)? + n_used_builtins)?;
+        let return_fp = vm.segments.memory.get_relocatable(return_fp_addr)?;
+        let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?)?;
+
+        if return_fp
+            .segment_index
+            .to_usize()
+            .and_then(|u| vm.segments.get_segment_size(u))
+            .unwrap_or_default()
+            .is_zero()
+        {
+            // return_fp negative index / no size / size is zero
+            return Err(RunnerError::UnexpectedRetFpSegmentSize);
+        }
+
+        if return_pc
+            .segment_index
+            .to_usize()
+            .and_then(|u| vm.segments.get_segment_size(u))
+            .unwrap_or_default()
+            .is_zero()
+        {
+            // return_pc negative index / no size / size is zero
+            return Err(RunnerError::UnexpectedRetPcSegmentSize);
+        }
+
+        Ok(CairoPie {})
     }
 }
 

@@ -85,6 +85,10 @@ pub enum RunnerError {
     BuiltinExpectedInteger(Box<(&'static str, Relocatable)>),
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
+    #[error("Unexpected ret_fp_segment size")]
+    UnexpectedRetFpSegmentSize,
+    #[error("Unexpected ret_pc_segment size")]
+    UnexpectedRetPcSegmentSize,
 }
 
 #[cfg(test)]
