@@ -17,6 +17,8 @@ use crate::{
 };
 use felt::Felt252;
 
+pub const HINT_ERROR_STR: &str = "Got an exception while executing a hint: ";
+
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
     #[error(transparent)]
@@ -111,7 +113,7 @@ pub enum VirtualMachineError {
     InvalidArgCount(Box<(usize, usize)>),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(Box<str>),
-    #[error("Got an exception while executing a hint: {}", (*.0).1)]
+    #[error("{HINT_ERROR_STR}{}", (*.0).1)]
     Hint(Box<(usize, HintError)>),
     #[error("Unexpected Failure")]
     Unexpected,

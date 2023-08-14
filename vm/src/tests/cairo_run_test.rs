@@ -640,6 +640,13 @@ fn error_msg_attr_struct() {
     let error_msg = "Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])";
     run_program_with_error(program_data.as_slice(), error_msg);
 }
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn error_msg_attr_div_by_zero() {
+    let program_data = include_bytes!("../../../cairo_programs/bad_programs/div_by_zero.json");
+    let error_msg = "Got an exception while executing a hint: Attempted to divide by zero";
+    run_program_with_error(program_data.as_slice(), error_msg);
+}
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
