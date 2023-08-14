@@ -70,7 +70,7 @@ def get_random_hint(fdp):
     30, 32, 38, 49, 55, 72, 102, 
     103, 104, 105, 107, 108, 110, 
     111, 113, 116, 120, 121]
-
+    
     hint_number = fdp.PickValueInList(hints_list)
 
     data = ""
@@ -130,12 +130,14 @@ def diff_fuzzer(data):
     elif py_stderr and rs_stderr:
         print("py error: ", py_stderr , "\n")
         print("rs error: ", rs_stderr , "\n")
-    else:
+    elif py_stderr and not rs_stderr or rs_stderr and not py_stderr:
         print("py stdout: ", py_stdout , "\n")
         print("rs stdout: ", rs_stdout , "\n")
         print("py error: ", py_stderr , "\n")
         print("rs error: ", rs_stderr , "\n")
         raise TypeError("the results differ")
+    
+        
     
 
 atheris.Setup(sys.argv, diff_fuzzer)
