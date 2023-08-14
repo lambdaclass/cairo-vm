@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::types::program::Program;
+use crate::types::program::StrippedProgram;
 
 // Made up of (segment_index, segment_size)
 pub type SegmentInfo = (isize, usize);
@@ -9,7 +9,7 @@ pub struct CairoPie {
 }
 
 pub struct CairoPieMetadata {
-    pub program: Program,
+    pub program: StrippedProgram,
     pub program_segment: SegmentInfo,
     pub execution_segment: SegmentInfo,
     pub ret_fp_segment: SegmentInfo,

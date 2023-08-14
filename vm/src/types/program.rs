@@ -175,7 +175,7 @@ impl Program {
     // Obtains a reduced version of the program
     // Doesn't contain hints
     // Can be used for verifying execution.
-    fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
+    pub fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
         Ok(StrippedProgram {
             data: self.shared_program_data.data.clone(),
             builtins: self.builtins.clone(),
