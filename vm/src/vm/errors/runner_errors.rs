@@ -5,7 +5,7 @@ use crate::stdlib::{collections::HashSet, prelude::*};
 
 use thiserror_no_std::Error;
 
-use super::memory_errors::MemoryError;
+use super::{memory_errors::MemoryError, trace_errors::TraceError};
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use felt::Felt252;
 
@@ -99,6 +99,8 @@ pub enum RunnerError {
     RetPcOffsetNotZero,
     #[error("Can't build a StrippedProgram from a Program without main")]
     StrippedProgramNoMain,
+    #[error(transparent)]
+    Trace(#[from] TraceError),
 }
 
 #[cfg(test)]

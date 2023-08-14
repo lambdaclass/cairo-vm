@@ -1215,6 +1215,7 @@ impl CairoRunner {
         Ok(CairoPie {
             metadata,
             memory: (&vm.segments.memory).into(),
+            execution_resources: self.get_execution_resources(vm)?,
         })
     }
 }

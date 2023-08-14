@@ -2,6 +2,8 @@ use crate::types::program::StrippedProgram;
 use crate::types::relocatable::MaybeRelocatable;
 use std::collections::HashMap;
 
+use super::cairo_runner::ExecutionResources;
+
 // Made up of (segment_index, segment_size)
 pub type SegmentInfo = (isize, usize);
 
@@ -13,6 +15,7 @@ pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
+    pub execution_resources: ExecutionResources,
 }
 
 pub struct CairoPieMetadata {
