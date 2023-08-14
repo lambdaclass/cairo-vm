@@ -61,6 +61,12 @@ pub struct Program {
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
+pub struct StrippedProgram {
+    pub data: Vec<MaybeRelocatable>,
+    pub builtins: Vec<BuiltinName>,
+    pub main: usize,
+}
+
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -164,6 +170,20 @@ impl Program {
                 }
             })
             .collect()
+    }
+
+    // Obtains a reduced version of the program
+    // Doesn't contain hints
+    // Can be used for verifying execution.
+    fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
+        Ok(StrippedProgram {
+            data: self.shared_program_data.data.clone(),
+            builtins: self.builtins.clone(),
+            main: self
+                .shared_program_data
+                .main
+                .ok_or(ProgramError::StrippedProgramNoMain)?,
+        })
     }
 }
 
