@@ -13,7 +13,7 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
-    types::relocatable::Relocatable,
+    types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
@@ -438,6 +438,9 @@ pub fn uint256_mul_div_mod(
     let a = a_high.to_biguint().shl(128_usize) + a_low.to_biguint();
     let b = b_high.to_biguint().shl(128_usize) + b_low.to_biguint();
     let div = div_high.to_biguint().shl(128_usize) + div_low.to_biguint();
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let (quotient, remainder) = (a * b).div_mod_floor(&div);
 
     // ids.quotient_low.low

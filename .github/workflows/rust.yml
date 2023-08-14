@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -215,13 +215,14 @@ jobs:
     - name: Install testing tools
       uses: taiki-e/install-action@v2
       with:
-        tool: cargo-nextest,cargo-llvm-cov,wasm-pack
-    - name: Run
+        tool: cargo-nextest@0.9.49,cargo-llvm-cov,wasm-pack
+
+    - name: Run ${{ matrix.target }}
       run: |
         # FIXME: we need to update the Makefile to do this correctly
         case ${{ matrix.target }} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --features "cairo-1-hints,  test_utils" 
+          cargo nextest run --workspace --features "cairo-1-hints,  test_utils"
           ;;
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info --workspace --no-default-features
