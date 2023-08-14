@@ -97,6 +97,8 @@ pub enum RunnerError {
     RetFpOffsetNotZero,
     #[error("Expected ret_pc offset to be zero")]
     RetPcOffsetNotZero,
+    #[error("Can't build a StrippedProgram from a Program without main")]
+    StrippedProgramNoMain,
 }
 
 #[cfg(test)]

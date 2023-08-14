@@ -1,11 +1,18 @@
-use std::collections::HashMap;
-
 use crate::types::program::StrippedProgram;
+use crate::types::relocatable::MaybeRelocatable;
+use std::collections::HashMap;
 
 // Made up of (segment_index, segment_size)
 pub type SegmentInfo = (isize, usize);
+
+// A simplified version of Memory, without any additional data besides its elements
+// Contains all addr-value pairs, ordered by index and offset
+// Allows practical serialization + conversion between CairoPieMemory & Memory
+// This conversion will remove all data besides the elements themselves
+pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
+    pub memory: CairoPieMemory,
 }
 
 pub struct CairoPieMetadata {

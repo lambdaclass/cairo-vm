@@ -1200,7 +1200,10 @@ impl CairoRunner {
 
         let execution_size = (vm.get_ap() - execution_base)?;
         let metadata = CairoPieMetadata {
-            program: self.get_program().get_stripped_program()?,
+            program: self
+                .get_program()
+                .get_stripped_program()
+                .map_err(|_| RunnerError::StrippedProgramNoMain)?,
             program_segment: (program_base.segment_index, self.program.data_len()),
             execution_segment: (execution_base.segment_index, execution_size),
             ret_fp_segment: (return_fp.segment_index, 0),
@@ -1209,7 +1212,10 @@ impl CairoRunner {
             extra_segments,
         };
 
-        Ok(CairoPie { metadata })
+        Ok(CairoPie {
+            metadata,
+            memory: (&vm.segments.memory).into(),
+        })
     }
 }
 
