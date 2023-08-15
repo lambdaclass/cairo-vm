@@ -1,5 +1,5 @@
 use crate::types::program::StrippedProgram;
-use crate::types::relocatable::MaybeRelocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use std::collections::HashMap;
 
 use super::cairo_runner::ExecutionResources;
@@ -12,6 +12,20 @@ pub type SegmentInfo = (isize, usize);
 // Allows practical serialization + conversion between CairoPieMemory & Memory
 // This conversion will remove all data besides the elements themselves
 pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
+
+pub struct PublicMemoryPage {
+    start: usize,
+    size: usize,
+}
+
+// Hashmap value based on starknet/core/os/output.cairo usage
+pub type Attributes = HashMap<String, Vec<usize>>;
+pub type Pages = HashMap<usize, PublicMemoryPage>;
+pub struct BuiltinAdditionalInfo {
+    pages: Option<Pages>,
+    attributes: Option<Attributes>,
+    addresses: Option<Vec<Relocatable>>,
+}
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
