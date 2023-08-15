@@ -213,8 +213,6 @@ def generate_cairo_hint_program(hint_code):
     code block that was passed as parameter
     """
     declare_in_main, declare_in_hint_fn = classify_variables(hint_code)
-    print(declare_in_main, declare_in_hint_fn)
-    exit()
 
     all_types = (declare_in_main | declare_in_hint_fn).values()
 
