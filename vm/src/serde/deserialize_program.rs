@@ -19,7 +19,7 @@ use crate::{
     types::{
         errors::program_errors::ProgramError,
         instruction::Register,
-        program::{Program, SharedProgramData},
+        program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
     vm::runners::builtin_runner::{
@@ -483,7 +483,7 @@ pub fn parse_program_json(
         }
     }
 
-    let hints_collection = Program::flatten_hints(&program_json.hints, program_json.data.len())?;
+    let hints_collection = HintsCollection::new(&program_json.hints, program_json.data.len())?;
 
     let shared_program_data = SharedProgramData {
         data: program_json.data,

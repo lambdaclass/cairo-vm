@@ -246,7 +246,7 @@ pub mod test_utils {
     }
     pub(crate) use cairo_runner;
 
-    pub(crate) use crate::stdlib::sync::Arc;
+    pub(crate) use crate::stdlib::{collections::BTreeMap, sync::Arc};
     pub(crate) use crate::types::program::HintsCollection;
     pub(crate) use crate::types::program::Program;
     pub(crate) use crate::types::program::SharedProgramData;
@@ -259,7 +259,7 @@ pub mod test_utils {
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
                 data: crate::stdlib::vec::Vec::new(),
-                hints_collection: HintsCollection::new(HashMap::new(), 0).unwrap(),
+                hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
                 main: None,
                 start: None,
                 end: None,
@@ -345,7 +345,7 @@ pub mod test_utils {
         fn from(val: ProgramFlat) -> Self {
             // NOTE: panics if hints have PCs higher than the program length
             let hints_collection =
-                Program::flatten_hints(&val.hints, val.data.len()).expect("hints are valid");
+                HintsCollection::new(&val.hints, val.data.len()).expect("hints are valid");
             Program {
                 shared_program_data: Arc::new(SharedProgramData {
                     data: val.data,
@@ -925,7 +925,7 @@ mod test {
     fn program_macro() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints_collection: HintsCollection::new(HashMap::new(), 0).unwrap(),
+            hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
             main: None,
             start: None,
             end: None,
@@ -949,7 +949,7 @@ mod test {
     fn program_macro_with_builtin() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints_collection: HintsCollection::new(HashMap::new(), 0).unwrap(),
+            hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
             main: None,
             start: None,
             end: None,
@@ -974,7 +974,7 @@ mod test {
     fn program_macro_custom_definition() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints_collection: HintsCollection::new(HashMap::new(), 0).unwrap(),
+            hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
             main: Some(2),
             start: None,
             end: None,

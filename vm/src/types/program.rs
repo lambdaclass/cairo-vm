@@ -104,7 +104,7 @@ pub(crate) struct HintsCollection {
 
 impl HintsCollection {
     pub(crate) fn new(
-        hints: HashMap<usize, Vec<HintParams>>,
+        hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
     ) -> Result<Self, ProgramError> {
         let bounds = hints
@@ -148,23 +148,6 @@ impl HintsCollection {
     pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
         self.hints_ranges.get(pc).cloned()
     }
-
-    #[allow(dead_code)]
-    pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
-        self.hints_ranges
-            .iter()
-            .enumerate()
-            .filter_map(|(pc, range)| {
-                range.and_then(|(start, len)| {
-                    let end = start + len.get();
-                    if end <= self.hints.len() {
-                        Some((pc, &self.hints[start..end]))
-                    } else {
-                        None
-                    }
-                })
-            })
-    }
 }
 
 /// Represents a range of hints corresponding to a PC.
@@ -204,7 +187,7 @@ impl Program {
         }
         let hints: BTreeMap<_, _> = hints.into_iter().collect();
 
-        let hints_collection = Self::flatten_hints(&hints, data.len())?;
+        let hints_collection = HintsCollection::new(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
             data,
@@ -222,14 +205,6 @@ impl Program {
             constants,
             builtins,
         })
-    }
-
-    pub(crate) fn flatten_hints(
-        hints: &BTreeMap<usize, Vec<HintParams>>,
-        program_length: usize,
-    ) -> Result<HintsCollection, ProgramError> {
-        let hints_map: HashMap<usize, Vec<HintParams>> = hints.clone().into_iter().collect();
-        HintsCollection::new(hints_map, program_length)
     }
 
     #[cfg(feature = "std")]
@@ -351,6 +326,25 @@ impl TryFrom<CasmContractClass> for Program {
             error_message_attributes,
             None,
         )
+    }
+}
+
+#[cfg(test)]
+impl HintsCollection {
+    pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
+        self.hints_ranges
+            .iter()
+            .enumerate()
+            .filter_map(|(pc, range)| {
+                range.and_then(|(start, len)| {
+                    let end = start + len.get();
+                    if end <= self.hints.len() {
+                        Some((pc, &self.hints[start..end]))
+                    } else {
+                        None
+                    }
+                })
+            })
     }
 }
 
