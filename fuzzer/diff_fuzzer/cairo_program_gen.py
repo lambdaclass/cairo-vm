@@ -29,6 +29,7 @@ LEFT = "left"
 RIGHT = "right"
 OTHER_EX_TYPE = "other"
 PACK_PARAM_EX = "var_in_pack"
+FUNC_PARAM_EX = "var_in_func"
 CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
 REPLACEABLE_TOKEN = "__TOKEN_TO_REPLACE__"
 
@@ -44,9 +45,9 @@ def get_expr_type(line):
     else:
         return OTHER_EX_TYPE
 
-def process_line(line):
+def process_line(line, functions):
     """
-    process_line(String) -> [ [EX_TYPE_CONST, ..., EX_TYPE_CONST, [String]] ]
+    process_line(String, {String, {String}}]) -> [ [EX_TYPE_CONST, ..., EX_TYPE_CONST, [String]] ]
     Return the expression type of the line, adding relevant information if the an assignment was made or if the
     variable in the line is inside a `pack(var, PRIME)` function. Return the variable as [name, fields...]
     """
@@ -55,17 +56,53 @@ def process_line(line):
         variables = [ clean_trailing(v) for v in line.split() if "ids." in v ]
         return [
             [ASSIGN_EX_TYPE, LEFT if line.find(v) < equals_pos else RIGHT] + \
-            ([PACK_PARAM_EX] if var_in_pack(line, v) else []) + \
+            get_function_ex(line, v, functions) + \
             [v[v.find("ids.") + 4:].split(".")] \
             for v in variables 
         ]
     else:
         return [
             [OTHER_EX_TYPE] + \
-            ([PACK_PARAM_EX] if var_in_pack(line, v) else []) + \
+            get_function_ex(line, v, functions) + \
             [clean_trailing(v)[v.find("ids.") + 4:].split(".")] 
             for v in line.split() if "ids." in v 
         ]
+
+def get_function_ex(line, variable, functions):
+    """
+    get_function_ex(String, String, {String, {String}}) -> [ EX_TYPE_CONST ]
+    """
+    if "pack" not in functions.keys():
+        if var_in_func(line, variable, "pack"):
+            return [PACK_PARAM_EX]
+    for func_name in functions.keys():
+        if var_in_func(line, variable, func_name):
+            return [FUNC_PARAM_EX, functions[func_name]]
+    return []
+
+def process_func(function):
+    """
+    process_func(String) -> (String, {String})
+    Get a function block and transform it into a tuple: (function name, fields of variable in block)
+    The current implementation is tied to the following type of function:
+        def pack(z, num: int)
+                 ^ Value with fields
+    """
+    signature = function[0]
+    after_def_pos = signature.find("def ") + 4
+    function_name = signature[after_def_pos: signature.find("(", after_def_pos)].strip()
+    # Get the first variable name inside the function signature
+    variable = signature[signature.find("(") + 1:signature.find(")")].split(",")[0].strip()
+    body = (line for line in function[1:] if variable in line)
+    fields = set()
+    for line in body:
+        for token in line.split():
+            if variable + "." in token:
+                field = clean_trailing(token[(token.find(variable + ".") + len(variable + ".")):])
+                fields.add(field)
+    
+    return (function_name, frozenset(fields))
+
          
 def clean_trailing(var):
     """
@@ -77,20 +114,46 @@ def clean_trailing(var):
         i += 1
     return var[:len(var) - i + 1]
 
-def var_in_pack(line, var):
+def var_in_func(line, var, func_name):
     """
-    var_in_pack(String, String) -> bool
-    Check if a variable is inside a pack(variable, PRIME) call.
+    var_in_func(String, String, String) -> bool
+    Check if a variable is inside a function call.
     This function expects a stripped variable, without the `ids.` prefix.
-    Also, the current implemenation doesn't deal with parenthesis inside the `pack` call
+    Also, the current implemenation doesn't deal with parenthesis inside the function call
     """
-    if "pack(" not in line:
+    if func_name not in line:
         return False
-    # Assuming there is no inner parenthesis in pack(...)
-    pack_start = line.find("pack(")
-    pack_end = line.find(")", pack_start)
-    return var in line[pack_start:pack_end]
-     
+    # Assuming there is no inner parenthesis in func(...)
+    func_start = line.find(func_name)
+    func_end = line.find(")", func_start)
+    func_call = line[func_start:func_end]
+    return var in func_call 
+
+def variables_with_context(hint_lines):
+    functions = {}
+    variables = []
+    total_lines = len(hint_lines)
+    line_num = 0
+    line = lambda: hint_lines[line_num]
+    indentation = lambda: len(hint_lines[line_num]) - len(hint_lines[line_num].lstrip())
+
+    while line_num < total_lines:
+        if "def" in line():
+            signature_body = [line()]
+            line_num += 1
+            body_indent = current_indent = indentation()
+            while current_indent >= body_indent:
+                signature_body.append(line())
+                line_num += 1
+                current_indent = indentation()
+            functions.update([process_func(signature_body)])
+        if "ids." in line():
+            variables += process_line(line(), functions)
+        line_num += 1
+        
+    return variables
+
+
 def classify_variables(hint_code):
     """
     classify_varables(String) -> (Dict<String, set>, Dict<String, set>)
@@ -106,10 +169,7 @@ def classify_variables(hint_code):
     # Get all lines with the `ids.` identifier and then dump them into an array of expressions (other or assign)
     # Doesn't consider lines with a comment on them
     # expressions: [ [EX_TYPE_CONSTs..., [String]], ... ]
-    expressions = []
-    for line in hint_code.split("\n"):
-        if "ids." in line and "#" not in line:
-            expressions += process_line(line)
+    expressions = variables_with_context([line for line in hint_code.split("\n") if "#" not in line])
 
     # Create a var_name: { set of fields or cairo type } pair to insert in one of the output dictionaries
     for expr in expressions:
@@ -123,6 +183,9 @@ def classify_variables(hint_code):
                 variable_type = {"EcPoint"}
             else:
                 variable_type = {"BigInt3"}
+
+        if FUNC_PARAM_EX in expression_type:
+            variable_type = expression_type[expression_type.index(FUNC_PARAM_EX) + 1]
 
         dict_to_insert = declare_in_main
         if ASSIGN_EX_TYPE in expression_type:
