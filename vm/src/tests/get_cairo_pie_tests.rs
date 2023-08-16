@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
+use felt::felt_str;
+
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::runners::{
-        builtin_runner::{HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME},
+        builtin_runner::{HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME},
         cairo_pie::{
             BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
         },
         cairo_runner::ExecutionResources,
-    },
+    }, types::relocatable::Relocatable
 };
 
 #[test]
@@ -82,7 +84,7 @@ fn pedersen_test() {
         ),
         (
             HASH_BUILTIN_NAME.to_string(),
-            BuiltinAdditionalData::Hash(vec![3, 2]),
+            BuiltinAdditionalData::Hash(vec![Relocatable::from((3, 2))]),
         ),
         (
             RANGE_CHECK_BUILTIN_NAME.to_string(),

@@ -44,7 +44,7 @@ pub struct OutputBuiltinAdditionalData {
 #[derive(PartialEq, Clone, Debug)]
 pub enum BuiltinAdditionalData {
     // Contains verified addresses as contiguous index, value pairs
-    Hash(Vec<usize>),
+    Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
