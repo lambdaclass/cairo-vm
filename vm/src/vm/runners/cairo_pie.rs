@@ -31,7 +31,7 @@ pub struct OutputBuiltinAdditionalData {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum BuiltinAdditionalData {
-    // Contains verified addresses' offsets
+    // Contains verified addresses as contiguous index, value pairs
     Hash(Vec<usize>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
