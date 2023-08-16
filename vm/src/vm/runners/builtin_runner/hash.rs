@@ -5,6 +5,7 @@ use crate::types::instance_definitions::pedersen_instance_def::{
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::runners::cairo_pie::BuiltinAdditionalInfo;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
@@ -176,6 +177,19 @@ impl HashBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
+    }
+
+    pub fn get_additional_info(&self) -> BuiltinAdditionalInfo {
+        let mut verified_addresses = Vec::new();
+        for (offset, is_verified) in self.verified_addresses.borrow().iter().enumerate() {
+            if *is_verified {
+                verified_addresses.push(Relocatable {
+                    segment_index: self.base as isize,
+                    offset,
+                })
+            }
+        }
+        BuiltinAdditionalInfo::Hash(verified_addresses)
     }
 }
 
