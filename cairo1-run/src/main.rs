@@ -17,7 +17,47 @@ use cairo_vm::{
     },
 };
 use itertools::chain;
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, io};
+use bincode::enc::write::Writer;
+use std::io::Write;
+use cairo_vm::cairo_run;
+use std::io::BufWriter;
+
+
+
+pub struct FileWriter {
+    buf_writer: io::BufWriter<std::fs::File>,
+    bytes_written: usize,
+}
+
+impl Writer for FileWriter {
+    fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
+        self.buf_writer
+            .write_all(bytes)
+            .map_err(|e| bincode::error::EncodeError::Io {
+                inner: e,
+                index: self.bytes_written,
+            })?;
+
+        self.bytes_written += bytes.len();
+
+        Ok(())
+    }
+}
+
+impl FileWriter {
+    fn new(buf_writer: io::BufWriter<std::fs::File>) -> Self {
+        Self {
+            buf_writer,
+            bytes_written: 0,
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.buf_writer.flush()
+    }
+}
+
 
 fn main() {
     // The sierra program can be read directly from a file:
@@ -119,6 +159,23 @@ fn main() {
 
     runner.relocate(&mut vm, true).unwrap();
 
+    let relocated_trace = vm.get_relocated_trace().unwrap();
+
+    let trace_path = "test.trace";
+    let trace_file = std::fs::File::create(trace_path).unwrap();
+    let mut trace_writer =
+        FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+
+    cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer).unwrap();
+    trace_writer.flush().unwrap();
+
+    let memory_path = "test.memory";
+    let memory_file = std::fs::File::create(memory_path).unwrap();
+    let mut memory_writer =
+        FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
+
+    cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer).unwrap();
+    memory_writer.flush().unwrap();
     println!();
     println!("Cairo1 program ran successfully");
 }
