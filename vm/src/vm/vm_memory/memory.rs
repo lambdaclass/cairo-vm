@@ -1627,4 +1627,18 @@ mod memory_tests {
         check_memcmp((-2, 0), (-3, 5), 8, Greater, 0);
         check_memcmp((-3, 5), (-2, 0), 8, Less, 0);
     }
+
+    #[test]
+    fn cairo_pie_memory_from_memory() {
+        let memory = memory![((8, 9), 3), ((1, 2), 5), ((7, 6), (1, 2))];
+
+        assert_eq!(
+            CairoPieMemory::from(&memory),
+            vec![
+                ((1, 2), MaybeRelocatable::from(5)),
+                ((7, 6), MaybeRelocatable::from((1, 2))),
+                ((8, 9), MaybeRelocatable::from(3))
+            ]
+        )
+    }
 }
