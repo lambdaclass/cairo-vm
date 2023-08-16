@@ -31,7 +31,7 @@ pub struct PublicMemoryPage {
     pub size: usize,
 }
 
-// Hashmap value based on starknet/core/os/output.cairo usage
+// HashMap value based on starknet/core/os/output.cairo usage
 pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
 

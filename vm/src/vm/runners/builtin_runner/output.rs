@@ -438,4 +438,10 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![0]);
         builtin.add_validation_rule(&mut vm.segments.memory);
     }
+
+    #[test]
+    fn get_additional_info_no_pages_no_attributes() {
+        let builtin = OutputBuiltinRunner::new(true);
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Output(OutputBuiltinAdditionalData { pages: HashMap::default(), attributes: HashMap::default() }))
+    }
 }

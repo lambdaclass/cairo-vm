@@ -536,4 +536,12 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
+
+    #[test]
+    fn get_additional_info() {
+        let mut builtin = HashBuiltinRunner::new(Some(1), true);
+        let verified_addresses = vec![Relocatable::from((3,3)), Relocatable::from((3, 6))];
+        builtin.verified_addresses = RefCell::new(vec![false, false, false, true, false, false, true]);
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Hash(verified_addresses))
+    }
 }

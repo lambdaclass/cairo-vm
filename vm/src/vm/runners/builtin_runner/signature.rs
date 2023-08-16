@@ -250,6 +250,7 @@ mod tests {
         },
     };
 
+    use felt::felt_str;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -582,5 +583,14 @@ mod tests {
             builtin.final_stack(&vm.segments, (0, 1).into()),
             Err(RunnerError::Memory(MemoryError::MissingSegmentUsedSizes))
         )
+    }
+
+    #[test]
+    fn get_additional_info() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let signatures = HashMap::from([(Relocatable::from((4,0)), Signature { r: FieldElement::from_dec_str("45678").unwrap(), s: FieldElement::from_dec_str("1239").unwrap()})]);
+        builtin.signatures = Rc::new(RefCell::new(signatures));
+        let signatures = HashMap::from([(Relocatable::from((4,0)), (felt_str!("45678"), felt_str!("1239")))]);
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Signature(signatures))
     }
 }
