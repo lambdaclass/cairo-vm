@@ -177,3 +177,62 @@ fn common_signature() {
         Into::<CairoPieMemory>::into(&vm.segments.memory)
     );
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn relocate_segments() {
+    // Run the program
+    let program_content = include_bytes!("../../../cairo_programs/relocate_segments.json");
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let result = cairo_run(
+        program_content,
+        &CairoRunConfig {
+            layout: "all_cairo",
+            ..Default::default()
+        },
+        &mut hint_processor,
+    );
+    assert!(result.is_ok());
+    let (runner, vm) = result.unwrap();
+    // Obtain the pie
+    let result = runner.get_cairo_pie(&vm);
+    assert!(result.is_ok());
+    let cairo_pie = result.unwrap();
+    // Check pie values
+    // CairoPieMedatada
+    let pie_metadata = cairo_pie.metadata;
+    // ret_pc_segment
+    assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((3, 0)));
+    // builtin_segments
+    assert!(pie_metadata.builtin_segments.is_empty());
+    // program_segment
+    assert_eq!(pie_metadata.program_segment, SegmentInfo::from((0, 32)));
+    // ret_fp_segment
+    assert_eq!(pie_metadata.ret_fp_segment, SegmentInfo::from((2, 0)));
+    //program
+    assert_eq!(pie_metadata.program.main, 5);
+    assert!(pie_metadata.program.builtins.is_empty());
+    assert_eq!(
+        pie_metadata.program.data,
+        runner.program.shared_program_data.data
+    );
+    // execution_segment
+    assert_eq!(pie_metadata.execution_segment, SegmentInfo::from((1, 16)));
+    // extra_segments
+    assert_eq!(pie_metadata.extra_segments, vec![SegmentInfo::from((4, 3))]);
+
+    // execution_resources
+    let expected_execution_resources = ExecutionResources {
+        n_steps: 22,
+        n_memory_holes: 0,
+        builtin_instance_counter: HashMap::default(),
+    };
+    assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
+    // additional_data
+    assert!(cairo_pie.additional_data.is_empty());
+    // memory
+    assert_eq!(
+        cairo_pie.memory,
+        Into::<CairoPieMemory>::into(&vm.segments.memory)
+    );
+}
