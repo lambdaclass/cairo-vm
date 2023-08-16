@@ -183,10 +183,7 @@ impl HashBuiltinRunner {
         let mut verified_addresses = Vec::new();
         for (offset, is_verified) in self.verified_addresses.borrow().iter().enumerate() {
             if *is_verified {
-                verified_addresses.push(Relocatable {
-                    segment_index: self.base as isize,
-                    offset,
-                })
+                verified_addresses.push(offset)
             }
         }
         BuiltinAdditionalData::Hash(verified_addresses)

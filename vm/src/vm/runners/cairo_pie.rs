@@ -23,13 +23,16 @@ pub struct PublicMemoryPage {
 pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct OutputBuiltinAdditionalData {
     pub pages: Pages,
     pub attributes: Attributes,
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub enum BuiltinAdditionalData {
-    Hash(Vec<Relocatable>),
+    // Contains verified addresses' offsets
+    Hash(Vec<usize>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
