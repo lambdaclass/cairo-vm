@@ -138,7 +138,7 @@ impl SignatureBuiltinRunner {
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
-                        signature.to_string(),
+                        format!("({}, {})", signature.r, signature.s),
                         pubkey.into_owned(),
                         msg.into_owned(),
                     )))),
@@ -210,8 +210,7 @@ impl SignatureBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
     }

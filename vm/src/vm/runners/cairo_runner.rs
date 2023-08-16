@@ -1,4 +1,5 @@
 use crate::{
+    air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -510,29 +511,26 @@ impl CairoRunner {
     }
 
     /// Gets the data used by the HintProcessor to execute each hint
-    pub fn get_hint_data_dictionary(
+    pub fn get_hint_data(
         &self,
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
-    ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
-        let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
-        for (hint_index, hints) in self.program.shared_program_data.hints.iter() {
-            for hint in hints {
-                let hint_data = hint_executor.compile_hint(
-                    &hint.code,
-                    &hint.flow_tracking_data.ap_tracking,
-                    &hint.flow_tracking_data.reference_ids,
-                    references,
-                );
-                hint_data_dictionary
-                    .entry(*hint_index)
-                    .or_default()
-                    .push(hint_data.map_err(|_| {
-                        VirtualMachineError::CompileHintFail(hint.code.clone().into_boxed_str())
-                    })?);
-            }
-        }
-        Ok(hint_data_dictionary)
+    ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
+        self.program
+            .shared_program_data
+            .hints
+            .iter()
+            .map(|hint| {
+                hint_executor
+                    .compile_hint(
+                        &hint.code,
+                        &hint.flow_tracking_data.ap_tracking,
+                        &hint.flow_tracking_data.reference_ids,
+                        references,
+                    )
+                    .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+            })
+            .collect()
     }
 
     pub fn get_constants(&self) -> &HashMap<String, Felt252> {
@@ -550,16 +548,21 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
-
+        let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "hooks")]
-        vm.execute_before_first_step(self, &hint_data_dictionary)?;
-
+        vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
+            let hint_data = self
+                .program
+                .shared_program_data
+                .hints_ranges
+                .get(vm.run_context.pc.offset)
+                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                &hint_data_dictionary,
+                hint_data,
                 &self.program.constants,
             )?;
             hint_processor.consume_step();
@@ -580,17 +583,24 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
+        let hint_data = self.get_hint_data(references, hint_processor)?;
 
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
+            let hint_data = self
+                .program
+                .shared_program_data
+                .hints_ranges
+                .get(vm.run_context.pc.offset)
+                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                &hint_data_dictionary,
+                hint_data,
                 &self.program.constants,
             )?;
         }
@@ -791,12 +801,16 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
+
         if relocate_mem {
             if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        vm.relocate_trace(&relocation_table)
+
+        vm.relocate_trace(&relocation_table)?;
+        vm.relocation_table = Some(relocation_table);
+        Ok(())
     }
 
     // Returns a map from builtin base's segment index to stop_ptr offset
@@ -1228,6 +1242,33 @@ impl CairoRunner {
                 .map(|b| (b.name().to_string(), b.get_additional_data()))
                 .collect(),
         })
+    }
+
+    /// Return CairoRunner.layout
+    fn get_layout(&self) -> &CairoLayout {
+        &self.layout
+    }
+
+    pub fn get_air_public_input(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<PublicInput, PublicInputError> {
+        let layout_name = self.get_layout()._name.as_str();
+        let dyn_layout = match layout_name {
+            "dynamic" => Some(self.get_layout()),
+            _ => None,
+        };
+
+        PublicInput::new(
+            &self.relocated_memory,
+            layout_name,
+            dyn_layout,
+            &vm.get_public_memory_addresses()?,
+            vm.get_memory_segment_addresses()?,
+            vm.get_relocated_trace()?,
+            self.get_perm_range_check_limits(vm)
+                .ok_or(PublicInputError::NoRangeCheckLimits)?,
+        )
     }
 }
 
@@ -3144,6 +3185,18 @@ mod tests {
         assert_matches!(
             cairo_runner.run_for_steps(8, &mut vm, &mut hint_processor),
             Err(VirtualMachineError::EndOfProgram(x)) if x == 8 - 2
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(&program);
+        let mut vm = vm!(true);
+        assert_matches!(
+            cairo_runner.initialize(&mut vm),
+            Err(RunnerError::MissingMain)
         );
     }
 

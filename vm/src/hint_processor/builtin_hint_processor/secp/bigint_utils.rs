@@ -237,6 +237,7 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
 
     use assert_matches::assert_matches;
+    use felt::felt_str;
     use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
@@ -474,5 +475,31 @@ mod tests {
         assert!(run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()).is_ok());
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 6), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn u384_pack86() {
+        let pack_1 = Uint384 {
+            d0: Cow::Borrowed(&Felt252::new(10_i32)),
+            d1: Cow::Borrowed(&Felt252::new(10_i32)),
+            d2: Cow::Borrowed(&Felt252::new(10_i32)),
+        }
+        .pack86();
+        assert_eq!(
+            pack_1,
+            bigint_str!("59863107065073783529622931521771477038469668772249610")
+        );
+
+        let pack_2 = Uint384 {
+            d0: Cow::Borrowed(&felt_str!("773712524553362")),
+            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
+            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
+        }
+        .pack86();
+        assert_eq!(
+            pack_2,
+            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
+        );
     }
 }

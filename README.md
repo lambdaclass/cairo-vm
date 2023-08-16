@@ -27,7 +27,8 @@ A faster and safer implementation of the Cairo VM in Rust
 - [Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
 - [Usage](#-usage)
-  - [Running cairo-vm](#running-cairo-vm)
+  - [Adding cairo-vm as a dependency](#adding-cairo-vm-as-a-dependency)
+  - [Running cairo-vm from the CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
@@ -67,17 +68,23 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 ### Dependencies
 
-**Required**
+#### Required
 
-- [Rust 1.66.1](https://www.rust-lang.org/tools/install)
+These are needed in order to compile and use the project.
+
+- [Rust 1.69.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
-**Optional**
+#### Optional
 
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 
-- PyEnv with Python 3.9
-- cairo-lang
+- make
+- PyEnv
+
+#### Installation script
+
+You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
 
 ## 🚀 Usage
 
@@ -190,8 +197,7 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 
 ### WebAssembly Demo
 
-A demo on how to use `cairo-vm` with WebAssembly can be found
-[here](https://github.com/lambdaclass/cairo-rs-wasm).
+A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/)
 
 ### Testing
 

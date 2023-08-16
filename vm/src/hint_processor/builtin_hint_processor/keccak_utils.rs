@@ -82,7 +82,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.is_negative() || word.as_ref() >= &(Felt252::one() << (8 * (n_bytes as u32))) {
+        if word.is_negative() || word.bits() > 8 * n_bytes {
             return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
         }
 
@@ -232,10 +232,9 @@ pub fn split_n_bytes(
 ) -> Result<(), HintError> {
     let n_bytes =
         get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
-            x.to_u64()
-                .ok_or(HintError::Math(MathError::Felt252ToU64Conversion(
-                    Box::new(x.into_owned()),
-                )))
+            x.to_u64().ok_or_else(|| {
+                HintError::Math(MathError::Felt252ToU64Conversion(Box::new(x.into_owned())))
+            })
         })?;
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)

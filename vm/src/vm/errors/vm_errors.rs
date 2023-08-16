@@ -17,6 +17,8 @@ use crate::{
 };
 use felt::Felt252;
 
+pub const HINT_ERROR_STR: &str = "Got an exception while executing a hint: ";
+
 #[derive(Debug, Error)]
 pub enum VirtualMachineError {
     #[error(transparent)]
@@ -53,7 +55,7 @@ pub enum VirtualMachineError {
     UnconstrainedResJumpRel,
     #[error("Res.UNCONSTRAINED cannot be used with Opcode.ASSERT_EQ")]
     UnconstrainedResAssertEq,
-    #[error("An integer value as Res cannot be used with PcUpdate.JUMP_REL")]
+    #[error("A relocatable value as Res cannot be used with PcUpdate.JUMP_REL")]
     JumpRelNotInt,
     #[error(
         "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
@@ -111,7 +113,7 @@ pub enum VirtualMachineError {
     InvalidArgCount(Box<(usize, usize)>),
     #[error("Couldn't parse prime: {0}")]
     CouldntParsePrime(Box<str>),
-    #[error("Got an exception while executing a hint: {}", (*.0).1)]
+    #[error("{HINT_ERROR_STR}{}", (*.0).1)]
     Hint(Box<(usize, HintError)>),
     #[error("Unexpected Failure")]
     Unexpected,
@@ -125,6 +127,8 @@ pub enum VirtualMachineError {
     MissingAccessedAddresses,
     #[error("Failed to write the output builtin content")]
     FailedToWriteOutput,
+    #[error("Failed to find index {0} in the vm's relocation table")]
+    RelocationNotFound(usize),
 }
 
 #[cfg(test)]

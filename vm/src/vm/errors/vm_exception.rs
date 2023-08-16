@@ -649,7 +649,7 @@ mod test {
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
-        #[cfg(all(feature = "std"))]
+        #[cfg(feature = "std")]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
         #[cfg(not(feature = "std"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
