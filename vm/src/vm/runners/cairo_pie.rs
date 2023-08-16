@@ -1,9 +1,8 @@
+use super::cairo_runner::ExecutionResources;
 use crate::felt::Felt252;
+use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::program::StrippedProgram;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::with_std::{collections::HashMap, prelude::*};
-
-use super::cairo_runner::ExecutionResources;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SegmentInfo {
