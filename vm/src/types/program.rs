@@ -909,4 +909,17 @@ mod tests {
 
         assert_eq!(program, Program::default());
     }
+
+    #[test]
+    fn get_stripped_program() {
+        let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        let stripped_program = program.get_stripped_program().unwrap();
+        assert_eq!(stripped_program.builtins, program.builtins);
+        assert_eq!(stripped_program.data, program.shared_program_data.data);
+        assert_eq!(
+            stripped_program.main,
+            program.shared_program_data.main.unwrap()
+        );
+    }
 }
