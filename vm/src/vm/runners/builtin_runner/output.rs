@@ -111,8 +111,8 @@ impl OutputBuiltinRunner {
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-            pages: Some(HashMap::default()),
-            attributes: Some(HashMap::default()),
+            pages: HashMap::default(),
+            attributes: HashMap::default(),
         })
     }
 }

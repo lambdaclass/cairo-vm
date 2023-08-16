@@ -476,9 +476,9 @@ impl BuiltinRunner {
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         match self {
-            &BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
-            &BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
-            &BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
             _ => BuiltinAdditionalData::None,
         }
     }

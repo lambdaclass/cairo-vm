@@ -15,8 +15,8 @@ pub type SegmentInfo = (isize, usize);
 pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
 
 pub struct PublicMemoryPage {
-    start: usize,
-    size: usize,
+    pub start: usize,
+    pub size: usize,
 }
 
 // Hashmap value based on starknet/core/os/output.cairo usage
@@ -24,8 +24,8 @@ pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
 
 pub struct OutputBuiltinAdditionalData {
-    pages: Option<Pages>,
-    attributes: Option<Attributes>,
+    pub pages: Pages,
+    pub attributes: Attributes,
 }
 pub enum BuiltinAdditionalData {
     Hash(Vec<Relocatable>),
