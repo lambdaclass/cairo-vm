@@ -311,7 +311,8 @@ pub mod test_utils {
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
                 data: crate::stdlib::vec::Vec::new(),
-                hints: crate::stdlib::collections::HashMap::new(),
+                hints: crate::stdlib::vec::Vec::new(),
+                hints_ranges: crate::stdlib::vec::Vec::new(),
                 main: None,
                 start: None,
                 end: None,
@@ -345,7 +346,7 @@ pub mod test_utils {
 
     pub(crate) struct ProgramFlat {
         pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
-        pub(crate) hints: crate::stdlib::collections::HashMap<
+        pub(crate) hints: crate::stdlib::collections::BTreeMap<
             usize,
             crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
         >,
@@ -393,10 +394,14 @@ pub mod test_utils {
 
     impl From<ProgramFlat> for Program {
         fn from(val: ProgramFlat) -> Self {
+            // NOTE: panics if hints have PCs higher than the program length
+            let (hints, hints_ranges) =
+                Program::flatten_hints(&val.hints, val.data.len()).expect("hints are valid");
             Program {
                 shared_program_data: Arc::new(SharedProgramData {
                     data: val.data,
-                    hints: val.hints,
+                    hints,
+                    hints_ranges,
                     main: val.main,
                     start: val.start,
                     end: val.end,
@@ -967,7 +972,8 @@ mod test {
     fn program_macro() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: None,
             start: None,
             end: None,
@@ -991,7 +997,8 @@ mod test {
     fn program_macro_with_builtin() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: None,
             start: None,
             end: None,
@@ -1016,7 +1023,8 @@ mod test {
     fn program_macro_custom_definition() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: Some(2),
             start: None,
             end: None,

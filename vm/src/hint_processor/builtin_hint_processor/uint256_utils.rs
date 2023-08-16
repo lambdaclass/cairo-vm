@@ -15,12 +15,12 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
-    types::relocatable::Relocatable,
+    types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
-use num_traits::One;
+use num_traits::{One, Zero};
 
 // TODO: use this type in all uint256 functions
 pub(crate) struct Uint256<'a> {
@@ -433,11 +433,13 @@ pub fn uint256_mul_div_mod(
     let div_high = div_high.as_ref();
 
     // Main Logic
-    let a = a_high.shl(128_usize) + a_low;
-    let b = b_high.shl(128_usize) + b_low;
-    let div = div_high.shl(128_usize) + div_low;
-    let (quotient, remainder) =
-        (felt_to_biguint(a) * felt_to_biguint(b)).div_mod_floor(&felt_to_biguint(div));
+    let a = felt_to_biguint(*a_high).shl(128_usize) + felt_to_biguint(*a_low);
+    let b = felt_to_biguint(*b_high).shl(128_usize) + felt_to_biguint(*b_low);
+    let div = felt_to_biguint(*div_high).shl(128_usize) + felt_to_biguint(*div_low);
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
+    let (quotient, remainder) = (a * b).div_mod_floor(&div);
 
     // ids.quotient_low.low
     vm.insert_value(

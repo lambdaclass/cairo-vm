@@ -335,7 +335,7 @@ fn dict_update() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn uint256() {
     let program_data = include_bytes!("../../../cairo_programs/uint256.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 3534);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 3554);
 }
 
 #[test]
@@ -638,6 +638,13 @@ fn error_msg_attr_struct() {
     let program_data =
         include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_struct.json");
     let error_msg = "Error message: Cats cannot have more than nine lives: {cat} (Cannot evaluate ap-based or complex references: ['cat'])";
+    run_program_with_error(program_data.as_slice(), error_msg);
+}
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn error_msg_attr_div_by_zero() {
+    let program_data = include_bytes!("../../../cairo_programs/bad_programs/div_by_zero.json");
+    let error_msg = "Got an exception while executing a hint: Attempted to divide by zero";
     run_program_with_error(program_data.as_slice(), error_msg);
 }
 
@@ -981,4 +988,14 @@ fn cairo_run_overflowing_dict() {
     let program_data =
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
     run_program_with_error(program_data, "Unknown memory cell at address");
+}
+
+#[test]
+fn cairo_run_big_hint_pcs() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/manually_compiled/invalid_hint_pc.json");
+    run_program_with_error(
+        program_data,
+        "Hint PC (18446744073709551615) is greater or equal to program length (0)",
+    );
 }

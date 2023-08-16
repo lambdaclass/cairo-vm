@@ -77,10 +77,11 @@ impl PoseidonBuiltinRunner {
         let first_input_addr = (address - index)?;
         let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
 
-        let mut input_felts = Vec::<FieldElement>::new();
+        let mut input_felts = vec![];
 
         for i in 0..self.n_input_cells as usize {
-            let val = match memory.get(&(first_input_addr + i)?) {
+            let m_index = (first_input_addr + i)?;
+            let val = match memory.get(&m_index) {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
@@ -159,8 +160,7 @@ impl PoseidonBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
     }

@@ -108,7 +108,8 @@ pub(crate) fn bigint3_pack(num: Uint384) -> num_bigint::BigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::{borrow::Cow, collections::HashMap, string::ToString};
+    use crate::stdlib::borrow::Cow;
+    use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use crate::{felt_str, Felt252};
     use assert_matches::assert_matches;
