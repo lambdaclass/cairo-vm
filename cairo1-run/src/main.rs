@@ -1,14 +1,19 @@
 #![allow(unused_imports)]
 use bincode::enc::write::Writer;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
+use cairo_lang_runner::RunnerError as CairoLangRunnerError;
 use cairo_lang_runner::{
     build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
     SierraCasmRunner, StarknetState,
 };
 use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
+use cairo_lang_sierra_to_casm::compiler::CompilationError;
+use cairo_lang_sierra_to_casm::metadata::MetadataError;
 use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_vm::cairo_run;
+use cairo_vm::types::errors::program_errors::ProgramError;
+use cairo_vm::vm::errors::runner_errors::RunnerError;
 use cairo_vm::{
     felt::Felt252,
     serde::deserialize_program::ReferenceManager,
@@ -20,15 +25,94 @@ use cairo_vm::{
 };
 use itertools::chain;
 use std::io::BufWriter;
-use std::io::Write;
 use std::{collections::HashMap, io, path::Path};
+use cairo_vm::air_public_input::PublicInputError;
+use cairo_vm::cairo_run::EncodeTraceError;
+use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
+use cairo_vm::vm::errors::trace_errors::TraceError;
+use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use clap::{CommandFactory, Parser, ValueHint};
+use std::io::Write;
+use std::path::PathBuf;
+use thiserror::Error;
+
+#[cfg(feature = "with_mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "with_mimalloc")]
+#[global_allocator]
+static ALLOC: MiMalloc = MiMalloc;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(value_parser, value_hint=ValueHint::FilePath)]
+    filename: PathBuf,
+    #[clap(long = "trace_file", value_parser)]
+    trace_file: Option<PathBuf>,
+    #[structopt(long = "print_output")]
+    print_output: bool,
+    #[structopt(long = "entrypoint", default_value = "main")]
+    entrypoint: String,
+    #[structopt(long = "memory_file")]
+    memory_file: Option<PathBuf>,
+    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
+    layout: String,
+    #[structopt(long = "proof_mode")]
+    proof_mode: bool,
+    #[structopt(long = "secure_run")]
+    secure_run: Option<bool>,
+    #[clap(long = "air_public_input")]
+    air_public_input: Option<String>,
+}
+
+fn validate_layout(value: &str) -> Result<String, String> {
+    match value {
+        "plain"
+        | "small"
+        | "dex"
+        | "starknet"
+        | "starknet_with_keccak"
+        | "recursive_large_output"
+        | "all_cairo"
+        | "all_solidity"
+        | "dynamic" => Ok(value.to_string()),
+        _ => Err(format!("{value} is not a valid layout")),
+    }
+}
+
+#[derive(Debug, Error)]
+enum Error {
+    #[error("Invalid arguments")]
+    Cli(#[from] clap::Error),
+    #[error("Failed to interact with the file system")]
+    IO(#[from] std::io::Error),
+    #[error("The cairo program execution failed")]
+    CairoRunner(#[from] CairoLangRunnerError),
+    #[error(transparent)]
+    EncodeTrace(#[from] EncodeTraceError),
+    #[error(transparent)]
+    VirtualMachine(#[from] VirtualMachineError),
+    #[error(transparent)]
+    Trace(#[from] TraceError),
+    #[error(transparent)]
+    PublicInput(#[from] PublicInputError),
+    #[error(transparent)]
+    Runner(#[from] RunnerError),
+    #[error(transparent)]
+    Compilation(#[from] Box<CompilationError>),
+    #[error(transparent)]
+    Metadata(#[from] MetadataError),
+    #[error(transparent)]
+    Program(#[from] ProgramError),
+}
 
 pub struct FileWriter {
     buf_writer: io::BufWriter<std::fs::File>,
     bytes_written: usize,
 }
 
-impl bincode::enc::write::Writer for FileWriter {
+impl Writer for FileWriter {
     fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
         self.buf_writer
             .write_all(bytes)
@@ -56,12 +140,10 @@ impl FileWriter {
     }
 }
 
-fn main() {
-    // The sierra program can be read directly from a file:
-    // let sierra_code = std::fs::read_to_string("fibonacci.sierra").unwrap();
-    // let sierra_program = ProgramParser::new().parse(&sierra_code).unwrap();
 
-    // Or it can be compiled from a Cairo 1 program:
+fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
+    let args = Args::try_parse_from(args)?;
+    
     let compiler_config = CompilerConfig {
         replace_ids: true,
         ..CompilerConfig::default()
@@ -70,8 +152,7 @@ fn main() {
         (*compile_cairo_project_at_path(Path::new("fibonacci.cairo"), compiler_config).unwrap())
             .clone();
 
-    // Just a dummy variable needed for the SierraCasmRunner. Doesn't seem to be
-    // important for running Cairo 1 programs.
+    // variable needed for the SierraCasmRunner
     let contracts_info = OrderedHashMap::default();
 
     // We need this runner to use the `find_function` method for main().
@@ -79,22 +160,20 @@ fn main() {
         sierra_program.clone(),
         Some(Default::default()),
         contracts_info,
-    )
-    .unwrap();
+    )?;
 
-    let main_func = casm_runner.find_function("::main").unwrap();
+    let main_func = casm_runner.find_function("::main")?;
     let initial_gas = 9999999999999_usize;
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
     let (entry_code, builtins) = casm_runner
-        .create_entry_code(main_func, &[], initial_gas)
-        .unwrap();
+        .create_entry_code(main_func, &[], initial_gas)?;
     let footer = casm_runner.create_code_footer();
 
     let check_gas_usage = true;
-    let metadata = calc_metadata(&sierra_program, Default::default()).unwrap();
-    let casm_program = compile(&sierra_program, &metadata, check_gas_usage).unwrap();
+    let metadata = calc_metadata(&sierra_program, Default::default())?;
+    let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
     let instructions = chain!(
         entry_code.iter(),
@@ -110,9 +189,6 @@ fn main() {
         .map(MaybeRelocatable::from)
         .collect();
 
-    // Uncomment for printing bytecode
-    // print_bytecode(&data);
-
     let data_len = data.len();
 
     let program = Program::new(
@@ -126,12 +202,11 @@ fn main() {
         HashMap::new(),
         vec![],
         None,
-    )
-    .unwrap();
+    )?;
 
-    let mut runner = CairoRunner::new(&program, "all_cairo", false).unwrap();
+    let mut runner = CairoRunner::new(&program, "all_cairo", false)?;
     let mut vm = VirtualMachine::new(true);
-    let end = runner.initialize(&mut vm).unwrap();
+    let end = runner.initialize(&mut vm)?;
 
     let function_context = RunFunctionContext {
         vm: &mut vm,
@@ -148,34 +223,36 @@ fn main() {
     };
 
     runner
-        .run_until_pc(end, &mut vm, &mut hint_processor)
-        .unwrap();
+        .run_until_pc(end, &mut vm, &mut hint_processor)?;
     runner
-        .end_run(true, false, &mut vm, &mut hint_processor)
-        .unwrap();
+        .end_run(true, false, &mut vm, &mut hint_processor)?;
 
-    runner.relocate(&mut vm, true).unwrap();
+    runner.relocate(&mut vm, true)?;
 
-    let relocated_trace = vm.get_relocated_trace().unwrap();
+    let relocated_trace = vm.get_relocated_trace()?;
 
     let trace_path = "test.trace";
-    let trace_file = std::fs::File::create(trace_path).unwrap();
+    let trace_file = std::fs::File::create(trace_path)?;
     let mut trace_writer =
         FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-    cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer).unwrap();
-    trace_writer.flush().unwrap();
+    cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
+    trace_writer.flush()?;
 
     let memory_path = "test.memory";
     let memory_file = std::fs::File::create(memory_path).unwrap();
     let mut memory_writer =
         FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
 
-    cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer).unwrap();
+    cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
     memory_writer.flush().unwrap();
+
     println!();
     println!("Cairo1 program ran successfully");
+
+    Ok(())
 }
+
 
 fn additional_initialization(context: RunFunctionContext) {
     let vm = context.vm;
@@ -205,4 +282,12 @@ fn print_bytecode(data: &[MaybeRelocatable]) {
     data.iter()
         .enumerate()
         .for_each(|(i, d)| println!("INSTRUCTION {}: {:?}", i, d));
+}
+
+
+fn main() -> Result<(), Error> {
+    match run(std::env::args()) {
+        Err(Error::Cli(err)) => err.exit(),
+        other => other,
+    }
 }

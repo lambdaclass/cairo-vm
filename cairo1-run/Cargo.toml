@@ -13,4 +13,6 @@ cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-runner = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo" }
 itertools = "0.11.0"
+clap = { version = "4.3.10", features = ["derive"] }
+thiserror = { version = "1.0.40" }
 bincode.workspace = true

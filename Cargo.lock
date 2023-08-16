@@ -1328,7 +1328,9 @@ dependencies = [
  "cairo-lang-sierra-to-casm 2.1.0 (git+https://github.com/starkware-libs/cairo)",
  "cairo-lang-utils 2.1.0 (git+https://github.com/starkware-libs/cairo)",
  "cairo-vm 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap",
  "itertools 0.11.0",
+ "thiserror",
 ]
 
 [[package]]
