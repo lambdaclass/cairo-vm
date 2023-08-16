@@ -1,6 +1,15 @@
-use crate::with_std::collections::HashMap;
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use felt::felt_str;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
