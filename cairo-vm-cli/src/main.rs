@@ -75,7 +75,7 @@ enum Error {
     PublicInput(#[from] PublicInputError),
 }
 
-struct FileWriter {
+pub struct FileWriter {
     buf_writer: io::BufWriter<std::fs::File>,
     bytes_written: usize,
 }

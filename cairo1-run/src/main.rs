@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use bincode::enc::write::Writer;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::{
     build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
@@ -7,6 +8,7 @@ use cairo_lang_runner::{
 use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
 use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
+use cairo_vm::cairo_run;
 use cairo_vm::{
     felt::Felt252,
     serde::deserialize_program::ReferenceManager,
@@ -17,13 +19,9 @@ use cairo_vm::{
     },
 };
 use itertools::chain;
-use std::{collections::HashMap, path::Path, io};
-use bincode::enc::write::Writer;
-use std::io::Write;
-use cairo_vm::cairo_run;
 use std::io::BufWriter;
-
-
+use std::io::Write;
+use std::{collections::HashMap, io, path::Path};
 
 pub struct FileWriter {
     buf_writer: io::BufWriter<std::fs::File>,
@@ -57,7 +55,6 @@ impl FileWriter {
         self.buf_writer.flush()
     }
 }
-
 
 fn main() {
     // The sierra program can be read directly from a file:
