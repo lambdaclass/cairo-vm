@@ -819,7 +819,7 @@ impl CairoRunner {
         Ok(builtin_segment_info)
     }
 
-    // Returns a map from builtin's name to its base's segment index and stop_ptr offset
+    // Returns a map from builtin's name wihout the "_builtin" suffix to its base's segment index and stop_ptr offset
     // Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segment_info_for_pie(
         &self,
@@ -5073,5 +5073,62 @@ mod tests {
             Err(VirtualMachineError::UnfinishedExecution)
         );
         assert_eq!(hint_processor.run_resources(), &RunResources::new(0));
+    }
+
+    #[test]
+    fn get_cairo_pie_no_program_base() {
+        let runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let vm = vm!();
+        assert_eq!(runner.get_cairo_pie(&vm), Err(RunnerError::NoProgBase))
+    }
+
+    #[test]
+    fn get_cairo_pie_no_execution_base() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        assert_eq!(runner.get_cairo_pie(&vm), Err(RunnerError::NoExecBase))
+    }
+
+    #[test]
+    fn get_cairo_pie_no_segment_sizes() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::UnexpectedRetFpSegmentSize)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_ret_pc_segment_size_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 1)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::UnexpectedRetPcSegmentSize)
+        );
     }
 }
