@@ -1,3 +1,4 @@
+use crate::felt::Felt252;
 use crate::types::program::StrippedProgram;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use std::collections::HashMap;
@@ -21,15 +22,23 @@ pub struct PublicMemoryPage {
 // Hashmap value based on starknet/core/os/output.cairo usage
 pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
-pub struct BuiltinAdditionalInfo {
+
+pub struct OutputBuiltinAdditionalInfo {
     pages: Option<Pages>,
     attributes: Option<Attributes>,
-    addresses: Option<Vec<Relocatable>>,
+}
+pub enum BuiltinAdditionalInfo {
+    Hash(Vec<Relocatable>),
+    Output(OutputBuiltinAdditionalInfo),
+    // Signatures are composed of (r, s) tuples
+    Signature(HashMap<Relocatable, (Felt252, Felt252)>),
+    None,
 }
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
+    pub additional_info: HashMap<String, BuiltinAdditionalInfo>,
 }
 
 pub struct CairoPieMetadata {

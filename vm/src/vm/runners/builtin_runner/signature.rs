@@ -1,5 +1,6 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::vm::runners::cairo_pie::BuiltinAdditionalInfo;
 use crate::{
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
@@ -213,6 +214,25 @@ impl SignatureBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(pointer)
         }
+    }
+
+    pub fn get_additional_info(&self) -> BuiltinAdditionalInfo {
+        // Convert signatures to Felt tuple
+        let signatures: HashMap<Relocatable, (Felt252, Felt252)> = self
+            .signatures
+            .borrow()
+            .iter()
+            .map(|(k, v)| {
+                (
+                    *k,
+                    (
+                        Felt252::from_bytes_be(&v.r.to_bytes_be()),
+                        Felt252::from_bytes_be(&v.s.to_bytes_be()),
+                    ),
+                )
+            })
+            .collect();
+        BuiltinAdditionalInfo::Signature(signatures)
     }
 }
 
