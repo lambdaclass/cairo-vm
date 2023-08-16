@@ -1144,23 +1144,21 @@ impl CairoRunner {
         let return_fp = vm.segments.memory.get_relocatable(return_fp_addr)?;
         let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?)?;
 
-        if return_fp
+        if let None | Some(false) = return_fp
             .segment_index
             .to_usize()
             .and_then(|u| vm.segments.get_segment_size(u))
-            .unwrap_or_default()
-            .is_zero()
+            .map(|u| u.is_zero())
         {
             // return_fp negative index / no size / size is zero
             return Err(RunnerError::UnexpectedRetFpSegmentSize);
         }
 
-        if return_pc
+        if let None | Some(false) = return_pc
             .segment_index
             .to_usize()
             .and_then(|u| vm.segments.get_segment_size(u))
-            .unwrap_or_default()
-            .is_zero()
+            .map(|u| u.is_zero())
         {
             // return_pc negative index / no size / size is zero
             return Err(RunnerError::UnexpectedRetPcSegmentSize);
