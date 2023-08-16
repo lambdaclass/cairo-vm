@@ -51,21 +51,24 @@ def process_line(line, functions):
     Return the expression type of the line, adding relevant information if the an assignment was made or if the
     variable in the line is inside a `pack(var, PRIME)` function. Return the variable as [name, fields...]
     """
+    variables = (v for v in line.split() if "ids." in v)
+    split_name_fields = lambda v: v[v.find("ids.") + 4:].split(".")
+    clean_last_field = lambda f: f[:-1] + [clean_trailing(f[-1])]
+
     if get_expr_type(line) == ASSIGN_EX_TYPE:
         equals_pos = line.rfind("=")
-        variables = [ clean_trailing(v) for v in line.split() if "ids." in v ]
         return [
             [ASSIGN_EX_TYPE, LEFT if line.find(v) < equals_pos else RIGHT] + \
             get_function_ex(line, v, functions) + \
-            [v[v.find("ids.") + 4:].split(".")] \
+            [clean_last_field(split_name_fields(v))] \
             for v in variables 
         ]
     else:
         return [
             [OTHER_EX_TYPE] + \
             get_function_ex(line, v, functions) + \
-            [clean_trailing(v)[v.find("ids.") + 4:].split(".")] 
-            for v in line.split() if "ids." in v 
+            [clean_last_field(split_name_fields(v))]
+            for v in variables
         ]
 
 def get_function_ex(line, variable, functions):
@@ -103,16 +106,18 @@ def process_func(function):
     
     return (function_name, frozenset(fields))
 
-         
 def clean_trailing(var):
     """
     clean_trailing(String) -> String
     Make sure variable doesn't end with any non-alfanumeric characters
     """
-    i = 1
-    while not var[len(var) - i].isalnum():
-        i += 1
-    return var[:len(var) - i + 1]
+    if not var.isalnum():
+        # Get first non alphanumeric character
+        i = 0
+        while var[i].isalnum(): i += 1
+        return var[:i]
+    else:
+        return var
 
 def var_in_func(line, var, func_name):
     """
@@ -262,7 +267,7 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in declare_in_main.keys()])
     )
 
-    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n\t{hint}\n%}}\n\treturn({output_return});\n}}\n"
+    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n\t%{{\n\t\t{hint}\n\t%}}\n\treturn({output_return});\n}}\n"
 
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
@@ -282,7 +287,7 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
-        hint = "\n\t".join(hint_code),
+        hint = "\n\t\t".join(hint_code),
         output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 
