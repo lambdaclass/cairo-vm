@@ -3,8 +3,6 @@ name = "cairo1-run"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -15,4 +13,4 @@ cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-runner = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo" }
 itertools = "0.11.0"
-bincode = { version = "2.0.0-rc.3", tag = "v2.0.0-rc.3", git = "https://github.com/bincode-org/bincode.git" }
+bincode.workspace = true

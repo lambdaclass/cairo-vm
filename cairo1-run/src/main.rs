@@ -30,7 +30,7 @@ pub struct FileWriter {
     bytes_written: usize,
 }
 
-impl Writer for FileWriter {
+impl bincode::enc::write::Writer for FileWriter {
     fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
         self.buf_writer
             .write_all(bytes)
