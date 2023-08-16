@@ -2,7 +2,7 @@ use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::cairo_pie::{BuiltinAdditionalInfo, OutputBuiltinAdditionalInfo};
+use crate::vm::runners::cairo_pie::{BuiltinAdditionalData, OutputBuiltinAdditionalData};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -109,8 +109,8 @@ impl OutputBuiltinRunner {
         }
     }
 
-    pub fn get_additional_info(&self) -> BuiltinAdditionalInfo {
-        BuiltinAdditionalInfo::Output(OutputBuiltinAdditionalInfo {
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
             pages: Some(HashMap::default()),
             attributes: Some(HashMap::default()),
         })
