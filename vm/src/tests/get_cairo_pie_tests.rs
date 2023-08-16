@@ -5,7 +5,7 @@ use crate::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     vm::runners::{
         builtin_runner::{HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME},
-        cairo_pie::{BuiltinAdditionalData, OutputBuiltinAdditionalData},
+        cairo_pie::{BuiltinAdditionalData, OutputBuiltinAdditionalData, SegmentInfo},
         cairo_runner::ExecutionResources,
     },
 };
@@ -32,6 +32,12 @@ fn pedersen_test() {
     let cairo_pie = result.unwrap();
     // Check pie values
     // CairoPieMedatada
+    let pie_metadata = cairo_pie.metadata;
+    // ret_pc_segment
+    assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((6, 0)));
+    // builtin_segments
+    //let expected_builtin_segments:
+
 
     // execution_resources
     let expected_execution_resources = ExecutionResources {
