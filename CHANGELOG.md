@@ -4,6 +4,8 @@
 
 #### [0.8.6] - 2023-8-11
 
+* feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
+
 * fix: Handle error in hint `UINT256_MUL_DIV_MOD` when divides by zero [#1367](https://github.com/lambdaclass/cairo-vm/pull/1367)
 
 * Add HintError::SyscallError and VmErrors::HINT_ERROR_STR constant [#1357](https://github.com/lambdaclass/cairo-rs/pull/1357)
