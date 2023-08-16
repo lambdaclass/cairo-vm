@@ -32,7 +32,7 @@ fn pedersen_test() {
     let cairo_pie = result.unwrap();
     // Check pie values
     // CairoPieMedatada
-    
+
     // execution_resources
     let expected_execution_resources = ExecutionResources {
         n_steps: 14,

@@ -51,7 +51,7 @@ use serde::Deserialize;
 
 use super::{
     builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
-    cairo_pie::{CairoPie, CairoPieMetadata},
+    cairo_pie::{self, CairoPie, CairoPieMetadata},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -821,10 +821,10 @@ impl CairoRunner {
 
     // Returns a map from builtin's name to its base's segment index and stop_ptr offset
     // Aka the builtin's segment number and its maximum offset
-    pub fn get_builtin_named_segments_info(
+    pub fn get_builtin_segment_info_for_pie(
         &self,
         vm: &VirtualMachine,
-    ) -> Result<HashMap<String, (isize, usize)>, RunnerError> {
+    ) -> Result<HashMap<String, cairo_pie::SegmentInfo>, RunnerError> {
         let mut builtin_segment_info = HashMap::new();
 
         for builtin in &vm.builtin_runners {
@@ -835,7 +835,8 @@ impl CairoRunner {
                 (
                     index as isize,
                     stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
-                ),
+                )
+                    .into(),
             );
         }
 
@@ -1134,10 +1135,10 @@ impl CairoRunner {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
 
-        let builtin_segments = self.get_builtin_named_segments_info(vm)?;
+        let builtin_segments = self.get_builtin_segment_info_for_pie(vm)?;
         let mut known_segment_indices = HashSet::new();
-        for (index, _) in builtin_segments.values() {
-            known_segment_indices.insert(index);
+        for info in builtin_segments.values() {
+            known_segment_indices.insert(info.index);
         }
         let n_used_builtins = self.program.builtins_len();
         let return_fp_addr = (execution_base + n_used_builtins)?;
@@ -1167,32 +1168,35 @@ impl CairoRunner {
         if program_base.offset != 0 {
             return Err(RunnerError::ProgramBaseOffsetNotZero);
         }
-        known_segment_indices.insert(&program_base.segment_index);
+        known_segment_indices.insert(program_base.segment_index);
 
         if execution_base.offset != 0 {
             return Err(RunnerError::ExecBaseOffsetNotZero);
         }
-        known_segment_indices.insert(&execution_base.segment_index);
+        known_segment_indices.insert(execution_base.segment_index);
 
         if return_fp.offset != 0 {
             return Err(RunnerError::RetFpOffsetNotZero);
         }
-        known_segment_indices.insert(&return_fp.segment_index);
+        known_segment_indices.insert(return_fp.segment_index);
 
         if return_pc.offset != 0 {
             return Err(RunnerError::RetPcOffsetNotZero);
         }
-        known_segment_indices.insert(&return_pc.segment_index);
+        known_segment_indices.insert(return_pc.segment_index);
 
         // Put all the remaining segments in extra_segments.
         let mut extra_segments = Vec::default();
         for index in 0..vm.segments.num_segments() {
             if !known_segment_indices.contains(&(index as isize)) {
-                extra_segments.push((
-                    index as isize,
-                    vm.get_segment_size(index)
-                        .ok_or(MemoryError::MissingSegmentUsedSizes)?,
-                ));
+                extra_segments.push(
+                    (
+                        index as isize,
+                        vm.get_segment_size(index)
+                            .ok_or(MemoryError::MissingSegmentUsedSizes)?,
+                    )
+                        .into(),
+                );
             }
         }
 
@@ -1202,10 +1206,10 @@ impl CairoRunner {
                 .get_program()
                 .get_stripped_program()
                 .map_err(|_| RunnerError::StrippedProgramNoMain)?,
-            program_segment: (program_base.segment_index, self.program.data_len()),
-            execution_segment: (execution_base.segment_index, execution_size),
-            ret_fp_segment: (return_fp.segment_index, 0),
-            ret_pc_segment: (return_pc.segment_index, 0),
+            program_segment: (program_base.segment_index, self.program.data_len()).into(),
+            execution_segment: (execution_base.segment_index, execution_size).into(),
+            ret_fp_segment: (return_fp.segment_index, 0).into(),
+            ret_pc_segment: (return_pc.segment_index, 0).into(),
             builtin_segments,
             extra_segments,
         };

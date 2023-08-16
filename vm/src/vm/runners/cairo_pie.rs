@@ -5,8 +5,20 @@ use std::collections::HashMap;
 
 use super::cairo_runner::ExecutionResources;
 
-// Made up of (segment_index, segment_size)
-pub type SegmentInfo = (isize, usize);
+#[derive(PartialEq, Clone, Debug)]
+pub struct SegmentInfo {
+    pub index: isize,
+    pub size: usize,
+}
+
+impl From<(isize, usize)> for SegmentInfo {
+    fn from(value: (isize, usize)) -> Self {
+        SegmentInfo {
+            index: value.0,
+            size: value.1,
+        }
+    }
+}
 
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
