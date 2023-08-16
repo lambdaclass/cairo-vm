@@ -831,7 +831,11 @@ impl CairoRunner {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
             builtin_segment_info.insert(
-                builtin.name().strip_suffix("_builtin").unwrap_or_default().to_string(),
+                builtin
+                    .name()
+                    .strip_suffix("_builtin")
+                    .unwrap_or_default()
+                    .to_string(),
                 (
                     index as isize,
                     stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
