@@ -5219,4 +5219,22 @@ mod tests {
             Err(RunnerError::RetPcOffsetNotZero)
         );
     }
+
+    #[test]
+    fn get_cairo_pie_ok() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+    }
 }

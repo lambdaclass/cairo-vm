@@ -252,6 +252,8 @@ mod tests {
     use felt::felt_str;
     use num_traits::Zero;
 
+    use assert_matches::assert_matches;
+
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -914,13 +916,24 @@ mod tests {
     #[test]
     fn get_stripped_program() {
         let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
-        let program = Program::from_bytes(program_content, None).unwrap();
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
         let stripped_program = program.get_stripped_program().unwrap();
         assert_eq!(stripped_program.builtins, program.builtins);
         assert_eq!(stripped_program.data, program.shared_program_data.data);
         assert_eq!(
             stripped_program.main,
             program.shared_program_data.main.unwrap()
+        );
+    }
+
+    #[test]
+    fn get_stripped_no_main() {
+        let program_content =
+            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        assert_matches!(
+            program.get_stripped_program(),
+            Err(ProgramError::StrippedProgramNoMain)
         );
     }
 }
