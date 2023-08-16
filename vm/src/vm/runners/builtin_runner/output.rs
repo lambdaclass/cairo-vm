@@ -442,6 +442,12 @@ mod tests {
     #[test]
     fn get_additional_info_no_pages_no_attributes() {
         let builtin = OutputBuiltinRunner::new(true);
-        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Output(OutputBuiltinAdditionalData { pages: HashMap::default(), attributes: HashMap::default() }))
+        assert_eq!(
+            builtin.get_additional_data(),
+            BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
+                pages: HashMap::default(),
+                attributes: HashMap::default()
+            })
+        )
     }
 }

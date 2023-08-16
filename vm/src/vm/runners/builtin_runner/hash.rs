@@ -540,8 +540,12 @@ mod tests {
     #[test]
     fn get_additional_info() {
         let mut builtin = HashBuiltinRunner::new(Some(1), true);
-        let verified_addresses = vec![Relocatable::from((3,3)), Relocatable::from((3, 6))];
-        builtin.verified_addresses = RefCell::new(vec![false, false, false, true, false, false, true]);
-        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Hash(verified_addresses))
+        let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
+        builtin.verified_addresses =
+            RefCell::new(vec![false, false, false, true, false, false, true]);
+        assert_eq!(
+            builtin.get_additional_data(),
+            BuiltinAdditionalData::Hash(verified_addresses)
+        )
     }
 }

@@ -1688,7 +1688,7 @@ mod tests {
 
     #[test]
     fn get_additonal_data_none() {
-        let builtin : BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
         assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::None)
     }
 }
