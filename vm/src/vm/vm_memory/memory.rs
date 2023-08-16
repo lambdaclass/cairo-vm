@@ -515,10 +515,10 @@ impl Memory {
     }
 }
 
-impl Into<CairoPieMemory> for &Memory {
-    fn into(self) -> CairoPieMemory {
+impl From<&Memory> for CairoPieMemory {
+    fn from(mem: &Memory) -> CairoPieMemory {
         let mut pie_memory = Vec::default();
-        for (i, segment) in self.data.iter().enumerate() {
+        for (i, segment) in mem.data.iter().enumerate() {
             for (j, elem) in segment.iter().enumerate() {
                 if let Some(cell) = elem {
                     pie_memory.push(((i, j), cell.get_value().clone()))
@@ -526,26 +526,6 @@ impl Into<CairoPieMemory> for &Memory {
             }
         }
         pie_memory
-    }
-}
-
-impl From<CairoPieMemory> for Memory {
-    fn from(pie_memory: CairoPieMemory) -> Memory {
-        let mut data = Vec::new();
-        for ((index, offset), value) in pie_memory {
-            if index >= data.len() {
-                data.push(Vec::new())
-            }
-            while offset > data[index].len() {
-                data[index].push(None)
-            }
-            data[index][offset] = Some(MemoryCell::new(value))
-        }
-
-        Memory {
-            data,
-            ..Default::default()
-        }
     }
 }
 

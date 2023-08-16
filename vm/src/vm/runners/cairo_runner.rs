@@ -1136,7 +1136,7 @@ impl CairoRunner {
 
         let builtin_segments = self.get_builtin_named_segments_info(vm)?;
         let mut known_segment_indices = HashSet::new();
-        for (_, (index, _)) in &builtin_segments {
+        for (index, _) in builtin_segments.values() {
             known_segment_indices.insert(index);
         }
         let n_used_builtins = self.program.builtins_len();
