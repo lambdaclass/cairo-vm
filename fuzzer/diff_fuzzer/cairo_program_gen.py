@@ -169,7 +169,7 @@ def classify_variables(hint_code):
     # Get all lines with the `ids.` identifier and then dump them into an array of expressions (other or assign)
     # Doesn't consider lines with a comment on them
     # expressions: [ [EX_TYPE_CONSTs..., [String]], ... ]
-    expressions = variables_with_context([line for line in hint_code.split("\n") if "#" not in line])
+    expressions = variables_with_context([line for line in hint_code if "#" not in line])
 
     # Create a var_name: { set of fields or cairo type } pair to insert in one of the output dictionaries
     for expr in expressions:
@@ -262,7 +262,7 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in declare_in_main.keys()])
     )
 
-    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}\n"
+    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n\t{hint}\n%}}\n\treturn({output_return});\n}}\n"
 
     hint_input_var_fmt = "{var_name}: {struct_name}"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
@@ -282,7 +282,7 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
-        hint = hint_code,
+        hint = "\n\t".join(hint_code),
         output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 

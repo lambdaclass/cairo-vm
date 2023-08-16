@@ -65,34 +65,32 @@ def generate_limb(fdp):
     else:
        return fdp.ConsumeIntInRange(1, range_check_max)
 
-def get_random_hint(fdp):
-    hints_list = [4, 5, 6, 26, 27, 29, 
-    30, 32, 38, 49, 55, 72, 102, 
-    103, 104, 105, 107, 108, 110, 
-    111, 113, 116, 120, 121]
-    
-    hint_number = fdp.PickValueInList(hints_list)
+def load_hints():
+    uint256_improvements_hints = json.load(open('../../hint_accountant/whitelists/uint256_improvements.json'))
+    uint256_improvements_numbers = [1, 2]
+    vrf_hints = json.load(open('../../hint_accountant/whitelists/vrf.json'))
+    vrf_numbers = [0, 1, 2, 3, 5, 6, 8, 9, 11, 12]
+    latest_hints = json.load(open('../../hint_accountant/whitelists/latest.json'))
+    latest_numbers = [4, 5, 6, 26, 27, 29, 30, 32, 38, 49, 55, 72]
+    hints = [
+        latest_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
+        for hint_number in latest_numbers
+    ]
+    hints += [
+        vrf_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
+        for hint_number in vrf_numbers
+    ]
+    hints += [
+        uint256_improvements_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
+        for hint_number in uint256_improvements_numbers
+    ]
 
-    data = ""
-    if hint_number > 119 :
-        f = open('../../hint_accountant/whitelists/uint256_improvements.json')
-        data = json.load(f)
-        hint_number = hint_number - 119
-        
-    elif hint_number > 101 :
-        f = open('../../hint_accountant/whitelists/vrf.json')
-        data = json.load(f)
-        hint_number = hint_number - 102
-    else:
-        f = open('../../hint_accountant/whitelists/latest.json')
-        data = json.load(f)
-
-    return "\n".join(data["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"])
+    return hints
 
 @atheris.instrument_func
 def diff_fuzzer(data):
     fdp = atheris.FuzzedDataProvider(data)
-    hint = get_random_hint(fdp)
+    hint = fdp.PickValueInList(LOADED_HINTS)
 
     program = generate_cairo_hint_program(hint)
     replace_count = program.count(REPLACEABLE_TOKEN)
@@ -137,9 +135,7 @@ def diff_fuzzer(data):
         print("rs error: ", rs_stderr , "\n")
         raise TypeError("the results differ")
     
-        
-    
-
+LOADED_HINTS = load_hints()
 atheris.Setup(sys.argv, diff_fuzzer)
 atheris.Fuzz()
 
