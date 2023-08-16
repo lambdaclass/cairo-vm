@@ -1,7 +1,7 @@
 use crate::felt::Felt252;
 use crate::types::program::StrippedProgram;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use std::collections::HashMap;
+use crate::with_std::{collections::HashMap, prelude::*};
 
 use super::cairo_runner::ExecutionResources;
 
