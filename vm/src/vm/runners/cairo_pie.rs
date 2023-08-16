@@ -11,9 +11,9 @@ pub type SegmentInfo = (isize, usize);
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
 // Allows practical serialization + conversion between CairoPieMemory & Memory
-// This conversion will remove all data besides the elements themselves
 pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct PublicMemoryPage {
     pub start: usize,
     pub size: usize,
