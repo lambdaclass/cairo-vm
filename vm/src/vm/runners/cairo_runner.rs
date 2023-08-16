@@ -1216,6 +1216,11 @@ impl CairoRunner {
             metadata,
             memory: (&vm.segments.memory).into(),
             execution_resources: self.get_execution_resources(vm)?,
+            additional_data: vm
+                .builtin_runners
+                .iter()
+                .map(|b| (b.name().to_string(), b.get_additional_data()))
+                .collect(),
         })
     }
 }

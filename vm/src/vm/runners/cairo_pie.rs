@@ -38,7 +38,7 @@ pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    pub additional_info: HashMap<String, BuiltinAdditionalData>,
+    pub additional_data: HashMap<String, BuiltinAdditionalData>,
 }
 
 pub struct CairoPieMetadata {
