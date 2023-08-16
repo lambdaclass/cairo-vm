@@ -61,6 +61,7 @@ pub struct Program {
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
