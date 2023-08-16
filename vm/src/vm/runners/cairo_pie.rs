@@ -27,6 +27,7 @@ pub struct OutputBuiltinAdditionalData {
     pub pages: Pages,
     pub attributes: Attributes,
 }
+
 pub enum BuiltinAdditionalData {
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
@@ -34,6 +35,7 @@ pub enum BuiltinAdditionalData {
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
+
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
