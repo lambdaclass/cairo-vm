@@ -155,8 +155,9 @@ jobs:
     needs: merge-caches
     name: Make sure all builds work
     strategy:
+      fail-fast: false
       matrix:
-        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        chunk: [1, 2, 3, 4, 5]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -187,22 +188,22 @@ jobs:
     - name: Check all features (felt)
       run: |
         cd felt
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
+        cargo check-all-features --n-chunks 5 --chunk ${{ matrix.chunk }}
+        cargo check-all-features --n-chunks 5 --chunk ${{ matrix.chunk }} --workspace --all-targets
 
     - name: Check all features (vm)
       run: |
         cd vm
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
+        cargo check-all-features --n-chunks 5 --chunk ${{ matrix.chunk }}
 
     - name: Check all features (CLI)
       run: |
         cd cairo-vm-cli
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
+        cargo check-all-features --n-chunks 5 --chunk ${{ matrix.chunk }}
     
     - name: Check all features (workspace)
       run: |
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
+        cargo check-all-features --n-chunks 5 --chunk ${{ matrix.chunk }} --workspace --all-targets
 
   smoke-no-std:
     needs: merge-caches

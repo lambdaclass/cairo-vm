@@ -9,8 +9,7 @@ readme.workspace = true
 keywords.workspace = true
 
 [features]
-default = ["std", "with_mimalloc"]
-with_mimalloc = ["mimalloc"]
+default = ["std"]
 std = [
     "serde_json/std",
     "bincode/std",
@@ -38,7 +37,6 @@ skip_next_instruction_hint = []
 hooks = []
 
 [dependencies]
-mimalloc = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }
 num-traits = { workspace = true }
@@ -86,6 +84,7 @@ wasm-bindgen-test = "0.3.34"
 iai-callgrind = "0.3.1"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 proptest = "1.0.0"
+mimalloc.workspace = true
 
 [[bench]]
 path = "../bench/iai_benchmark.rs"

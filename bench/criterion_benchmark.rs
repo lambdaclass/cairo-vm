@@ -6,10 +6,8 @@ use cairo_vm::{
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
 use num_traits::Zero;
 
-#[cfg(feature = "with_mimalloc")]
 use mimalloc::MiMalloc;
 
-#[cfg(feature = "with_mimalloc")]
 #[global_allocator]
 static ALLOC: MiMalloc = MiMalloc;
 
