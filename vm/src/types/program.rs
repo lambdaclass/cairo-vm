@@ -64,7 +64,7 @@ pub(crate) struct SharedProgramData {
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 impl<'a> Arbitrary<'a> for SharedProgramData {
-    /// Create an arbitary [`SharedProgramData`] using `flatten_hints` to generate `hints` and
+    /// Create an arbitary [`SharedProgramData`] using `HintsCollection::new` to generate `hints` and
     /// `hints_ranges`
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let mut data = Vec::new();
@@ -79,7 +79,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
         }
 
         let raw_hints = BTreeMap::<usize, Vec<HintParams>>::arbitrary(u)?;
-        let hints_collection = Program::flatten_hints(&raw_hints, data.len())
+        let hints_collection = HintsCollection::new(&raw_hints, data.len())
             .map_err(|_| arbitrary::Error::IncorrectFormat)?;
         Ok(SharedProgramData {
             data,
