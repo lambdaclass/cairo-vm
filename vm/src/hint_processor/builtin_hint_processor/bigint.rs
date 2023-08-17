@@ -53,7 +53,7 @@ pub fn bigint_pack_div_mod_hint(
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();
 
-    let res = div_mod(&x, &y, &p);
+    let res = div_mod(&x, &y, &p)?;
     exec_scopes.insert_value("res", res.clone());
     exec_scopes.insert_value("value", res);
     exec_scopes.insert_value("x", x);
