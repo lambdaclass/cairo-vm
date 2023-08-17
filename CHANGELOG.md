@@ -6,6 +6,12 @@
 
 * refactor: combine `Program.hints` and `Program.hints_ranges` into custom collection [#1366](https://github.com/lambdaclass/cairo-vm/pull/1366)
 
+* fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
+
+  * Fixes `div_mod` function so that it behaves like the cairo-lang version
+  * Various functions in the `math_utils` crate can now return a `MathError` : `div_mod`, `ec_add`, `line_slope`, `ec_double`, `ec_double_slope`.
+  * Fixes `UINT256_MUL_INV_MOD_P` hint so that it behaves like the python code.
+
 * fix: Handle error in hint `UINT256_MUL_DIV_MOD` when divides by zero [#1367](https://github.com/lambdaclass/cairo-vm/pull/1367)
 
 * Add HintError::SyscallError and VmErrors::HINT_ERROR_STR constant [#1357](https://github.com/lambdaclass/cairo-rs/pull/1357)
