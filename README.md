@@ -135,7 +135,29 @@ cargo build --release
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
-target/release/cairo-vm-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
+target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
+```
+
+#### Other CLI arguments
+
+The cairo-vm-cli supports the following optional arguments:
+
+- `--trace_file <TRACE_FILE>`: Receives the name of a file and outputs the relocated trace into it
+
+- `--memory_file <MEMORY_FILE>` : Receives the name of a file and outputs the relocated memory into it
+
+- `--print_output` : Prints the program output
+
+- `--proof_mode`: Runs the program in proof_mode
+
+- `--secure_run`: Runs security checks after execution. Enabled by default when not in proof_mode
+
+- `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
+
+For example, to obtain the air public inputs from a fibonacci program run, we can run :
+
+```bash
+  target/release/cairo-vm-cli cairo_programs/fibonacci.json --layout all_cairo --proof_mode --air_public_input fibonacci_public_input.json
 ```
 
 ### Using hints
