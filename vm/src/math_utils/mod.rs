@@ -108,21 +108,53 @@ pub(crate) fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
     x * x_sign
 }
 
+///Returns x, y, g such that g = x*a + y*b = gcd(a, b).
+fn igcdex(num_a: &BigInt, num_b: &BigInt) -> (BigInt, BigInt, BigInt) {
+    match (num_a, num_b) {
+        (a, b) if a.is_zero() && b.is_zero() => (BigInt::zero(), BigInt::one(), BigInt::zero()),
+        (a, _) if a.is_zero() => (BigInt::zero(), num_b.signum(), num_b.abs()),
+        (_, b) if b.is_zero() => (num_a.signum(), BigInt::zero(), num_a.abs()),
+        _ => {
+            let mut a = num_a.abs();
+            let x_sign = num_a.signum();
+            let mut b = num_b.abs();
+            let y_sign = num_b.signum();
+            let (mut x, mut y, mut r, mut s) =
+                (BigInt::one(), BigInt::zero(), BigInt::zero(), BigInt::one());
+            let (mut c, mut q);
+            while !b.is_zero() {
+                (q, c) = a.div_mod_floor(&b);
+                x -= &q * &r;
+                y -= &q * &s;
+                (a, b, r, s, x, y) = (b, c, x, y, r, s)
+            }
+            (x * x_sign, y * y_sign, a)
+        }
+    }
+}
+
 ///Finds a nonnegative integer x < p such that (m * x) % p == n.
-pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> BigInt {
-    let a = mul_inv(m, p);
-    (n * a).mod_floor(p)
+pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> Result<BigInt, MathError> {
+    let (a, _, c) = igcdex(m, p);
+    if !c.is_one() {
+        return Err(MathError::DivModIgcdexNotZero(Box::new((
+            n.clone(),
+            m.clone(),
+            p.clone(),
+        ))));
+    }
+    Ok((n * a).mod_floor(p))
 }
 
 pub fn ec_add(
     point_a: (BigInt, BigInt),
     point_b: (BigInt, BigInt),
     prime: &BigInt,
-) -> (BigInt, BigInt) {
-    let m = line_slope(&point_a, &point_b, prime);
+) -> Result<(BigInt, BigInt), MathError> {
+    let m = line_slope(&point_a, &point_b, prime)?;
     let x = (m.clone() * m.clone() - point_a.0.clone() - point_b.0).mod_floor(prime);
     let y = (m * (point_a.0 - x.clone()) - point_a.1).mod_floor(prime);
-    (x, y)
+    Ok((x, y))
 }
 
 /// Computes the slope of the line connecting the two given EC points over the field GF(p).
@@ -131,7 +163,7 @@ pub fn line_slope(
     point_a: &(BigInt, BigInt),
     point_b: &(BigInt, BigInt),
     prime: &BigInt,
-) -> BigInt {
+) -> Result<BigInt, MathError> {
     debug_assert!(!(&point_a.0 - &point_b.0).is_multiple_of(prime));
     div_mod(
         &(&point_a.1 - &point_b.1),
@@ -142,16 +174,24 @@ pub fn line_slope(
 
 ///  Doubles a point on an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double(point: (BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> (BigInt, BigInt) {
-    let m = ec_double_slope(&point, alpha, prime);
+pub fn ec_double(
+    point: (BigInt, BigInt),
+    alpha: &BigInt,
+    prime: &BigInt,
+) -> Result<(BigInt, BigInt), MathError> {
+    let m = ec_double_slope(&point, alpha, prime)?;
     let x = ((&m * &m) - (2_i32 * &point.0)).mod_floor(prime);
     let y = (m * (point.0 - &x) - point.1).mod_floor(prime);
-    (x, y)
+    Ok((x, y))
 }
 /// Computes the slope of an elliptic curve with the equation y^2 = x^3 + alpha*x + beta mod p, at
 /// the given point.
 /// Assumes the point is given in affine form (x, y) and has y != 0.
-pub fn ec_double_slope(point: &(BigInt, BigInt), alpha: &BigInt, prime: &BigInt) -> BigInt {
+pub fn ec_double_slope(
+    point: &(BigInt, BigInt),
+    alpha: &BigInt,
+    prime: &BigInt,
+) -> Result<BigInt, MathError> {
     debug_assert!(!point.1.is_multiple_of(prime));
     div_mod(
         &(3_i32 * &point.0 * &point.0 + alpha),
@@ -321,6 +361,7 @@ mod tests {
                 &b,
                 &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
             )
+            .unwrap()
         );
     }
 
@@ -342,6 +383,7 @@ mod tests {
                 &b,
                 &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
             )
+            .unwrap()
         );
     }
 
@@ -363,6 +405,7 @@ mod tests {
                 &b,
                 &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
             )
+            .unwrap()
         );
     }
 
@@ -439,7 +482,7 @@ mod tests {
             bigint_str!(
                 "992545364708437554384321881954558327331693627531977596999212637460266617010"
             ),
-            line_slope(&point_a, &point_b, &prime)
+            line_slope(&point_a, &point_b, &prime).unwrap()
         );
     }
 
@@ -460,7 +503,7 @@ mod tests {
             bigint_str!(
                 "3601388548860259779932034493250169083811722919049731683411013070523752439691"
             ),
-            ec_double_slope(&point, &alpha, &prime)
+            ec_double_slope(&point, &alpha, &prime).unwrap()
         );
     }
 
@@ -481,7 +524,7 @@ mod tests {
             bigint_str!(
                 "2904750555256547440469454488220756360634457312540595732507835416669695939476"
             ),
-            ec_double_slope(&point, &alpha, &prime)
+            ec_double_slope(&point, &alpha, &prime).unwrap()
         );
     }
 
@@ -507,7 +550,7 @@ mod tests {
                     "1065613861227134732854284722490492186040898336012372352512913425790457998694"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha, &prime).unwrap()
         );
     }
 
@@ -533,7 +576,7 @@ mod tests {
                     "2010355627224183802477187221870580930152258042445852905639855522404179702985"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha, &prime).unwrap()
         );
     }
 
@@ -559,7 +602,7 @@ mod tests {
                     "1721586982687138486000069852568887984211460575851774005637537867145702861131"
                 )
             ),
-            ec_double(point, &alpha, &prime)
+            ec_double(point, &alpha, &prime).unwrap()
         );
     }
 
@@ -592,7 +635,7 @@ mod tests {
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b, &prime).unwrap()
         );
     }
 
@@ -625,7 +668,7 @@ mod tests {
                     "1938007580204102038458825306058547644691739966277761828724036384003180924526"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b, &prime).unwrap()
         );
     }
 
@@ -658,7 +701,7 @@ mod tests {
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ),
-            ec_add(point_a, point_b, &prime)
+            ec_add(point_a, point_b, &prime).unwrap()
         );
     }
 
@@ -798,6 +841,42 @@ mod tests {
         let x_inv = mul_inv(x, p);
 
         assert_eq!(x_inv, BigInt::zero());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_1_1() {
+        assert_eq!(
+            igcdex(&BigInt::one(), &BigInt::one()),
+            (BigInt::zero(), BigInt::one(), BigInt::one())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_0_0() {
+        assert_eq!(
+            igcdex(&BigInt::zero(), &BigInt::zero()),
+            (BigInt::zero(), BigInt::one(), BigInt::zero())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_1_0() {
+        assert_eq!(
+            igcdex(&BigInt::one(), &BigInt::zero()),
+            (BigInt::one(), BigInt::zero(), BigInt::one())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_4_6() {
+        assert_eq!(
+            igcdex(&BigInt::from(4), &BigInt::from(6)),
+            (BigInt::from(-1), BigInt::one(), BigInt::from(2))
+        )
     }
 
     #[cfg(feature = "std")]
