@@ -16,5 +16,5 @@ cairo-vm-pypy-env/*
 /cairo1/
 /cairo2/
 *.tar
-**/corelib
+cairo1-run/corelib/
 ensure-no_std/Cargo.lock

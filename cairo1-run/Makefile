@@ -3,5 +3,8 @@ corelib:
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/
 	
-make test:
+test: corelib 
 	cargo test
+
+clean:
+	rm -rf corelib 
