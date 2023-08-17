@@ -187,7 +187,7 @@ jobs:
     - name: Check features (${{ matrix.crate }})
       run: |
         cd ${{ matrix.crate }}
-        cargo check-all-features --all-targets
+        cargo check-all-features --all-targets --workspace
 
     - name: Check features (workspace, ${{ matrix.crate }})
       run: |
