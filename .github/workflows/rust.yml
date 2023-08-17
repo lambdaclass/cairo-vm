@@ -156,7 +156,7 @@ jobs:
     name: Make sure all builds work
     strategy:
       matrix:
-        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        crate: ["cairo-vm-cli", "felt", "vm", "hint_accountant", "examples/wasm-demo"]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -184,25 +184,14 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (felt)
+    - name: Check features (${{ matrix.crate }})
       run: |
-        cd felt
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
+        cd ${{ matrix.crate }}
+        cargo check-all-features --all-targets
 
-    - name: Check all features (vm)
+    - name: Check features (workspace, ${{ matrix.crate }})
       run: |
-        cd vm
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
-
-    - name: Check all features (CLI)
-      run: |
-        cd cairo-vm-cli
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
-    
-    - name: Check all features (workspace)
-      run: |
-        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
+        cargo check-all-features -p ${{ matrix.crate }} --all-targets
 
   smoke-no-std:
     needs: merge-caches
