@@ -157,7 +157,7 @@ The cairo-vm-cli supports the following optional arguments:
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
 ```bash
-  target/release/cairo-vm-cli cairo_programs/fibonacci.json --layout all_cairo --proof_mode --air_public_input fibonacci_public_input.json
+  target/release/cairo-vm-cli cairo_programs/proof_programs/fibonacci.json --layout all_cairo --proof_mode --air_public_input fibonacci_public_input.json
 ```
 
 ### Using hints
