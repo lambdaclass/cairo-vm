@@ -843,6 +843,42 @@ mod tests {
         assert_eq!(x_inv, BigInt::zero());
     }
 
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_1_1() {
+        assert_eq!(
+            igcdex(&BigInt::one(), &BigInt::one()),
+            (BigInt::zero(), BigInt::one(), BigInt::one())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_0_0() {
+        assert_eq!(
+            igcdex(&BigInt::zero(), &BigInt::zero()),
+            (BigInt::zero(), BigInt::one(), BigInt::zero())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_1_0() {
+        assert_eq!(
+            igcdex(&BigInt::one(), &BigInt::zero()),
+            (BigInt::one(), BigInt::zero(), BigInt::one())
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn igcdex_4_6() {
+        assert_eq!(
+            igcdex(&BigInt::from(4), &BigInt::from(6)),
+            (BigInt::from(-1), BigInt::one(), BigInt::from(2))
+        )
+    }
+
     #[cfg(feature = "std")]
     proptest! {
         #[test]
