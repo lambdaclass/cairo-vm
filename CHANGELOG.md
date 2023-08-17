@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memoery registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
 #### [0.8.6] - 2023-8-11
 

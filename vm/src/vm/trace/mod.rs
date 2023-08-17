@@ -7,7 +7,7 @@ pub mod trace_entry {
     ///     Register values are represented as their offsets, as their indexes will always be 0,1,1 respectively
     ///     The index of the last pc will not be equal to 0, but it is not appended to the trace
     /// After relocation the value of each register will be a single integer
-    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize, Clone)]
     pub struct TraceEntry {
         pub pc: usize,
         pub ap: usize,

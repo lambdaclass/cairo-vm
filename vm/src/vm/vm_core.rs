@@ -891,6 +891,11 @@ impl VirtualMachine {
         self.trace = None
     }
 
+    #[cfg(feature = "with_tracer")]
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
+        self.segments.relocate_segments()
+    }
+
     #[doc(hidden)]
     pub fn skip_next_instruction_execution(&mut self) {
         self.skip_instruction_execution = true;

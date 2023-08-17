@@ -26,6 +26,10 @@ impl RunContext {
         self.pc
     }
 
+    pub fn new(pc: Relocatable, ap: usize, fp: usize) -> Self {
+        RunContext { pc, ap, fp }
+    }
+
     pub fn compute_dst_addr(
         &self,
         instruction: &Instruction,

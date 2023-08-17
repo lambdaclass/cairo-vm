@@ -4,9 +4,19 @@ use bincode::enc::write::Writer;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+#[cfg(feature = "with_tracer")]
+use cairo_vm::serde::deserialize_program::DebugInfo;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+#[cfg(feature = "with_tracer")]
+use cairo_vm::vm::runners::cairo_runner::CairoRunner;
+#[cfg(feature = "with_tracer")]
+use cairo_vm::vm::vm_core::VirtualMachine;
+#[cfg(feature = "with_tracer")]
+use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
+#[cfg(feature = "with_tracer")]
+use cairo_vm_tracer::tracer::run_tracer;
 use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -40,6 +50,9 @@ struct Args {
     secure_run: Option<bool>,
     #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
+    #[structopt(long = "--tracer")]
+    #[cfg(feature = "with_tracer")]
+    tracer: Option<bool>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -73,6 +86,9 @@ enum Error {
     Trace(#[from] TraceError),
     #[error(transparent)]
     PublicInput(#[from] PublicInputError),
+    #[error(transparent)]
+    #[cfg(feature = "with_tracer")]
+    TraceDataError(#[from] TraceDataError),
 }
 
 struct FileWriter {
@@ -106,6 +122,30 @@ impl FileWriter {
     fn flush(&mut self) -> io::Result<()> {
         self.buf_writer.flush()
     }
+}
+
+#[cfg(feature = "with_tracer")]
+fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
+    let relocation_table = vm
+        .relocate_segments()
+        .map_err(TraceDataError::FailedToGetRelocationTable)?;
+    let instruction_locations = cairo_runner
+        .get_program()
+        .get_relocated_instruction_locations(relocation_table.as_ref());
+    let debug_info = instruction_locations.map(DebugInfo::new);
+
+    let relocated_trace = vm
+        .get_relocated_trace()
+        .map_err(TraceDataError::FailedToRelocateTrace)?;
+
+    run_tracer(
+        cairo_runner.get_program().clone(),
+        cairo_runner.relocated_memory.clone(),
+        relocated_trace.clone(),
+        1,
+        debug_info,
+    )?;
+    Ok(())
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
@@ -170,6 +210,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     if let Some(file_path) = args.air_public_input {
         let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
         std::fs::write(file_path, json)?;
+    }
+
+    #[cfg(feature = "with_tracer")]
+    if args.tracer.unwrap_or(false) {
+        start_tracer(&cairo_runner, &vm)?;
     }
 
     Ok(())
