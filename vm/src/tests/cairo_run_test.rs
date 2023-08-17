@@ -999,3 +999,12 @@ fn cairo_run_big_hint_pcs() {
         "Hint PC (18446744073709551615) is greater or equal to program length (0)",
     );
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn divmod_igcdex_not_one() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/bad_programs/divmod_igcdex_not_one.json");
+    let error_msg = "Operation failed: divmod(1, 340282366920938463463374607431768211457, 340282366920938463463374607431768211457), igcdex(340282366920938463463374607431768211457, 340282366920938463463374607431768211457) != 1";
+    run_program_with_error(program_data.as_slice(), error_msg);
+}

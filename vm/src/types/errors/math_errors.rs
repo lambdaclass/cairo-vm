@@ -60,6 +60,10 @@ pub enum MathError {
     Felt252ToUsizeConversion(Box<Felt252>),
     #[error("Conversion to u64 failed for Felt252 {0}")]
     Felt252ToU64Conversion(Box<Felt252>),
+    #[error(
+        "Operation failed: divmod({}, {}, {}), igcdex({}, {}) != 1 ", (*.0).0, (*.0).1, (*.0).2, (*.0).1, (*.0).2
+    )]
+    DivModIgcdexNotZero(Box<(BigInt, BigInt, BigInt)>),
 }
 
 #[cfg(test)]
