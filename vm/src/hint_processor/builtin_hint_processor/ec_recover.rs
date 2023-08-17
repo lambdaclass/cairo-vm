@@ -36,7 +36,7 @@ pub fn ec_recover_divmod_n_packed(
         .pack86()
         .mod_floor(&n);
 
-    let value = div_mod(&x, &s, &n);
+    let value = div_mod(&x, &s, &n)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("res", value);
     Ok(())
