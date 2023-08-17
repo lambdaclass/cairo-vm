@@ -11,9 +11,15 @@ use cairo_lang_sierra_to_casm::compiler::CompilationError;
 use cairo_lang_sierra_to_casm::metadata::MetadataError;
 use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
+use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
+use cairo_vm::cairo_run::EncodeTraceError;
 use cairo_vm::types::errors::program_errors::ProgramError;
+use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
+use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
+use cairo_vm::vm::errors::trace_errors::TraceError;
+use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use cairo_vm::{
     felt::Felt252,
     serde::deserialize_program::ReferenceManager,
@@ -23,17 +29,12 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
 };
+use clap::{CommandFactory, Parser, ValueHint};
 use itertools::chain;
 use std::io::BufWriter;
-use std::{collections::HashMap, io, path::Path};
-use cairo_vm::air_public_input::PublicInputError;
-use cairo_vm::cairo_run::EncodeTraceError;
-use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_vm::vm::errors::trace_errors::TraceError;
-use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{CommandFactory, Parser, ValueHint};
 use std::io::Write;
 use std::path::PathBuf;
+use std::{collections::HashMap, io, path::Path};
 use thiserror::Error;
 
 #[cfg(feature = "with_mimalloc")]
@@ -105,6 +106,8 @@ enum Error {
     Metadata(#[from] MetadataError),
     #[error(transparent)]
     Program(#[from] ProgramError),
+    #[error(transparent)]
+    Memory(#[from] MemoryError),
 }
 
 pub struct FileWriter {
@@ -140,17 +143,15 @@ impl FileWriter {
     }
 }
 
-
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
-    
+
     let compiler_config = CompilerConfig {
         replace_ids: true,
         ..CompilerConfig::default()
     };
     let sierra_program =
-        (*compile_cairo_project_at_path(Path::new("fibonacci.cairo"), compiler_config).unwrap())
-            .clone();
+        (*compile_cairo_project_at_path(&args.filename, compiler_config).unwrap()).clone();
 
     // variable needed for the SierraCasmRunner
     let contracts_info = OrderedHashMap::default();
@@ -167,8 +168,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
-    let (entry_code, builtins) = casm_runner
-        .create_entry_code(main_func, &[], initial_gas)?;
+    let (entry_code, builtins) = casm_runner.create_entry_code(main_func, &[], initial_gas)?;
     let footer = casm_runner.create_code_footer();
 
     let check_gas_usage = true;
@@ -213,7 +213,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         data_len,
     };
 
-    additional_initialization(function_context);
+    additional_initialization(function_context)?;
 
     let mut hint_processor = CairoHintProcessor {
         runner: None,
@@ -222,68 +222,54 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         run_resources: RunResources::default(),
     };
 
-    runner
-        .run_until_pc(end, &mut vm, &mut hint_processor)?;
-    runner
-        .end_run(true, false, &mut vm, &mut hint_processor)?;
-
+    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    runner.end_run(true, false, &mut vm, &mut hint_processor)?;
     runner.relocate(&mut vm, true)?;
 
     let relocated_trace = vm.get_relocated_trace()?;
+    if args.trace_file.is_some() {
+        let trace_path = args.trace_file.unwrap();
+        let trace_file = std::fs::File::create(trace_path)?;
+        let mut trace_writer =
+            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-    let trace_path = "test.trace";
-    let trace_file = std::fs::File::create(trace_path)?;
-    let mut trace_writer =
-        FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
+        trace_writer.flush()?;
+    }
+    if args.memory_file.is_some() {
+        let memory_path = args.memory_file.unwrap();
+        let memory_file = std::fs::File::create(memory_path).unwrap();
+        let mut memory_writer =
+            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
 
-    cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
-    trace_writer.flush()?;
-
-    let memory_path = "test.memory";
-    let memory_file = std::fs::File::create(memory_path).unwrap();
-    let mut memory_writer =
-        FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
-
-    cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
-    memory_writer.flush().unwrap();
-
+        cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
+        memory_writer.flush().unwrap();
+    }
     println!();
     println!("Cairo1 program ran successfully");
 
     Ok(())
 }
 
-
-fn additional_initialization(context: RunFunctionContext) {
+fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
     let vm = context.vm;
-    // Create the builtin cost segment, with dummy values.
+    // Create the builtin cost segment
     let builtin_cost_segment = vm.add_memory_segment();
     for token_type in CostTokenType::iter_precost() {
         vm.insert_value(
             (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize)).unwrap(),
             Felt252::from(token_gas_cost(*token_type)),
-        )
-        .unwrap()
+        )?
     }
     // Put a pointer to the builtin cost segment at the end of the program (after the
     // additional `ret` statement).
     vm.insert_value(
         (vm.get_pc() + context.data_len).unwrap(),
         builtin_cost_segment,
-    )
-    .unwrap();
-}
+    )?;
 
-#[allow(dead_code)]
-fn print_bytecode(data: &[MaybeRelocatable]) {
-    println!();
-    println!("-------------- BYTECODE INSTRUCTIONS ----------------");
-    println!();
-    data.iter()
-        .enumerate()
-        .for_each(|(i, d)| println!("INSTRUCTION {}: {:?}", i, d));
+    Ok(())
 }
-
 
 fn main() -> Result<(), Error> {
     match run(std::env::args()) {
