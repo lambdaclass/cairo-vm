@@ -198,8 +198,11 @@ jobs:
         cargo check-all-features
     
     - name: Check all features (workspace)
+      strategy:
+        matrix:
+          chunk: [1, 2, 3, 4, 5, 6, 7, 8]
       run: |
-        cargo check-all-features --workspace --all-targets
+        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
 
     - name: Check no-std
       run: |
