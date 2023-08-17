@@ -132,7 +132,7 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p);
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -161,7 +161,7 @@ pub fn compute_doubling_slope_external_consts(
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
     let alpha: BigInt = exec_scopes.get("ALPHA")?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p);
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -220,7 +220,7 @@ pub fn compute_slope(
         &(point0.x.pack86(), point0.y.pack86()),
         &(point1.x.pack86(), point1.y.pack86()),
         &secp_p,
-    );
+    )?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())

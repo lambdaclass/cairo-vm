@@ -38,7 +38,7 @@ pub fn div_mod_n_packed(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack86();
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?.pack86();
 
-    let value = div_mod(&a, &b, n);
+    let value = div_mod(&a, &b, n)?;
     exec_scopes.insert_value("a", a);
     exec_scopes.insert_value("b", b);
     exec_scopes.insert_value("value", value.clone());
@@ -152,7 +152,7 @@ pub fn pack_modn_div_modn(
         .pack86()
         .mod_floor(&N);
 
-    let value = div_mod(&x, &s, &N);
+    let value = div_mod(&x, &s, &N)?;
     exec_scopes.insert_value("x", x);
     exec_scopes.insert_value("s", s);
     exec_scopes.insert_value("N", N.clone());

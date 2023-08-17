@@ -161,7 +161,7 @@ pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Resu
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
 
-    let value = div_mod(&BigInt::one(), &x, &SECP_P);
+    let value = div_mod(&BigInt::one(), &x, &SECP_P)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
@@ -182,7 +182,7 @@ pub fn is_zero_assign_scope_variables_external_const(
     let secp_p = exec_scopes.get_ref::<BigInt>("SECP_P")?;
     let x = exec_scopes.get_ref::<BigInt>("x")?;
 
-    let value = div_mod(&BigInt::one(), x, secp_p);
+    let value = div_mod(&BigInt::one(), x, secp_p)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("x_inv", value);
     Ok(())
