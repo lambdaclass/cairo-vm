@@ -318,9 +318,9 @@ impl VirtualMachine {
         instruction: &Instruction,
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let dst = match instruction.opcode {
-            Opcode::AssertEq if res.is_some() => res.clone().unwrap(),
-            Opcode::Call => MaybeRelocatable::from(self.run_context.get_fp()),
+        let dst = match (instruction.opcode, res) {
+            (Opcode::AssertEq, Some(res)) => res.clone(),
+            (Opcode::Call, _) => MaybeRelocatable::from(self.run_context.get_fp()),
             _ => return Err(VirtualMachineError::NoDst),
         };
         Ok(dst)
