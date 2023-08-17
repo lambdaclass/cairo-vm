@@ -156,7 +156,7 @@ jobs:
     name: Make sure all builds work
     strategy:
       matrix:
-        crate: ["cairo-vm-cli", "felt", "vm", "hint_accountant", "examples/wasm-demo"]
+        crate: ["cairo-vm-cli", "felt", "vm", "hint_accountant"]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
