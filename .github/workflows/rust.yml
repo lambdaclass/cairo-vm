@@ -155,6 +155,7 @@ jobs:
     needs: merge-caches
     name: Make sure all builds work
     strategy:
+      fail-fast: false
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04

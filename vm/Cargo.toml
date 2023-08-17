@@ -76,7 +76,6 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
-mimalloc.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.34"
@@ -85,6 +84,7 @@ wasm-bindgen-test = "0.3.34"
 iai-callgrind = "0.3.1"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 proptest = "1.0.0"
+mimalloc.workspace = true
 
 [[bench]]
 path = "../bench/iai_benchmark.rs"
