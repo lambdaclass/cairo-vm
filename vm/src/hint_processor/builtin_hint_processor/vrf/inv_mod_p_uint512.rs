@@ -39,7 +39,7 @@ pub fn inv_mod_p_uint512(
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
     let x_inverse_mod_p =
-        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
+        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p))?);
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;

@@ -3,13 +3,14 @@
 use crate::{
     hint_processor::builtin_hint_processor::{uint256_utils::Uint256, uint512_utils::Uint512},
     hint_processor::hint_processor_definition::HintReference,
-    math_utils::mul_inv,
+    math_utils::div_mod,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_bigint::ToBigInt;
-use num_integer::{div_rem, Integer};
+use num_bigint::{BigInt, ToBigInt};
+use num_integer::div_rem;
+use num_traits::One;
 
 /// Implements hint:
 /// ```python
@@ -100,13 +101,9 @@ pub fn inv_mod_p_uint256(
         .unwrap_or_default();
 
     // Main logic:
-    //  b_inverse_mod_p = div_mod(1, b, p)
-    let b_inverse_mod_p = mul_inv(&b, &p)
-        .mod_floor(&p)
-        .to_biguint()
-        .unwrap_or_default();
+    let b_inverse_mod_p = div_mod(&BigInt::one(), &b, &p)?;
 
-    let res = Uint256::from(&b_inverse_mod_p);
+    let res = Uint256::from(&b_inverse_mod_p.to_biguint().unwrap_or_default());
     res.insert_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)
 }
 
@@ -118,6 +115,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
+    use crate::types::errors::math_errors::MathError;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
@@ -188,5 +186,28 @@ mod tests {
             ((1, 6), ("320134454404400884259649806286603992559", 10)),
             ((1, 7), 106713),
         ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_inv_mod_p_uint256_igcdex_not_1() {
+        let hint_code = hint_code::INV_MOD_P_UINT256;
+        let mut vm = vm_with_range_check!();
+
+        vm.segments = segments![
+            ((1, 0), 2363463),
+            ((1, 1), 566795),
+            ((1, 2), 1),
+            ((1, 3), 1),
+            ((1, 4), 1),
+            ((1, 5), 1)
+        ];
+        // Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("a", 0), ("b", 2), ("p", 4), ("b_inverse_mod_p", 6)];
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
+            Err(HintError::Math(MathError::DivModIgcdexNotZero(_)))
+        );
     }
 }
