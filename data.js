@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692295663023,
+  "lastUpdate": 1692305991626,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -114412,6 +114412,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21452681,
             "range": "± 113589",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f09766cfeae1178542c051841f8987be731daec0",
+          "message": "Remove duplicated code is dst deduction (#1382)\n\n* Merge compute_dst_deductions & deduce_dst\n\n* Unwrap res value in patten match\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-08-17T20:13:17Z",
+          "tree_id": "9aa5dc59b28050e208fd3d24604c7017eaee0c0f",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/f09766cfeae1178542c051841f8987be731daec0"
+        },
+        "date": 1692305983043,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1685,
+            "range": "± 69",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 63521,
+            "range": "± 3881",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25263420,
+            "range": "± 1050243",
             "unit": "ns/iter"
           }
         ]
