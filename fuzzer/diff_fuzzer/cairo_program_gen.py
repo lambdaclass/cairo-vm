@@ -27,11 +27,16 @@ Generate a cairo program with the following rules:
 ASSIGN_EX_TYPE = "assign"
 LEFT = "left"
 RIGHT = "right"
+CONST_EX = "const"
 OTHER_EX_TYPE = "other"
 PACK_PARAM_EX = "var_in_pack"
 FUNC_PARAM_EX = "var_in_func"
 CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
 REPLACEABLE_TOKEN = "__TOKEN_TO_REPLACE__"
+
+CAIRO_CONSTS = {
+    "ADDR_BOUND": "from starkware.starknet.common.storage import ADDR_BOUND"
+}
 
 def get_expr_type(line):
     """
@@ -54,19 +59,20 @@ def process_line(line, functions):
     variables = (v for v in line.split() if "ids." in v)
     split_name_fields = lambda v: v[v.find("ids.") + 4:].split(".")
     clean_last_field = lambda f: f[:-1] + [clean_trailing(f[-1])]
+    is_const = lambda v: v[4:].isupper() and v[4:] in CAIRO_CONSTS.keys()
 
     if get_expr_type(line) == ASSIGN_EX_TYPE:
         equals_pos = line.rfind("=")
         return [
             [ASSIGN_EX_TYPE, LEFT if line.find(v) < equals_pos else RIGHT] + \
-            get_function_ex(line, v, functions) + \
-            [clean_last_field(split_name_fields(v))] \
-            for v in variables 
+            (get_function_ex(line, v, functions) if not is_const(v) else [CONST_EX]) + \
+            [clean_last_field(split_name_fields(v))]
+            for v in variables
         ]
     else:
         return [
             [OTHER_EX_TYPE] + \
-            get_function_ex(line, v, functions) + \
+            (get_function_ex(line, v, functions) if not is_const(v) else [CONST_EX]) + \
             [clean_last_field(split_name_fields(v))]
             for v in variables
         ]
@@ -111,10 +117,10 @@ def clean_trailing(var):
     clean_trailing(String) -> String
     Make sure variable doesn't end with any non-alfanumeric characters
     """
-    if not var.isalnum():
+    if not all(c.isalnum() or c == "_" for c in var):
         # Get first non alphanumeric character
         i = 0
-        while var[i].isalnum(): i += 1
+        while var[i].isalnum() or var[i] == "_": i += 1
         return var[:i]
     else:
         return var
@@ -161,15 +167,17 @@ def variables_with_context(hint_lines):
 
 def classify_variables(hint_code):
     """
-    classify_varables(String) -> (Dict<String, set>, Dict<String, set>)
+    classify_varables([String]) -> (Dict<String, set>, Dict<String, set>, List<String>)
     Takes a hint code block and extract all the variables with the `ids.` prefix, classifying each one into
-    dictionaries: varables to declare in the main function and variables to declare in the hint function.
+    dictionaries: varables to declare in the main function, variables to declare in the hint function and a
+    list with the import declaration for constants.
     Then if the variable has fields, annotate them in the corresponding dictionary, otherwise it's normally
     considered a felt execpt for the special case: being passed as an argument to a `pack(variable, PRIME)`
     function.
     """
     declare_in_main = dict()
     declare_in_hint_fn = dict()
+    consts_to_import = set()
 
     # Get all lines with the `ids.` identifier and then dump them into an array of expressions (other or assign)
     # Doesn't consider lines with a comment on them
@@ -181,6 +189,10 @@ def classify_variables(hint_code):
         expression_type = expr[:-1]
         variable_name = expr[-1][0]
         variable_type = expr[-1][1:]
+
+        if CONST_EX in expression_type:
+            consts_to_import.add(CAIRO_CONSTS[variable_name])
+            continue
 
         # Overrite fields with EcPoint or BigInt3 if necessary
         if PACK_PARAM_EX in expression_type:
@@ -210,15 +222,15 @@ def classify_variables(hint_code):
     # Freeze sets
     declare_in_main.update((k, frozenset(v)) for (k, v) in declare_in_main.items())
     declare_in_hint_fn.update((k, frozenset(v)) for (k, v) in declare_in_hint_fn.items())
-    return declare_in_main, declare_in_hint_fn
+    return declare_in_main, declare_in_hint_fn, list(consts_to_import)
 
 def generate_cairo_hint_program(hint_code):
     """
-    generate_cairo_hint_program(String) -> [String]
+    generate_cairo_hint_program([String]) -> [String]
     Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
     code block that was passed as parameter
     """
-    declare_in_main, declare_in_hint_fn = classify_variables(hint_code)
+    declare_in_main, declare_in_hint_fn, consts_imports = classify_variables(hint_code)
 
     all_types = (declare_in_main | declare_in_hint_fn).values()
 
@@ -267,18 +279,24 @@ def generate_cairo_hint_program(hint_code):
         input_var_names = ", ".join([var for var in declare_in_main.keys()])
     )
 
-    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n\t%{{\n\t\t{hint}\n\t%}}\n\treturn({output_return});\n}}\n"
-
-    hint_input_var_fmt = "{var_name}: {struct_name}"
+    hint_func_fmt = "\nfunc hint_func{signature} {{\n\talloc_locals;\n{local_declarations}\n%{{\n{hint}\n%}}\n\treturn({output_return});\n}}\n"
     local_declare_fmt = "\tlocal {res_var_name}: {res_struct};"
 
-    signature = "(" + \
-        ", ".join([
-            hint_input_var_fmt.format(var_name = name, struct_name = next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields]) for name, var_fields in declare_in_main.items()
-        ]) + \
-        ") -> (" + \
-        ", ".join([next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields] for var_fields in (declare_in_main | declare_in_hint_fn).values()]) + \
-        ")"
+    # To extract an element from a set: element = next(iter(a_set))
+    input_vars_signatures = ", ".join([
+        name + ": " + (next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields])
+        for name, var_fields in declare_in_main.items()
+    ])
+    output_vars_signatures = ", ".join([
+        next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields]
+        for var_fields in all_types
+    ])
+
+    signature = "(" + input_vars_signatures + ")"
+    if len(all_types) > 1:
+        signature += " -> (" + output_vars_signatures + ")"
+    elif len(all_types) == 1:
+        signature += " -> " + output_vars_signatures
 
     local_vars = "\n".join([
         local_declare_fmt.format(res_var_name = name, res_struct = next(iter(var_fields)) if var_fields.issubset(CAIRO_TYPES) else structs_dict[var_fields]) for name, var_fields in declare_in_hint_fn.items()
@@ -287,9 +305,9 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
-        hint = "\n\t\t".join(hint_code),
+        hint = "\n".join(hint_code),
         output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 
-    return import_ecpoint + import_bigint3 + declared_structs + main_func + hint_func
+    return import_ecpoint + import_bigint3 + "\n".join(consts_imports) + "\n" + declared_structs + main_func + hint_func
 
