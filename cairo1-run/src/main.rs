@@ -37,13 +37,6 @@ use std::path::PathBuf;
 use std::{collections::HashMap, io, path::Path};
 use thiserror::Error;
 
-#[cfg(feature = "with_mimalloc")]
-use mimalloc::MiMalloc;
-
-#[cfg(feature = "with_mimalloc")]
-#[global_allocator]
-static ALLOC: MiMalloc = MiMalloc;
-
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -51,20 +44,10 @@ struct Args {
     filename: PathBuf,
     #[clap(long = "trace_file", value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "print_output")]
-    print_output: bool,
-    #[structopt(long = "entrypoint", default_value = "main")]
-    entrypoint: String,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
     #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
     layout: String,
-    #[structopt(long = "proof_mode")]
-    proof_mode: bool,
-    #[structopt(long = "secure_run")]
-    secure_run: Option<bool>,
-    #[clap(long = "air_public_input")]
-    air_public_input: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -245,8 +228,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush().unwrap();
     }
-    println!();
-    println!("Cairo1 program ran successfully");
 
     Ok(())
 }
@@ -275,5 +256,27 @@ fn main() -> Result<(), Error> {
     match run(std::env::args()) {
         Err(Error::Cli(err)) => err.exit(),
         other => other,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::too_many_arguments)]
+    use super::*;
+    use assert_matches::assert_matches;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(["cairo1-run", "cairo1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_fibonacci_ok(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(()));
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "cairo1-programs/factorial.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_factorial_ok(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(()));
     }
 }

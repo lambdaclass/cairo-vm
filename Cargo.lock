@@ -1321,6 +1321,7 @@ dependencies = [
 name = "cairo1-run"
 version = "0.1.0"
 dependencies = [
+ "assert_matches",
  "bincode",
  "cairo-lang-compiler 2.1.0 (git+https://github.com/starkware-libs/cairo)",
  "cairo-lang-runner",
@@ -1330,6 +1331,7 @@ dependencies = [
  "cairo-vm 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap",
  "itertools 0.11.0",
+ "rstest",
  "thiserror",
 ]
 
