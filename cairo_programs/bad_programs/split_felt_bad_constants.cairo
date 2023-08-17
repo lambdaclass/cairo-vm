@@ -1,6 +1,7 @@
+const MAX_HIGH = 1;
+const MAX_LOW = 1;
+
 func main() {
-	let MAX_HIGH =1;
-	let MAX_LOW =1;
 	let value =1;
 	hint_func(MAX_HIGH, MAX_LOW, value);
 	return();
