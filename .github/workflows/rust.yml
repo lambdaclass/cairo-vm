@@ -154,6 +154,9 @@ jobs:
   smoke:
     needs: merge-caches
     name: Make sure all builds work
+    strategy:
+      matrix:
+        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -184,25 +187,47 @@ jobs:
     - name: Check all features (felt)
       run: |
         cd felt
-        cargo check-all-features
-        cargo check-all-features --workspace --all-targets
+        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
+        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
 
     - name: Check all features (vm)
       run: |
         cd vm
-        cargo check-all-features
+        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
 
     - name: Check all features (CLI)
       run: |
         cd cairo-vm-cli
-        cargo check-all-features
+        cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }}
     
     - name: Check all features (workspace)
-      strategy:
-        matrix:
-          chunk: [1, 2, 3, 4, 5, 6, 7, 8]
       run: |
         cargo check-all-features --n-chunks 8 --chunk ${{ matrix.chunk }} --workspace --all-targets
+
+  smoke-no-std:
+    needs: merge-caches
+    name: Make sure no_std builds work
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.69.0
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
 
     - name: Check no-std
       run: |
