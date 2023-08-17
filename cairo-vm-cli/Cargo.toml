@@ -7,6 +7,9 @@ repository.workspace = true
 readme.workspace = true
 keywords.workspace = true
 
+[package.metadata.cargo-all-features]
+always_include_features = ["with_mimalloc"]
+
 [dependencies]
 bincode = { version = "2.0.0-rc.3", tag = "v2.0.0-rc.3", git = "https://github.com/bincode-org/bincode.git" }
 cairo-vm = { workspace = true, features = ["std"] }
