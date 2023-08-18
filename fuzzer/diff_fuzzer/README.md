@@ -29,7 +29,7 @@ The program generator is located in the ***cairo_program_gen.py*** file inside t
 ### How does it work?
 
 1. Grab a hint given by the fuzzer.
-2. If the hint contains a function that needs certain import added to the program
+2. Import `EcPoint`, `BigInt3` or any constants needed for the hint to run.
 3. Look for all the `ids.(...)` expressions, make sure to keep track of any ***"="*** to the left or right.
 4. Reduce the `ids.(...)` expressions so that all the variables + their fields are grouped.
 5. Create inputs and outputs variables dicts
