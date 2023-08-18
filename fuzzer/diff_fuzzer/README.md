@@ -29,9 +29,9 @@ The program generator is located in the ***cairo_program_gen.py*** file inside t
 ### How does it work?
 
 1. Grab a hint given by the fuzzer.
-2. Import `EcPoint`, `BigInt3` or any constants needed for the hint to run.
-3. Look for all the `ids.(...)` expressions, make sure to keep track of any ***"="*** to the left or right.
-4. Reduce the `ids.(...)` expressions so that all the variables + their fields are grouped.
+2. Look for all the `ids.(...)` expressions, make sure to keep track of any ***"="*** to the left or right. Also check for cairo constants
+3. Reduce the `ids.(...)` expressions so that all the variables are grouped with their fields.
+4. After looking at the `ids.(...)`, import `EcPoint`, `BigInt3` or any cairo constants needed for the hint to run.
 5. Create inputs and outputs variables dicts
         - inputs: if ***"="*** was to the ***right***
         - outputs: if ***"="*** was to the ***left***
