@@ -4,9 +4,9 @@ This fuzzer takes a list of pre-selected hints and runs a generated basic progra
 
 ## To run the fuzzer 
 
-Ensure that you have the atheris module installed before running, if not run `pip install atheris`.
-Use the command `make diff-fuzz` to run the fuzzer.
-
+Use the commands:
+ - `make fuzzer-deps` to ensure that you have the atheris module and created a python module from `fuzzer/src/py_export.rs` using maturin.
+ - `make diff-fuzz` to run the fuzzer.
 
 ## The fuzzer
 The fuzzer is located in the ***random_hint_fuzzer.py*** file inside the diff_fuzzer folder.
