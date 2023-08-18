@@ -152,24 +152,22 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # Setup Cairo 2 Compiler
 # ======================
 
-cairo-repo-2-dir = cairo2
-cairo-repo-2-dir-macos = cairo2-macos
+CAIRO_2_REPO_DIR = cairo2
+CAIRO_2_VERSION = 2.1.0-rc1
 
-build-cairo-2-compiler-macos: | $(cairo-repo-2-dir-macos)
+build-cairo-2-compiler-macos:
+	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
+        curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-aarch64-apple-darwin.tar \
+	 	&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
+	 	&& mv cairo/ cairo2/; \
+    fi
 
-CAIRO_2_VERSION=2.1.0-rc1
-
-$(cairo-repo-2-dir-macos):
-	curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-aarch64-apple-darwin.tar \
-	&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
-	&& mv cairo/ cairo2/
-
-build-cairo-2-compiler: | $(cairo-repo-2-dir)
-
-$(cairo-repo-2-dir):
-	curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-x86_64-unknown-linux-musl.tar.gz \
-	&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
-	&& mv cairo/ cairo2/
+build-cairo-2-compiler:
+	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
+		curl -L -o cairo-${CAIRO_2_VERSION}.tar https://github.com/starkware-libs/cairo/releases/download/v${CAIRO_2_VERSION}/release-x86_64-unknown-linux-musl.tar.gz \
+		&& tar -xzvf cairo-${CAIRO_2_VERSION}.tar \
+		&& mv cairo/ cairo2/; \
+	fi
 
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
