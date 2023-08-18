@@ -232,7 +232,7 @@ jobs:
 
   smoke-no-std:
     needs: merge-caches
-    name: Make sure no_std builds work
+    name: Make sure all builds work (no_std)
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust

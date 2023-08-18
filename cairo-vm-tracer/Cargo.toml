@@ -13,7 +13,7 @@ alloc = []
 tracer = []
 
 [dependencies]
-cairo-vm = { workspace = true }
+cairo-vm = { workspace = true, features = ["std", "with_tracer"] }
 thiserror-no-std = { workspace = true }
 num-bigint = { workspace = true }
 num-traits = { workspace = true }
