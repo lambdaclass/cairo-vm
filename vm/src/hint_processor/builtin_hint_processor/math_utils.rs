@@ -2313,7 +2313,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::FailedToGetConstant)
+            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
         );
     }
 
