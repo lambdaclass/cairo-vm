@@ -137,6 +137,26 @@ cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_v
 
 target/release/cairo-vm-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
+### Running cairo 1 programs 
+
+To run a cairo 1 program enter in the folder cairo1-run and use the CLI with the following commands
+
+```bash
+make corelib 
+``` 
+to clone the corelib if it does not already exist in the directory, and
+
+```bash
+cargo run [path_to_the_.cairo_file] 
+```
+
+to execute the program.
+
+In order to generate the trace and the memory files, the folder `memory_trace` must exist and the following options must be passed to the CLI 
+
+```bash
+cargo run [path_to_the_.cairo_file]  --trace_file memory_trace/[filaname].trace --memory_file memory_trace/[filename].memory
+```
 
 ### Using hints
 
