@@ -115,22 +115,22 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 # Setup Cairo 1 Compiler
 # ======================
 
-cairo-repo-1-dir = cairo1
-cairo-repo-1-dir-macos = cairo1-macos
+CAIRO_2_REPO_DIR = cairo1
+CAIRO_1_VERSION = 1.1.1
 
-build-cairo-1-compiler-macos: | $(cairo-repo-1-dir-macos)
+build-cairo-1-compiler-macos:
+	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
+        curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-aarch64-apple-darwin.tar \
+		&& tar -xzvf cairo-1.1.1.tar \
+		&& mv cairo/ cairo1/; \
+    fi
 
-$(cairo-repo-1-dir-macos):
-	curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v1.1.1/release-aarch64-apple-darwin.tar \
-	&& tar -xzvf cairo-1.1.1.tar \
-	&& mv cairo/ cairo1/
-
-build-cairo-1-compiler: | $(cairo-repo-1-dir)
-
-$(cairo-repo-1-dir):
-	curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v1.1.1/release-x86_64-unknown-linux-musl.tar.gz \
-	&& tar -xzvf cairo-1.1.1.tar \
-	&& mv cairo/ cairo1/
+build-cairo-1-compiler:
+	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
+		curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-x86_64-unknown-linux-musl.tar.gz \
+		&& tar -xzvf cairo-1.1.1.tar \
+		&& mv cairo/ cairo1/
+	fi
 
 # ======================
 # Test Cairo 2 Contracts
