@@ -2,7 +2,6 @@
 
 This fuzzer takes a list of pre-selected hints and runs a generated basic program with randomized inputs that uses a random hint from the list.
 
-
 ## To run the fuzzer 
 
 Ensure that you have the atheris module installed before running, if not run `pip install atheris`.
@@ -21,7 +20,7 @@ The fuzzer is located in the ***random_hint_fuzzer.py*** file inside the diff_fu
 5. Write the modified cairo program to a file with the generated ***.cairo*** name.
 6. Compile the ***.cairo*** file to get the ***.json*** file.
 7. Run the ***.json*** program with the Python original vm implementation and the new Rust one.
-8. if both implementations run correctly, use the `check_mem` function to compare that the memories are the same. If one implementation returns an error and the other one run correctly the fuzzer reports an error, as both implementations should return the same.
+8. if both implementations run correctly, use the `check_mem` function to compare that the memories are the same. If one implementation returns an error and the other one runs correctly the fuzzer reports an error, as both implementations should return the same output.
 
 ## The program generator 
 
