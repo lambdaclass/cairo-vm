@@ -120,15 +120,15 @@ CAIRO_1_VERSION = 1.1.1
 
 build-cairo-1-compiler-macos:
 	@if [ ! -d "$(CAIRO_1_REPO_DIR)" ]; then \
-        curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-aarch64-apple-darwin.tar \
-		&& tar -xzvf cairo-1.1.1.tar \
+        curl -L -o cairo-$(CAIRO_1_VERSION).tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-aarch64-apple-darwin.tar \
+		&& tar -xzvf cairo-$(CAIRO_1_VERSION).tar \
 		&& mv cairo/ cairo1/; \
     fi
 
 build-cairo-1-compiler:
 	@if [ ! -d "$(CAIRO_1_REPO_DIR)" ]; then \
-		curl -L -o cairo-1.1.1.tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-x86_64-unknown-linux-musl.tar.gz \
-		&& tar -xzvf cairo-1.1.1.tar \
+		curl -L -o cairo-$(CAIRO_1_VERSION).tar https://github.com/starkware-libs/cairo/releases/download/v$(CAIRO_1_VERSION)/release-x86_64-unknown-linux-musl.tar.gz \
+		&& tar -xzvf cairo-$(CAIRO_1_VERSION).tar \
 		&& mv cairo/ cairo1/
 	fi
 
