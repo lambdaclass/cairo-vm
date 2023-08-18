@@ -306,7 +306,10 @@ clean:
 
 fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
-	. cairo-vm-env/bin/activate; pip install atheris==2.2.2
+	. cairo-vm-env/bin/activate; \
+		pip install atheris==2.2.2 maturin=0.8.2 \
+		cd fuzzer; \
+		maturin develop
 
 run-cairo-compiled-fuzzer:
 	cd fuzzer
