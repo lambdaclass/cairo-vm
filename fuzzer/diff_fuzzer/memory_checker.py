@@ -1,10 +1,6 @@
 def check_mem(raw_py_mem, raw_rs_mem):
-    filename1 = sys.argv[1]
-    filename2 = sys.argv[2]
-    cairo_mem = {}
     py_mem = {}
     rs_mem = {}
-    cairo_rs_mem = {}
 
     assert len(raw_py_mem) % 40 == 0, f'Python implementation: malformed memory file'
     chunks = len(raw_py_mem) // 40
