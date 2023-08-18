@@ -12,6 +12,7 @@ To run simply use `cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_
 We use nightly for this fuzzer because cargo fuzz runs with the -Z flag, which only works with +nightly.
 
 ## diff_fuzzer
-To run de diff fuzzer on the uint256_mul_div_mod function, go to the root of the project and run
-`make fuzzer-deps` if you haven't before, this should only be run once.
-`make diff-fuzz`
+To run the diff fuzzer on various cairo hints, go to the root of the project and run
+`make fuzzer-deps` if you haven't before, this should only be run once. Then, you can call
+`make diff-fuzz` to run the fuzzer.
+For more documentaion, check out the diff_fuzzer [README](diff_fuzzer/README.md)
