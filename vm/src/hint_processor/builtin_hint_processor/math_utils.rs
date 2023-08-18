@@ -2121,10 +2121,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
-                    ))
+                    )
                 ])
             ),
             Ok(())
@@ -2161,10 +2161,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
-                    ))
+                    )
                 ])
             ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
@@ -2200,10 +2200,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
-                    ))
+                    )
                 ])
             ),
             Err(HintError::Memory(
@@ -2243,10 +2243,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
-                    ))
+                    )
                 ])
             ),
             Err(HintError::Memory(
@@ -2281,10 +2281,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
-                    ))
+                    )
                 ])
             ),
             Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,3).into())
