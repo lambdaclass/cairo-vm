@@ -231,11 +231,7 @@ cargo run [path_to_the_.cairo_file]
 
 to execute the program.
 
-In order to generate the trace and the memory files, the folder `memory_trace` must exist and the following options must be passed to the CLI 
-
-```bash
-cargo run [path_to_the_.cairo_file]  --trace_file memory_trace/[filaname].trace --memory_file memory_trace/[filename].memory
-```
+In order to generate the trace and the memory files, the target `run` of the makefile can be used and it will generate the files inside the cairo-1-programs directory. 
 
 ### WebAssembly Demo
 

@@ -1,30 +1,27 @@
 .PHONY: corelib factorial fibonacci test clean run
 
+CAIRO_1_FOLDER=../cairo_programs/cairo-1-programs
 
-CAIRO_1_PROGRAMS=../cairo_programs/cairo-1-programs
-TRACES=$(patsubst $(CAIRO_1_PROGRAMS)/%.cairo, $(CAIRO_1_PROGRAMS)/%.traces, memory_trace)
+$(CAIRO_1_FOLDER)/%.trace: $(CAIRO_1_FOLDER)/%.cairo
+	cargo run --release $< --trace_file $@ 
+
+$(CAIRO_1_FOLDER)/%.memory: $(CAIRO_1_FOLDER)/%.cairo
+	cargo run --release $< --memory_file $@ 
+
+CAIRO_1_PROGRAMS=$(wildcard ../cairo_programs/cairo-1-programs/*.cairo)
+TRACES:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.trace, $(CAIRO_1_PROGRAMS))
+MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIRO_1_PROGRAMS))
 
 corelib:
 	git clone git@github.com:starkware-libs/cairo.git \
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/
 
-# factorial: 
-# 	cargo run --release ../cairo_programs/cairo-1-programs/factorial.cairo --trace_file memory_trace/fac.trace --memory_file memory_trace/fac.memory
-
-# fibonacci: 
-# 	cargo run --release ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file memory_trace/fib.trace --memory_file memory_trace/fib.memory
-
-$(CAIRO_1_PROGRAMS)/%.trace: $(CAIRO_1_PROGRAMS)%.cairo
-	cargo run --release $< --trace_file $@ 
-
-
-run: $(CAIRO_1_PROGRAMS)%.trace
+run: $(TRACES) $(MEMORY)
 
 test: corelib 
 	cargo test
 
 clean:
-	rm -rf memory_trace
 	rm -rf corelib 
 	
