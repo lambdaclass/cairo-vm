@@ -1028,7 +1028,10 @@ impl VirtualMachine {
                         return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
                     };
 
-                Ok((builtin.name(), relocate(addresses)?))
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate(addresses)?,
+                ))
             })
             .collect()
     }

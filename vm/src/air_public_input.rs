@@ -17,9 +17,9 @@ use crate::{
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
     address: usize,
-    page: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
     value: Option<Felt252>,
+    page: usize,
 }
 
 mod mem_value_serde {
