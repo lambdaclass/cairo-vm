@@ -224,7 +224,8 @@ impl MemorySegmentManager {
         for segment_index in 0..self.num_segments() {
             let offsets = &self
                 .public_memory_offsets
-                .get(&segment_index).unwrap_or(&empty_vec);
+                .get(&segment_index)
+                .unwrap_or(&empty_vec);
             let segment_start = segment_offsets
                 .get(segment_index)
                 .ok_or(MemoryError::MalformedPublicMemory)?;
