@@ -220,11 +220,11 @@ impl MemorySegmentManager {
         segment_offsets: &[usize],
     ) -> Result<Vec<(usize, usize)>, MemoryError> {
         let mut addresses = Vec::with_capacity(self.num_segments());
+        let empty_vec = vec![];
         for segment_index in 0..self.num_segments() {
             let offsets = &self
                 .public_memory_offsets
-                .get(&segment_index)
-                .ok_or(MemoryError::MalformedPublicMemory)?;
+                .get(&segment_index).unwrap_or(&empty_vec);
             let segment_start = segment_offsets
                 .get(segment_index)
                 .ok_or(MemoryError::MalformedPublicMemory)?;
