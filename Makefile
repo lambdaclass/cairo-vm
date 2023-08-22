@@ -115,7 +115,7 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 # Setup Cairo 1 Compiler
 # ======================
 
-CAIRO_2_REPO_DIR = cairo1
+CAIRO_1_REPO_DIR = cairo1
 CAIRO_1_VERSION = 1.1.1
 
 build-cairo-1-compiler-macos:
