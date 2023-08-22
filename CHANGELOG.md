@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-#### [0.8.6] - 2023-8-11
+* feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
 
@@ -11,6 +11,8 @@
   * Fixes `div_mod` function so that it behaves like the cairo-lang version
   * Various functions in the `math_utils` crate can now return a `MathError` : `div_mod`, `ec_add`, `line_slope`, `ec_double`, `ec_double_slope`.
   * Fixes `UINT256_MUL_INV_MOD_P` hint so that it behaves like the python code.
+
+#### [0.8.6] - 2023-8-11
 
 * fix: Handle error in hint `UINT256_MUL_DIV_MOD` when divides by zero [#1367](https://github.com/lambdaclass/cairo-vm/pull/1367)
 
