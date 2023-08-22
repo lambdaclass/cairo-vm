@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692729253708,
+  "lastUpdate": 1692741266694,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -114772,6 +114772,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 17823533,
             "range": "± 117450",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "6828b6a604f0321d95beb9d4b861c7dda9ce3e01",
+          "message": "Fix `cairo1` & `cairo2` builds in Makefile (#1390)\n\n* Remove cairo1 & cairo2 folders in `clean`  makefile target\n\n* Use conditionals to install cairo2\n\n* Use conditionals to install cairo1\n\n* Fix name used\n\n* Use CAIRO_1_VERSION constant\n\n* Fix syntax\n\n* Fix typo\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>\n\n---------\n\nCo-authored-by: Mario Rugiero <mario.rugiero@lambdaclass.com>",
+          "timestamp": "2023-08-22T21:05:35Z",
+          "tree_id": "49eaa91c703d23b8764dcfbe90283d2ed6bae216",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/6828b6a604f0321d95beb9d4b861c7dda9ce3e01"
+        },
+        "date": 1692741257446,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1599,
+            "range": "± 14",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60884,
+            "range": "± 1395",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 21228622,
+            "range": "± 388305",
             "unit": "ns/iter"
           }
         ]
