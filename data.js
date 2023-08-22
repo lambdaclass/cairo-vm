@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692741266694,
+  "lastUpdate": 1692747832910,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -114862,6 +114862,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 21228622,
             "range": "± 388305",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d214f760e1c966954ed64ce2db736051977f74b",
+          "message": "Implement `CairoRunner.get_cairo_pie` (#1375)\n\n* Add skeletons\n\n* Move func + progress\n\n* Add CairoPieMetadata\n\n* Improve stripped program representation\n\n* Use stripped program in cairo pie\n\n* Add Pie representation of memory\n\n* Add execution resources\n\n* Add BuiltinAdditionalInfo struct\n\n* Add get_additional_info for output & signature\n\n* Add get_additional info for hash builtin\n\n* Add get_additional_data for builtin enum + rename\n\n* Add additional_data to pie\n\n* Fixex\n\n* fmt\n\n* Clippy + remove unused impl\n\n* Fix hash additional data format\n\n* Fix logic\n\n* Fix hash additional data\n\n* Add wip test\n\n* Use struct for SegmentInfo\n\n* Strip _builtin suffix\n\n* Complete test\n\n* Undo change\n\n* Add test\n\n* Add test\n\n* Add test\n\n* Derive relevant traits for public structures\n\n* Add tests\n\n* More tests\n\n* Add tests\n\n* Add test\n\n* Add changelog entry\n\n* Add tests\n\n* Add tests\n\n* Fix imports\n\n* Fix imports\n\n* Add wasm imports\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-08-22T22:43:05Z",
+          "tree_id": "93a763d9b3ff891bcf70e1b9e09a95a075500697",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/2d214f760e1c966954ed64ce2db736051977f74b"
+        },
+        "date": 1692747824810,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1626,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 66511,
+            "range": "± 352",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22063811,
+            "range": "± 551890",
             "unit": "ns/iter"
           }
         ]
