@@ -19,6 +19,8 @@
 
     Overall these changes make the the air public input file (obtained through the --air_public_input flag) equivalent to the ones outputted by the cairo-lang version
 
+* fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
+
 * fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
 
   * Fixes `div_mod` function so that it behaves like the cairo-lang version
