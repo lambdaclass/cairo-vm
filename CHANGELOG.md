@@ -4,6 +4,21 @@
 
 #### [0.8.6] - 2023-8-11
 
+* fix: Compare air_public_inputs against python vm + Fix how public memory is built [#391](https://github.com/lambdaclass/cairo-vm/pull/1391)
+
+    BugFixes:
+
+    *  `CairoRunner.finalize_segments` now builds the output builtin's public memory (if applicable).
+    * `MemorySegmentManager.get_public_memory_addresses` logic fixed.
+    * `MemorySegmentManager.finalize` no longer skips segments when their public memory is None
+
+    Minor changes:
+
+    * `VirtualMachine.get_public_memory_addresses` now strips the "_builtin" suffix from builtin names
+    * `MemorySegmentAddresses.stop_address` renamed to `stop_ptr`
+
+    Overall these changes make the the air public input file (obtained through the --air_public_input flag) equivalent to the ones outputted by the cairo-lang version
+
 * fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
 
   * Fixes `div_mod` function so that it behaves like the cairo-lang version
