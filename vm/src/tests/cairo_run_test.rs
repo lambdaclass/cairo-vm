@@ -650,6 +650,15 @@ fn error_msg_attr_div_by_zero() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn split_felt_bad_constants() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/bad_programs/split_felt_bad_constants.json");
+    let error_msg = "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW";
+    run_program_with_error(program_data.as_slice(), error_msg);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn poseidon_builtin() {
     let program_data = include_bytes!("../../../cairo_programs/poseidon_builtin.json");
     run_program_simple(program_data.as_slice());
