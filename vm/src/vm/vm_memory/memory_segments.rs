@@ -245,10 +245,8 @@ impl MemorySegmentManager {
         if let Some(size) = size {
             self.segment_sizes.insert(segment_index, size);
         }
-        if let Some(public_memory) = public_memory {
-            self.public_memory_offsets
-                .insert(segment_index, public_memory.clone());
-        }
+        self.public_memory_offsets
+            .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 }
 
