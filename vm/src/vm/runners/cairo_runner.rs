@@ -50,7 +50,7 @@ use num_integer::div_rem;
 use num_traits::Zero;
 use serde::Deserialize;
 
-use super::builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner};
+use super::builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner, OUTPUT_BUILTIN_NAME};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -903,8 +903,14 @@ impl CairoRunner {
             let (_, size) = builtin_runner
                 .get_used_cells_and_allocated_size(vm)
                 .map_err(RunnerError::FinalizeSegements)?;
-            vm.segments
-                .finalize(Some(size), builtin_runner.base(), None)
+            if builtin_runner.name() == OUTPUT_BUILTIN_NAME {
+                let public_memory = (0..size).map(|i| (i, 0)).collect();
+                vm.segments
+                    .finalize(Some(size), builtin_runner.base(), Some(&public_memory))
+            } else {
+                vm.segments
+                    .finalize(Some(size), builtin_runner.base(), None)
+            }
         }
         self.segments_finalized = true;
         Ok(())
