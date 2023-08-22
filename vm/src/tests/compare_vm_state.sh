@@ -8,6 +8,7 @@ proof_tests_path="${tests_path}/proof_programs"
 exit_code=0
 trace=false
 memory=false
+air_public_input=false
 passed_tests=0
 failed_tests=0
 
@@ -22,10 +23,20 @@ for i in $@; do
         "proof_mode") tests_path=$proof_tests_path
         echo "Requested proof mode usage"
         ;;
+        "air_public_input") air_public_input=true
+        echo "Requested air_public_input comparison"
+        ;;
         *)
         ;;
     esac
 done
+
+if $air_public_input; then
+    if [ $tests_path != $proof_tests_path ]; then
+        echo "Can't compare air_public_input without proof_mode"
+        exit 1
+    fi
+fi
 
 files=$(ls $tests_path)
 EXIT_CODE=$?
