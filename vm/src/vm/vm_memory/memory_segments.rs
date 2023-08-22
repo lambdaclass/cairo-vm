@@ -829,12 +829,12 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn finalize_no_size_nor_memory_no_change() {
+    fn finalize_no_size_nor_memory() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(None, 0, None);
         assert!(segments.memory.data.is_empty());
         assert!(segments.memory.temp_data.is_empty());
-        assert!(segments.public_memory_offsets.is_empty());
+        assert_eq!(segments.public_memory_offsets, HashMap::from([(0, vec![])]));
         assert_eq!(segments.num_segments(), 0);
         assert_eq!(segments.num_temp_segments(), 0);
     }
@@ -844,7 +844,7 @@ mod tests {
     fn finalize_no_memory() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(Some(42), 0, None);
-        assert!(segments.public_memory_offsets.is_empty());
+        assert_eq!(segments.public_memory_offsets, HashMap::from([(0, vec![])]));
         assert_eq!(segments.segment_sizes, HashMap::from([(0, 42)]));
     }
 
