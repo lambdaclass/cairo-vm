@@ -215,17 +215,24 @@ impl MemorySegmentManager {
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
     /// segment_offsets is the result of self.relocate_segments()
-    pub fn get_public_memory_addresses(&self, segment_offsets: &[usize]) -> Vec<(usize, usize)> {
-        let len = self.num_segments().min(self.public_memory_offsets.len());
-        let mut addresses = Vec::with_capacity(len);
-        for segment_index in 0..len {
-            let offsets = &self.public_memory_offsets[&segment_index];
-            let segment_start = segment_offsets[segment_index];
+    pub fn get_public_memory_addresses(
+        &self,
+        segment_offsets: &[usize],
+    ) -> Result<Vec<(usize, usize)>, MemoryError> {
+        let mut addresses = Vec::with_capacity(self.num_segments());
+        for segment_index in 0..self.num_segments() {
+            let offsets = &self
+                .public_memory_offsets
+                .get(&segment_index)
+                .ok_or(MemoryError::MalformedPublicMemory)?;
+            let segment_start = segment_offsets
+                .get(segment_index)
+                .ok_or(MemoryError::MalformedPublicMemory)?;
             for (offset, page_id) in offsets.iter() {
                 addresses.push((segment_start + offset, *page_id));
             }
         }
-        addresses
+        Ok(addresses)
     }
 
     // Writes the following information for the given segment:
