@@ -2345,10 +2345,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::from(-1)),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         Felt252::from(-1),
-                    ))
+                    )
                 ])
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
@@ -2383,10 +2383,10 @@ mod tests {
                 exec_scopes_ref!(),
                 &HashMap::from([
                     ("MAX_LOW".to_string(), Felt252::zero()),
-                    ((
+                    (
                         "MAX_HIGH".to_string(),
                         Felt252::zero(),
-                    ))
+                    )
                 ])
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
