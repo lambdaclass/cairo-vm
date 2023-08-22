@@ -41,15 +41,15 @@ mod mem_value_serde {
 #[derive(Serialize, Debug)]
 struct MemorySegmentAddresses {
     begin_addr: usize,
-    stop_addr: usize,
+    stop_ptr: usize,
 }
 
 impl From<(usize, usize)> for MemorySegmentAddresses {
     fn from(addresses: (usize, usize)) -> Self {
-        let (begin_addr, stop_addr) = addresses;
+        let (begin_addr, stop_ptr) = addresses;
         MemorySegmentAddresses {
             begin_addr,
-            stop_addr,
+            stop_ptr,
         }
     }
 }
