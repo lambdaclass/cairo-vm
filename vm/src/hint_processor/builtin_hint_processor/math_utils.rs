@@ -11,7 +11,7 @@ use crate::{
     utils::{bigint_to_felt, biguint_to_felt, felt_to_bigint, felt_to_biguint},
 };
 use lazy_static::lazy_static;
-use num_traits::{Pow, Signed, Zero};
+use num_traits::{Signed, Zero};
 
 use crate::utils::CAIRO_PRIME;
 
@@ -695,7 +695,8 @@ pub fn is_quad_residue(
 
     if x.is_zero() || x == Felt252::ONE {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
-    } else if Pow::pow(felt_to_biguint(x), &(&*CAIRO_PRIME >> 1_u32)).is_one() {
+    // } else if Pow::pow(felt_to_biguint(x), &(&*CAIRO_PRIME >> 1_u32)).is_one() {
+    } else if x.pow_felt(&(&Felt252::MAX >> 1_usize)) == Felt252::ONE {
         insert_value_from_var_name(
             "y",
             &x.sqrt().unwrap_or_default(),
@@ -2380,7 +2381,7 @@ mod tests {
 
             if x.is_zero() || x == Felt252::ONE {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), &x);
-            } else if felt_to_biguint(x).pow(&felt_to_biguint(Felt252::MAX >> 1_usize)).is_one() {
+            } else if x.pow_felt(&(&Felt252::MAX >> 1_usize)) == Felt252::ONE {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt().unwrap());
             } else {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(&(Felt252::from(3).try_into().unwrap())).sqrt().unwrap()));
