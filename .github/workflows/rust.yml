@@ -484,7 +484,7 @@ jobs:
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
 
   wasm-demo:
-    name: Runs the wasm demo
+    name: Build the wasm demo
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
@@ -503,5 +503,8 @@ jobs:
         pip install -r requirements.txt
         npm install -g wasm-pack
 
-    - name: Run wasm-demo
-      run: make wasm-demo
+    - name: Build wasm-demo
+      run: |
+      cd examples/wasm-demo
+	    cairo-compile src/array_sum.cairo --no_debug_info --output src/array_sum.json
+	    wasm-pack build --target=web
