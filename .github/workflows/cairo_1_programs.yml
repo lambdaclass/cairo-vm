@@ -1,7 +1,6 @@
 name: Cairo 1 programs execution
 
 on:
-  merge_group:
   push:
     branches: [ main ]
   pull_request:
