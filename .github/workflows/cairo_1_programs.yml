@@ -7,6 +7,7 @@ on:
     branches: [ '**' ]
 
 jobs:
+  name: execute programs
   run:
     runs-on: ubuntu-22.04
     steps:
@@ -17,6 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: install corelib
-        uses: make corelib
+        run: make corelib
       - name: Run cairo 1 programs
         run: make run
