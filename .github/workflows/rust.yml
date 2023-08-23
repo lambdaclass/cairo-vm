@@ -313,6 +313,7 @@ jobs:
         path: |
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
+          cairo_programs/**/*.air_public_input
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
