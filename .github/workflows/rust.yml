@@ -482,3 +482,7 @@ jobs:
           PROOF=proof_mode
         fi
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+
+  wasm-demo:
+    - name: Run wasm-demo
+      run: make wasm-demo
