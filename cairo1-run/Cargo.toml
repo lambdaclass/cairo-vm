@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cairo-vm = "0.8.2"
+cairo-vm.worspace = true
 cairo-lang-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" } 
 cairo-lang-compiler = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo" }
