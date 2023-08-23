@@ -7,8 +7,8 @@ on:
     branches: [ '**' ]
 
 jobs:
-  name: execute programs
   run:
+    name: Execute programs
     runs-on: ubuntu-22.04
     steps:
       - name: Install Rust toolchain
