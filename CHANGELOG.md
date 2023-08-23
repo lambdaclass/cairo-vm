@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `Program::new_for_proof` [#1396](https://github.com/lambdaclass/cairo-vm/pull/1396)
+
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
