@@ -219,7 +219,11 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 
 ### WebAssembly Demo
 
-A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/)
+A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/). You can run it using:
+
+```bash
+  make wasm-demo
+```
 
 ### Testing
 
