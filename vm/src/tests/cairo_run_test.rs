@@ -1005,6 +1005,8 @@ fn fibonacci_proof_mode_disable_trace_padding() {
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let (r, v) = cairo_run(program_data, &config, &mut hint_processor).unwrap();
     assert!(r.get_memory_holes(&v).unwrap().is_zero());
+}
+
 
 fn cairo_run_overflowing_dict() {
     let program_data =
