@@ -412,7 +412,24 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+    if max_high.bits() > 128 || max_low.bits() > 128 {
+        return Err(HintError::AssertionFailed(
+            "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
+                .to_string()
+                .into_boxed_str(),
+        ));
+    }
+    if Felt252::from(-1) != max_high * &Felt252::one().shl(128_u32) + max_low {
+        return Err(HintError::AssertionFailed(
+            "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
+                .to_string()
+                .into_boxed_str(),
+        ));
+    }
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value = value.as_ref();
     //Main logic
@@ -2096,7 +2113,22 @@ mod tests {
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
+            Ok(())
+        );
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -2122,7 +2154,19 @@ mod tests {
         let ids_data = ids_data!["low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
     }
@@ -2149,7 +2193,19 @@ mod tests {
 
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 0)),
@@ -2180,7 +2236,19 @@ mod tests {
         ]);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 1)),
@@ -2206,8 +2274,122 @@ mod tests {
         ]);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,3).into())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_no_constants() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_constants_over_128_bits() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::from(-1)),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::from(-1),
+                    )
+                ])
+            ),
+            Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_wrong_constants() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::zero(),
+                    )
+                ])
+            ),
+            Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );
     }
 
