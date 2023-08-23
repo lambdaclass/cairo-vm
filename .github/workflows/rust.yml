@@ -484,5 +484,19 @@ jobs:
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
 
   wasm-demo:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+  
+    - name: Install cairo-lang and deps
+      run: pip install -r requirements.txt
+
     - name: Run wasm-demo
       run: make wasm-demo
