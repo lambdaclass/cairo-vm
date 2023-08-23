@@ -162,6 +162,51 @@ impl Program {
             builtins,
         })
     }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_for_proof(
+        builtins: Vec<BuiltinName>,
+        data: Vec<MaybeRelocatable>,
+        main: Option<usize>,
+        start: Option<usize>,
+        end: Option<usize>,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    ) -> Result<Program, ProgramError> {
+        let mut constants = HashMap::new();
+        for (key, value) in identifiers.iter() {
+            if value.type_.as_deref() == Some("const") {
+                let value = value
+                    .value
+                    .clone()
+                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                constants.insert(key.clone(), value);
+            }
+        }
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+
+        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
+
+        let shared_program_data = SharedProgramData {
+            data,
+            main,
+            start,
+            end,
+            hints,
+            hints_ranges,
+            error_message_attributes,
+            instruction_locations,
+            identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
+        };
+        Ok(Self {
+            shared_program_data: Arc::new(shared_program_data),
+            constants,
+            builtins,
+        })
+    }
 
     pub(crate) fn flatten_hints(
         hints: &BTreeMap<usize, Vec<HintParams>>,
@@ -376,6 +421,47 @@ mod tests {
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(program.shared_program_data.hints, Vec::new());
+        assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_for_proof() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new_for_proof(
+            builtins.clone(),
+            data.clone(),
+            None,
+            Some(0),
+            Some(1),
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.start, Some(0));
+        assert_eq!(program.shared_program_data.end, Some(1));
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
         assert_eq!(program.shared_program_data.hints, Vec::new());
         assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
