@@ -30,11 +30,11 @@ COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.
 
 CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.trace, $(COMPILED_PROOF_TESTS))
-CAIRO_AIR_PUBLIC_INPUT_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.air_public_input, $(COMPILED_PROOF_TESTS))
 
 CAIRO_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.trace, $(COMPILED_PROOF_TESTS))
-CAIRO_RS_AIR_PUBLIC_INPUT_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_RS_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.air_public_input, $(COMPILED_PROOF_TESTS))
 
 PROOF_BENCH_DIR=cairo_programs/benchmarks
 PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
@@ -226,7 +226,7 @@ cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
-cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT_PROOF)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT)
 
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
@@ -281,7 +281,7 @@ compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode
 
-compare_all_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT_PROOF) $(CAIRO_AIR_PUBLIC_INPUT_PROOF)
+compare_all_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode air_public_input
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
@@ -290,7 +290,7 @@ compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode
 
-compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT_PROOF) $(CAIRO_AIR_PUBLIC_INPUT_PROOF)
+compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_public_input
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
