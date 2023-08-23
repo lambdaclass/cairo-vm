@@ -166,7 +166,6 @@ impl Program {
     pub fn new_for_proof(
         builtins: Vec<BuiltinName>,
         data: Vec<MaybeRelocatable>,
-        main: Option<usize>,
         start: Option<usize>,
         end: Option<usize>,
         hints: HashMap<usize, Vec<HintParams>>,
@@ -191,7 +190,7 @@ impl Program {
 
         let shared_program_data = SharedProgramData {
             data,
-            main,
+            main: None,
             start,
             end,
             hints,
@@ -446,7 +445,6 @@ mod tests {
         let program = Program::new_for_proof(
             builtins.clone(),
             data.clone(),
-            None,
             Some(0),
             Some(1),
             HashMap::new(),
