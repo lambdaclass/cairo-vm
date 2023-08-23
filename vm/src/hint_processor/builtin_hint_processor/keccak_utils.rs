@@ -95,9 +95,11 @@ pub fn unsafe_keccak(
     hasher.update(keccak_input);
 
     let hashed = hasher.finalize();
-    let (mut high_bytes, mut low_bytes) = (hashed[0..16].to_vec(), hashed[16..32].to_vec());
-    high_bytes.resize(32, 0);
-    low_bytes.resize(32, 0);
+
+    let mut high_bytes = [0; 16].to_vec();
+    let mut low_bytes = [0; 16].to_vec();
+    high_bytes.extend_from_slice(&hashed[0..16].to_vec());
+    low_bytes.extend_from_slice(&hashed[16..32].to_vec());
 
     let high = Felt252::from_bytes_be(&high_bytes).map_err(|_| MathError::ByteConversionError)?;
     let low = Felt252::from_bytes_be(&low_bytes).map_err(|_| MathError::ByteConversionError)?;
@@ -163,9 +165,11 @@ pub fn unsafe_keccak_finalize(
     hasher.update(keccak_input);
 
     let hashed = hasher.finalize();
-    let (mut high_bytes, mut low_bytes) = (hashed[0..16].to_vec(), hashed[16..32].to_vec());
-    high_bytes.resize(32, 0);
-    low_bytes.resize(32, 0);
+
+    let mut high_bytes = [0; 16].to_vec();
+    let mut low_bytes = [0; 16].to_vec();
+    high_bytes.extend_from_slice(&hashed[0..16].to_vec());
+    low_bytes.extend_from_slice(&hashed[16..32].to_vec());
 
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
