@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Implement a CLI to run cairo programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
+
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
