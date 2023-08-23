@@ -483,6 +483,7 @@ jobs:
     - name: Run comparison script
       run: |
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
-          PROOF=proof_mode air_public_input
+          PROOF=proof_mode 
+          AIR_PUBLIC_INPUT=air_public_input
         fi
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT
