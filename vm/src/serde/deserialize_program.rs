@@ -6,11 +6,14 @@
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    fmt,
-    prelude::*,
-    sync::Arc,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        fmt,
+        prelude::*,
+        sync::Arc,
+    },
+    utils::CAIRO_PRIME,
 };
 
 use crate::utils::PRIME_STR;
@@ -30,7 +33,8 @@ use crate::{
         SIGNATURE_BUILTIN_NAME,
     },
 };
-use num_traits::float::FloatCore;
+use num_bigint::BigUint;
+use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
@@ -256,7 +260,10 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let base = Felt252::from_dec_str(list[0]).ok()?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::from_dec_str(&FloatCore::round(float).to_string()).ok(),
+        Some(float) => {
+            let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
+            Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
+        }
     }
 }
 
