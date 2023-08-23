@@ -81,7 +81,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.as_ref() <= Felt252::ZERO.as_ref()
+        if word.as_ref() < Felt252::ZERO.as_ref()
             || word.as_ref() >= &(Felt252::ONE << (8 * (n_bytes as usize)))
         {
             return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
