@@ -2,7 +2,15 @@
 
 #### Upcoming Changes
 
-* feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
+* Don't build wasm-demo in `build` target + add target & ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
+
+    * Adds default-members to workspace
+    * Crate `examples/wasm-demo` is no longer built during `make build`
+    * `make check` no longer compiles the cairo file used in the wasm-demo
+    * Removes Makefile targets `examples/wasm-demo/src/array_sum.json` & `example_program`
+    * Adds the Makefile target `wasm-demo` that builds and runs the wasm demo
+
+* feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375)
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
 
