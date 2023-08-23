@@ -499,7 +499,9 @@ jobs:
         cache: 'pip'
   
     - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+      run: | 
+        pip install -r requirements.txt
+        npm install -g wasm-pack
 
     - name: Run wasm-demo
       run: make wasm-demo
