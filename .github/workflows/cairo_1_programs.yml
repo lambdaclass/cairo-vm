@@ -20,4 +20,4 @@ jobs:
       - name: install corelib
         run:  cd cairo1-run/ && make corelib
       - name: Run cairo 1 programs
-        run: make run
+        run:  cd cairo1-run/ && make run
