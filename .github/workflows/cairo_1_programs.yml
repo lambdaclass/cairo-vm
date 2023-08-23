@@ -11,13 +11,13 @@ jobs:
   run:
     runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@1.69.0
-    - name: Set up Cargo cache
-      uses: Swatinem/rust-cache@v2
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: install corelib
-      uses: make corelib
-    - name: Run cairo 1 programs
-      run: make run
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.69.0
+      - name: Set up Cargo cache
+        uses: Swatinem/rust-cache@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: install corelib
+        uses: make corelib
+      - name: Run cairo 1 programs
+        run: make run
