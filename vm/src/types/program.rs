@@ -111,6 +111,13 @@ pub struct Program {
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StrippedProgram {
+    pub data: Vec<MaybeRelocatable>,
+    pub builtins: Vec<BuiltinName>,
+    pub main: usize,
+}
+
 impl Program {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -252,6 +259,20 @@ impl Program {
             })
             .collect()
     }
+
+    // Obtains a reduced version of the program
+    // Doesn't contain hints
+    // Can be used for verifying execution.
+    pub fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
+        Ok(StrippedProgram {
+            data: self.shared_program_data.data.clone(),
+            builtins: self.builtins.clone(),
+            main: self
+                .shared_program_data
+                .main
+                .ok_or(ProgramError::StrippedProgramNoMain)?,
+        })
+    }
 }
 
 impl Default for Program {
@@ -317,6 +338,8 @@ mod tests {
     use crate::utils::test_utils::*;
     use felt::felt_str;
     use num_traits::Zero;
+
+    use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -1041,5 +1064,29 @@ mod tests {
         };
 
         assert_eq!(program, Program::default());
+    }
+
+    #[test]
+    fn get_stripped_program() {
+        let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let stripped_program = program.get_stripped_program().unwrap();
+        assert_eq!(stripped_program.builtins, program.builtins);
+        assert_eq!(stripped_program.data, program.shared_program_data.data);
+        assert_eq!(
+            stripped_program.main,
+            program.shared_program_data.main.unwrap()
+        );
+    }
+
+    #[test]
+    fn get_stripped_no_main() {
+        let program_content =
+            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        assert_matches!(
+            program.get_stripped_program(),
+            Err(ProgramError::StrippedProgramNoMain)
+        );
     }
 }
