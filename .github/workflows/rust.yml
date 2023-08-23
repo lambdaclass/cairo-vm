@@ -352,7 +352,7 @@ jobs:
         include:
         - program-target: cairo_proof_programs
           programs-dir: cairo_programs/proof_programs
-          extra-args: '--proof_mode, --air_public_input '{program}'.rs.air_public_input '
+          extra-args: '--proof_mode, --air_public_input {program}.rs.air_public_input '
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
           extra-args: ''
