@@ -4,16 +4,10 @@ use crate::stdlib::{
     str,
 };
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use crate::{
-    hint_processor::{
-        hint_processor_definition::HintReference,
-        hint_processor_utils::get_maybe_relocatable_from_reference,
-    },
+    hint_processor::hint_processor_utils::get_maybe_relocatable_from_reference,
     serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
     types::{instruction::Register, relocatable::MaybeRelocatable},
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
@@ -177,13 +171,11 @@ fn get_value_from_simple_reference(
     runner: &CairoRunner,
     vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
-    let reference: HintReference = runner
+    let reference = runner
         .program
+        .shared_program_data
         .reference_manager
-        .references
-        .get(ref_id)?
-        .clone()
-        .into();
+        .get(ref_id)?;
     // Filter ap-based references
     match reference.offset1 {
         OffsetValue::Reference(Register::AP, _, _) => None,
@@ -191,7 +183,7 @@ fn get_value_from_simple_reference(
             // Filer complex types (only felt/felt pointers)
             match reference.cairo_type {
                 Some(ref cairo_type) if cairo_type.contains("felt") => Some(
-                    get_maybe_relocatable_from_reference(vm, &reference, ap_tracking)?,
+                    get_maybe_relocatable_from_reference(vm, reference, ap_tracking)?,
                 ),
                 _ => None,
             }
@@ -654,10 +646,10 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
-        #[cfg(all(feature = "std"))]
+        #[cfg(feature = "std")]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
         #[cfg(not(feature = "std"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
@@ -668,7 +660,7 @@ mod test {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
     }
@@ -706,7 +698,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         assert_eq!(
             get_traceback(&vm, &cairo_runner),
@@ -865,7 +857,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
@@ -910,7 +902,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
         let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);

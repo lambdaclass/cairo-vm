@@ -96,7 +96,7 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one().shl((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt252::one() << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
                     ))))
                 }
             },
@@ -188,8 +188,7 @@ impl RangeCheckBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
     }
@@ -368,7 +367,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 1)));
@@ -412,7 +411,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));

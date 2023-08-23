@@ -258,21 +258,22 @@ pub mod test_utils {
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
                 data: crate::stdlib::vec::Vec::new(),
-                hints: crate::stdlib::collections::HashMap::new(),
+                hints: crate::stdlib::vec::Vec::new(),
+                hints_ranges: crate::stdlib::vec::Vec::new(),
                 main: None,
                 start: None,
                 end: None,
                 error_message_attributes: crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
                 identifiers: crate::stdlib::collections::HashMap::new(),
+                reference_manager: Program::get_reference_list(&ReferenceManager {
+                    references: crate::stdlib::vec::Vec::new(),
+                }),
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
                 constants: crate::stdlib::collections::HashMap::new(),
                 builtins: vec![$( $builtin_name ),*],
-                reference_manager: ReferenceManager {
-                    references: crate::stdlib::vec::Vec::new(),
-                },
             }
         }};
         ($($field:ident = $value:expr),* $(,)?) => {{
@@ -292,7 +293,7 @@ pub mod test_utils {
 
     pub(crate) struct ProgramFlat {
         pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
-        pub(crate) hints: crate::stdlib::collections::HashMap<
+        pub(crate) hints: crate::stdlib::collections::BTreeMap<
             usize,
             crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
         >,
@@ -342,20 +343,24 @@ pub mod test_utils {
 
     impl From<ProgramFlat> for Program {
         fn from(val: ProgramFlat) -> Self {
+            // NOTE: panics if hints have PCs higher than the program length
+            let (hints, hints_ranges) =
+                Program::flatten_hints(&val.hints, val.data.len()).expect("hints are valid");
             Program {
                 shared_program_data: Arc::new(SharedProgramData {
                     data: val.data,
-                    hints: val.hints,
+                    hints,
+                    hints_ranges,
                     main: val.main,
                     start: val.start,
                     end: val.end,
                     error_message_attributes: val.error_message_attributes,
                     instruction_locations: val.instruction_locations,
                     identifiers: val.identifiers,
+                    reference_manager: Program::get_reference_list(&val.reference_manager),
                 }),
                 constants: val.constants,
                 builtins: val.builtins,
-                reference_manager: val.reference_manager,
             }
         }
     }
@@ -597,6 +602,7 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
     use crate::{
         hint_processor::{
@@ -604,7 +610,7 @@ mod test {
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
                 dict_manager::{DictManager, DictTracker},
             },
-            hint_processor_definition::{HintProcessor, HintReference},
+            hint_processor_definition::HintReference,
         },
         serde::deserialize_program::{BuiltinName, ReferenceManager},
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
@@ -919,20 +925,21 @@ mod test {
     fn program_macro() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: None,
             start: None,
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         };
         assert_eq!(program, program!())
@@ -943,20 +950,21 @@ mod test {
     fn program_macro_with_builtin() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: None,
             start: None,
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: vec![BuiltinName::range_check],
         };
 
@@ -968,20 +976,21 @@ mod test {
     fn program_macro_custom_definition() {
         let shared_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: Some(2),
             start: None,
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: vec![BuiltinName::range_check],
         };
 

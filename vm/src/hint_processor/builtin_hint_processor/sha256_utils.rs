@@ -221,7 +221,7 @@ mod tests {
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
                 hint_code,
             },
-            hint_processor_definition::{HintProcessor, HintReference},
+            hint_processor_definition::{HintProcessorLogic, HintReference},
         },
         types::exec_scope::ExecutionScopes,
         utils::test_utils::*,

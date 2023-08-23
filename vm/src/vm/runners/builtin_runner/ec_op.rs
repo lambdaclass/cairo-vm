@@ -77,9 +77,9 @@ impl EcOpBuiltinRunner {
                 ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
+                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime);
+            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
             slope = slope.clone() >> 1_u32;
         }
         Ok(partial_sum_b)
@@ -251,8 +251,7 @@ impl EcOpBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
     }
@@ -445,7 +444,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 7)));
@@ -490,7 +489,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));

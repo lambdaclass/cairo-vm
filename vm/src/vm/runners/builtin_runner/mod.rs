@@ -29,6 +29,8 @@ pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
+use super::cairo_pie::BuiltinAdditionalData;
+
 pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
 pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
 pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
@@ -39,7 +41,7 @@ pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
 pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
 
-/* NB: this enum is no accident: we may need (and cairo-rs-py *does* need)
+/* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
  * are either storing a `dyn Trait` inside an `Arc<Mutex<&dyn Trait>>` or
  * making the type itself `Send`. We opted for not complicating the user nor
@@ -472,6 +474,15 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        match self {
+            BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
+            _ => BuiltinAdditionalData::None,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
@@ -803,7 +814,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -850,7 +861,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
@@ -894,7 +905,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
@@ -938,7 +949,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut vm, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
@@ -1673,5 +1684,11 @@ mod tests {
             let (_, stop_ptr) = br.get_memory_segment_addresses();
             assert_eq!(stop_ptr, Some(ptr));
         }
+    }
+
+    #[test]
+    fn get_additonal_data_none() {
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::None)
     }
 }

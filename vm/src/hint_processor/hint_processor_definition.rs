@@ -8,12 +8,16 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use felt::Felt252;
 
-pub trait HintProcessor {
+#[cfg(feature = "arbitrary")]
+use arbitrary::Arbitrary;
+
+pub trait HintProcessorLogic {
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     fn execute_hint(
         &mut self,
@@ -40,7 +44,7 @@ pub trait HintProcessor {
         //(may contain other variables aside from those used by the hint)
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
-        references: &HashMap<usize, HintReference>,
+        references: &[HintReference],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
@@ -50,9 +54,12 @@ pub trait HintProcessor {
     }
 }
 
+pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
+impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
+
 fn get_ids_data(
     reference_ids: &HashMap<String, usize>,
-    references: &HashMap<usize, HintReference>,
+    references: &[HintReference],
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
     let mut ids_data = HashMap::<String, HintReference>::new();
     for (path, ref_id) in reference_ids {
@@ -63,7 +70,7 @@ fn get_ids_data(
         ids_data.insert(
             name.to_string(),
             references
-                .get(ref_id)
+                .get(*ref_id)
                 .ok_or(VirtualMachineError::Unexpected)?
                 .clone(),
         );
@@ -71,6 +78,7 @@ fn get_ids_data(
     Ok(ids_data)
 }
 
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HintReference {
     pub offset1: OffsetValue,

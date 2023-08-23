@@ -11,12 +11,17 @@ use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::Arbitrary;
+
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
@@ -147,7 +152,9 @@ impl Sub<usize> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn sub(self, other: usize) -> Result<Self, MathError> {
         if self.offset < other {
-            return Err(MathError::RelocatableSubNegOffset(Box::new((self, other))));
+            return Err(MathError::RelocatableSubUsizeNegOffset(Box::new((
+                self, other,
+            ))));
         }
         let new_offset = self.offset - other;
         Ok(relocatable!(self.segment_index, new_offset))
@@ -161,7 +168,7 @@ impl Sub<Relocatable> for Relocatable {
             return Err(MathError::RelocatableSubDiffIndex(Box::new((self, other))));
         }
         if self.offset < other.offset {
-            return Err(MathError::RelocatableSubNegOffset(Box::new((
+            return Err(MathError::RelocatableSubUsizeNegOffset(Box::new((
                 self,
                 other.offset,
             ))));
@@ -268,10 +275,7 @@ impl MaybeRelocatable {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
                     (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
-                            *rel_a,
-                            num_b.clone(),
-                        )))
+                        MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, num_b.clone())))
                     })?,
                 )))
             }
@@ -789,7 +793,7 @@ mod tests {
 
         assert_eq!(
             reloc + (-3),
-            Err(MathError::RelocatableSubNegOffset(Box::new((
+            Err(MathError::RelocatableSubUsizeNegOffset(Box::new((
                 relocatable!(1, 1),
                 3
             ))))
@@ -814,7 +818,7 @@ mod tests {
         assert_eq!(reloc - relocatable!(7, 5), Ok(1));
         assert_eq!(
             reloc - relocatable!(7, 9),
-            Err(MathError::RelocatableSubNegOffset(Box::new((
+            Err(MathError::RelocatableSubUsizeNegOffset(Box::new((
                 relocatable!(7, 6),
                 9
             ))))

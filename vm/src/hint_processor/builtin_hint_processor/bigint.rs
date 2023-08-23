@@ -53,7 +53,7 @@ pub fn bigint_pack_div_mod_hint(
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();
 
-    let res = div_mod(&x, &y, &p);
+    let res = div_mod(&x, &y, &p)?;
     exec_scopes.insert_value("res", res.clone());
     exec_scopes.insert_value("value", res);
     exec_scopes.insert_value("x", x);
@@ -100,8 +100,7 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;

@@ -1,20 +1,31 @@
-use crate::stdlib::{collections::HashMap, prelude::*, sync::Arc};
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    prelude::*,
+    sync::Arc,
+};
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
 use crate::{
+    hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
         deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
-        InstructionLocation, ReferenceManager,
+        InstructionLocation, OffsetValue, ReferenceManager,
     },
-    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
+    types::{
+        errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,
+    },
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use core::num::NonZeroUsize;
 use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
 use std::path::Path;
+
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::{Arbitrary, Unstructured};
 
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
 // and some that will be allocated on the heap inside an `Arc<_>`.
@@ -22,7 +33,7 @@ use std::path::Path;
 // a `CairoRunner` becomes a bottleneck, but the following solutions were tried and
 // discarded:
 // - Store only a reference in `CairoRunner` rather than cloning; this doesn't work
-//   because then we need to introduce explicit lifetimes, which broke `cairo-rs-py`
+//   because then we need to introduce explicit lifetimes, which broke `cairo-vm-py`
 //   since PyO3 doesn't support Python objects containing structures with lifetimes.
 // - Directly pass an `Arc<Program>` to `CairoRunner::new()` and simply copy that:
 //   there was a prohibitive performance hit of 10-15% when doing so, most likely
@@ -40,7 +51,9 @@ use std::path::Path;
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
-    pub(crate) hints: HashMap<usize, Vec<HintParams>>,
+    pub(crate) hints: Vec<HintParams>,
+    /// This maps a PC to the range of hints in `hints` that correspond to it.
+    pub(crate) hints_ranges: Vec<HintRange>,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub(crate) start: Option<usize>,
@@ -48,14 +61,61 @@ pub(crate) struct SharedProgramData {
     pub(crate) error_message_attributes: Vec<Attribute>,
     pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     pub(crate) identifiers: HashMap<String, Identifier>,
+    pub(crate) reference_manager: Vec<HintReference>,
 }
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+impl<'a> Arbitrary<'a> for SharedProgramData {
+    /// Create an arbitary [`SharedProgramData`] using `flatten_hints` to generate `hints` and
+    /// `hints_ranges`
+    fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
+        let mut data = Vec::new();
+        let len = usize::arbitrary(u)?;
+        for i in 0..len {
+            let instruction = u64::arbitrary(u)?;
+            data.push(MaybeRelocatable::from(Felt252::from(instruction)));
+            // Check if the Imm flag is on and add an immediate value if it is
+            if instruction & 0x0004000000000000 != 0 && i < len - 1 {
+                data.push(MaybeRelocatable::from(Felt252::arbitrary(u)?));
+            }
+        }
+
+        let raw_hints = BTreeMap::<usize, Vec<HintParams>>::arbitrary(u)?;
+        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len())
+            .map_err(|_| arbitrary::Error::IncorrectFormat)?;
+        Ok(SharedProgramData {
+            data,
+            hints,
+            hints_ranges,
+            main: Option::<usize>::arbitrary(u)?,
+            start: Option::<usize>::arbitrary(u)?,
+            end: Option::<usize>::arbitrary(u)?,
+            error_message_attributes: Vec::<Attribute>::arbitrary(u)?,
+            instruction_locations: Option::<HashMap<usize, InstructionLocation>>::arbitrary(u)?,
+            identifiers: HashMap::<String, Identifier>::arbitrary(u)?,
+            reference_manager: Vec::<HintReference>::arbitrary(u)?,
+        })
+    }
+}
+
+/// Represents a range of hints corresponding to a PC.
+///
+/// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
+type HintRange = Option<(usize, NonZeroUsize)>;
+
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
-    pub(crate) reference_manager: ReferenceManager,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StrippedProgram {
+    pub data: Vec<MaybeRelocatable>,
+    pub builtins: Vec<BuiltinName>,
+    pub main: usize,
 }
 
 impl Program {
@@ -80,22 +140,59 @@ impl Program {
                 constants.insert(key.clone(), value);
             }
         }
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+
+        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
+
         let shared_program_data = SharedProgramData {
             data,
-            hints,
             main,
             start: None,
             end: None,
+            hints,
+            hints_ranges,
             error_message_attributes,
             instruction_locations,
             identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
             constants,
-            reference_manager,
             builtins,
         })
+    }
+
+    pub(crate) fn flatten_hints(
+        hints: &BTreeMap<usize, Vec<HintParams>>,
+        program_length: usize,
+    ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
+        let bounds = hints
+            .iter()
+            .map(|(pc, hs)| (*pc, hs.len()))
+            .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
+
+        let Some((max_hint_pc, full_len)) = bounds else {
+            return Ok((Vec::new(), Vec::new()));
+        };
+
+        if max_hint_pc >= program_length {
+            return Err(ProgramError::InvalidHintPc(max_hint_pc, program_length));
+        }
+
+        let mut hints_values = Vec::with_capacity(full_len);
+        let mut hints_ranges = vec![None; max_hint_pc + 1];
+
+        for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
+            let range = (
+                hints_values.len(),
+                NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
+            );
+            hints_ranges[*pc] = Some(range);
+            hints_values.extend_from_slice(&hs[..]);
+        }
+
+        Ok((hints_values, hints_ranges))
     }
 
     #[cfg(feature = "std")]
@@ -139,6 +236,43 @@ impl Program {
             .iter()
             .map(|(cairo_type, identifier)| (cairo_type.as_str(), identifier))
     }
+
+    pub(crate) fn get_reference_list(reference_manager: &ReferenceManager) -> Vec<HintReference> {
+        reference_manager
+            .references
+            .iter()
+            .map(|r| {
+                HintReference {
+                    offset1: r.value_address.offset1.clone(),
+                    offset2: r.value_address.offset2.clone(),
+                    dereference: r.value_address.dereference,
+                    // only store `ap` tracking data if the reference is referred to it
+                    ap_tracking_data: match (&r.value_address.offset1, &r.value_address.offset2) {
+                        (OffsetValue::Reference(Register::AP, _, _), _)
+                        | (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                            Some(r.ap_tracking_data.clone())
+                        }
+                        _ => None,
+                    },
+                    cairo_type: Some(r.value_address.value_type.clone()),
+                }
+            })
+            .collect()
+    }
+
+    // Obtains a reduced version of the program
+    // Doesn't contain hints
+    // Can be used for verifying execution.
+    pub fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
+        Ok(StrippedProgram {
+            data: self.shared_program_data.data.clone(),
+            builtins: self.builtins.clone(),
+            main: self
+                .shared_program_data
+                .main
+                .ok_or(ProgramError::StrippedProgramNoMain)?,
+        })
+    }
 }
 
 impl Default for Program {
@@ -146,9 +280,6 @@ impl Default for Program {
         Self {
             shared_program_data: Arc::new(SharedProgramData::default()),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         }
     }
@@ -162,7 +293,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
+            .map(|x| MaybeRelocatable::from(Felt252::from(x.value.clone())))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
@@ -208,6 +339,8 @@ mod tests {
     use felt::felt_str;
     use num_traits::Zero;
 
+    use assert_matches::assert_matches;
+
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -244,6 +377,71 @@ mod tests {
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(program.shared_program_data.hints, Vec::new());
+        assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_program_with_hints() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let str_to_hint_param = |s: &str| HintParams {
+            code: s.to_string(),
+            accessible_scopes: vec![],
+            flow_tracking_data: FlowTrackingData {
+                ap_tracking: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                reference_ids: HashMap::new(),
+            },
+        };
+
+        let hints = HashMap::from([
+            (5, vec![str_to_hint_param("c"), str_to_hint_param("d")]),
+            (1, vec![str_to_hint_param("a")]),
+            (4, vec![str_to_hint_param("b")]),
+        ]);
+
+        let program = Program::new(
+            builtins.clone(),
+            data.clone(),
+            None,
+            hints.clone(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+
+        let program_hints: HashMap<_, _> = program
+            .shared_program_data
+            .hints_ranges
+            .iter()
+            .enumerate()
+            .filter_map(|(pc, r)| r.map(|(s, l)| (pc, (s, s + l.get()))))
+            .map(|(pc, (s, e))| (pc, program.shared_program_data.hints[s..e].to_vec()))
+            .collect();
+        assert_eq!(program_hints, hints);
     }
 
     #[test]
@@ -847,23 +1045,48 @@ mod tests {
     fn default_program() {
         let shared_program_data = SharedProgramData {
             data: Vec::new(),
-            hints: HashMap::new(),
+            hints: Vec::new(),
+            hints_ranges: Vec::new(),
             main: None,
             start: None,
             end: None,
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_program_data),
             constants: HashMap::new(),
-            reference_manager: ReferenceManager {
-                references: Vec::new(),
-            },
             builtins: Vec::new(),
         };
 
         assert_eq!(program, Program::default());
+    }
+
+    #[test]
+    fn get_stripped_program() {
+        let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let stripped_program = program.get_stripped_program().unwrap();
+        assert_eq!(stripped_program.builtins, program.builtins);
+        assert_eq!(stripped_program.data, program.shared_program_data.data);
+        assert_eq!(
+            stripped_program.main,
+            program.shared_program_data.main.unwrap()
+        );
+    }
+
+    #[test]
+    fn get_stripped_no_main() {
+        let program_content =
+            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        assert_matches!(
+            program.get_stripped_program(),
+            Err(ProgramError::StrippedProgramNoMain)
+        );
     }
 }

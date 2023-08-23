@@ -26,7 +26,7 @@ type BeforeFirstStepHookFunc = Arc<
     dyn Fn(
             &mut VirtualMachine,
             &mut CairoRunner,
-            &HashMap<usize, Vec<Box<dyn Any>>>,
+            &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError>
         + Sync
         + Send,
@@ -37,7 +37,7 @@ type StepHookFunc = Arc<
             &mut VirtualMachine,
             &mut dyn HintProcessor,
             &mut ExecutionScopes,
-            &HashMap<usize, Vec<Box<dyn Any>>>,
+            &[Box<dyn Any>],
             &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError>
         + Sync
@@ -72,10 +72,10 @@ impl VirtualMachine {
     pub fn execute_before_first_step(
         &mut self,
         runner: &mut CairoRunner,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        hint_data: &[Box<dyn Any>],
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().before_first_step {
-            (hook_func)(self, runner, hint_data_dictionary)?;
+            (hook_func)(self, runner, hint_data)?;
         }
 
         Ok(())
@@ -85,17 +85,11 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().pre_step_instruction {
-            (hook_func)(
-                self,
-                hint_executor,
-                exec_scope,
-                hint_data_dictionary,
-                constants,
-            )?;
+            (hook_func)(self, hint_executor, exec_scope, hint_data, constants)?;
         }
 
         Ok(())
@@ -105,17 +99,11 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scope: &mut ExecutionScopes,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().post_step_instruction {
-            (hook_func)(
-                self,
-                hint_executor,
-                exec_scope,
-                hint_data_dictionary,
-                constants,
-            )?;
+            (hook_func)(self, hint_executor, exec_scope, hint_data, constants)?;
         }
 
         Ok(())
@@ -130,7 +118,6 @@ mod tests {
         types::program::Program,
         utils::test_utils::{cairo_runner, vm},
     };
-
     #[test]
     fn empty_hooks() {
         let program = Program::from_bytes(
@@ -146,7 +133,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 
@@ -161,7 +148,7 @@ mod tests {
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
             _runner: &mut CairoRunner,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -170,7 +157,7 @@ mod tests {
             _vm: &mut VirtualMachine,
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
             _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
@@ -180,7 +167,7 @@ mod tests {
             _vm: &mut VirtualMachine,
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
             _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
@@ -194,7 +181,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Pre step fail
@@ -205,7 +192,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
 
         // Post step fail
@@ -216,7 +203,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
     }
 
@@ -231,7 +218,7 @@ mod tests {
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
             _runner: &mut CairoRunner,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Ok(())
         }
@@ -240,7 +227,7 @@ mod tests {
             _vm: &mut VirtualMachine,
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
             _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
@@ -250,7 +237,7 @@ mod tests {
             _vm: &mut VirtualMachine,
             _hint_processor: &mut dyn HintProcessor,
             _exec_scope: &mut ExecutionScopes,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
             _constants: &HashMap<String, Felt252>,
         ) -> Result<(), VirtualMachineError> {
             Ok(())
@@ -267,7 +254,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(end, &mut None, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
     }
 }
