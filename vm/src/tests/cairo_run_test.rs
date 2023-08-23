@@ -1007,6 +1007,8 @@ fn fibonacci_proof_mode_disable_trace_padding() {
     assert!(r.get_memory_holes(&v).unwrap().is_zero());
 }
 
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn cairo_run_overflowing_dict() {
     let program_data =
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
