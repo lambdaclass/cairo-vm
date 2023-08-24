@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
+
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
 
 * fix: Compare air_public_inputs against python vm + Fix how public memory is built [#391](https://github.com/lambdaclass/cairo-vm/pull/1391)
@@ -20,6 +22,8 @@
     Overall these changes make the the air public input file (obtained through the --air_public_input flag) equivalent to the ones outputted by the cairo-lang version
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
+
+* refactor: combine `Program.hints` and `Program.hints_ranges` into custom collection [#1366](https://github.com/lambdaclass/cairo-vm/pull/1366)
 
 * fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
 
