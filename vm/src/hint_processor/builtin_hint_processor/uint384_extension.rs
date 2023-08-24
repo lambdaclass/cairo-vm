@@ -1,110 +1,13 @@
-use super::secp::bigint_utils::Uint384;
-use super::uint_utils::{pack, split};
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
+use super::secp::bigint_utils::{Uint384, Uint768};
+use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
-    hint_processor::{
-        builtin_hint_processor::hint_utils::get_relocatable_from_var_name,
-        hint_processor_definition::HintReference,
-    },
+    hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
-    types::relocatable::Relocatable,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
-use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::Zero;
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct Uint768<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
-    pub d3: Cow<'a, Felt252>,
-    pub d4: Cow<'a, Felt252>,
-    pub d5: Cow<'a, Felt252>,
-}
-
-impl Uint768<'_> {
-    pub(crate) fn from_base_addr<'a>(
-        addr: Relocatable,
-        name: &str,
-        vm: &'a VirtualMachine,
-    ) -> Result<Uint768<'a>, HintError> {
-        Ok(Uint768 {
-            d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
-            })?,
-            d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
-            })?,
-            d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
-            })?,
-            d3: vm.get_integer((addr + 3)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d3".to_string())))
-            })?,
-            d4: vm.get_integer((addr + 4)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d4".to_string())))
-            })?,
-            d5: vm.get_integer((addr + 5)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d5".to_string())))
-            })?,
-        })
-    }
-
-    pub(crate) fn from_var_name<'a>(
-        name: &str,
-        vm: &'a VirtualMachine,
-        ids_data: &HashMap<String, HintReference>,
-        ap_tracking: &ApTracking,
-    ) -> Result<Uint768<'a>, HintError> {
-        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        Uint768::from_base_addr(base_addr, name, vm)
-    }
-
-    pub(crate) fn from_values(limbs: [Felt252; 6]) -> Self {
-        let [d0, d1, d2, d3, d4, d5] = limbs;
-        Self {
-            d0: Cow::Owned(d0),
-            d1: Cow::Owned(d1),
-            d2: Cow::Owned(d2),
-            d3: Cow::Owned(d3),
-            d4: Cow::Owned(d4),
-            d5: Cow::Owned(d5),
-        }
-    }
-
-    pub(crate) fn insert_from_var_name(
-        self,
-        var_name: &str,
-        vm: &mut VirtualMachine,
-        ids_data: &HashMap<String, HintReference>,
-        ap_tracking: &ApTracking,
-    ) -> Result<(), HintError> {
-        let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
-
-        vm.insert_value(addr, self.d0.into_owned())?;
-        vm.insert_value((addr + 1)?, self.d1.into_owned())?;
-        vm.insert_value((addr + 2)?, self.d2.into_owned())?;
-        vm.insert_value((addr + 3)?, self.d3.into_owned())?;
-        vm.insert_value((addr + 4)?, self.d4.into_owned())?;
-        vm.insert_value((addr + 5)?, self.d5.into_owned())?;
-
-        Ok(())
-    }
-
-    pub(crate) fn pack(self) -> BigUint {
-        let limbs = [self.d0, self.d1, self.d2, self.d3, self.d4, self.d5];
-        pack(limbs, 128)
-    }
-
-    pub(crate) fn split(num: &BigUint) -> Self {
-        let limbs = split(num, 128);
-        Self::from_values(limbs)
-    }
-}
 
 /* Implements Hint:
        %{
@@ -168,6 +71,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint768;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
@@ -175,6 +79,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use felt::felt_str;
+    use felt::Felt252;
     use num_traits::One;
     use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
@@ -193,9 +98,9 @@ mod tests {
             ((1, 5), 6)
         ];
         let x = Uint768::from_base_addr((1, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
 
     fn assert_is_err_identifier_has_no_member(
@@ -281,9 +186,9 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
 
     #[test]

@@ -22,10 +22,10 @@ use num_bigint::{BigInt, BigUint};
 use num_traits::Bounded;
 
 pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
-// Uint384 and BigInt3 are used interchangeably with BigInt3
-pub(crate) type Uint384<'a> = BigInt3<'a>;
+pub(crate) type Uint384<'a> = BigIntN<'a, 3>;
 pub(crate) type Uint512<'a> = BigIntN<'a, 4>;
 pub(crate) type BigInt5<'a> = BigIntN<'a, 5>;
+pub(crate) type Uint768<'a> = BigIntN<'a, 6>;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigIntN<'a, const NUM_LIMBS: usize> {
