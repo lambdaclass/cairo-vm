@@ -29,13 +29,28 @@ jobs:
         eval "$(pyenv init -)"
 
     - name: Run make deps${{ matrix.deps_suffix }}
+      id: deps
       run: make deps${{ matrix.deps_suffix }}
 
     - name: Run make build
+      id: build
       run: make build
 
     - name: Run make test
+      id: test
       run: make test
+
+    - name: Check which step failed
+      if: failure()
+      run: |
+        if [ ${{ steps.deps.outcome }} = failure ]; then
+            FAILED_TARGET=deps${{ matrix.deps_suffix }}
+        elif [ ${{ steps.build.outcome }} = failure ]; then
+            FAILED_TARGET=build
+        else 
+            FAILED_TARGET=test
+        fi
+        echo "FAILED_TARGET=$FAILED_TARGET" >> $GITHUB_ENV
 
     - name: Create Issue
       if: ${{ failure() }}
