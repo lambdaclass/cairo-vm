@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692833579645,
+  "lastUpdate": 1692844309111,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115042,6 +115042,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 23789809,
             "range": "± 1151571",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "892afd279df1931fa8d1fbb71a5adea57a88ca3f",
+          "message": "Add `disable_trace_padding` to `CairoRunConfig` (#1233)\n\n* Add `disable_trace_padding` to `CairoRunConfig`\n\n* fmt\n\n* Add changelog entry\n\n* Fix tests\n\n* Add simple test\n\n* Update CHANGELOG.md\n\n* Update cairo_run_test.rs\n\n* Update cairo_run_test.rs\n\n* Update cairo_run_test.rs\n\n* Update cairo_run_test.rs",
+          "timestamp": "2023-08-24T01:48:50Z",
+          "tree_id": "33efbf8f243577510561b924724c9579ff8230b9",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/892afd279df1931fa8d1fbb71a5adea57a88ca3f"
+        },
+        "date": 1692844300637,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1629,
+            "range": "± 8",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 64461,
+            "range": "± 3179",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 22187691,
+            "range": "± 223416",
             "unit": "ns/iter"
           }
         ]
