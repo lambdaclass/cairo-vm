@@ -60,4 +60,4 @@ jobs:
         OS: ${{ matrix.os}}
         COMMIT_SHA: ${{ github.sha }}
       with:
-        filename: .github/fresh_run_failure.md
+        filename: .github/ISSUE_TEMPLATE/fresh_run_failure.md
