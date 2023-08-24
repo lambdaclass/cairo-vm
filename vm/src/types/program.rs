@@ -237,15 +237,14 @@ impl Program {
         }
         let hints: BTreeMap<_, _> = hints.into_iter().collect();
 
-        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
+        let hints_collection = HintsCollection::new(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
             data,
             main: None,
             start: Some(start),
             end: Some(end),
-            hints,
-            hints_ranges,
+            hints_collection,
             error_message_attributes,
             instruction_locations,
             identifiers,
@@ -505,8 +504,14 @@ mod tests {
         assert_eq!(program.shared_program_data.start, Some(0));
         assert_eq!(program.shared_program_data.end, Some(1));
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-        assert_eq!(program.shared_program_data.hints, Vec::new());
-        assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
     }
 
     #[test]
