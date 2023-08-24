@@ -3664,6 +3664,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
@@ -3681,6 +3682,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
