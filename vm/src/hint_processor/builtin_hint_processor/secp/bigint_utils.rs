@@ -23,30 +23,29 @@ use num_traits::Bounded;
 
 // Uint384 and BigInt3 are used interchangeably with BigInt3
 pub(crate) type Uint384<'a> = BigInt3<'a>;
+pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct BigInt3<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
+pub(crate) struct BigIntN<'a, const NUM_LIMBS: usize> {
+    pub(crate) limbs: [Cow<'a, Felt252>; NUM_LIMBS],
 }
 
-impl BigInt3<'_> {
+impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     pub(crate) fn from_base_addr<'a>(
         addr: Relocatable,
         name: &str,
         vm: &'a VirtualMachine,
-    ) -> Result<BigInt3<'a>, HintError> {
-        Ok(BigInt3 {
-            d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
-            })?,
-            d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
-            })?,
-            d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
-            })?,
+    ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
+        let mut limbs = vec![];
+        for i in 0..NUM_LIMBS {
+            limbs.push(vm.get_integer((addr + i)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), format!("d{}", i))))
+            })?)
+        }
+        Ok(BigIntN {
+            limbs: limbs
+                .try_into()
+                .map_err(|_| HintError::FixedSizeArrayFail(NUM_LIMBS))?,
         })
     }
 
@@ -55,17 +54,15 @@ impl BigInt3<'_> {
         vm: &'a VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
-    ) -> Result<BigInt3<'a>, HintError> {
+    ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        BigInt3::from_base_addr(base_addr, name, vm)
+        BigIntN::from_base_addr(base_addr, name, vm)
     }
 
-    pub(crate) fn from_values(limbs: [Felt252; 3]) -> Self {
-        let [d0, d1, d2] = limbs;
-        let d0 = Cow::Owned(d0);
-        let d1 = Cow::Owned(d1);
-        let d2 = Cow::Owned(d2);
-        Self { d0, d1, d2 }
+    pub(crate) fn from_values(limbs: [Felt252; NUM_LIMBS]) -> Self {
+        Self {
+            limbs: limbs.map(|f| Cow::Owned(f)),
+        }
     }
 
     pub(crate) fn insert_from_var_name(
@@ -76,22 +73,20 @@ impl BigInt3<'_> {
         ap_tracking: &ApTracking,
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
-
-        vm.insert_value(addr, self.d0.into_owned())?;
-        vm.insert_value((addr + 1)?, self.d1.into_owned())?;
-        vm.insert_value((addr + 2)?, self.d2.into_owned())?;
-
+        for i in 0..NUM_LIMBS {
+            vm.insert_value((addr + i)?, self.limbs[i].as_ref().clone())?;
+        }
         Ok(())
     }
 
     pub(crate) fn pack(self) -> BigUint {
-        pack([self.d0, self.d1, self.d2], 128)
+        pack(self.limbs, 128)
     }
 
     pub(crate) fn pack86(self) -> BigInt {
-        let limbs = [self.d0, self.d1, self.d2];
-        limbs
+        self.limbs
             .into_iter()
+            .take(3)
             .enumerate()
             .map(|(idx, value)| value.to_signed_felt().shl(idx * 86))
             .sum()
@@ -204,8 +199,8 @@ pub fn hi_max_bitlen(
     let scalar_u = BigInt3::from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
     let scalar_v = BigInt3::from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
 
-    let len_hi_u = scalar_u.d2.bits();
-    let len_hi_v = scalar_v.d2.bits();
+    let len_hi_u = scalar_u.limbs[2].bits();
+    let len_hi_v = scalar_v.limbs[2].bits();
 
     let len_hi = len_hi_u.max(len_hi_v);
 
@@ -318,9 +313,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
         let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
 
     #[test]
@@ -373,9 +368,9 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
 
     #[test]
@@ -481,9 +476,11 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn u384_pack86() {
         let pack_1 = Uint384 {
-            d0: Cow::Borrowed(&Felt252::new(10_i32)),
-            d1: Cow::Borrowed(&Felt252::new(10_i32)),
-            d2: Cow::Borrowed(&Felt252::new(10_i32)),
+            limbs: [
+                Cow::Borrowed(&Felt252::new(10_i32)),
+                Cow::Borrowed(&Felt252::new(10_i32)),
+                Cow::Borrowed(&Felt252::new(10_i32)),
+            ],
         }
         .pack86();
         assert_eq!(
@@ -492,9 +489,11 @@ mod tests {
         );
 
         let pack_2 = Uint384 {
-            d0: Cow::Borrowed(&felt_str!("773712524553362")),
-            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
-            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
+            limbs: [
+                Cow::Borrowed(&felt_str!("773712524553362")),
+                Cow::Borrowed(&felt_str!("57408430697461422066401280")),
+                Cow::Borrowed(&felt_str!("1292469707114105")),
+            ],
         }
         .pack86();
         assert_eq!(
