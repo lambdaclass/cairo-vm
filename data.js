@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692844309111,
+  "lastUpdate": 1692846066224,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115132,6 +115132,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 22187691,
             "range": "± 223416",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "50522617+PanGan21@users.noreply.github.com",
+            "name": "Panagiotis Ganelis",
+            "username": "PanGan21"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "16abcb4fb8ac3e8ed945a426ef6d0259eae6a369",
+          "message": "refactor: combine Program.hints and Program.hints_ranges into custom collection (#1366)\n\n* refactor: combine Program.hints and Program.hints_ranges into custom collection\n\n* make fields of HintsCollection private, add constructor and iter functions\n\n* remove flatten hints and use constructor instead, remove forgotten comments, add test impl for hints collection\n\n* fix forgotten usage of flatten_hints and add changelog",
+          "timestamp": "2023-08-24T02:21:16Z",
+          "tree_id": "93350b2fad1330f3354ab36883018ac1395a7c9c",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/16abcb4fb8ac3e8ed945a426ef6d0259eae6a369"
+        },
+        "date": 1692846059481,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1329,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 54091,
+            "range": "± 274",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18461110,
+            "range": "± 78354",
             "unit": "ns/iter"
           }
         ]
