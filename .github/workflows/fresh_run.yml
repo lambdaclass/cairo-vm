@@ -58,5 +58,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         OS: ${{ matrix.os}}
+        COMMIT_SHA: ${{ github.sha }}
       with:
         filename: .github/fresh_run_failure.md
