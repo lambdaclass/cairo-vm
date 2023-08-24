@@ -221,10 +221,6 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 
 A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/). You can run it using:
 
-```bash
-  make wasm-demo
-```
-
 ### Testing
 
 To run the test suite you'll need `cargo-llvm-cov` dependency so make sure to run this command beforehand:
