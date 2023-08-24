@@ -1,15 +1,12 @@
 use core::str::FromStr;
 
-use crate::math_utils::signed_felt;
-use crate::stdlib::{boxed::Box, ops::Shl, prelude::*};
+use crate::stdlib::{boxed::Box, prelude::*};
 
 use crate::vm::errors::hint_errors::HintError;
 
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Zero;
-
-use super::bigint_utils::Uint384;
 
 // Constants in package "starkware.cairo.common.cairo_secp.constants".
 pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
@@ -90,25 +87,13 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
     Ok(canonical_repr)
 }
 
-/*
-Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2) of field
-elements and reconstructs the corresponding 256-bit integer (see split()).
-Note that the limbs do not have to be in the range [0, BASE).
-*/
-pub(crate) fn bigint3_pack(num: Uint384) -> num_bigint::BigInt {
-    let limbs = [num.d0, num.d1, num.d2];
-    #[allow(deprecated)]
-    limbs
-        .into_iter()
-        .enumerate()
-        .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
-        .sum()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint384;
+    use crate::math_utils::signed_felt;
     use crate::stdlib::borrow::Cow;
+    use crate::stdlib::ops::Shl;
     use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use crate::{felt_str, Felt252};
@@ -117,6 +102,21 @@ mod tests {
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
+
+    /*
+    Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2) of field
+    elements and reconstructs the corresponding 256-bit integer (see split()).
+    Note that the limbs do not have to be in the range [0, BASE).
+    */
+    pub(crate) fn bigint3_pack(num: Uint384) -> num_bigint::BigInt {
+        let limbs = [num.d0, num.d1, num.d2];
+        #[allow(deprecated)]
+        limbs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
+            .sum()
+    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

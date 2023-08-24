@@ -29,7 +29,6 @@ use core::ops::Shl;
 
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::Zero;
 
 /// Execution scope for constant memory allocation.
 struct MemoryExecScope {
