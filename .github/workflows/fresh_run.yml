@@ -1,0 +1,27 @@
+name: Install dependencies, build the project and run tests from zero
+
+on:
+  merge_group:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  fresh_run:
+    strategy:
+        matrix:
+          include:
+          - os: ubuntu-22.04
+            deps_suffix: 'cairo_proof_trace'
+          - os: macos-12
+            deps_suffix: '-macos' 
+    runs-on: ${{ matrix.os }}
+    name: "Make deps, build & test on fresh ${{ matrix.os }} system"
+    steps:
+    - name: Run make deps${{ matrix.deps_suffix }}
+      run: make deps${{ matrix.deps_suffix }}
+    - name: Run make build
+      run: make build
+    - name: Run make test
+      run: make test
