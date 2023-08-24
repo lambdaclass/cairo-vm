@@ -24,7 +24,7 @@ use crate::{
     types::{
         errors::program_errors::ProgramError,
         instruction::Register,
-        program::{Program, SharedProgramData},
+        program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
     vm::runners::builtin_runner::{
@@ -483,13 +483,11 @@ pub fn parse_program_json(
         }
     }
 
-    let (hints, hints_ranges) =
-        Program::flatten_hints(&program_json.hints, program_json.data.len())?;
+    let hints_collection = HintsCollection::new(&program_json.hints, program_json.data.len())?;
 
     let shared_program_data = SharedProgramData {
         data: program_json.data,
-        hints,
-        hints_ranges,
+        hints_collection,
         main: entrypoint_pc,
         start,
         end,
@@ -862,20 +860,11 @@ mod tests {
     }
 
     fn get_hints_as_map(program: &Program) -> HashMap<usize, Vec<HintParams>> {
-        let (hints, ranges) = (
-            &program.shared_program_data.hints,
-            &program.shared_program_data.hints_ranges,
-        );
-        let mut hints_map = HashMap::new();
-
-        for (pc, range) in ranges.iter().enumerate() {
-            let Some((start, len)) = range else {
-                continue;
-            };
-            // Associate the PC with its corresponding hints by mapping them
-            // to the elements in the proper range converted to vec.
-            hints_map.insert(pc, hints[*start..start + len.get()].to_vec());
-        }
+        let hints_collection = &program.shared_program_data.hints_collection;
+        let hints_map: HashMap<usize, Vec<HintParams>> = hints_collection
+            .iter()
+            .map(|(pc, hints)| (pc, hints.to_vec()))
+            .collect();
 
         hints_map
     }

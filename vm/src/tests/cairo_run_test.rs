@@ -1,3 +1,5 @@
+use num_traits::Zero;
+
 use crate::tests::*;
 
 #[test]
@@ -650,6 +652,15 @@ fn error_msg_attr_div_by_zero() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn split_felt_bad_constants() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/bad_programs/split_felt_bad_constants.json");
+    let error_msg = "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW";
+    run_program_with_error(program_data.as_slice(), error_msg);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn poseidon_builtin() {
     let program_data = include_bytes!("../../../cairo_programs/poseidon_builtin.json");
     run_program_simple(program_data.as_slice());
@@ -984,6 +995,19 @@ fn cairo_run_if_reloc_equal() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn fibonacci_proof_mode_disable_trace_padding() {
+    let program_data = include_bytes!("../../../cairo_programs/fibonacci.json");
+    let config = CairoRunConfig {
+        disable_trace_padding: true,
+        ..Default::default()
+    };
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let (r, v) = cairo_run(program_data, &config, &mut hint_processor).unwrap();
+    assert!(r.get_memory_holes(&v).unwrap().is_zero());
+}
+
+#[test]
 fn cairo_run_overflowing_dict() {
     let program_data =
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
@@ -998,4 +1022,13 @@ fn cairo_run_big_hint_pcs() {
         program_data,
         "Hint PC (18446744073709551615) is greater or equal to program length (0)",
     );
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn divmod_igcdex_not_one() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/bad_programs/divmod_igcdex_not_one.json");
+    let error_msg = "Operation failed: divmod(1, 340282366920938463463374607431768211457, 340282366920938463463374607431768211457), igcdex(340282366920938463463374607431768211457, 340282366920938463463374607431768211457) != 1";
+    run_program_with_error(program_data.as_slice(), error_msg);
 }
