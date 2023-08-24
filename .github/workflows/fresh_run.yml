@@ -24,6 +24,9 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Install pyenv
+      run: curl https://pyenv.run | bash
+
     - name: Run make deps${{ matrix.deps_suffix }}
       run: make deps${{ matrix.deps_suffix }}
 
