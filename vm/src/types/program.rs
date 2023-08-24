@@ -182,18 +182,9 @@ impl Program {
         error_message_attributes: Vec<Attribute>,
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
-        let mut constants = HashMap::new();
-        for (key, value) in identifiers.iter() {
-            if value.type_.as_deref() == Some("const") {
-                let value = value
-                    .value
-                    .clone()
-                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                constants.insert(key.clone(), value);
-            }
-        }
-        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let constants = Self::extract_constants(&identifiers)?;
 
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
         let hints_collection = HintsCollection::new(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
@@ -225,18 +216,9 @@ impl Program {
         error_message_attributes: Vec<Attribute>,
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
-        let mut constants = HashMap::new();
-        for (key, value) in identifiers.iter() {
-            if value.type_.as_deref() == Some("const") {
-                let value = value
-                    .value
-                    .clone()
-                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                constants.insert(key.clone(), value);
-            }
-        }
-        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let constants = Self::extract_constants(&identifiers)?;
 
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
         let hints_collection = HintsCollection::new(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
@@ -320,6 +302,22 @@ impl Program {
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn extract_constants(
+        identifiers: &HashMap<String, Identifier>,
+    ) -> Result<HashMap<String, Felt252>, ProgramError> {
+        let mut constants = HashMap::new();
+        for (key, value) in identifiers.iter() {
+            if value.type_.as_deref() == Some("const") {
+                let value = value
+                    .value
+                    .clone()
+                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                constants.insert(key.clone(), value);
+            }
+        }
+        Ok(constants)
     }
 
     // Obtains a reduced version of the program
@@ -645,6 +643,43 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn extract_constants() {
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(
+            Program::extract_constants(&identifiers).unwrap(),
             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
