@@ -25,6 +25,8 @@ use num_traits::Bounded;
 pub(crate) type Uint384<'a> = BigInt3<'a>;
 pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 
+pub(crate) type BigInt5<'a> = BigIntN<'a, 5>;
+
 #[derive(Debug, PartialEq)]
 pub(crate) struct BigIntN<'a, const NUM_LIMBS: usize> {
     pub(crate) limbs: [Cow<'a, Felt252>; NUM_LIMBS],
@@ -98,50 +100,6 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub(crate) struct BigInt5<'a> {
-    pub d0: Cow<'a, Felt252>,
-    pub d1: Cow<'a, Felt252>,
-    pub d2: Cow<'a, Felt252>,
-    pub d3: Cow<'a, Felt252>,
-    pub d4: Cow<'a, Felt252>,
-}
-
-impl BigInt5<'_> {
-    pub(crate) fn from_base_addr<'a>(
-        addr: Relocatable,
-        name: &str,
-        vm: &'a VirtualMachine,
-    ) -> Result<BigInt5<'a>, HintError> {
-        Ok(BigInt5 {
-            d0: vm.get_integer(addr).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d0".to_string())))
-            })?,
-            d1: vm.get_integer((addr + 1)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d1".to_string())))
-            })?,
-            d2: vm.get_integer((addr + 2)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d2".to_string())))
-            })?,
-            d3: vm.get_integer((addr + 3)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d3".to_string())))
-            })?,
-            d4: vm.get_integer((addr + 4)?).map_err(|_| {
-                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "d4".to_string())))
-            })?,
-        })
-    }
-
-    pub(crate) fn from_var_name<'a>(
-        name: &str,
-        vm: &'a VirtualMachine,
-        ids_data: &HashMap<String, HintReference>,
-        ap_tracking: &ApTracking,
-    ) -> Result<BigInt5<'a>, HintError> {
-        let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
-        BigInt5::from_base_addr(base_addr, name, vm)
-    }
-}
 /*
 Implements hint:
 %{
@@ -330,11 +288,11 @@ mod tests {
             ((0, 4), 5)
         ];
         let x = BigInt5::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(x.d3.as_ref(), &Felt252::from(4));
-        assert_eq!(x.d4.as_ref(), &Felt252::from(5));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[3].as_ref(), &Felt252::from(4));
+        assert_eq!(x.limbs[4].as_ref(), &Felt252::from(5));
     }
 
     #[test]
@@ -387,11 +345,11 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.d0.as_ref(), &Felt252::one());
-        assert_eq!(x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(x.d3.as_ref(), &Felt252::from(4));
-        assert_eq!(x.d4.as_ref(), &Felt252::from(5));
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
+        assert_eq!(x.limbs[3].as_ref(), &Felt252::from(4));
+        assert_eq!(x.limbs[4].as_ref(), &Felt252::from(5));
     }
 
     #[test]
