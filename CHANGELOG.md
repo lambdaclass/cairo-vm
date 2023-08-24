@@ -8,6 +8,8 @@
 
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
 
+* refactor: combine `Program.hints` and `Program.hints_ranges` into custom collection [#1366](https://github.com/lambdaclass/cairo-vm/pull/1366)
+
 * fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
 
   * Fixes `div_mod` function so that it behaves like the cairo-lang version
