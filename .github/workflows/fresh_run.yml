@@ -19,10 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: "Make deps, build & test on fresh ${{ matrix.os }} system"
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+    - uses: actions/checkout@v3
 
     - name: Install pyenv
       run: curl https://pyenv.run | bash
@@ -35,3 +32,11 @@ jobs:
 
     - name: Run make test
       run: make test
+
+    - name: Create Issue
+      if: ${{ failure() }}
+      uses: JasonEtco/create-an-issue@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        filename: .github/fresh_run_fail.md
