@@ -29,6 +29,8 @@ pub use output::OutputBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
+use super::cairo_pie::BuiltinAdditionalData;
+
 pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
 pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
 pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
@@ -469,6 +471,15 @@ impl BuiltinRunner {
                 }
                 Ok((used, size))
             }
+        }
+    }
+
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        match self {
+            BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
+            BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
+            _ => BuiltinAdditionalData::None,
         }
     }
 
@@ -1673,5 +1684,11 @@ mod tests {
             let (_, stop_ptr) = br.get_memory_segment_addresses();
             assert_eq!(stop_ptr, Some(ptr));
         }
+    }
+
+    #[test]
+    fn get_additonal_data_none() {
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::None)
     }
 }
