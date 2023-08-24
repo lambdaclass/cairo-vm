@@ -1,10 +1,10 @@
-use pyo3::{
-    prelude::{pyfunction, PyResult, pymodule, wrap_pyfunction, Python, PyModule},
-    exceptions::PyRuntimeError
-};
 use cairo_vm::{
+    cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    cairo_run::{CairoRunConfig, cairo_run}
+};
+use pyo3::{
+    exceptions::PyRuntimeError,
+    prelude::{pyfunction, pymodule, wrap_pyfunction, PyModule, PyResult, Python},
 };
 
 #[pyfunction]
@@ -15,9 +15,9 @@ fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
     };
     let mut hint_executor = BuiltinHintProcessor::new_empty();
 
-    let (cairo_runner, _) = 
-        cairo_run(&json.as_bytes(), &config, &mut hint_executor).map_err(|e| PyRuntimeError::new_err(format!{"{e:?}"}))?;
-    
+    let (cairo_runner, _) = cairo_run(&json.as_bytes(), &config, &mut hint_executor)
+        .map_err(|e| PyRuntimeError::new_err(format! {"{e:?}"}))?;
+
     let mut memory_dump = Vec::new();
     for (i, memory_cell) in cairo_runner.relocated_memory.iter().enumerate() {
         match memory_cell {
