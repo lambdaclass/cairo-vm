@@ -4,8 +4,7 @@ members = [
     "felt",
     "vm",
     "hint_accountant",
-    "examples/wasm-demo",
-    "cairo1-run"
+    "examples/wasm-demo"
 ]
 exclude = ["ensure-no_std"]
 

@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 use bincode::enc::write::Writer;
+use cairo_lang_casm::{casm, casm_extend};
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::RunnerError as CairoLangRunnerError;
 use cairo_lang_runner::{
@@ -15,6 +16,7 @@ use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
 use cairo_vm::cairo_run::EncodeTraceError;
 use cairo_vm::types::errors::program_errors::ProgramError;
+
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
@@ -152,19 +154,35 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
     let (entry_code, builtins) = casm_runner.create_entry_code(main_func, &[], initial_gas)?;
+
+    let mut ctx = casm! {};
+    casm_extend! {ctx,
+        call rel 4;
+        jmp rel 0;
+    };
+
     let footer = casm_runner.create_code_footer();
 
-    let check_gas_usage = true;
+    let check_gas_usage = false;
     let metadata = calc_metadata(&sierra_program, Default::default())?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
     let instructions = chain!(
-        entry_code.iter(),
+        ctx.instructions.iter(),
         casm_program.instructions.iter(),
         footer.iter()
     );
 
     let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
+
+    let inst_vec: Vec<&cairo_lang_casm::instructions::Instruction> = instructions.collect();
+    println!("Inst len: {}", inst_vec.len());
+
+    let instructions = chain!(
+        ctx.instructions.iter(),
+        casm_program.instructions.iter(),
+        footer.iter()
+    );
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
@@ -173,11 +191,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         .collect();
 
     let data_len = data.len();
+    println!("////\n");
 
-    let program = Program::new(
-        builtins,
+    println!("Data len: {}", data.len());
+
+    let mut program = Program::new_for_proof(
+        vec![],
         data,
-        Some(0),
+        0,
+        2,
         hints_dict,
         ReferenceManager {
             references: Vec::new(),
@@ -187,27 +209,42 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         None,
     )?;
 
-    let mut runner = CairoRunner::new(&program, "all_cairo", false)?;
+    let mut runner = CairoRunner::new(&program, "plain", true)?;
+
     let mut vm = VirtualMachine::new(true);
     let end = runner.initialize(&mut vm)?;
 
+    // Cairo lang runner error
     let function_context = RunFunctionContext {
         vm: &mut vm,
         data_len,
     };
 
-    additional_initialization(function_context)?;
+    // additional_initialization(function_context)?;
 
     let mut hint_processor = CairoHintProcessor {
         runner: None,
         string_to_hint,
         starknet_state: StarknetState::default(),
+        // This is failing
         run_resources: RunResources::default(),
     };
 
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
-    runner.end_run(true, false, &mut vm, &mut hint_processor)?;
-    runner.relocate(&mut vm, true)?;
+    println!("End: {:?}\n", end);
+
+    println!("//// Starting execution \n");
+
+    runner
+        .run_until_pc(end, &mut vm, &mut hint_processor)
+        .unwrap();
+    runner
+        .run_for_steps(1, &mut vm, &mut hint_processor)
+        .unwrap();
+    runner
+        .end_run(false, false, &mut vm, &mut hint_processor)
+        .unwrap();
+    runner.read_return_values(&mut vm).unwrap();
+    runner.relocate(&mut vm, true).unwrap();
 
     let relocated_trace = vm.get_relocated_trace()?;
     if args.trace_file.is_some() {
@@ -229,9 +266,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         memory_writer.flush().unwrap();
     }
 
+    println!(
+        "Pub input: \n {:?}",
+        runner.get_air_public_input(&vm).unwrap()
+    );
     Ok(())
 }
 
+/*
 fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
     let vm = context.vm;
     // Create the builtin cost segment
@@ -244,13 +286,16 @@ fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
     }
     // Put a pointer to the builtin cost segment at the end of the program (after the
     // additional `ret` statement).
+    /*
     vm.insert_value(
         (vm.get_pc() + context.data_len).unwrap(),
         builtin_cost_segment,
     )?;
+    */
 
     Ok(())
 }
+*/
 
 fn main() -> Result<(), Error> {
     match run(std::env::args()) {

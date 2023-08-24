@@ -471,7 +471,9 @@ impl VirtualMachine {
             *instruction = Some(self.decode_current_instruction()?);
         }
         let instruction = instruction.as_ref().unwrap();
+
         if !self.skip_instruction_execution {
+            println!("Executed instruction: {:?}", instruction);
             self.run_instruction(instruction)?;
         } else {
             self.run_context.pc += instruction.size();

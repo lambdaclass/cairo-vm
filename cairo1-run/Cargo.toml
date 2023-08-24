@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 name = "cairo1-run"
 version = "0.1.0"
@@ -6,15 +8,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cairo-vm = "0.8.2"
+cairo-vm = { version = "*" , features = ["std"] }
 cairo-lang-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" } 
 cairo-lang-compiler = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-runner = { git = "https://github.com/starkware-libs/cairo" }
 cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo" }
+cairo-lang-casm = { git = "https://github.com/starkware-libs/cairo" }
 itertools = "0.11.0"
 clap = { version = "4.3.10", features = ["derive"] }
 thiserror = { version = "1.0.40" }
-bincode.workspace = true
 assert_matches = "1.5.0"
 rstest = "0.17.0"
+bincode = { version = "2.0.0-rc.3", default-features = false, features = [
+    "serde",
+] }
+
+[patch.crates-io]
+cairo-vm = { path = '../vm' }
+cairo-felt = { path = '../felt'}

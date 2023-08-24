@@ -552,6 +552,7 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
+            println!("Current PC: {}", vm.run_context.pc);
             let hint_data = &self
                 .program
                 .shared_program_data
@@ -569,6 +570,11 @@ impl CairoRunner {
             )?;
             hint_processor.consume_step();
         }
+
+        println!("//// \n");
+        println!("Final PC: {}", vm.run_context.pc);
+        println!("Target PC: {}", address);
+        println!("\n////");
 
         if vm.run_context.pc != address {
             return Err(VirtualMachineError::UnfinishedExecution);
