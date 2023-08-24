@@ -518,8 +518,8 @@ impl CairoRunner {
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
         self.program
             .shared_program_data
-            .hints
-            .iter()
+            .hints_collection
+            .iter_hints()
             .map(|hint| {
                 hint_executor
                     .compile_hint(
@@ -552,12 +552,14 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = self
+            let hint_data = &self
                 .program
                 .shared_program_data
-                .hints_ranges
-                .get(vm.run_context.pc.offset)
-                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .hints_collection
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
                 .unwrap_or(&[]);
             vm.step(
                 hint_processor,
@@ -593,9 +595,11 @@ impl CairoRunner {
             let hint_data = self
                 .program
                 .shared_program_data
-                .hints_ranges
-                .get(vm.run_context.pc.offset)
-                .and_then(|r| r.and_then(|(s, l)| hint_data.get(s..s + l.get())))
+                .hints_collection
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
                 .unwrap_or(&[]);
             vm.step(
                 hint_processor,
@@ -3664,6 +3668,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
@@ -3681,6 +3686,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
