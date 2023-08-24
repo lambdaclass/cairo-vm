@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Don't build wasm-demo in `build` target + add target & ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
+* Don't build wasm-demo in `build` target + add ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
 
     * Adds default-members to workspace
     * Crate `examples/wasm-demo` is no longer built during `make build`
