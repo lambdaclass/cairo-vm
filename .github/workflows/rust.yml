@@ -484,3 +484,29 @@ jobs:
           PROOF=proof_mode
         fi
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+
+  wasm-demo:
+    name: Build the wasm demo
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+  
+    - name: Install cairo-lang and deps
+      run: | 
+        pip install -r requirements.txt
+        npm install -g wasm-pack
+
+    - name: Build wasm-demo
+      run: |
+        cd examples/wasm-demo
+        cairo-compile src/array_sum.cairo --no_debug_info --output src/array_sum.json
+        wasm-pack build --target=web

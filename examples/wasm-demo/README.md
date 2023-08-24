@@ -1,9 +1,9 @@
-# Demo of `cairo-rs` on WebAssembly
+# Demo of `cairo-vm` on WebAssembly
 
-While cairo-rs is compatible with WebAssembly, it doesn't implement any bindings to it.
-Instead, create a new WebAssembly crate with cairo-rs as a dependency and implement the required functionality there.
+While cairo-vm is compatible with WebAssembly, it doesn't implement any bindings to it.
+Instead, create a new WebAssembly crate with cairo-vm as a dependency and implement the required functionality there.
 
-Since mimalloc is not automatically compilable to WebAssembly, the cairo-rs dependency should disable the default features, which will in turn disable mimalloc.
+Since mimalloc is not automatically compilable to WebAssembly, the cairo-vm dependency should disable the default features, which will in turn disable mimalloc.
 
 A working example is provided in this repository.
 
