@@ -1,4 +1,17 @@
-use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
+//! # Program deserialization
+//!
+//! This module contains the logic for [`Program`] deserialization.
+//! Users shouldn't need to use it directly (except for [`BuiltinName`]).
+//!
+//! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
+//! To do the same from a JSON file, see [`Program::from_file()`].
+
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+    prelude::*,
+    sync::Arc,
+};
 
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::{
@@ -6,7 +19,7 @@ use crate::{
     types::{
         errors::program_errors::ProgramError,
         instruction::Register,
-        program::{Program, SharedProgramData},
+        program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
     vm::runners::builtin_runner::{
@@ -21,7 +34,11 @@ use num_traits::{Num, Pow};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::{self, Arbitrary, Unstructured};
+
 // This enum is used to deserialize program builtins into &str and catch non-valid names
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
@@ -52,6 +69,7 @@ impl BuiltinName {
     }
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
@@ -59,12 +77,13 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
-    pub hints: HashMap<usize, Vec<HintParams>>,
+    pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub attributes: Vec<Attribute>,
     pub debug_info: Option<DebugInfo>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -72,6 +91,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -79,6 +99,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -100,6 +121,7 @@ impl Default for ApTracking {
     }
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -114,18 +136,24 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
+    #[cfg_attr(
+        all(feature = "arbitrary", feature = "std"),
+        serde(skip_serializing_if = "Option::is_none")
+    )]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -139,22 +167,56 @@ pub struct Location {
     pub start_col: u32,
 }
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+impl<'a> Arbitrary<'a> for Location {
+    fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
+        arbitrary_parent_location(u, 20)
+    }
+}
+
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Result<Location> {
+    let parent_location = if depth > 0 {
+        Some((
+            Box::new(arbitrary_parent_location(u, depth - 1)?),
+            String::arbitrary(u)?,
+        ))
+    } else {
+        None
+    };
+    Ok(Location {
+        end_line: u32::arbitrary(u)?,
+        end_col: u32::arbitrary(u)?,
+        input_file: InputFile::arbitrary(u)?,
+        parent_location,
+        start_line: u32::arbitrary(u)?,
+        start_col: u32::arbitrary(u)?,
+    })
+}
+
+#[cfg_attr(
+    all(feature = "arbitrary", feature = "std"),
+    derive(Arbitrary, Clone, Serialize)
+)]
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -197,11 +259,13 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     }
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
@@ -211,6 +275,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
@@ -218,8 +283,8 @@ pub enum OffsetValue {
     Reference(Register, i32, bool),
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-
 pub struct ValueAddress {
     pub offset1: OffsetValue,
     pub offset2: OffsetValue,
@@ -418,9 +483,11 @@ pub fn parse_program_json(
         }
     }
 
+    let hints_collection = HintsCollection::new(&program_json.hints, program_json.data.len())?;
+
     let shared_program_data = SharedProgramData {
         data: program_json.data,
-        hints: program_json.hints,
+        hints_collection,
         main: entrypoint_pc,
         start,
         end,
@@ -446,6 +513,7 @@ pub fn parse_program_json(
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
+    use core::num::NonZeroUsize;
     use felt::felt_str;
     use num_traits::One;
     use num_traits::Zero;
@@ -616,7 +684,7 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+        let mut hints = BTreeMap::new();
         hints.insert(
             0,
             vec![HintParams {
@@ -793,6 +861,16 @@ mod tests {
         );
     }
 
+    fn get_hints_as_map(program: &Program) -> HashMap<usize, Vec<HintParams>> {
+        let hints_collection = &program.shared_program_data.hints_collection;
+        let hints_map: HashMap<usize, Vec<HintParams>> = hints_collection
+            .iter()
+            .map(|(pc, hints)| (pc, hints.to_vec()))
+            .collect();
+
+        hints_map
+    }
+
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
@@ -812,49 +890,59 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
-        hints.insert(
-            0,
-            vec![HintParams {
-                code: "memory[ap] = segments.add()".to_string(),
-                accessible_scopes: vec![
-                    String::from("starkware.cairo.common.alloc"),
-                    String::from("starkware.cairo.common.alloc.alloc"),
-                ],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 0,
-                        offset: 0,
+        let hints: HashMap<_, _> = [
+            (
+                0,
+                vec![HintParams {
+                    code: "memory[ap] = segments.add()".to_string(),
+                    accessible_scopes: vec![
+                        String::from("starkware.cairo.common.alloc"),
+                        String::from("starkware.cairo.common.alloc.alloc"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 0,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
-        hints.insert(
-            46,
-            vec![HintParams {
-                code: "import math".to_string(),
-                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 5,
-                        offset: 0,
+                }],
+            ),
+            (
+                4,
+                vec![HintParams {
+                    code: "import math".to_string(),
+                    accessible_scopes: vec![
+                        String::from("__main__"),
+                        String::from("__main__.main"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 5,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
+                }],
+            ),
+        ]
+        .into();
+        let mut hints_ranges = vec![None; 47];
+        hints_ranges[0] = Some((0, NonZeroUsize::new(1).unwrap()));
+        hints_ranges[46] = Some((1, NonZeroUsize::new(1).unwrap()));
 
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, Some(0));
-        assert_eq!(program.shared_program_data.hints, hints);
+
+        let program_hints = get_hints_as_map(&program);
+        assert_eq!(program_hints, hints);
     }
 
     /// Deserialize a program without an entrypoint.
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn deserialize_program_without_entrypoint_test() {
+    fn deserialize_program_without_entrypoint() {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
 
@@ -871,43 +959,50 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
-        hints.insert(
-            0,
-            vec![HintParams {
-                code: "memory[ap] = segments.add()".to_string(),
-                accessible_scopes: vec![
-                    String::from("starkware.cairo.common.alloc"),
-                    String::from("starkware.cairo.common.alloc.alloc"),
-                ],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 0,
-                        offset: 0,
+        let hints: HashMap<_, _> = [
+            (
+                0,
+                vec![HintParams {
+                    code: "memory[ap] = segments.add()".to_string(),
+                    accessible_scopes: vec![
+                        String::from("starkware.cairo.common.alloc"),
+                        String::from("starkware.cairo.common.alloc.alloc"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 0,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
-        hints.insert(
-            46,
-            vec![HintParams {
-                code: "import math".to_string(),
-                accessible_scopes: vec![String::from("__main__"), String::from("__main__.main")],
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking {
-                        group: 5,
-                        offset: 0,
+                }],
+            ),
+            (
+                4,
+                vec![HintParams {
+                    code: "import math".to_string(),
+                    accessible_scopes: vec![
+                        String::from("__main__"),
+                        String::from("__main__.main"),
+                    ],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking {
+                            group: 5,
+                            offset: 0,
+                        },
+                        reference_ids: HashMap::new(),
                     },
-                    reference_ids: HashMap::new(),
-                },
-            }],
-        );
+                }],
+            ),
+        ]
+        .into();
 
         assert_eq!(program.builtins, builtins);
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
-        assert_eq!(program.shared_program_data.hints, hints);
+
+        let program_hints = get_hints_as_map(&program);
+        assert_eq!(program_hints, hints);
     }
 
     #[test]
@@ -1462,6 +1557,53 @@ mod tests {
                 10
             )
             .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_program_with_invalid_hint_pc() {
+        let reader = br#"{
+            "attributes": [],
+            "builtins": [],
+            "compiler_version": "0.11.0",
+            "data": [
+                "0x41241"
+            ],
+            "debug_info": {
+                "instruction_locations": {}
+            },
+            "hints": {
+                "1": [
+                    {
+                        "accessible_scopes": [],
+                        "code": "",
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "reference_ids": {}
+                        }
+                    }
+                ]
+            },
+            "identifiers": {
+                "__main__.main": {}
+            },
+            "main_scope": "",
+            "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+            "reference_manager": {
+                "references": []
+            }
+        }"#;
+
+        let deserialization_result = deserialize_and_parse_program(reader, Some("main"));
+
+        assert!(deserialization_result.is_err());
+        assert_matches!(
+            deserialization_result.unwrap_err(),
+            ProgramError::InvalidHintPc(1, 1)
         );
     }
 }

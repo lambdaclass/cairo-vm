@@ -5,7 +5,7 @@ use crate::stdlib::{collections::HashSet, prelude::*};
 
 use thiserror_no_std::Error;
 
-use super::memory_errors::MemoryError;
+use super::{memory_errors::MemoryError, trace_errors::TraceError};
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use felt::Felt252;
 
@@ -85,6 +85,34 @@ pub enum RunnerError {
     BuiltinExpectedInteger(Box<(&'static str, Relocatable)>),
     #[error("keccak_builtin: Failed to convert input cells to u64 values")]
     KeccakInputCellsNotU64,
+    #[error("Unexpected ret_fp_segment size")]
+    UnexpectedRetFpSegmentSize,
+    #[error("Unexpected ret_pc_segment size")]
+    UnexpectedRetPcSegmentSize,
+    #[error("Expected program base offset to be zero")]
+    ProgramBaseOffsetNotZero,
+    #[error("Expected execution base offset to be zero")]
+    ExecBaseOffsetNotZero,
+    #[error("Expected ret_fp offset to be zero")]
+    RetFpOffsetNotZero,
+    #[error("Expected ret_pc offset to be zero")]
+    RetPcOffsetNotZero,
+    #[error("Can't build a StrippedProgram from a Program without main")]
+    StrippedProgramNoMain,
+    #[error(transparent)]
+    Trace(#[from] TraceError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_runner_error_size() {
+        let size = crate::stdlib::mem::size_of::<RunnerError>();
+        assert!(size <= 32, "{size}")
+    }
 }
 
 #[cfg(test)]

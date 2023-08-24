@@ -253,7 +253,9 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "continue_loop",
             ),
-            hint_code::SPLIT_FELT => split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SPLIT_FELT => {
+                split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }

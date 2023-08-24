@@ -1,7 +1,8 @@
-use crate::stdlib::prelude::*;
+use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::runners::cairo_pie::{BuiltinAdditionalData, OutputBuiltinAdditionalData};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -102,10 +103,16 @@ impl OutputBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
+            pages: HashMap::default(),
+            attributes: HashMap::default(),
+        })
     }
 }
 
@@ -430,5 +437,17 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         builtin.add_validation_rule(&mut vm.segments.memory);
+    }
+
+    #[test]
+    fn get_additional_info_no_pages_no_attributes() {
+        let builtin = OutputBuiltinRunner::new(true);
+        assert_eq!(
+            builtin.get_additional_data(),
+            BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
+                pages: HashMap::default(),
+                attributes: HashMap::default()
+            })
+        )
     }
 }

@@ -19,6 +19,9 @@ use core::{
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{string::String, vec::Vec};
 
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+use arbitrary::Arbitrary;
+
 pub(crate) trait FeltOps {
     fn new<T: Into<FeltBigInt<FIELD_HIGH, FIELD_LOW>>>(value: T) -> Self;
 
@@ -39,6 +42,8 @@ pub(crate) trait FeltOps {
     fn parse_bytes(buf: &[u8], radix: u32) -> Option<FeltBigInt<FIELD_HIGH, FIELD_LOW>>;
 
     fn from_bytes_be(bytes: &[u8]) -> Self;
+
+    fn from_bytes_le(bytes: &[u8]) -> Self;
 
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn to_str_radix(&self, radix: u32) -> String;
@@ -64,6 +69,7 @@ macro_rules! felt_str {
     };
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub struct Felt252 {
     pub(crate) value: FeltBigInt<FIELD_HIGH, FIELD_LOW>,
@@ -176,6 +182,19 @@ impl Felt252 {
         Self {
             value: FeltBigInt::from_bytes_be(bytes),
         }
+    }
+    pub fn from_bytes_le(bytes: &[u8]) -> Self {
+        Self {
+            value: FeltBigInt::from_bytes_le(bytes),
+        }
+    }
+    pub fn from_bytes_ne(bytes: &[u8]) -> Self {
+        // Call either version depending on target endianness
+        #[cfg(target_endian = "little")]
+        let res = Self::from_bytes_le(bytes);
+        #[cfg(target_endian = "big")]
+        let res = Self::from_bytes_be(bytes);
+        res
     }
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn to_str_radix(&self, radix: u32) -> String {
@@ -358,7 +377,7 @@ impl Add<&Felt252> for u64 {
         };
         // A single digit means this is effectively the sum of two `u64` numbers.
         let Some(h0) = rhs_digits.next() else {
-            return self.checked_add(low)
+            return self.checked_add(low);
         };
         // Now we need to compare the 3 most significant digits.
         // There are two relevant cases from now on, either `rhs` behaves like a
@@ -995,7 +1014,7 @@ assert_felt_impl!(Felt252);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{arbitrary_bigint_felt::nonzero_felt252, PRIME_STR};
+    use crate::{arbitrary::nonzero_felt252, PRIME_STR};
     use core::cmp;
     use rstest::rstest;
 
@@ -1014,6 +1033,31 @@ mod test {
             let p = &BigUint::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap();
             prop_assert!(&x.to_biguint() < p);
         }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_be(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // big-endian order: [ high, low ]
+            bytes[..16].copy_from_slice(&high.to_be_bytes());
+            bytes[16..].copy_from_slice(&low.to_be_bytes());
+            let got = Felt252::from_bytes_be(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn from_bytes_le(high: u128, low: u128) {
+            let expected = (Felt252::from(high) << 128_usize) + Felt252::from(low);
+            let mut bytes = [0; 32];
+            // little-endian order: [ low, high ]
+            bytes[..16].copy_from_slice(&low.to_le_bytes());
+            bytes[16..].copy_from_slice(&high.to_le_bytes());
+            let got = Felt252::from_bytes_le(&bytes);
+            prop_assert_eq!(got, expected);
+        }
+
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -1438,6 +1482,7 @@ mod test {
 
             let p_felt = Felt252::max_value();
 
+            #[allow(deprecated)]
             let modpow = x.modpow(&y, &p_felt).to_biguint();
             prop_assert!(modpow < p, "{}", modpow);
         }
@@ -1662,5 +1707,13 @@ mod test {
     fn signum_of_zero_is_zero() {
         let zero = Felt252::zero();
         assert_eq!(&zero.signum(), &zero)
+    }
+
+    #[test]
+    fn from_bytes_ne() {
+        let expected = Felt252::zero();
+        let bytes = [0; 32];
+        let got = Felt252::from_bytes_ne(&bytes);
+        assert_eq!(got, expected);
     }
 }

@@ -1,5 +1,6 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::{
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
@@ -137,7 +138,7 @@ impl SignatureBuiltinRunner {
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
-                        signature.to_string(),
+                        format!("({}, {})", signature.r, signature.s),
                         pubkey.into_owned(),
                         msg.into_owned(),
                     )))),
@@ -209,10 +210,28 @@ impl SignatureBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        // Convert signatures to Felt tuple
+        let signatures: HashMap<Relocatable, (Felt252, Felt252)> = self
+            .signatures
+            .borrow()
+            .iter()
+            .map(|(k, v)| {
+                (
+                    *k,
+                    (
+                        Felt252::from_bytes_be(&v.r.to_bytes_be()),
+                        Felt252::from_bytes_be(&v.s.to_bytes_be()),
+                    ),
+                )
+            })
+            .collect();
+        BuiltinAdditionalData::Signature(signatures)
     }
 }
 
@@ -231,6 +250,7 @@ mod tests {
         },
     };
 
+    use felt::felt_str;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -562,6 +582,27 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
             Err(RunnerError::Memory(MemoryError::MissingSegmentUsedSizes))
+        )
+    }
+
+    #[test]
+    fn get_additional_info() {
+        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let signatures = HashMap::from([(
+            Relocatable::from((4, 0)),
+            Signature {
+                r: FieldElement::from_dec_str("45678").unwrap(),
+                s: FieldElement::from_dec_str("1239").unwrap(),
+            },
+        )]);
+        builtin.signatures = Rc::new(RefCell::new(signatures));
+        let signatures = HashMap::from([(
+            Relocatable::from((4, 0)),
+            (felt_str!("45678"), felt_str!("1239")),
+        )]);
+        assert_eq!(
+            builtin.get_additional_data(),
+            BuiltinAdditionalData::Signature(signatures)
         )
     }
 }

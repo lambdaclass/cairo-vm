@@ -1,0 +1,19 @@
+name: QA Canary Workflow
+
+on:
+  workflow_run:
+    workflows: [QA]
+    types:
+    - completed
+
+jobs:
+  on-qa-success:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+    - run: exit 0
+  on-qa-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+    - run: exit 1

@@ -2,13 +2,105 @@
 
 #### Upcoming Changes
 
+* BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
+
+* feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
+
+* fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
+
+* refactor: combine `Program.hints` and `Program.hints_ranges` into custom collection [#1366](https://github.com/lambdaclass/cairo-vm/pull/1366)
+
+* fix: Fix div_mod [#1383](https://github.com/lambdaclass/cairo-vm/pull/1383)
+
+  * Fixes `div_mod` function so that it behaves like the cairo-lang version
+  * Various functions in the `math_utils` crate can now return a `MathError` : `div_mod`, `ec_add`, `line_slope`, `ec_double`, `ec_double_slope`.
+  * Fixes `UINT256_MUL_INV_MOD_P` hint so that it behaves like the python code.
+
+#### [0.8.6] - 2023-8-11
+
+* fix: Handle error in hint `UINT256_MUL_DIV_MOD` when divides by zero [#1367](https://github.com/lambdaclass/cairo-vm/pull/1367)
+
+* Add HintError::SyscallError and VmErrors::HINT_ERROR_STR constant [#1357](https://github.com/lambdaclass/cairo-rs/pull/1357)
+
+* feat: make *arbitrary* feature also enable a `proptest::arbitrary::Arbitrary` implementation for `Felt252` [#1355](https://github.com/lambdaclass/cairo-vm/pull/1355)
+
+* fix: correctly display invalid signature error message [#1361](https://github.com/lambdaclass/cairo-vm/pull/1361)
+
+#### [0.8.5] - 2023-7-31
+
+* fix: `Program` comparison depending on `hints_ranges` ordering [#1351](https://github.com/lambdaclass/cairo-rs/pull/1351)
+
+* feat: implement the `--air_public_input` flag to the runner for outputting public inputs into a file [#1268](https://github.com/lambdaclass/cairo-rs/pull/1268)
+
+* fix: CLI errors bad formatting and handling
+
+* perf: replace insertion with bit-setting in validated addresses [#1208](https://github.com/lambdaclass/cairo-vm/pull/1208)
+
+* fix: return error when a parsed hint's PC is invalid [#1340](https://github.com/lambdaclass/cairo-vm/pull/1340)
+
+* chore(deps): bump _cairo-lang_ dependencies to v2.1.0-rc2 [#1345](https://github.com/lambdaclass/cairo-vm/pull/1345)
+
+* chore(examples): remove _wee_alloc_ dependency from _wasm-demo_ example and _ensure-no_std_ dummy crate [#1337](https://github.com/lambdaclass/cairo-vm/pull/1337)
+
+* docs: improved crate documentation [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+
+* chore!: made `deserialize_utils` module private [#1334](https://github.com/lambdaclass/cairo-vm/pull/1334)
+  BREAKING:
+  * `deserialize_utils` is no longer exported
+  * functions `maybe_add_padding`, `parse_value`, and `take_until_unbalanced` are no longer exported
+  * `ReferenceParseError` is no more
+
+* perf: changed `ok_or` usage for `ok_or_else` in expensive cases [#1332](https://github.com/lambdaclass/cairo-vm/pull/1332)
+
+* feat: updated the old WASM example and moved it to [`examples/wasm-demo`](examples/wasm-demo/) [#1315](https://github.com/lambdaclass/cairo-vm/pull/1315)
+
+* feat(fuzzing): add `arbitrary` feature to enable arbitrary derive in `Program` and `CairoRunConfig` [#1306](https://github.com/lambdaclass/cairo-vm/pull/1306) [#1330](https://github.com/lambdaclass/cairo-vm/pull/1330)
+
+* perf: remove pointless iterator from rc limits tracking [#1316](https://github.com/lambdaclass/cairo-vm/pull/1316)
+
+* feat(felt): add `from_bytes_le` and `from_bytes_ne` methods to `Felt252` [#1326](https://github.com/lambdaclass/cairo-vm/pull/1326)
+
+* perf: change `Program::shared_program_data::hints` from `HashMap<usize, Vec<Box<dyn Any>>>` to `Vec<Box<dyn Any>>` and refer to them as ranges stored in a `Vec<_>` indexed by PC with run time reductions of up to 12% [#931](https://github.com/lambdaclass/cairo-vm/pull/931)
+  BREAKING:
+  * `get_hint_dictionary(&self, &[HintReference], &mut dyn HintProcessor) -> Result<HashMap<usize, Vec<Box<dyn Any>>, VirtualMachineError>` ->
+    `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
+  * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
+
+#### [0.8.4] 
+**YANKED**
+
+#### [0.8.3]
+**YANKED**
+
+#### [0.8.2] - 2023-7-10
+
+* chore: update dependencies, particularly lamdaworks 0.1.2 -> 0.1.3 [#1323](https://github.com/lambdaclass/cairo-vm/pull/1323)
+
+* fix: fix `UINT256_MUL_DIV_MOD` hint [#1320](https://github.com/lambdaclass/cairo-vm/pull/1320)
+
+* feat: add dependency installation script `install.sh` [#1298](https://github.com/lambdaclass/cairo-vm/pull/1298)
+
+* fix: specify resolver version 2 in the virtual workspace's manifest [#1311](https://github.com/lambdaclass/cairo-vm/pull/1311)
+
+* feat: add `lambdaworks-felt` feature to `cairo-vm-cli` [#1308](https://github.com/lambdaclass/cairo-vm/pull/1308)
+
+* chore: update dependencies, particularly clap 3.2 -> 4.3 [#1309](https://github.com/lambdaclass/cairo-vm/pull/1309)
+  * this removes dependency on _atty_, that's no longer mantained
+
+* chore: remove unused dependencies [#1307](https://github.com/lambdaclass/cairo-vm/pull/1307)
+  * rand_core
+  * serde_bytes
+  * rusty-hook (_dev-dependency_)
+
+* chore: bump `cairo-lang-starknet` and `cairo-lang-casm` dependencies to 2.0.0 [#1313](https://github.com/lambdaclass/cairo-vm/pull/1313)
+
 #### [0.8.1] - 2023-6-29
 
 * chore: change mentions of *cairo-rs-py* to *cairo-vm-py* [#1296](https://github.com/lambdaclass/cairo-vm/pull/1296)
 
 * rename github repo from https://github.com/lambdaclass/cairo-rs to https://github.com/lambdaclass/cairo-vm [#1289](https://github.com/lambdaclass/cairo-vm/pull/1289)
 
-* fix(security): avoid OOM crashes when programs jump to very high invalid addresses.
+* fix(security): avoid OOM crashes when programs jump to very high invalid addresses [#1285](https://github.com/lambdaclass/cairo-vm/pull/1285)
 
 * fix: add `to_bytes_be` to the felt when `lambdaworks-felt` feature is active [#1290](https://github.com/lambdaclass/cairo-vm/pull/1290)
 

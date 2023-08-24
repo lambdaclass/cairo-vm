@@ -77,9 +77,9 @@ impl EcOpBuiltinRunner {
                 ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime);
+                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime);
+            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
             slope = slope.clone() >> 1_u32;
         }
         Ok(partial_sum_b)
@@ -251,8 +251,7 @@ impl EcOpBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
     }

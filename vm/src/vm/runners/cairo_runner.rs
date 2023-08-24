@@ -1,4 +1,5 @@
 use crate::{
+    air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -46,10 +47,13 @@ use crate::{
 };
 use felt::Felt252;
 use num_integer::div_rem;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use serde::Deserialize;
 
-use super::builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner};
+use super::{
+    builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
+    cairo_pie::{self, CairoPie, CairoPieMetadata},
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -507,29 +511,26 @@ impl CairoRunner {
     }
 
     /// Gets the data used by the HintProcessor to execute each hint
-    pub fn get_hint_data_dictionary(
+    pub fn get_hint_data(
         &self,
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
-    ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
-        let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
-        for (hint_index, hints) in self.program.shared_program_data.hints.iter() {
-            for hint in hints {
-                let hint_data = hint_executor.compile_hint(
-                    &hint.code,
-                    &hint.flow_tracking_data.ap_tracking,
-                    &hint.flow_tracking_data.reference_ids,
-                    references,
-                );
-                hint_data_dictionary
-                    .entry(*hint_index)
-                    .or_default()
-                    .push(hint_data.map_err(|_| {
-                        VirtualMachineError::CompileHintFail(hint.code.clone().into_boxed_str())
-                    })?);
-            }
-        }
-        Ok(hint_data_dictionary)
+    ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
+        self.program
+            .shared_program_data
+            .hints_collection
+            .iter_hints()
+            .map(|hint| {
+                hint_executor
+                    .compile_hint(
+                        &hint.code,
+                        &hint.flow_tracking_data.ap_tracking,
+                        &hint.flow_tracking_data.reference_ids,
+                        references,
+                    )
+                    .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+            })
+            .collect()
     }
 
     pub fn get_constants(&self) -> &HashMap<String, Felt252> {
@@ -547,16 +548,23 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
-
+        let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "hooks")]
-        vm.execute_before_first_step(self, &hint_data_dictionary)?;
-
+        vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
+            let hint_data = &self
+                .program
+                .shared_program_data
+                .hints_collection
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
+                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                &hint_data_dictionary,
+                hint_data,
                 &self.program.constants,
             )?;
             hint_processor.consume_step();
@@ -577,17 +585,26 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data_dictionary = self.get_hint_data_dictionary(references, hint_processor)?;
+        let hint_data = self.get_hint_data(references, hint_processor)?;
 
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
+            let hint_data = self
+                .program
+                .shared_program_data
+                .hints_collection
+                .get_hint_range_for_pc(vm.run_context.pc.offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
+                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                &hint_data_dictionary,
+                hint_data,
                 &self.program.constants,
             )?;
         }
@@ -788,12 +805,16 @@ impl CairoRunner {
             .segments
             .relocate_segments()
             .expect("compute_effective_sizes called but relocate_memory still returned error");
+
         if relocate_mem {
             if let Err(memory_error) = self.relocate_memory(vm, &relocation_table) {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        vm.relocate_trace(&relocation_table)
+
+        vm.relocate_trace(&relocation_table)?;
+        vm.relocation_table = Some(relocation_table);
+        Ok(())
     }
 
     // Returns a map from builtin base's segment index to stop_ptr offset
@@ -811,6 +832,34 @@ impl CairoRunner {
                 index,
                 stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
+        }
+
+        Ok(builtin_segment_info)
+    }
+
+    // Returns a map from builtin's name wihout the "_builtin" suffix to its base's segment index and stop_ptr offset
+    // Aka the builtin's segment number and its maximum offset
+    pub fn get_builtin_segment_info_for_pie(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<String, cairo_pie::SegmentInfo>, RunnerError> {
+        let mut builtin_segment_info = HashMap::new();
+
+        for builtin in &vm.builtin_runners {
+            let (index, stop_ptr) = builtin.get_memory_segment_addresses();
+
+            builtin_segment_info.insert(
+                builtin
+                    .name()
+                    .strip_suffix("_builtin")
+                    .unwrap_or_default()
+                    .to_string(),
+                (
+                    index as isize,
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
+                )
+                    .into(),
+            );
         }
 
         Ok(builtin_segment_info)
@@ -893,30 +942,6 @@ impl CairoRunner {
                 .finalize(Some(size), builtin_runner.base(), None)
         }
         self.segments_finalized = true;
-        Ok(())
-    }
-
-    pub fn run_from_entrypoint_fuzz(
-        &mut self,
-        entrypoint: usize,
-        args: Vec<MaybeRelocatable>,
-        verify_secure: bool,
-        vm: &mut VirtualMachine,
-        hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(), VirtualMachineError> {
-        let stack = args;
-        let return_fp = MaybeRelocatable::from(0);
-        let end = self.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
-
-        self.initialize_vm(vm)?;
-
-        self.run_until_pc(end, vm, hint_processor)?;
-        self.end_run(true, false, vm, hint_processor)?;
-
-        if verify_secure {
-            verify_secure_runner(self, false, None, vm)?;
-        }
-
         Ok(())
     }
 
@@ -1125,6 +1150,129 @@ impl CairoRunner {
     /// Return CairoRunner.program
     pub fn get_program(&self) -> &Program {
         &self.program
+    }
+
+    // Constructs and returns a CairoPie representing the current VM run.
+    pub fn get_cairo_pie(&self, vm: &VirtualMachine) -> Result<CairoPie, RunnerError> {
+        let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+
+        let builtin_segments = self.get_builtin_segment_info_for_pie(vm)?;
+        let mut known_segment_indices = HashSet::new();
+        for info in builtin_segments.values() {
+            known_segment_indices.insert(info.index);
+        }
+        let n_used_builtins = self.program.builtins_len();
+        let return_fp_addr = (execution_base + n_used_builtins)?;
+        let return_fp = vm.segments.memory.get_relocatable(return_fp_addr)?;
+        let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?)?;
+
+        if let None | Some(false) = return_fp
+            .segment_index
+            .to_usize()
+            .and_then(|u| vm.segments.get_segment_size(u))
+            .map(|u| u.is_zero())
+        {
+            // return_fp negative index / no size / size is zero
+            return Err(RunnerError::UnexpectedRetFpSegmentSize);
+        }
+
+        if let None | Some(false) = return_pc
+            .segment_index
+            .to_usize()
+            .and_then(|u| vm.segments.get_segment_size(u))
+            .map(|u| u.is_zero())
+        {
+            // return_pc negative index / no size / size is zero
+            return Err(RunnerError::UnexpectedRetPcSegmentSize);
+        }
+
+        if program_base.offset != 0 {
+            return Err(RunnerError::ProgramBaseOffsetNotZero);
+        }
+        known_segment_indices.insert(program_base.segment_index);
+
+        if execution_base.offset != 0 {
+            return Err(RunnerError::ExecBaseOffsetNotZero);
+        }
+        known_segment_indices.insert(execution_base.segment_index);
+
+        if return_fp.offset != 0 {
+            return Err(RunnerError::RetFpOffsetNotZero);
+        }
+        known_segment_indices.insert(return_fp.segment_index);
+
+        if return_pc.offset != 0 {
+            return Err(RunnerError::RetPcOffsetNotZero);
+        }
+        known_segment_indices.insert(return_pc.segment_index);
+
+        // Put all the remaining segments in extra_segments.
+        let mut extra_segments = Vec::default();
+        for index in 0..vm.segments.num_segments() {
+            if !known_segment_indices.contains(&(index as isize)) {
+                extra_segments.push(
+                    (
+                        index as isize,
+                        vm.get_segment_size(index)
+                            .ok_or(MemoryError::MissingSegmentUsedSizes)?,
+                    )
+                        .into(),
+                );
+            }
+        }
+
+        let execution_size = (vm.get_ap() - execution_base)?;
+        let metadata = CairoPieMetadata {
+            program: self
+                .get_program()
+                .get_stripped_program()
+                .map_err(|_| RunnerError::StrippedProgramNoMain)?,
+            program_segment: (program_base.segment_index, self.program.data_len()).into(),
+            execution_segment: (execution_base.segment_index, execution_size).into(),
+            ret_fp_segment: (return_fp.segment_index, 0).into(),
+            ret_pc_segment: (return_pc.segment_index, 0).into(),
+            builtin_segments,
+            extra_segments,
+        };
+
+        Ok(CairoPie {
+            metadata,
+            memory: (&vm.segments.memory).into(),
+            execution_resources: self.get_execution_resources(vm)?,
+            additional_data: vm
+                .builtin_runners
+                .iter()
+                .map(|b| (b.name().to_string(), b.get_additional_data()))
+                .collect(),
+        })
+    }
+
+    /// Return CairoRunner.layout
+    fn get_layout(&self) -> &CairoLayout {
+        &self.layout
+    }
+
+    pub fn get_air_public_input(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<PublicInput, PublicInputError> {
+        let layout_name = self.get_layout()._name.as_str();
+        let dyn_layout = match layout_name {
+            "dynamic" => Some(self.get_layout()),
+            _ => None,
+        };
+
+        PublicInput::new(
+            &self.relocated_memory,
+            layout_name,
+            dyn_layout,
+            &vm.get_public_memory_addresses()?,
+            vm.get_memory_segment_addresses()?,
+            vm.get_relocated_trace()?,
+            self.get_perm_range_check_limits(vm)
+                .ok_or(PublicInputError::NoRangeCheckLimits)?,
+        )
     }
 }
 
@@ -3046,6 +3194,18 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(&program);
+        let mut vm = vm!(true);
+        assert_matches!(
+            cairo_runner.initialize(&mut vm),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -3508,6 +3668,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
@@ -3525,6 +3686,7 @@ mod tests {
             layout: "all_cairo",
             proof_mode: false,
             secure_run: Some(false),
+            ..Default::default()
         };
         let mut hint_executor = BuiltinHintProcessor::new_empty();
         let (runner, vm) = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
@@ -4970,5 +5132,168 @@ mod tests {
             Err(VirtualMachineError::UnfinishedExecution)
         );
         assert_eq!(hint_processor.run_resources(), &RunResources::new(0));
+    }
+
+    #[test]
+    fn get_cairo_pie_no_program_base() {
+        let runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let vm = vm!();
+        assert_eq!(runner.get_cairo_pie(&vm), Err(RunnerError::NoProgBase))
+    }
+
+    #[test]
+    fn get_cairo_pie_no_execution_base() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        assert_eq!(runner.get_cairo_pie(&vm), Err(RunnerError::NoExecBase))
+    }
+
+    #[test]
+    fn get_cairo_pie_no_segment_sizes() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::UnexpectedRetFpSegmentSize)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_ret_pc_segment_size_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 1)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::UnexpectedRetPcSegmentSize)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_program_base_offset_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 1)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::ProgramBaseOffsetNotZero)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_execution_base_offset_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 1)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 1).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 2).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::ExecBaseOffsetNotZero)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_ret_fp_offset_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 1).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::RetFpOffsetNotZero)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_ret_pc_offset_not_zero() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 1).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+        assert_eq!(
+            runner.get_cairo_pie(&vm),
+            Err(RunnerError::RetPcOffsetNotZero)
+        );
+    }
+
+    #[test]
+    fn get_cairo_pie_ok() {
+        let mut runner = CairoRunner::new(&Program::default(), "all_cairo", false).unwrap();
+        let mut vm = vm!();
+        runner.program_base = Some(Relocatable::from((0, 0)));
+        runner.execution_base = Some(Relocatable::from((1, 0)));
+        vm.add_memory_segment();
+        vm.add_memory_segment();
+        // return_fp
+        vm.insert_value::<Relocatable>((1, 0).into(), (2, 0).into())
+            .unwrap();
+        // return_pc
+        vm.insert_value::<Relocatable>((1, 1).into(), (3, 0).into())
+            .unwrap();
+        // segment sizes
+        vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
     }
 }

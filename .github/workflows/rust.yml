@@ -1,89 +1,486 @@
-name: rust
+name: QA
 
 on:
+  merge_group:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
 
 env:
   CARGO_TERM_COLOR: always
+  CAIRO_PROGRAMS_PATH: |
+    cairo_programs/**/*.casm
+    cairo_programs/**/*.json
+    !cairo_programs/manually_compiled/*
+    examples/wasm-demo/src/array_sum.json
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  build-programs:
+    strategy:
+      matrix:
+        # NOTE: we build cairo_proof_programs so clippy can check the benchmarks too
+        program-target: [
+          cairo_bench_programs,
+          cairo_proof_programs,
+          cairo_test_programs,
+          cairo_1_test_contracts,
+          cairo_2_test_contracts,
+        ]
+    name: Build Cairo programs
+    runs-on: ubuntu-22.04
     steps:
-    - name: Install Rust 1.66.1
-      uses: actions-rs/toolchain@v1
+    - name: Checkout
+      uses: actions/checkout@v3
       with:
-          toolchain: 1.66.1
-          override: true
-          components: rustfmt, clippy
+        fetch-depth: 0
+
+    - name: Fetch from cache
+      uses: actions/cache@v3
+      id: cache-programs
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        restore-keys: ${{ matrix.program-target }}-cache-
+
+    # This is not pretty, but we need `make` to see the compiled programs are
+    # actually newer than the sources, otherwise it will try to rebuild them
+    - name: Restore timestamps
+      uses: chetan/git-restore-mtime-action@v1
+
     - name: Python3 Build
+      if: steps.cache-programs.outputs.cache-hit != 'true'
+        && matrix.program-target != 'cairo_1_test_contracts'
+        && matrix.program-target != 'cairo_2_test_contracts'
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+        cache: 'pip'
 
-    - name: Install Nextest
-      uses: taiki-e/install-action@nextest
-    - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@cargo-llvm-cov
-    - name: Install wasm-bindgen-cli
-      uses: jetli/wasm-pack-action@v0.4.0
+    - name: Install cairo-lang and deps
+      if: |
+        steps.cache-programs.outputs.cache-hit != 'true'
+        && matrix.program-target != 'cairo_1_test_contracts'
+        && matrix.program-target != 'cairo_2_test_contracts'
+      run: pip install -r requirements.txt
+
+    - name: Install cairo 1 compiler
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
+      run: make build-cairo-1-compiler
+
+    - name: Install cairo 2 compiler
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
+      run: make build-cairo-2-compiler
+
+    - name: Build programs
+      if: steps.cache-programs.outputs.cache-hit != 'true'
+      run: make -j ${{ matrix.program-target }}
+
+  # NOTE: used to reduce the amount of cache steps we need in later jobs
+  # TODO: remove this cache once the workflow finishes
+  merge-caches:
+    name: Merge Cairo programs cache
+    runs-on: ubuntu-22.04
+    needs: build-programs
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch test programs
+      uses: actions/cache/restore@v3
       with:
-        version: "v0.10.3"
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+    - name: Fetch proof programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+    - name: Fetch bench programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+    - name: Fetch test contracts (Cairo 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+    - name: Fetch test contracts (Cairo 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
 
+    - name: Merge caches
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+
+  lint:
+    needs: build-programs
+    name: Run Lints
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.69.0
+      with:
+          components: rustfmt, clippy
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0 
-    - name: Install test dependencies
-      run: pip install -r requirements.txt
+
     - name: Format
-      run: cargo fmt --all -- --check
-    - name: Build
-      run: make build
-    - name: Populate cache
-      uses: actions/cache@v3
-      id: cache-cairo-programs
+      run: make check-fmt
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
       with:
-        path: |
-          cairo_programs/*.json
-          cairo_programs/*.memory
-          cairo_programs/*.trace
-          !cairo_programs/*.rs.*
-          cairo_programs/*/*.json
-          cairo_programs/*/*.memory
-          cairo_programs/*/*.trace
-          !cairo_programs/*/*.rs.*
-        key: cairo-cache-${{ hashFiles( 'cairo_programs/*.cairo', 'cairo_programs/*/*.cairo' ) }}
-        restore-keys: cairo-cache-
-    - name: Restore timestamps
-      uses: chetan/git-restore-mtime-action@v1
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - name: Run tests
-      run: make -j test
-    - name: Run tests no_std
-      run: make -j test-no_std
-    - name: Run wasm tests
-      run: make -j test-wasm
-    - name: Compare trace and memory
-      run: make -j compare_trace_memory
-    - name: Compare trace and memory with proof mode
-      run: make -j compare_trace_memory_proof
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
     - name: Run clippy
       run: make clippy
-    - name: Coverage
-      run: make coverage
+
+
+  # NOTE: the term "smoke test" comes from electronics design: the minimal
+  # expectations anyone has in their device is to not catch fire on boot.
+  smoke:
+    needs: merge-caches
+    name: Make sure all builds work
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.69.0
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Install cargo-all-features
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-all-features
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    # NOTE: we do this separately because --workspace operates in weird ways
+    - name: Check all features (felt)
+      run: |
+        cd felt
+        cargo check-all-features
+        cargo check-all-features --workspace --all-targets
+
+    - name: Check all features (vm)
+      run: |
+        cd vm
+        cargo check-all-features
+
+    - name: Check all features (CLI)
+      run: |
+        cd cairo-vm-cli
+        cargo check-all-features
+    
+    - name: Check all features (workspace)
+      run: |
+        cargo check-all-features --workspace --all-targets
+
+    - name: Check no-std
+      run: |
+        cd ensure-no_std
+        cargo check --no-default-features
+        cargo check
+
+  tests:
+    needs: merge-caches
+    strategy:
+      fail-fast: false
+      matrix:
+        special_features: ["", "lambdaworks-felt"]
+        target: [ test#1, test#2, test-no_std, test-wasm ]
+    name: Run tests
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.69.0
+      with:
+          components: llvm-tools-preview
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Install testing tools
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-nextest@0.9.49,cargo-llvm-cov,wasm-pack
+
+    - name: Run ${{ matrix.target }}
+      run: |
+        # this splits the `test#1` into `test` and `1`
+        export MATRIX_TARGET=${{ matrix.target }}
+        export NAME=${MATRIX_TARGET%#*}
+        export PARTITION=${MATRIX_TARGET#*#}
+        # FIXME: we need to update the Makefile to do this correctly
+        case ${NAME} in
+        'test')
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --partition count:${PARTITION}/2 \
+              --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
+          ;;
+        'test-no_std')
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --workspace --no-default-features --features "${{ matrix.special_features }}"
+          ;;
+        'test-wasm')
+          # NOTE: release mode is needed to avoid "too many locals" error
+          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
+          ;;
+        esac
+
+    - name: Save coverage
+      if: matrix.target != 'test-wasm'
+      uses: actions/cache/save@v3
+      with:
+        path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
+        key: codecov-cache-${{ matrix.target }}-${{ matrix.special_features }}-${{ github.sha }}
+
+  build-release:
+    name: Build release binary for comparisons
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.69.0
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Build
+      run: cargo b --release -p cairo-vm-cli
+    # We don't read from cache because it should always miss
+    - name: Store in cache
+      uses: actions/cache/save@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+
+  run-cairo-reference:
+    strategy:
+      matrix:
+        include:
+        - program-target: cairo_proof_programs
+          trace-target: cairo_proof_trace
+          nprocs: 1
+        - program-target: cairo_test_programs
+          trace-target: cairo_trace
+          nprocs: 2
+    name: Compute memory and execution traces with cairo-lang
+    needs: build-programs
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Check cache
+      uses: actions/cache@v3
+      id: trace-cache
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
+
+    - name: Python3 Build
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Install cairo-lang and deps
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      run: pip install -r requirements.txt
+
+    - name: Fetch programs
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    # This is not pretty, but we need `make` to see the compiled programs are
+    # actually newer than the sources, otherwise it will try to rebuild them
+    - name: Restore timestamps
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      uses: chetan/git-restore-mtime-action@v1
+
+    - name: Generate traces
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      run: make -j ${{ matrix.nprocs }} ${{ matrix.trace-target }}
+
+
+  run-cairo-release:
+    strategy:
+      matrix:
+        include:
+        - program-target: cairo_proof_programs
+          programs-dir: cairo_programs/proof_programs
+          extra-args: '--proof_mode'
+        - program-target: cairo_test_programs
+          programs-dir: cairo_programs
+          extra-args: ''
+    name: Compute memory and execution traces with cairo-vm
+    needs: [ build-programs, build-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Generate traces
+      run: |
+        ls ${{ matrix.programs-dir }}/*.json | cut -f1 -d'.' | \
+        xargs -P 2 -I '{program}' \
+        ./target/release/cairo-vm-cli '{program}'.json --layout starknet_with_keccak \
+        --memory_file '{program}'.rs.memory --trace_file '{program}'.rs.trace \
+        ${{ matrix.extra-args }}
+    - name: Update cache
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+        key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
+
+
+  upload-coverage:
+    name: Upload coverage results to codecov.io
+    needs: tests
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch results for tests with stdlib (part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-.info
+        key: codecov-cache-test#1--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-.info
+        key: codecov-cache-test#2--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std-.info
+        key: codecov-cache-test-no_std--${{ github.sha }}
+        fail-on-cache-miss: true
+
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-lambdaworks-felt.info
+        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-lambdaworks-felt.info
+        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/lambdaworks)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std-lambdaworks-felt.info
+        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: lcov.info
-        fail_ci_if_error:     true
-    # NB: the following step is needed so caching doesn't cause misleading coverage in later runs
-    - name: Clean coverage artifacts
-      run: make coverage-clean
+        files: '*.info'
+        fail_ci_if_error: true
+
+
+  compare-memory-and-trace:
+    strategy:
+      matrix:
+        program-target: [ cairo_proof_programs, cairo_test_programs ]
+    name: Compare memory and execution traces from cairo-lang and cairo-vm
+    needs: [ run-cairo-reference, run-cairo-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch traces for cairo-lang
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Fetch traces for cairo-vm
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+        key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
+        fail-on-cache-miss: true
+
+    - name: Run comparison script
+      run: |
+        if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
+          PROOF=proof_mode
+        fi
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF

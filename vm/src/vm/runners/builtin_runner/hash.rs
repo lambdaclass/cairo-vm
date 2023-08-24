@@ -5,6 +5,7 @@ use crate::types::instance_definitions::pedersen_instance_def::{
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
@@ -172,10 +173,19 @@ impl HashBuiltinRunner {
             self.stop_ptr = Some(stop_ptr);
             Ok(stop_pointer_addr)
         } else {
-            let stop_ptr = self.base;
-            self.stop_ptr = Some(stop_ptr);
+            self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn get_additional_data(&self) -> BuiltinAdditionalData {
+        let mut verified_addresses = Vec::new();
+        for (offset, is_verified) in self.verified_addresses.borrow().iter().enumerate() {
+            if *is_verified {
+                verified_addresses.push(Relocatable::from((self.base as isize, offset)));
+            }
+        }
+        BuiltinAdditionalData::Hash(verified_addresses)
     }
 }
 
@@ -525,5 +535,17 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
+    }
+
+    #[test]
+    fn get_additional_info() {
+        let mut builtin = HashBuiltinRunner::new(Some(1), true);
+        let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
+        builtin.verified_addresses =
+            RefCell::new(vec![false, false, false, true, false, false, true]);
+        assert_eq!(
+            builtin.get_additional_data(),
+            BuiltinAdditionalData::Hash(verified_addresses)
+        )
     }
 }

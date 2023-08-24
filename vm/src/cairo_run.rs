@@ -14,13 +14,36 @@ use felt::Felt252;
 
 use thiserror_no_std::Error;
 
+#[cfg(feature = "arbitrary")]
+use arbitrary::{self, Arbitrary, Unstructured};
+
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
+    #[cfg_attr(feature = "arbitrary", arbitrary(value = "main"))]
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
+    #[cfg_attr(feature = "arbitrary", arbitrary(with = arbitrary_layout))]
     pub layout: &'a str,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
+    pub disable_trace_padding: bool,
+}
+
+#[cfg(feature = "arbitrary")]
+fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<&'a str> {
+    let layouts = [
+        "plain",
+        "small",
+        "dex",
+        "starknet",
+        "starknet_with_keccak",
+        "recursive_large_output",
+        "all_cairo",
+        "all_solidity",
+        "dynamic",
+    ];
+    Ok(u.choose(&layouts)?)
 }
 
 impl<'a> Default for CairoRunConfig<'a> {
@@ -32,6 +55,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             layout: "plain",
             proof_mode: false,
             secure_run: None,
+            disable_trace_padding: false,
         }
     }
 }
@@ -60,6 +84,56 @@ pub fn cairo_run(
     cairo_runner
         .run_until_pc(end, &mut vm, hint_executor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        &mut vm,
+        hint_executor,
+    )?;
+
+    vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(&mut vm)?;
+    if cairo_run_config.proof_mode {
+        cairo_runner.finalize_segments(&mut vm)?;
+    }
+    if secure_run {
+        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+    }
+    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
+
+    Ok((cairo_runner, vm))
+}
+
+#[cfg(feature = "arbitrary")]
+pub fn cairo_run_fuzzed_program(
+    program: Program,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut dyn HintProcessor,
+    steps_limit: usize,
+) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    use crate::vm::errors::vm_errors::VirtualMachineError;
+
+    let secure_run = cairo_run_config
+        .secure_run
+        .unwrap_or(!cairo_run_config.proof_mode);
+
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        cairo_run_config.proof_mode,
+    )?;
+
+    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
+
+    let _end = cairo_runner.initialize(&mut vm)?;
+
+    let res = match cairo_runner.run_until_steps(steps_limit, &mut vm, hint_executor) {
+        Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
+        res => res,
+    };
+
+    res.map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;

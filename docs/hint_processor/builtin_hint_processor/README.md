@@ -122,7 +122,7 @@ There are also some helpers that dont depend on the hint processor used that can
 You can also find plenty of example implementations in the [builtin hint processor folder](../../../src/hint_processor/builtin_hint_processor).
 
 ### Error Handling
-This API uses VirtualMachineError as error return type for hint functions, while its not possible to add error types to VirtualMachineError, you can use VirtualMachineError::CustomHint which receives a string and prints an error message with the format: "Custom Hint Error: [your message]".
+This API uses VirtualMachineError as error return type for hint functions, while its not possible to add error types to VirtualMachineError, you can use VirtualMachineError::CustomHint which receives a string and prints an error message with the format: "Hint Error: [your message]".
 For example, if we want our hint to return an error if ids.a is less than 0 we could write:
 
 ```rust

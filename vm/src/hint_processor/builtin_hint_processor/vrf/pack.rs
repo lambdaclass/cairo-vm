@@ -64,7 +64,7 @@ pub fn ed25519_is_zero_assign_scope_vars(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
-    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2);
+    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2)?;
     exec_scopes.insert_value("x_inv", x_inv.clone());
     exec_scopes.insert_value("value", x_inv);
     exec_scopes.insert_value("SECP_P", SECP_P_V2.clone());

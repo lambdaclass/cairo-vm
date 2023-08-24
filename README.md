@@ -27,7 +27,8 @@ A faster and safer implementation of the Cairo VM in Rust
 - [Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
 - [Usage](#-usage)
-  - [Running cairo-vm](#running-cairo-vm)
+  - [Adding cairo-vm as a dependency](#adding-cairo-vm-as-a-dependency)
+  - [Running cairo-vm from the CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
@@ -67,17 +68,23 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 ### Dependencies
 
-**Required**
+#### Required
 
-- [Rust 1.66.1](https://www.rust-lang.org/tools/install)
+These are needed in order to compile and use the project.
+
+- [Rust 1.69.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
-**Optional**
+#### Optional
 
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 
-- PyEnv with Python 3.9
-- cairo-lang
+- make
+- PyEnv
+
+#### Installation script
+
+You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
 
 ## 🚀 Usage
 
@@ -128,7 +135,29 @@ cargo build --release
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
-target/release/cairo-vm-run cairo_programs/abs_value_array_compiled.json --layout all_cairo
+target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
+```
+
+#### Other CLI arguments
+
+The cairo-vm-cli supports the following optional arguments:
+
+- `--trace_file <TRACE_FILE>`: Receives the name of a file and outputs the relocated trace into it
+
+- `--memory_file <MEMORY_FILE>` : Receives the name of a file and outputs the relocated memory into it
+
+- `--print_output` : Prints the program output
+
+- `--proof_mode`: Runs the program in proof_mode
+
+- `--secure_run`: Runs security checks after execution. Enabled by default when not in proof_mode
+
+- `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
+
+For example, to obtain the air public inputs from a fibonacci program run, we can run :
+
+```bash
+  target/release/cairo-vm-cli cairo_programs/proof_programs/fibonacci.json --layout all_cairo --proof_mode --air_public_input fibonacci_public_input.json
 ```
 
 ### Using hints
@@ -190,8 +219,7 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 
 ### WebAssembly Demo
 
-A demo on how to use `cairo-vm` with WebAssembly can be found
-[here](https://github.com/lambdaclass/cairo-rs-wasm).
+A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/)
 
 ### Testing
 
@@ -209,7 +237,7 @@ make test
 
 ## 📊 Benchmarks
 
-Running a [Cairo program](./cairo_programs/benchmarks/fibonacci_1000_multirun.cairo) that gets the 1000th Fibonacci number we got the following benchmarks:
+Running a [Cairo program](./cairo_programs/benchmarks/big_fibonacci.cairo) that gets the 1.5 millionth Fibonacci number we got the following benchmarks:
 
 - Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
 - [Flamegraph](./docs/benchmarks/flamegraph.svg)

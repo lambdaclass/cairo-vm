@@ -14,6 +14,9 @@ use core::{
 
 use crate::{lib_bigint_felt::FeltOps, ParseFeltError};
 
+#[cfg(all(feature = "std", feature = "arbitrary"))]
+use arbitrary::Arbitrary;
+
 pub const FIELD_HIGH: u128 = (1 << 123) + (17 << 64); // this is equal to 10633823966279327296825105735305134080
 pub const FIELD_LOW: u128 = 1;
 use lazy_static::lazy_static;
@@ -31,6 +34,7 @@ lazy_static! {
         .expect("Conversion BigUint -> BigInt can't fail");
 }
 
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Clone, Deserialize, Default, Serialize)]
 pub(crate) struct FeltBigInt<const PH: u128, const PL: u128> {
     val: BigUint,
@@ -170,11 +174,11 @@ impl FeltOps for FeltBigInt<FIELD_HIGH, FIELD_LOW> {
     }
 
     fn from_bytes_be(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
-        let mut value = BigUint::from_bytes_be(bytes);
-        if value >= *CAIRO_PRIME_BIGUINT {
-            value = value.mod_floor(&CAIRO_PRIME_BIGUINT);
-        }
-        Self::from(value)
+        Self::from(BigUint::from_bytes_be(bytes))
+    }
+
+    fn from_bytes_le(bytes: &[u8]) -> FeltBigInt<FIELD_HIGH, FIELD_LOW> {
+        Self::from(BigUint::from_bytes_le(bytes))
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
