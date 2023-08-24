@@ -63,7 +63,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
 
     pub(crate) fn from_values(limbs: [Felt252; NUM_LIMBS]) -> Self {
         Self {
-            limbs: limbs.map(|f| Cow::Owned(f)),
+            limbs: limbs.map(Cow::Owned),
         }
     }
 
