@@ -21,10 +21,10 @@ use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_traits::Bounded;
 
+pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 // Uint384 and BigInt3 are used interchangeably with BigInt3
 pub(crate) type Uint384<'a> = BigInt3<'a>;
-pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
-
+pub(crate) type Uint512<'a> = BigIntN<'a, 4>;
 pub(crate) type BigInt5<'a> = BigIntN<'a, 5>;
 
 #[derive(Debug, PartialEq)]
@@ -97,6 +97,12 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     pub(crate) fn split(num: &BigUint) -> Self {
         let limbs = split(num, 128);
         Self::from_values(limbs)
+    }
+}
+
+impl<'a, const NUM_LIMBS: usize> From<&'a BigUint> for BigIntN<'a, NUM_LIMBS> {
+    fn from(value: &'a BigUint) -> Self {
+        Self::split(value)
     }
 }
 

@@ -1,8 +1,11 @@
 //! Fq stands for "a finite field of q elements"
 
 use crate::{
-    hint_processor::builtin_hint_processor::{uint256_utils::Uint256, uint512_utils::Uint512},
-    hint_processor::hint_processor_definition::HintReference,
+    hint_processor::builtin_hint_processor::uint256_utils::Uint256,
+    hint_processor::{
+        builtin_hint_processor::secp::bigint_utils::Uint512,
+        hint_processor_definition::HintReference,
+    },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
