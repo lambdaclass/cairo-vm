@@ -232,7 +232,6 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-
     match Felt252::from_dec_str(&n.to_string()).ok() {
         Some(x) => Ok(Some(x)),
         None => {
@@ -255,13 +254,15 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
         None => {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
-
             let exponent = list[1].parse::<u128>().ok()?;
-            let base = Felt252::from_dec_str(list[0]).ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
+            let base_biguint = BigUint::from_str_radix(list[0], 10).ok()? % CAIRO_PRIME.clone();
+            let base = Felt252::from_dec_str(&base_biguint.to_string()).ok()?;
             Some(base * Felt252::from(10).pow(exponent))
         }
         Some(float) => {
             let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
             Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
         }
     }

@@ -1517,7 +1517,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.1.3"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=4c73e8578fc69b8a548b9a3d9657afe97e089811#4c73e8578fc69b8a548b9a3d9657afe97e089811"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=4964ccf29e3cfac97e4ca1a97e500cde6fed143c#4964ccf29e3cfac97e4ca1a97e500cde6fed143c"
 
 [[package]]
 name = "lazy_static"
@@ -2410,7 +2410,6 @@ dependencies = [
 [[package]]
 name = "stark-felt"
 version = "0.0.3"
-source = "git+https://github.com/lambdaclass/types-rs?rev=ff2a141cb04156694c8a1deabb20e350576eecc8#ff2a141cb04156694c8a1deabb20e350576eecc8"
 dependencies = [
  "bitvec",
  "lambdaworks-math",
