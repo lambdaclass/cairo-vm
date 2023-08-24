@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix: Change return type of `get_execution_resources` to `RunnerError` [#1378](https://github.com/lambdaclass/cairo-vm/issues/1378)
+* fix: Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
 
 * BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
 
