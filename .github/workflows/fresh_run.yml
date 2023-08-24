@@ -13,7 +13,7 @@ jobs:
         matrix:
           include:
           - os: ubuntu-22.04
-            deps_suffix: 'cairo_proof_trace'
+            deps_suffix: ''
           - os: macos-12
             deps_suffix: '-macos' 
     runs-on: ${{ matrix.os }}
