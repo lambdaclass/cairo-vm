@@ -38,5 +38,6 @@ jobs:
       uses: JasonEtco/create-an-issue@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OS: ${{ matrix.os}}
       with:
-        filename: .github/fresh_run_fail.md
+        filename: .github/fresh_run_failure.md
