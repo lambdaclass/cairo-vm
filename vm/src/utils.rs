@@ -684,7 +684,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::ONE),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
         memory
@@ -708,7 +708,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::ONE),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
 
@@ -729,7 +729,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::ONE),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
 
@@ -842,14 +842,14 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn scope_macro_test() {
-        let scope_from_macro = scope![("a", Felt252::ONE)];
+        let scope_from_macro = scope![("a", crate::Felt252::ONE)];
         let mut scope_verbose = ExecutionScopes::new();
-        scope_verbose.assign_or_update_variable("a", any_box!(Felt252::ONE));
+        scope_verbose.assign_or_update_variable("a", any_box!(crate::Felt252::ONE));
         assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&Felt252::ONE)
+            Some(&crate::Felt252::ONE)
         );
     }
 
@@ -858,8 +858,8 @@ mod test {
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt252::from(5)),
-            &MaybeRelocatable::from(Felt252::from(10)),
+            &MaybeRelocatable::from(crate::Felt252::from(5)),
+            &MaybeRelocatable::from(crate::Felt252::from(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -933,7 +933,7 @@ mod test {
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
             relocatable!(2, 0),
-            &MaybeRelocatable::from(Felt252::from(17)),
+            &MaybeRelocatable::from(crate::Felt252::from(17)),
             None,
         );
         let mut dict_manager = DictManager::new();

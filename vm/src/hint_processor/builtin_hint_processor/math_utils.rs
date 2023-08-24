@@ -2139,7 +2139,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
@@ -2179,7 +2179,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
@@ -2218,7 +2218,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
@@ -2261,7 +2261,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
@@ -2299,7 +2299,7 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
@@ -2401,10 +2401,10 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
                     (
                         "MAX_HIGH".to_string(),
-                        Felt252::zero(),
+                        Felt252::ZERO,
                     )
                 ])
             ),

@@ -1,6 +1,6 @@
 use crate::stdlib::{collections::HashMap, prelude::*};
 
-use felt::felt_str;
+use crate::felt_str;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;

@@ -2445,7 +2445,7 @@ mod tests {
 
         let res = MaybeRelocatable::Int(Felt252::from(7));
         assert_eq!(
-            MaybeRelocatable::Int(Felt252::new(7)),
+            MaybeRelocatable::Int(Felt252::from(7)),
             vm.deduce_dst(&instruction, &Some(res)).unwrap()
         );
     }
