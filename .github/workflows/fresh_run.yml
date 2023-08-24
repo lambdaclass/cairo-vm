@@ -19,9 +19,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: "Make deps, build & test on fresh ${{ matrix.os }} system"
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
     - name: Run make deps${{ matrix.deps_suffix }}
       run: make deps${{ matrix.deps_suffix }}
+
     - name: Run make build
       run: make build
+
     - name: Run make test
       run: make test
