@@ -23,7 +23,7 @@ To compile and run the example you need:
 To build the example, first compile your Cairo program:
 
 ```sh
-cairo-compile src/array_sum.cairo --no_debug_info --output src/array_sum.json
+cairo-compile ../../cairo_programs/array_sum.cairo --no_debug_info --output ../../cairo_programs/array_sum.json
 ```
 
 And then the WebAssembly package:
