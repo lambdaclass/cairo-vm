@@ -507,6 +507,6 @@ jobs:
 
     - name: Build wasm-demo
       run: |
+        cairo-compile cairo_programs/array_sum.cairo --no_debug_info --output cairo_programs/array_sum.json
         cd examples/wasm-demo
-        cairo-compile src/array_sum.cairo --no_debug_info --output src/array_sum.json
         wasm-pack build --target=web
