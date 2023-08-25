@@ -8,6 +8,7 @@
     * Crate `examples/wasm-demo` is no longer built during `make build`
     * `make check` no longer compiles the cairo file used in the wasm-demo
     * Removes Makefile targets `examples/wasm-demo/src/array_sum.json` & `example_program`
+    * `wasm-demo` now uses the compiled cairo file in `cairo_programs` directory instead of its own copy
 
 * BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
 
