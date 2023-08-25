@@ -304,4 +304,3 @@ fuzzer-deps:
 run-cairo-compiled-fuzzer:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
-
