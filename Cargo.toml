@@ -4,13 +4,14 @@ members = [
     "felt",
     "vm",
     "hint_accountant",
+    "examples/wasm-demo",
 ]
 default-members = [
     "cairo-vm-cli",
     "felt",
     "vm",
 ]
-exclude = ["ensure-no_std", "examples/wasm-demo"]
+exclude = ["ensure-no_std"]
 
 # Explicitly set the resolver to the default for edition >= 2021
 # https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
