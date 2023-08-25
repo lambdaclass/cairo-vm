@@ -1,9 +1,11 @@
 name: Install dependencies, build the project and run tests from zero
 
 on:
-  schedule:
-  # At the end of every day
-  - cron: "0 0 * * *"
+  merge_group:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
 
 jobs:
   fresh_run:
