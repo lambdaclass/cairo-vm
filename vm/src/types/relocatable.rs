@@ -8,6 +8,7 @@ use crate::Felt252;
 use crate::{
     relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
 };
+use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
@@ -44,7 +45,7 @@ impl From<(isize, usize)> for MaybeRelocatable {
 
 impl From<usize> for MaybeRelocatable {
     fn from(num: usize) -> Self {
-        MaybeRelocatable::Int(Felt252::from(num as u64))
+        MaybeRelocatable::Int(Felt252::from(num))
     }
 }
 
@@ -123,10 +124,11 @@ impl Add<i32> for Relocatable {
 impl Add<&Felt252> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn add(self, other: &Felt252) -> Result<Relocatable, MathError> {
-        // TODO: This used to be (self.offset as u64 + other), using the faster addition implementation
-        let new_offset = (other + self.offset as u64).to_usize().ok_or_else(|| {
-            MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, other.clone())))
-        })?;
+        let new_offset = (self.offset as u64 + other)
+            .and_then(|x| x.to_usize())
+            .ok_or_else(|| {
+                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, other.clone())))
+            })?;
         Ok((self.segment_index, new_offset).into())
     }
 }
