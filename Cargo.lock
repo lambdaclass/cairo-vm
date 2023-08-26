@@ -2410,6 +2410,7 @@ dependencies = [
 [[package]]
 name = "stark-felt"
 version = "0.0.3"
+source = "git+https://github.com/lambdaclass/types-rs.git?rev=cf61a68c254d4e732edc8f84e622007abf7157e7#cf61a68c254d4e732edc8f84e622007abf7157e7"
 dependencies = [
  "bitvec",
  "lambdaworks-math",
