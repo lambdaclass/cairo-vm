@@ -78,7 +78,7 @@ Implements hint:
     value = pack(ids.x, PRIME) % SECP_P
 %}
 */
-pub fn reduce(
+pub fn reduce_v1(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -87,6 +87,25 @@ pub fn reduce(
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let value = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    value = pack(ids.x, PRIME) % SECP_P
+%}
+*/
+pub fn reduce_v2(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get_ref("SECP_P")?;
+    let value = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
+    exec_scopes.insert_value("value", value.mod_floor(secp_p));
     Ok(())
 }
 
