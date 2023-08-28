@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
-#### Upcoming Changes
+#### [0.8.2-hotfix1] - 2023-12-07
+
+* Add REDUCE_V2 hint [#1420](https://github.com/lambdaclass/cairo-vm/pull/1420):
+    * Implement REDUCE_V2 hint
+    * Rename hint REDUCE -> REDUCE_V1
 
 #### [0.8.2] - 2023-7-10
 
