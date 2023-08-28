@@ -293,19 +293,6 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cairo-felt"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c495417de017d516c679f07f63c76a037521b5a80cbbf0928389c70987f6db3a"
-dependencies = [
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits 0.2.16",
- "serde",
-]
-
-[[package]]
-name = "cairo-felt"
 version = "0.8.7"
 dependencies = [
  "arbitrary",
@@ -316,6 +303,19 @@ dependencies = [
  "num-traits 0.2.16",
  "proptest",
  "rstest",
+ "serde",
+]
+
+[[package]]
+name = "cairo-felt"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
+dependencies = [
+ "lazy_static",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.16",
  "serde",
 ]
 
@@ -630,7 +630,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa1c799de62972dfd7112d563000695be94305b6f7d9bedd29f347799bf03e1c"
 dependencies = [
  "assert_matches",
- "cairo-felt 0.8.6",
+ "cairo-felt 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "cairo-lang-casm",
  "cairo-lang-sierra",
  "cairo-lang-sierra-ap-change",
@@ -662,7 +662,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75df624e71e33a31a924e799dd2a9a8284204b41d8db9c51803317bd9edff81f"
 dependencies = [
  "anyhow",
- "cairo-felt 0.8.6",
+ "cairo-felt 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "cairo-lang-casm",
  "cairo-lang-compiler",
  "cairo-lang-defs",
