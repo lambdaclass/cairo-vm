@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [0.8.7] - 2023-8-28
+
 * Add REDUCE_V2 hint [#1420](https://github.com/lambdaclass/cairo-vm/pull/1420):
     * Implement REDUCE_V2 hint
     * Rename hint REDUCE -> REDUCE_V1
