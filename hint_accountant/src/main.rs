@@ -1,6 +1,5 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
-use cairo_vm::stdlib::collections::{HashMap, HashSet};
 use cairo_vm::{
     hint_processor::{
         builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -9,8 +8,8 @@ use cairo_vm::{
     serde::deserialize_program::ApTracking,
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
+    with_std::collections::{HashMap, HashSet},
 };
-
 use serde::Deserialize;
 use serde_json::Value;
 

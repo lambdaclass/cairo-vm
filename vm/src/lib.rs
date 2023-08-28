@@ -20,7 +20,7 @@ include!("./with_std.rs");
 #[cfg(not(feature = "std"))]
 include!("./without_std.rs");
 
-pub mod stdlib {
+mod stdlib {
     pub mod collections {
         #[cfg(feature = "std")]
         pub use crate::with_std::collections::*;
