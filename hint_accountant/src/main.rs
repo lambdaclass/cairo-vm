@@ -32,8 +32,8 @@ struct Whitelist {
 
 fn run() {
     // We use the files in the cairo-lang repo, cloned from the latest version
-    let whitelist_paths =
-        fs::read_dir("../cairo-lang/src/starkware/starknet/security/whitelists").unwrap();
+    let whitelist_paths = fs::read_dir("../cairo-lang/src/starkware/starknet/security/whitelists")
+        .expect("Failed to read whitelist directory from cairo-lang, did you forget to clone it?");
     let mut whitelists = Vec::new();
     for path in whitelist_paths {
         let path = path.expect("Failed to get path").path();
