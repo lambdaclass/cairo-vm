@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693260406101,
+  "lastUpdate": 1693265743555,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115582,6 +115582,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20852072,
             "range": "± 398866",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "d2b9b074ba800063c944be96be01f3e9875e5115",
+          "message": "feat: Add `Program::new_for_proof` (#1396)\n\n* Add Program::new_for_proof\n\n* Add changelog entry\n\n* Try stuff\n\n* Fix workflow\n\n* Fix workflow\n\n* Remove useless arg\n\n* Make start and end non-optionals\n\n* Fix post-merge conflicts\n\n* Extract constants logic into a new fn\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-08-28T22:40:42Z",
+          "tree_id": "d6787f4c4debd3445cf9dce5e25241ce1b5df22d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/d2b9b074ba800063c944be96be01f3e9875e5115"
+        },
+        "date": 1693265735252,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1659,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 61687,
+            "range": "± 466",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20899482,
+            "range": "± 392838",
             "unit": "ns/iter"
           }
         ]
