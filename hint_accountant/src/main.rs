@@ -1,5 +1,8 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
+use std::fs::{self, File};
+use std::io::BufReader;
+
 use cairo_vm::stdlib::collections::{HashMap, HashSet};
 use cairo_vm::{
     hint_processor::{
@@ -13,24 +16,6 @@ use cairo_vm::{
 
 use serde::Deserialize;
 use serde_json::Value;
-
-const WHITELISTS: [&str; 15] = [
-    include_str!("../whitelists/0.10.3.json"),
-    include_str!("../whitelists/0.6.0.json"),
-    include_str!("../whitelists/0.8.2.json"),
-    include_str!("../whitelists/384_bit_prime_field.json"),
-    include_str!("../whitelists/cairo_blake2s.json"),
-    include_str!("../whitelists/cairo_keccak.json"),
-    include_str!("../whitelists/cairo_secp.json"),
-    include_str!("../whitelists/cairo_sha256.json"),
-    include_str!("../whitelists/cairo_sha256_arbitrary_input_length.json"),
-    include_str!("../whitelists/ec_bigint.json"),
-    include_str!("../whitelists/ec_recover.json"),
-    include_str!("../whitelists/encode_packed.json"),
-    include_str!("../whitelists/latest.json"),
-    include_str!("../whitelists/uint256_improvements.json"),
-    include_str!("../whitelists/vrf.json"),
-];
 
 #[derive(Deserialize)]
 struct AllowedHintExpression {
@@ -46,6 +31,19 @@ struct Whitelist {
 }
 
 fn run() {
+    // We use the files in the cairo-vm-env created by the `deps` target
+    let whitelist_paths = fs::read_dir(
+        "../cairo-vm-env/lib/python3.9/site-packages/starkware/starknet/security/whitelists",
+    )
+    .unwrap();
+    let mut whitelists = Vec::new();
+    for path in whitelist_paths {
+        let file = File::open(path.unwrap().path()).unwrap();
+        let mut reader = BufReader::new(file);
+
+        let whitelist_file: Whitelist = serde_json::from_reader(&mut reader).unwrap();
+        whitelists.push(whitelist_file.allowed_hint_expressions);
+    }
     let mut vm = VirtualMachine::new(false);
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let (ap_tracking_data, reference_ids, references, mut exec_scopes, constants) = (
@@ -55,13 +53,9 @@ fn run() {
         ExecutionScopes::new(),
         HashMap::new(),
     );
-    let missing_hints: HashSet<_> = WHITELISTS
-        .iter()
-        .flat_map(|wl| {
-            serde_json::from_str::<Whitelist>(wl)
-                .unwrap()
-                .allowed_hint_expressions
-        })
+    let missing_hints: HashSet<_> = whitelists
+        .into_iter()
+        .flatten()
         .map(|ahe| ahe.hint_lines.join("\n"))
         .filter(|h| {
             let hint_data = hint_executor
