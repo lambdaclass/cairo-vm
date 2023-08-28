@@ -532,8 +532,11 @@ q, r = divmod(pack(ids.val, PRIME), SECP_P)
 assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
 ids.q = q % PRIME"#;
 
-pub const REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
+pub const REDUCE_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP_P, pack
 
+value = pack(ids.x, PRIME) % SECP_P"#;
+
+pub const REDUCE_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 value = pack(ids.x, PRIME) % SECP_P"#;
 
 pub const REDUCE_ED25519: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
