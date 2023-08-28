@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Added a differential fuzzer for programs with whitelisted hints [#1358](https://github.com/lambdaclass/cairo-vm/pull/1358)
+
 * BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
 
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
@@ -15,8 +17,6 @@
   * Fixes `div_mod` function so that it behaves like the cairo-lang version
   * Various functions in the `math_utils` crate can now return a `MathError` : `div_mod`, `ec_add`, `line_slope`, `ec_double`, `ec_double_slope`.
   * Fixes `UINT256_MUL_INV_MOD_P` hint so that it behaves like the python code.
-
-* feat: Added a differential fuzzer for programs with whitelisted hints
 
 #### [0.8.6] - 2023-8-11
 

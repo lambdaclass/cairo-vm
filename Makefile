@@ -304,7 +304,7 @@ clean:
 	rm -rf cairo1
 	rm -rf cairo2
 
-fuzzer-deps: build
+fuzzer-deps:
 	cargo +nightly install cargo-fuzz
 	. cairo-vm-env/bin/activate; \
 		pip install atheris==2.2.2 maturin==1.2.3; \

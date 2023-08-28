@@ -27,7 +27,7 @@ def load_hints():
     uint256_improvements_hints = json.load(open('../../hint_accountant/whitelists/uint256_improvements.json'))
     uint256_improvements_numbers = [1, 2]
     vrf_hints = json.load(open('../../hint_accountant/whitelists/vrf.json'))
-    vrf_numbers = [0, 1, 2, 3, 5, 6, 8, 9, 11, 12]
+    vrf_numbers = list(range(17)) #[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12]
     latest_hints = json.load(open('../../hint_accountant/whitelists/latest.json'))
     latest_numbers = [4, 5, 6, 26, 27, 29, 30, 32, 38, 49, 55, 72]
     hints = [
@@ -54,11 +54,21 @@ def diff_fuzzer(data):
     fdp = atheris.FuzzedDataProvider(data)
     hint = fdp.PickValueInList(LOADED_HINTS)
 
-    cairo_program = generate_cairo_hint_program(hint)
+    try:
+        cairo_program = generate_cairo_hint_program(hint)
+    except:
+        print("Failed to generate cairo program from hint:", "\n".join(hint))
+        exit(1)
+
     replace_count = cairo_program.count(REPLACEABLE_TOKEN)
     for _ in range(replace_count):
         cairo_program = cairo_program.replace(REPLACEABLE_TOKEN, str(generate_limb(fdp)), 1)
-    program = compile_cairo(cairo_program, PRIME)
+    try:
+        program = compile_cairo(cairo_program, PRIME)
+    except:
+        write_failing_file(fdp, cairo_program)
+        print("Failed to compile", cairo_program)
+        exit(1)
 
     # Get Rust implementation memory
     rust_err = False

@@ -1,3 +1,4 @@
+import ast
 """
 Generate a cairo program with the following rules:
     1. Grab a hint
@@ -24,146 +25,12 @@ Generate a cairo program with the following rules:
           }
 """
 
-ASSIGN_EX_TYPE = "assign"
-LEFT = "left"
-RIGHT = "right"
-CONST_EX = "const"
-OTHER_EX_TYPE = "other"
-PACK_PARAM_EX = "var_in_pack"
-FUNC_PARAM_EX = "var_in_func"
 CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
 REPLACEABLE_TOKEN = "__TOKEN_TO_REPLACE__"
 
 CAIRO_CONSTS = {
     "ADDR_BOUND": "from starkware.starknet.common.storage import ADDR_BOUND"
 }
-
-def get_expr_type(line):
-    """
-    Check if the line has an `==` operator and classify it as a `OTHER_EX_TYPE` expression, this is done before
-    it looks for the `=` operator, wich is assumed to be an `ASSIGN_EX_TYPE` expression
-    """
-    if any(token in line for token in ["==", "assert"]):
-        return OTHER_EX_TYPE
-    elif "=" in line:
-        return ASSIGN_EX_TYPE
-    else:
-        return OTHER_EX_TYPE
-
-def process_line(line, functions):
-    """
-    process_line(String, {String, {String}}]) -> [ [EX_TYPE_CONST, ..., EX_TYPE_CONST, [String]] ]
-    Return the expression type of the line, adding relevant information if the an assignment was made or if the
-    variable in the line is inside a `pack(var, PRIME)` function. Return the variable as [name, fields...]
-    """
-    variables = (v for v in line.split() if "ids." in v)
-    split_name_fields = lambda v: v[v.find("ids.") + 4:].split(".")
-    clean_last_field = lambda f: f[:-1] + [clean_trailing(f[-1])]
-    is_const = lambda v: v[4:].isupper() and v[4:] in CAIRO_CONSTS.keys()
-
-    if get_expr_type(line) == ASSIGN_EX_TYPE:
-        equals_pos = line.rfind("=")
-        return [
-            [ASSIGN_EX_TYPE, LEFT if line.find(v) < equals_pos else RIGHT] + \
-            (get_function_ex(line, v, functions) if not is_const(v) else [CONST_EX]) + \
-            [clean_last_field(split_name_fields(v))]
-            for v in variables
-        ]
-    else:
-        return [
-            [OTHER_EX_TYPE] + \
-            (get_function_ex(line, v, functions) if not is_const(v) else [CONST_EX]) + \
-            [clean_last_field(split_name_fields(v))]
-            for v in variables
-        ]
-
-def get_function_ex(line, variable, functions):
-    """
-    get_function_ex(String, String, {String, {String}}) -> [ EX_TYPE_CONST ]
-    """
-    if "pack" not in functions.keys():
-        if var_in_func(line, variable, "pack"):
-            return [PACK_PARAM_EX]
-    for func_name in functions.keys():
-        if var_in_func(line, variable, func_name):
-            return [FUNC_PARAM_EX, functions[func_name]]
-    return []
-
-def process_func(function):
-    """
-    process_func(String) -> (String, {String})
-    Get a function block and transform it into a tuple: (function name, fields of variable in block)
-    The current implementation is tied to the following type of function:
-        def pack(z, num: int)
-                 ^ Value with fields
-    """
-    signature = function[0]
-    after_def_pos = signature.find("def ") + 4
-    function_name = signature[after_def_pos: signature.find("(", after_def_pos)].strip()
-    # Get the first variable name inside the function signature
-    variable = signature[signature.find("(") + 1:signature.find(")")].split(",")[0].strip()
-    body = (line for line in function[1:] if variable in line)
-    fields = set()
-    for line in body:
-        for token in line.split():
-            if variable + "." in token:
-                field = clean_trailing(token[(token.find(variable + ".") + len(variable + ".")):])
-                fields.add(field)
-    
-    return (function_name, frozenset(fields))
-
-def clean_trailing(var):
-    """
-    clean_trailing(String) -> String
-    Make sure variable doesn't end with any non-alfanumeric characters
-    """
-    if not all(c.isalnum() or c == "_" for c in var):
-        # Get first non alphanumeric character
-        i = 0
-        while var[i].isalnum() or var[i] == "_": i += 1
-        return var[:i]
-    else:
-        return var
-
-def var_in_func(line, var, func_name):
-    """
-    var_in_func(String, String, String) -> bool
-    Check if a variable is inside a function call.
-    This function expects a stripped variable, without the `ids.` prefix.
-    Also, the current implemenation doesn't deal with parenthesis inside the function call
-    """
-    if func_name not in line:
-        return False
-    # Assuming there is no inner parenthesis in func(...)
-    func_start = line.find(func_name)
-    func_end = line.find(")", func_start)
-    func_call = line[func_start:func_end]
-    return var in func_call 
-
-def variables_with_context(hint_lines):
-    functions = {}
-    variables = []
-    total_lines = len(hint_lines)
-    line_num = 0
-    line = lambda: hint_lines[line_num]
-    indentation = lambda: len(hint_lines[line_num]) - len(hint_lines[line_num].lstrip())
-
-    while line_num < total_lines:
-        if "def" in line():
-            signature_body = [line()]
-            line_num += 1
-            body_indent = current_indent = indentation()
-            while current_indent >= body_indent:
-                signature_body.append(line())
-                line_num += 1
-                current_indent = indentation()
-            functions.update([process_func(signature_body)])
-        if "ids." in line():
-            variables += process_line(line(), functions)
-        line_num += 1
-        
-    return variables
-
 
 def classify_variables(hint_code):
     """
@@ -175,53 +42,59 @@ def classify_variables(hint_code):
     considered a felt execpt for the special case: being passed as an argument to a `pack(variable, PRIME)`
     function.
     """
-    declare_in_main = dict()
-    declare_in_hint_fn = dict()
-    consts_to_import = set()
+    targets = set() 
+    ids_nodes = []
+    pack_call_nodes = []
+    pack_function_nodes = []
+    for node in ast.walk(ast.parse("\n".join(hint_code))):
+        if isinstance(node, ast.Assign):
+            for assign_node in ast.walk(node):
+                if isinstance(assign_node, ast.Attribute) and \
+                   isinstance(assign_node.value, ast.Name) and assign_node.value.id == "ids" and \
+                   isinstance(assign_node.ctx, ast.Store):
+                        targets.add(assign_node.attr)
+        elif isinstance(node, ast.Attribute):
+            ids_nodes.append(node)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "pack":
+            pack_call_nodes.append(node)
+        elif isinstance(node, ast.FunctionDef) and node.name == "pack":
+            pack_function_nodes.append(node)
 
-    # Get all lines with the `ids.` identifier and then dump them into an array of expressions (other or assign)
-    # Doesn't consider lines with a comment on them
-    # expressions: [ [EX_TYPE_CONSTs..., [String]], ... ]
-    expressions = variables_with_context([line for line in hint_code if "#" not in line])
+    ids_fields = {node.attr:set() for node in ids_nodes if isinstance(node.value, ast.Name) and node.value.id == "ids"} 
+    for node in ids_nodes:
+        if isinstance(node.value, ast.Attribute) :
+            ids_fields[node.value.attr].add(node.attr)
 
-    # Create a var_name: { set of fields or cairo type } pair to insert in one of the output dictionaries
-    for expr in expressions:
-        expression_type = expr[:-1]
-        variable_name = expr[-1][0]
-        variable_type = expr[-1][1:]
+    pack_call_ids = set() 
+    for node in pack_call_nodes:
+        for arg in node.args:
+            if isinstance(arg, ast.Attribute):
+                if isinstance(arg.value, ast.Name) and arg.value.id == "ids":
+                    pack_call_ids.add(arg.attr)
+                elif isinstance(arg.value, ast.Attribute) and arg.value.value.id == "ids":
+                    pack_call_ids.add(arg.value.attr)
 
-        if CONST_EX in expression_type:
-            consts_to_import.add(CAIRO_CONSTS[variable_name])
-            continue
+    def_pack_function = "BigInt3"
+    if pack_function_nodes != []:
+        z_fields = {b_node.attr for b_node in ast.walk(pack_function_nodes[0]) if isinstance(b_node, ast.Attribute) and b_node.value.id == "z"}
+        if z_fields == {"low", "high"}:
+            def_pack_function = "SplitNum"
 
-        # Overrite fields with EcPoint or BigInt3 if necessary
-        if PACK_PARAM_EX in expression_type:
-            if any(ec_point_fields in variable_type for ec_point_fields in ["x", "y"]):
-                variable_type = {"EcPoint"}
-            else:
-                variable_type = {"BigInt3"}
+    declare_in_main = {}
+    declare_in_hint_fn = {}
+    consts_to_import = set() 
+    for var_name in ids_fields.keys():
+        if var_name in pack_call_ids:
+            ids_fields[var_name] = frozenset({def_pack_function}) if def_pack_function == "BigInt3" else frozenset({"low", "high"})
+        if ids_fields[var_name] == set():
+            ids_fields[var_name] = frozenset({"felt"})
 
-        if FUNC_PARAM_EX in expression_type:
-            variable_type = expression_type[expression_type.index(FUNC_PARAM_EX) + 1]
-
-        dict_to_insert = declare_in_main
-        if ASSIGN_EX_TYPE in expression_type:
-            if RIGHT in expression_type:
-                dict_to_insert = declare_in_main
-            if LEFT in expression_type:
-                dict_to_insert = declare_in_hint_fn
-
-        if variable_type == []: variable_type = {"felt"}
-
-        # Make sure not to lose info if the variable already had an EcPoint or BigInt3 type
-        if variable_name in dict_to_insert and not dict_to_insert[variable_name].issubset({"EcPoint", "BigInt3"}):
-            dict_to_insert[variable_name].update(variable_type)
-        elif variable_name not in dict_to_insert:
-            dict_to_insert[variable_name] = set(variable_type)
-
-    # Freeze sets
-    declare_in_main.update((k, frozenset(v)) for (k, v) in declare_in_main.items())
-    declare_in_hint_fn.update((k, frozenset(v)) for (k, v) in declare_in_hint_fn.items())
+        if var_name in CAIRO_CONSTS:
+            consts_to_import.add(var_name)
+        elif var_name in targets:
+            declare_in_hint_fn[var_name] = frozenset(ids_fields[var_name])
+        else:
+            declare_in_main[var_name] = frozenset(ids_fields[var_name])
     return declare_in_main, declare_in_hint_fn, list(consts_to_import)
 
 def generate_cairo_hint_program(hint_code):
@@ -230,7 +103,8 @@ def generate_cairo_hint_program(hint_code):
     Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
     code block that was passed as parameter
     """
-    declare_in_main, declare_in_hint_fn, consts_imports = classify_variables(hint_code)
+    declare_in_main, declare_in_hint_fn, consts = classify_variables(hint_code)
+    consts_imports = [ import_line for const, import_line in CAIRO_CONSTS.items() if const in consts ]
 
     all_types = (declare_in_main | declare_in_hint_fn).values()
 
@@ -240,7 +114,7 @@ def generate_cairo_hint_program(hint_code):
     structs_fields = { f for f in all_types if not f.issubset(CAIRO_TYPES) }
     structs_dict = { v : "MyStruct" + str(i) for (i, v) in enumerate(structs_fields) }
 
-    structs_fmt = "struct {struct_name} {{\n{struct_fields}\n}}"
+    structs_fmt = "struct {struct_name} {{\n{struct_fields}\n}}\n"
     fields_fmt = "\t{field_name}: felt,"
     
     declared_structs = "\n".join([
@@ -248,8 +122,11 @@ def generate_cairo_hint_program(hint_code):
             struct_name = name,
             struct_fields = "\n".join([fields_fmt.format(field_name=field_name) for field_name in fields])
         )
-        for (fields, name) in structs_dict.items()
+        for (fields, name) in structs_dict.items() if fields != frozenset({"low", "high"})
     ])
+
+    if frozenset({"low", "high"}) in structs_dict:
+        declared_structs += "struct {struct_name} {{\n\tlow: felt,\n\thigh: felt,\n}}".format(struct_name=structs_dict[frozenset({"low", "high"})])
 
     main_func_fmt = "\nfunc main() {{{variables}\n\thint_func({input_var_names});\n\treturn();\n}}\n"
     main_struct_assignment_fmt = "\n\tlet {var_name} = {struct_name}({assign_fields});"
