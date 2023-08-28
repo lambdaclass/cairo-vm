@@ -2,19 +2,21 @@ import ast
 """
 Generate a cairo program with the following rules:
     1. Grab a hint
-    2. Look for all the ids.(...) expressions, make sure to keep track of any "=" to the left or right
-        - if none, go back to 1
-    3. Reduce the ids.(...) expressions so that all the variables + their fields are grouped
-    4. Create inputs and outputs variables dicts
-        - inputs: if "=" was to the right
-        - outputs: if "=" was to the left
-    5. Create main using input variables
+    2. Look for all the ids.(...) expressions, make sure to keep track of any assignment
+    3. Reduce the ids.(...) expressions so that all the variables and their fields are 
+        grouped
+    4. Create variables dicts
+        - declare_in_main: if the variable is used as assignee in the hint
+        - declare_in_hint_fn: if the variable receives a value
+    5. Create a list with all the constants called inside the hint that have to be imported
+        from a cairo module
+    6. Create main using declare_in_main
         - func main() {
             let a = MyStruct(field=1, field=2);
             hint_func();
             return();
           }
-    6. Create hint_func with outputs as locals
+    7. Create hint_func the variables in declare_in_hint_fn as locals
         - hint_func(a: MyStruct) -> (MyStruct) {
             alloc_locals;
             local b: MyStruct;
@@ -23,6 +25,7 @@ Generate a cairo program with the following rules:
             %}
             return(b);
           }
+    8. Import all the needed constants and struct names
 """
 
 CAIRO_TYPES = { "felt", "EcPoint", "BigInt3" }
@@ -34,19 +37,23 @@ CAIRO_CONSTS = {
 
 def classify_variables(hint_code):
     """
-    classify_varables([String]) -> (Dict<String, set>, Dict<String, set>, List<String>)
-    Takes a hint code block and extract all the variables with the `ids.` prefix, classifying each one into
-    dictionaries: varables to declare in the main function, variables to declare in the hint function and a
-    list with the import declaration for constants.
-    Then if the variable has fields, annotate them in the corresponding dictionary, otherwise it's normally
-    considered a felt execpt for the special case: being passed as an argument to a `pack(variable, PRIME)`
-    function.
+    classify_varables(String) -> (Dict<String, set>, Dict<String, set>, List<String>)
+    return declare_in_main, declare_in_hint_fn, list(consts_to_import)
+    Grabs a hint text and classifies all the variables associated with the `ids` structure.
+    - declare_in_main: holds all the variables that should be declared in the `main` cairo
+        function and that will receive the fuzzer selected values
+    - declare_in_hint_fn: holds the variables that are assigned a value inside the hint
+    - consts_to_import: holds the cairo constants that are called inside the hint that
+        need importing form a common library module
+    The output dictionaries will also keep track of the variable's fields considering the
+    case where a variable is called inside a `pack` function additionally, `pack` can be 
+    defined inside the hint or imported from the internal ec point functionality.
     """
     targets = set() 
     ids_nodes = []
     pack_call_nodes = []
     pack_function_nodes = []
-    for node in ast.walk(ast.parse("\n".join(hint_code))):
+    for node in ast.walk(ast.parse(hint_code)):
         if isinstance(node, ast.Assign):
             for assign_node in ast.walk(node):
                 if isinstance(assign_node, ast.Attribute) and \
@@ -99,7 +106,7 @@ def classify_variables(hint_code):
 
 def generate_cairo_hint_program(hint_code):
     """
-    generate_cairo_hint_program([String]) -> [String]
+    generate_cairo_hint_program(String) -> [String]
     Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
     code block that was passed as parameter
     """
@@ -182,7 +189,7 @@ def generate_cairo_hint_program(hint_code):
     hint_func = hint_func_fmt.format(
         signature = signature, 
         local_declarations = local_vars, 
-        hint = "\n".join(hint_code),
+        hint = hint_code,
         output_return = ", ".join([res for res in (declare_in_main | declare_in_hint_fn).keys()])
     )
 
