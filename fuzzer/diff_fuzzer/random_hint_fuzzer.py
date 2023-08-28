@@ -27,7 +27,7 @@ def load_hints():
     uint256_improvements_hints = json.load(open('../../hint_accountant/whitelists/uint256_improvements.json'))
     uint256_improvements_numbers = [1, 2]
     vrf_hints = json.load(open('../../hint_accountant/whitelists/vrf.json'))
-    vrf_numbers = list(range(17)) #[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12]
+    vrf_numbers = list(range(17))
     latest_hints = json.load(open('../../hint_accountant/whitelists/latest.json'))
     latest_numbers = [4, 5, 6, 26, 27, 29, 30, 32, 38, 49, 55, 72]
     hints = [
@@ -55,7 +55,7 @@ def diff_fuzzer(data):
     hint = fdp.PickValueInList(LOADED_HINTS)
 
     try:
-        cairo_program = generate_cairo_hint_program(hint)
+        cairo_program = generate_cairo_hint_program("\n".join(hint))
     except:
         print("Failed to generate cairo program from hint:", "\n".join(hint))
         exit(1)
