@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693245810615,
+  "lastUpdate": 1693253428362,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115312,6 +115312,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18422425,
             "range": "± 65016",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "5f7a1474b64e9ef121abfc4aa7aee526d28e15be",
+          "message": "Add REDUCE_V2 hint (#1420)\n\n* Rename hint REDUCE -> REDUCE_V1 && implement REDUCE_V2\n\n* Add integration test\n\n* Rename hint REDUCE -> REDUCE_V1 in fuzzer\n\n* update CHANGELOG.md\n\n* unit test\n\n* Add unit test for error",
+          "timestamp": "2023-08-28T19:22:33Z",
+          "tree_id": "c38e8b7b64a2bde35473bf099fd90c40115f06ba",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/5f7a1474b64e9ef121abfc4aa7aee526d28e15be"
+        },
+        "date": 1693253421877,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1423,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 55357,
+            "range": "± 168",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18520623,
+            "range": "± 263803",
             "unit": "ns/iter"
           }
         ]
