@@ -32,10 +32,7 @@ struct Whitelist {
 
 fn run() {
     // We use the files in the cairo-vm-env created by the `deps` target
-    let whitelist_paths = fs::read_dir(
-        "../cairo-vm-env/lib/python3.9/site-packages/starkware/starknet/security/whitelists",
-    )
-    .unwrap();
+    let whitelist_paths = fs::read_dir("../cairo-lang").unwrap();
     let mut whitelists = Vec::new();
     for path in whitelist_paths {
         let file = File::open(path.unwrap().path()).unwrap();

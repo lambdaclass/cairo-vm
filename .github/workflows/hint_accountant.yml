@@ -19,6 +19,8 @@ jobs:
       uses: actions/checkout@v3
     - name: Check Build
       run: cargo build -p hint_accountant
+    - name: Clone cairo-lang repo
+      run: git clone https://github.com/starkware-libs/cairo-lang
     - name: Run the hint accounting script
       run: cargo r -p hint_accountant | tee comment.md
     - name: Update comment in tracking issue
