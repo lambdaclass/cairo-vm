@@ -31,7 +31,7 @@ struct Whitelist {
 }
 
 fn run() {
-    // We use the files in the cairo-vm-env created by the `deps` target
+    // We use the files in the cairo-lang repo, cloned from the latest version
     let whitelist_paths = fs::read_dir("../cairo-lang").unwrap();
     let mut whitelists = Vec::new();
     for path in whitelist_paths {
