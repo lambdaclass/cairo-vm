@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693253428362,
+  "lastUpdate": 1693255710665,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115402,6 +115402,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18520623,
             "range": "± 263803",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f7b31d111335cda4dc57f665be70198b6d2011d2",
+          "message": "Add rust toolchain + Update rust version used by CI (#1409)\n\n* Add rust toolchain\n\n* Update rust version installed by CI",
+          "timestamp": "2023-08-28T19:50:24Z",
+          "tree_id": "5d4450b129cbc4c1ff55a05f9d7d4a692d6b28d9",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/f7b31d111335cda4dc57f665be70198b6d2011d2"
+        },
+        "date": 1693255702465,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 5,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1609,
+            "range": "± 15",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 60034,
+            "range": "± 809",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20582838,
+            "range": "± 310664",
             "unit": "ns/iter"
           }
         ]
