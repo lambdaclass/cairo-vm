@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692846066224,
+  "lastUpdate": 1693245810615,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115222,6 +115222,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18461110,
             "range": "± 78354",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "4267138043a034fcfc0bef914417f952b2a4e31e",
+          "message": "Update hint accountant for tracking unimplemented hints (#1419)\n\n* Update whitelisted_hints jsons\n\n* Update hint_account run\n\n* Update hint_accountant workflow\n\n* test workflow\n\n* Revert \"Update hint_account run\"\n\nThis reverts commit 9c7bc5f5098a0b059d897636f3e3727287a6f9db.\n\n* Revert \"Revert \"Update hint_account run\"\"\n\nThis reverts commit 09fc694553faa05aeb759e8ba0d7b2cb3d794367.\n\n* Revert \"test workflow\"\n\nThis reverts commit 04ae525499668c83953a903c1bae05c26f07c630.",
+          "timestamp": "2023-08-28T17:17:32Z",
+          "tree_id": "12a5a4fc3cee770ef83e08ea189a82d65a7f065d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/4267138043a034fcfc0bef914417f952b2a4e31e"
+        },
+        "date": 1693245802990,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1315,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 54037,
+            "range": "± 334",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18422425,
+            "range": "± 65016",
             "unit": "ns/iter"
           }
         ]
