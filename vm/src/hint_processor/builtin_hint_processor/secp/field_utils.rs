@@ -449,6 +449,28 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_reduce_v2_with_no_secp() {
+        let hint_code = REDUCE_V2;
+        let mut vm = vm_with_range_check!();
+        add_segments!(vm, 3);
+
+        //Initialize fp
+        vm.run_context.fp = 25;
+
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("x", -5)];
+
+        vm.segments = segments![((1, 20), 1), ((1, 21), 1), ((1, 22), 1)];
+
+        let mut exec_scopes = ExecutionScopes::new();
+        // Skip the SECP definition, so the hint fails
+        // exec_scopes.insert_value("SECP_P", SECP_P.clone());
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Err(_));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_zero_pack_ok() {
         let mut exec_scopes = ExecutionScopes::new();
         let hint_codes = vec![
