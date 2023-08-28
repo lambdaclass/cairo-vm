@@ -32,14 +32,19 @@ struct Whitelist {
 
 fn run() {
     // We use the files in the cairo-lang repo, cloned from the latest version
-    let whitelist_paths = fs::read_dir("../cairo-lang").unwrap();
+    let whitelist_paths =
+        fs::read_dir("../cairo-lang/src/starkware/starknet/security/whitelists").unwrap();
     let mut whitelists = Vec::new();
     for path in whitelist_paths {
-        let file = File::open(path.unwrap().path()).unwrap();
-        let mut reader = BufReader::new(file);
+        let path = path.expect("Failed to get path").path();
+        if path.to_str().unwrap_or_default().ends_with(".json") {
+            let file = File::open(path).expect("Failed to open whitelist file");
+            let mut reader = BufReader::new(file);
 
-        let whitelist_file: Whitelist = serde_json::from_reader(&mut reader).unwrap();
-        whitelists.push(whitelist_file.allowed_hint_expressions);
+            let whitelist_file: Whitelist =
+                serde_json::from_reader(&mut reader).expect("Failed to parse whitelist");
+            whitelists.push(whitelist_file.allowed_hint_expressions);
+        }
     }
     let mut vm = VirtualMachine::new(false);
     let mut hint_executor = BuiltinHintProcessor::new_empty();
