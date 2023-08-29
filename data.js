@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693338851320,
+  "lastUpdate": 1693343915141,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115942,6 +115942,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18451404,
             "range": "± 780555",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27bcbeb9c7c103b14b2cb7dbda93609dc7ab15b9",
+          "message": "Compare air_public_inputs against python vm + Fix how public memory is built (#1391)\n\n* Remove cairo1 & cairo2 folders in `clean`  makefile target\n\n* Make public inputs similar to python output\n\n* Rename field\n\n* Fix finalize method\n\n* Fix get_public_memory logic (minus error handling)\n\n* Add error handling\n\n* Add comparison script\n\n* Fix tests\n\n* Add air_public_input argument to comparison script\n\n* Add air public input comparison\n\n* Fix finalize segments of output builtin\n\n* Fix\n\n* Add makefile targets\n\n* Add new targets to phony\n\n* Clean public input files\n\n* Fix compilation in makefile\n\n* Add changelog\n\n* fmt\n\n* Rename makefile targets\n\n* Compare air_public_inputs in CI (#1394)\n\n* Fix typo\r\n\r\n* generate and compare air_public inputs in ci\r\n\r\n* fix\r\n\r\n* Fix syntax\r\n\r\n* fix\r\n\r\n* fix\r\n\r\n* Revert \"Fix typo\"\r\n\r\nThis reverts commit 532dfcae3123de8a06722aa82a7dcd9dc8ba25e4.\r\n\r\n* Fix workflow\n\n* Add .air_public_input to .gitignore",
+          "timestamp": "2023-08-29T20:38:09Z",
+          "tree_id": "7705987632c8e2fb44e7c97fedbe235916622d59",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/27bcbeb9c7c103b14b2cb7dbda93609dc7ab15b9"
+        },
+        "date": 1693343899225,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1771,
+            "range": "± 58",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 68966,
+            "range": "± 2348",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25840874,
+            "range": "± 1254546",
             "unit": "ns/iter"
           }
         ]
