@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693331494028,
+  "lastUpdate": 1693338851320,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115852,6 +115852,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18419331,
             "range": "± 59664",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "50522617+PanGan21@users.noreply.github.com",
+            "name": "Panagiotis Ganelis",
+            "username": "PanGan21"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "2aed1baddb66eb9b5da527651ef7f799bfd73296",
+          "message": "fix: change return error type of get_execution_resources to RunnerError (#1398)\n\n* fix change return error type of get_execution_resources to RunnerError\n\n* Update CHANGELOG.md\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n---------\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-08-29T19:11:32Z",
+          "tree_id": "f3d158b7d2d9675b3cfedb2bb069f3c93a96e78c",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/2aed1baddb66eb9b5da527651ef7f799bfd73296"
+        },
+        "date": 1693338843914,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1297,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53026,
+            "range": "± 994",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18451404,
+            "range": "± 780555",
             "unit": "ns/iter"
           }
         ]
