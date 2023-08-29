@@ -6,6 +6,11 @@ members = [
     "hint_accountant",
     "examples/wasm-demo",
 ]
+default-members = [
+    "cairo-vm-cli",
+    "felt",
+    "vm",
+]
 exclude = ["ensure-no_std"]
 
 # Explicitly set the resolver to the default for edition >= 2021
