@@ -83,7 +83,45 @@ func test_reduce_ed25519{range_check_ptr}() {
     return ();
 }
 
+func reduce_v2{range_check_ptr}(x: UnreducedBigInt3) -> (reduced_x: BigInt3) {
+    let orig_x = x;
+    %{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P %}
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        value = pack(ids.x, PRIME) % SECP_P
+    %}
+    let (reduced_x: BigInt3) = nondet_bigint3();
+
+    verify_zero(
+        UnreducedBigInt3(
+            d0=orig_x.d0 - reduced_x.d0,
+            d1=orig_x.d1 - reduced_x.d1,
+            d2=orig_x.d2 - reduced_x.d2
+        )
+    );
+    return (reduced_x=reduced_x);
+}
+
 func main{range_check_ptr}() {
     test_reduce_ed25519();
+
+    // reduce_v2 tests
+    let x = UnreducedBigInt3(0, 0, 0);
+    let (reduce_v2_a) = reduce_v2(x);
+    assert reduce_v2_a = BigInt3(
+        0, 0, 0
+    );
+
+    let y = UnreducedBigInt3(12354, 745634534, 81298789312879123);
+    let (reduce_v2_b) = reduce_v2(y);
+    assert reduce_v2_b = BigInt3(
+        12354, 745634534, 81298789312879123
+    );
+
+    let z = UnreducedBigInt3(12354812987893128791212331231233, 7453123123123123312634534, 8129224990312325879);
+    let (reduce_v2_c) = reduce_v2(z);
+    assert reduce_v2_c = BigInt3(
+        16653320122975184709085185, 7453123123123123312794216, 8129224990312325879
+    );
     return ();
 }

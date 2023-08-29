@@ -868,7 +868,7 @@ impl CairoRunner {
     pub fn get_execution_resources(
         &self,
         vm: &VirtualMachine,
-    ) -> Result<ExecutionResources, TraceError> {
+    ) -> Result<ExecutionResources, RunnerError> {
         let n_steps = match self.original_steps {
             Some(x) => x,
             None => vm
