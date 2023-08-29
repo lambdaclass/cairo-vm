@@ -15,7 +15,7 @@ A faster and safer implementation of the Cairo VM in Rust
 
 [pr-welcome]: https://img.shields.io/static/v1?color=orange&label=PRs&style=flat&message=welcome
 [tg-badge]: https://img.shields.io/static/v1?color=green&logo=telegram&label=chat&style=flat&message=join
-[tg-url]: https://t.me/starknet_rs
+[tg-url]: https://t.me/LambdaStarkNet
 
 </div>
 
