@@ -4,6 +4,14 @@
 
 * fix: Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
 
+* feat: Add `Program::new_for_proof` [#1396](https://github.com/lambdaclass/cairo-vm/pull/1396)
+
+#### [0.8.7] - 2023-8-28
+
+* Add REDUCE_V2 hint [#1420](https://github.com/lambdaclass/cairo-vm/pull/1420):
+    * Implement REDUCE_V2 hint
+    * Rename hint REDUCE -> REDUCE_V1
+
 * BREAKING: Add `disable_trace_padding` to `CairoRunConfig`[#1233](https://github.com/lambdaclass/cairo-rs/pull/1233)
 
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375/files)
