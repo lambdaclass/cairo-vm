@@ -98,6 +98,8 @@ pub enum MemoryError {
     VecCapacityExceeded,
     #[error("Memory wasn't relocated")]
     UnrelocatedMemory,
+    #[error("Malformed public memory")]
+    MalformedPublicMemory,
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

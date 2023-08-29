@@ -8,6 +8,7 @@
 **/*.sierra
 **/*.trace
 **/*.memory
+**/*.air_public_input
 **/*.swp
 bench/results
 .python-version
