@@ -185,18 +185,9 @@ impl Program {
         error_message_attributes: Vec<Attribute>,
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     ) -> Result<Program, ProgramError> {
-        let mut constants = HashMap::new();
-        for (key, value) in identifiers.iter() {
-            if value.type_.as_deref() == Some("const") {
-                let value = value
-                    .value
-                    .clone()
-                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                constants.insert(key.clone(), value);
-            }
-        }
-        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let constants = Self::extract_constants(&identifiers)?;
 
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
         let hints_collection = HintsCollection::new(&hints, data.len())?;
 
         let shared_program_data = SharedProgramData {
@@ -204,6 +195,40 @@ impl Program {
             main,
             start: None,
             end: None,
+            hints_collection,
+            error_message_attributes,
+            instruction_locations,
+            identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
+        };
+        Ok(Self {
+            shared_program_data: Arc::new(shared_program_data),
+            constants,
+            builtins,
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_for_proof(
+        builtins: Vec<BuiltinName>,
+        data: Vec<MaybeRelocatable>,
+        start: usize,
+        end: usize,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    ) -> Result<Program, ProgramError> {
+        let constants = Self::extract_constants(&identifiers)?;
+
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let hints_collection = HintsCollection::new(&hints, data.len())?;
+
+        let shared_program_data = SharedProgramData {
+            data,
+            main: None,
+            start: Some(start),
+            end: Some(end),
             hints_collection,
             error_message_attributes,
             instruction_locations,
@@ -280,6 +305,22 @@ impl Program {
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn extract_constants(
+        identifiers: &HashMap<String, Identifier>,
+    ) -> Result<HashMap<String, Felt252>, ProgramError> {
+        let mut constants = HashMap::new();
+        for (key, value) in identifiers.iter() {
+            if value.type_.as_deref() == Some("const") {
+                let value = value
+                    .value
+                    .clone()
+                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                constants.insert(key.clone(), value);
+            }
+        }
+        Ok(constants)
     }
 
     // Obtains a reduced version of the program
@@ -431,6 +472,52 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_for_proof() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new_for_proof(
+            builtins.clone(),
+            data.clone(),
+            0,
+            1,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.start, Some(0));
+        assert_eq!(program.shared_program_data.end, Some(1));
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_hints() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -560,6 +647,43 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn extract_constants() {
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::ZERO),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(
+            Program::extract_constants(&identifiers).unwrap(),
             [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
