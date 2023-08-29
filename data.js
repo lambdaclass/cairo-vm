@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693328771889,
+  "lastUpdate": 1693331494028,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -115762,6 +115762,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 17729198,
             "range": "± 671298",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "722b2e29125ac5fda49cbd81d691941c485fa659",
+          "message": "Don't build wasm-demo in `build` target +  ci job to run the wasm demo (#1393)\n\n* Add default-members key to wrokspace\n\n* Remove irrelevant targets\n\n* Remove irrelevant targets\n\n* Add target to run the wasm demo\n\n* Run wasm demo in ci\n\n* Install deps\n\n* Fix workflow\n\n* Fix workflow\n\n* Build, dont run\n\n* update readmes\n\n* Fix syntax\n\n* Add changelog entry\n\n* Remove wasm-demo target\n\n* Update README.md\n\n* Update README.md\n\n* Update CHANGELOG.md\n\n* Update CHANGELOG.md\n\n* Remove call to deleted target\n\n* Use test file from cairo_programs\n\n* Fix compilation in readme + workflow\n\n* Update changelog\n\n* Update Makefile\n\n---------\n\nCo-authored-by: Pedro Fontana <fontana.pedro93@gmail.com>",
+          "timestamp": "2023-08-29T17:12:08Z",
+          "tree_id": "48332f7166ee1daf7a768f419ba6bef91f84aabf",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/722b2e29125ac5fda49cbd81d691941c485fa659"
+        },
+        "date": 1693331486392,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1300,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53869,
+            "range": "± 309",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18419331,
+            "range": "± 59664",
             "unit": "ns/iter"
           }
         ]
