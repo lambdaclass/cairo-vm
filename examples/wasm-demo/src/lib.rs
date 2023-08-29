@@ -27,7 +27,7 @@ macro_rules! wrap_error {
 
 #[wasm_bindgen(js_name = runCairoProgram)]
 pub fn run_cairo_program() -> Result<String, JsError> {
-    const PROGRAM_JSON: &[u8] = include_bytes!("./array_sum.json");
+    const PROGRAM_JSON: &[u8] = include_bytes!("../../../cairo_programs/array_sum.json");
 
     let mut hint_executor = BuiltinHintProcessor::new_empty();
 
