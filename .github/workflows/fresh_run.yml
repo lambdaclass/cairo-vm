@@ -28,7 +28,7 @@ jobs:
 
     - name: Install Rosetta
       if: matrix.os_name == 'macos'
-      run: softwareupdate --install-rosetta
+      run: softwareupdate --install-rosetta --agree-to-license
 
     - name: Run make deps${{ matrix.deps_suffix }}
       id: deps
