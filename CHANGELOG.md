@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* feat: Add `Program::new_for_proof` [#1396](https://github.com/lambdaclass/cairo-vm/pull/1396)
+
+#### [0.8.7] - 2023-8-28
+
 * Add REDUCE_V2 hint [#1420](https://github.com/lambdaclass/cairo-vm/pull/1420):
     * Implement REDUCE_V2 hint
     * Rename hint REDUCE -> REDUCE_V1
