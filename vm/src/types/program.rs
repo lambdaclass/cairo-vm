@@ -51,9 +51,7 @@ use arbitrary::{Arbitrary, Unstructured};
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
-    pub(crate) hints: Vec<HintParams>,
-    /// This maps a PC to the range of hints in `hints` that correspond to it.
-    pub(crate) hints_ranges: Vec<HintRange>,
+    pub(crate) hints_collection: HintsCollection,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub(crate) start: Option<usize>,
@@ -66,7 +64,7 @@ pub(crate) struct SharedProgramData {
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 impl<'a> Arbitrary<'a> for SharedProgramData {
-    /// Create an arbitary [`SharedProgramData`] using `flatten_hints` to generate `hints` and
+    /// Create an arbitary [`SharedProgramData`] using `HintsCollection::new` to generate `hints` and
     /// `hints_ranges`
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let mut data = Vec::new();
@@ -81,12 +79,11 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
         }
 
         let raw_hints = BTreeMap::<usize, Vec<HintParams>>::arbitrary(u)?;
-        let (hints, hints_ranges) = Program::flatten_hints(&raw_hints, data.len())
+        let hints_collection = HintsCollection::new(&raw_hints, data.len())
             .map_err(|_| arbitrary::Error::IncorrectFormat)?;
         Ok(SharedProgramData {
             data,
-            hints,
-            hints_ranges,
+            hints_collection,
             main: Option::<usize>::arbitrary(u)?,
             start: Option::<usize>::arbitrary(u)?,
             end: Option::<usize>::arbitrary(u)?,
@@ -98,75 +95,28 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     }
 }
 
-/// Represents a range of hints corresponding to a PC.
-///
-/// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
-type HintRange = Option<(usize, NonZeroUsize)>;
-
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Program {
-    pub(crate) shared_program_data: Arc<SharedProgramData>,
-    pub(crate) constants: HashMap<String, Felt252>,
-    pub(crate) builtins: Vec<BuiltinName>,
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
+pub(crate) struct HintsCollection {
+    hints: Vec<HintParams>,
+    /// This maps a PC to the range of hints in `hints` that correspond to it.
+    hints_ranges: Vec<HintRange>,
 }
 
-impl Program {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        builtins: Vec<BuiltinName>,
-        data: Vec<MaybeRelocatable>,
-        main: Option<usize>,
-        hints: HashMap<usize, Vec<HintParams>>,
-        reference_manager: ReferenceManager,
-        identifiers: HashMap<String, Identifier>,
-        error_message_attributes: Vec<Attribute>,
-        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
-    ) -> Result<Program, ProgramError> {
-        let mut constants = HashMap::new();
-        for (key, value) in identifiers.iter() {
-            if value.type_.as_deref() == Some("const") {
-                let value = value
-                    .value
-                    .clone()
-                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
-                constants.insert(key.clone(), value);
-            }
-        }
-        let hints: BTreeMap<_, _> = hints.into_iter().collect();
-
-        let (hints, hints_ranges) = Self::flatten_hints(&hints, data.len())?;
-
-        let shared_program_data = SharedProgramData {
-            data,
-            main,
-            start: None,
-            end: None,
-            hints,
-            hints_ranges,
-            error_message_attributes,
-            instruction_locations,
-            identifiers,
-            reference_manager: Self::get_reference_list(&reference_manager),
-        };
-        Ok(Self {
-            shared_program_data: Arc::new(shared_program_data),
-            constants,
-            builtins,
-        })
-    }
-
-    pub(crate) fn flatten_hints(
+impl HintsCollection {
+    pub(crate) fn new(
         hints: &BTreeMap<usize, Vec<HintParams>>,
         program_length: usize,
-    ) -> Result<(Vec<HintParams>, Vec<HintRange>), ProgramError> {
+    ) -> Result<Self, ProgramError> {
         let bounds = hints
             .iter()
             .map(|(pc, hs)| (*pc, hs.len()))
             .reduce(|(max_hint_pc, full_len), (pc, len)| (max_hint_pc.max(pc), full_len + len));
 
         let Some((max_hint_pc, full_len)) = bounds else {
-            return Ok((Vec::new(), Vec::new()));
+            return Ok(HintsCollection {
+                hints: Vec::new(),
+                hints_ranges: Vec::new(),
+            });
         };
 
         if max_hint_pc >= program_length {
@@ -185,7 +135,108 @@ impl Program {
             hints_values.extend_from_slice(&hs[..]);
         }
 
-        Ok((hints_values, hints_ranges))
+        Ok(HintsCollection {
+            hints: hints_values,
+            hints_ranges,
+        })
+    }
+
+    pub fn iter_hints(&self) -> impl Iterator<Item = &HintParams> {
+        self.hints.iter()
+    }
+
+    pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
+        self.hints_ranges.get(pc).cloned()
+    }
+}
+
+/// Represents a range of hints corresponding to a PC.
+///
+/// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
+type HintRange = Option<(usize, NonZeroUsize)>;
+
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Program {
+    pub(crate) shared_program_data: Arc<SharedProgramData>,
+    pub(crate) constants: HashMap<String, Felt252>,
+    pub(crate) builtins: Vec<BuiltinName>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StrippedProgram {
+    pub data: Vec<MaybeRelocatable>,
+    pub builtins: Vec<BuiltinName>,
+    pub main: usize,
+}
+
+impl Program {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        builtins: Vec<BuiltinName>,
+        data: Vec<MaybeRelocatable>,
+        main: Option<usize>,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    ) -> Result<Program, ProgramError> {
+        let constants = Self::extract_constants(&identifiers)?;
+
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let hints_collection = HintsCollection::new(&hints, data.len())?;
+
+        let shared_program_data = SharedProgramData {
+            data,
+            main,
+            start: None,
+            end: None,
+            hints_collection,
+            error_message_attributes,
+            instruction_locations,
+            identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
+        };
+        Ok(Self {
+            shared_program_data: Arc::new(shared_program_data),
+            constants,
+            builtins,
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_for_proof(
+        builtins: Vec<BuiltinName>,
+        data: Vec<MaybeRelocatable>,
+        start: usize,
+        end: usize,
+        hints: HashMap<usize, Vec<HintParams>>,
+        reference_manager: ReferenceManager,
+        identifiers: HashMap<String, Identifier>,
+        error_message_attributes: Vec<Attribute>,
+        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
+    ) -> Result<Program, ProgramError> {
+        let constants = Self::extract_constants(&identifiers)?;
+
+        let hints: BTreeMap<_, _> = hints.into_iter().collect();
+        let hints_collection = HintsCollection::new(&hints, data.len())?;
+
+        let shared_program_data = SharedProgramData {
+            data,
+            main: None,
+            start: Some(start),
+            end: Some(end),
+            hints_collection,
+            error_message_attributes,
+            instruction_locations,
+            identifiers,
+            reference_manager: Self::get_reference_list(&reference_manager),
+        };
+        Ok(Self {
+            shared_program_data: Arc::new(shared_program_data),
+            constants,
+            builtins,
+        })
     }
 
     #[cfg(feature = "std")]
@@ -252,6 +303,36 @@ impl Program {
             })
             .collect()
     }
+
+    pub(crate) fn extract_constants(
+        identifiers: &HashMap<String, Identifier>,
+    ) -> Result<HashMap<String, Felt252>, ProgramError> {
+        let mut constants = HashMap::new();
+        for (key, value) in identifiers.iter() {
+            if value.type_.as_deref() == Some("const") {
+                let value = value
+                    .value
+                    .clone()
+                    .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
+                constants.insert(key.clone(), value);
+            }
+        }
+        Ok(constants)
+    }
+
+    // Obtains a reduced version of the program
+    // Doesn't contain hints
+    // Can be used for verifying execution.
+    pub fn get_stripped_program(&self) -> Result<StrippedProgram, ProgramError> {
+        Ok(StrippedProgram {
+            data: self.shared_program_data.data.clone(),
+            builtins: self.builtins.clone(),
+            main: self
+                .shared_program_data
+                .main
+                .ok_or(ProgramError::StrippedProgramNoMain)?,
+        })
+    }
 }
 
 impl Default for Program {
@@ -311,12 +392,33 @@ impl TryFrom<CasmContractClass> for Program {
 }
 
 #[cfg(test)]
+impl HintsCollection {
+    pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
+        self.hints_ranges
+            .iter()
+            .enumerate()
+            .filter_map(|(pc, range)| {
+                range.and_then(|(start, len)| {
+                    let end = start + len.get();
+                    if end <= self.hints.len() {
+                        Some((pc, &self.hints[start..end]))
+                    } else {
+                        None
+                    }
+                })
+            })
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
     use felt::felt_str;
     use num_traits::Zero;
+
+    use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -354,8 +456,60 @@ mod tests {
         assert_eq!(program.shared_program_data.data, data);
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-        assert_eq!(program.shared_program_data.hints, Vec::new());
-        assert_eq!(program.shared_program_data.hints_ranges, Vec::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_for_proof() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new_for_proof(
+            builtins.clone(),
+            data.clone(),
+            0,
+            1,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.start, Some(0));
+        assert_eq!(program.shared_program_data.end, Some(1));
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
     }
 
     #[test]
@@ -412,11 +566,17 @@ mod tests {
 
         let program_hints: HashMap<_, _> = program
             .shared_program_data
+            .hints_collection
             .hints_ranges
             .iter()
             .enumerate()
             .filter_map(|(pc, r)| r.map(|(s, l)| (pc, (s, s + l.get()))))
-            .map(|(pc, (s, e))| (pc, program.shared_program_data.hints[s..e].to_vec()))
+            .map(|(pc, (s, e))| {
+                (
+                    pc,
+                    program.shared_program_data.hints_collection.hints[s..e].to_vec(),
+                )
+            })
             .collect();
         assert_eq!(program_hints, hints);
     }
@@ -483,6 +643,43 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn extract_constants() {
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(
+            Program::extract_constants(&identifiers).unwrap(),
             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
@@ -1020,10 +1217,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
-        let shared_program_data = SharedProgramData {
-            data: Vec::new(),
+        let hints_collection = HintsCollection {
             hints: Vec::new(),
             hints_ranges: Vec::new(),
+        };
+
+        let shared_program_data = SharedProgramData {
+            data: Vec::new(),
+            hints_collection,
             main: None,
             start: None,
             end: None,
@@ -1041,5 +1242,29 @@ mod tests {
         };
 
         assert_eq!(program, Program::default());
+    }
+
+    #[test]
+    fn get_stripped_program() {
+        let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let stripped_program = program.get_stripped_program().unwrap();
+        assert_eq!(stripped_program.builtins, program.builtins);
+        assert_eq!(stripped_program.data, program.shared_program_data.data);
+        assert_eq!(
+            stripped_program.main,
+            program.shared_program_data.main.unwrap()
+        );
+    }
+
+    #[test]
+    fn get_stripped_no_main() {
+        let program_content =
+            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        assert_matches!(
+            program.get_stripped_program(),
+            Err(ProgramError::StrippedProgramNoMain)
+        );
     }
 }

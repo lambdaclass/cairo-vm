@@ -67,8 +67,8 @@ use crate::{
                 },
                 field_utils::{
                     is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const,
-                    is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce, verify_zero,
-                    verify_zero_with_external_const,
+                    is_zero_nondet, is_zero_pack, is_zero_pack_external_secp, reduce_v1, reduce_v2,
+                    verify_zero, verify_zero_with_external_const,
                 },
                 signature::{
                     div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div,
@@ -253,7 +253,9 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "continue_loop",
             ),
-            hint_code::SPLIT_FELT => split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::SPLIT_FELT => {
+                split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -327,8 +329,11 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::NONDET_BIGINT3_V1 | hint_code::NONDET_BIGINT3_V2 => {
                 nondet_bigint3(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::REDUCE => {
-                reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            hint_code::REDUCE_V1 => {
+                reduce_v1(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::REDUCE_V2 => {
+                reduce_v2(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::REDUCE_ED25519 => {
                 ed25519_reduce(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
