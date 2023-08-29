@@ -15,9 +15,11 @@ jobs:
           include:
           - os: ubuntu-22.04
             deps_suffix: ''
+            os_name: ubuntu-22.04
           - os: [self-hosted, macOS]
             deps_suffix: '-macos' 
-    runs-on: ${{ matrix.os }}
+            os_name: macos
+    runs-on: ${{ matrix.os_name }}
     name: "Make deps, build & test on fresh ${{ matrix.os }} system"
     steps:
     - uses: actions/checkout@v3
@@ -55,7 +57,7 @@ jobs:
       uses: JasonEtco/create-an-issue@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        OS: ${{ matrix.os}}
+        OS: ${{ matrix.os_name}}
         COMMIT_SHA: ${{ github.sha }}
       with:
         filename: .github/ISSUE_TEMPLATE/fresh_run_failure.md
