@@ -2,7 +2,7 @@ import ast
 """
 Generate a cairo program with the following rules:
     1. Grab a hint
-    2. Look for all the ids.(...) expressions, make sure to keep track of any assignment
+    2. Look for all the ids.(...) expressions, make sure to keep track of any assignments
     3. Reduce the ids.(...) expressions so that all the variables and their fields are 
         grouped
     4. Create variables dicts
