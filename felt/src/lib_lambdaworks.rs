@@ -761,8 +761,18 @@ impl Integer for Felt252 {
     }
 
     fn div_rem(&self, other: &Self) -> (Self, Self) {
-        let (div, rem) = self.to_biguint().div_mod_floor(&other.to_biguint());
-        (Self::from(div), Self::from(rem))
+        let (div, rem) = self
+            .value
+            .representative()
+            .div_rem(&other.value.representative());
+        (
+            Self {
+                value: FieldElement::from(&div),
+            },
+            Self {
+                value: FieldElement::from(&rem),
+            },
+        )
     }
 
     // NOTE: we overload because the default impl calls div_floor AND mod_floor.

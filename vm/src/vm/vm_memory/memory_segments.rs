@@ -215,21 +215,25 @@ impl MemorySegmentManager {
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
     /// segment_offsets is the result of self.relocate_segments()
-    pub fn get_public_memory_addresses(&self, segment_offsets: &[usize]) -> Vec<(usize, usize)> {
-        let len = self.num_segments().min(self.public_memory_offsets.len());
-        let mut addresses = Vec::with_capacity(len);
-
-        for (offsets, segment_start) in self
-            .public_memory_offsets
-            .values()
-            .zip(segment_offsets.iter())
-            .take(len)
-        {
+    pub fn get_public_memory_addresses(
+        &self,
+        segment_offsets: &[usize],
+    ) -> Result<Vec<(usize, usize)>, MemoryError> {
+        let mut addresses = Vec::with_capacity(self.num_segments());
+        let empty_vec = vec![];
+        for segment_index in 0..self.num_segments() {
+            let offsets = &self
+                .public_memory_offsets
+                .get(&segment_index)
+                .unwrap_or(&empty_vec);
+            let segment_start = segment_offsets
+                .get(segment_index)
+                .ok_or(MemoryError::MalformedPublicMemory)?;
             for (offset, page_id) in offsets.iter() {
                 addresses.push((segment_start + offset, *page_id));
             }
         }
-        addresses
+        Ok(addresses)
     }
 
     // Writes the following information for the given segment:
@@ -245,10 +249,8 @@ impl MemorySegmentManager {
         if let Some(size) = size {
             self.segment_sizes.insert(segment_index, size);
         }
-        if let Some(public_memory) = public_memory {
-            self.public_memory_offsets
-                .insert(segment_index, public_memory.clone());
-        }
+        self.public_memory_offsets
+            .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 }
 
@@ -828,12 +830,12 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn finalize_no_size_nor_memory_no_change() {
+    fn finalize_no_size_nor_memory() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(None, 0, None);
         assert!(segments.memory.data.is_empty());
         assert!(segments.memory.temp_data.is_empty());
-        assert!(segments.public_memory_offsets.is_empty());
+        assert_eq!(segments.public_memory_offsets, HashMap::from([(0, vec![])]));
         assert_eq!(segments.num_segments(), 0);
         assert_eq!(segments.num_temp_segments(), 0);
     }
@@ -843,7 +845,7 @@ mod tests {
     fn finalize_no_memory() {
         let mut segments = MemorySegmentManager::new();
         segments.finalize(Some(42), 0, None);
-        assert!(segments.public_memory_offsets.is_empty());
+        assert_eq!(segments.public_memory_offsets, HashMap::from([(0, vec![])]));
         assert_eq!(segments.segment_sizes, HashMap::from([(0, 42)]));
     }
 
