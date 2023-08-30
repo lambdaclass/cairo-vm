@@ -309,7 +309,7 @@ clean:
 	rm -rf cairo
 	rm -rf cairo1
 	rm -rf cairo2
-	rm -rf cairo_lang
+	rm -rf cairo-lang
 
 fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
@@ -323,7 +323,11 @@ fuzzer-run-cairo-compiled:
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 CAIRO_LANG_REPO_DIR: cairo_lang
+=======
+CAIRO_LANG_REPO_DIR: cairo-lang
+>>>>>>> cec501de4c07fa1d1eaca923a25791c620e32769
 
 $(CAIRO_LANG_REPO_DIR):
 	git clone --depth=1 https://github.com/starkware-libs/cairo-lang
