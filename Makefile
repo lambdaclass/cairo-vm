@@ -11,7 +11,7 @@ STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
-	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
+	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
 	$(RELBIN) $(DBGBIN)
@@ -27,10 +27,14 @@ STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 TEST_PROOF_DIR=cairo_programs/proof_programs
 TEST_PROOF_FILES:=$(wildcard $(TEST_PROOF_DIR)/*.cairo)
 COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_FILES))
+
 CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.trace, $(COMPILED_PROOF_TESTS))
+CAIRO_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.air_public_input, $(COMPILED_PROOF_TESTS))
+
 CAIRO_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.trace, $(COMPILED_PROOF_TESTS))
+CAIRO_RS_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.air_public_input, $(COMPILED_PROOF_TESTS))
 
 PROOF_BENCH_DIR=cairo_programs/benchmarks
 PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
@@ -39,11 +43,11 @@ PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory $(TEST_PROOF_DIR)/%.rs.air_public_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input
 
-$(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory: $(TEST_PROOF_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
+$(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_public_input: $(TEST_PROOF_DIR)/%.json
+	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory
 
 $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
@@ -215,8 +219,8 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
 
-cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF)
-cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF)
+cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT)
 
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
@@ -271,11 +275,17 @@ compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode
 
+compare_all_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
+	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode air_public_input
+
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh trace proof_mode
 
 compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode
+
+compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
+	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_public_input
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
@@ -292,6 +302,7 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
+	rm -f $(TEST_PROOF_DIR)/*.air_public_input
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo

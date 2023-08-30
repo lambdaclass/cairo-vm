@@ -24,6 +24,21 @@
 
 * feat: Implement `CairoRunner.get_cairo_pie`[#1375](https://github.com/lambdaclass/cairo-vm/pull/1375)
 
+* fix: Compare air_public_inputs against python vm + Fix how public memory is built [#391](https://github.com/lambdaclass/cairo-vm/pull/1391)
+
+    BugFixes:
+
+    *  `CairoRunner.finalize_segments` now builds the output builtin's public memory (if applicable).
+    * `MemorySegmentManager.get_public_memory_addresses` logic fixed.
+    * `MemorySegmentManager.finalize` no longer skips segments when their public memory is None
+
+    Minor changes:
+
+    * `VirtualMachine.get_public_memory_addresses` now strips the "_builtin" suffix from builtin names
+    * `MemorySegmentAddresses.stop_address` renamed to `stop_ptr`
+
+    Overall these changes make the the air public input file (obtained through the --air_public_input flag) equivalent to the ones outputted by the cairo-lang version
+
 * fix: Fix `SPLIT_FELT` hint [#1387](https://github.com/lambdaclass/cairo-vm/pull/1387)
 
 * refactor: combine `Program.hints` and `Program.hints_ranges` into custom collection [#1366](https://github.com/lambdaclass/cairo-vm/pull/1366)
