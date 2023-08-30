@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Added a differential fuzzer for programs with whitelisted hints [#1358](https://github.com/lambdaclass/cairo-vm/pull/1358)
+
 * fix: Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
 
 * Don't build wasm-demo in `build` target + add ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
