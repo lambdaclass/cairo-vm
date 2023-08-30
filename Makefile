@@ -317,7 +317,7 @@ run-cairo-compiled-fuzzer:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
 
-CAIRO_LANG_REPO_DIR: cairo_lang
+CAIRO_LANG_REPO_DIR: cairo-lang
 
 $(CAIRO_LANG_REPO_DIR):
 	git clone --depth=1 https://github.com/starkware-libs/cairo-lang
