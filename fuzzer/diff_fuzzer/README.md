@@ -6,7 +6,7 @@ This fuzzer takes a list of pre-selected hints and runs a generated basic progra
 
 Use the commands:
  - `make fuzzer-deps` to ensure that you have the atheris module and created a python module from `fuzzer/src/py_export.rs` using maturin.
- - `make diff-fuzz` to run the fuzzer.
+ - `make fuzzer-run-hint-diff` to run the fuzzer.
 
 ## The fuzzer
 The fuzzer is located in the ***random_hint_fuzzer.py*** file inside the diff_fuzzer folder.

@@ -309,18 +309,18 @@ clean:
 	rm -rf cairo1
 	rm -rf cairo2
 
-fuzzer-deps:
+fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
 	. cairo-vm-env/bin/activate; \
 		pip install atheris==2.2.2 maturin==1.2.3; \
 		cd fuzzer/; \
 		maturin develop
 
-run-cairo-compiled-fuzzer:
+fuzzer-run-cairo-compiled:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
 
-diff-fuzz:
+fuzzer-run-hint-diff:
 	. cairo-vm-env/bin/activate ; \
 	cd fuzzer/diff_fuzzer/; \
 	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0

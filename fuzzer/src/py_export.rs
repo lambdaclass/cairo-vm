@@ -3,14 +3,24 @@ use cairo_vm::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
 use pyo3::{
-    exceptions::PyException,
     create_exception,
+    exceptions::PyException,
     prelude::{pyfunction, pymodule, wrap_pyfunction, PyModule, PyResult, Python},
 };
 use std::panic;
 
-create_exception!(cairo_vm_rs, PanicTriggered, PyException, "Raised when panic_unwind catches a panic during `cairo_run`");
-create_exception!(cairo_vm_rs, VMError, PyException, "`cairo_run` raised a `CairoRunError`");
+create_exception!(
+    cairo_vm_rs,
+    PanicTriggered,
+    PyException,
+    "Raised when panic_unwind catches a panic during `cairo_run`"
+);
+create_exception!(
+    cairo_vm_rs,
+    VMError,
+    PyException,
+    "`cairo_run` raised a `CairoRunError`"
+);
 
 #[pyfunction]
 fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
@@ -20,10 +30,18 @@ fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
     };
 
     let result_no_panic = panic::catch_unwind(|| {
-        cairo_run(&json.as_bytes(), &config, &mut BuiltinHintProcessor::new_empty())
-    }).map_err(|e| PanicTriggered::new_err(format! {"Rust VM panicked! {}", e.to_string()}))?;
+        cairo_run(
+            &json.as_bytes(),
+            &config,
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+    })
+    .map_err(|e| {
+        PanicTriggered::new_err(format! {"Rust VM panicked! {:?}", e.downcast::<String>()})
+    })?;
 
-    let (cairo_runner, _) = result_no_panic.map_err(|e| VMError::new_err(format! {"{e:?}"}))?;
+    let (cairo_runner, _) =
+        result_no_panic.map_err(|e| VMError::new_err(format! {"VM error: {:?}", e.to_string()}))?;
 
     let mut memory_dump = Vec::new();
     for (i, memory_cell) in cairo_runner.relocated_memory.iter().enumerate() {
