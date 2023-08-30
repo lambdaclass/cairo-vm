@@ -322,21 +322,16 @@ fuzzer-run-cairo-compiled:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+fuzzer-run-hint-diff:
+	. cairo-vm-env/bin/activate ; \
+	cd fuzzer/diff_fuzzer/; \
+	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0
+
 CAIRO_LANG_REPO_DIR: cairo_lang
-=======
-CAIRO_LANG_REPO_DIR: cairo-lang
->>>>>>> cec501de4c07fa1d1eaca923a25791c620e32769
 
 $(CAIRO_LANG_REPO_DIR):
 	git clone --depth=1 https://github.com/starkware-libs/cairo-lang
 
 hint-accountant: $(CAIRO_LANG_REPO_DIR)
 	cargo r -p hint_accountant
-=======
-fuzzer-run-hint-diff:
-	. cairo-vm-env/bin/activate ; \
-	cd fuzzer/diff_fuzzer/; \
-	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0
->>>>>>> bdebfde8531ec166c3d50367c0fdfa8be2ef16f4
+
