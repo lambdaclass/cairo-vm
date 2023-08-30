@@ -308,7 +308,7 @@ clean:
 	rm -rf cairo
 	rm -rf cairo1
 	rm -rf cairo2
-	rm -rf cairo_lang
+	rm -rf cairo-lang
 
 fuzzer-deps: 
 	cargo +nightly install cargo-fuzz
