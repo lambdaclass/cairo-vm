@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693421435520,
+  "lastUpdate": 1693423018894,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116302,6 +116302,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 24760916,
             "range": "± 940296",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "91eeff5098e41b102bb8fcc25f17fd683ab772e1",
+          "message": "refactor: Use a generic backend for  BigIntN & UintN structs used for hints (#1399)\n\n* Generalize BigInt3\n\n* Use generalized backend for BigInt5\n\n* Use generalized backend for Uint512\n\n* Use generalized backend for Uint768\n\n* clippy",
+          "timestamp": "2023-08-30T18:34:53Z",
+          "tree_id": "63b40cfda03c3d6f62aa7377ac3917d0f2394b63",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/91eeff5098e41b102bb8fcc25f17fd683ab772e1"
+        },
+        "date": 1693423011979,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1382,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51475,
+            "range": "± 412",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18839771,
+            "range": "± 113900",
             "unit": "ns/iter"
           }
         ]
