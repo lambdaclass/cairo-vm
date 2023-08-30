@@ -194,6 +194,7 @@ Implements hint:
     ids.res.high = res_split[1]
 %}
 */
+
 pub fn uint256_sub(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
@@ -208,7 +209,22 @@ pub fn uint256_sub(
         a - b
     } else {
         // wrapped a - b
-        ((BigUint::one() << 256) - b) + a
+        // b is limited to (CAIRO_PRIME - 1) << 128 which is 1 << (251 + 128 + 1)
+        //                                         251: most significant felt bit
+        //                                         128:     high field left shift
+        //                                           1:       extra bit for limit
+        let mod_256 = BigUint::one() << 256;
+        if mod_256 >= b {
+            mod_256 - b + a
+        } else {
+            let lowered_b = b.mod_floor(&mod_256);
+            // Repeat the logic from before
+            if a >= lowered_b {
+                a - lowered_b
+            } else {
+                mod_256 - lowered_b + a
+            }
+        }
     };
 
     let res = Uint256::split(&res);
@@ -630,6 +646,52 @@ mod tests {
             vm.segments.memory,
             ((1, 4), ("340282366920938463463374607431768200278", 10)),
             ((1, 5), ("340282366920938463463374607431768205098", 10))
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_b_high_gt_256_lte_a() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), ("340282366920938463463374607431768211456", 10)),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            ((1, 3), ("340282366920938463463374607431768211457", 10)),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 4), 0), ((1, 5), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_b_high_gt_256_gt_a() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            ((1, 3), ("340282366920938463463374607431768211457", 10)),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            ((1, 4), ("1", 10)),
+            ((1, 5), ("340282366920938463463374607431768211455", 10))
         ];
     }
 
