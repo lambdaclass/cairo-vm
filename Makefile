@@ -14,7 +14,7 @@ STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 	compare_trace_memory_proof compare_trace_proof compare_memory_proof \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
-	$(RELBIN) $(DBGBIN) example_programs
+	$(RELBIN) $(DBGBIN) example_programs hint-accountant
 
 # Proof mode consumes too much memory with cairo-lang to execute
 # two instances at the same time in the CI without getting killed
@@ -303,6 +303,7 @@ clean:
 	rm -rf cairo
 	rm -rf cairo1
 	rm -rf cairo2
+	rm -rf cairo_lang
 
 fuzzer-deps: 
 	cargo +nightly install cargo-fuzz
@@ -310,3 +311,11 @@ fuzzer-deps:
 run-cairo-compiled-fuzzer:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
+
+CAIRO_LANG_REPO_DIR: cairo_lang
+
+$(CAIRO_LANG_REPO_DIR):
+	git clone --depth=1 https://github.com/starkware-libs/cairo-lang
+
+hint-accountant: $(CAIRO_LANG_REPO_DIR)
+	cargo r -p hint_accountant
