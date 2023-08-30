@@ -38,6 +38,8 @@ def diff_fuzzer(data):
 
     try:
         cairo_program = generate_cairo_hint_program(hint)
+    except KeyboardInterrupt:
+        sys.exit("Fuzzing stopped!")
     except:
         failed_input_name = write_failing_file(fdp, hint)
         sys.exit(f"Failed to generate cairo program from hint. Check file: {failed_input_name}")
@@ -47,6 +49,8 @@ def diff_fuzzer(data):
         cairo_program = cairo_program.replace(REPLACEABLE_TOKEN, str(generate_limb(fdp)), 1)
     try:
         program = compile_cairo(cairo_program, PRIME)
+    except KeyboardInterrupt:
+        sys.exit("Fuzzing stopped!")
     except:
         failed_input_name = write_failing_file(fdp, cairo_program)
         sys.exit(f"Failed to compile cairo program. Check file: {failed_input_name}")
@@ -55,6 +59,8 @@ def diff_fuzzer(data):
     rust_err = False
     try:
         raw_rs_mem = cairo_run_dump_mem(json.dumps(program.dump()))
+    except KeyboardInterrupt:
+        sys.exit("Fuzzing stopped!")
     except PanicTriggered as error:
         failed_input_name = write_failing_file(fdp, cairo_program)
         sys.exit(f"{error}\nCheck file: {failed_input_name}")
@@ -78,6 +84,8 @@ def diff_fuzzer(data):
         runner.end_run()
         runner.relocate()
         raw_py_mem = list(runner.relocated_memory.serialize(32))
+    except KeyboardInterrupt:
+        sys.exit("Fuzzing stopped!")
     except:
         python_err = True
 
