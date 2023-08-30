@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693343915141,
+  "lastUpdate": 1693412488691,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116032,6 +116032,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 25840874,
             "range": "± 1254546",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "94461321+daphneherlambda@users.noreply.github.com",
+            "name": "daphneherlambda",
+            "username": "daphneherlambda"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bdebfde8531ec166c3d50367c0fdfa8be2ef16f4",
+          "message": "create vm diff fuzzer (#1358)\n\n* create vm diff fuzzer\n\n* Working fuzzer\n\n* Change name and paths\n\n* Delete moved files\n\n* Add deps and run commands\n\n* Add info to readme\n\n* Prototype new fuzzer\n\n* generalize program\n\n* Add cairo program generator\n\n* Integrate with diff fuzzer\n\n* generalize program\n\n* Consider felt case\n\n* generalize parsing for structs and felts\n\n* Add inout vars case\n\n* add select rand hint code\n\n* Delete uint256_mul_div_mod.cairo\n\n* Change fuzzer name\n\n* Consider more terminations\n\n* Change return line\n\n* filter hints to try\n\n* Begin direct mem comparison\n\n* Take any  line\n\n* Consider struct fields called after var\n\n* Remove  prefix after picking dictionary\n\n* Remove print\n\n* Consider pack case\n\n* Replace for space instead of deleting\n\n* Consider ( after variable\n\n* Add constants definition\n\n* add extra hint\n\n* Check not keccak works and document\n\n* fix syntaxis error\n\n* add error handling\n\n* fix error handling\n\n* Refactor cairo_program_gen\n\n* Use replace token\n\n* Fix parenthesis\n\n* Reduce replacing\n\n* add documentation\n\n* Consider variable in func case\n\n* Remove debugging\n\n* Load all jsons once\n\n* Fix ids.a.field+3 case\n\n* Add case for constants\n\n* Correct main fuzzer readme\n\n* Spelling diff fuzzer docu\n\n* Clarify 2. in diff fuzzer docu\n\n* Add make deps step\n\n* Specify constants and cairo structs importing\n\n* Add maturing to deps\n\n* Update Makefile\n\n* Correct makefile\n\n* Correct makefile\n\n* Add missing memory checker module\n\n* Remove initial var declarations\n\n* Update changelog\n\n* Run cargo fmt\n\n* Use ast for parsing\n\n* Document cairo_program_gen\n\n* Remove commented code\n\n* Update readme doc\n\n* Get hints from VM code\n\n* Change make command name\n\n* Make interrupting more reliable\n\n* Add targets to PHONY\n\n* assignment -> assignments\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* add with\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n* importing -> to be imported\n\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>\n\n---------\n\nCo-authored-by: dafifynn <slimbieber@gmail.com>\nCo-authored-by: juan.mv <juan@lambdaclass.com>\nCo-authored-by: Juan-M-V <102986292+Juan-M-V@users.noreply.github.com>\nCo-authored-by: fmoletta <99273364+fmoletta@users.noreply.github.com>",
+          "timestamp": "2023-08-30T15:35:50Z",
+          "tree_id": "877650a82d533c74c6f9612884c766aebcddfdad",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/bdebfde8531ec166c3d50367c0fdfa8be2ef16f4"
+        },
+        "date": 1693412482045,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1394,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51195,
+            "range": "± 299",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19020983,
+            "range": "± 335631",
             "unit": "ns/iter"
           }
         ]
