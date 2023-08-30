@@ -16,7 +16,7 @@ Generate a cairo program with the following rules:
             hint_func();
             return();
           }
-    7. Create hint_func the variables in declare_in_hint_fn as locals
+    7. Create hint_func with the variables in declare_in_hint_fn as locals
         - hint_func(a: MyStruct) -> (MyStruct) {
             alloc_locals;
             local b: MyStruct;
