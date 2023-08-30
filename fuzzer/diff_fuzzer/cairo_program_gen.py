@@ -139,6 +139,7 @@ def generate_cairo_hint_program(hint_code):
     main_struct_assignment_fmt = "\n\tlet {var_name} = {struct_name}({assign_fields});"
     main_ecpoint_assignment_fmt = "\n\tlet {var_name} = EcPoint(BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + "), BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + "));"
     main_bigint_assignment_fmt = "\n\tlet {var_name} = BigInt3(d0=" + REPLACEABLE_TOKEN + ", d1=" + REPLACEABLE_TOKEN + ", d2=" + REPLACEABLE_TOKEN + ");"
+    main_low_high_assignment_fmt = "\n\tlet {var_name} = {struct_name}(low=" + REPLACEABLE_TOKEN + ", high=" + REPLACEABLE_TOKEN + ");"
     main_var_felt_assingment_fmt = "\n\tlet {var_name} =" + REPLACEABLE_TOKEN + ";"
 
     main_var_assignments = ""
@@ -149,6 +150,8 @@ def generate_cairo_hint_program(hint_code):
             main_var_assignments += main_ecpoint_assignment_fmt.format(var_name = name)
         elif "BigInt3" in var_fields:
             main_var_assignments += main_bigint_assignment_fmt.format(var_name = name)
+        elif frozenset({"low", "high"}) == var_fields:
+            main_var_assignments += main_low_high_assignment_fmt.format(var_name = name, struct_name = structs_dict[frozenset({"low", "high"})])
         else:
             main_var_assignments += main_struct_assignment_fmt.format(
                 var_name = name,

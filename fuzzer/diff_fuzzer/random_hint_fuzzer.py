@@ -8,14 +8,15 @@ from starkware.cairo.lang.vm.cairo_runner import CairoRunner
 from starkware.cairo.lang.vm.cairo_run import load_program
 from starkware.cairo.lang.vm.memory_dict import MemoryDict
 from cairo_program_gen import generate_cairo_hint_program, REPLACEABLE_TOKEN
-from cairo_vm_rs import cairo_run_dump_mem
+from cairo_vm_rs import cairo_run_dump_mem, PanicTriggered, VMError
 from memory_checker import check_mem
+from hint_reader import load_hints
 
 PRIME = 2**251 + 17 * 2**192 + 1
 
 @atheris.instrument_func
 def generate_limb(fdp):
-    range_check_max = 340282366920938463463374607431768211456 
+    range_check_max = PRIME #340282366920938463463374607431768211456 
     if fdp.ConsumeProbability() > 0.3:
        return fdp.ConsumeIntInRange(range_check_max >> 1, range_check_max) 
     elif fdp.ConsumeBool():
@@ -23,31 +24,12 @@ def generate_limb(fdp):
     else:
        return fdp.ConsumeIntInRange(1, range_check_max)
 
-def load_hints():
-    uint256_improvements_hints = json.load(open('../../hint_accountant/whitelists/uint256_improvements.json'))
-    uint256_improvements_numbers = [1, 2]
-    vrf_hints = json.load(open('../../hint_accountant/whitelists/vrf.json'))
-    vrf_numbers = list(range(17))
-    latest_hints = json.load(open('../../hint_accountant/whitelists/latest.json'))
-    latest_numbers = [4, 5, 6, 26, 27, 29, 30, 32, 38, 49, 55, 72]
-    hints = [
-        latest_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
-        for hint_number in latest_numbers
-    ]
-    hints += [
-        vrf_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
-        for hint_number in vrf_numbers
-    ]
-    hints += [
-        uint256_improvements_hints["allowed_reference_expressions_for_hint"][hint_number]["hint_lines"]
-        for hint_number in uint256_improvements_numbers
-    ]
-    return hints
-
 def write_failing_file(fdp, cairo_program):
     alt_filename = hex(fdp.ConsumeUInt(8))
-    with open("failed_input_" + alt_filename + ".cairo", 'w', encoding='utf-8') as file:
+    filename = "failed_input_" + alt_filename + ".cairo"
+    with open(filename, 'w', encoding='utf-8') as file:
         file.write(cairo_program)
+    return filename
 
 @atheris.instrument_func
 def diff_fuzzer(data):
@@ -55,10 +37,10 @@ def diff_fuzzer(data):
     hint = fdp.PickValueInList(LOADED_HINTS)
 
     try:
-        cairo_program = generate_cairo_hint_program("\n".join(hint))
+        cairo_program = generate_cairo_hint_program(hint)
     except:
-        print("Failed to generate cairo program from hint:", "\n".join(hint))
-        exit(1)
+        failed_input_name = write_failing_file(fdp, hint)
+        sys.exit(f"Failed to generate cairo program from hint. Check file: {failed_input_name}")
 
     replace_count = cairo_program.count(REPLACEABLE_TOKEN)
     for _ in range(replace_count):
@@ -66,15 +48,17 @@ def diff_fuzzer(data):
     try:
         program = compile_cairo(cairo_program, PRIME)
     except:
-        write_failing_file(fdp, cairo_program)
-        print("Failed to compile", cairo_program)
-        exit(1)
+        failed_input_name = write_failing_file(fdp, cairo_program)
+        sys.exit(f"Failed to compile cairo program. Check file: {failed_input_name}")
 
     # Get Rust implementation memory
     rust_err = False
     try:
         raw_rs_mem = cairo_run_dump_mem(json.dumps(program.dump()))
-    except:
+    except PanicTriggered as error:
+        failed_input_name = write_failing_file(fdp, cairo_program)
+        sys.exit(f"{error}\nCheck file: {failed_input_name}")
+    except VMError:
         rust_err = True
 
     # Get Python implementation memory
@@ -101,8 +85,8 @@ def diff_fuzzer(data):
         try:
             check_mem(raw_py_mem=raw_py_mem, raw_rs_mem=raw_rs_mem)
         except AssertionError:
-            write_failing_file(fdp, cairo_program)
-            raise 
+            failed_input_name = write_failing_file(fdp, cairo_program)
+            sys.exit(f"Memory files differ. Check file: {failed_input_name}")
     elif rust_err != python_err:
         write_failing_file(fdp, cairo_program)
         assert rust_err == python_err, f"Rust is error: {rust_err}, Python is error: {python_err}"
