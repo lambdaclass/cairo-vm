@@ -20,7 +20,7 @@ jobs:
             deps_suffix: '-macos' 
             os_name: macos
     runs-on: ${{ matrix.os_name }}
-    name: "Make deps, build & test on fresh ${{ matrix.os }} system"
+    name: "Make deps, build & test on fresh ${{ matrix.os_name }} system"
     steps:
     - uses: actions/checkout@v3
     - uses: dtolnay/rust-toolchain@1.70.0
