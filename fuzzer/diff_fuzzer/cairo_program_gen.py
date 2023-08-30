@@ -44,7 +44,7 @@ def classify_variables(hint_code):
         function and that will receive the fuzzer selected values
     - declare_in_hint_fn: holds the variables that are assigned a value inside the hint
     - consts_to_import: holds the cairo constants that are called inside the hint that
-        need importing form a common library module
+        need to be imported form a common library module
     The output dictionaries will also keep track of the variable's fields considering the
     case where a variable is called inside a `pack` function additionally, `pack` can be 
     defined inside the hint or imported from the internal ec point functionality.
