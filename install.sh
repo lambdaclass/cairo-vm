@@ -61,10 +61,11 @@ install_linux() {
 
     # NOTE: we don't use $VER for now, but this might change
     case "$OS" in
-        Ubuntu*)    run_script "install-scripts/install-ubuntu.sh" ;;
-        Debian*)    run_script "install-scripts/install-debian.sh" ;;
-        *)          unsupported_os "linux: $OS" ;;
+        Ubuntu*|Linux\ Mint*) run_script "install-scripts/install-ubuntu.sh" ;;
+        Debian*)              run_script "install-scripts/install-debian.sh" ;;
+        *)                    unsupported_os "linux: $OS" ;;
     esac
+
 }
 
 install_macos() {
