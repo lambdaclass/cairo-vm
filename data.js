@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693412488691,
+  "lastUpdate": 1693420946662,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116122,6 +116122,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19020983,
             "range": "± 335631",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "a418553f5513f251da5921192eb9c6f87a4a0796",
+          "message": "Update Readme (#1425)\n\n* Change telegram link\n\n* Update rust version in README.md",
+          "timestamp": "2023-08-30T17:56:49Z",
+          "tree_id": "cdb657c0dfd420274cce12913f573ef7b2b9854d",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/a418553f5513f251da5921192eb9c6f87a4a0796"
+        },
+        "date": 1693420939802,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1373,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51243,
+            "range": "± 344",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 19115399,
+            "range": "± 219454",
             "unit": "ns/iter"
           }
         ]
