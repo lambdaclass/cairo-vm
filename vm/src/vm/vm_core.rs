@@ -996,7 +996,9 @@ impl VirtualMachine {
     /// Returns a list of addresses of memory cells that constitute the public memory.
     pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
         if let Some(relocation_table) = &self.relocation_table {
-            Ok(self.segments.get_public_memory_addresses(relocation_table))
+            self.segments
+                .get_public_memory_addresses(relocation_table)
+                .map_err(VirtualMachineError::Memory)
         } else {
             Err(MemoryError::UnrelocatedMemory.into())
         }
@@ -1028,7 +1030,10 @@ impl VirtualMachine {
                         return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
                     };
 
-                Ok((builtin.name(), relocate(addresses)?))
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate(addresses)?,
+                ))
             })
             .collect()
     }
