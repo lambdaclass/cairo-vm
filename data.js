@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693420946662,
+  "lastUpdate": 1693421435520,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116212,6 +116212,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 19115399,
             "range": "± 219454",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "30de5a264c9137d1948270d850568f1004426944",
+          "message": "Use cairo-lang whitelists for the hint accountant + update cairo-lang version (#1423)\n\n* Extract whitelists from cairo-lang repo + update cairo-lang version\n\n* Use cairo-lang repo\n\n* Fix fetch-deph\n\n* Add default members\n\n* Fix path, filter non-json files\n\n* Use expect\n\n* Remove whitelist files\n\n* Add makefile target hint-accountant\n\n* Update Makefile\n\n* Update Makefile\n\n* fix conflicts\n\n* Fix makefile\n\n* Add cairo-lang to .gitignore",
+          "timestamp": "2023-08-30T18:06:39Z",
+          "tree_id": "202565ce40e6eff723a7d5599f4d026a93db2725",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/30de5a264c9137d1948270d850568f1004426944"
+        },
+        "date": 1693421426785,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1720,
+            "range": "± 113",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 68136,
+            "range": "± 3572",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 24760916,
+            "range": "± 940296",
             "unit": "ns/iter"
           }
         ]
