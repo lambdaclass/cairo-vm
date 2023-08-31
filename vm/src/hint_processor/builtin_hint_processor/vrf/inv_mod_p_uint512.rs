@@ -1,5 +1,5 @@
+use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
-use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
