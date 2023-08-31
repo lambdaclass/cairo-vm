@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix: Using UINT256_HINT no longer panics when b is greater than 2^256 [#1430]([htt](https://github.com/lambdaclass/cairo-vm/pull/1430)
+* fix: Using UINT256_HINT no longer panics when b is greater than 2^256 [#1430](https://github.com/lambdaclass/cairo-vm/pull/1430)
 
 * feat: Added a differential fuzzer for programs with whitelisted hints [#1358](https://github.com/lambdaclass/cairo-vm/pull/1358)
 
