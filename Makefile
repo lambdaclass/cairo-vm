@@ -14,6 +14,7 @@ STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
+	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \
 	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -308,10 +309,31 @@ clean:
 	rm -rf cairo
 	rm -rf cairo1
 	rm -rf cairo2
+	rm -rf cairo-lang
 
-fuzzer-deps: 
+fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
+	. cairo-vm-env/bin/activate; \
+		pip install atheris==2.2.2 maturin==1.2.3; \
+		cd fuzzer/; \
+		maturin develop
 
-run-cairo-compiled-fuzzer:
+fuzzer-run-cairo-compiled:
 	cd fuzzer
 	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
+
+fuzzer-run-hint-diff:
+	. cairo-vm-env/bin/activate ; \
+	cd fuzzer/diff_fuzzer/; \
+	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0
+
+CAIRO_LANG_REPO_DIR=cairo-lang
+
+$(CAIRO_LANG_REPO_DIR):
+	git clone --depth=1 https://github.com/starkware-libs/cairo-lang
+
+build-cairo-lang: | $(CAIRO_LANG_REPO_DIR)
+
+hint-accountant: build-cairo-lang
+	cargo r -p hint_accountant
+

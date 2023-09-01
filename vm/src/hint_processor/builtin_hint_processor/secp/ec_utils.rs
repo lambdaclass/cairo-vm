@@ -1274,12 +1274,12 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.d0.as_ref(), &Felt252::ONE);
-        assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));
-        assert_eq!(e.y.d1.as_ref(), &Felt252::from(5));
-        assert_eq!(e.y.d2.as_ref(), &Felt252::from(6));
+        assert_eq!(e.x.limbs[0].as_ref(), &Felt252::ONE);
+        assert_eq!(e.x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(e.x.limbs[2].as_ref(), &Felt252::from(3));
+        assert_eq!(e.y.limbs[0].as_ref(), &Felt252::from(4));
+        assert_eq!(e.y.limbs[1].as_ref(), &Felt252::from(5));
+        assert_eq!(e.y.limbs[2].as_ref(), &Felt252::from(6));
     }
 
     #[test]

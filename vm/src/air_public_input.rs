@@ -24,6 +24,7 @@ pub struct PublicMemoryEntry {
 
 mod mem_value_serde {
     use super::*;
+    use crate::stdlib::string::ToString;
     use serde::Serializer;
 
     pub(crate) fn serialize<S: Serializer>(
