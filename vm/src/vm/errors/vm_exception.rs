@@ -947,6 +947,42 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_bad_ec_recover_div_mod_n_packed_n_zero() {
+        #[cfg(feature = "std")]
+        let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:16:5: Error at pc=0:21:
+Got an exception while executing a hint: Attempted to divide by zero
+    %{
+    ^^
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0:18)
+    ec_recover_product(x, s, n);
+    ^*************************^
+"#;
+        #[cfg(not(feature = "std"))]
+        let expected_error_string = r#"Got an exception while executing a hint: Attempted to divide by zero
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0:18)
+"#;
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let error = cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap_err();
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        assert_eq!(vm_excepction.to_string(), expected_error_string);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_value_from_simple_reference_ap_based() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json"),
