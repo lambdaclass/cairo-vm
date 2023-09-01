@@ -25,12 +25,13 @@ pub struct PublicMemoryEntry {
 mod mem_value_serde {
     use super::*;
     use serde::Serializer;
+    use crate::stdlib::string::ToString;
 
     pub(crate) fn serialize<S: Serializer>(
         value: &Option<Felt252>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
-        if let Some(value) = value {
+        if let Some(ref value) = value {
             serializer.serialize_str(&format!("{}", value.to_string()))
         } else {
             serializer.serialize_none()
