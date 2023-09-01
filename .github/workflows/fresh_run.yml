@@ -1,0 +1,81 @@
+name: Install dependencies, build the project and run tests from zero
+
+on:
+  schedule:
+  # At the end of every day
+  - cron: "0 0 * * *"
+
+jobs:
+  fresh_run:
+    strategy:
+        fail-fast: false
+        matrix:
+          include:
+          - os: ubuntu-22.04
+            deps_suffix: ''
+            os_name: ubuntu-22.04
+          - os: [self-hosted, macOS]
+            deps_suffix: '-macos' 
+            os_name: macos
+    runs-on: ${{ matrix.os_name }}
+    name: "Make deps, build & test on fresh ${{ matrix.os_name }} system"
+    steps:
+          # Runner runs out of disk space when running this job
+    # This solution was propossed on an issue in the github actions repo
+    # https://github.com/actions/runner-images/issues/2840#issuecomment-790492173
+    - name: Free up space on ubuntu runner
+      if: matrix.os_name == 'ubuntu-22.04'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+     
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.70.0
+
+    - name: Install Pyenv
+      uses: "gabrielfalcao/pyenv-action@v13"
+
+    - name: Install Rosetta
+      if: matrix.os_name == 'macos'
+      run: softwareupdate --install-rosetta --agree-to-license
+
+    - name: Run make deps${{ matrix.deps_suffix }}
+      id: deps
+      run: make deps${{ matrix.deps_suffix }}
+
+    - name: Run make build
+      id: build
+      run: make build
+
+    - name: Run make test
+      id: test
+      run: |
+        . cairo-vm-env/bin/activate; \
+        make test
+
+    - name: Check which step failed
+      if: failure()
+      run: |
+        if [ ${{ steps.deps.outcome }} = failure ]; then
+            FAILED_TARGET=deps${{ matrix.deps_suffix }}
+        elif [ ${{ steps.build.outcome }} = failure ]; then
+            FAILED_TARGET=build
+        else 
+            FAILED_TARGET=test
+        fi
+        echo "FAILED_TARGET=$FAILED_TARGET" >> $GITHUB_ENV
+
+    - name: Create Issue
+      if: ${{ failure() }}
+      uses: JasonEtco/create-an-issue@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OS: ${{ matrix.os_name}}
+        COMMIT_SHA: ${{ github.sha }}
+      with:
+        filename: .github/ISSUE_TEMPLATE/fresh_run_failure.md
