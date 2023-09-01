@@ -13,9 +13,10 @@ A faster and safer implementation of the Cairo VM in Rust
 [![pr-welcome]](#-contributing)
 [![Telegram Chat][tg-badge]][tg-url]
 
+[tg-badge]: https://img.shields.io/endpoint?url=https%3A%2F%2Ftg.sumanjay.workers.dev%2FLambdaStarkNet%2F&logo=telegram&label=chat&color=neon
+[tg-url]: https://t.me/LambdaStarkNet
 [pr-welcome]: https://img.shields.io/static/v1?color=orange&label=PRs&style=flat&message=welcome
 [tg-badge]: https://img.shields.io/static/v1?color=green&logo=telegram&label=chat&style=flat&message=join
-[tg-url]: https://t.me/LambdaStarkNet
 
 </div>
 
