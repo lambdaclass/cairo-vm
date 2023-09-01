@@ -42,13 +42,15 @@ pub fn bigint_pack_div_mod_hint(
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
         // pack only takes the first three limbs
         let x_lower = BigInt3 {
-            d0: x_bigint5.d0,
-            d1: x_bigint5.d1,
-            d2: x_bigint5.d2,
+            limbs: [
+                x_bigint5.limbs[0].clone(),
+                x_bigint5.limbs[1].clone(),
+                x_bigint5.limbs[2].clone(),
+            ],
         };
         let x_lower = x_lower.pack86();
-        let d3 = signed_felt(*x_bigint5.d3.as_ref());
-        let d4 = signed_felt(*x_bigint5.d4.as_ref());
+        let d3 = signed_felt(*x_bigint5.limbs[3].as_ref());
+        let d4 = signed_felt(*x_bigint5.limbs[4].as_ref());
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();

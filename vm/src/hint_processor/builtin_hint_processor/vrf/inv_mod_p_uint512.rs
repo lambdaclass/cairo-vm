@@ -1,5 +1,5 @@
+use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
-use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
 use crate::utils::bigint_to_felt;
 use crate::{

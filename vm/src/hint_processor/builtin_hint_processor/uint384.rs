@@ -112,11 +112,15 @@ pub fn add_no_uint384_check(
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
     let shift = felt_to_biguint(*get_constant_from_var_name("SHIFT", constants)?);
 
-    let sum_d0 = felt_to_biguint(*a.d0) + felt_to_biguint(*b.d0);
+    let sum_d0 = felt_to_biguint(*a.limbs[0].as_ref()) + felt_to_biguint(*b.limbs[0].as_ref());
     let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
-    let sum_d1 = felt_to_biguint(*a.d1) + felt_to_biguint(*b.d1) + felt_to_biguint(carry_d0);
+    let sum_d1 = felt_to_biguint(*a.limbs[1].as_ref())
+        + felt_to_biguint(*b.limbs[1].as_ref())
+        + felt_to_biguint(carry_d0);
     let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
-    let sum_d2 = felt_to_biguint(*a.d2) + felt_to_biguint(*b.d2) + felt_to_biguint(carry_d1);
+    let sum_d2 = felt_to_biguint(*a.limbs[2].as_ref())
+        + felt_to_biguint(*b.limbs[2].as_ref())
+        + felt_to_biguint(carry_d1);
     let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;

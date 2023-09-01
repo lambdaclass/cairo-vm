@@ -90,33 +90,15 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint384;
-    use crate::math_utils::signed_felt;
-    use crate::stdlib::borrow::Cow;
-    use crate::stdlib::ops::Shl;
+
     use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
-    use crate::{felt_str, Felt252};
+    use crate::Felt252;
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
-
-    /*
-    Takes an UnreducedFelt2523 struct which represents a triple of limbs (d0, d1, d2) of field
-    elements and reconstructs the corresponding 256-bit integer (see split()).
-    Note that the limbs do not have to be in the range [0, BASE).
-    */
-    pub(crate) fn bigint3_pack(num: Uint384) -> num_bigint::BigInt {
-        let limbs = [num.d0, num.d1, num.d2];
-        #[allow(deprecated)]
-        limbs
-            .into_iter()
-            .enumerate()
-            .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
-            .sum()
-    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -183,30 +165,6 @@ mod tests {
                     .to_biguint()
                     .expect("Couldn't convert to BigUint")
 
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn secp_pack() {
-        let pack_1 = bigint3_pack(Uint384 {
-            d0: Cow::Borrowed(&Felt252::from(10_i32)),
-            d1: Cow::Borrowed(&Felt252::from(10_i32)),
-            d2: Cow::Borrowed(&Felt252::from(10_i32)),
-        });
-        assert_eq!(
-            pack_1,
-            bigint_str!("59863107065073783529622931521771477038469668772249610")
-        );
-
-        let pack_2 = bigint3_pack(Uint384 {
-            d0: Cow::Borrowed(&felt_str!("773712524553362")),
-            d1: Cow::Borrowed(&felt_str!("57408430697461422066401280")),
-            d2: Cow::Borrowed(&felt_str!("1292469707114105")),
-        });
-        assert_eq!(
-            pack_2,
-            bigint_str!("7737125245533626718119526477371252455336267181195264773712524553362")
         );
     }
 }
