@@ -31,7 +31,7 @@ mod mem_value_serde {
         value: &Option<Felt252>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
-        if let Some(ref value) = value {
+        if let Some(value) = value {
             serializer.serialize_str(&format!("{}", value.to_string()))
         } else {
             serializer.serialize_none()
