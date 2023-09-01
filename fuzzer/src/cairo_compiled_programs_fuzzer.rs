@@ -1,9 +1,9 @@
 #![no_main]
-use cairo_vm::{
-    Felt252,
-    cairo_run::{self, CairoRunConfig}
-};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_vm::{
+    cairo_run::{self, CairoRunConfig},
+    Felt252,
+};
 use libfuzzer_sys::{
     arbitrary::{Arbitrary, Unstructured},
     fuzz_target,
