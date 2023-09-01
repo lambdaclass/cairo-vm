@@ -33,6 +33,7 @@ test_utils = [
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
+arbitrary = ["dep:arbitrary", "std", "stark-felt/arbitrary", "stark-felt/std"]
 
 [dependencies]
 mimalloc = { workspace = true, optional = true }
@@ -54,7 +55,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
-stark-felt = { git = "https://github.com/lambdaclass/types-rs.git", rev = "cf61a68c254d4e732edc8f84e622007abf7157e7" }
+stark-felt = { path = "../../types-rs/crates/stark-felt" }#{ git = "https://github.com/lambdaclass/types-rs.git", rev = "cf61a68c254d4e732edc8f84e622007abf7157e7" }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }

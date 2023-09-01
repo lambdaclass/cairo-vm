@@ -151,26 +151,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 
 [[package]]
-name = "cairo-felt"
-version = "0.8.5"
-dependencies = [
- "arbitrary",
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits",
- "serde",
-]
-
-[[package]]
 name = "cairo-vm"
-version = "0.8.5"
+version = "0.8.7"
 dependencies = [
  "anyhow",
  "arbitrary",
  "bincode",
  "bitvec",
- "cairo-felt",
  "generic-array",
  "hashbrown 0.14.0",
  "hex",
@@ -187,6 +174,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sha3",
+ "stark-felt",
  "starknet-crypto",
  "thiserror-no-std",
 ]
@@ -287,7 +275,6 @@ name = "fuzzer"
 version = "0.1.0"
 dependencies = [
  "arbitrary",
- "cairo-felt",
  "cairo-vm",
  "honggfuzz",
  "libfuzzer-sys",
@@ -408,6 +395,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "lambdaworks-math"
+version = "0.1.3"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=4964ccf29e3cfac97e4ca1a97e500cde6fed143c#4964ccf29e3cfac97e4ca1a97e500cde6fed143c"
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -504,7 +496,6 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
 dependencies = [
- "arbitrary",
  "autocfg",
  "num-integer",
  "num-traits",
@@ -718,6 +709,16 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "stark-felt"
+version = "0.0.3"
+dependencies = [
+ "arbitrary",
+ "bitvec",
+ "lambdaworks-math",
+ "serde",
+]
 
 [[package]]
 name = "starknet-crypto"

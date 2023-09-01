@@ -1,6 +1,6 @@
 use arbitrary::{self, Arbitrary, Unstructured};
-use cairo_felt::Felt252;
 use cairo_vm::{
+    Felt252,
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::{
         builtin_hint_processor_definition::BuiltinHintProcessor, hint_code::*,
