@@ -928,7 +928,9 @@ Cairo traceback (most recent call last):
 cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
 "#;
         let program = Program::from_bytes(
-            include_bytes!("../../../../cairo_programs/bad_programs/ec_recover_product_mod_m_zero.json"),
+            include_bytes!(
+                "../../../../cairo_programs/bad_programs/ec_recover_product_mod_m_zero.json"
+            ),
             Some("main"),
         )
         .unwrap();
@@ -964,7 +966,9 @@ Cairo traceback (most recent call last):
 cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0:18)
 "#;
         let program = Program::from_bytes(
-            include_bytes!("../../../../cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.json"),
+            include_bytes!(
+                "../../../../cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.json"
+            ),
             Some("main"),
         )
         .unwrap();

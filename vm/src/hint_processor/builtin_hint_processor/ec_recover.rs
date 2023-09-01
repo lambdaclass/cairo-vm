@@ -209,12 +209,14 @@ mod tests {
             ((1, 8), 0)
         ];
 
-        assert_matches!(run_hint!(
-            vm,
-            ids_data,
-            hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
-            &mut exec_scopes
-        ), Err(HintError::Math(MathError::DividedByZero))
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 
@@ -319,12 +321,14 @@ mod tests {
             ((1, 8), 0)
         ];
 
-        assert_matches!(run_hint!(
-            vm,
-            ids_data,
-            hint_code::EC_RECOVER_PRODUCT_MOD,
-            &mut exec_scopes
-        ), Err(HintError::Math(MathError::DividedByZero))
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_PRODUCT_MOD,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 
@@ -362,12 +366,14 @@ mod tests {
 
         let ids_data = ids_data!["none"];
 
-        assert_matches!(run_hint!(
-            vm,
-            ids_data,
-            hint_code::EC_RECOVER_PRODUCT_DIV_M,
-            &mut exec_scopes
-        ), Err(HintError::Math(MathError::DividedByZero))
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_PRODUCT_DIV_M,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 }
