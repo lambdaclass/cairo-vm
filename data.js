@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693423018894,
+  "lastUpdate": 1693594882143,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116392,6 +116392,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18839771,
             "range": "± 113900",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "99273364+fmoletta@users.noreply.github.com",
+            "name": "fmoletta",
+            "username": "fmoletta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a36b313384c3e5bf6387de0599834e2d376ca998",
+          "message": "CI: Add fresh_run daily workflow (#1402)\n\n* Add default-members key to wrokspace\n\n* Remove irrelevant targets\n\n* Remove irrelevant targets\n\n* Add target to run the wasm demo\n\n* Run wasm demo in ci\n\n* Install deps\n\n* Fix workflow\n\n* Fix workflow\n\n* Build, dont run\n\n* update readmes\n\n* Fix syntax\n\n* Add changelog entry\n\n* Remove wasm-demo target\n\n* Update README.md\n\n* Update README.md\n\n* Update CHANGELOG.md\n\n* Add fresh run workflow\n\n* Fix typo\n\n* Add checkout\n\n* Install pyenv\n\n* Report on failure\n\n* Fix\n\n* Fix pyenv installation\n\n* Show which target faile don report\n\n* Add eof\n\n* Improve report\n\n* Fix file path\n\n* Disable fail-fast\n\n* Use action to install pyenv\n\n* Fix template title\n\n* Update CHANGELOG.md\n\n* Activate env before running test\n\n* Make it run daily\n\n* Remove call to deleted target\n\n* Revert \"Make it run daily\"\n\nThis reverts commit bb12ec835e1ec6f2156b262f7375d59102b6207f.\n\n* Exclude wasm-demo\n\n* Revert \"Exclude wasm-demo\"\n\nThis reverts commit 6762e6ca197091fb9e30ad9024879772fe426d59.\n\n* Use test file from cairo_programs\n\n* Fix compilation in readme + workflow\n\n* Update changelog\n\n* Update Makefile\n\n* Install rust\n\n* Use self-hosted macos runner\n\n* Add os name for prettier display\n\n* Install rosetta in macos\n\n* Add --agree-to-license\n\n* Use os name in workflow name\n\n* Free up space for ubuntu runner\n\n* Install stuff after freeing up space\n\n* Revert \"Revert \"Make it run daily\"\"\n\nThis reverts commit 311b107b53947676b0c5c82cd5e6fdfc0bca6637.",
+          "timestamp": "2023-09-01T18:05:14Z",
+          "tree_id": "333bbad4e260d79ce627ac349139aec8d30d1c42",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/a36b313384c3e5bf6387de0599834e2d376ca998"
+        },
+        "date": 1693594875451,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1375,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51196,
+            "range": "± 317",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18263423,
+            "range": "± 236136",
             "unit": "ns/iter"
           }
         ]
