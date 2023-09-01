@@ -6,10 +6,11 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
+use num_traits::Zero;
 
 /* Implements Hint:
 %{
@@ -29,6 +30,9 @@ pub fn ec_recover_divmod_n_packed(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let n = BigInt3::from_var_name("n", vm, ids_data, ap_tracking)?.pack86();
+    if n.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?
         .pack86()
         .mod_floor(&n);
@@ -89,6 +93,9 @@ pub fn ec_recover_product_mod(
     let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?.pack86();
     let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?.pack86();
     let m = BigInt3::from_var_name("m", vm, ids_data, ap_tracking)?.pack86();
+    if m.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
 
     let product = a * b;
     let value = product.mod_floor(&m);
@@ -107,6 +114,9 @@ pub fn ec_recover_product_mod(
 pub fn ec_recover_product_div_m(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let product: &BigInt = exec_scopes.get_ref("product")?;
     let m: &BigInt = exec_scopes.get_ref("m")?;
+    if m.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let value = product.div_floor(m);
     exec_scopes.insert_value("k", value.clone());
     exec_scopes.insert_value("value", value);
