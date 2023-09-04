@@ -27,7 +27,7 @@ pub fn find_element(
     let find_element_index = exec_scopes.get::<Felt252>("find_element_index").ok();
     let elm_size = elm_size_bigint
         .to_usize()
-        .ok_or_else(|| HintError::ValueOutOfRange(Box::new(elm_size_bigint.as_ref().clone())))?;
+        .ok_or_else(|| HintError::ValueOutOfRange(Box::new(*elm_size_bigint.as_ref())))?;
     if elm_size == 0 {
         return Err(HintError::ValueOutOfRange(Box::new(
             elm_size_bigint.into_owned(),
@@ -54,7 +54,7 @@ pub fn find_element(
         if let Ok(find_element_max_size) = exec_scopes.get_ref::<Felt252>("find_element_max_size") {
             if n_elms.as_ref() > find_element_max_size {
                 return Err(HintError::FindElemMaxSize(Box::new((
-                    find_element_max_size.clone(),
+                    *find_element_max_size,
                     n_elms.into_owned(),
                 ))));
             }

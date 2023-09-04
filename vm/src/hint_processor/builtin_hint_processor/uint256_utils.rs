@@ -95,7 +95,7 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
-        let low = Felt252::from(u128::MAX) & &value;
+        let low = Felt252::from(u128::MAX) & value;
         let high = value >> 128_usize;
         Self::from_values(low, high)
     }
@@ -139,7 +139,7 @@ pub fn uint256_add(
         // Main logic
         // sum_high = ids.a.high + ids.b.high + ids.carry_low
         // ids.carry_high = 1 if sum_high >= ids.SHIFT else 0
-        let carry_high = Felt252::from((a_high + b_high + &carry_low >= shift) as u8);
+        let carry_high = Felt252::from((a_high + b_high + carry_low >= shift) as u8);
 
         insert_value_from_var_name("carry_high", carry_high, vm, ids_data, ap_tracking)?;
     }
@@ -247,7 +247,7 @@ pub fn split_64(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let digits = a.to_le_digits();
-    let low = Felt252::from(*digits.get(0).unwrap_or(&0u64));
+    let low = Felt252::from(*digits.first().unwrap_or(&0u64));
     let high = a.as_ref() >> 64_usize;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)

@@ -38,7 +38,7 @@ pub(crate) fn get_val(
     match res_operand {
         ResOperand::Deref(cell) => get_cell_val(vm, cell),
         ResOperand::DoubleDeref(cell, offset) => {
-            get_double_deref_val(vm, cell, &Felt252::from(*offset as i32)).into()
+            get_double_deref_val(vm, cell, &Felt252::from(*offset as i32))
         }
         ResOperand::Immediate(x) => Ok(bigint_to_felt(&x.value)?),
         ResOperand::BinOp(op) => {
@@ -70,10 +70,7 @@ pub(crate) fn get_cell_val(
     vm: &VirtualMachine,
     cell: &CellRef,
 ) -> Result<Felt252, VirtualMachineError> {
-    Ok(vm
-        .get_integer(cell_ref_to_relocatable(cell, vm)?)?
-        .as_ref()
-        .clone())
+    Ok(*vm.get_integer(cell_ref_to_relocatable(cell, vm)?)?.as_ref())
 }
 
 pub(crate) fn get_ptr(
@@ -98,7 +95,7 @@ pub(crate) fn get_double_deref_val(
     cell: &CellRef,
     offset: &Felt252,
 ) -> Result<Felt252, VirtualMachineError> {
-    Ok(vm.get_integer(get_ptr(vm, cell, offset)?)?.as_ref().clone())
+    Ok(*vm.get_integer(get_ptr(vm, cell, offset)?)?.as_ref())
 }
 
 /// Fetches the value of `res_operand` from the vm.
@@ -109,7 +106,7 @@ pub(crate) fn res_operand_get_val(
     match res_operand {
         ResOperand::Deref(cell) => get_cell_val(vm, cell),
         ResOperand::DoubleDeref(cell, offset) => {
-            get_double_deref_val(vm, cell, &Felt252::from(*offset as i32)).into()
+            get_double_deref_val(vm, cell, &Felt252::from(*offset as i32))
         }
         ResOperand::Immediate(x) => Ok(bigint_to_felt(&x.value)?),
         ResOperand::BinOp(op) => {

@@ -50,7 +50,7 @@ pub fn usort_body(
     for i in 0..input_len_u64 {
         let val = vm.get_integer((input_ptr + i as usize)?)?.into_owned();
         if let Err(output_index) = output.binary_search(&val) {
-            output.insert(output_index, val.clone());
+            output.insert(output_index, val);
         }
         positions_dict.entry(val).or_default().push(i);
     }

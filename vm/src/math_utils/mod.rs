@@ -74,7 +74,7 @@ pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
     let (q, r) = x.div_rem(&y.try_into().map_err(|_| MathError::DividedByZero)?);
 
     if !r.is_zero() {
-        Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))))
+        Err(MathError::SafeDivFail(Box::new((*x, *y))))
     } else {
         Ok(q)
     }

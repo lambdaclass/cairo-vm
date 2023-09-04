@@ -24,7 +24,7 @@ pub struct PublicMemoryEntry {
 
 mod mem_value_serde {
     use super::*;
-    use crate::stdlib::string::ToString;
+
     use serde::Serializer;
 
     pub(crate) fn serialize<S: Serializer>(
@@ -32,7 +32,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("{}", value.to_string()))
+            serializer.serialize_str(&format!("{}", value))
         } else {
             serializer.serialize_none()
         }
@@ -82,10 +82,9 @@ impl<'a> PublicInput<'a> {
                 Ok(PublicMemoryEntry {
                     address: *address,
                     page: *page,
-                    value: memory
+                    value: *memory
                         .get(*address)
-                        .ok_or(PublicInputError::MemoryNotFound(*address))?
-                        .clone(),
+                        .ok_or(PublicInputError::MemoryNotFound(*address))?,
                 })
             };
         let public_memory = public_memory_addresses

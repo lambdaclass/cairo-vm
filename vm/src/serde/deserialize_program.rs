@@ -477,7 +477,6 @@ pub fn parse_program_json(
         if value.type_.as_deref() == Some("const") {
             let value = value
                 .value
-                .clone()
                 .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
             constants.insert(key.clone(), value);
         }

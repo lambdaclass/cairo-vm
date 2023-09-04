@@ -143,7 +143,7 @@ pub fn recover_y_hint(
 ) -> Result<(), HintError> {
     let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
-    vm.insert_value(p_addr, &p_x)?;
+    vm.insert_value(p_addr, p_x)?;
     let p_y = biguint_to_felt(
         &recover_y(&felt_to_biguint(p_x))
             .ok_or_else(|| HintError::RecoverYPointNotOnCurve(Box::new(p_x)))?,

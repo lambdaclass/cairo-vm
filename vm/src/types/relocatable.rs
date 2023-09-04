@@ -69,7 +69,7 @@ impl From<&Relocatable> for Relocatable {
 
 impl From<&Felt252> for MaybeRelocatable {
     fn from(val: &Felt252) -> Self {
-        MaybeRelocatable::Int(val.clone())
+        MaybeRelocatable::Int(*val)
     }
 }
 
@@ -127,7 +127,7 @@ impl Add<&Felt252> for Relocatable {
         let new_offset = (self.offset as u64 + other)
             .and_then(|x| x.to_usize())
             .ok_or_else(|| {
-                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, other.clone())))
+                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, *other)))
             })?;
         Ok((self.segment_index, new_offset).into())
     }
@@ -199,9 +199,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MathError> {
         match other {
             MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            MaybeRelocatable::Int(num) => {
-                Err(MathError::Felt252ToRelocatable(Box::new(num.clone())))
-            }
+            MaybeRelocatable::Int(num) => Err(MathError::Felt252ToRelocatable(Box::new(*num))),
         }
     }
 }
@@ -214,7 +212,7 @@ impl MaybeRelocatable {
             MaybeRelocatable::RelocatableValue(ref rel) => {
                 let big_offset = other + rel.offset as u64;
                 let new_offset = big_offset.to_usize().ok_or_else(|| {
-                    MathError::RelocatableAddFelt252OffsetExceeded(Box::new((*rel, other.clone())))
+                    MathError::RelocatableAddFelt252OffsetExceeded(Box::new((*rel, *other)))
                 })?;
                 Ok(MaybeRelocatable::RelocatableValue(Relocatable {
                     segment_index: rel.segment_index,
@@ -275,13 +273,13 @@ impl MaybeRelocatable {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
                     (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, num_b.clone())))
+                        MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, *num_b)))
                     })?,
                 )))
             }
-            (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => Err(
-                MathError::SubRelocatableFromInt(Box::new((int.clone(), *rel))),
-            ),
+            (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => {
+                Err(MathError::SubRelocatableFromInt(Box::new((*int, *rel))))
+            }
         }
     }
 

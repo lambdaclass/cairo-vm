@@ -55,7 +55,7 @@ pub fn squash_dict_inner_first_iteration(
     //Get current_indices from access_indices
     let mut current_access_indices = access_indices
         .get(&key)
-        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key)))?
         .clone();
     current_access_indices.sort();
     current_access_indices.reverse();
@@ -65,7 +65,7 @@ pub fn squash_dict_inner_first_iteration(
         .ok_or(HintError::EmptyCurrentAccessIndices)?;
     //Store variables in scope
     exec_scopes.insert_value("current_access_indices", current_access_indices);
-    exec_scopes.insert_value("current_access_index", first_val.clone());
+    exec_scopes.insert_value("current_access_index", first_val);
     //Insert current_accesss_index into range_check_ptr
     vm.insert_value(range_check_ptr, first_val)
         .map_err(HintError::Memory)
@@ -114,11 +114,11 @@ pub fn squash_dict_inner_check_access_index(
     let new_access_index = current_access_indices
         .pop()
         .ok_or(HintError::EmptyCurrentAccessIndices)?;
-    let index_delta_minus1 = new_access_index.clone() - current_access_index - Felt252::ONE;
+    let index_delta_minus1 = new_access_index - current_access_index - Felt252::ONE;
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     insert_value_from_var_name("loop_temps", index_delta_minus1, vm, ids_data, ap_tracking)?;
-    exec_scopes.insert_value("new_access_index", new_access_index.clone());
+    exec_scopes.insert_value("new_access_index", new_access_index);
     exec_scopes.insert_value("current_access_index", new_access_index);
     Ok(())
 }
@@ -171,7 +171,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     //Main Logic
     let access_indices_at_key = access_indices
         .get(&key)
-        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
+        .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key)))?;
 
     if n_used_accesses.as_ref() != &Felt252::from(access_indices_at_key.len()) {
         return Err(HintError::NumUsedAccessesAssertFail(Box::new((
@@ -208,7 +208,7 @@ pub fn squash_dict_inner_next_key(
     let keys = exec_scopes.get_mut_list_ref::<Felt252>("keys")?;
     let next_key = keys.pop().ok_or(HintError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
-    insert_value_from_var_name("next_key", next_key.clone(), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("next_key", next_key, vm, ids_data, ap_tracking)?;
     //Update local variables
     exec_scopes.insert_value("key", next_key);
     Ok(())
@@ -247,7 +247,7 @@ pub fn squash_dict(
     let n_accesses = get_integer_from_var_name("n_accesses", vm, ids_data, ap_tracking)?;
     //Get range_check_builtin
     let range_check_builtin = vm.get_range_check_builtin()?;
-    let range_check_bound = range_check_builtin._bound.clone();
+    let range_check_bound = range_check_builtin._bound;
     //Main Logic
     if ptr_diff.mod_floor(&Felt252::from(DICT_ACCESS_SIZE)) != Felt252::ZERO {
         return Err(HintError::PtrDiffNotDivisibleByDictAccessSize);
@@ -288,7 +288,7 @@ pub fn squash_dict(
     };
     insert_value_from_var_name("big_keys", big_keys, vm, ids_data, ap_tracking)?;
     let key = keys.pop().ok_or(HintError::EmptyKeys)?;
-    insert_value_from_var_name("first_key", key.clone(), vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("first_key", key, vm, ids_data, ap_tracking)?;
     //Insert local variables into scope
     exec_scopes.insert_value("access_indices", access_indices);
     exec_scopes.insert_value("keys", keys);

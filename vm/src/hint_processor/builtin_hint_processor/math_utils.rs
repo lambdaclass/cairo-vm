@@ -190,11 +190,7 @@ pub fn assert_le_felt_v_0_8(
             b.clone().into_owned(),
         ))));
     }
-    let bound = vm
-        .get_range_check_builtin()?
-        ._bound
-        .clone()
-        .unwrap_or_default();
+    let bound = vm.get_range_check_builtin()?._bound.unwrap_or_default();
     let small_inputs =
         Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
@@ -217,9 +213,9 @@ pub fn assert_le_felt_excluded_1(
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
     if excluded != Felt252::ONE {
-        insert_value_into_ap(vm, &Felt252::ONE)
+        insert_value_into_ap(vm, Felt252::ONE)
     } else {
-        insert_value_into_ap(vm, &Felt252::ZERO)
+        insert_value_into_ap(vm, Felt252::ZERO)
     }
 }
 
@@ -270,7 +266,7 @@ pub fn assert_not_equal(
     let maybe_rel_b = get_maybe_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
     match (maybe_rel_a, maybe_rel_b) {
         (MaybeRelocatable::Int(a), MaybeRelocatable::Int(b)) => {
-            if (&a - &b).is_zero() {
+            if (a - b).is_zero() {
                 return Err(HintError::AssertNotEqualFail(Box::new((
                     MaybeRelocatable::Int(a),
                     MaybeRelocatable::Int(b),
@@ -485,11 +481,11 @@ pub fn signed_div_rem(
 
     match &builtin._bound {
         Some(builtin_bound)
-            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
         {
             return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
-                builtin_bound.clone(),
+                *builtin_bound,
             ))));
         }
         Some(builtin_bound) if bound.as_ref() > &(builtin_bound >> 1_usize) => {
@@ -551,11 +547,11 @@ pub fn unsigned_div_rem(
     // Main logic
     match &builtin._bound {
         Some(builtin_bound)
-            if div.is_zero() || div.as_ref() > &div_prime_by_bound(builtin_bound.clone())? =>
+            if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
         {
             return Err(HintError::OutOfValidRange(Box::new((
                 div.into_owned(),
-                builtin_bound.clone(),
+                *builtin_bound,
             ))));
         }
         None if div.is_zero() => {
@@ -711,16 +707,10 @@ pub fn is_quad_residue(
     let x = *get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
     if x.is_zero() || x == Felt252::ONE {
-        insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
+        insert_value_from_var_name("y", *x.as_ref(), vm, ids_data, ap_tracking)
     // } else if Pow::pow(felt_to_biguint(x), &(&*CAIRO_PRIME >> 1_u32)).is_one() {
     } else if x.pow_felt(&(&Felt252::MAX >> 1_usize)) == Felt252::ONE {
-        insert_value_from_var_name(
-            "y",
-            &x.sqrt().unwrap_or_default(),
-            vm,
-            ids_data,
-            ap_tracking,
-        )
+        insert_value_from_var_name("y", x.sqrt().unwrap_or_default(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
             "y",
@@ -1855,10 +1845,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        let bound = vm.get_range_check_builtin().unwrap()._bound.clone();
+        let bound = vm.get_range_check_builtin().unwrap()._bound;
         vm.segments = segments![((1, 3), (5)), ((1, 4), 10)];
-        vm.insert_value((1, 5).into(), bound.clone().unwrap())
-            .unwrap();
+        vm.insert_value((1, 5).into(), bound.unwrap()).unwrap();
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint

@@ -97,10 +97,10 @@ impl KeccakBuiltinRunner {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                             (first_input_addr + i)?,
                             self.state_rep[i],
-                            num.clone(),
+                            *num,
                         ))));
                     }
-                    num.clone()
+                    *num
                 }
                 _ => return Ok(None),
             };

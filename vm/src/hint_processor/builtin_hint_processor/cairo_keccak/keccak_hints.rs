@@ -155,7 +155,7 @@ pub(crate) fn block_permutation_v1(
         .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
-            keccak_state_size_felts.clone(),
+            *keccak_state_size_felts,
         )));
     }
 
@@ -197,7 +197,7 @@ pub(crate) fn cairo_keccak_is_full_word(
         .to_usize()
         .unwrap_or(8); // Hack: if it doesn't fit `usize` then it's >= 8
     let full_word = Felt252::from((n_bytes >= 8) as usize);
-    insert_value_from_var_name("full_word", &full_word, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("full_word", full_word, vm, ids_data, ap_tracking)
 }
 
 /*
@@ -222,7 +222,7 @@ pub(crate) fn block_permutation_v2(
         .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
-            keccak_state_size_felts.clone(),
+            *keccak_state_size_felts,
         )));
     }
 
@@ -263,12 +263,12 @@ fn cairo_keccak_finalize(
 
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
-            keccak_state_size_felts.clone(),
+            *keccak_state_size_felts,
         )));
     }
 
     if block_size >= &Felt252::from(block_size_limit) {
-        return Err(HintError::InvalidBlockSize(Box::new(block_size.clone())));
+        return Err(HintError::InvalidBlockSize(Box::new(*block_size)));
     };
 
     let keccak_state_size_felts = keccak_state_size_felts.to_usize().unwrap();
@@ -349,7 +349,7 @@ pub(crate) fn maybe_reloc_vec_to_u64_array(
             Some(Cow::Owned(MaybeRelocatable::Int(ref num)))
             | Some(Cow::Borrowed(MaybeRelocatable::Int(ref num))) => num
                 .to_u64()
-                .ok_or_else(|| MathError::Felt252ToU64Conversion(Box::new(num.clone())).into()),
+                .ok_or_else(|| MathError::Felt252ToU64Conversion(Box::new(*num)).into()),
             _ => Err(VirtualMachineError::ExpectedIntAtRange(Box::new(
                 n.as_ref().map(|x| x.as_ref().to_owned()),
             ))),

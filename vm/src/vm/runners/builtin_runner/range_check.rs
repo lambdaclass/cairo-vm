@@ -48,7 +48,7 @@ impl RangeCheckBuiltinRunner {
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
-            Some(Felt252::from(bound))
+            Some(bound)
         };
 
         RangeCheckBuiltinRunner {

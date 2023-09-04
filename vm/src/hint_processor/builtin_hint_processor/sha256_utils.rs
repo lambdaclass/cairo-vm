@@ -148,7 +148,7 @@ pub fn sha256_main_arbitrary_input_length(
         Some(size) if size < 100 => {
             return Err(HintError::InvalidValue(Box::new((
                 "SHA256_STATE_SIZE_FELTS",
-                state_size_felt.clone(),
+                *state_size_felt,
                 Felt252::from(SHA256_STATE_SIZE_FELTS),
             ))))
         }
@@ -473,7 +473,7 @@ mod tests {
                 "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
                 Felt252::from(SHA256_INPUT_CHUNK_SIZE_FELTS),
             ),
-            ("SHA256_STATE_SIZE_FELTS".to_string(), state_size.clone()),
+            ("SHA256_STATE_SIZE_FELTS".to_string(), state_size),
         ]);
         let expected_size = Felt252::from(SHA256_STATE_SIZE_FELTS);
         assert_matches!(

@@ -85,14 +85,14 @@ impl BitwiseBuiltinRunner {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
-                    num_x.clone(),
+                    *num_x,
                 ))));
             };
             if num_y.bits() > self.bitwise_builtin.total_n_bits {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     y_addr,
                     self.bitwise_builtin.total_n_bits,
-                    num_y.clone(),
+                    *num_y,
                 ))));
             };
             let res = match index {

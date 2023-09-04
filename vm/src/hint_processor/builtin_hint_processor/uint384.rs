@@ -83,7 +83,7 @@ pub fn uint384_split_128(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.into_owned();
     insert_value_from_var_name(
         "low",
-        &a & Felt252::from(u128::MAX),
+        a & Felt252::from(u128::MAX),
         vm,
         ids_data,
         ap_tracking,

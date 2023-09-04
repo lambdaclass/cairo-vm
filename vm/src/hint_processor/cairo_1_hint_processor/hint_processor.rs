@@ -309,8 +309,8 @@ impl Cairo1HintProcessor {
         let a_val = res_operand_get_val(vm, a)?;
         let b_val = res_operand_get_val(vm, b)?;
         let mut lengths_and_indices = vec![
-            (a_val.clone(), 0),
-            (b_val.clone() - a_val, 1),
+            (a_val, 0),
+            (b_val - a_val, 1),
             (Felt252::from(-1) - b_val, 2),
         ];
         lengths_and_indices.sort();
@@ -778,7 +778,7 @@ impl Cairo1HintProcessor {
         let access_indices_at_key = dict_squash_exec_scope
             .access_indices
             .get(&key.clone())
-            .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key.clone())))?;
+            .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key)))?;
 
         if n != Felt252::from(access_indices_at_key.len()) {
             return Err(HintError::NumUsedAccessesAssertFail(Box::new((
@@ -858,12 +858,14 @@ impl Cairo1HintProcessor {
             .ok_or_else(|| {
                 HintError::CustomHint("no accessed index".to_string().into_boxed_str())
             })?;
-        let index_delta_minus_1_val = dict_squash_exec_scope
-            .current_access_index()
-            .ok_or_else(|| HintError::CustomHint("no index accessed".to_string().into_boxed_str()))?
-            .clone()
-            - prev_access_index
-            - 1_u64;
+        let index_delta_minus_1_val =
+            *dict_squash_exec_scope
+                .current_access_index()
+                .ok_or_else(|| {
+                    HintError::CustomHint("no index accessed".to_string().into_boxed_str())
+                })?
+                - prev_access_index
+                - 1_u64;
 
         vm.insert_value(
             cell_ref_to_relocatable(index_delta_minus1, vm)?,

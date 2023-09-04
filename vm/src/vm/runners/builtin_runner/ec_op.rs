@@ -48,7 +48,7 @@ impl EcOpBuiltinRunner {
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
     fn point_on_curve(x: &Felt252, y: &Felt252, alpha: &Felt252, beta: &Felt252) -> bool {
-        y.pow(2) == &(x.pow(3) + alpha * x) + beta
+        y.pow(2) == (x.pow(3) + alpha * x) + beta
     }
 
     #[allow(deprecated)]
@@ -174,8 +174,8 @@ impl EcOpBuiltinRunner {
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve(Box::new((
-                    input_cells[pair.0].clone(),
-                    input_cells[pair.1].clone(),
+                    *input_cells[pair.0],
+                    *input_cells[pair.1],
                 ))));
             };
         }
@@ -606,14 +606,8 @@ mod tests {
         let alpha = bigint!(1);
         let height = 256;
         let prime = (*CAIRO_PRIME).clone().into();
-        let result = EcOpBuiltinRunner::ec_op_impl(
-            partial_sum.clone(),
-            doubled_point.clone(),
-            &m,
-            &alpha,
-            &prime,
-            height,
-        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(

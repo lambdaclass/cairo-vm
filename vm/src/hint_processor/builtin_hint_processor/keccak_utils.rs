@@ -98,14 +98,14 @@ pub fn unsafe_keccak(
 
     let mut high_bytes = [0; 16].to_vec();
     let mut low_bytes = [0; 16].to_vec();
-    high_bytes.extend_from_slice(&hashed[0..16].to_vec());
-    low_bytes.extend_from_slice(&hashed[16..32].to_vec());
+    high_bytes.extend_from_slice(&hashed[0..16]);
+    low_bytes.extend_from_slice(&hashed[16..32]);
 
     let high = Felt252::from_bytes_be(&high_bytes).map_err(|_| MathError::ByteConversionError)?;
     let low = Felt252::from_bytes_be(&low_bytes).map_err(|_| MathError::ByteConversionError)?;
 
-    vm.insert_value(high_addr, &high)?;
-    vm.insert_value(low_addr, &low)?;
+    vm.insert_value(high_addr, high)?;
+    vm.insert_value(low_addr, low)?;
     Ok(())
 }
 
@@ -168,8 +168,8 @@ pub fn unsafe_keccak_finalize(
 
     let mut high_bytes = [0; 16].to_vec();
     let mut low_bytes = [0; 16].to_vec();
-    high_bytes.extend_from_slice(&hashed[0..16].to_vec());
-    low_bytes.extend_from_slice(&hashed[16..32].to_vec());
+    high_bytes.extend_from_slice(&hashed[0..16]);
+    low_bytes.extend_from_slice(&hashed[16..32]);
 
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
@@ -177,8 +177,8 @@ pub fn unsafe_keccak_finalize(
     let high = Felt252::from_bytes_be(&high_bytes).map_err(|_| MathError::ByteConversionError)?;
     let low = Felt252::from_bytes_be(&low_bytes).map_err(|_| MathError::ByteConversionError)?;
 
-    vm.insert_value(high_addr, &high)?;
-    vm.insert_value(low_addr, &low)?;
+    vm.insert_value(high_addr, high)?;
+    vm.insert_value(low_addr, low)?;
     Ok(())
 }
 
@@ -281,7 +281,7 @@ pub fn split_output_mid_low_high(
     let output1_low = output1 & Felt252::from((1u64 << (8 * 7)) - 1u64);
     let tmp = output1 >> (8_usize * 7);
     let output1_high = &tmp >> 128_usize;
-    let output1_mid = tmp & &Felt252::from(u128::MAX);
+    let output1_mid = tmp & Felt252::from(u128::MAX);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)

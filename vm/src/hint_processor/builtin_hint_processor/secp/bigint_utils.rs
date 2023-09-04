@@ -78,7 +78,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
         for i in 0..NUM_LIMBS {
-            vm.insert_value((addr + i)?, self.limbs[i].as_ref().clone())?;
+            vm.insert_value((addr + i)?, *self.limbs[i].as_ref())?;
         }
         Ok(())
     }
@@ -151,7 +151,7 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
-    let low = (d0 + &(d1 * base_86)) & &Felt252::from(u128::MAX);
+    let low = (d0 + (d1 * base_86)) & Felt252::from(u128::MAX);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 

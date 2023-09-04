@@ -135,7 +135,7 @@ impl VirtualMachine {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
                 MaybeRelocatable::Int(ref num) => num
                     .to_usize()
-                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(num.clone())))?,
+                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(*num)))?,
             },
             FpUpdate::Regular => return Ok(()),
         };
