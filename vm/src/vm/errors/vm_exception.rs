@@ -961,7 +961,8 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
     ^*************************^
 "#;
         #[cfg(not(feature = "std"))]
-        let expected_error_string = r#"Got an exception while executing a hint: Attempted to divide by zero
+        let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:16:5: Error at pc=0:21:
+Got an exception while executing a hint: Attempted to divide by zero
 Cairo traceback (most recent call last):
 cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0:18)
 "#;
