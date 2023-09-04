@@ -913,7 +913,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     fn run_bad_uint256_sub_check_error_displayed() {
         #[cfg(feature = "std")]
         let expected_error_string = r#"cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:17:1: Error at pc=0:17:
-Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(1) != Int(41367660292349381832802403122744918015)
+Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(Felt(FieldElement { value: UnsignedInteger { limbs: [576460752303422960, 18446744073709551615, 18446744073709551615, 18446744073709551585] } })) != Int(Felt(FieldElement { value: UnsignedInteger { limbs: [461241316192151699, 18446744073709551612, 2025524839466148960, 6944660869770031956] } }))
 %{
 ^^
 Cairo traceback (most recent call last):
@@ -923,7 +923,7 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
 "#;
         #[cfg(not(feature = "std"))]
         let expected_error_string = r#"cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:17:1: Error at pc=0:17:
-Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(1) != Int(41367660292349381832802403122744918015)
+Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(Felt(FieldElement { value: UnsignedInteger { limbs: [576460752303422960, 18446744073709551615, 18446744073709551615, 18446744073709551585] } })) != Int(Felt(FieldElement { value: UnsignedInteger { limbs: [461241316192151699, 18446744073709551612, 2025524839466148960, 6944660869770031956] } }))
 Cairo traceback (most recent call last):
 cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
 "#;
