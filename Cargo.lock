@@ -2415,6 +2415,7 @@ name = "stark-felt"
 version = "0.0.3"
 source = "git+https://github.com/lambdaclass/types-rs.git?rev=192551b364d5b2a39c0cbcb9c58274be6a28a109#192551b364d5b2a39c0cbcb9c58274be6a28a109"
 dependencies = [
+ "arbitrary",
  "bitvec",
  "lambdaworks-math",
  "serde",

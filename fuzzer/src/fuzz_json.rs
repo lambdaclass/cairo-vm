@@ -1,5 +1,4 @@
 use arbitrary::{self, Arbitrary, Unstructured};
-use cairo_felt::Felt252;
 use cairo_vm::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::{
@@ -8,6 +7,7 @@ use cairo_vm::{
     serde::deserialize_program::{
         Attribute, DebugInfo, FlowTrackingData, Member, ReferenceManager,
     },
+    Felt252,
 };
 use honggfuzz::fuzz;
 use serde::{Deserialize, Serialize, Serializer};

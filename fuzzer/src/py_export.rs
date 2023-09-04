@@ -49,7 +49,7 @@ fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
             None => continue,
             Some(unwrapped_memory_cell) => {
                 memory_dump.extend_from_slice(&(i as u64).to_le_bytes());
-                memory_dump.extend_from_slice(&unwrapped_memory_cell.to_le_bytes());
+                memory_dump.extend_from_slice(&unwrapped_memory_cell.to_bytes_le());
             }
         }
     }
