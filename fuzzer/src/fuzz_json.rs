@@ -292,9 +292,9 @@ fn arbitrary_builtins(u: &mut Unstructured) -> arbitrary::Result<Vec<String>> {
     let builtin_total = u.choose_index(BUILTIN_NAMES.len())?;
     let mut selected_builtins = Vec::new();
 
-    for i in 0..=builtin_total {
+    for builtin_name in BUILTIN_NAMES.iter().take(builtin_total + 1) {
         if u.ratio(2, 3)? {
-            selected_builtins.push(BUILTIN_NAMES[i].to_string())
+            selected_builtins.push(builtin_name.to_string())
         }
     }
 
@@ -335,20 +335,17 @@ fn main() {
     loop {
         fuzz!(|data: (CairoRunConfig, ProgramJson)| {
             let (cairo_run_config, program_json) = data;
-            match serde_json::to_string_pretty(&program_json) {
-                Ok(program_raw) => {
-                    let _ = cairo_run(
-                        program_raw.as_bytes(),
-                        &CairoRunConfig::default(),
-                        &mut BuiltinHintProcessor::new_empty(),
-                    );
-                    let _ = cairo_run(
-                        program_raw.as_bytes(),
-                        &cairo_run_config,
-                        &mut BuiltinHintProcessor::new_empty(),
-                    );
-                }
-                Err(_) => {}
+            if let Ok(program_raw) = serde_json::to_string_pretty(&program_json) {
+                let _ = cairo_run(
+                    program_raw.as_bytes(),
+                    &CairoRunConfig::default(),
+                    &mut BuiltinHintProcessor::new_empty(),
+                );
+                let _ = cairo_run(
+                    program_raw.as_bytes(),
+                    &cairo_run_config,
+                    &mut BuiltinHintProcessor::new_empty(),
+                );
             }
         });
     }

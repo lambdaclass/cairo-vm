@@ -31,7 +31,7 @@ fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
 
     let result_no_panic = panic::catch_unwind(|| {
         cairo_run(
-            &json.as_bytes(),
+            json.as_bytes(),
             &config,
             &mut BuiltinHintProcessor::new_empty(),
         )
