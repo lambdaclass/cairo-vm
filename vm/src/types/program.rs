@@ -20,6 +20,7 @@ use crate::{
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 use felt::{Felt252, PRIME_STR};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -163,7 +164,7 @@ pub struct Program {
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
