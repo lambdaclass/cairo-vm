@@ -988,6 +988,45 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_bad_uint512_unsigned_div_rem() {
+        #[cfg(feature = "std")]
+        let expected_error_string = r#"cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:24:1: Error at pc=0:17:
+Got an exception while executing a hint: Attempted to divide by zero
+%{
+^^
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc=0:12)
+	hint_func(x, div);
+ ^***************^
+ "#;
+        #[cfg(not(feature = "std"))]
+        let expected_error_string = r#"cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:24:1: Error at pc=0:17:
+Got an exception while executing a hint: Attempted to divide by zero
+Cairo traceback (most recent call last):
+cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc=0:12)
+ "#;
+        let program = Program::from_bytes(
+            include_bytes!(
+                "../../../../cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.json"
+            ),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut vm = vm!();
+
+        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let error = cairo_runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap_err();
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        assert_eq!(vm_excepction.to_string(), expected_error_string);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_uint256_sub_check_error_displayed() {
         #[cfg(feature = "std")]
         let expected_error_string = r#"cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:17:1: Error at pc=0:17:

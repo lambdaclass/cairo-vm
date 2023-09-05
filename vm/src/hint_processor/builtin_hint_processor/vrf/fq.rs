@@ -8,12 +8,13 @@ use crate::{
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
+    types::errors::math_errors::MathError,
     stdlib::{collections::HashMap, prelude::*},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::div_rem;
-use num_traits::One;
+use num_traits::{One, Zero};
 
 /// Implements hint:
 /// ```python
@@ -58,6 +59,9 @@ pub fn uint512_unsigned_div_rem(
 
     // Main logic:
     //  quotient, remainder = divmod(x, div)
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let (quotient, remainder) = div_rem(x, div);
 
     Uint512::from(&quotient).insert_from_var_name("quotient", vm, ids_data, ap_tracking)?;
@@ -159,6 +163,29 @@ mod tests {
             ((1, 10), ("235556430256711128858231095164527378198", 10)),
             ((1, 11), 83573),
         ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_uint512_unsigned_div_rem_div_is_zero() {
+        let hint_code = hint_code::UINT512_UNSIGNED_DIV_REM;
+        let mut vm = vm_with_range_check!();
+
+        vm.segments = segments![
+            ((1, 0), 2363463),
+            ((1, 1), 566795),
+            ((1, 2), 8760799),
+            ((1, 3), 62362634),
+            ((1, 4), 0),
+            ((1, 5), 0)
+        ];
+        // Create hint_data
+        let ids_data =
+            non_continuous_ids_data![("x", 0), ("div", 4), ("quotient", 6), ("remainder", 10)];
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, exec_scopes_ref!()),
+            Err(HintError::Math(MathError::DividedByZero))
+        );
     }
 
     #[test]
