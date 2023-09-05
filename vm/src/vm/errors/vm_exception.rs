@@ -998,13 +998,13 @@ Cairo traceback (most recent call last):
 cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc=0:12)
 	hint_func(x, div);
  ^***************^
- "#;
+"#;
         #[cfg(not(feature = "std"))]
         let expected_error_string = r#"cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:24:1: Error at pc=0:17:
 Got an exception while executing a hint: Attempted to divide by zero
 Cairo traceback (most recent call last):
 cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc=0:12)
- "#;
+"#;
         let program = Program::from_bytes(
             include_bytes!(
                 "../../../../cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.json"
