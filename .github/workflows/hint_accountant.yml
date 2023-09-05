@@ -12,11 +12,15 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@1.69.0
+      uses: dtolnay/rust-toolchain@1.70.0
     - name: Set up Cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
+    - name: Check Build
+      run: cargo build -p hint_accountant
+    - name: Clone cairo-lang repo
+      run: git clone  --depth=1 https://github.com/starkware-libs/cairo-lang
     - name: Run the hint accounting script
       run: cargo r -p hint_accountant | tee comment.md
     - name: Update comment in tracking issue

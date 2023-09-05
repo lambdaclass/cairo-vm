@@ -14,8 +14,8 @@ A faster and safer implementation of the Cairo VM in Rust
 [![Telegram Chat][tg-badge]][tg-url]
 
 [pr-welcome]: https://img.shields.io/static/v1?color=orange&label=PRs&style=flat&message=welcome
-[tg-badge]: https://img.shields.io/static/v1?color=green&logo=telegram&label=chat&style=flat&message=join
-[tg-url]: https://t.me/starknet_rs
+[tg-badge]: https://img.shields.io/endpoint?url=https%3A%2F%2Ftg.sumanjay.workers.dev%2FLambdaStarkNet%2F&logo=telegram&label=chat&color=neon
+[tg-url]: https://t.me/LambdaStarkNet
 
 </div>
 
@@ -72,7 +72,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 These are needed in order to compile and use the project.
 
-- [Rust 1.69.0 or newer](https://www.rust-lang.org/tools/install)
+- [Rust 1.70.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
 #### Optional

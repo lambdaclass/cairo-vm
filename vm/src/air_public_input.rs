@@ -17,9 +17,9 @@ use crate::{
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
     address: usize,
-    page: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
     value: Option<Felt252>,
+    page: usize,
 }
 
 mod mem_value_serde {
@@ -41,15 +41,15 @@ mod mem_value_serde {
 #[derive(Serialize, Debug)]
 struct MemorySegmentAddresses {
     begin_addr: usize,
-    stop_addr: usize,
+    stop_ptr: usize,
 }
 
 impl From<(usize, usize)> for MemorySegmentAddresses {
     fn from(addresses: (usize, usize)) -> Self {
-        let (begin_addr, stop_addr) = addresses;
+        let (begin_addr, stop_ptr) = addresses;
         MemorySegmentAddresses {
             begin_addr,
-            stop_addr,
+            stop_ptr,
         }
     }
 }
