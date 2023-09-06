@@ -170,12 +170,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let instructions = chain!(
         ctx.instructions.iter(),
         casm_program.instructions.iter(),
-        footer.iter()
+        // footer.iter()
     );
 
     let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
 
     let inst_vec: Vec<&cairo_lang_casm::instructions::Instruction> = instructions.collect();
+
+    println!("Instructions: {:?}", inst_vec);
     println!("Inst len: {}", inst_vec.len());
 
     let instructions = chain!(
@@ -240,6 +242,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     runner
         .run_for_steps(1, &mut vm, &mut hint_processor)
         .unwrap();
+    // Maybe this is not needed
     runner
         .end_run(false, false, &mut vm, &mut hint_processor)
         .unwrap();

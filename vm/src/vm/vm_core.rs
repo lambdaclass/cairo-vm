@@ -282,7 +282,11 @@ impl VirtualMachine {
             if builtin.base() as isize == address.segment_index {
                 match builtin.deduce_memory_cell(address, &self.segments.memory) {
                     Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
+                    Err(error) => 
+                        { 
+                            println!("Error while deducing memory cell");
+                            return Err(VirtualMachineError::RunnerError(error))
+                        },
                 };
             }
         }
@@ -473,8 +477,9 @@ impl VirtualMachine {
         let instruction = instruction.as_ref().unwrap();
 
         if !self.skip_instruction_execution {
-            println!("Executed instruction: {:?}", instruction);
+            println!("Executing instruction: {:?}", instruction);
             self.run_instruction(instruction)?;
+            println!("Executed succesfully");
         } else {
             self.run_context.pc += instruction.size();
             self.skip_instruction_execution = false;
@@ -533,8 +538,11 @@ impl VirtualMachine {
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
         let op1_op = match self.deduce_memory_cell(op1_addr)? {
             None => {
+                println!("Deduced memory cell correctly");
                 let (op1, deduced_res) =
                     self.deduce_op1(instruction, dst_op.as_ref(), Some(op0.clone()))?;
+                println!("Deduced op1 correctly ");
+
                 if res.is_none() {
                     *res = deduced_res
                 }
@@ -555,15 +563,25 @@ impl VirtualMachine {
         instruction: &Instruction,
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
+
+        println!("");
+        println!("Dst add");
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
+        println!("Dst op");
+
         let dst_op = self.segments.memory.get(&dst_addr).map(Cow::into_owned);
 
+        println!("op0 addr");
         let op0_addr = self.run_context.compute_op0_addr(instruction)?;
+        println!("op0 op");
         let op0_op = self.segments.memory.get(&op0_addr).map(Cow::into_owned);
+        println!("op1 addr");
 
         let op1_addr = self
             .run_context
             .compute_op1_addr(instruction, op0_op.as_ref())?;
+        println!("op1 op");
+
         let op1_op = self.segments.memory.get(&op1_addr).map(Cow::into_owned);
 
         let mut res: Option<MaybeRelocatable> = None;
@@ -583,6 +601,7 @@ impl VirtualMachine {
         let op1 = match op1_op {
             Some(op1) => op1,
             None => {
+                println!("Deducing op1");
                 deduced_operands.set_op1(true);
                 self.compute_op1_deductions(op1_addr, &mut res, instruction, &dst_op, &op0)?
             }

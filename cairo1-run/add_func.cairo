@@ -5,7 +5,6 @@ fn main() {
     let y = 10;
     let z = add(x,y);
     let u = add(z,x);
-
     return;
 }
 
