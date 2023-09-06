@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693927645623,
+  "lastUpdate": 1694013226522,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116572,6 +116572,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18262079,
             "range": "± 316489",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "fontana.pedro93@gmail.com",
+            "name": "Pedro Fontana",
+            "username": "pefontana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f7aae3d36815c830456eca2586a5e2e8d36bf575",
+          "message": "Serialize and Deserialize CairoPie struct (#1438)\n\n* Add Serialize and Deserialize trait to CairoPie struct\n\n* Add test\n\n* Update Changelog.md",
+          "timestamp": "2023-09-06T14:29:49Z",
+          "tree_id": "7b610ca251dc9d8370f9115693cb8de897e63c73",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/f7aae3d36815c830456eca2586a5e2e8d36bf575"
+        },
+        "date": 1694013218869,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1606,
+            "range": "± 87",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 63331,
+            "range": "± 2560",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 23257094,
+            "range": "± 1277857",
             "unit": "ns/iter"
           }
         ]
