@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 use super::cairo_runner::ExecutionResources;
 use crate::felt::Felt252;
 use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::program::StrippedProgram;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SegmentInfo {
     pub index: isize,
     pub size: usize,
@@ -24,7 +26,7 @@ impl From<(isize, usize)> for SegmentInfo {
 // Allows practical serialization + conversion between CairoPieMemory & Memory
 pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PublicMemoryPage {
     pub start: usize,
     pub size: usize,
@@ -34,13 +36,13 @@ pub struct PublicMemoryPage {
 pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OutputBuiltinAdditionalData {
     pub pages: Pages,
     pub attributes: Attributes,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum BuiltinAdditionalData {
     // Contains verified addresses as contiguous index, value pairs
     Hash(Vec<Relocatable>),
@@ -50,7 +52,7 @@ pub enum BuiltinAdditionalData {
     None,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
@@ -58,7 +60,7 @@ pub struct CairoPie {
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieMetadata {
     pub program: StrippedProgram,
     pub program_segment: SegmentInfo,

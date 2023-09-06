@@ -108,7 +108,7 @@ cd cairo-vm-cli; cargo build --release -F lambdaworks-felt; cd ..
 
 The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
 
-Once the binary is built, it can be found in `target/release/` under the name `cairo-rvm-cli`.
+Once the binary is built, it can be found in `target/release/` under the name `cairo-vm-cli`.
 
 To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
 
