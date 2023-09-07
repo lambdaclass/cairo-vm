@@ -31,7 +31,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("0x{}", value.to_str_radix(16)))
+            serializer.serialize_str(&format!("{:x}", value))
         } else {
             serializer.serialize_none()
         }
@@ -57,12 +57,13 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
 #[derive(Serialize, Debug)]
 pub struct PublicInput<'a> {
     layout: &'a str,
-    layout_params: Option<&'a CairoLayout>,
     rc_min: isize,
     rc_max: isize,
     n_steps: usize,
     memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     public_memory: Vec<PublicMemoryEntry>,
+    #[serde(rename = "dynamic_params")]
+    layout_params: Option<&'a CairoLayout>,
 }
 
 impl<'a> PublicInput<'a> {
