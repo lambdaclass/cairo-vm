@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694015518257,
+  "lastUpdate": 1694118715631,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116752,6 +116752,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18794340,
             "range": "± 221488",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1b8e5c0211e014f6d4174a5a8927d1645d1a0c5f",
+          "message": "Add div by zero error (#1433)\n\n* Add div by zero error\n\n* Add ec_recover_prod integration test\n\n* Add unit tests\n\n* Cargo fmt\n\n* Update changelog\n\n* Add integration tests\n\n* Correct error message\n\n* Fix bug add tests\n\n* Remove space\n\n* Run cargo fmt\n\n* Add integration test program\n\n---------\n\nCo-authored-by: juan.mv <juan@lambdaclass.com>",
+          "timestamp": "2023-09-07T19:49:35Z",
+          "tree_id": "6f35f69c3937a1b674b70d5dde6b35c19d31a13c",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/1b8e5c0211e014f6d4174a5a8927d1645d1a0c5f"
+        },
+        "date": 1694118708826,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1410,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 54147,
+            "range": "± 400",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18206554,
+            "range": "± 106488",
             "unit": "ns/iter"
           }
         ]
