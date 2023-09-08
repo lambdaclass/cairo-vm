@@ -6,10 +6,11 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
-    types::exec_scope::ExecutionScopes,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
+use num_traits::Zero;
 
 /* Implements Hint:
 %{
@@ -29,6 +30,9 @@ pub fn ec_recover_divmod_n_packed(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let n = BigInt3::from_var_name("n", vm, ids_data, ap_tracking)?.pack86();
+    if n.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?
         .pack86()
         .mod_floor(&n);
@@ -89,6 +93,9 @@ pub fn ec_recover_product_mod(
     let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?.pack86();
     let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?.pack86();
     let m = BigInt3::from_var_name("m", vm, ids_data, ap_tracking)?.pack86();
+    if m.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
 
     let product = a * b;
     let value = product.mod_floor(&m);
@@ -107,6 +114,9 @@ pub fn ec_recover_product_mod(
 pub fn ec_recover_product_div_m(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     let product: &BigInt = exec_scopes.get_ref("product")?;
     let m: &BigInt = exec_scopes.get_ref("m")?;
+    if m.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
     let value = product.div_floor(m);
     exec_scopes.insert_value("k", value.clone());
     exec_scopes.insert_value("value", value);
@@ -132,6 +142,7 @@ mod tests {
         },
         types::exec_scope::ExecutionScopes,
     };
+    use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -171,6 +182,41 @@ mod tests {
         check_scope!(
             &exec_scopes,
             [("value", BigInt::from(5)), ("res", BigInt::from(5))]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_recover_divmod_n_is_zero() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+
+        vm.run_context.fp = 8;
+        let ids_data = non_continuous_ids_data![("n", -8), ("x", -5), ("s", -2)];
+
+        vm.segments = segments![
+            //n
+            ((1, 0), 0),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            //x
+            ((1, 3), 25),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            //s
+            ((1, 6), 5),
+            ((1, 7), 0),
+            ((1, 8), 0)
+        ];
+
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_DIV_MOD_N_PACKED,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 
@@ -253,6 +299,41 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_recover_product_mod_m_zero() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+
+        vm.run_context.fp = 8;
+        let ids_data = non_continuous_ids_data![("a", -8), ("b", -5), ("m", -2)];
+
+        vm.segments = segments![
+            //a
+            ((1, 0), 60),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            //b
+            ((1, 3), 2),
+            ((1, 4), 0),
+            ((1, 5), 0),
+            //m
+            ((1, 6), 0),
+            ((1, 7), 0),
+            ((1, 8), 0)
+        ];
+
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_PRODUCT_MOD,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_div_m_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -272,6 +353,27 @@ mod tests {
         check_scope!(
             &exec_scopes,
             [("value", BigInt::from(2)), ("k", BigInt::from(2))]
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_ec_recover_product_div_m_zero() {
+        let mut vm = vm!();
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("product", BigInt::from(250));
+        exec_scopes.insert_value("m", BigInt::from(0));
+
+        let ids_data = ids_data!["none"];
+
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::EC_RECOVER_PRODUCT_DIV_M,
+                &mut exec_scopes
+            ),
+            Err(HintError::Math(MathError::DividedByZero))
         );
     }
 }
