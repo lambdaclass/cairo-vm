@@ -92,6 +92,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
             error_message_attributes: Vec::<Attribute>::arbitrary(u)?,
             instruction_locations: Option::<HashMap<usize, InstructionLocation>>::arbitrary(u)?,
             identifiers: HashMap::<String, Identifier>::arbitrary(u)?,
+            constants: HashMap::arbitrary(u)?,
             reference_manager: Vec::<HintReference>::arbitrary(u)?,
         })
     }
