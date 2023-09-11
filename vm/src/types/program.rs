@@ -60,6 +60,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) error_message_attributes: Vec<Attribute>,
     pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     pub(crate) identifiers: HashMap<String, Identifier>,
+    pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) reference_manager: Vec<HintReference>,
 }
 
@@ -160,7 +161,6 @@ type HintRange = Option<(usize, NonZeroUsize)>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
-    pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
@@ -197,11 +197,11 @@ impl Program {
             error_message_attributes,
             instruction_locations,
             identifiers,
+            constants,
             reference_manager: Self::get_reference_list(&reference_manager),
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
-            constants,
             builtins,
         })
     }
@@ -231,11 +231,11 @@ impl Program {
             error_message_attributes,
             instruction_locations,
             identifiers,
+            constants,
             reference_manager: Self::get_reference_list(&reference_manager),
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
-            constants,
             builtins,
         })
     }
@@ -340,7 +340,6 @@ impl Default for Program {
     fn default() -> Self {
         Self {
             shared_program_data: Arc::new(SharedProgramData::default()),
-            constants: HashMap::new(),
             builtins: Vec::new(),
         }
     }
@@ -643,7 +642,7 @@ mod tests {
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
-            program.constants,
+            program.shared_program_data.constants,
             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
@@ -1212,7 +1211,7 @@ mod tests {
         .map(|(key, value)| (key.to_string(), value))
         .collect::<HashMap<_, _>>();
 
-        assert_eq!(program.constants, constants);
+        assert_eq!(program.shared_program_data.constants, constants);
     }
 
     #[test]
@@ -1232,13 +1231,13 @@ mod tests {
             error_message_attributes: Vec::new(),
             instruction_locations: None,
             identifiers: HashMap::new(),
+            constants: HashMap::new(),
             reference_manager: Program::get_reference_list(&ReferenceManager {
                 references: Vec::new(),
             }),
         };
         let program = Program {
             shared_program_data: Arc::new(shared_program_data),
-            constants: HashMap::new(),
             builtins: Vec::new(),
         };
 
