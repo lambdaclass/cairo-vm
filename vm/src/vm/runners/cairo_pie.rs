@@ -53,7 +53,7 @@ pub enum BuiltinAdditionalData {
     None,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
@@ -61,7 +61,7 @@ pub struct CairoPie {
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieMetadata {
     pub program: StrippedProgram,
     pub program_segment: SegmentInfo,
@@ -72,7 +72,7 @@ pub struct CairoPieMetadata {
     pub extra_segments: Vec<SegmentInfo>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     #[serde(serialize_with = "program_data_serde::serialize")]
     pub data: Vec<MaybeRelocatable>,
