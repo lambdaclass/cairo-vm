@@ -10,7 +10,7 @@ keywords.workspace = true
 
 [features]
 default = ["std", "with_mimalloc"]
-with_mimalloc = ["mimalloc"]
+with_mimalloc = ["dep:mimalloc"]
 std = [
     "serde_json/std",
     "bincode/std",
