@@ -183,12 +183,6 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (felt)
-      run: |
-        cd felt
-        cargo check-all-features
-        cargo check-all-features --workspace --all-targets
-
     - name: Check all features (vm)
       run: |
         cd vm
