@@ -23,6 +23,7 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -166,7 +167,7 @@ pub struct Program {
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,

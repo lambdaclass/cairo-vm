@@ -1,4 +1,7 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::{
+    stdlib::{collections::HashMap, prelude::*},
+    vm::runners::cairo_pie::CairoPie,
+};
 
 use crate::felt_str;
 
@@ -244,4 +247,29 @@ fn relocate_segments() {
         cairo_pie.memory,
         Into::<CairoPieMemory>::into(&vm.segments.memory)
     );
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn serialize_and_deserialize_cairo_pie() {
+    // Run the program
+    let program_content = include_bytes!("../../../cairo_programs/relocate_segments.json");
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let result = cairo_run(
+        program_content,
+        &CairoRunConfig {
+            layout: "all_cairo",
+            ..Default::default()
+        },
+        &mut hint_processor,
+    );
+    assert!(result.is_ok());
+    let (runner, vm) = result.unwrap();
+    // Obtain the pie
+    let result = runner.get_cairo_pie(&vm);
+    assert!(result.is_ok());
+    let cairo_pie = result.unwrap();
+    let cairo_pie_serialized = serde_json::to_string(&cairo_pie).unwrap();
+    let cairo_pie_deserialized: CairoPie = serde_json::from_str(&cairo_pie_serialized).unwrap();
+    assert_eq!(cairo_pie_deserialized, cairo_pie);
 }
