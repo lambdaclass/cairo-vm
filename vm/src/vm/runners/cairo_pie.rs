@@ -92,7 +92,7 @@ mod program_data_serde {
         where
             S: Serializer,
         {
-            // BigUint::from_bytes_be(&self.0.to_be_bytes()).serialize(serializer)
+            // Note: This uses an API intended only for testing.
             serde_json::Number::from_string_unchecked(self.0.to_string()).serialize(serializer)
         }
     }
