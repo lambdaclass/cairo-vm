@@ -214,7 +214,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: ["", "lambdaworks-felt"]
+        special_features: [""]
         target: [ test#1, test#2, test-no_std, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
@@ -422,25 +422,6 @@ jobs:
       with:
         path: lcov-test-no_std-.info
         key: codecov-cache-test-no_std--${{ github.sha }}
-        fail-on-cache-miss: true
-
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#1-lambdaworks-felt.info
-        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#2-lambdaworks-felt.info
-        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/lambdaworks)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test-no_std-lambdaworks-felt.info
-        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
