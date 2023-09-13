@@ -57,12 +57,13 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
 #[derive(Serialize, Debug)]
 pub struct PublicInput<'a> {
     layout: &'a str,
-    layout_params: Option<&'a CairoLayout>,
     rc_min: isize,
     rc_max: isize,
     n_steps: usize,
     memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     public_memory: Vec<PublicMemoryEntry>,
+    #[serde(rename = "dynamic_params")]
+    layout_params: Option<&'a CairoLayout>,
 }
 
 impl<'a> PublicInput<'a> {
