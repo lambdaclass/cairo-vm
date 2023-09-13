@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694118715631,
+  "lastUpdate": 1694635261688,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116842,6 +116842,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18206554,
             "range": "± 106488",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "102986292+Juan-M-V@users.noreply.github.com",
+            "name": "Juan-M-V",
+            "username": "Juan-M-V"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "bd496eaeb93cad054770e5aa81b9ea500f90cfeb",
+          "message": "Fix air parsing (#1439)\n\n* Add air changes\n\n* Update air_public_input.rs\n\n---------\n\nCo-authored-by: juan.mv <juan@lambdaclass.com>",
+          "timestamp": "2023-09-13T19:10:16Z",
+          "tree_id": "61b0eb9218dcf35d37478f7d1c17a67a47575e47",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/bd496eaeb93cad054770e5aa81b9ea500f90cfeb"
+        },
+        "date": 1694635254543,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1322,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 53195,
+            "range": "± 343",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 20066320,
+            "range": "± 110633",
             "unit": "ns/iter"
           }
         ]
