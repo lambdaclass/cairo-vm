@@ -1,7 +1,10 @@
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    prelude::*,
-    sync::Arc,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+        sync::Arc,
+    },
+    vm::runners::cairo_pie::StrippedProgram,
 };
 
 #[cfg(feature = "cairo-1-hints")]
@@ -20,7 +23,6 @@ use crate::{
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 use felt::{Felt252, PRIME_STR};
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -162,13 +164,6 @@ pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct StrippedProgram {
-    pub data: Vec<MaybeRelocatable>,
-    pub builtins: Vec<BuiltinName>,
-    pub main: usize,
 }
 
 impl Program {
