@@ -22,10 +22,24 @@ pub struct Relocatable {
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(Felt252),
+}
+
+// NOTE: implemented manually so we can format the felt properly
+impl fmt::Debug for MaybeRelocatable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MaybeRelocatable::RelocatableValue(v) => {
+                f.debug_tuple("RelocatableValue").field(&v).finish()
+            }
+            MaybeRelocatable::Int(v) => {
+                f.debug_tuple("Int").field(&format_args!("{}", &v)).finish()
+            }
+        }
+    }
 }
 
 impl From<(isize, usize)> for Relocatable {
