@@ -74,14 +74,18 @@ pub struct CairoPieMetadata {
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
-    #[serde(serialize_with = "program_data_serde::serialize")]
+    #[serde(serialize_with = "serde_impl::serialize_program_data")]
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
     pub main: usize,
+
+    // Dummy field for serialization only.
+    #[serde(serialize_with = "serde_impl::serialize_prime")]
+    pub prime: (),
 }
 
-mod program_data_serde {
-    use crate::types::relocatable::MaybeRelocatable;
+mod serde_impl {
+    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME};
     use felt::Felt252;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
 
@@ -100,7 +104,10 @@ mod program_data_serde {
         }
     }
 
-    pub fn serialize<S>(values: &[MaybeRelocatable], serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize_program_data<S>(
+        values: &[MaybeRelocatable],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -116,5 +123,16 @@ mod program_data_serde {
         }
 
         seq_serializer.end()
+    }
+
+    pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[cfg(target_arch = "wasm32")]
+        use crate::alloc::string::ToString;
+
+        // Note: This uses an API intended only for testing.
+        serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
     }
 }

@@ -277,6 +277,7 @@ fn serialize_cairo_pie() {
         }),
     );
 
+    println!("{}", serde_json::to_string_pretty(&cairo_pie).unwrap());
     assert_eq!(
         serde_json::to_value(&cairo_pie).unwrap(),
         serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))

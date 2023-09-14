@@ -327,6 +327,7 @@ impl Program {
                 .shared_program_data
                 .main
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
+            prime: (),
         })
     }
 }
