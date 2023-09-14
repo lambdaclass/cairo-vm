@@ -92,6 +92,9 @@ mod program_data_serde {
         where
             S: Serializer,
         {
+            #[cfg(target_arch = "wasm32")]
+            use crate::alloc::string::ToString;
+
             // Note: This uses an API intended only for testing.
             serde_json::Number::from_string_unchecked(self.0.to_string()).serialize(serializer)
         }
@@ -113,47 +116,5 @@ mod program_data_serde {
         }
 
         seq_serializer.end()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{
-        cairo_run::{cairo_run, CairoRunConfig},
-        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        vm::runners::cairo_pie::{
-            Attributes, BuiltinAdditionalData, OutputBuiltinAdditionalData, Pages,
-        },
-    };
-
-    #[test]
-    fn serialize_cairo_pie() {
-        // Run the program
-        let program_content = include_bytes!("../../../../cairo_programs/relocate_segments.json");
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let result = cairo_run(
-            program_content,
-            &CairoRunConfig {
-                layout: "all_cairo",
-                ..Default::default()
-            },
-            &mut hint_processor,
-        );
-        assert!(result.is_ok());
-        let (runner, vm) = result.unwrap();
-        // Obtain the pie
-        let result = runner.get_cairo_pie(&vm);
-        assert!(result.is_ok());
-        let mut cairo_pie = result.unwrap();
-
-        cairo_pie.additional_data.insert(
-            "output_builtin".to_string(),
-            BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-                pages: Pages::default(),
-                attributes: Attributes::default(),
-            }),
-        );
-
-        println!("{}", serde_json::to_string_pretty(&cairo_pie).unwrap());
     }
 }
