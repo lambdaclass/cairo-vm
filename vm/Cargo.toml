@@ -55,7 +55,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
-stark-felt = { git = "https://github.com/lambdaclass/types-rs.git", rev = "192551b364d5b2a39c0cbcb9c58274be6a28a109" }
+stark-felt = { git = "https://github.com/lambdaclass/types-rs.git", rev = "192551b364d5b2a39c0cbcb9c58274be6a28a109", default-features = false }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
