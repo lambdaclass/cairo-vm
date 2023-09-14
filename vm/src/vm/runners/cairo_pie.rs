@@ -97,7 +97,7 @@ mod serde_impl {
         where
             S: Serializer,
         {
-            #[cfg(any(target_arch = "wasm32", no_std))]
+            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
             use crate::alloc::string::ToString;
 
             // Note: This uses an API intended only for testing.
@@ -130,7 +130,7 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        #[cfg(any(target_arch = "wasm32", no_std))]
+        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
         use crate::alloc::string::ToString;
 
         // Note: This uses an API intended only for testing.

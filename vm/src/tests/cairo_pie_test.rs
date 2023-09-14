@@ -11,8 +11,7 @@ use crate::{
             SIGNATURE_BUILTIN_NAME,
         },
         cairo_pie::{
-            Attributes, BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, Pages,
-            SegmentInfo,
+            BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
         },
         cairo_runner::ExecutionResources,
     },
@@ -251,12 +250,12 @@ fn relocate_segments() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn serialize_cairo_pie() {
     // Run the program
-    let program_content = include_bytes!("../../../cairo_programs/relocate_segments.json");
+    let program_content = include_bytes!("../../../cairo_programs/print.json");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: "small",
             ..Default::default()
         },
         &mut hint_processor,
@@ -266,26 +265,12 @@ fn serialize_cairo_pie() {
     // Obtain the pie
     let result = runner.get_cairo_pie(&vm);
     assert!(result.is_ok());
-    let mut cairo_pie = result.unwrap();
-
-    // Inject missing data to serialize and test if it works.
-    cairo_pie.additional_data.insert(
-        "output_builtin".to_string(),
-        BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-            pages: Pages::default(),
-            attributes: Attributes::default(),
-        }),
-    );
+    let cairo_pie = result.unwrap();
 
     // TODO: Find a way to test the entire object, and not just `metadata`.
     assert_eq!(
-        serde_json::to_value(&cairo_pie)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("metadata")
-            .unwrap(),
-        &serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))
+        serde_json::to_value(cairo_pie).unwrap(),
+        serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))
             .unwrap(),
     );
 }
