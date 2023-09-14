@@ -56,6 +56,7 @@ pub enum BuiltinAdditionalData {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
+    #[serde(skip)]
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
