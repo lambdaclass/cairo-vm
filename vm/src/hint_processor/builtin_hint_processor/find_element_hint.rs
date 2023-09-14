@@ -93,20 +93,20 @@ pub fn search_sorted_lower(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let find_element_max_size = exec_scopes.get::<Felt252>("find_element_max_size");
-    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
+    let n_elms = *get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
-    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let elm_size = *get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
+    let key = *get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
-    if elm_size.as_ref() <= Felt252::ZERO.as_ref() {
-        return Err(HintError::ValueOutOfRange(Box::new(elm_size.into_owned())));
+    if elm_size == Felt252::ZERO {
+        return Err(HintError::ValueOutOfRange(Box::new(elm_size)));
     }
 
     if let Ok(find_element_max_size) = find_element_max_size {
-        if n_elms.as_ref() > &find_element_max_size {
+        if n_elms > find_element_max_size {
             return Err(HintError::FindElemMaxSize(Box::new((
                 find_element_max_size,
-                n_elms.into_owned(),
+                n_elms,
             ))));
         }
     }
@@ -128,7 +128,7 @@ pub fn search_sorted_lower(
         }
         array_iter.offset += elm_size_usize;
     }
-    insert_value_from_var_name("index", n_elms.into_owned(), vm, ids_data, ap_tracking)
+    insert_value_from_var_name("index", n_elms, vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
