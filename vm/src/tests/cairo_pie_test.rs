@@ -1,8 +1,22 @@
-use crate::{
-    stdlib::{collections::HashMap, prelude::*},
-    vm::runners::cairo_pie::CairoPie,
-};
+#![deny(warnings)]
 
+use crate::{
+    cairo_run::{cairo_run, CairoRunConfig},
+    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    stdlib::{collections::HashMap, prelude::*},
+    types::relocatable::Relocatable,
+    vm::runners::{
+        builtin_runner::{
+            HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+            SIGNATURE_BUILTIN_NAME,
+        },
+        cairo_pie::{
+            Attributes, BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, Pages,
+            SegmentInfo,
+        },
+        cairo_runner::ExecutionResources,
+    },
+};
 use felt::felt_str;
 
 #[cfg(target_arch = "wasm32")]
@@ -12,22 +26,6 @@ use wasm_bindgen_test::*;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
-};
-
-use crate::{
-    cairo_run::{cairo_run, CairoRunConfig},
-    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    types::relocatable::Relocatable,
-    vm::runners::{
-        builtin_runner::{
-            HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME,
-        },
-        cairo_pie::{
-            BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
-        },
-        cairo_runner::ExecutionResources,
-    },
 };
 
 #[test]
@@ -251,7 +249,7 @@ fn relocate_segments() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn serialize_and_deserialize_cairo_pie() {
+fn serialize_cairo_pie() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/relocate_segments.json");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -268,8 +266,20 @@ fn serialize_and_deserialize_cairo_pie() {
     // Obtain the pie
     let result = runner.get_cairo_pie(&vm);
     assert!(result.is_ok());
-    let cairo_pie = result.unwrap();
-    let cairo_pie_serialized = serde_json::to_string(&cairo_pie).unwrap();
-    let cairo_pie_deserialized: CairoPie = serde_json::from_str(&cairo_pie_serialized).unwrap();
-    assert_eq!(cairo_pie_deserialized, cairo_pie);
+    let mut cairo_pie = result.unwrap();
+
+    // Inject missing data to serialize and test if it works.
+    cairo_pie.additional_data.insert(
+        "output_builtin".to_string(),
+        BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
+            pages: Pages::default(),
+            attributes: Attributes::default(),
+        }),
+    );
+
+    assert_eq!(
+        serde_json::to_value(&cairo_pie).unwrap(),
+        serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))
+            .unwrap(),
+    );
 }

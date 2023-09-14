@@ -582,7 +582,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                }, 
+                },
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -1109,7 +1109,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                },  
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1190,10 +1190,10 @@ mod tests {
                         "start_pc": 402,
                         "value": "SafeUint256: subtraction overflow"
                     }
-                ], 
+                ],
                 "debug_info": {
                     "instruction_locations": {}
-                },           
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1247,7 +1247,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1298,7 +1298,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1356,7 +1356,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1403,7 +1403,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
