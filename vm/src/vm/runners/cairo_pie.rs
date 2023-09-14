@@ -60,6 +60,7 @@ pub struct CairoPie {
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
+    pub version: CairoPieVersion,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -83,6 +84,12 @@ pub struct StrippedProgram {
     // Dummy field for serialization only.
     #[serde(serialize_with = "serde_impl::serialize_prime")]
     pub prime: (),
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieVersion {
+    #[serde(serialize_with = "serde_impl::serialize_version")]
+    pub cairo_pie: (),
 }
 
 mod serde_impl {
@@ -135,5 +142,12 @@ mod serde_impl {
 
         // Note: This uses an API intended only for testing.
         serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
+    }
+
+    pub fn serialize_version<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str("1.1")
     }
 }

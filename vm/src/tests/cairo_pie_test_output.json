@@ -55,5 +55,8 @@
       "size": 10,
       "index": 0
     }
+  },
+  "version": {
+    "cairo_pie": "1.1"
   }
 }
