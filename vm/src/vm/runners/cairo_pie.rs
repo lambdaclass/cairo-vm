@@ -99,11 +99,14 @@ mod serde_impl {
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::CAIRO_PRIME,
     };
+    #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+    use alloc::collections::{btree_map::Entry, BTreeMap};
     use felt::Felt252;
     use serde::{
         ser::{SerializeSeq, SerializeTuple},
         Serialize, Serializer,
     };
+    #[cfg(not(any(target_arch = "wasm32", no_std, not(feature = "std"))))]
     use std::collections::{btree_map::Entry, BTreeMap};
 
     struct Felt252Wrapper<'a>(&'a Felt252);
