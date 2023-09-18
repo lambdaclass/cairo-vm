@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner, OUTPUT_BUILTIN_NAME},
-    cairo_pie::{self, CairoPie, CairoPieMetadata},
+    cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1251,6 +1251,7 @@ impl CairoRunner {
                 .iter()
                 .map(|b| (b.name().to_string(), b.get_additional_data()))
                 .collect(),
+            version: CairoPieVersion { cairo_pie: () },
         })
     }
 
