@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694635261688,
+  "lastUpdate": 1695069169961,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -116932,6 +116932,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 20066320,
             "range": "± 110633",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "azteca1998@users.noreply.github.com",
+            "name": "MrAzteca",
+            "username": "azteca1998"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8d711e136d4ad590249975f0b750502c44b8177b",
+          "message": "Fix `CairoPie` serialization. (#1444)\n\n* Fix serialization.\n\n* Remove `#[derive(Deserialize)]` from `CairoPie` and family.\n\n* Add note.\n\n* Fix `CairoPie` serialization test.\n\n* Update `CHANGELOG.md`.\n\n* Fix test.\n\n* Fix WebAssembly target.\n\n* Add `prime` field to the program.\n\n* Fix test.\n\n* Fix `no_std`.\n\n* Skip `CairoPie` memory serialization  and update reference JSON.\n\n* Fix test\n\n* Fix stuff.\n\n* Add `version` field.\n\n* Add memory serialization.\n\n* Fix WebAssembly and `no_std`.\n\n* Fix comments.\n\n* Fix comment.\n\n---------\n\nCo-authored-by: Esteve Soler Arderiu <esteve.soler@lambdaclass.com>",
+          "timestamp": "2023-09-18T19:42:44Z",
+          "tree_id": "034d72c00545da8602513d79558e5c0760e67050",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/8d711e136d4ad590249975f0b750502c44b8177b"
+        },
+        "date": 1695069162749,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 4,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1360,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 51229,
+            "range": "± 335",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 18923257,
+            "range": "± 136616",
             "unit": "ns/iter"
           }
         ]
