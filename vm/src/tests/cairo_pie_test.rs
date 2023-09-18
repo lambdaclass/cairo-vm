@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -267,7 +265,6 @@ fn serialize_cairo_pie() {
     assert!(result.is_ok());
     let cairo_pie = result.unwrap();
 
-    // TODO: Find a way to test the entire object, and not just `metadata`.
     assert_eq!(
         serde_json::to_value(cairo_pie).unwrap(),
         serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))

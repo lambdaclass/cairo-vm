@@ -7,6 +7,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+const CAIRO_PIE_VERSION: &str = "1.1";
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SegmentInfo {
     pub index: isize,
@@ -95,6 +97,7 @@ pub struct CairoPieVersion {
 }
 
 mod serde_impl {
+    use super::CAIRO_PIE_VERSION;
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::CAIRO_PRIME,
@@ -276,7 +279,7 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        serializer.serialize_str("1.1")
+        serializer.serialize_str(CAIRO_PIE_VERSION)
     }
 }
 
