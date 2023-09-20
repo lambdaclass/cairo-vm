@@ -208,7 +208,6 @@ mod serde_impl {
             };
         }
 
-        println!("MEM: {:?}", res);
         serializer.serialize_str(
             res.iter()
                 .map(|b| format!("{:02x}", b))
