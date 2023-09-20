@@ -110,11 +110,12 @@ mod serde_impl {
         Serialize, Serializer,
     };
 
-    const ADDR_BYTE_LEN: usize = 8;
-    const FIELD_BYTE_LEN: usize = 32;
-    const ADDR_BASE: usize = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
-    const OFFSET_BASE: usize = 0x800000000000; // 2 ** OFFSET_BIT_LEN
-    const RELOCATE_BASE: &str = "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
+    pub const ADDR_BYTE_LEN: usize = 8;
+    pub const FIELD_BYTE_LEN: usize = 32;
+    pub const ADDR_BASE: usize = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
+    pub const OFFSET_BASE: usize = 0x800000000000; // 2 ** OFFSET_BIT_LEN
+    pub const RELOCATE_BASE: &str =
+        "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
 
     struct Felt252Wrapper<'a>(&'a Felt252);
     struct RelocatableWrapper<'a>(&'a Relocatable);
@@ -174,7 +175,6 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        // TODO: update current test, add new test
         // Missing segment and memory holes can be ignored
         // as they can be inferred by the address on the prover side
         let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
@@ -182,14 +182,14 @@ mod serde_impl {
 
         for ((segment, offset), value) in values.iter() {
             match value {
-                // Serializes RelocatableValue as(little endian):
+                // Serializes RelocatableValue(little endian):
                 // 1bit |   SEGMENT_BITS |   OFFSET_BITS
                 // 1    |     segment    |   offset
                 MaybeRelocatable::RelocatableValue(rel_val) => {
                     let mem_addr = ADDR_BASE + *segment * OFFSET_BASE + *offset;
 
                     let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
-                        .map_err(|_| serde::ser::Error::custom("invalid int str"))?;
+                        .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
                     let reloc_value = reloc_base
                         + BigUint::from(rel_val.segment_index as usize)
                             * BigUint::from(OFFSET_BASE)
@@ -197,7 +197,7 @@ mod serde_impl {
                     res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                     res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
                 }
-                // Serializes Int as(little endian):
+                // Serializes Int(little endian):
                 // 1bit | Num
                 // 0    | num
                 MaybeRelocatable::Int(data_val) => {
@@ -208,9 +208,10 @@ mod serde_impl {
             };
         }
 
+        println!("MEM: {:?}", res);
         serializer.serialize_str(
             res.iter()
-                .map(|b| format!("{:x}", b))
+                .map(|b| format!("{:02x}", b))
                 .collect::<String>()
                 .as_str(),
         )
@@ -238,7 +239,6 @@ mod serde_impl {
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn serialize_cairo_pie_memory() {
@@ -247,24 +247,66 @@ mod test {
             #[serde(serialize_with = "serde_impl::serialize_memory")] CairoPieMemory,
         );
 
+        let addrs = [
+            ((1, 0), "0000000000800080"),
+            ((1, 1), "0100000000800080"),
+            ((1, 4), "0400000000800080"),
+            ((1, 8), "0800000000800080"),
+            ((2, 0), "0000000000000180"),
+            ((5, 8), "0800000000800280"),
+        ];
+
         let memory = MemoryWrapper(vec![
-            ((1, 0), MaybeRelocatable::Int(10.into())),
-            ((1, 1), MaybeRelocatable::Int(11.into())),
-            ((1, 4), MaybeRelocatable::Int(12.into())),
-            ((1, 8), MaybeRelocatable::RelocatableValue((1, 2).into())),
-            ((2, 0), MaybeRelocatable::RelocatableValue((3, 4).into())),
-            ((4, 8), MaybeRelocatable::RelocatableValue((5, 6).into())),
+            (addrs[0].0, MaybeRelocatable::Int(1234.into())),
+            (addrs[1].0, MaybeRelocatable::Int(11.into())),
+            (addrs[2].0, MaybeRelocatable::Int(12.into())),
+            (
+                addrs[3].0,
+                MaybeRelocatable::RelocatableValue((1, 2).into()),
+            ),
+            (
+                addrs[4].0,
+                MaybeRelocatable::RelocatableValue((3, 4).into()),
+            ),
+            (
+                addrs[5].0,
+                MaybeRelocatable::RelocatableValue((5, 6).into()),
+            ),
         ]);
 
+        let mem = serde_json::to_value(memory).unwrap();
+        let mem_str = mem.as_str().unwrap();
+        let shift_len = (serde_impl::ADDR_BYTE_LEN + serde_impl::FIELD_BYTE_LEN) * 2;
+        let shift_field = serde_impl::FIELD_BYTE_LEN * 2;
+        let shift_addr = serde_impl::ADDR_BYTE_LEN * 2;
+
+        // Serializes Address 8 Byte(little endian):
+        for (i, expected_addr) in addrs.into_iter().enumerate() {
+            let shift = shift_len * i;
+            assert_eq!(
+                &mem_str[shift..shift + shift_addr],
+                expected_addr.1,
+                "addr mismatch({i}): {mem_str:?}"
+            );
+        }
+
+        // assert_eq!(mem_bytes.as_slice(), &addr_be[..]);
+        // Serializes Int(little endian):
+        // 1bit | Num
+        // 0    | num
         assert_eq!(
-            serde_json::to_value(memory).unwrap(),
-            json!([
-                (),
-                [10, 11, (), (), 12, (), (), (), [1, 2]],
-                [[3, 4,]],
-                (),
-                [(), (), (), (), (), (), (), (), [5, 6]]
-            ]),
+            &mem_str[shift_addr..shift_addr + shift_field],
+            "d204000000000000000000000000000000000000000000000000000000000000",
+            "value mismatch: {mem_str:?}"
+        );
+        // Serializes RelocatableValue(little endian):
+        // 1bit |   SEGMENT_BITS |   OFFSET_BITS
+        // 1    |     segment    |   offset
+        let shift_first_relocatable = shift_len * 3 + shift_addr;
+        assert_eq!(
+            &mem_str[shift_first_relocatable..shift_first_relocatable + shift_field],
+            "0200000000800000000000000000000000000000000000000000000000000080",
+            "value mismatch: {mem_str:?}"
         );
     }
 }
