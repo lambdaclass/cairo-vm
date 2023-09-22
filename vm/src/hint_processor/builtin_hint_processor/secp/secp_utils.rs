@@ -84,6 +84,7 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
     if !num.is_zero() {
         return Err(HintError::SecpSplitOutOfRange(Box::new(integer.clone())));
     }
+    dbg!(&canonical_repr);
     Ok(canonical_repr)
 }
 

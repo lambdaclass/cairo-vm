@@ -40,6 +40,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
         let mut limbs = vec![];
         for i in 0..NUM_LIMBS {
+            println!("value from memory {:?} from address {:?}",vm.get_integer((addr + i)?).unwrap(), (addr + i)?);
             limbs.push(vm.get_integer((addr + i)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(Box::new((name.to_string(), format!("d{}", i))))
             })?)
@@ -58,6 +59,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
         ap_tracking: &ApTracking,
     ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
+        dbg!(base_addr);
         BigIntN::from_base_addr(base_addr, name, vm)
     }
 
@@ -121,14 +123,17 @@ pub fn nondet_bigint3(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
+    println!("res reloc: {:?}", res_reloc);
     let value = exec_scopes
         .get_ref::<num_bigint::BigInt>("value")?
         .to_biguint()
         .ok_or(HintError::BigIntToBigUintFail)?;
+    println!("value in nond int {:?}", value);
     let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
         .map(|n| MaybeRelocatable::from(Felt252::new(n)))
         .collect();
+    dbg!(&arg);
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }

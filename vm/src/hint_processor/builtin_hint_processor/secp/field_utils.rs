@@ -61,8 +61,12 @@ pub fn verify_zero_with_external_const(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
+    dbg!(&secp_p);
+    println!("");
     let val = Uint384::from_var_name("val", vm, ids_data, ap_tracking)?.pack86();
+    dbg!(&val);
     let (q, r) = val.div_rem(secp_p);
+    dbg!(&r);
     if !r.is_zero() {
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }

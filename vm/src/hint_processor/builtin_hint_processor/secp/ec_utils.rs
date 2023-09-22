@@ -162,6 +162,8 @@ pub fn compute_doubling_slope_external_consts(
     let alpha: BigInt = exec_scopes.get("ALPHA")?;
 
     let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p)?;
+    println!("value of ec douple slope");
+    dbg!(&value);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -190,6 +192,7 @@ pub fn compute_slope_and_assing_secp_p(
     point1_alias: &str,
     secp_p: &BigInt,
 ) -> Result<(), HintError> {
+    dbg!("enter here");
     exec_scopes.insert_value("SECP_P", secp_p.clone());
     compute_slope(
         vm,
@@ -211,8 +214,10 @@ pub fn compute_slope(
 ) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
+    dbg!(&point0);
     //ids.point1
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
+    dbg!(&point1);
 
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
 
@@ -574,6 +579,7 @@ mod tests {
         vm.run_context.fp = 1;
         //Create hint_data
         let ids_data = ids_data!["point"];
+        dbg!(&ids_data);
         let mut exec_scopes = ExecutionScopes::new();
         //Execute the hint
         assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
@@ -597,6 +603,7 @@ mod tests {
         let y = (BigInt::from(y2) << (86 * 2)) + (BigInt::from(y1) << 86) + y0;
         let minus_y = (BigInt::one() << 255) - 19 - y;
 
+        dbg!(&minus_y);
         vm.segments = segments![((1, 3), y0), ((1, 4), y1), ((1, 5), y2)];
         //Initialize fp
         vm.run_context.fp = 1;
@@ -630,6 +637,7 @@ mod tests {
         vm.run_context.fp = 1;
 
         let ids_data = ids_data!["point"];
+        dbg!(&ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
@@ -808,6 +816,8 @@ mod tests {
             ("point0".to_string(), HintReference::new_simple(-14)),
             ("point1".to_string(), HintReference::new_simple(-8)),
         ]);
+
+        dbg!(&ids_data);
         let mut exec_scopes = ExecutionScopes::new();
 
         //Execute the hint
