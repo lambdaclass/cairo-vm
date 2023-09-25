@@ -112,8 +112,8 @@ mod serde_impl {
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
-    pub const ADDR_BASE: usize = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
-    pub const OFFSET_BASE: usize = 0x800000000000; // 2 ** OFFSET_BIT_LEN
+    pub const ADDR_BASE: u64 = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
+    pub const OFFSET_BASE: u64 = 0x800000000000; // 2 ** OFFSET_BIT_LEN
     pub const RELOCATE_BASE: &str =
         "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
 
@@ -175,6 +175,11 @@ mod serde_impl {
     where
         S: Serializer,
     {
+        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+        use alloc::string::String;
+        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+        use alloc::vec::Vec;
+
         // Missing segment and memory holes can be ignored
         // as they can be inferred by the address on the prover side
         let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
@@ -186,7 +191,7 @@ mod serde_impl {
                 // 1bit |   SEGMENT_BITS |   OFFSET_BITS
                 // 1    |     segment    |   offset
                 MaybeRelocatable::RelocatableValue(rel_val) => {
-                    let mem_addr = ADDR_BASE + *segment * OFFSET_BASE + *offset;
+                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
 
                     let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
                         .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
@@ -201,7 +206,7 @@ mod serde_impl {
                 // 1bit | Num
                 // 0    | num
                 MaybeRelocatable::Int(data_val) => {
-                    let mem_addr = ADDR_BASE + *segment * OFFSET_BASE + *offset;
+                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
                     res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                     res.extend_from_slice(data_val.to_le_bytes().as_ref());
                 }
@@ -289,7 +294,6 @@ mod test {
             );
         }
 
-        // assert_eq!(mem_bytes.as_slice(), &addr_be[..]);
         // Serializes Int(little endian):
         // 1bit | Num
         // 0    | num
