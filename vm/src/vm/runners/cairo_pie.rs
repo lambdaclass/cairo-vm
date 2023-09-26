@@ -269,7 +269,7 @@ mod test {
             assert_eq!(
                 &mem_str[shift..shift + shift_addr],
                 expected_addr.1,
-                "addr mismatch({i}): {mem_str:?}"
+                "addr mismatch({i}): {mem_str:?}",
             );
         }
 
@@ -279,7 +279,7 @@ mod test {
         assert_eq!(
             &mem_str[shift_addr..shift_addr + shift_field],
             "d204000000000000000000000000000000000000000000000000000000000000",
-            "value mismatch: {mem_str:?}"
+            "value mismatch: {mem_str:?}",
         );
         // Serializes RelocatableValue(little endian):
         // 1bit |   SEGMENT_BITS |   OFFSET_BITS
@@ -288,7 +288,7 @@ mod test {
         assert_eq!(
             &mem_str[shift_first_relocatable..shift_first_relocatable + shift_field],
             "0200000000800000000000000000000000000000000000000000000000000080",
-            "value mismatch: {mem_str:?}"
+            "value mismatch: {mem_str:?}",
         );
     }
 }
