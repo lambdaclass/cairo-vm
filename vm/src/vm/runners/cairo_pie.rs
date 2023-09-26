@@ -98,17 +98,11 @@ pub struct CairoPieVersion {
 
 mod serde_impl {
     use super::CAIRO_PIE_VERSION;
-    use crate::{
-        types::relocatable::{MaybeRelocatable, Relocatable},
-        utils::CAIRO_PRIME,
-    };
+    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME};
     use felt::Felt252;
     use num_bigint::BigUint;
     use num_traits::Num;
-    use serde::{
-        ser::{SerializeSeq, SerializeTuple},
-        Serialize, Serializer,
-    };
+    use serde::{ser::SerializeSeq, Serialize, Serializer};
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
@@ -118,7 +112,6 @@ mod serde_impl {
         "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
 
     struct Felt252Wrapper<'a>(&'a Felt252);
-    struct RelocatableWrapper<'a>(&'a Relocatable);
 
     impl<'a> Serialize for Felt252Wrapper<'a> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -130,20 +123,6 @@ mod serde_impl {
 
             // Note: This uses an API intended only for testing.
             serde_json::Number::from_string_unchecked(self.0.to_string()).serialize(serializer)
-        }
-    }
-
-    impl<'a> Serialize for RelocatableWrapper<'a> {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut tuple_serializer = serializer.serialize_tuple(2)?;
-
-            tuple_serializer.serialize_element(&self.0.segment_index)?;
-            tuple_serializer.serialize_element(&self.0.offset)?;
-
-            tuple_serializer.end()
         }
     }
 
