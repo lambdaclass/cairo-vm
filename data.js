@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1695069169961,
+  "lastUpdate": 1695761101999,
   "repoUrl": "https://github.com/lambdaclass/cairo-vm",
   "entries": {
     "Benchmark": [
@@ -117022,6 +117022,96 @@ window.BENCHMARK_DATA = {
             "name": "parse program",
             "value": 18923257,
             "range": "± 136616",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ben@starkware.co",
+            "name": "drspacemn",
+            "username": "drspacemn"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fdf61bd95267d8e3f2a2f08ec560881a57b8583b",
+          "message": "feat: update serialize memory for bin format (#1447)\n\n* update serialize memory for bin format\n\n* integration and unit tests\n\n* remove debug log\n\n* change usize -> u64, alloc for wasm\n\n* remove unused wrapper\n\n* codecov in uncovered cairopie test",
+          "timestamp": "2023-09-26T20:00:51Z",
+          "tree_id": "4011f338d3b9d1fb3de62fa23ebf8b90ea23db0e",
+          "url": "https://github.com/lambdaclass/cairo-vm/commit/fdf61bd95267d8e3f2a2f08ec560881a57b8583b"
+        },
+        "date": 1695761093147,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "add_u64_with_felt/1",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/2",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/3",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/4",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/5",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/6",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/7",
+            "value": 3,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "add_u64_with_felt/8",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "build runner",
+            "value": 1760,
+            "range": "± 44",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "initialize",
+            "value": 70403,
+            "range": "± 5449",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parse program",
+            "value": 25854614,
+            "range": "± 673895",
             "unit": "ns/iter"
           }
         ]
