@@ -1,4 +1,4 @@
-.PHONY: corelib factorial fibonacci test clean run
+.PHONY: deps factorial fibonacci test clean run
 
 CAIRO_1_FOLDER=../cairo_programs/cairo-1-programs
 
@@ -12,7 +12,7 @@ CAIRO_1_PROGRAMS=$(wildcard ../cairo_programs/cairo-1-programs/*.cairo)
 TRACES:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.trace, $(CAIRO_1_PROGRAMS))
 MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIRO_1_PROGRAMS))
 
-corelib:
+deps:
 	git clone https://github.com/starkware-libs/cairo.git \
 	&& cd cairo \
 	&& git checkout v2.2.0 \
@@ -22,9 +22,12 @@ corelib:
 
 run: $(TRACES) $(MEMORY)
 
-test: corelib 
+test: 
 	cargo test
 
 clean:
-	rm -rf corelib 
+	rm -rf corelib
+	rm -rf cairo
+	rm -rf ../cairo_programs/cairo-1-programs/*.memory
+	rm -rf ../cairo_programs/cairo-1-programs/*.trace
 	

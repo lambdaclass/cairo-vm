@@ -218,20 +218,8 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 ```
 ### Running cairo 1 programs 
 
-To run a cairo 1 program enter in the folder cairo1-run and use the CLI with the following commands
+To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
 
-```bash
-make corelib 
-``` 
-to clone the corelib if it does not already exist in the directory, and
-
-```bash
-cargo run [path_to_the_.cairo_file] 
-```
-
-to execute the program.
-
-In order to generate the trace and the memory files, the target `run` of the makefile can be used and it will generate the files inside the cairo-1-programs directory. 
 
 ### WebAssembly Demo
 
