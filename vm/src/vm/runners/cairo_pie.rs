@@ -98,27 +98,20 @@ pub struct CairoPieVersion {
 
 mod serde_impl {
     use super::CAIRO_PIE_VERSION;
-    use crate::{
-        types::relocatable::{MaybeRelocatable, Relocatable},
-        utils::CAIRO_PRIME,
-    };
-    #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-    use alloc::collections::{btree_map::Entry, BTreeMap};
+    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME};
     use felt::Felt252;
-    use serde::{
-        ser::{SerializeSeq, SerializeTuple},
-        Serialize, Serializer,
-    };
-    #[cfg(not(any(target_arch = "wasm32", no_std, not(feature = "std"))))]
-    use std::collections::{btree_map::Entry, BTreeMap};
+    use num_bigint::BigUint;
+    use num_traits::Num;
+    use serde::{ser::SerializeSeq, Serialize, Serializer};
+
+    pub const ADDR_BYTE_LEN: usize = 8;
+    pub const FIELD_BYTE_LEN: usize = 32;
+    pub const ADDR_BASE: u64 = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
+    pub const OFFSET_BASE: u64 = 0x800000000000; // 2 ** OFFSET_BIT_LEN
+    pub const RELOCATE_BASE: &str =
+        "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
 
     struct Felt252Wrapper<'a>(&'a Felt252);
-    struct RelocatableWrapper<'a>(&'a Relocatable);
-
-    struct MissingSegment;
-
-    struct MemoryData<'a>(&'a BTreeMap<usize, &'a MaybeRelocatable>);
-    struct MemoryHole;
 
     impl<'a> Serialize for Felt252Wrapper<'a> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -130,75 +123,6 @@ mod serde_impl {
 
             // Note: This uses an API intended only for testing.
             serde_json::Number::from_string_unchecked(self.0.to_string()).serialize(serializer)
-        }
-    }
-
-    impl<'a> Serialize for RelocatableWrapper<'a> {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut tuple_serializer = serializer.serialize_tuple(2)?;
-
-            tuple_serializer.serialize_element(&self.0.segment_index)?;
-            tuple_serializer.serialize_element(&self.0.offset)?;
-
-            tuple_serializer.end()
-        }
-    }
-
-    impl Serialize for MissingSegment {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.serialize_none()
-        }
-    }
-
-    impl<'a> Serialize for MemoryData<'a> {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            let mut seq_serializer = serializer.serialize_seq(Some(
-                self.0
-                    .last_key_value()
-                    .map(|x| *x.0 + 1)
-                    .unwrap_or_default(),
-            ))?;
-
-            let mut last_offset = None;
-            for (offset, value) in self.0.iter() {
-                // Serialize memory holes as `None`.
-                for _ in last_offset.map(|x| x + 1).unwrap_or_default()..*offset {
-                    seq_serializer.serialize_element(&MemoryHole)?;
-                }
-
-                // Update the last offset to check for memory holes after itself.
-                last_offset = Some(*offset);
-
-                // Serialize the data.
-                match value {
-                    MaybeRelocatable::RelocatableValue(x) => {
-                        seq_serializer.serialize_element(&RelocatableWrapper(x))?
-                    }
-                    MaybeRelocatable::Int(x) => {
-                        seq_serializer.serialize_element(&Felt252Wrapper(x))?
-                    }
-                }
-            }
-
-            seq_serializer.end()
-        }
-    }
-
-    impl Serialize for MemoryHole {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.serialize_none()
         }
     }
 
@@ -230,38 +154,50 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        let mut memory = BTreeMap::new();
-        for value in values {
-            let segment_entry = match memory.entry(value.0 .0) {
-                Entry::Vacant(x) => x.insert(BTreeMap::new()),
-                Entry::Occupied(x) => x.into_mut(),
+        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+        use alloc::string::String;
+        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+        use alloc::vec::Vec;
+
+        // Missing segment and memory holes can be ignored
+        // as they can be inferred by the address on the prover side
+        let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
+        let mut res = Vec::with_capacity(mem_cap);
+
+        for ((segment, offset), value) in values.iter() {
+            match value {
+                // Serializes RelocatableValue(little endian):
+                // 1bit |   SEGMENT_BITS |   OFFSET_BITS
+                // 1    |     segment    |   offset
+                MaybeRelocatable::RelocatableValue(rel_val) => {
+                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+
+                    let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
+                        .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
+                    let reloc_value = reloc_base
+                        + BigUint::from(rel_val.segment_index as usize)
+                            * BigUint::from(OFFSET_BASE)
+                        + BigUint::from(rel_val.offset);
+                    res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
+                    res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
+                }
+                // Serializes Int(little endian):
+                // 1bit | Num
+                // 0    | num
+                MaybeRelocatable::Int(data_val) => {
+                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+                    res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
+                    res.extend_from_slice(data_val.to_le_bytes().as_ref());
+                }
             };
-
-            segment_entry.insert(value.0 .1, &value.1);
         }
 
-        let mut seq_serializer = serializer.serialize_seq(Some(
-            memory
-                .last_entry()
-                .map(|x| *x.key() + 1)
-                .unwrap_or_default(),
-        ))?;
-
-        let mut last_segment = None;
-        for (segment_idx, segment_data) in memory {
-            // Serialize missing segments as `None`.
-            for _ in last_segment.map(|x| x + 1).unwrap_or_default()..segment_idx {
-                seq_serializer.serialize_element(&MissingSegment)?;
-            }
-
-            // Update the last segment to check for missing segments after itself.
-            last_segment = Some(segment_idx);
-
-            // Serialize the data.
-            seq_serializer.serialize_element(&MemoryData(&segment_data))?;
-        }
-
-        seq_serializer.end()
+        serializer.serialize_str(
+            res.iter()
+                .map(|b| format!("{:02x}", b))
+                .collect::<String>()
+                .as_str(),
+        )
     }
 
     pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
@@ -286,7 +222,6 @@ mod serde_impl {
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn serialize_cairo_pie_memory() {
@@ -295,24 +230,65 @@ mod test {
             #[serde(serialize_with = "serde_impl::serialize_memory")] CairoPieMemory,
         );
 
+        let addrs = [
+            ((1, 0), "0000000000800080"),
+            ((1, 1), "0100000000800080"),
+            ((1, 4), "0400000000800080"),
+            ((1, 8), "0800000000800080"),
+            ((2, 0), "0000000000000180"),
+            ((5, 8), "0800000000800280"),
+        ];
+
         let memory = MemoryWrapper(vec![
-            ((1, 0), MaybeRelocatable::Int(10.into())),
-            ((1, 1), MaybeRelocatable::Int(11.into())),
-            ((1, 4), MaybeRelocatable::Int(12.into())),
-            ((1, 8), MaybeRelocatable::RelocatableValue((1, 2).into())),
-            ((2, 0), MaybeRelocatable::RelocatableValue((3, 4).into())),
-            ((4, 8), MaybeRelocatable::RelocatableValue((5, 6).into())),
+            (addrs[0].0, MaybeRelocatable::Int(1234.into())),
+            (addrs[1].0, MaybeRelocatable::Int(11.into())),
+            (addrs[2].0, MaybeRelocatable::Int(12.into())),
+            (
+                addrs[3].0,
+                MaybeRelocatable::RelocatableValue((1, 2).into()),
+            ),
+            (
+                addrs[4].0,
+                MaybeRelocatable::RelocatableValue((3, 4).into()),
+            ),
+            (
+                addrs[5].0,
+                MaybeRelocatable::RelocatableValue((5, 6).into()),
+            ),
         ]);
 
+        let mem = serde_json::to_value(memory).unwrap();
+        let mem_str = mem.as_str().unwrap();
+        let shift_len = (serde_impl::ADDR_BYTE_LEN + serde_impl::FIELD_BYTE_LEN) * 2;
+        let shift_field = serde_impl::FIELD_BYTE_LEN * 2;
+        let shift_addr = serde_impl::ADDR_BYTE_LEN * 2;
+
+        // Serializes Address 8 Byte(little endian):
+        for (i, expected_addr) in addrs.into_iter().enumerate() {
+            let shift = shift_len * i;
+            assert_eq!(
+                &mem_str[shift..shift + shift_addr],
+                expected_addr.1,
+                "addr mismatch({i}): {mem_str:?}",
+            );
+        }
+
+        // Serializes Int(little endian):
+        // 1bit | Num
+        // 0    | num
         assert_eq!(
-            serde_json::to_value(memory).unwrap(),
-            json!([
-                (),
-                [10, 11, (), (), 12, (), (), (), [1, 2]],
-                [[3, 4,]],
-                (),
-                [(), (), (), (), (), (), (), (), [5, 6]]
-            ]),
+            &mem_str[shift_addr..shift_addr + shift_field],
+            "d204000000000000000000000000000000000000000000000000000000000000",
+            "value mismatch: {mem_str:?}",
+        );
+        // Serializes RelocatableValue(little endian):
+        // 1bit |   SEGMENT_BITS |   OFFSET_BITS
+        // 1    |     segment    |   offset
+        let shift_first_relocatable = shift_len * 3 + shift_addr;
+        assert_eq!(
+            &mem_str[shift_first_relocatable..shift_first_relocatable + shift_field],
+            "0200000000800000000000000000000000000000000000000000000000000080",
+            "value mismatch: {mem_str:?}",
         );
     }
 }
