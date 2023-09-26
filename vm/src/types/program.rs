@@ -1,7 +1,10 @@
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    prelude::*,
-    sync::Arc,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+        sync::Arc,
+    },
+    vm::runners::cairo_pie::StrippedProgram,
 };
 
 #[cfg(feature = "cairo-1-hints")]
@@ -161,13 +164,6 @@ pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StrippedProgram {
-    pub data: Vec<MaybeRelocatable>,
-    pub builtins: Vec<BuiltinName>,
-    pub main: usize,
 }
 
 impl Program {
@@ -331,6 +327,7 @@ impl Program {
                 .shared_program_data
                 .main
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
+            prime: (),
         })
     }
 }

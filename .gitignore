@@ -20,3 +20,5 @@ cairo-vm-pypy-env/*
 *.tar
 cairo1-run/corelib/
 ensure-no_std/Cargo.lock
+
+!vm/src/tests/cairo_pie_test_output.json

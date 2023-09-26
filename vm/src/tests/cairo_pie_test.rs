@@ -1,19 +1,7 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
-
-use felt::felt_str;
-
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
-
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    stdlib::{collections::HashMap, prelude::*},
     types::relocatable::Relocatable,
     vm::runners::{
         builtin_runner::{
@@ -25,6 +13,16 @@ use crate::{
         },
         cairo_runner::ExecutionResources,
     },
+};
+use felt::felt_str;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
 };
 
 #[test]
@@ -243,5 +241,33 @@ fn relocate_segments() {
     assert_eq!(
         cairo_pie.memory,
         Into::<CairoPieMemory>::into(&vm.segments.memory)
+    );
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn serialize_cairo_pie() {
+    // Run the program
+    let program_content = include_bytes!("../../../cairo_programs/print.json");
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let result = cairo_run(
+        program_content,
+        &CairoRunConfig {
+            layout: "small",
+            ..Default::default()
+        },
+        &mut hint_processor,
+    );
+    assert!(result.is_ok());
+    let (runner, vm) = result.unwrap();
+    // Obtain the pie
+    let result = runner.get_cairo_pie(&vm);
+    assert!(result.is_ok());
+    let cairo_pie = result.unwrap();
+
+    assert_eq!(
+        serde_json::to_value(cairo_pie).unwrap(),
+        serde_json::from_str::<serde_json::Value>(include_str!("cairo_pie_test_output.json"))
+            .unwrap(),
     );
 }
