@@ -31,7 +31,10 @@ use crate::{
 use felt::{Felt252, PRIME_STR};
 use num_traits::float::FloatCore;
 use num_traits::{Num, Pow};
-use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
+use serde::{
+    de, de::MapAccess, de::SeqAccess, ser::SerializeSeq, Deserialize, Deserializer, Serialize,
+    Serializer,
+};
 use serde_json::Number;
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
@@ -70,17 +73,40 @@ impl BuiltinName {
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
+    pub attributes: Vec<Attribute>,
+    pub debug_info: Option<DebugInfo>,
     pub builtins: Vec<BuiltinName>,
+    #[serde(serialize_with = "serialize_array_from_felt")]
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
     pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
-    pub attributes: Vec<Attribute>,
-    pub debug_info: Option<DebugInfo>,
+}
+
+fn serialize_array_from_felt<S>(
+    data: &Vec<MaybeRelocatable>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut seq = serializer.serialize_seq(Some(data.len()))?;
+    for maybe_relocatable in data.iter() {
+        if let Some(felt) = maybe_relocatable.get_int_ref() {
+            let mut hex_felt = String::from("0x");
+            hex_felt.push_str(&felt.to_str_radix(16));
+            seq.serialize_element(&hex_felt)?;
+        } else {
+            return Err(serde::ser::Error::custom(
+                "Couldn't get felt from maybe reloacatable",
+            ));
+        }
+    }
+    seq.end()
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -198,7 +224,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     all(feature = "arbitrary", feature = "std"),
     derive(Arbitrary, Clone, Serialize)
 )]
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
 }
@@ -509,6 +535,35 @@ pub fn parse_program_json(
     })
 }
 
+fn _program_to_json(program: &Program) -> ProgramJson {
+    return ProgramJson {
+        prime: program.prime().to_string(),
+        attributes: Vec::new(),
+        debug_info: None,
+        builtins: program.builtins.clone(),
+        data: program.shared_program_data.data.clone(),
+        identifiers: program.shared_program_data.identifiers.clone(),
+        hints: std::collections::BTreeMap::new(),
+        reference_manager: ReferenceManager {
+            references: program
+                .shared_program_data
+                .reference_manager
+                .iter()
+                .map(|r| Reference {
+                    ap_tracking_data: r.ap_tracking_data.clone().unwrap(),
+                    pc: Some(usize::MIN),
+                    value_address: ValueAddress {
+                        offset1: r.offset1.clone(),
+                        offset2: r.offset2.clone(),
+                        dereference: r.dereference,
+                        value_type: r.cairo_type.clone().unwrap(),
+                    },
+                })
+                .collect(),
+        },
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -786,6 +841,28 @@ mod tests {
         assert_eq!(program_json.identifiers["__main__.main"].pc, Some(0));
         assert_eq!(program_json.hints, hints);
         assert_eq!(program_json.reference_manager, reference_manager);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn serialize_to_json_from_program() {
+        let expected_json = r#"{
+  "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+  "attributes": [],
+  "debug_info": null,
+  "builtins": [],
+  "data": [],
+  "identifiers": {},
+  "hints": {},
+  "reference_manager": {
+    "references": []
+  }
+}"#;
+        let program_json = _program_to_json(&Program::default());
+        assert_eq!(
+            &serde_json::to_string_pretty(&program_json).unwrap(),
+            expected_json
+        );
     }
 
     #[test]
