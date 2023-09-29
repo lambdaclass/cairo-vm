@@ -1,4 +1,5 @@
 use crate::Felt252;
+use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;

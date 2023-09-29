@@ -16,6 +16,8 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
+use num_traits::ToPrimitive;
+
 use super::hint_utils::get_integer_from_var_name;
 
 fn get_fixed_size_u32_array<const T: usize>(

@@ -1519,8 +1519,9 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-math"
-version = "0.1.3"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=731e27c2c8ed3de66bceacd15e2b6595a2acdc83#731e27c2c8ed3de66bceacd15e2b6595a2acdc83"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d42a591b9e2e587277c9ab2f0c16605364bb474d1d17a68dd2ee40f10fa473c6"
 
 [[package]]
 name = "lazy_static"
@@ -2413,11 +2414,12 @@ dependencies = [
 [[package]]
 name = "stark-felt"
 version = "0.0.3"
-source = "git+https://github.com/lambdaclass/types-rs.git?rev=192551b364d5b2a39c0cbcb9c58274be6a28a109#192551b364d5b2a39c0cbcb9c58274be6a28a109"
+source = "git+https://github.com/lambdaclass/types-rs.git?rev=c2945cfde8fe12744e934e60a2366abbd6250524#c2945cfde8fe12744e934e60a2366abbd6250524"
 dependencies = [
  "arbitrary",
  "bitvec",
  "lambdaworks-math",
+ "num-traits 0.2.16",
  "serde",
 ]
 

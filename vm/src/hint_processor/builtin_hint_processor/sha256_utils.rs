@@ -14,6 +14,7 @@ use crate::{
     vm::vm_core::VirtualMachine,
 };
 use generic_array::GenericArray;
+use num_traits::ToPrimitive;
 use sha2::compress256;
 
 use crate::hint_processor::hint_processor_definition::HintReference;

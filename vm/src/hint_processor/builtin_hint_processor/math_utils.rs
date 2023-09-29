@@ -358,7 +358,10 @@ pub fn split_int(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let base = get_integer_from_var_name("base", vm, ids_data, ap_tracking)?;
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
-    let base = base.as_ref();
+    let base = &base
+        .as_ref()
+        .try_into()
+        .map_err(|_| MathError::DividedByZero)?;
     let bound = bound.as_ref();
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     //Main Logic

@@ -23,7 +23,7 @@ use crate::{
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use super::secp_utils::SECP256R1_P;
 

@@ -31,6 +31,8 @@ use super::errors::runner_errors::RunnerError;
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
+use num_traits::ToPrimitive;
+
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
 #[derive(PartialEq, Eq, Debug)]

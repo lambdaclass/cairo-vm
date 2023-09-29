@@ -13,6 +13,7 @@ use crate::{
     types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use num_traits::ToPrimitive;
 
 pub fn find_element(
     vm: &mut VirtualMachine,

@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
+use num_traits::ToPrimitive;
 
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 10)"
 pub fn n_greater_than_10(

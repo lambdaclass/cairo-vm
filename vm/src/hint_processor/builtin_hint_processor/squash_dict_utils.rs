@@ -19,6 +19,7 @@ use crate::{
         vm_core::VirtualMachine,
     },
 };
+use num_traits::ToPrimitive;
 
 fn get_access_indices(
     exec_scopes: &mut ExecutionScopes,
@@ -249,7 +250,10 @@ pub fn squash_dict(
     let range_check_builtin = vm.get_range_check_builtin()?;
     let range_check_bound = range_check_builtin._bound;
     //Main Logic
-    if ptr_diff.mod_floor(&Felt252::from(DICT_ACCESS_SIZE)) != Felt252::ZERO {
+    let ptr_diff = ptr_diff
+        .to_usize()
+        .ok_or(HintError::PtrDiffNotDivisibleByDictAccessSize)?;
+    if ptr_diff % DICT_ACCESS_SIZE != 0 {
         return Err(HintError::PtrDiffNotDivisibleByDictAccessSize);
     }
     let squash_dict_max_size = exec_scopes.get::<Felt252>("__squash_dict_max_size");

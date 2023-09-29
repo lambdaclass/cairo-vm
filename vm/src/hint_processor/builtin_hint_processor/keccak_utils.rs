@@ -14,6 +14,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_integer::Integer;
+use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
 
 use super::hint_utils::insert_value_from_var_name;

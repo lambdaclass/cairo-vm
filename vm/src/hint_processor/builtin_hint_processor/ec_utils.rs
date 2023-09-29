@@ -14,7 +14,7 @@ use crate::{
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_bigint::ToBigInt;
-use num_traits::{Num, One, Pow, Zero};
+use num_traits::{Num, One, Pow, ToPrimitive, Zero};
 use sha2::{Digest, Sha256};
 
 use super::hint_utils::get_ptr_from_var_name;

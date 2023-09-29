@@ -20,6 +20,7 @@ use crate::{
     },
     Felt252,
 };
+use num_traits::ToPrimitive;
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
