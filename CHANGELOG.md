@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* fix: Change serialization of CairoPieMemory to match Python's binary format [#1447](https://github.com/lambdaclass/cairo-vm/pull/1447)
+
+* fix: Remove Deserialize derive from CairoPie and fix Serialize implementation to match Python's [#1444](https://github.com/lambdaclass/cairo-vm/pull/1444)
+
 * fix: ec_recover hints no longer panic when divisor is 0 [#1433](https://github.com/lambdaclass/cairo-vm/pull/1433)
 
 * feat: Implement the Serialize and Deserialize traits for the CairoPie struct [#1438](https://github.com/lambdaclass/cairo-vm/pull/1438)
@@ -107,7 +111,7 @@
     `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
   * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
 
-#### [0.8.4] 
+#### [0.8.4]
 **YANKED**
 
 #### [0.8.3]
@@ -194,12 +198,12 @@
 
 * BREAKING: Change `RunResources` usage:
     * Modify field type `RunResources.n_steps: Option<usize>,`
-    
+
     * Public Api Changes:
         *  CairoRunner::run_until_pc: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
         *  CairoRunner::run_from_entrypoint: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
         * VirtualMachine::Step: Add `&mut RunResources` as input
-        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input 
+        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input
 
 * perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-vm/pull/)
   BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
@@ -213,7 +217,7 @@
 * BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
     * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215)
 
-    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215) [#1232](https://github.com/lambdaclass/cairo-vm/pull/1232) 
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215) [#1232](https://github.com/lambdaclass/cairo-vm/pull/1232)
 
     * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-vm/pull/1238)
 
@@ -514,7 +518,7 @@
 
     value = x_inv = div_mod(1, x, SECP_P)
     ```
-    
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-vm/pull/1058)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -1163,7 +1167,7 @@
 * Implement hint on vrf.json lib [#1049](https://github.com/lambdaclass/cairo-vm/pull/1049)
 
     `BuiltinHintProcessor` now supports the following hint:
-    
+
     ```python
         def split(num: int, num_bits_shift: int, length: int):
             a = []
@@ -1306,19 +1310,19 @@
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-vm/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
-    
+
     ```python
         def split(num: int, num_bits_shift: int, length: int):
             a = []
             for _ in range(length):
                 a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift 
+                num = num >> num_bits_shift
             return tuple(a)
 
         def pack(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-            
+
         def pack_extended(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
@@ -1354,13 +1358,13 @@
     * Add missing hints [#1014](https://github.com/lambdaclass/cairo-vm/pull/1014):
         `BuiltinHintProcessor` now supports the following hints:
         ```python
-            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P 
+            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
         ```
-        and: 
+        and:
         ```python
             from starkware.cairo.common.cairo_secp.secp_utils import pack
             from starkware.python.math_utils import line_slope
-            
+
             # Compute the slope.
             x0 = pack(ids.point0.x, PRIME)
             y0 = pack(ids.point0.y, PRIME)
@@ -1379,7 +1383,7 @@
         s = pack(ids.s, PRIME) % N
         value = res = div_mod(x, s, N)
         ```
-        and: 
+        and:
         ```python
         value = k = safe_div(res * s - x, N)
         ```
