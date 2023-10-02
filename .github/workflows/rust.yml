@@ -215,7 +215,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "lambdaworks-felt"]
-        target: [ test#1, test#2, test-no_std, test-wasm ]
+        target: [ test#1, test#2, test#3, test#4, test-no_std, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
@@ -250,7 +250,7 @@ jobs:
         case ${NAME} in
         'test')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
-              --partition count:${PARTITION}/2 \
+              --partition count:${PARTITION}/4 \
               --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
@@ -417,6 +417,18 @@ jobs:
         path: lcov-test#2-.info
         key: codecov-cache-test#2--${{ github.sha }}
         fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-.info
+        key: codecov-cache-test#3--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-.info
+        key: codecov-cache-test#4--${{ github.sha }}
+        fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
@@ -435,6 +447,18 @@ jobs:
       with:
         path: lcov-test#2-lambdaworks-felt.info
         key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-lambdaworks-felt.info
+        key: codecov-cache-test#3-lambdaworks-felt-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-lambdaworks-felt.info
+        key: codecov-cache-test#4-lambdaworks-felt-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib (w/lambdaworks)
       uses: actions/cache/restore@v3
