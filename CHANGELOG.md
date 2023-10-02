@@ -4,6 +4,8 @@
 
 * feat: Implement a CLI to run cairo programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
 
+* fix: Default to empty attributes vector when the field is missing from the program JSON [#1450](https://github.com/lambdaclass/cairo-vm/pull/1450)
+
 * fix: Change serialization of CairoPieMemory to match Python's binary format [#1447](https://github.com/lambdaclass/cairo-vm/pull/1447)
 
 * fix: Remove Deserialize derive from CairoPie and fix Serialize implementation to match Python's [#1444](https://github.com/lambdaclass/cairo-vm/pull/1444)
