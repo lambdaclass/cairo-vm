@@ -442,7 +442,7 @@ fn unsafe_keccak() {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn blake2s_felts() {
     let program_data = include_bytes!("../../../cairo_programs/blake2s_felts.json");
-    run_program_simple_with_memory_holes(program_data.as_slice(), 139);
+    run_program_simple_with_memory_holes(program_data.as_slice(), 278);
 }
 
 #[test]
