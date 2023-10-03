@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Fix string code of `BLAKE2S_ADD_UINT256` hint [#1454](https://github.com/lambdaclass/cairo-vm/pull/1454)
+
 #### [0.9.0] - 2023-10-03
 
 * fix: Default to empty attributes vector when the field is missing from the program JSON [#1450](https://github.com/lambdaclass/cairo-vm/pull/1450)
