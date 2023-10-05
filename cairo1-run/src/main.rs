@@ -3,7 +3,7 @@ use bincode::enc::write::Writer;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::RunnerError as CairoLangRunnerError;
 use cairo_lang_runner::{
-    build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
+    token_gas_cost, CairoHintProcessor,
     SierraCasmRunner, StarknetState,
 };
 use cairo_lang_casm::instructions::Instruction;
@@ -207,12 +207,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let mut vm = VirtualMachine::new(true);
     let end = runner.initialize(&mut vm)?;
 
-    let function_context = RunFunctionContext {
-        vm: &mut vm,
-        data_len,
-    };
-
-    additional_initialization(function_context)?;
+    additional_initialization(&mut vm, data_len)?;
 
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
@@ -261,8 +256,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     Ok(return_values)
 }
 
-fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
-    let vm = context.vm;
+fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
     // Create the builtin cost segment
     let builtin_cost_segment = vm.add_memory_segment();
     for token_type in CostTokenType::iter_precost() {
@@ -274,7 +268,7 @@ fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
     // Put a pointer to the builtin cost segment at the end of the program (after the
     // additional `ret` statement).
     vm.insert_value(
-        (vm.get_pc() + context.data_len).unwrap(),
+        (vm.get_pc() + data_len).unwrap(),
         builtin_cost_segment,
     )?;
 
