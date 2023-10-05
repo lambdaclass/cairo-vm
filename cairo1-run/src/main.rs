@@ -2,10 +2,7 @@
 use bincode::enc::write::Writer;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::RunnerError as CairoLangRunnerError;
-use cairo_lang_runner::{
-    token_gas_cost, CairoHintProcessor,
-    SierraCasmRunner, StarknetState,
-};
+use cairo_lang_runner::SierraCasmRunner;
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::hints::Hint;
 use cairo_lang_sierra_type_size::get_type_size_map;
@@ -256,13 +253,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     Ok(return_values)
 }
 
+// TODO, check if this can fly
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
     // Create the builtin cost segment
     let builtin_cost_segment = vm.add_memory_segment();
     for token_type in CostTokenType::iter_precost() {
         vm.insert_value(
             (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize)).unwrap(),
-            Felt252::from(token_gas_cost(*token_type)),
+            Felt252::default(),
         )?
     }
     // Put a pointer to the builtin cost segment at the end of the program (after the
