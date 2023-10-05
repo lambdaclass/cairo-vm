@@ -6,6 +6,8 @@ use cairo_lang_runner::{
     build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
     SierraCasmRunner, StarknetState,
 };
+use cairo_lang_casm::instructions::Instruction;
+use cairo_lang_casm::hints::Hint;
 use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_sierra::extensions::core::{CoreType, CoreLibfunc};
 use cairo_lang_sierra::program_registry::ProgramRegistry;
@@ -17,6 +19,7 @@ use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
 use cairo_vm::cairo_run::EncodeTraceError;
+use cairo_vm::serde::deserialize_program::{HintParams, FlowTrackingData, ApTracking};
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
@@ -33,6 +36,7 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
 };
+use cairo_vm::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use clap::{CommandFactory, Parser, ValueHint};
 use itertools::{chain, Itertools};
 use std::borrow::Cow;
@@ -175,7 +179,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         footer.iter()
     );
 
-    let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
+    let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
+    let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
@@ -189,7 +194,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         builtins,
         data,
         Some(main_func.entry_point.0),
-        hints_dict,
+        program_hints,
         ReferenceManager {
             references: Vec::new(),
         },
@@ -208,13 +213,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     };
 
     additional_initialization(function_context)?;
-
-    let mut hint_processor = CairoHintProcessor {
-        runner: None,
-        string_to_hint,
-        starknet_state: StarknetState::default(),
-        run_resources: RunResources::default(),
-    };
 
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
@@ -310,6 +308,31 @@ fn main() -> Result<(), Error> {
         }
         Err(err) => Err(err),
     }
+}
+
+pub fn build_hints_vec<'b>(
+    instructions: impl Iterator<Item = &'b Instruction>,
+) -> (Vec<(usize, Vec<Hint>)>, HashMap<usize, Vec<HintParams>>) {
+    let mut hints: Vec<(usize, Vec<Hint>)> = Vec::new();
+    let mut program_hints: HashMap<usize, Vec<HintParams>> = HashMap::new();
+
+    let mut hint_offset = 0;
+
+    for instruction in instructions {
+        if !instruction.hints.is_empty() {
+            hints.push((hint_offset, instruction.hints.clone()));
+            program_hints.insert(hint_offset, vec![HintParams {
+                code: hint_offset.to_string(),
+                accessible_scopes: Vec::new(),
+                flow_tracking_data: FlowTrackingData {
+                    ap_tracking: ApTracking::default(),
+                    reference_ids: HashMap::new(),
+                },
+            }]);
+        }
+        hint_offset += instruction.body.op_size();
+    }
+    (hints, program_hints)
 }
 
 #[cfg(test)]
