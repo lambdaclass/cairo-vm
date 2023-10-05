@@ -297,8 +297,16 @@ fn main() -> Result<(), Error> {
         }
         Err(Error::RunPanic(panic_data)) => {
             if !panic_data.is_empty() {
-                let panic_data_string_list = panic_data.iter().map(|m|m.to_string()).join(", ");
-                println!("Program panicked with : [{}]", panic_data_string_list);
+                let panic_data_string_list = panic_data.iter().map(|m| {
+                    // Try to parse to utf8 string
+                    let msg = String::from_utf8(m.to_be_bytes().to_vec());
+                    if let Ok(msg) =  msg{
+                        format!("{} ('{}')", m.to_string(), msg)
+                    } else {
+                        m.to_string()
+                    }
+                }).join(", ");
+                println!("Run panicked with: [{}]", panic_data_string_list);
             }
             Ok(())
         }
