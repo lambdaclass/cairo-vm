@@ -177,7 +177,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let program = Program::new(
         builtins,
         data,
-        Some(0),
+        Some(main_func.entry_point.0),
         hints_dict,
         ReferenceManager {
             references: Vec::new(),
