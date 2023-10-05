@@ -4,6 +4,10 @@
 
 * feat: Implement a CLI to run cairo programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
 
+* fix: Fix string code of `BLAKE2S_ADD_UINT256` hint [#1454](https://github.com/lambdaclass/cairo-vm/pull/1454)
+
+#### [0.9.0] - 2023-10-03
+
 * fix: Default to empty attributes vector when the field is missing from the program JSON [#1450](https://github.com/lambdaclass/cairo-vm/pull/1450)
 
 * fix: Change serialization of CairoPieMemory to match Python's binary format [#1447](https://github.com/lambdaclass/cairo-vm/pull/1447)
@@ -18,7 +22,7 @@
 
 * feat: Added a differential fuzzer for programs with whitelisted hints [#1358](https://github.com/lambdaclass/cairo-vm/pull/1358)
 
-* fix: Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
+* fix(breaking): Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
 
 * Don't build wasm-demo in `build` target + add ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
 
