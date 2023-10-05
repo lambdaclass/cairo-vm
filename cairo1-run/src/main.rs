@@ -34,7 +34,7 @@ use cairo_vm::{
     },
 };
 use clap::{CommandFactory, Parser, ValueHint};
-use itertools::chain;
+use itertools::{chain, Itertools};
 use std::borrow::Cow;
 use std::io::BufWriter;
 use std::io::Write;
@@ -290,7 +290,8 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(return_values) => {
             if !return_values.is_empty() {
-                println!("Return values : {:?}", return_values)
+                let return_values_string_list = return_values.iter().map(|m|m.to_string()).join(", ");
+                println!("Return values : [{}]", return_values_string_list);
             }
             Ok(())
         }
