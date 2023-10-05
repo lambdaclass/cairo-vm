@@ -295,6 +295,13 @@ fn main() -> Result<(), Error> {
             }
             Ok(())
         }
+        Err(Error::RunPanic(panic_data)) => {
+            if !panic_data.is_empty() {
+                let panic_data_string_list = panic_data.iter().map(|m|m.to_string()).join(", ");
+                println!("Program panicked with : [{}]", panic_data_string_list);
+            }
+            Ok(())
+        }
         Err(err) => Err(err),
     }
 }
