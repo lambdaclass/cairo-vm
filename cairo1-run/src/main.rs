@@ -152,7 +152,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         Some(Default::default()),
         contracts_info,
     )?;
-    //TODO: remove unwrap
+
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
     let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
 
@@ -220,9 +220,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
 
     // Fetch return type data
-    let return_types_data = &main_func.signature.ret_types;
-    // We can filter the return values pertaining to gas/builtins/etc, or we can just fetch the last one
-    let return_type_id = return_types_data.last().unwrap();
+    let return_type_id = main_func.signature.ret_types.last().unwrap();
     let return_type_size = type_sizes.get(&return_type_id).cloned().unwrap_or_default();
 
     let mut return_values = vm.get_return_values(return_type_size as usize)?;
@@ -231,8 +229,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         // Check the failure flag (aka first return value)
         if *return_values.first().unwrap() != MaybeRelocatable::from(0) {
             // In case of failure, extract the error from teh return values (aka last two values)
-            let panic_data_end = return_values.last().unwrap().get_relocatable().unwrap();
-            let panic_data_start = return_values.get(return_values.len()-2).unwrap().get_relocatable().unwrap();
+            let panic_data_end = return_values.last().unwrap().get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
+            let panic_data_start = return_values.get(return_values.len()-2).ok_or(VirtualMachineError::Unexpected)?.get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
             let panic_data = vm.get_integer_range(panic_data_start, (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?)?;
             return Err(Error::RunPanic(panic_data.iter().map(|c| c.as_ref().clone()).collect()))
         } else {
