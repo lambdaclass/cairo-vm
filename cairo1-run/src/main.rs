@@ -6,6 +6,9 @@ use cairo_lang_runner::{
     build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
     SierraCasmRunner, StarknetState,
 };
+use cairo_lang_sierra_type_size::get_type_size_map;
+use cairo_lang_sierra::extensions::core::{CoreType, CoreLibfunc};
+use cairo_lang_sierra::program_registry::ProgramRegistry;
 use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
 use cairo_lang_sierra_to_casm::compiler::CompilationError;
 use cairo_lang_sierra_to_casm::metadata::MetadataError;
@@ -15,6 +18,7 @@ use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
 use cairo_vm::cairo_run::EncodeTraceError;
 use cairo_vm::types::errors::program_errors::ProgramError;
+use cairo_vm::types::relocatable::Relocatable;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
@@ -31,6 +35,7 @@ use cairo_vm::{
 };
 use clap::{CommandFactory, Parser, ValueHint};
 use itertools::chain;
+use std::borrow::Cow;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
@@ -91,6 +96,8 @@ enum Error {
     Program(#[from] ProgramError),
     #[error(transparent)]
     Memory(#[from] MemoryError),
+    #[error("Program panicked with {0:?}")]
+    RunPanic(Vec<Felt252>),
 }
 
 pub struct FileWriter {
@@ -126,7 +133,7 @@ impl FileWriter {
     }
 }
 
-fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
+fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Error> {
     let args = Args::try_parse_from(args)?;
 
     let compiler_config = CompilerConfig {
@@ -145,8 +152,12 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         Some(Default::default()),
         contracts_info,
     )?;
+    //TODO: remove unwrap
+    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
+    let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
 
     let main_func = casm_runner.find_function("::main")?;
+
     let initial_gas = 9999999999999_usize;
 
     // Entry code and footer are part of the whole instructions that are
@@ -207,6 +218,28 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
+
+    // Fetch return type data
+    let return_types_data = &main_func.signature.ret_types;
+    // We can filter the return values pertaining to gas/builtins/etc, or we can just fetch the last one
+    let return_type_id = return_types_data.last().unwrap();
+    let return_type_size = type_sizes.get(&return_type_id).cloned().unwrap_or_default();
+
+    let mut return_values = vm.get_return_values(return_type_size as usize)?;
+    // Check if this result is a Panic result
+    if return_type_id.debug_name.as_ref().unwrap().starts_with("core::panics::PanicResult::") {
+        // Check the failure flag (aka first return value)
+        if *return_values.first().unwrap() != MaybeRelocatable::from(0) {
+            // In case of failure, extract the error from teh return values (aka last two values)
+            let panic_data_end = return_values.last().unwrap().get_relocatable().unwrap();
+            let panic_data_start = return_values.get(return_values.len()-2).unwrap().get_relocatable().unwrap();
+            let panic_data = vm.get_integer_range(panic_data_start, (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?)?;
+            return Err(Error::RunPanic(panic_data.iter().map(|c| c.as_ref().clone()).collect()))
+        } else {
+            return_values = return_values[1..].to_vec()
+        }
+    }
+
     runner.relocate(&mut vm, true)?;
 
     let relocated_trace = vm.get_relocated_trace()?;
@@ -229,7 +262,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         memory_writer.flush().unwrap();
     }
 
-    Ok(())
+    Ok(return_values)
 }
 
 fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
@@ -255,7 +288,13 @@ fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
 fn main() -> Result<(), Error> {
     match run(std::env::args()) {
         Err(Error::Cli(err)) => err.exit(),
-        other => other,
+        Ok(return_values) => {
+            if !return_values.is_empty() {
+                println!("Return values : {:?}", return_values)
+            }
+            Ok(())
+        }
+        Err(err) => Err(err),
     }
 }
 
@@ -270,13 +309,13 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
     fn test_run_fibonacci_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(()));
+        assert_matches!(run(args), Ok(_));
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(()));
+        assert_matches!(run(args), Ok(_));
     }
 }

@@ -11,6 +11,8 @@ keywords.workspace = true
 [dependencies]
 # To match the cairo-vm version used by cairo-lang-runner crate
 cairo-vm = {version = "0.8.2", features = ["std"]}
+
+cairo-lang-sierra-type-size = { version = "2.1.0-rc2", default-features = false } 
 cairo-lang-sierra-to-casm.workspace = true 
 cairo-lang-compiler.workspace = true
 cairo-lang-sierra.workspace = true
