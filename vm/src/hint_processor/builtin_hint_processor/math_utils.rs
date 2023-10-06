@@ -30,7 +30,7 @@ use crate::{
     },
 };
 use felt::Felt252;
-use num_bigint::BigUint;
+use num_bigint::{BigUint, Sign};
 use num_integer::Integer;
 use num_traits::One;
 use num_traits::{Signed, Zero};
@@ -115,43 +115,45 @@ pub fn assert_le_felt(
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
-    let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?
-        .clone()
-        .into_owned();
-    let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?
-        .clone()
-        .into_owned();
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
+    let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
+    // TODO: use UnsignedInteger for this
+    let prime_div2 = prime_div_constant(2)?;
+    let prime_div3 = prime_div_constant(3)?;
+
     if a > b {
-        return Err(HintError::NonLeFelt252(Box::new((a.clone(), b.clone()))));
+        return Err(HintError::NonLeFelt252(Box::new((
+            Felt252::from(a),
+            Felt252::from(b),
+        ))));
     }
 
-    let arc1 = b - a;
-    let arc2 = Felt252::zero() - Felt252::one() - b;
-    let mut lengths_and_indices = vec![(a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
+    let arc1 = &b - &a;
+    let arc2 = Felt252::prime() - 1_u32 - &b;
+    let mut lengths_and_indices = [(&a, 0_i32), (&arc1, 1_i32), (&arc2, 2_i32)];
     lengths_and_indices.sort();
-    if lengths_and_indices[0].0 > &div_prime_by_bound(Felt252::new(3_i32))?
-        || lengths_and_indices[1].0 > &div_prime_by_bound(Felt252::new(2_i32))?
-    {
+    // TODO: I believe this check can be removed
+    if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
         return Err(HintError::ArcTooBig(Box::new((
-            lengths_and_indices[0].0.clone(),
-            div_prime_by_bound(Felt252::new(3_i32))?,
-            lengths_and_indices[1].0.clone(),
-            div_prime_by_bound(Felt252::new(3_i32))?,
+            Felt252::from(lengths_and_indices[0].0.clone()),
+            Felt252::from(prime_div2),
+            Felt252::from(lengths_and_indices[1].0.clone()),
+            Felt252::from(prime_div3),
         ))));
     }
 
     let excluded = lengths_and_indices[2].1;
     exec_scopes.assign_or_update_variable("excluded", any_box!(Felt252::new(excluded)));
 
-    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(prime_over_3_high);
-    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(prime_over_2_high);
+    let (q_0, r_0) = (lengths_and_indices[0].0).div_mod_floor(&prime_over_3_high.to_biguint());
+    let (q_1, r_1) = (lengths_and_indices[1].0).div_mod_floor(&prime_over_2_high.to_biguint());
 
-    vm.insert_value((range_check_ptr + 1_i32)?, q_0)?;
-    vm.insert_value(range_check_ptr, r_0)?;
-    vm.insert_value((range_check_ptr + 3_i32)?, q_1)?;
-    vm.insert_value((range_check_ptr + 2_i32)?, r_1)?;
+    vm.insert_value(range_check_ptr, Felt252::from(r_0))?;
+    vm.insert_value((range_check_ptr + 1_i32)?, Felt252::from(q_0))?;
+    vm.insert_value((range_check_ptr + 2_i32)?, Felt252::from(r_1))?;
+    vm.insert_value((range_check_ptr + 3_i32)?, Felt252::from(q_1))?;
     Ok(())
 }
 
@@ -380,9 +382,12 @@ pub fn is_positive(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value_as_int = value.to_signed_felt();
     let range_check_builtin = vm.get_range_check_builtin()?;
+
+    // Avoid using abs so we don't allocate a new BigInt
+    let (sign, abs_value) = value_as_int.into_parts();
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
-        Some(bound) if value_as_int.abs() > bound.to_bigint() => {
+        Some(bound) if abs_value > bound.to_biguint() => {
             return Err(HintError::ValueOutsideValidRange(Box::new(
                 value.into_owned(),
             )))
@@ -390,7 +395,7 @@ pub fn is_positive(
         _ => {}
     };
 
-    let result = Felt252::from(value_as_int.is_positive() as u8);
+    let result = Felt252::from((sign == Sign::Plus) as u8);
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
 }
 
@@ -407,7 +412,24 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+    if max_high.bits() > 128 || max_low.bits() > 128 {
+        return Err(HintError::AssertionFailed(
+            "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
+                .to_string()
+                .into_boxed_str(),
+        ));
+    }
+    if Felt252::from(-1) != max_high * &Felt252::one().shl(128_u32) + max_low {
+        return Err(HintError::AssertionFailed(
+            "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
+                .to_string()
+                .into_boxed_str(),
+        ));
+    }
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value = value.as_ref();
     //Main logic
@@ -468,10 +490,10 @@ pub fn signed_div_rem(
                 builtin_bound.clone(),
             ))));
         }
-        Some(builtin_bound) if bound.as_ref() > &builtin_bound.shr(1) => {
+        Some(builtin_bound) if bound.as_ref() > &(builtin_bound >> 1_u32) => {
             return Err(HintError::OutOfValidRange(Box::new((
                 bound.into_owned(),
-                builtin_bound.shr(1),
+                builtin_bound >> 1_u32,
             ))));
         }
         None if div.is_zero() => {
@@ -682,7 +704,7 @@ pub fn is_quad_residue(
 
     if x.is_zero() || x.is_one() {
         insert_value_from_var_name("y", x.as_ref().clone(), vm, ids_data, ap_tracking)
-    } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1)).is_one() {
+    } else if Pow::pow(x.as_ref(), &(Felt252::max_value() >> 1_u32)).is_one() {
         insert_value_from_var_name("y", &x.sqrt(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
@@ -700,6 +722,12 @@ fn div_prime_by_bound(bound: Felt252) -> Result<Felt252, VirtualMachineError> {
     #[allow(deprecated)]
     let limit = prime / bound.to_biguint();
     Ok(Felt252::new(limit))
+}
+
+fn prime_div_constant(bound: u32) -> Result<BigUint, VirtualMachineError> {
+    let prime: &BigUint = &CAIRO_PRIME;
+    let limit = prime / bound;
+    Ok(limit)
 }
 
 /* Implements hint:
@@ -782,7 +810,6 @@ mod tests {
     use super::*;
     use crate::stdlib::ops::Shl;
 
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
@@ -790,7 +817,7 @@ mod tests {
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
                 hint_code,
             },
-            hint_processor_definition::HintProcessor,
+            hint_processor_definition::HintProcessorLogic,
         },
         relocatable,
         types::exec_scope::ExecutionScopes,
@@ -1803,6 +1830,29 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn signed_div_rem_out_of_range_bound() {
+        let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 6;
+        //Insert ids into memory
+        let bound = vm.get_range_check_builtin().unwrap()._bound.clone();
+        vm.segments = segments![((1, 3), (5)), ((1, 4), 10)];
+        vm.insert_value((1, 5).into(), bound.clone().unwrap())
+            .unwrap();
+        //Create ids
+        let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
+        //Execute the hint
+        let builtin_bound = felt_str!("340282366920938463463374607431768211456");
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::OutOfValidRange(bx))
+            if *bx == (bound.unwrap(), builtin_bound >> 1_u32)
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn signed_div_rem_no_range_check_builtin() {
         let hint_code = "from starkware.cairo.common.math_utils import as_int, assert_integer\n\nassert_integer(ids.div)\nassert 0 < ids.div <= PRIME // range_check_builtin.bound, \\\n    f'div={hex(ids.div)} is out of the valid range.'\n\nassert_integer(ids.bound)\nassert ids.bound <= range_check_builtin.bound // 2, \\\n    f'bound={hex(ids.bound)} is out of the valid range.'\n\nint_value = as_int(ids.value, PRIME)\nq, ids.r = divmod(int_value, ids.div)\n\nassert -ids.bound <= q < ids.bound, \\\n    f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'\n\nids.biased_q = q + ids.bound";
         let mut vm = vm!();
@@ -2063,7 +2113,22 @@ mod tests {
             ("high".to_string(), HintReference::new(-3, 1, true, true)),
         ]);
         //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
+            Ok(())
+        );
         //Check hint memory inserts
         check_memory![
             vm.segments.memory,
@@ -2089,7 +2154,19 @@ mod tests {
         let ids_data = ids_data!["low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
     }
@@ -2116,7 +2193,19 @@ mod tests {
 
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 0)),
@@ -2147,7 +2236,19 @@ mod tests {
         ]);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 1)),
@@ -2173,8 +2274,122 @@ mod tests {
         ]);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
+            ),
             Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,3).into())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_no_constants() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_constants_over_128_bits() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::from(-1)),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::from(-1),
+                    )
+                ])
+            ),
+            Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_split_felt_wrong_constants() {
+        let hint_code =
+        "from starkware.cairo.common.math_utils import assert_integer\nassert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128\nassert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW\nassert_integer(ids.value)\nids.low = ids.value & ((1 << 128) - 1)\nids.high = ids.value >> 128";
+        let mut vm = vm_with_range_check!();
+        vm.segments = segments![
+            ((1, 3), ("335438970432432812899076431678123043273", 10)),
+            ((1, 4), (2, 0))
+        ];
+        add_segments!(vm, 1);
+        //Initialize fp
+        vm.run_context.fp = 7;
+        //Create ids
+        let ids_data = HashMap::from([
+            ("value".to_string(), HintReference::new_simple(-4)),
+            ("low".to_string(), HintReference::new(-3, 0, true, true)),
+            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+        ]);
+        //Execute the hint
+        assert_matches!(
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::zero()),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::zero(),
+                    )
+                ])
+            ),
+            Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );
     }
 
@@ -2329,7 +2544,7 @@ mod tests {
 
             if x.is_zero() || x.is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), x);
-            } else if x.pow(&(Felt252::max_value() >> 1)).is_one() {
+            } else if x.pow(&(Felt252::max_value() >> 1_u32)).is_one() {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt());
             } else {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x / Felt252::new(3)).sqrt());

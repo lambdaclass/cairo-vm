@@ -283,10 +283,9 @@ pub fn example_blake2s_compress(
     let blake2s_start = get_ptr_from_var_name("blake2s_start", vm, ids_data, ap_tracking)?;
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).map(|x| {
-        x.to_u32()
-            .ok_or(HintError::Math(MathError::Felt252ToU32Conversion(
-                Box::new(x.into_owned()),
-            )))
+        x.to_u32().ok_or_else(|| {
+            HintError::Math(MathError::Felt252ToU32Conversion(Box::new(x.into_owned())))
+        })
     })??;
 
     let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range(blake2s_start, 16)?)?;
@@ -306,14 +305,13 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::{
                 BuiltinHintProcessor, HintProcessorData,
             },
-            hint_processor_definition::HintProcessor,
+            hint_processor_definition::HintProcessorLogic,
         },
         relocatable,
         types::exec_scope::ExecutionScopes,
@@ -524,7 +522,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])";
         //Create vm
         let mut vm = vm!();
         //Initialize fp
@@ -557,7 +555,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_non_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])";
         //Create vm
         let mut vm = vm!();
         //Initialize fp

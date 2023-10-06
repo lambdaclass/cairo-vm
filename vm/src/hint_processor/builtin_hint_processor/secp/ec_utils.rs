@@ -132,7 +132,7 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p);
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -161,7 +161,7 @@ pub fn compute_doubling_slope_external_consts(
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
     let alpha: BigInt = exec_scopes.get("ALPHA")?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p);
+    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), &alpha, &secp_p)?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -220,7 +220,7 @@ pub fn compute_slope(
         &(point0.x.pack86(), point0.y.pack86()),
         &(point1.x.pack86(), point1.y.pack86()),
         &secp_p,
-    );
+    )?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -546,14 +546,13 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::stdlib::string::ToString;
 
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::{
                 BuiltinHintProcessor, HintProcessorData,
             },
-            hint_processor_definition::HintProcessor,
+            hint_processor_definition::HintProcessorLogic,
         },
         types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
         utils::test_utils::*,
@@ -1273,12 +1272,12 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.d0.as_ref(), &Felt252::one());
-        assert_eq!(e.x.d1.as_ref(), &Felt252::from(2));
-        assert_eq!(e.x.d2.as_ref(), &Felt252::from(3));
-        assert_eq!(e.y.d0.as_ref(), &Felt252::from(4));
-        assert_eq!(e.y.d1.as_ref(), &Felt252::from(5));
-        assert_eq!(e.y.d2.as_ref(), &Felt252::from(6));
+        assert_eq!(e.x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(e.x.limbs[1].as_ref(), &Felt252::from(2));
+        assert_eq!(e.x.limbs[2].as_ref(), &Felt252::from(3));
+        assert_eq!(e.y.limbs[0].as_ref(), &Felt252::from(4));
+        assert_eq!(e.y.limbs[1].as_ref(), &Felt252::from(5));
+        assert_eq!(e.y.limbs[2].as_ref(), &Felt252::from(6));
     }
 
     #[test]

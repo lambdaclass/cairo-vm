@@ -1,5 +1,5 @@
+use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
-use crate::hint_processor::builtin_hint_processor::uint512_utils::Uint512;
 use crate::stdlib::prelude::String;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
@@ -39,7 +39,7 @@ pub fn inv_mod_p_uint512(
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
     let x_inverse_mod_p =
-        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p)));
+        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p))?);
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
@@ -53,13 +53,12 @@ mod tests {
     use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::mayberelocatable;
     use crate::utils::test_utils::memory;
     use crate::utils::test_utils::memory_from_memory;
     use crate::utils::test_utils::memory_inner;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         hint_processor::builtin_hint_processor::hint_code::INV_MOD_P_UINT512,
         types::exec_scope::ExecutionScopes,

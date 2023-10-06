@@ -64,7 +64,7 @@ pub fn ed25519_is_zero_assign_scope_vars(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
-    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2);
+    let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2)?;
     exec_scopes.insert_value("x_inv", x_inv.clone());
     exec_scopes.insert_value("value", x_inv);
     exec_scopes.insert_value("SECP_P", SECP_P_V2.clone());
@@ -79,12 +79,11 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
+    use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::vm::vm_core::VirtualMachine;
     use num_bigint::BigInt;
     use num_traits::One;

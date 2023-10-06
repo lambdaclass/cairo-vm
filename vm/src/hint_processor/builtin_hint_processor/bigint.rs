@@ -42,18 +42,20 @@ pub fn bigint_pack_div_mod_hint(
         let x_bigint5 = BigInt5::from_var_name("x", vm, ids_data, ap_tracking)?;
         // pack only takes the first three limbs
         let x_lower = BigInt3 {
-            d0: x_bigint5.d0,
-            d1: x_bigint5.d1,
-            d2: x_bigint5.d2,
+            limbs: [
+                x_bigint5.limbs[0].clone(),
+                x_bigint5.limbs[1].clone(),
+                x_bigint5.limbs[2].clone(),
+            ],
         };
         let x_lower = x_lower.pack86();
-        let d3 = x_bigint5.d3.as_ref().to_signed_felt();
-        let d4 = x_bigint5.d4.as_ref().to_signed_felt();
+        let d3 = x_bigint5.limbs[3].as_ref().to_signed_felt();
+        let d4 = x_bigint5.limbs[4].as_ref().to_signed_felt();
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();
 
-    let res = div_mod(&x, &y, &p);
+    let res = div_mod(&x, &y, &p)?;
     exec_scopes.insert_value("res", res.clone());
     exec_scopes.insert_value("value", res);
     exec_scopes.insert_value("x", x);
@@ -100,12 +102,10 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use crate::hint_processor::hint_processor_definition::HintProcessor;
-    use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::vm::vm_core::VirtualMachine;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;

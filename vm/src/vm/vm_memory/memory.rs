@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
+use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
@@ -75,8 +76,7 @@ impl AddressSet {
             if offset >= self.0[segment].len() {
                 self.0[segment].resize(offset + 1, false);
             }
-
-            self.0[segment].insert(offset, true);
+            self.0[segment].replace(offset, true);
         }
     }
 }
@@ -319,10 +319,8 @@ impl Memory {
             .and_then(|x| self.validation_rules.get(x))
         {
             if !self.validated_addresses.contains(&addr) {
-                {
-                    self.validated_addresses
-                        .extend(rule.0(self, addr)?.as_slice());
-                }
+                self.validated_addresses
+                    .extend(rule.0(self, addr)?.as_slice());
             }
         }
         Ok(())
@@ -331,15 +329,17 @@ impl Memory {
     ///Applies validation_rules to the current memory
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for (index, rule) in self.validation_rules.iter().enumerate() {
-            if let Some(rule) = rule {
-                if index < self.data.len() {
-                    for offset in 0..self.data[index].len() {
-                        let addr = Relocatable::from((index as isize, offset));
-                        if !self.validated_addresses.contains(&addr) {
-                            self.validated_addresses
-                                .extend(rule.0(self, addr)?.as_slice());
-                        }
-                    }
+            if index >= self.data.len() {
+                continue;
+            }
+            let Some(rule) = rule else {
+                continue;
+            };
+            for offset in 0..self.data[index].len() {
+                let addr = Relocatable::from((index as isize, offset));
+                if !self.validated_addresses.contains(&addr) {
+                    self.validated_addresses
+                        .extend(rule.0(self, addr)?.as_slice());
                 }
             }
         }
@@ -511,6 +511,20 @@ impl Memory {
                 })
                 .count(),
         )
+    }
+}
+
+impl From<&Memory> for CairoPieMemory {
+    fn from(mem: &Memory) -> CairoPieMemory {
+        let mut pie_memory = Vec::default();
+        for (i, segment) in mem.data.iter().enumerate() {
+            for (j, elem) in segment.iter().enumerate() {
+                if let Some(cell) = elem {
+                    pie_memory.push(((i, j), cell.get_value().clone()))
+                }
+            }
+        }
+        pie_memory
     }
 }
 
@@ -1611,5 +1625,19 @@ mod memory_tests {
         check_memcmp((-3, 2), (-3, 5), 8, Equal, 0);
         check_memcmp((-2, 0), (-3, 5), 8, Greater, 0);
         check_memcmp((-3, 5), (-2, 0), 8, Less, 0);
+    }
+
+    #[test]
+    fn cairo_pie_memory_from_memory() {
+        let memory = memory![((8, 9), 3), ((1, 2), 5), ((7, 6), (1, 2))];
+
+        assert_eq!(
+            CairoPieMemory::from(&memory),
+            vec![
+                ((1, 2), MaybeRelocatable::from(5)),
+                ((7, 6), MaybeRelocatable::from((1, 2))),
+                ((8, 9), MaybeRelocatable::from(3))
+            ]
+        )
     }
 }

@@ -13,7 +13,7 @@ use crate::{
         ops::{Shl, Shr},
         prelude::*,
     },
-    types::relocatable::Relocatable,
+    types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use felt::Felt252;
@@ -95,7 +95,7 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
         let low = Felt252::new(u128::MAX) & &value;
-        let high = value >> 128;
+        let high = value >> 128_u32;
         Self::from_values(low, high)
     }
 }
@@ -194,6 +194,7 @@ Implements hint:
     ids.res.high = res_split[1]
 %}
 */
+
 pub fn uint256_sub(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
@@ -208,7 +209,22 @@ pub fn uint256_sub(
         a - b
     } else {
         // wrapped a - b
-        ((BigUint::one() << 256) - b) + a
+        // b is limited to (CAIRO_PRIME - 1) << 128 which is 1 << (251 + 128 + 1)
+        //                                         251: most significant felt bit
+        //                                         128:     high field left shift
+        //                                           1:       extra bit for limit
+        let mod_256 = BigUint::one() << 256;
+        if mod_256 >= b {
+            mod_256 - b + a
+        } else {
+            let lowered_b = b.mod_floor(&mod_256);
+            // Repeat the logic from before
+            if a >= lowered_b {
+                a - lowered_b
+            } else {
+                mod_256 - lowered_b + a
+            }
+        }
     };
 
     let res = Uint256::split(&res);
@@ -231,11 +247,7 @@ pub fn split_64(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let mut digits = a.iter_u64_digits();
     let low = Felt252::new(digits.next().unwrap_or(0u64));
-    let high = if digits.len() <= 1 {
-        Felt252::new(digits.next().unwrap_or(0u64))
-    } else {
-        a.as_ref().shr(64_u32)
-    };
+    let high = a.as_ref() >> 64_u32;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -435,10 +447,13 @@ pub fn uint256_mul_div_mod(
     let div_high = div_high.as_ref();
 
     // Main Logic
-    let a = a_high.shl(128_usize) + a_low;
-    let b = b_high.shl(128_usize) + b_low;
-    let div = div_high.shl(128_usize) + div_low;
-    let (quotient, remainder) = (a.to_biguint() * b.to_biguint()).div_mod_floor(&div.to_biguint());
+    let a = a_high.to_biguint().shl(128_usize) + a_low.to_biguint();
+    let b = b_high.to_biguint().shl(128_usize) + b_low.to_biguint();
+    let div = div_high.to_biguint().shl(128_usize) + div_low.to_biguint();
+    if div.is_zero() {
+        return Err(MathError::DividedByZero.into());
+    }
+    let (quotient, remainder) = (a * b).div_mod_floor(&div);
 
     // ids.quotient_low.low
     vm.insert_value(
@@ -474,7 +489,6 @@ pub fn uint256_mul_div_mod(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vm::runners::cairo_runner::RunResources;
     use crate::{
         any_box,
         hint_processor::{
@@ -482,7 +496,7 @@ mod tests {
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
                 hint_code,
             },
-            hint_processor_definition::HintProcessor,
+            hint_processor_definition::HintProcessorLogic,
         },
         types::{
             exec_scope::ExecutionScopes,
@@ -632,6 +646,52 @@ mod tests {
             vm.segments.memory,
             ((1, 4), ("340282366920938463463374607431768200278", 10)),
             ((1, 5), ("340282366920938463463374607431768205098", 10))
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_b_high_gt_256_lte_a() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), ("340282366920938463463374607431768211456", 10)),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            ((1, 3), ("340282366920938463463374607431768211457", 10)),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![vm.segments.memory, ((1, 4), 0), ((1, 5), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_uint256_sub_b_high_gt_256_gt_a() {
+        let hint_code = hint_code::UINT256_SUB;
+        let mut vm = vm_with_range_check!();
+        //Initialize fp
+        vm.run_context.fp = 0;
+        //Create hint_data
+        let ids_data = non_continuous_ids_data![("a", 0), ("b", 2), ("res", 4)];
+        vm.segments = segments![
+            ((1, 0), 1),
+            ((1, 1), 0),
+            ((1, 2), 0),
+            ((1, 3), ("340282366920938463463374607431768211457", 10)),
+        ];
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check hint memory inserts
+        check_memory![
+            vm.segments.memory,
+            ((1, 4), ("1", 10)),
+            ((1, 5), ("340282366920938463463374607431768211455", 10))
         ];
     }
 

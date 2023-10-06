@@ -3,9 +3,6 @@
 
 use crate::stdlib::prelude::*;
 
-#[cfg(feature = "std")]
-use thiserror::Error;
-#[cfg(not(feature = "std"))]
 use thiserror_no_std::Error;
 
 use felt::Felt252;
@@ -45,7 +42,7 @@ pub enum HintError {
     UnknownIdentifierInternal,
     #[error("Wrong identifier type at address {0}")]
     WrongIdentifierTypeInternal(Box<Relocatable>),
-    #[error("Custom Hint Error: {0}")]
+    #[error("Hint Error: {0}")]
     CustomHint(Box<str>),
     #[error("Missing constant: {0}")]
     MissingConstant(Box<&'static str>),
@@ -185,6 +182,8 @@ pub enum HintError {
     InvalidValue(Box<(&'static str, Felt252, Felt252)>),
     #[error("Attempt to subtract with overflow: ids.m - 1")]
     NPairBitsTooLowM,
+    #[error("{0}")]
+    SyscallError(Box<str>),
 }
 
 #[cfg(test)]

@@ -27,9 +27,9 @@ use core::cmp::Ordering;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
+use super::errors::runner_errors::RunnerError;
 use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
-use super::runners::cairo_runner::RunResources;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -86,6 +86,7 @@ pub struct VirtualMachine {
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
 impl VirtualMachine {
@@ -115,6 +116,7 @@ impl VirtualMachine {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
+            relocation_table: None,
         }
     }
 
@@ -314,13 +316,14 @@ impl VirtualMachine {
     fn deduce_dst(
         &self,
         instruction: &Instruction,
-        res: Option<&MaybeRelocatable>,
-    ) -> Option<MaybeRelocatable> {
-        match instruction.opcode {
-            Opcode::AssertEq => res.cloned(),
-            Opcode::Call => Some(self.get_fp().into()),
-            _ => None,
-        }
+        res: &Option<MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, VirtualMachineError> {
+        let dst = match (instruction.opcode, res) {
+            (Opcode::AssertEq, Some(res)) => res.clone(),
+            (Opcode::Call, _) => MaybeRelocatable::from(self.run_context.get_fp()),
+            _ => return Err(VirtualMachineError::NoDst),
+        };
+        Ok(dst)
     }
 
     fn opcode_assertions(
@@ -406,15 +409,10 @@ impl VirtualMachine {
             instruction.off1 + (1_isize << (OFFSET_BITS - 1)),
             instruction.off2 + (1_isize << (OFFSET_BITS - 1)),
         );
+        let (min, max) = self.rc_limits.unwrap_or((off0, off0));
         self.rc_limits = Some((
-            [self.rc_limits.unwrap_or((off0, off0)).0, off0, off1, off2]
-                .into_iter()
-                .min()
-                .unwrap(),
-            [self.rc_limits.unwrap_or((off0, off0)).1, off0, off1, off2]
-                .into_iter()
-                .max()
-                .unwrap(),
+            min.min(off0).min(off1).min(off2),
+            max.max(off0).max(off1).max(off2),
         ));
 
         self.segments
@@ -447,22 +445,23 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
-        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
-        if let Some(hint_list) = hint_data_dictionary.get(&self.run_context.pc.offset) {
-            for (hint_index, hint_data) in hint_list.iter().enumerate() {
-                hint_executor
-                    .execute_hint(self, exec_scopes, hint_data, constants, run_resources)
-                    .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
-            }
+        for (hint_index, hint_data) in hint_data.iter().enumerate() {
+            hint_executor
+                .execute_hint(self, exec_scopes, hint_data, constants)
+                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
         }
         Ok(())
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
         let pc = self.run_context.pc.offset;
+
+        if self.segments.memory.data[0].len() <= pc {
+            return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
+        }
 
         let mut inst_cache = core::mem::take(&mut self.instruction_cache);
         inst_cache.resize((pc + 1).max(inst_cache.len()), None);
@@ -486,33 +485,16 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data_dictionary: &HashMap<usize, Vec<Box<dyn Any>>>,
+        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
-        run_resources: &mut RunResources,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(
-            hint_executor,
-            exec_scopes,
-            hint_data_dictionary,
-            constants,
-            run_resources,
-        )?;
+        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(
-            hint_executor,
-            exec_scopes,
-            hint_data_dictionary,
-            constants,
-        )?;
+        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(
-            hint_executor,
-            exec_scopes,
-            hint_data_dictionary,
-            constants,
-        )?;
+        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
 
         Ok(())
     }
@@ -562,20 +544,6 @@ impl VirtualMachine {
             VirtualMachineError::FailedToComputeOperands(Box::new(("op1".to_string(), op1_addr)))
         })?;
         Ok(op1)
-    }
-
-    fn compute_dst_deductions(
-        &self,
-        instruction: &Instruction,
-        res: &Option<MaybeRelocatable>,
-    ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let dst_op = match instruction.opcode {
-            Opcode::AssertEq if res.is_some() => Option::clone(res),
-            Opcode::Call => Some(MaybeRelocatable::from(self.run_context.get_fp())),
-            _ => self.deduce_dst(instruction, res.as_ref()),
-        };
-        let dst = dst_op.ok_or(VirtualMachineError::NoDst)?;
-        Ok(dst)
     }
 
     /// Compute operands and result, trying to deduce them if normal memory access returns a None
@@ -628,7 +596,7 @@ impl VirtualMachine {
             Some(dst) => dst,
             None => {
                 deduced_operands.set_dst(true);
-                self.compute_dst_deductions(instruction, &res)?
+                self.deduce_dst(instruction, &res)?
             }
         };
         let accessed_addresses = OperandsAddresses {
@@ -1024,6 +992,51 @@ impl VirtualMachine {
             Err(TraceError::TraceNotRelocated)
         }
     }
+
+    /// Returns a list of addresses of memory cells that constitute the public memory.
+    pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
+        if let Some(relocation_table) = &self.relocation_table {
+            self.segments
+                .get_public_memory_addresses(relocation_table)
+                .map_err(VirtualMachineError::Memory)
+        } else {
+            Err(MemoryError::UnrelocatedMemory.into())
+        }
+    }
+
+    pub fn get_memory_segment_addresses(
+        &self,
+    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
+        let relocation_table = self
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
+            let (index, stop_ptr_offset) = segment;
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((*base, base + stop_ptr_offset))
+        };
+
+        self.builtin_runners
+            .iter()
+            .map(|builtin| -> Result<_, VirtualMachineError> {
+                let addresses =
+                    if let (base, Some(stop_ptr)) = builtin.get_memory_segment_addresses() {
+                        (base, stop_ptr)
+                    } else {
+                        return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
+                    };
+
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate(addresses)?,
+                ))
+            })
+            .collect()
+    }
 }
 
 pub struct VirtualMachineBuilder {
@@ -1119,6 +1132,7 @@ impl VirtualMachineBuilder {
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
+            relocation_table: None,
         }
     }
 }
@@ -2429,8 +2443,8 @@ mod tests {
 
         let res = MaybeRelocatable::Int(Felt252::new(7));
         assert_eq!(
-            Some(MaybeRelocatable::Int(Felt252::new(7))),
-            vm.deduce_dst(&instruction, Some(&res))
+            MaybeRelocatable::Int(Felt252::new(7)),
+            vm.deduce_dst(&instruction, &Some(res)).unwrap()
         );
     }
 
@@ -2453,7 +2467,7 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(None, vm.deduce_dst(&instruction, None));
+        assert!(vm.deduce_dst(&instruction, &None).is_err());
     }
 
     #[test]
@@ -2476,8 +2490,8 @@ mod tests {
         let vm = vm!();
 
         assert_eq!(
-            Some(MaybeRelocatable::from((1, 0))),
-            vm.deduce_dst(&instruction, None)
+            MaybeRelocatable::from((1, 0)),
+            vm.deduce_dst(&instruction, &None).unwrap()
         );
     }
 
@@ -2500,7 +2514,7 @@ mod tests {
 
         let vm = vm!();
 
-        assert_eq!(None, vm.deduce_dst(&instruction, None));
+        assert!(vm.deduce_dst(&instruction, &None).is_err());
     }
 
     #[test]
@@ -2667,9 +2681,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
+                &Vec::new(),
                 &HashMap::new(),
-                &HashMap::new(),
-                &mut RunResources::default(),
             ),
             Ok(())
         );
@@ -2897,9 +2910,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &HashMap::new(),
-                &HashMap::new(),
-                &mut RunResources::default(),
+                &Vec::new(),
+                &HashMap::new()
             ),
             Ok(())
         );
@@ -2980,9 +2992,8 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &HashMap::new(),
-                    &HashMap::new(),
-                    &mut RunResources::default(),
+                    &Vec::new(),
+                    &HashMap::new()
                 ),
                 Ok(())
             );
@@ -3077,9 +3088,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &HashMap::new(),
-                &HashMap::new(),
-                &mut RunResources::default(),
+                &Vec::new(),
+                &HashMap::new()
             ),
             Ok(())
         );
@@ -3099,9 +3109,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &HashMap::new(),
-                &HashMap::new(),
-                &mut RunResources::default(),
+                &Vec::new(),
+                &HashMap::new()
             ),
             Ok(())
         );
@@ -3122,9 +3131,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &HashMap::new(),
-                &HashMap::new(),
-                &mut RunResources::default(),
+                &Vec::new(),
+                &HashMap::new()
             ),
             Ok(())
         );
@@ -3643,13 +3651,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
-        let hint_data_dictionary = HashMap::from([(
-            0_usize,
-            vec![any_box!(HintProcessorData::new_default(
-                "memory[ap] = segments.add()".to_string(),
-                HashMap::new(),
-            ))],
-        )]);
+        let hint_data = vec![any_box!(HintProcessorData::new_default(
+            "memory[ap] = segments.add()".to_string(),
+            HashMap::new(),
+        ))];
 
         //Initialzie registers
         run_context!(vm, 3, 2, 2);
@@ -3684,13 +3689,17 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
+            let hint_data = if vm.run_context.pc == (0, 0).into() {
+                &hint_data[0..]
+            } else {
+                &hint_data[0..0]
+            };
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &hint_data_dictionary,
-                    &HashMap::new(),
-                    &mut RunResources::default(),
+                    hint_data,
+                    &HashMap::new()
                 ),
                 Ok(())
             );
@@ -4167,12 +4176,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
@@ -4197,12 +4201,7 @@ mod tests {
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
         assert!(cairo_runner
-            .run_until_pc(
-                end,
-                &mut RunResources::default(),
-                &mut vm,
-                &mut hint_processor
-            )
+            .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
         assert_eq!(vm.get_traceback_entries(), expected_traceback);
@@ -4239,7 +4238,7 @@ mod tests {
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
             _runner: &mut CairoRunner,
-            _hint_data: &HashMap<usize, Vec<Box<dyn Any>>>,
+            _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
@@ -4291,12 +4290,7 @@ mod tests {
                 .unwrap();
 
             assert!(cairo_runner
-                .run_until_pc(
-                    end,
-                    &mut RunResources::default(),
-                    &mut virtual_machine_from_builder,
-                    &mut hint_processor
-                )
+                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
                 .is_err());
         }
     }
