@@ -1,25 +1,45 @@
 #![allow(unused_imports)]
-use cairo_lang_casm::casm;
-use cairo_lang_sierra::program::Function;
-use cairo_lang_sierra::program::Program as SierraProgram;
 use bincode::enc::write::Writer;
+use cairo_lang_casm::casm;
+use cairo_lang_casm::casm_extend;
+use cairo_lang_casm::hints::Hint;
+use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::RunnerError as CairoLangRunnerError;
 use cairo_lang_runner::SierraCasmRunner;
-use cairo_lang_casm::instructions::Instruction;
-use cairo_lang_casm::hints::Hint;
-use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_sierra::extensions::core::{CoreType, CoreLibfunc};
+use cairo_lang_sierra::extensions::bitwise::BitwiseType;
+use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
+use cairo_lang_sierra::extensions::ec::EcOpType;
+use cairo_lang_sierra::extensions::gas::GasBuiltinType;
+use cairo_lang_sierra::extensions::pedersen::PedersenType;
+use cairo_lang_sierra::extensions::poseidon::PoseidonType;
+use cairo_lang_sierra::extensions::range_check::RangeCheckType;
+use cairo_lang_sierra::extensions::segment_arena::SegmentArenaType;
+use cairo_lang_sierra::extensions::starknet::syscalls::SystemType;
+use cairo_lang_sierra::extensions::ConcreteType;
+use cairo_lang_sierra::extensions::NamedType;
+use cairo_lang_sierra::ids::ConcreteTypeId;
+use cairo_lang_sierra::program::Function;
+use cairo_lang_sierra::program::Program as SierraProgram;
 use cairo_lang_sierra::program_registry::ProgramRegistry;
 use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
+use cairo_lang_sierra_ap_change::calc_ap_changes;
+use cairo_lang_sierra_gas::gas_info::GasInfo;
+use cairo_lang_sierra_to_casm::compiler::CairoProgram;
 use cairo_lang_sierra_to_casm::compiler::CompilationError;
+use cairo_lang_sierra_to_casm::metadata::Metadata;
+use cairo_lang_sierra_to_casm::metadata::MetadataComputationConfig;
 use cairo_lang_sierra_to_casm::metadata::MetadataError;
 use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
+use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
+use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
 use cairo_vm::cairo_run::EncodeTraceError;
-use cairo_vm::serde::deserialize_program::{HintParams, FlowTrackingData, ApTracking};
+use cairo_vm::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
+use cairo_vm::serde::deserialize_program::BuiltinName;
+use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
@@ -36,7 +56,6 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
 };
-use cairo_vm::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
 use clap::{CommandFactory, Parser, ValueHint};
 use itertools::{chain, Itertools};
 use std::borrow::Cow;
@@ -147,6 +166,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let sierra_program =
         (*compile_cairo_project_at_path(&args.filename, compiler_config).unwrap()).clone();
 
+    let metadata_config = Some(Default::default());
+    let gas_usage_check = metadata_config.is_some();
+    let metadata = create_metadata(&sierra_program, metadata_config)?;
+    let sierra_program_registry =
+        ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
+    let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
+    let casm_program =
+        cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, gas_usage_check)?;
+
     // variable needed for the SierraCasmRunner
     let contracts_info = OrderedHashMap::default();
 
@@ -157,16 +185,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         contracts_info,
     )?;
 
-    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
-    let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
-
     let main_func = find_function(&sierra_program, "::main")?;
 
     let initial_gas = 9999999999999_usize;
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
-    let (entry_code, builtins) = casm_runner.create_entry_code(main_func, &[], initial_gas)?;
+    let (entry_code, builtins) = create_entry_code(&sierra_program_registry, &casm_program, &type_sizes, main_func,  initial_gas)?;
     let footer = create_code_footer();
 
     let check_gas_usage = true;
@@ -218,14 +243,32 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let mut return_values = vm.get_return_values(return_type_size as usize)?;
     // Check if this result is a Panic result
-    if return_type_id.debug_name.as_ref().unwrap().starts_with("core::panics::PanicResult::") {
+    if return_type_id
+        .debug_name
+        .as_ref()
+        .unwrap()
+        .starts_with("core::panics::PanicResult::")
+    {
         // Check the failure flag (aka first return value)
         if *return_values.first().unwrap() != MaybeRelocatable::from(0) {
             // In case of failure, extract the error from teh return values (aka last two values)
-            let panic_data_end = return_values.last().unwrap().get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
-            let panic_data_start = return_values.get(return_values.len()-2).ok_or(VirtualMachineError::Unexpected)?.get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
-            let panic_data = vm.get_integer_range(panic_data_start, (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?)?;
-            return Err(Error::RunPanic(panic_data.iter().map(|c| c.as_ref().clone()).collect()))
+            let panic_data_end = return_values
+                .last()
+                .unwrap()
+                .get_relocatable()
+                .ok_or(VirtualMachineError::Unexpected)?;
+            let panic_data_start = return_values
+                .get(return_values.len() - 2)
+                .ok_or(VirtualMachineError::Unexpected)?
+                .get_relocatable()
+                .ok_or(VirtualMachineError::Unexpected)?;
+            let panic_data = vm.get_integer_range(
+                panic_data_start,
+                (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
+            )?;
+            return Err(Error::RunPanic(
+                panic_data.iter().map(|c| c.as_ref().clone()).collect(),
+            ));
         } else {
             return_values = return_values[1..].to_vec()
         }
@@ -268,10 +311,7 @@ fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result
     }
     // Put a pointer to the builtin cost segment at the end of the program (after the
     // additional `ret` statement).
-    vm.insert_value(
-        (vm.get_pc() + data_len).unwrap(),
-        builtin_cost_segment,
-    )?;
+    vm.insert_value((vm.get_pc() + data_len).unwrap(), builtin_cost_segment)?;
 
     Ok(())
 }
@@ -281,22 +321,26 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(return_values) => {
             if !return_values.is_empty() {
-                let return_values_string_list = return_values.iter().map(|m|m.to_string()).join(", ");
+                let return_values_string_list =
+                    return_values.iter().map(|m| m.to_string()).join(", ");
                 println!("Return values : [{}]", return_values_string_list);
             }
             Ok(())
         }
         Err(Error::RunPanic(panic_data)) => {
             if !panic_data.is_empty() {
-                let panic_data_string_list = panic_data.iter().map(|m| {
-                    // Try to parse to utf8 string
-                    let msg = String::from_utf8(m.to_be_bytes().to_vec());
-                    if let Ok(msg) =  msg{
-                        format!("{} ('{}')", m.to_string(), msg)
-                    } else {
-                        m.to_string()
-                    }
-                }).join(", ");
+                let panic_data_string_list = panic_data
+                    .iter()
+                    .map(|m| {
+                        // Try to parse to utf8 string
+                        let msg = String::from_utf8(m.to_be_bytes().to_vec());
+                        if let Ok(msg) = msg {
+                            format!("{} ('{}')", m.to_string(), msg)
+                        } else {
+                            m.to_string()
+                        }
+                    })
+                    .join(", ");
                 println!("Run panicked with: [{}]", panic_data_string_list);
             }
             Ok(())
@@ -316,14 +360,17 @@ pub fn build_hints_vec<'b>(
     for instruction in instructions {
         if !instruction.hints.is_empty() {
             hints.push((hint_offset, instruction.hints.clone()));
-            program_hints.insert(hint_offset, vec![HintParams {
-                code: hint_offset.to_string(),
-                accessible_scopes: Vec::new(),
-                flow_tracking_data: FlowTrackingData {
-                    ap_tracking: ApTracking::default(),
-                    reference_ids: HashMap::new(),
-                },
-            }]);
+            program_hints.insert(
+                hint_offset,
+                vec![HintParams {
+                    code: hint_offset.to_string(),
+                    accessible_scopes: Vec::new(),
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking::default(),
+                        reference_ids: HashMap::new(),
+                    },
+                }],
+            );
         }
         hint_offset += instruction.body.op_size();
     }
@@ -356,6 +403,146 @@ pub fn create_code_footer() -> Vec<Instruction> {
         ret;
     }
     .instructions
+}
+
+/// Returns the instructions to add to the beginning of the code to successfully call the main
+/// function, as well as the builtins required to execute the program.
+pub fn create_entry_code(
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    casm_program: &CairoProgram,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+    func: &Function,
+    initial_gas: usize,
+) -> Result<(Vec<Instruction>, Vec<BuiltinName>), RunnerError> {
+    let mut ctx = casm! {};
+    // The builtins in the formatting expected by the runner.
+    let builtins = vec![
+        BuiltinName::pedersen,
+        BuiltinName::range_check,
+        BuiltinName::bitwise,
+        BuiltinName::ec_op,
+        BuiltinName::poseidon,
+    ];
+    // The offset [fp - i] for each of this builtins in this configuration.
+    let builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::from([
+        (PedersenType::ID, 7),
+        (RangeCheckType::ID, 6),
+        (BitwiseType::ID, 5),
+        (EcOpType::ID, 4),
+        (PoseidonType::ID, 3),
+    ]);
+    // Load all vecs to memory.
+    let mut ap_offset: i16 = 0;
+    let after_vecs_offset = ap_offset;
+    if func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| get_info(sierra_program_registry, ty).long_id.generic_id == SegmentArenaType::ID)
+    {
+        casm_extend! {ctx,
+            // SegmentArena segment.
+            %{ memory[ap + 0] = segments.add() %}
+            // Infos segment.
+            %{ memory[ap + 1] = segments.add() %}
+            ap += 2;
+            [ap + 0] = 0, ap++;
+            // Write Infos segment, n_constructed (0), and n_destructed (0) to the segment.
+            [ap - 2] = [[ap - 3]];
+            [ap - 1] = [[ap - 3] + 1];
+            [ap - 1] = [[ap - 3] + 2];
+        }
+        ap_offset += 3;
+    }
+    for ty in func.signature.param_types.iter() {
+        let info = get_info(sierra_program_registry, ty);
+        let ty_size = type_sizes[ty];
+        let generic_ty = &info.long_id.generic_id;
+        if let Some(offset) = builtin_offset.get(generic_ty) {
+            casm_extend! {ctx,
+                [ap + 0] = [fp - offset], ap++;
+            }
+        } else if generic_ty == &SystemType::ID {
+            casm_extend! {ctx,
+                %{ memory[ap + 0] = segments.add() %}
+                ap += 1;
+            }
+        } else if generic_ty == &GasBuiltinType::ID {
+            casm_extend! {ctx,
+                [ap + 0] = initial_gas, ap++;
+            }
+        } else if generic_ty == &SegmentArenaType::ID {
+            let offset = -ap_offset + after_vecs_offset;
+            casm_extend! {ctx,
+                [ap + 0] = [ap + offset] + 3, ap++;
+            }
+            // } else if let Some(Arg::Array(_)) = arg_iter.peek() {
+            //     let values = extract_matches!(arg_iter.next().unwrap(), Arg::Array);
+            //     let offset = -ap_offset + vecs.pop().unwrap();
+            //     expected_arguments_size += 1;
+            //     casm_extend! {ctx,
+            //         [ap + 0] = [ap + (offset)], ap++;
+            //         [ap + 0] = [ap - 1] + (values.len()), ap++;
+            //     }
+            // } else {
+            //     let arg_size = ty_size;
+            //     expected_arguments_size += arg_size as usize;
+            //     for _ in 0..arg_size {
+            //         if let Some(value) = arg_iter.next() {
+            //             let value = extract_matches!(value, Arg::Value);
+            //             casm_extend! {ctx,
+            //                 [ap + 0] = (value.to_bigint()), ap++;
+            //             }
+            //         }
+            //     }
+        };
+        ap_offset += ty_size;
+    }
+    // if expected_arguments_size != args.len() {
+    //     return Err(RunnerError::ArgumentsSizeMismatch {
+    //         expected: expected_arguments_size,
+    //         actual: args.len(),
+    //     });
+    // }
+    let before_final_call = ctx.current_code_offset;
+    let final_call_size = 3;
+    let offset = final_call_size
+        + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
+    casm_extend! {ctx,
+        call rel offset;
+        ret;
+    }
+    assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
+    Ok((ctx.instructions, builtins))
+}
+
+fn get_info<'a>(
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    ty: &'a cairo_lang_sierra::ids::ConcreteTypeId,
+) -> &'a cairo_lang_sierra::extensions::types::TypeInfo {
+    sierra_program_registry.get_type(ty).unwrap().info()
+}
+
+/// Creates the metadata required for a Sierra program lowering to casm.
+fn create_metadata(
+    sierra_program: &cairo_lang_sierra::program::Program,
+    metadata_config: Option<MetadataComputationConfig>,
+) -> Result<Metadata, VirtualMachineError> {
+    if let Some(metadata_config) = metadata_config {
+        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
+            MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
+            MetadataError::CostError(_) => VirtualMachineError::Unexpected,
+        })
+    } else {
+        Ok(Metadata {
+            ap_change_info: calc_ap_changes(sierra_program, |_, _| 0)
+                .map_err(|_| VirtualMachineError::Unexpected)?,
+            gas_info: GasInfo {
+                variable_values: Default::default(),
+                function_costs: Default::default(),
+            },
+        })
+    }
 }
 
 #[cfg(test)]
