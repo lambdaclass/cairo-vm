@@ -10,7 +10,7 @@ keywords.workspace = true
 
 [dependencies]
 # To match the cairo-vm version used by cairo-lang-runner crate
-cairo-vm = {version = "0.8.2", features = ["std", "cairo-1-hints"]}
+cairo-vm = {workspace = true, features = ["std", "cairo-1-hints"]}
 
 cairo-lang-sierra-type-size = { version = "2.1.0-rc2", default-features = false }
 cairo-lang-sierra-ap-change = { version = "2.1.0-rc2", default-features = false }
