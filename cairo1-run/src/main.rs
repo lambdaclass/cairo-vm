@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use cairo_lang_casm::casm;
 use cairo_lang_sierra::program::Function;
 use cairo_lang_sierra::program::Program as SierraProgram;
 use bincode::enc::write::Writer;
@@ -166,7 +167,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
     let (entry_code, builtins) = casm_runner.create_entry_code(main_func, &[], initial_gas)?;
-    let footer = casm_runner.create_code_footer();
+    let footer = create_code_footer();
 
     let check_gas_usage = true;
     let metadata = calc_metadata(&sierra_program, Default::default())?;
@@ -345,6 +346,16 @@ pub fn find_function<'a>(
             }
         })
         .ok_or_else(|| RunnerError::MissingMain)
+}
+
+/// Creates a list of instructions that will be appended to the program's bytecode.
+pub fn create_code_footer() -> Vec<Instruction> {
+    casm! {
+        // Add a `ret` instruction used in libfuncs that retrieve the current value of the `fp`
+        // and `pc` registers.
+        ret;
+    }
+    .instructions
 }
 
 #[cfg(test)]
