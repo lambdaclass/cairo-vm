@@ -214,8 +214,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         None,
     )?;
 
-    let mut runner = CairoRunner::new(&program, "all_cairo", false)?;
-    let mut vm = VirtualMachine::new(true);
+    let mut runner = CairoRunner::new(&program, &args.layout, false)?;
+    let mut vm = VirtualMachine::new(args.trace_file.is_some());
     let end = runner.initialize(&mut vm)?;
 
     additional_initialization(&mut vm, data_len)?;
@@ -262,8 +262,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     runner.relocate(&mut vm, true)?;
 
-    let relocated_trace = vm.get_relocated_trace()?;
     if args.trace_file.is_some() {
+        let relocated_trace = vm.get_relocated_trace()?;
         let trace_path = args.trace_file.unwrap();
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
@@ -285,7 +285,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     Ok(return_values)
 }
 
-// TODO, check if this can fly
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
     // Create the builtin cost segment
     let builtin_cost_segment = vm.add_memory_segment();
