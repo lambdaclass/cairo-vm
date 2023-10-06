@@ -190,7 +190,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let program = Program::new(
         builtins,
         data,
-        Some(main_func.entry_point.0),
+        Some(0),
         program_hints,
         ReferenceManager {
             references: Vec::new(),
