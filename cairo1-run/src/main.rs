@@ -5,8 +5,6 @@ use cairo_lang_casm::casm_extend;
 use cairo_lang_casm::hints::Hint;
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-use cairo_lang_runner::RunnerError as CairoLangRunnerError;
-use cairo_lang_runner::SierraCasmRunner;
 use cairo_lang_sierra::extensions::bitwise::BitwiseType;
 use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
 use cairo_lang_sierra::extensions::ec::EcOpType;
@@ -99,8 +97,6 @@ enum Error {
     Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
-    #[error("The cairo program execution failed")]
-    CairoRunner(#[from] CairoLangRunnerError),
     #[error(transparent)]
     EncodeTrace(#[from] EncodeTraceError),
     #[error(transparent)]
@@ -174,16 +170,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
     let casm_program =
         cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, gas_usage_check)?;
-
-    // variable needed for the SierraCasmRunner
-    let contracts_info = OrderedHashMap::default();
-
-    // We need this runner to use the `find_function` method for main().
-    let casm_runner = SierraCasmRunner::new(
-        sierra_program.clone(),
-        Some(Default::default()),
-        contracts_info,
-    )?;
 
     let main_func = find_function(&sierra_program, "::main")?;
 
