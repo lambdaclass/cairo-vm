@@ -1,4 +1,6 @@
 #![allow(unused_imports)]
+use cairo_lang_sierra::program::Function;
+use cairo_lang_sierra::program::Program as SierraProgram;
 use bincode::enc::write::Writer;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_lang_runner::RunnerError as CairoLangRunnerError;
@@ -157,7 +159,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
     let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
 
-    let main_func = casm_runner.find_function("::main")?;
+    let main_func = find_function(&sierra_program, "::main")?;
 
     let initial_gas = 9999999999999_usize;
 
@@ -325,6 +327,24 @@ pub fn build_hints_vec<'b>(
         hint_offset += instruction.body.op_size();
     }
     (hints, program_hints)
+}
+
+/// Finds first function ending with `name_suffix`.
+pub fn find_function<'a>(
+    sierra_program: &'a SierraProgram,
+    name_suffix: &'a str,
+) -> Result<&'a Function, RunnerError> {
+    sierra_program
+        .funcs
+        .iter()
+        .find(|f| {
+            if let Some(name) = &f.id.debug_name {
+                name.ends_with(name_suffix)
+            } else {
+                false
+            }
+        })
+        .ok_or_else(|| RunnerError::MissingMain)
 }
 
 #[cfg(test)]
