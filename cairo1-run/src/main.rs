@@ -234,7 +234,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             let panic_data = vm.get_integer_range(panic_data_start, (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?)?;
             return Err(Error::RunPanic(panic_data.iter().map(|c| c.as_ref().clone()).collect()))
         } else {
-            return_values = return_values[1..].to_vec()
+            return_values = return_values[2..].to_vec()
         }
     }
 
@@ -323,13 +323,13 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
     fn test_run_fibonacci_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(_));
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(19)]);
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(_));
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(3628800)]);
     }
 }
