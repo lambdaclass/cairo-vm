@@ -401,21 +401,7 @@ pub fn create_entry_code(
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), RunnerError> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
-    let builtins = vec![
-        BuiltinName::pedersen,
-        BuiltinName::range_check,
-        BuiltinName::bitwise,
-        BuiltinName::ec_op,
-        BuiltinName::poseidon,
-    ];
-    // The offset [fp - i] for each of this builtins in this configuration.
-    let builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::from([
-        (PedersenType::ID, 7),
-        (RangeCheckType::ID, 6),
-        (BitwiseType::ID, 5),
-        (EcOpType::ID, 4),
-        (PoseidonType::ID, 3),
-    ]);
+    let (builtins, builtin_offset) = get_function_builtins(&func);
     // Load all vecs to memory.
     let mut ap_offset: i16 = 0;
     let after_vecs_offset = ap_offset;
@@ -528,6 +514,30 @@ fn create_metadata(
             },
         })
     }
+}
+
+fn get_function_builtins(func: &Function) -> (Vec<BuiltinName>, HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> ) {
+    let entry_params = &func.signature.param_types;
+    let first_builtin_offset = 3;
+    for type_id in entry_params {
+        dbg!(type_id);
+    }
+    let builtins = vec![
+        BuiltinName::pedersen,
+        BuiltinName::range_check,
+        BuiltinName::bitwise,
+        BuiltinName::ec_op,
+        BuiltinName::poseidon,
+    ];
+    // The offset [fp - i] for each of this builtins in this configuration.
+    let builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::from([
+        (PedersenType::ID, 7),
+        (RangeCheckType::ID, 6),
+        (BitwiseType::ID, 5),
+        (EcOpType::ID, 4),
+        (PoseidonType::ID, 3),
+    ]);
+    return (builtins, builtin_offset)
 }
 
 #[cfg(test)]
