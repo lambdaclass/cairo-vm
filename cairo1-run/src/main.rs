@@ -520,27 +520,21 @@ fn get_function_builtins(func: &Function) -> (Vec<BuiltinName>, HashMap<cairo_la
     let entry_params = &func.signature.param_types;
     let mut builtins = Vec::new();
     let mut builtin_offset :HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
-    // Fetch builtins from the entry_params
-    for type_id in entry_params {
-        if type_id.debug_name == Some("RangeCheck".into()) {
-            builtins.push(BuiltinName::range_check);
-        }
-
-        if type_id.debug_name == Some("Pedersen".into()) {
-            builtins.push(BuiltinName::pedersen);
-        }
-
-        if type_id.debug_name == Some("Bitwise".into()) {
-            builtins.push(BuiltinName::bitwise);
-        }
-
-        if type_id.debug_name == Some("EcOp".into()) {
-            builtins.push(BuiltinName::ec_op);
-        }
-
-        if type_id.debug_name == Some("Poseidon".into()) {
-            builtins.push(BuiltinName::poseidon);
-        }
+    // Fetch builtins from the entry_params in the standard order
+    if entry_params.iter().any(|ti| ti.debug_name == Some("Pedersen".into())) {
+        builtins.push(BuiltinName::pedersen);
+    }
+    if entry_params.iter().any(|ti| ti.debug_name == Some("RangeCheck".into())) {
+        builtins.push(BuiltinName::range_check);
+    }
+    if entry_params.iter().any(|ti| ti.debug_name == Some("Bitwise".into())) {
+        builtins.push(BuiltinName::bitwise);
+    }
+    if entry_params.iter().any(|ti| ti.debug_name == Some("EcOp".into())) {
+        builtins.push(BuiltinName::ec_op);
+    }
+    if entry_params.iter().any(|ti| ti.debug_name == Some("Poseidon".into())) {
+        builtins.push(BuiltinName::poseidon);
     }
     let first_offset = builtins.len() as i16 + 2;
     for (i, builtin) in builtins.iter().enumerate() {
