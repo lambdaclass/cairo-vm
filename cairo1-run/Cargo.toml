@@ -18,7 +18,6 @@ cairo-lang-sierra-gas = { version = "2.1.0-rc2", default-features = false }
 cairo-lang-sierra-to-casm.workspace = true 
 cairo-lang-compiler.workspace = true
 cairo-lang-sierra.workspace = true
-cairo-lang-runner.workspace = true
 cairo-lang-utils.workspace = true
 cairo-lang-casm.workspace = true
 itertools = "0.11.0"
