@@ -518,25 +518,36 @@ fn create_metadata(
 
 fn get_function_builtins(func: &Function) -> (Vec<BuiltinName>, HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> ) {
     let entry_params = &func.signature.param_types;
-    let first_builtin_offset = 3;
+    let mut first_builtin_offset = 3;
+    let mut builtins = Vec::new();
+    let mut builtin_offset :HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     for type_id in entry_params {
-        dbg!(type_id);
+        if type_id.debug_name == Some("RangeCheck".into()) {
+            builtins.push(BuiltinName::range_check);
+            builtin_offset.insert(RangeCheckType::ID, first_builtin_offset);
+        }
+
+        if type_id.debug_name == Some("Pedersen".into()) {
+            builtins.push(BuiltinName::pedersen);
+            builtin_offset.insert(PedersenType::ID, first_builtin_offset);
+        }
+
+        if type_id.debug_name == Some("Bitwise".into()) {
+            builtins.push(BuiltinName::bitwise);
+            builtin_offset.insert(BitwiseType::ID, first_builtin_offset);
+        }
+
+        if type_id.debug_name == Some("EcOp".into()) {
+            builtins.push(BuiltinName::ec_op);
+            builtin_offset.insert(EcOpType::ID, first_builtin_offset);
+        }
+
+        if type_id.debug_name == Some("Poseidon".into()) {
+            builtins.push(BuiltinName::poseidon);
+            builtin_offset.insert(PoseidonType::ID, first_builtin_offset);
+        }
+        first_builtin_offset += 1
     }
-    let builtins = vec![
-        BuiltinName::pedersen,
-        BuiltinName::range_check,
-        BuiltinName::bitwise,
-        BuiltinName::ec_op,
-        BuiltinName::poseidon,
-    ];
-    // The offset [fp - i] for each of this builtins in this configuration.
-    let builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::from([
-        (PedersenType::ID, 7),
-        (RangeCheckType::ID, 6),
-        (BitwiseType::ID, 5),
-        (EcOpType::ID, 4),
-        (PoseidonType::ID, 3),
-    ]);
     return (builtins, builtin_offset)
 }
 
