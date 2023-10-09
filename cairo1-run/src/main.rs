@@ -6,13 +6,13 @@ use cairo_lang_runner::{
     build_hints_dict, casm_run::RunFunctionContext, token_gas_cost, CairoHintProcessor,
     SierraCasmRunner, StarknetState,
 };
-use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_sierra::extensions::core::{CoreType, CoreLibfunc};
+use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
 use cairo_lang_sierra::program_registry::ProgramRegistry;
 use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
 use cairo_lang_sierra_to_casm::compiler::CompilationError;
 use cairo_lang_sierra_to_casm::metadata::MetadataError;
 use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
+use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run;
@@ -153,7 +153,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         contracts_info,
     )?;
 
-    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
+    let sierra_program_registry =
+        ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
     let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap();
 
     let main_func = casm_runner.find_function("::main")?;
@@ -225,14 +226,32 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let mut return_values = vm.get_return_values(return_type_size as usize)?;
     // Check if this result is a Panic result
-    if return_type_id.debug_name.as_ref().unwrap().starts_with("core::panics::PanicResult::") {
+    if return_type_id
+        .debug_name
+        .as_ref()
+        .unwrap()
+        .starts_with("core::panics::PanicResult::")
+    {
         // Check the failure flag (aka first return value)
         if *return_values.first().unwrap() != MaybeRelocatable::from(0) {
             // In case of failure, extract the error from teh return values (aka last two values)
-            let panic_data_end = return_values.last().unwrap().get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
-            let panic_data_start = return_values.get(return_values.len()-2).ok_or(VirtualMachineError::Unexpected)?.get_relocatable().ok_or(VirtualMachineError::Unexpected)?;
-            let panic_data = vm.get_integer_range(panic_data_start, (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?)?;
-            return Err(Error::RunPanic(panic_data.iter().map(|c| c.as_ref().clone()).collect()))
+            let panic_data_end = return_values
+                .last()
+                .unwrap()
+                .get_relocatable()
+                .ok_or(VirtualMachineError::Unexpected)?;
+            let panic_data_start = return_values
+                .get(return_values.len() - 2)
+                .ok_or(VirtualMachineError::Unexpected)?
+                .get_relocatable()
+                .ok_or(VirtualMachineError::Unexpected)?;
+            let panic_data = vm.get_integer_range(
+                panic_data_start,
+                (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
+            )?;
+            return Err(Error::RunPanic(
+                panic_data.iter().map(|c| c.as_ref().clone()).collect(),
+            ));
         } else {
             return_values = return_values[2..].to_vec()
         }
@@ -288,22 +307,26 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(return_values) => {
             if !return_values.is_empty() {
-                let return_values_string_list = return_values.iter().map(|m|m.to_string()).join(", ");
+                let return_values_string_list =
+                    return_values.iter().map(|m| m.to_string()).join(", ");
                 println!("Return values : [{}]", return_values_string_list);
             }
             Ok(())
         }
         Err(Error::RunPanic(panic_data)) => {
             if !panic_data.is_empty() {
-                let panic_data_string_list = panic_data.iter().map(|m| {
-                    // Try to parse to utf8 string
-                    let msg = String::from_utf8(m.to_be_bytes().to_vec());
-                    if let Ok(msg) =  msg{
-                        format!("{} ('{}')", m.to_string(), msg)
-                    } else {
-                        m.to_string()
-                    }
-                }).join(", ");
+                let panic_data_string_list = panic_data
+                    .iter()
+                    .map(|m| {
+                        // Try to parse to utf8 string
+                        let msg = String::from_utf8(m.to_be_bytes().to_vec());
+                        if let Ok(msg) = msg {
+                            format!("{} ('{}')", m.to_string(), msg)
+                        } else {
+                            m.to_string()
+                        }
+                    })
+                    .join(", ");
                 println!("Run panicked with: [{}]", panic_data_string_list);
             }
             Ok(())
