@@ -222,7 +222,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     // Fetch return type data
     let return_type_id = main_func.signature.ret_types.last().unwrap();
-    let return_type_size = type_sizes.get(&return_type_id).cloned().unwrap_or_default();
+    let return_type_size = type_sizes.get(return_type_id).cloned().unwrap_or_default();
 
     let mut return_values = vm.get_return_values(return_type_size as usize)?;
     // Check if this result is a Panic result
@@ -321,7 +321,7 @@ fn main() -> Result<(), Error> {
                         // Try to parse to utf8 string
                         let msg = String::from_utf8(m.to_be_bytes().to_vec());
                         if let Ok(msg) = msg {
-                            format!("{} ('{}')", m.to_string(), msg)
+                            format!("{} ('{}')", m, msg)
                         } else {
                             m.to_string()
                         }
