@@ -177,7 +177,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
-    let (entry_code, builtins) = create_entry_code(&sierra_program_registry, &casm_program, &type_sizes, main_func,  initial_gas)?;
+    let (entry_code, builtins) = create_entry_code(
+        &sierra_program_registry,
+        &casm_program,
+        &type_sizes,
+        main_func,
+        initial_gas,
+    )?;
     let footer = create_code_footer();
 
     let check_gas_usage = true;
@@ -516,42 +522,58 @@ fn create_metadata(
     }
 }
 
-fn get_function_builtins(func: &Function) -> (Vec<BuiltinName>, HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> ) {
+fn get_function_builtins(
+    func: &Function,
+) -> (
+    Vec<BuiltinName>,
+    HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
+) {
     let entry_params = &func.signature.param_types;
     let mut builtins = Vec::new();
-    let mut builtin_offset :HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
+    let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
+    let mut current_offset = 3;
     // Fetch builtins from the entry_params in the standard order
-    if entry_params.iter().any(|ti| ti.debug_name == Some("Pedersen".into())) {
-        builtins.push(BuiltinName::pedersen);
-    }
-    if entry_params.iter().any(|ti| ti.debug_name == Some("RangeCheck".into())) {
-        builtins.push(BuiltinName::range_check);
-    }
-    if entry_params.iter().any(|ti| ti.debug_name == Some("Bitwise".into())) {
-        builtins.push(BuiltinName::bitwise);
-    }
-    if entry_params.iter().any(|ti| ti.debug_name == Some("EcOp".into())) {
-        builtins.push(BuiltinName::ec_op);
-    }
-    if entry_params.iter().any(|ti| ti.debug_name == Some("Poseidon".into())) {
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("Poseidon".into()))
+    {
         builtins.push(BuiltinName::poseidon);
+        builtin_offset.insert(PoseidonType::ID, current_offset);
+        current_offset += 1;
     }
-    let first_offset = builtins.len() as i16 + 2;
-    for (i, builtin) in builtins.iter().enumerate() {
-        let type_id = match builtin {
-            BuiltinName::output => unreachable!(),
-            BuiltinName::range_check => RangeCheckType::ID,
-            BuiltinName::pedersen => PedersenType::ID,
-            BuiltinName::ecdsa => unreachable!(),
-            BuiltinName::keccak => unreachable!(),
-            BuiltinName::bitwise => BitwiseType::ID,
-            BuiltinName::ec_op => EcOpType::ID,
-            BuiltinName::poseidon => PoseidonType::ID,
-            BuiltinName::segment_arena => unreachable!(),
-        };
-        builtin_offset.insert(type_id, first_offset - i as i16);
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("EcOp".into()))
+    {
+        builtins.push(BuiltinName::ec_op);
+        builtin_offset.insert(EcOpType::ID, current_offset);
+        current_offset += 1
     }
-    return (builtins, builtin_offset)
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("Bitwise".into()))
+    {
+        builtins.push(BuiltinName::bitwise);
+        builtin_offset.insert(BitwiseType::ID, current_offset);
+        current_offset += 1;
+    }
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("RangeCheck".into()))
+    {
+        builtins.push(BuiltinName::range_check);
+        builtin_offset.insert(RangeCheckType::ID, current_offset);
+        current_offset += 1;
+    }
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("Pedersen".into()))
+    {
+        builtins.push(BuiltinName::pedersen);
+        builtin_offset.insert(PedersenType::ID, current_offset);
+    }
+    builtins.reverse();
+    return (builtins, builtin_offset);
 }
 
 #[cfg(test)]
