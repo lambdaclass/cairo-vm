@@ -153,6 +153,19 @@ impl HintsCollection {
     }
 }
 
+impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+    fn from(hc: &HintsCollection) -> Self {
+        let mut hint_map = BTreeMap::new();
+        for (i, r) in hc.hints_ranges.enumerate() {
+            let Some(r) = r else {
+                continue;
+            };
+            hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        hint_map
+    }
+}
+
 /// Represents a range of hints corresponding to a PC.
 ///
 /// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
