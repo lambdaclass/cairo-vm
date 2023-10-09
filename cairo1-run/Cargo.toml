@@ -9,7 +9,6 @@ keywords.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# To match the cairo-vm version used by cairo-lang-runner crate
 cairo-vm = {workspace = true, features = ["std", "cairo-1-hints"]}
 
 cairo-lang-sierra-type-size = { version = "2.1.0-rc2", default-features = false }
