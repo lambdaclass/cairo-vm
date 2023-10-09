@@ -518,35 +518,44 @@ fn create_metadata(
 
 fn get_function_builtins(func: &Function) -> (Vec<BuiltinName>, HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> ) {
     let entry_params = &func.signature.param_types;
-    let mut first_builtin_offset = 3;
     let mut builtins = Vec::new();
     let mut builtin_offset :HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
+    // Fetch builtins from the entry_params
     for type_id in entry_params {
         if type_id.debug_name == Some("RangeCheck".into()) {
             builtins.push(BuiltinName::range_check);
-            builtin_offset.insert(RangeCheckType::ID, first_builtin_offset);
         }
 
         if type_id.debug_name == Some("Pedersen".into()) {
             builtins.push(BuiltinName::pedersen);
-            builtin_offset.insert(PedersenType::ID, first_builtin_offset);
         }
 
         if type_id.debug_name == Some("Bitwise".into()) {
             builtins.push(BuiltinName::bitwise);
-            builtin_offset.insert(BitwiseType::ID, first_builtin_offset);
         }
 
         if type_id.debug_name == Some("EcOp".into()) {
             builtins.push(BuiltinName::ec_op);
-            builtin_offset.insert(EcOpType::ID, first_builtin_offset);
         }
 
         if type_id.debug_name == Some("Poseidon".into()) {
             builtins.push(BuiltinName::poseidon);
-            builtin_offset.insert(PoseidonType::ID, first_builtin_offset);
         }
-        first_builtin_offset += 1
+    }
+    let first_offset = builtins.len() as i16 + 2;
+    for (i, builtin) in builtins.iter().enumerate() {
+        let type_id = match builtin {
+            BuiltinName::output => unreachable!(),
+            BuiltinName::range_check => RangeCheckType::ID,
+            BuiltinName::pedersen => PedersenType::ID,
+            BuiltinName::ecdsa => unreachable!(),
+            BuiltinName::keccak => unreachable!(),
+            BuiltinName::bitwise => BitwiseType::ID,
+            BuiltinName::ec_op => EcOpType::ID,
+            BuiltinName::poseidon => PoseidonType::ID,
+            BuiltinName::segment_arena => unreachable!(),
+        };
+        builtin_offset.insert(type_id, first_offset - i as i16);
     }
     return (builtins, builtin_offset)
 }
