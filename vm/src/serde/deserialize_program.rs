@@ -70,7 +70,7 @@ impl BuiltinName {
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ProgramJson {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,
@@ -1684,5 +1684,42 @@ mod tests {
             "/../cairo_programs/manually_compiled/program_without_attributes_2.json",
         ));
         _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
+    }
+
+    #[test]
+    fn peter_test() {
+        let program = Program::from_bytes(
+            include_bytes!(
+                "../../../cairo_programs/assert_nn.json"
+            ),
+            Some("main"),
+        )
+        .unwrap();
+
+    // dbg!(&program.shared_program_data.hints_collection);
+
+    let program_json = ProgramJson::from(program.clone());
+
+
+    let serialize = serde_json::to_string(&program_json).unwrap();
+
+    // dbg!(&serialize);
+    let program_json_deserialize :ProgramJson = serde_json::from_str(&serialize).unwrap();
+
+
+    assert_eq!(&program_json, &program_json_deserialize);
+
+    // dbg!(&serialize);
+
+
+
+    // // dbg!(&serialize);
+
+    // let deserialization_result =
+    // deserialize_and_parse_program(&serialize, Some("main")).unwrap();
+
+
+    // assert_eq!(&program, &deserialization_result);
+
     }
 }
