@@ -340,6 +340,7 @@ fn main() -> Result<(), Error> {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn build_hints_vec<'b>(
     instructions: impl Iterator<Item = &'b Instruction>,
 ) -> (Vec<(usize, Vec<Hint>)>, HashMap<usize, Vec<HintParams>>) {
