@@ -549,7 +549,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
     fn test_run_fibonacci_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(19)]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(89)]);
     }
 
     #[rstest]
