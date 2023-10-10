@@ -198,10 +198,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(
-    all(feature = "arbitrary", feature = "std"),
-    derive(Arbitrary, Clone, Serialize)
-)]
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     instruction_locations: HashMap<usize, InstructionLocation>,
@@ -554,7 +551,7 @@ impl From<Program> for ProgramJson {
             data: program.shared_program_data.data.clone(),
             identifiers: program.shared_program_data.identifiers.clone(),
             // hints: program.shared_program_data.hints.clone(),
-            hints: BTreeMap::new(),
+            hints: BTreeMap::from(&program.shared_program_data.hints_collection),
             attributes: program.shared_program_data.error_message_attributes.clone(),
             debug_info: program
                 .shared_program_data

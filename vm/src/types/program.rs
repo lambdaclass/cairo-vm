@@ -156,7 +156,7 @@ impl HintsCollection {
 impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
     fn from(hc: &HintsCollection) -> Self {
         let mut hint_map = BTreeMap::new();
-        for (i, r) in hc.hints_ranges.enumerate() {
+        for (i, r) in hc.hints_ranges.iter().enumerate() {
             let Some(r) = r else {
                 continue;
             };
