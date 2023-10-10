@@ -1684,39 +1684,40 @@ mod tests {
     }
 
     #[test]
-    fn peter_test() {
-        let program = Program::from_bytes(
-            include_bytes!(
-                "../../../cairo_programs/assert_nn.json"
-            ),
-            Some("main"),
-        )
-        .unwrap();
+    fn program_json_from_program_test() {
+        let programs_bytes: Vec<Vec<u8>> = [
+            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
+            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
+            include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
+            include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
+                .to_vec(),
+            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
+            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
+            include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
+            include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),
+            include_bytes!("../../../cairo_programs/integration.json").to_vec(),
+            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak_integration_tests.json").to_vec(),
+            include_bytes!("../../../cairo_programs/math_integration_tests.json").to_vec(),
+            include_bytes!("../../../cairo_programs/pedersen_test.json").to_vec(),
+            include_bytes!("../../../cairo_programs/poseidon_hash.json").to_vec(),
+            include_bytes!("../../../cairo_programs/poseidon_multirun.json").to_vec(),
+            include_bytes!("../../../cairo_programs/reduce.json").to_vec(),
+            include_bytes!("../../../cairo_programs/secp_ec.json").to_vec(),
+            include_bytes!("../../../cairo_programs/sha256_test.json").to_vec(),
+            include_bytes!("../../../cairo_programs/uint256_integration_tests.json").to_vec(),
+        ]
+        .to_vec();
+        for bytes in programs_bytes {
+            let original_program = Program::from_bytes(&bytes, Some("main")).unwrap();
 
-    // dbg!(&program.shared_program_data.hints_collection);
+            let program_json = ProgramJson::from(original_program.clone());
 
-    let program_json = ProgramJson::from(program.clone());
+            let new_program = parse_program_json(program_json, Some("main")).unwrap();
 
-
-    let serialize = serde_json::to_string(&program_json).unwrap();
-
-    // dbg!(&serialize);
-    let program_json_deserialize :ProgramJson = serde_json::from_str(&serialize).unwrap();
-
-
-    assert_eq!(&program_json, &program_json_deserialize);
-
-    // dbg!(&serialize);
-
-
-
-    // // dbg!(&serialize);
-
-    // let deserialization_result =
-    // deserialize_and_parse_program(&serialize, Some("main")).unwrap();
-
-
-    // assert_eq!(&program, &deserialization_result);
-
+            assert_eq!(&original_program, &new_program);
+        }
     }
 }
