@@ -357,7 +357,7 @@ impl Program {
     // Todo Handle error
     pub fn deserialize(program_serializer_bytes: &Vec<u8>, entrypoint: Option<&str>) -> Program {
         let program_serializer: ProgramSerializer =
-            serde_json::from_slice(&program_serializer_bytes).unwrap();
+            serde_json::from_slice(program_serializer_bytes).unwrap();
         let program_json = ProgramJson::from(program_serializer);
         parse_program_json(program_json, entrypoint).unwrap()
     }
@@ -1296,14 +1296,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn peter_test() {
-        let program_content =
-            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
-        let program = Program::from_bytes(program_content, None).unwrap();
-
-        let x = program.serialize();
-        let y = Program::deserialize(&x, None);
-        assert_eq!(program, y);
-    }
 }
