@@ -526,8 +526,8 @@ pub fn parse_program_json(
     })
 }
 
-impl From<Program> for ProgramJson {
-    fn from(program: Program) -> Self {
+impl From<&Program> for ProgramJson {
+    fn from(program: &Program) -> Self {
         let references = program
             .shared_program_data
             .reference_manager
@@ -547,7 +547,7 @@ impl From<Program> for ProgramJson {
 
         Self {
             prime: program.prime().into(),
-            builtins: program.builtins,
+            builtins: program.builtins.clone(),
             data: program.shared_program_data.data.clone(),
             identifiers: program.shared_program_data.identifiers.clone(),
             // hints: program.shared_program_data.hints.clone(),
@@ -1713,7 +1713,7 @@ mod tests {
         for bytes in programs_bytes {
             let original_program = Program::from_bytes(&bytes, Some("main")).unwrap();
 
-            let program_json = ProgramJson::from(original_program.clone());
+            let program_json = ProgramJson::from(&original_program);
 
             let new_program = parse_program_json(program_json, Some("main")).unwrap();
 
