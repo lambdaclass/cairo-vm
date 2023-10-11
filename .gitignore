@@ -18,6 +18,7 @@ cairo-vm-pypy-env/*
 /cairo2/
 /cairo-lang/
 *.tar
+cairo-vm-cli/air_input.pub
 
 ensure-no_std/Cargo.lock
 

@@ -110,6 +110,12 @@ The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github
 
 Once the binary is built, it can be found in `target/release/` under the name `cairo-vm-cli`.
 
+As a specific version of Cairo is needed, it's recommended to run all the cli programs inside a virtual environment. To start it, run:
+```bash
+PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	. cairo-vm-env/bin/activate
+  ```
+
 To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
 
 ```bash
@@ -132,6 +138,9 @@ git clone https://github.com/lambdaclass/cairo-vm.git
 cd cairo-vm
 
 cargo build --release
+
+PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+. cairo-vm-env/bin/activate
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
