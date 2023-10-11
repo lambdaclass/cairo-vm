@@ -74,10 +74,7 @@ impl BuiltinName {
 pub struct ProgramJson {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,
-    #[serde(
-        serialize_with = "serialize_program_data",
-        deserialize_with = "deserialize_array_of_bigint_hex"
-    )]
+    #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
     pub hints: BTreeMap<usize, Vec<HintParams>>,
@@ -201,7 +198,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
-    instruction_locations: HashMap<usize, InstructionLocation>,
+    pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -524,45 +521,6 @@ pub fn parse_program_json(
         constants,
         builtins: program_json.builtins,
     })
-}
-
-impl From<&Program> for ProgramJson {
-    fn from(program: &Program) -> Self {
-        let references = program
-            .shared_program_data
-            .reference_manager
-            .clone()
-            .into_iter()
-            .map(|r| Reference {
-                value_address: ValueAddress {
-                    offset1: r.offset1,
-                    offset2: r.offset2,
-                    dereference: r.dereference,
-                    value_type: r.cairo_type.unwrap_or_default(),
-                },
-                ap_tracking_data: r.ap_tracking_data.unwrap_or_default(),
-                pc: None,
-            })
-            .collect::<Vec<_>>();
-
-        Self {
-            prime: program.prime().into(),
-            builtins: program.builtins.clone(),
-            data: program.shared_program_data.data.clone(),
-            identifiers: program.shared_program_data.identifiers.clone(),
-            // hints: program.shared_program_data.hints.clone(),
-            hints: BTreeMap::from(&program.shared_program_data.hints_collection),
-            attributes: program.shared_program_data.error_message_attributes.clone(),
-            debug_info: program
-                .shared_program_data
-                .instruction_locations
-                .clone()
-                .map(|instruction_locations| DebugInfo {
-                    instruction_locations,
-                }),
-            reference_manager: ReferenceManager { references },
-        }
-    }
 }
 
 #[cfg(test)]
@@ -1681,43 +1639,5 @@ mod tests {
             "/../cairo_programs/manually_compiled/program_without_attributes_2.json",
         ));
         _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
-    }
-
-    #[test]
-    fn program_json_from_program_test() {
-        let programs_bytes: Vec<Vec<u8>> = [
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
-            include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
-            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
-            include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
-                .to_vec(),
-            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
-            include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
-            include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
-            include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),
-            include_bytes!("../../../cairo_programs/integration.json").to_vec(),
-            include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/keccak_integration_tests.json").to_vec(),
-            include_bytes!("../../../cairo_programs/math_integration_tests.json").to_vec(),
-            include_bytes!("../../../cairo_programs/pedersen_test.json").to_vec(),
-            include_bytes!("../../../cairo_programs/poseidon_hash.json").to_vec(),
-            include_bytes!("../../../cairo_programs/poseidon_multirun.json").to_vec(),
-            include_bytes!("../../../cairo_programs/reduce.json").to_vec(),
-            include_bytes!("../../../cairo_programs/secp_ec.json").to_vec(),
-            include_bytes!("../../../cairo_programs/sha256_test.json").to_vec(),
-            include_bytes!("../../../cairo_programs/uint256_integration_tests.json").to_vec(),
-        ]
-        .to_vec();
-        for bytes in programs_bytes {
-            let original_program = Program::from_bytes(&bytes, Some("main")).unwrap();
-
-            let program_json = ProgramJson::from(&original_program);
-
-            let new_program = parse_program_json(program_json, Some("main")).unwrap();
-
-            assert_eq!(&original_program, &new_program);
-        }
     }
 }
