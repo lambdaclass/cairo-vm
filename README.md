@@ -235,6 +235,10 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
             &mut hint_processor,
         );
 ```
+### Running cairo 1 programs 
+
+To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
+
 
 ### WebAssembly Demo
 
