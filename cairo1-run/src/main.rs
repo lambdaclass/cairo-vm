@@ -312,7 +312,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     Ok(return_values)
 }
 
-// TODO, check if this can fly
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
     // Create the builtin cost segment
     let builtin_cost_segment = vm.add_memory_segment();
