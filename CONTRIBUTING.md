@@ -1,4 +1,4 @@
-# Contributing to CONTRIBUTING.md
+# Contributing to the Cairo VM
 
 First off, thanks for taking the time to contribute! ❤️
 
