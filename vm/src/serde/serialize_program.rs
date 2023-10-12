@@ -15,7 +15,7 @@ use crate::types::relocatable::MaybeRelocatable;
 
 // This struct is used to Serialize and Deserialize a Program struct
 // Their fields are equal to the ProgramJson
-// but keeping the default Serialization and Deserialization traits
+// but keeping the default Serialization and Deserialization traits implementation
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct ProgramSerializer {
     pub prime: String,
