@@ -348,18 +348,21 @@ impl Program {
         })
     }
 
-    // Todo Handle error
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
         let program_serializer: ProgramSerializer = ProgramSerializer::from(self);
-        serde_json::to_vec(&program_serializer).unwrap()
+        let bytes: Vec<u8> = serde_json::to_vec(&program_serializer)?;
+        Ok(bytes)
     }
 
-    // Todo Handle error
-    pub fn deserialize(program_serializer_bytes: &Vec<u8>, entrypoint: Option<&str>) -> Program {
+    pub fn deserialize(
+        program_serializer_bytes: &[u8],
+        entrypoint: Option<&str>,
+    ) -> Result<Program, ProgramError> {
         let program_serializer: ProgramSerializer =
-            serde_json::from_slice(program_serializer_bytes).unwrap();
+            serde_json::from_slice(program_serializer_bytes)?;
         let program_json = ProgramJson::from(program_serializer);
-        parse_program_json(program_json, entrypoint).unwrap()
+        let program = parse_program_json(program_json, entrypoint)?;
+        Ok(program)
     }
 }
 
@@ -1295,5 +1298,4 @@ mod tests {
             Err(ProgramError::StrippedProgramNoMain)
         );
     }
-
 }

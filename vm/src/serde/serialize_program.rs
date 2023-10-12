@@ -314,8 +314,8 @@ mod tests {
 
         for bytes in programs_bytes {
             let original_program = Program::from_bytes(&bytes, Some("main")).unwrap();
-            let program_serialized = original_program.serialize();
-            let new_program = Program::deserialize(&program_serialized, Some("main"));
+            let program_serialized = original_program.serialize().unwrap();
+            let new_program = Program::deserialize(&program_serialized, Some("main")).unwrap();
 
             assert_eq!(original_program, new_program);
         }
