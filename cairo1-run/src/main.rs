@@ -153,8 +153,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         replace_ids: true,
         ..CompilerConfig::default()
     };
-    let sierra_program =
-        (*compile_cairo_project_at_path(&args.filename, compiler_config).map_err(|err| Error::SierraCompilation(err.to_string()))?).clone();
+    let sierra_program = (*compile_cairo_project_at_path(&args.filename, compiler_config)
+        .map_err(|err| Error::SierraCompilation(err.to_string()))?)
+    .clone();
 
     // variable needed for the SierraCasmRunner
     let contracts_info = OrderedHashMap::default();
@@ -166,9 +167,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         contracts_info,
     )?;
 
-    let sierra_program_registry =
-        ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
-    let type_sizes = get_type_size_map(&sierra_program, &sierra_program_registry).unwrap_or_default();
+    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
+    let type_sizes =
+        get_type_size_map(&sierra_program, &sierra_program_registry).unwrap_or_default();
 
     let main_func = casm_runner.find_function("::main")?;
 
@@ -234,8 +235,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
 
     // Fetch return type data
-    let return_type_id = main_func.signature.ret_types.last().ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes.get(return_type_id).cloned().ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let return_type_id = main_func
+        .signature
+        .ret_types
+        .last()
+        .ok_or(Error::NoRetTypesInSignature)?;
+    let return_type_size = type_sizes
+        .get(return_type_id)
+        .cloned()
+        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
 
     let mut return_values = vm.get_return_values(return_type_size as usize)?;
     // Check if this result is a Panic result
@@ -267,7 +275,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             ));
         } else {
             if return_values.len() < 3 {
-                return Err(Error::FailedToExtractReturnValues)
+                return Err(Error::FailedToExtractReturnValues);
             }
             return_values = return_values[2..].to_vec()
         }
@@ -284,7 +292,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
-    if let Some(memory_path) = args.memory_file  {
+    if let Some(memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
         let mut memory_writer =
             FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
@@ -302,7 +310,8 @@ fn additional_initialization(context: RunFunctionContext) -> Result<(), Error> {
     let builtin_cost_segment = vm.add_memory_segment();
     for token_type in CostTokenType::iter_precost() {
         vm.insert_value(
-            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize)).map_err(VirtualMachineError::Math)?,
+            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize))
+                .map_err(VirtualMachineError::Math)?,
             Felt252::from(token_gas_cost(*token_type)),
         )?
     }
