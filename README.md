@@ -86,6 +86,18 @@ These dependencies are only necessary in order to run the original VM, compile C
 
 You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
 
+### Installing project dependencies
+
+In order to compile programs you need to install the cairo-lang package.
+
+Running the  `make deps` (or the `make deps-macos`  if you are runnning in MacOS) command will create a virtual environment with all the required dependencies.
+
+You can then activate this enviroment by running
+ ```bash
+. cairo-vm-env/bin/activate
+```
+
+
 ## 🚀 Usage
 
 ### Adding cairo-vm as a dependency
@@ -110,6 +122,11 @@ The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github
 
 Once the binary is built, it can be found in `target/release/` under the name `cairo-vm-cli`.
 
+In order to compile Cairo programs you need to activate the environment created while installing dependencies. To start it, run:
+```bash
+. cairo-vm-env/bin/activate
+```
+
 To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
 
 ```bash
@@ -132,6 +149,8 @@ git clone https://github.com/lambdaclass/cairo-vm.git
 cd cairo-vm
 
 cargo build --release
+
+. cairo-vm-env/bin/activate
 
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
