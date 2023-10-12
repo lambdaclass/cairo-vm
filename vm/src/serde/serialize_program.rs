@@ -13,7 +13,7 @@ use super::deserialize_program::{
 use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
 
-// This struct is used to Serialize a Program struct
+// This struct is used to Serialize and Deserialize a Program struct
 // Their fields are equal to the ProgramJson
 // but keeping the default Serialization and Deserialization traits
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
