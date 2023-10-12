@@ -28,17 +28,17 @@ pub(crate) struct ProgramSerializer {
 impl From<ProgramSerializer> for ProgramJson {
     fn from(program_json: ProgramSerializer) -> ProgramJson {
         let mut identifiers = HashMap::new();
-        for (k, v) in program_json.identifiers.clone() {
-            identifiers.insert(k, v.into());
+        for (key, identifier) in program_json.identifiers.clone() {
+            identifiers.insert(key, identifier.into());
         }
 
         let mut hints: BTreeMap<usize, Vec<HintParams>> = BTreeMap::new();
-        for (k, v) in &program_json.hints {
-            let mut vec = Vec::new();
-            for item in v {
-                vec.push(item.clone().into());
+        for (key, hint_params_vec) in &program_json.hints {
+            let mut new_hint_params_vec = Vec::new();
+            for hint_param in hint_params_vec {
+                new_hint_params_vec.push(hint_param.clone().into());
             }
-            hints.insert(*k, vec);
+            hints.insert(*key, new_hint_params_vec);
         }
 
         let mut reference_manager: ReferenceManager = ReferenceManager {
@@ -201,17 +201,18 @@ impl From<&Program> for ProgramSerializer {
             .collect::<Vec<_>>();
 
         let mut identifiers = HashMap::new();
-        for (k, v) in program.shared_program_data.identifiers.clone() {
-            identifiers.insert(k, v.into());
+        for (key, identifier) in program.shared_program_data.identifiers.clone() {
+            identifiers.insert(key, identifier.into());
         }
 
         let mut hints: BTreeMap<usize, Vec<HintParamsSerializer>> = BTreeMap::new();
-        for (k, v) in BTreeMap::from(&program.shared_program_data.hints_collection) {
-            let mut vec = Vec::new();
-            for item in v {
-                vec.push(item.clone().into());
+        for (key, hint_params_vec) in BTreeMap::from(&program.shared_program_data.hints_collection)
+        {
+            let mut new_hints_params = Vec::new();
+            for hint_params in hint_params_vec {
+                new_hints_params.push(hint_params.clone().into());
             }
-            hints.insert(k, vec);
+            hints.insert(key, new_hints_params);
         }
 
         ProgramSerializer {
