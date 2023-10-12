@@ -240,6 +240,11 @@ jobs:
       with:
         tool: cargo-nextest@0.9.49,cargo-llvm-cov,wasm-pack
 
+    - name: Install cairo 1 dependencies for running programs
+      run: |
+        cd cairo1-run
+        make deps
+
     - name: Run ${{ matrix.target }}
       run: |
         # this splits the `test#1` into `test` and `1`
