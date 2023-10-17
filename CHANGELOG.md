@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Implement the Serialize and Deserialize methods fot the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)
+* feat: Implement the Serialize and Deserialize methods for the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)
 
 * feat: Implement a CLI to run cairo programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
 
