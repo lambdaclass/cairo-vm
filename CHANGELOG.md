@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Use only program builtins when running cairo 1 programs [#1457](https://github.com/lambdaclass/cairo-vm/pull/1457)
+
 * feat: Use latest cairo-vm version in cairo1-run crate [#1455](https://github.com/lambdaclass/cairo-vm/pull/1455)
 
 * feat: Implement a CLI to run cairo 1 programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
