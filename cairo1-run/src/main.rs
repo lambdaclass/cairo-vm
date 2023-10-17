@@ -127,6 +127,8 @@ enum Error {
     NoTypeSizeForId(ConcreteTypeId),
     #[error("Concrete type id has no debug name: {0}")]
     TypeIdNoDebugName(ConcreteTypeId),
+    #[error("No info in sierra program registry for concrete type id: {0}")]
+    NoInfoForType(ConcreteTypeId),
     #[error("Failed to extract return values from VM")]
     FailedToExtractReturnValues,
 }
@@ -366,7 +368,7 @@ fn main() -> Result<(), Error> {
 }
 
 #[allow(clippy::type_complexity)]
-pub fn build_hints_vec<'b>(
+fn build_hints_vec<'b>(
     instructions: impl Iterator<Item = &'b Instruction>,
 ) -> (Vec<(usize, Vec<Hint>)>, HashMap<usize, Vec<HintParams>>) {
     let mut hints: Vec<(usize, Vec<Hint>)> = Vec::new();
@@ -395,7 +397,7 @@ pub fn build_hints_vec<'b>(
 }
 
 /// Finds first function ending with `name_suffix`.
-pub fn find_function<'a>(
+fn find_function<'a>(
     sierra_program: &'a SierraProgram,
     name_suffix: &'a str,
 ) -> Result<&'a Function, RunnerError> {
@@ -413,7 +415,7 @@ pub fn find_function<'a>(
 }
 
 /// Creates a list of instructions that will be appended to the program's bytecode.
-pub fn create_code_footer() -> Vec<Instruction> {
+fn create_code_footer() -> Vec<Instruction> {
     casm! {
         // Add a `ret` instruction used in libfuncs that retrieve the current value of the `fp`
         // and `pc` registers.
@@ -424,13 +426,13 @@ pub fn create_code_footer() -> Vec<Instruction> {
 
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
-pub fn create_entry_code(
+fn create_entry_code(
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
-) -> Result<(Vec<Instruction>, Vec<BuiltinName>), RunnerError> {
+) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
     let builtins = vec![
@@ -451,12 +453,11 @@ pub fn create_entry_code(
     // Load all vecs to memory.
     let mut ap_offset: i16 = 0;
     let after_vecs_offset = ap_offset;
-    if func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| get_info(sierra_program_registry, ty).long_id.generic_id == SegmentArenaType::ID)
-    {
+    if func.signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    }) {
         casm_extend! {ctx,
             // SegmentArena segment.
             %{ memory[ap + 0] = segments.add() %}
@@ -472,7 +473,8 @@ pub fn create_entry_code(
         ap_offset += 3;
     }
     for ty in func.signature.param_types.iter() {
-        let info = get_info(sierra_program_registry, ty);
+        let info = get_info(sierra_program_registry, ty)
+            .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let ty_size = type_sizes[ty];
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
@@ -536,8 +538,11 @@ pub fn create_entry_code(
 fn get_info<'a>(
     sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
     ty: &'a cairo_lang_sierra::ids::ConcreteTypeId,
-) -> &'a cairo_lang_sierra::extensions::types::TypeInfo {
-    sierra_program_registry.get_type(ty).unwrap().info()
+) -> Option<&'a cairo_lang_sierra::extensions::types::TypeInfo> {
+    sierra_program_registry
+        .get_type(ty)
+        .ok()
+        .map(|ctc| ctc.info())
 }
 
 /// Creates the metadata required for a Sierra program lowering to casm.
