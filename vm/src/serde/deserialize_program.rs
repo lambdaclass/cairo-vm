@@ -83,6 +83,7 @@ pub struct ProgramJson {
     pub identifiers: HashMap<String, Identifier>,
     pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
+    #[serde(default)]
     pub attributes: Vec<Attribute>,
     pub debug_info: Option<DebugInfo>,
 }
@@ -1600,5 +1601,25 @@ mod tests {
             deserialization_result.unwrap_err(),
             ProgramError::InvalidHintPc(1, 1)
         );
+    }
+
+    #[test]
+    fn parse_without_program_attributes() {
+        // Extracted from: https://testnet.starkscan.co/class/0x068dd0dd8a54ebdaa10563fbe193e6be1e0f7c423c0c3ce1e91c0b682a86b5f9
+        let program = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../cairo_programs/manually_compiled/program_without_attributes.json",
+        ));
+        _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
+    }
+
+    #[test]
+    fn parse_without_program_attributes_2() {
+        // Extracted from: https://testnet.starkscan.co/class/0x071b7f73b5e2b4f81f7cf01d4d1569ccba2921b3fa3170cf11cff3720dfe918e
+        let program = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../cairo_programs/manually_compiled/program_without_attributes_2.json",
+        ));
+        _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
     }
 }
