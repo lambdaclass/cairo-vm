@@ -70,7 +70,7 @@ impl BuiltinName {
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,
