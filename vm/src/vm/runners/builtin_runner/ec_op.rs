@@ -48,7 +48,7 @@ impl EcOpBuiltinRunner {
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
     fn point_on_curve(x: &Felt252, y: &Felt252, alpha: &Felt252, beta: &Felt252) -> bool {
-        y.pow(2) == (x.pow(3) + alpha * x) + beta
+        y.pow(2_u32) == (x.pow(3_u32) + alpha * x) + beta
     }
 
     #[allow(deprecated)]
@@ -122,7 +122,7 @@ impl EcOpBuiltinRunner {
         let alpha: Felt252 = Felt252::ONE;
         let beta_low: Felt252 = Felt252::from(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
         let beta_high: Felt252 = Felt252::from(0x6f21413efbe40de150e596d72f7a8c5_u128);
-        let beta: Felt252 = (beta_high << 128_usize) + beta_low;
+        let beta: Felt252 = (beta_high * (Felt252::ONE + Felt252::from(u128::MAX))) + beta_low;
 
         let index = address
             .offset

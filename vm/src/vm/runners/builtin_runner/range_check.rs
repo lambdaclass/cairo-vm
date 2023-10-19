@@ -1,6 +1,5 @@
 use crate::stdlib::{
     cmp::{max, min},
-    ops::Shl,
     prelude::*,
 };
 
@@ -18,6 +17,8 @@ use crate::{
         },
     },
 };
+
+use num_traits::Zero;
 
 use super::RANGE_CHECK_BUILTIN_NAME;
 
@@ -44,7 +45,7 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::ONE.shl(16 * n_parts as usize);
+        let bound = Felt252::TWO.pow(16 * n_parts as u128);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
@@ -95,7 +96,7 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::ONE << ((N_PARTS * INNER_RC_BOUND_SHIFT) as usize),
+                        Felt252::TWO.pow((N_PARTS * INNER_RC_BOUND_SHIFT) as u128),
                     ))))
                 }
             },

@@ -93,7 +93,7 @@ impl KeccakBuiltinRunner {
                             KECCAK_BUILTIN_NAME,
                             (first_input_addr + i)?,
                         ))))?;
-                    if num >= &(Felt252::ONE << self.state_rep[i] as usize) {
+                    if num >= &(Felt252::TWO.pow(self.state_rep[i])) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                             (first_input_addr + i)?,
                             self.state_rep[i],

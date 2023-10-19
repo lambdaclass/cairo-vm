@@ -151,7 +151,8 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
-    let low = (d0 + (d1 * base_86)) & Felt252::from(u128::MAX);
+    let mask = Felt252::TWO.pow(128_u32);
+    let low = (d0 + (d1 * base_86)).mod_floor(&mask.try_into().expect("nonzero by construction"));
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -187,7 +188,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::{any_box, felt_str};
@@ -223,7 +223,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt252::ONE.shl(86_usize))]
+                &[(BASE_86, Felt252::TWO.pow(86_u128))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

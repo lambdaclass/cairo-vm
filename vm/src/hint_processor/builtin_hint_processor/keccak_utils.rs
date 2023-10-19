@@ -82,9 +82,7 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if word.as_ref() < Felt252::ZERO.as_ref()
-            || word.as_ref() >= &(Felt252::ONE << (8 * (n_bytes as usize)))
-        {
+        if *word >= Felt252::TWO.pow(8 * n_bytes) {
             return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
         }
 
@@ -192,10 +190,8 @@ pub fn split_output(
     num: u32,
 ) -> Result<(), HintError> {
     let output_name = format!("output{}", num);
-    let output_cow = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
-    let output = output_cow.as_ref();
-    let low = output & Felt252::from(u128::MAX);
-    let high = output >> 128_usize;
+    let output = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
+    let (high, low) = output.div_rem(&Felt252::TWO.pow(128_u32).try_into().unwrap());
     insert_value_from_var_name(
         &format!("output{}_high", num),
         high,
@@ -222,9 +218,7 @@ pub fn split_input(
 ) -> Result<(), HintError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
-    let input = binding.as_ref();
-    let low = input & ((Felt252::ONE << (8 * exponent) as usize) - 1u64);
-    let high = input >> (8 * exponent) as usize;
+    let (high, low) = binding.div_rem(&Felt252::TWO.pow(8 * exponent).try_into().unwrap());
     insert_value_from_var_name(
         &format!("high{}", input_key),
         high,
@@ -279,10 +273,8 @@ pub fn split_output_mid_low_high(
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
-    let output1_low = output1 & Felt252::from((1u64 << (8 * 7)) - 1u64);
-    let tmp = output1 >> (8_usize * 7);
-    let output1_high = &tmp >> 128_usize;
-    let output1_mid = tmp & Felt252::from(u128::MAX);
+    let (tmp, output1_low) = output1.div_rem(&Felt252::TWO.pow(8_u32 * 7_u32).try_into().unwrap());
+    let (output1_high, output1_mid) = tmp.div_rem(&Felt252::TWO.pow(128_u64).try_into().unwrap());
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)

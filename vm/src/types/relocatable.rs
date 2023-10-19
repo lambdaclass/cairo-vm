@@ -286,9 +286,11 @@ impl MaybeRelocatable {
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
-                    (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, *num_b)))
-                    })?,
+                    (rel_a.offset as u64 - num_b)
+                        .and_then(|x| x.to_usize())
+                        .ok_or_else(|| {
+                            MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, *num_b)))
+                        })?,
                 )))
             }
             (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => {
@@ -398,9 +400,9 @@ mod tests {
     #[cfg(feature = "std")]
     proptest! {
         #[test]
-        fn add_relocatable_felt(offset in any::<usize>(), ref bigint in any::<[u8; 32]>()) {
+        fn add_relocatable_felt(offset in any::<u64>(), ref bigint in any::<[u8; 32]>()) {
             let big = &Felt252::from_bytes_be(bigint).unwrap();
-            let rel = Relocatable::from((0, offset));
+            let rel = Relocatable::from((0, offset as usize));
 
             let sum = (big + offset).to_usize()
                 .map(|offset| (0, offset).into());
@@ -408,11 +410,11 @@ mod tests {
         }
 
         #[test]
-        fn add_relocatable_felt_extremes(offset in any::<usize>()) {
+        fn add_relocatable_felt_extremes(offset in any::<u64>()) {
             let big_zero = &Felt252::ZERO;
             let big_max = &Felt252::MAX;
-            let big_min = &(big_zero + (i64::MIN as usize));
-            let rel = Relocatable::from((0, offset));
+            let big_min = &(big_zero + (i64::MIN as u64));
+            let rel = Relocatable::from((0, offset as usize));
 
             let sum_max = (big_max + offset).to_usize()
                 .map(|offset| (0, offset).into());
@@ -778,10 +780,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_eq!(
-            relocatable!(0, 0) + &(Felt252::from(usize::MAX) + 1_usize),
+            relocatable!(0, 0) + &(Felt252::from(usize::MAX) + 1_u64),
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                Felt252::from(usize::MAX) + 1_usize
+                Felt252::from(usize::MAX) + 1_u64
             ))))
         );
     }
@@ -888,7 +890,7 @@ mod tests {
             relocatable!(1, 0) + &mayberelocatable!(usize::MAX as i128 + 1),
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(1, 0),
-                Felt252::from(usize::MAX) + 1_usize
+                Felt252::from(usize::MAX) + 1_u64
             ))))
         );
     }

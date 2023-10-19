@@ -40,9 +40,6 @@ fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatabl
     new_array
 }
 
-fn get_maybe_relocatable_array_from_felt(array: &[Felt252]) -> Vec<MaybeRelocatable> {
-    array.iter().map(MaybeRelocatable::from).collect()
-}
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.
 output_ptr should point to the middle of an instance, right after initial_state, message, t, f,
@@ -184,31 +181,24 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?.into_owned();
+    let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
-    //Declare constant
-    const MASK: u32 = u32::MAX;
-    const B: u32 = 32;
-    //Convert MASK to felt
-    let mask = Felt252::from(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((low >> (B * i) as usize) & mask);
+    let b = &Felt252::TWO.pow(32_u8).try_into().unwrap();
+    let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
+    for _ in 0..4 {
+        let (q, r) = low.div_rem(b);
+        data.push(r.into());
+        low = q;
     }
-    //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
-    //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((high >> (B * i) as usize) & mask);
+    for _ in 0..4 {
+        let (q, r) = high.div_rem(b);
+        data.push(r.into());
+        high = q;
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data((data_ptr + 4)?, &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -227,31 +217,27 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?.into_owned();
+    let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
-    //Declare constant
-    const MASK: u32 = u32::MAX;
-    const B: u32 = 32;
-    //Convert MASK to felt
-    let mask = Felt252::from(MASK);
+    let b = &Felt252::TWO.pow(32_u8).try_into().unwrap();
+    let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((high >> (B * (3 - i)) as usize) & mask);
+    for _ in 0..4 {
+        let (q, r) = low.div_rem(b);
+        data.push(r.into());
+        low = q;
     }
-    //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((low >> (B * (3 - i)) as usize) & mask);
+    for _ in 0..4 {
+        let (q, r) = high.div_rem(b);
+        data.push(r.into());
+        high = q;
     }
+    //Reverse to make big-endian
+    data.reverse();
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data((data_ptr + 4)?, &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     Ok(())
 }
 

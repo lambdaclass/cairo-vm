@@ -95,8 +95,8 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
-        let low = Felt252::from(u128::MAX) & value;
-        let high = value >> 128_usize;
+        let den = Felt252::TWO.pow(128_u32);
+        let (high, low) = value.div_rem(&den.try_into().expect("nonzero by construction"));
         Self::from_values(low, high)
     }
 }
@@ -120,7 +120,7 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
     low_only: bool,
 ) -> Result<(), HintError> {
-    let shift = Felt252::from(1_u32) << 128_usize;
+    let shift = Felt252::TWO.pow(128_u32);
 
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -159,7 +159,7 @@ pub fn uint128_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt252::from(1_u32) << 128_usize;
+    let shift = Felt252::TWO.pow(128_u32);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();
@@ -245,10 +245,10 @@ pub fn split_64(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
+    let shift = Felt252::TWO.pow(64_u32);
+
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let digits = a.to_le_digits();
-    let low = Felt252::from(*digits.first().unwrap_or(&0u64));
-    let high = a.as_ref() >> 64_usize;
+    let (high, low) = a.div_rem(&shift.try_into().expect("nonzero by construction"));
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }

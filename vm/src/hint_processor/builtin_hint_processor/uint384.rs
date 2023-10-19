@@ -80,15 +80,11 @@ pub fn uint384_split_128(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.into_owned();
-    insert_value_from_var_name(
-        "low",
-        a & Felt252::from(u128::MAX),
-        vm,
-        ids_data,
-        ap_tracking,
-    )?;
-    insert_value_from_var_name("high", a >> 128_usize, vm, ids_data, ap_tracking)
+    let bound = Felt252::TWO.pow(128_u32).try_into().unwrap();
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let (high, low) = a.div_rem(&bound);
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -235,7 +231,6 @@ pub fn sub_reduced_a_and_reduced_b(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use core::ops::Shl;
 
     use crate::felt_str;
     use crate::{
@@ -492,7 +487,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::ONE.shl(128_usize))]
+                &[("path.path.path.SHIFT", Felt252::TWO.pow(128_u128))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

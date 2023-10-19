@@ -1,4 +1,5 @@
 use crate::stdlib::{boxed::Box, vec::Vec};
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::bitwise_instance_def::{
@@ -72,38 +73,43 @@ impl BitwiseBuiltinRunner {
         if index <= 1 {
             return Ok(None);
         }
-        let x_addr = Relocatable::from((address.segment_index, address.offset - index));
+        let x_addr = (address - index)?;
         let y_addr = (x_addr + 1_usize)?;
 
-        let num_x = memory.get(&x_addr);
-        let num_y = memory.get(&y_addr);
-        if let (Some(MaybeRelocatable::Int(ref num_x)), Some(MaybeRelocatable::Int(ref num_y))) = (
-            num_x.as_ref().map(|x| x.as_ref()),
-            num_y.as_ref().map(|x| x.as_ref()),
-        ) {
-            if num_x.bits() > self.bitwise_builtin.total_n_bits {
+        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr)) else {
+            return Ok(None);
+        };
+
+        let to_bytes = |x_addr, x: &Felt252| -> Result<[u8; 32], RunnerError> {
+            const LEADING_BITS: u8 = 0xf8;
+            let limbs = x.to_bytes_be();
+            if limbs[0] & LEADING_BITS != 0 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
-                    *num_x,
+                    *x,
                 ))));
+            }
+            Ok(limbs)
+        };
+        let (limbs_x, limbs_y) = (to_bytes(x_addr, &num_x)?, to_bytes(y_addr, &num_y)?);
+        let mut limbs_xy = [0u8; 32];
+        for (xy, (x, y)) in limbs_xy
+            .iter_mut()
+            .zip(limbs_x.into_iter().zip(limbs_y.into_iter()))
+        {
+            *xy = match index {
+                2 => x & y,
+                3 => x ^ y,
+                4 => x | y,
+                _ => {
+                    return Ok(None);
+                }
             };
-            if num_y.bits() > self.bitwise_builtin.total_n_bits {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
-                    y_addr,
-                    self.bitwise_builtin.total_n_bits,
-                    *num_y,
-                ))));
-            };
-            let res = match index {
-                2 => Some(MaybeRelocatable::from(num_x & num_y)),
-                3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
-                4 => Some(MaybeRelocatable::from(num_x | num_y)),
-                _ => None,
-            };
-            return Ok(res);
         }
-        Ok(None)
+        Ok(Some(MaybeRelocatable::from(
+            Felt252::from_bytes_be(&limbs_xy).unwrap(),
+        )))
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {

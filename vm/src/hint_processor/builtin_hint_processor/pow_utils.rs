@@ -28,7 +28,7 @@ pub fn pow(
         .map_err(|_| {
             HintError::IdentifierHasNoMember(Box::new(("prev_locs".to_string(), "exp".to_string())))
         })?;
-    let locs_bit = prev_locs_exp.as_ref() & Felt252::ONE;
+    let locs_bit = prev_locs_exp.mod_floor(&Felt252::TWO.try_into().unwrap());
     insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
     Ok(())
 }

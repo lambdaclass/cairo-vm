@@ -1,12 +1,7 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     math_utils::signed_felt,
-    stdlib::{
-        boxed::Box,
-        collections::HashMap,
-        ops::{Shl, Shr},
-        prelude::*,
-    },
+    stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::errors::math_errors::MathError,
     utils::{bigint_to_felt, biguint_to_felt, felt_to_bigint, felt_to_biguint},
 };
@@ -72,7 +67,7 @@ pub fn is_nn_out_of_range(
     //Main logic (assert a is not negative and within the expected range)
     //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
     let value = match &range_check_builtin._bound {
-        Some(bound) if Felt252::ZERO - (a + 1usize) < *bound => Felt252::ZERO,
+        Some(bound) if Felt252::ZERO - (a + 1u64) < *bound => Felt252::ZERO,
         None => Felt252::ZERO,
         _ => Felt252::ONE,
     };
@@ -415,30 +410,28 @@ pub fn split_felt(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    let assert = |b: bool, msg: &str| {
+        b.then_some(())
+            .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
+    };
+    let bound = Felt252::TWO.pow(128_u32);
     let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
     let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
-    if max_high.bits() > 128 || max_low.bits() > 128 {
-        return Err(HintError::AssertionFailed(
-            "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
-                .to_string()
-                .into_boxed_str(),
-        ));
-    }
-    if Felt252::from(-1) != max_high * (&Felt252::ONE << 128) + max_low {
-        return Err(HintError::AssertionFailed(
-            "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
-                .to_string()
-                .into_boxed_str(),
-        ));
-    }
+    assert(
+        max_high < &bound && max_low < &bound,
+        "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
+    )?;
+    assert(
+        Felt252::MAX == max_high * bound + max_low,
+        "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW",
+    )?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value = value.as_ref();
     //Main logic
     //assert_integer(ids.value) (done by match)
     // ids.low = ids.value & ((1 << 128) - 1)
     // ids.high = ids.value >> 128
-    let low: Felt252 = value & ((Felt252::ONE.shl(128_usize)) - Felt252::ONE);
-    let high: Felt252 = value.shr(128_usize);
+    let (high, low) = value.div_rem(&bound.try_into().unwrap());
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
@@ -455,7 +448,7 @@ pub fn sqrt(
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::from(2).pow(250)
-    if mod_value.as_ref().shr(250_usize) > Felt252::ZERO {
+    if *mod_value > Felt252::TWO.pow(250_u32) {
         return Err(HintError::ValueOutside250BitRange(Box::new(
             mod_value.into_owned(),
         )));
@@ -482,28 +475,19 @@ pub fn signed_div_rem(
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
 
-    match &builtin._bound {
-        Some(builtin_bound)
-            if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
-        {
-            return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
-                *builtin_bound,
-            ))));
-        }
-        Some(builtin_bound) if bound.as_ref() > &(builtin_bound >> 1_usize) => {
-            return Err(HintError::OutOfValidRange(Box::new((
-                bound.into_owned(),
-                builtin_bound >> 1_usize,
-            ))));
-        }
-        None if div.is_zero() => {
-            return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
-                Felt252::ZERO - Felt252::ONE,
-            ))));
-        }
-        _ => {}
+    let builtin_bound = &builtin._bound.unwrap_or(Felt252::MAX);
+    if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
+        return Err(HintError::OutOfValidRange(Box::new((
+            div.into_owned(),
+            *builtin_bound,
+        ))));
+    }
+    let builtin_bound_div_2 = builtin_bound.field_div(&Felt252::TWO.try_into().unwrap());
+    if *bound > builtin_bound_div_2 {
+        return Err(HintError::OutOfValidRange(Box::new((
+            bound.into_owned(),
+            builtin_bound_div_2,
+        ))));
     }
 
     let int_value = signed_felt(*value);
@@ -712,7 +696,8 @@ pub fn is_quad_residue(
     if x.is_zero() || x == Felt252::ONE {
         insert_value_from_var_name("y", *x.as_ref(), vm, ids_data, ap_tracking)
     // } else if Pow::pow(felt_to_biguint(x), &(&*CAIRO_PRIME >> 1_u32)).is_one() {
-    } else if x.pow_felt(&(&Felt252::MAX >> 1_usize)) == Felt252::ONE {
+    } else if x.pow_felt(&Felt252::MAX.div_rem(&Felt252::TWO.try_into().unwrap()).0) == Felt252::ONE
+    {
         insert_value_from_var_name("y", x.sqrt().unwrap_or_default(), vm, ids_data, ap_tracking)
     } else {
         insert_value_from_var_name(
@@ -753,8 +738,9 @@ pub fn a_b_bitand_1(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let a_lsb = a.as_ref() & Felt252::ONE;
-    let b_lsb = b.as_ref() & Felt252::ONE;
+    let two = Felt252::TWO.try_into().unwrap();
+    let a_lsb = a.mod_floor(&two);
+    let b_lsb = b.mod_floor(&two);
     insert_value_from_var_name("a_lsb", a_lsb, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("b_lsb", b_lsb, vm, ids_data, ap_tracking)
 }
@@ -794,7 +780,8 @@ pub fn split_xx(
 ) -> Result<(), HintError> {
     let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
     let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let xx: BigUint = felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high << 128_usize);
+    let xx: BigUint =
+        felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high * Felt252::TWO.pow(128_u32));
     let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
@@ -818,7 +805,6 @@ pub fn split_xx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::ops::Shl;
     use crate::{felt_hex, felt_str};
     use core::ops::Neg;
 
@@ -1858,7 +1844,7 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(bx))
-            if *bx == (bound.unwrap(), builtin_bound >> 1_usize)
+            if *bx == (bound.unwrap(), builtin_bound.field_div(&Felt252::TWO.try_into().unwrap()))
         )
     }
 
@@ -1971,7 +1957,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
-            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::ONE.shl(251_usize)
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::TWO.pow(251_u32)
         );
     }
 
@@ -2555,7 +2541,7 @@ mod tests {
 
             if x.is_zero() || x == Felt252::ONE {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), &x);
-            } else if x.pow_felt(&(&Felt252::MAX >> 1_usize)) == Felt252::ONE {
+            } else if x.pow_felt(&Felt252::MAX.field_div(&Felt252::TWO.try_into().unwrap())) == Felt252::ONE {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt().unwrap());
             } else {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(&(Felt252::from(3).try_into().unwrap())).sqrt().unwrap()));

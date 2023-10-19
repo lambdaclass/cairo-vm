@@ -20,8 +20,7 @@ pub fn get_felt_bitlenght(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let bit_length = x.bits() as usize;
-    insert_value_from_var_name("bit_length", bit_length, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("bit_length", x.bits(), vm, ids_data, ap_tracking)
 }
 
 #[cfg(test)]
@@ -65,8 +64,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_in_range() {
-        for i in 0..252_usize {
-            let x: Felt252 = Felt252::ONE << i;
+        for i in 0..252_u32 {
+            let x: Felt252 = Felt252::TWO.pow(i);
 
             let bit_length_result = run_hint(x);
             assert!(bit_length_result.is_ok());

@@ -104,7 +104,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt252::ONE << 86_usize);
+        constants.insert(BASE_86.to_string(), Felt252::TWO.pow(86_u128));
 
         let array_1 = bigint3_split(&BigUint::zero());
         #[allow(deprecated)]

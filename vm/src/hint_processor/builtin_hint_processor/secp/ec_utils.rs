@@ -16,7 +16,7 @@ use crate::{
     },
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, ops::BitAnd, prelude::*},
+    stdlib::{collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -417,7 +417,7 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt252::ONE);
+        .mod_floor(&Felt252::TWO.try_into().expect("nonzero by construction"));
     insert_value_into_ap(vm, scalar)
 }
 

@@ -1500,7 +1500,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::ONE * Felt252::from(10).pow(27))
+            Ok(x) if x == Some(Felt252::ONE * Felt252::from(10).pow(27_u32))
         );
     }
 
@@ -1511,7 +1511,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::from_dec_str("64").unwrap() * Felt252::from(10).pow(74))
+            Ok(x) if x == Some(Felt252::from_dec_str("64").unwrap() * Felt252::from(10).pow(74_u32))
         );
     }
 

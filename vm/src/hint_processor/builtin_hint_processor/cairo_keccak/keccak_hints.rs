@@ -53,19 +53,16 @@ pub fn keccak_write_args(
 
     let low = get_integer_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = low.as_ref();
-    let high = high.as_ref();
 
-    let low_args = [low & Felt252::from(u64::MAX), low >> 64_usize];
-    let high_args = [high & Felt252::from(u64::MAX), high >> 64_usize];
+    let bound = Felt252::TWO.pow(64_u32).try_into().unwrap();
+    let (d1, d0) = low.div_rem(&bound);
+    let (d3, d2) = high.div_rem(&bound);
+    let args: Vec<_> = [d0, d1, d2, d3]
+        .into_iter()
+        .map(MaybeRelocatable::from)
+        .collect();
 
-    let low_args: Vec<_> = low_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg(inputs_ptr, &low_args)
-        .map_err(HintError::Memory)?;
-
-    let high_args: Vec<_> = high_args.into_iter().map(MaybeRelocatable::from).collect();
-    vm.write_arg((inputs_ptr + 2_i32)?, &high_args)
-        .map_err(HintError::Memory)?;
+    vm.write_arg(inputs_ptr, &args)?;
 
     Ok(())
 }
