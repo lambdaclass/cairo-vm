@@ -801,6 +801,7 @@ dependencies = [
  "cairo-vm",
  "clap",
  "itertools 0.11.0",
+ "mimalloc",
  "rstest",
  "thiserror",
 ]
