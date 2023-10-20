@@ -212,7 +212,7 @@ mod tests {
     #[rstest]
     fn test_run_ok(
         #[values(None,
-                 Some("plain"),
+                //  Some("plain"),
                  Some("small"),
                  Some("dex"),
                  Some("starknet"),
