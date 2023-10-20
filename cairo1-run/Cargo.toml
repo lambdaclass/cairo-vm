@@ -25,3 +25,8 @@ thiserror = { version = "1.0.40" }
 bincode.workspace = true
 assert_matches = "1.5.0"
 rstest = "0.17.0"
+
+[features]
+default = ["with_mimalloc"]
+with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
+lambdaworks-felt = ["cairo-vm/lambdaworks-felt"]
