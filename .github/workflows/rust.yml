@@ -215,7 +215,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "lambdaworks-felt"]
-        target: [ test#1, test#2, test#3, test#4, test-no_std, test-wasm ]
+        target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
@@ -260,6 +260,7 @@ jobs:
           ;;
         'test-no_std')
           cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+              --partition count:${PARTITION}/4 \
               --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
