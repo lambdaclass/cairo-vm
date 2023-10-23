@@ -219,6 +219,16 @@ jobs:
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
+    # Runner runs out of disk space when running this job
+    # This solution was propossed on an issue in the github actions repo
+    # https://github.com/actions/runner-images/issues/2840#issuecomment-790492173
+    - name: Free up space on ubuntu runner
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.70.0
       with:
