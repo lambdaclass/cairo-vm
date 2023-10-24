@@ -4,7 +4,11 @@
 
 * feat: Implement the Serialize and Deserialize methods for the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)
 
-* feat: Implement a CLI to run cairo programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
+* feat: Use only program builtins when running cairo 1 programs [#1457](https://github.com/lambdaclass/cairo-vm/pull/1457)
+
+* feat: Use latest cairo-vm version in cairo1-run crate [#1455](https://github.com/lambdaclass/cairo-vm/pull/1455)
+
+* feat: Implement a CLI to run cairo 1 programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
 
 * fix: Fix string code of `BLAKE2S_ADD_UINT256` hint [#1454](https://github.com/lambdaclass/cairo-vm/pull/1454)
 
