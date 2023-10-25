@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat(breaking): Replace `cairo-felt` crate with `stark-felt` [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
+
 * feat: Implement the Serialize and Deserialize methods for the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)
 
 * feat: Use only program builtins when running cairo 1 programs [#1457](https://github.com/lambdaclass/cairo-vm/pull/1457)
