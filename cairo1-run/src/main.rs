@@ -282,7 +282,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                 (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
             )?;
             return Err(Error::RunPanic(
-                panic_data.iter().map(|c| c.as_ref().clone()).collect(),
+                panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
             if return_values.len() < 3 {
