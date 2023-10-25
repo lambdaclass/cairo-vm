@@ -1,4 +1,8 @@
 use crate::{
+    serde::{
+        deserialize_program::{parse_program_json, ProgramJson},
+        serialize_program::ProgramSerializer,
+    },
     stdlib::{
         collections::{BTreeMap, HashMap},
         prelude::*,
@@ -153,6 +157,19 @@ impl HintsCollection {
 
     pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
         self.hints_ranges.get(pc).cloned()
+    }
+}
+
+impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+    fn from(hc: &HintsCollection) -> Self {
+        let mut hint_map = BTreeMap::new();
+        for (i, r) in hc.hints_ranges.iter().enumerate() {
+            let Some(r) = r else {
+                continue;
+            };
+            hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        hint_map
     }
 }
 
@@ -331,6 +348,23 @@ impl Program {
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
             prime: (),
         })
+    }
+
+    pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
+        let program_serializer: ProgramSerializer = ProgramSerializer::from(self);
+        let bytes: Vec<u8> = serde_json::to_vec(&program_serializer)?;
+        Ok(bytes)
+    }
+
+    pub fn deserialize(
+        program_serializer_bytes: &[u8],
+        entrypoint: Option<&str>,
+    ) -> Result<Program, ProgramError> {
+        let program_serializer: ProgramSerializer =
+            serde_json::from_slice(program_serializer_bytes)?;
+        let program_json = ProgramJson::from(program_serializer);
+        let program = parse_program_json(program_json, entrypoint)?;
+        Ok(program)
     }
 }
 

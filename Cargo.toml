@@ -9,6 +9,7 @@ members = [
 default-members = [
     "cairo-vm-cli",
     "vm",
+    "cairo1-run",
 ]
 exclude = ["ensure-no_std"]
 
