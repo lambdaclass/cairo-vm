@@ -26,9 +26,6 @@ use crate::{
     },
 };
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{
     string::{String, ToString},
