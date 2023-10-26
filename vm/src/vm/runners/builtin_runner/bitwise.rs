@@ -80,10 +80,12 @@ impl BitwiseBuiltinRunner {
             return Ok(None);
         };
 
-        let to_bytes = |x_addr, x: &Felt252| -> Result<[u8; 32], RunnerError> {
-            const LEADING_BITS: u8 = 0xf8;
-            let limbs = x.to_bytes_be();
-            if limbs[0] & LEADING_BITS != 0 {
+        // NOTE: we could operate on bytes here, but it caused a 20% slowdown
+        // on several benchmarks.
+        let to_limbs = |x_addr, x: &Felt252| -> Result<[u64; 4], RunnerError> {
+            const LEADING_BITS: u64 = 0xf800000000000000;
+            let limbs = x.to_le_digits();
+            if limbs[3] & LEADING_BITS != 0 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
@@ -92,8 +94,8 @@ impl BitwiseBuiltinRunner {
             }
             Ok(limbs)
         };
-        let (limbs_x, limbs_y) = (to_bytes(x_addr, &num_x)?, to_bytes(y_addr, &num_y)?);
-        let mut limbs_xy = [0u8; 32];
+        let (limbs_x, limbs_y) = (to_limbs(x_addr, &num_x)?, to_limbs(y_addr, &num_y)?);
+        let mut limbs_xy = [0u64; 4];
         for (xy, (x, y)) in limbs_xy
             .iter_mut()
             .zip(limbs_x.into_iter().zip(limbs_y.into_iter()))
@@ -107,8 +109,13 @@ impl BitwiseBuiltinRunner {
                 }
             };
         }
+        let mut bytes_xy = [0u8; 32];
+        bytes_xy[..8].copy_from_slice(&limbs_xy[0].to_le_bytes().as_slice());
+        bytes_xy[8..16].copy_from_slice(&limbs_xy[1].to_le_bytes().as_slice());
+        bytes_xy[16..24].copy_from_slice(&limbs_xy[2].to_le_bytes().as_slice());
+        bytes_xy[24..].copy_from_slice(&limbs_xy[3].to_le_bytes().as_slice());
         Ok(Some(MaybeRelocatable::from(
-            Felt252::from_bytes_be(&limbs_xy).unwrap(),
+            Felt252::from_bytes_le(&bytes_xy).unwrap(),
         )))
     }
 
