@@ -199,9 +199,14 @@ fn program_bitwise(
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
-    let and = num1 & num2;
-    let xor = num1 ^ num2;
-    let or = num1 | num2;
+    use num_bigint::BigUint;
+
+    let bnum1 = &BigUint::from_bytes_be(&num1.to_bytes_be());
+    let bnum2 = &BigUint::from_bytes_be(&num2.to_bytes_be());
+
+    let and = bnum1 & bnum2;
+    let xor = bnum1 ^ bnum2;
+    let or = bnum1 | bnum2;
     let file_content = format!("
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or, bitwise_operations
