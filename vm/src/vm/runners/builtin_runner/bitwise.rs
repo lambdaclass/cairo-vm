@@ -110,10 +110,10 @@ impl BitwiseBuiltinRunner {
             };
         }
         let mut bytes_xy = [0u8; 32];
-        bytes_xy[..8].copy_from_slice(&limbs_xy[0].to_le_bytes().as_slice());
-        bytes_xy[8..16].copy_from_slice(&limbs_xy[1].to_le_bytes().as_slice());
-        bytes_xy[16..24].copy_from_slice(&limbs_xy[2].to_le_bytes().as_slice());
-        bytes_xy[24..].copy_from_slice(&limbs_xy[3].to_le_bytes().as_slice());
+        bytes_xy[..8].copy_from_slice(limbs_xy[0].to_le_bytes().as_slice());
+        bytes_xy[8..16].copy_from_slice(limbs_xy[1].to_le_bytes().as_slice());
+        bytes_xy[16..24].copy_from_slice(limbs_xy[2].to_le_bytes().as_slice());
+        bytes_xy[24..].copy_from_slice(limbs_xy[3].to_le_bytes().as_slice());
         Ok(Some(MaybeRelocatable::from(
             Felt252::from_bytes_le(&bytes_xy).unwrap(),
         )))

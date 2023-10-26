@@ -248,9 +248,9 @@ pub fn split_64(
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let digits = a.to_le_digits();
     let mut bytes = [0u8; 32];
-    bytes[..8].copy_from_slice(&digits[1].to_le_bytes().as_slice());
-    bytes[8..16].copy_from_slice(&digits[2].to_le_bytes().as_slice());
-    bytes[16..24].copy_from_slice(&digits[3].to_le_bytes().as_slice());
+    bytes[..8].copy_from_slice(digits[1].to_le_bytes().as_slice());
+    bytes[8..16].copy_from_slice(digits[2].to_le_bytes().as_slice());
+    bytes[16..24].copy_from_slice(digits[3].to_le_bytes().as_slice());
 
     let low = Felt252::from(digits[0]);
     let high = Felt252::from_bytes_le(&bytes.as_slice()).expect("come on!");
