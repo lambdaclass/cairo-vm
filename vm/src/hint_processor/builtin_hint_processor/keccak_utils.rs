@@ -21,6 +21,13 @@ use super::hint_utils::insert_value_from_var_name;
 
 const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
 
+lazy_static::lazy_static! {
+    static ref POWERS_OF_TWO: Vec<stark_felt::NonZeroFelt> = core::iter::successors(Some(Felt252::ONE), |x| Some(x * &Felt252::TWO))
+        .take(252)
+        .map(|x| x.try_into().unwrap())
+        .collect::<Vec<_>>();
+}
+
 /* Implements hint:
    %{
        from eth_hash.auto import keccak
@@ -82,7 +89,8 @@ pub fn unsafe_keccak(
         let word = vm.get_integer(word_addr)?;
         let n_bytes = cmp::min(16, u64_length - byte_i);
 
-        if *word >= Felt252::TWO.pow(8 * n_bytes) {
+        // n_bytes <= 16 => 8 * n_bytes <= 128 => 8 * n_bytes < 252
+        if *word >= (&POWERS_OF_TWO[8 * n_bytes as usize]).into() {
             return Err(HintError::InvalidWordSize(Box::new(word.into_owned())));
         }
 
@@ -191,7 +199,7 @@ pub fn split_output(
 ) -> Result<(), HintError> {
     let output_name = format!("output{}", num);
     let output = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
-    let (high, low) = output.div_rem(&Felt252::TWO.pow(128_u32).try_into().unwrap());
+    let (high, low) = output.div_rem(&POWERS_OF_TWO[128]);
     insert_value_from_var_name(
         &format!("output{}_high", num),
         high,
@@ -218,7 +226,10 @@ pub fn split_input(
 ) -> Result<(), HintError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
     let binding = vm.get_integer((inputs_ptr + input_key)?)?;
-    let (high, low) = binding.div_rem(&Felt252::TWO.pow(8 * exponent).try_into().unwrap());
+    let split = POWERS_OF_TWO
+        .get(8 * exponent as usize)
+        .ok_or_else(|| HintError::InvalidWordSize(Box::new(exponent.into())))?;
+    let (high, low) = binding.div_rem(split);
     insert_value_from_var_name(
         &format!("high{}", input_key),
         high,
@@ -273,8 +284,8 @@ pub fn split_output_mid_low_high(
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
-    let (tmp, output1_low) = output1.div_rem(&Felt252::TWO.pow(8_u32 * 7_u32).try_into().unwrap());
-    let (output1_high, output1_mid) = tmp.div_rem(&Felt252::TWO.pow(128_u64).try_into().unwrap());
+    let (tmp, output1_low) = output1.div_rem(&POWERS_OF_TWO[8 * 7]);
+    let (output1_high, output1_mid) = tmp.div_rem(&POWERS_OF_TWO[128]);
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
