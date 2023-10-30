@@ -4,7 +4,7 @@ pub use is_prime::is_prime;
 
 use core::cmp::min;
 
-use crate::stdlib::{boxed::Box, ops::Shr};
+use crate::stdlib::{boxed::Box, ops::Shr, prelude::Vec};
 use crate::types::errors::math_errors::MathError;
 use crate::utils::{felt_to_biguint, CAIRO_PRIME};
 use crate::Felt252;
