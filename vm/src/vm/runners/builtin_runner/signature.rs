@@ -219,9 +219,8 @@ impl SignatureBuiltinRunner {
                 (
                     *k,
                     (
-                        // TODO: REMOVE UNWRAP
-                        Felt252::from_bytes_be(&v.r.to_bytes_be()).unwrap(),
-                        Felt252::from_bytes_be(&v.s.to_bytes_be()).unwrap(),
+                        Felt252::from_bytes_be(&v.r.to_bytes_be()).unwrap_or_default(),
+                        Felt252::from_bytes_be(&v.s.to_bytes_be()).unwrap_or_default(),
                     ),
                 )
             })
