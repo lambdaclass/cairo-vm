@@ -216,8 +216,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
-        .map(|x| x.to_str_radix(10))
-        .map(|d| Felt252::from_dec_str(&d).expect("dec string by construction"))
+        .map(|x| bigint_to_felt(x).unwrap_or_default())
         .map(MaybeRelocatable::from)
         .collect();
 
