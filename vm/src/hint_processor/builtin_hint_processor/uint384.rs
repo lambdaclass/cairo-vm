@@ -83,7 +83,7 @@ pub fn uint384_split_128(
 ) -> Result<(), HintError> {
     let bound = pow2_const_nz(128);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let (high, low) = a.div_rem(&bound);
+    let (high, low) = a.div_rem(bound);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)
 }

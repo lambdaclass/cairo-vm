@@ -56,8 +56,8 @@ pub fn keccak_write_args(
     let high = get_integer_from_var_name("high", vm, ids_data, ap_tracking)?;
 
     let bound = pow2_const_nz(64);
-    let (d1, d0) = low.div_rem(&bound);
-    let (d3, d2) = high.div_rem(&bound);
+    let (d1, d0) = low.div_rem(bound);
+    let (d3, d2) = high.div_rem(bound);
     let args: Vec<_> = [d0, d1, d2, d3]
         .into_iter()
         .map(MaybeRelocatable::from)

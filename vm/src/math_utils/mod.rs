@@ -18,7 +18,7 @@ use stark_felt::NonZeroFelt;
 lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
     static ref POWERS_OF_TWO: Vec<NonZeroFelt> =
-        core::iter::successors(Some(Felt252::ONE), |x| Some(x * &Felt252::TWO))
+        core::iter::successors(Some(Felt252::ONE), |x| Some(x * Felt252::TWO))
             .take(252)
             .map(|x| x.try_into().unwrap())
             .collect::<Vec<_>>();

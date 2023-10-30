@@ -195,7 +195,7 @@ pub fn split_output(
 ) -> Result<(), HintError> {
     let output_name = format!("output{}", num);
     let output = get_integer_from_var_name(&output_name, vm, ids_data, ap_tracking)?;
-    let (high, low) = output.div_rem(&pow2_const_nz(128));
+    let (high, low) = output.div_rem(pow2_const_nz(128));
     insert_value_from_var_name(
         &format!("output{}_high", num),
         high,
@@ -278,8 +278,8 @@ pub fn split_output_mid_low_high(
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();
-    let (tmp, output1_low) = output1.div_rem(&pow2_const_nz(8 * 7));
-    let (output1_high, output1_mid) = tmp.div_rem(&pow2_const_nz(128));
+    let (tmp, output1_low) = output1.div_rem(pow2_const_nz(8 * 7));
+    let (output1_high, output1_mid) = tmp.div_rem(pow2_const_nz(128));
     insert_value_from_var_name("output1_high", output1_high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_mid", output1_mid, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("output1_low", output1_low, vm, ids_data, ap_tracking)
