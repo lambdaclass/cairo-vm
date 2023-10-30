@@ -208,7 +208,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: [""]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
@@ -248,18 +247,18 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${NAME} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info \
               --partition count:${PARTITION}/4 \
-              --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
+              --workspace --features "cairo-1-hints,  test_utils"
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info \
               --partition count:${PARTITION}/4 \
-              --workspace --no-default-features --features "${{ matrix.special_features }}"
+              --workspace --no-default-features
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
+          wasm-pack test --release --node vm --no-default-features
           ;;
         esac
 
@@ -267,8 +266,8 @@ jobs:
       if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
-        path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
-        key: codecov-cache-${{ matrix.target }}-${{ matrix.special_features }}-${{ github.sha }}
+        path: lcov-${{ matrix.target }}.info
+        key: codecov-cache-${{ matrix.target }}-${{ github.sha }}
 
   build-release:
     name: Build release binary for comparisons
