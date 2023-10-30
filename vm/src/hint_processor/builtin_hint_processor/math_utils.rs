@@ -20,7 +20,7 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
-    math_utils::isqrt,
+    math_utils::{isqrt, pow2_const},
     serde::deserialize_program::ApTracking,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{
@@ -414,7 +414,7 @@ pub fn split_felt(
         b.then_some(())
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
-    let bound = Felt252::TWO.pow(128_u32);
+    let bound = pow2_const(128);
     let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
     let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
     assert(
@@ -448,7 +448,7 @@ pub fn sqrt(
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::from(2).pow(250)
-    if *mod_value > Felt252::TWO.pow(250_u32) {
+    if *mod_value > pow2_const(250) {
         return Err(HintError::ValueOutside250BitRange(Box::new(
             mod_value.into_owned(),
         )));
@@ -780,8 +780,7 @@ pub fn split_xx(
 ) -> Result<(), HintError> {
     let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
     let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let xx: BigUint =
-        felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high * Felt252::TWO.pow(128_u32));
+    let xx: BigUint = felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high * pow2_const(128));
     let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
@@ -1957,7 +1956,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
-            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::TWO.pow(251_u32)
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == pow2_const(251)
         );
     }
 

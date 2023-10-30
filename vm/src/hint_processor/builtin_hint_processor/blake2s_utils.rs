@@ -11,6 +11,7 @@ use crate::{
         hint_processor_definition::HintReference,
         hint_processor_utils::felt_to_u32,
     },
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -185,7 +186,7 @@ pub fn blake2s_add_uint256(
     let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
     //Build first batch of data
-    let b = &Felt252::TWO.pow(32_u8).try_into().unwrap();
+    let b = pow2_const_nz(32);
     let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
     for _ in 0..4 {
         let (q, r) = low.div_rem(b);
@@ -220,7 +221,7 @@ pub fn blake2s_add_uint256_bigend(
     let mut low = vm.get_integer(low_addr)?.into_owned();
     let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
-    let b = &Felt252::TWO.pow(32_u8).try_into().unwrap();
+    let b = pow2_const_nz(32);
     let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
     //Build first batch of data
     for _ in 0..4 {

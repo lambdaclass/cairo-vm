@@ -8,6 +8,7 @@ use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -80,7 +81,7 @@ pub fn uint384_split_128(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let bound = Felt252::TWO.pow(128_u32).try_into().unwrap();
+    let bound = pow2_const_nz(128);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let (high, low) = a.div_rem(&bound);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
@@ -487,7 +488,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::TWO.pow(128_u128))]
+                &[("path.path.path.SHIFT", crate::math_utils::pow2_const(128))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

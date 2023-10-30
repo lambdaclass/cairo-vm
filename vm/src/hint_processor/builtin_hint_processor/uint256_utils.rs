@@ -6,7 +6,7 @@ use crate::{
         insert_value_into_ap,
     },
     hint_processor::hint_processor_definition::HintReference,
-    math_utils::isqrt,
+    math_utils::{isqrt, pow2_const, pow2_const_nz},
     serde::deserialize_program::ApTracking,
     stdlib::{
         borrow::Cow,
@@ -95,8 +95,7 @@ impl<'a> From<&BigUint> for Uint256<'a> {
 
 impl<'a> From<Felt252> for Uint256<'a> {
     fn from(value: Felt252) -> Self {
-        let den = Felt252::TWO.pow(128_u32);
-        let (high, low) = value.div_rem(&den.try_into().expect("nonzero by construction"));
+        let (high, low) = value.div_rem(pow2_const_nz(128));
         Self::from_values(low, high)
     }
 }
@@ -120,7 +119,7 @@ pub fn uint256_add(
     ap_tracking: &ApTracking,
     low_only: bool,
 ) -> Result<(), HintError> {
-    let shift = Felt252::TWO.pow(128_u32);
+    let shift = pow2_const(128);
 
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -159,7 +158,7 @@ pub fn uint128_add(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let shift = Felt252::TWO.pow(128_u32);
+    let shift = pow2_const(128);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();

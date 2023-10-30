@@ -14,6 +14,7 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -151,8 +152,8 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
-    let mask = Felt252::TWO.pow(128_u32);
-    let low = (d0 + (d1 * base_86)).mod_floor(&mask.try_into().expect("nonzero by construction"));
+    let mask = pow2_const_nz(128);
+    let low = (d0 + (d1 * base_86)).mod_floor(mask);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -223,7 +224,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt252::TWO.pow(86_u128))]
+                &[(BASE_86, crate::math_utils::pow2_const(86))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

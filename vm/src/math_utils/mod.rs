@@ -13,9 +13,34 @@ use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
+use stark_felt::NonZeroFelt;
 
 lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
+    static ref POWERS_OF_TWO: Vec<NonZeroFelt> =
+        core::iter::successors(Some(Felt252::ONE), |x| Some(x * &Felt252::TWO))
+            .take(252)
+            .map(|x| x.try_into().unwrap())
+            .collect::<Vec<_>>();
+}
+
+/// Returns the `n`th (up to the `251`th power) power of 2 as a [`Felt252`]
+/// in constant time.
+/// It silently returns `1` if the input is out of bounds.
+pub fn pow2_const(n: u32) -> Felt252 {
+    // If the conversion fails then it's out of range and we compute the power as usual
+    POWERS_OF_TWO
+        .get(n as usize)
+        .unwrap_or(&POWERS_OF_TWO[0])
+        .into()
+}
+
+/// Returns the `n`th (up to the `251`th power) power of 2 as a [`&stark_felt::NonZeroFelt`]
+/// in constant time.
+/// It silently returns `1` if the input is out of bounds.
+pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
+    // If the conversion fails then it's out of range and we compute the power as usual
+    POWERS_OF_TWO.get(n as usize).unwrap_or(&POWERS_OF_TWO[0])
 }
 
 /// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
@@ -908,6 +933,26 @@ mod tests {
 
     #[cfg(feature = "std")]
     proptest! {
+        #[test]
+        fn pow2_const_in_range_returns_power_of_2(x in 0..=251u32) {
+            prop_assert_eq!(pow2_const(x), Felt252::TWO.pow(x));
+        }
+
+        #[test]
+        fn pow2_const_oob_returns_1(x in 252u32..) {
+            prop_assert_eq!(pow2_const(x), Felt252::ONE);
+        }
+
+        #[test]
+        fn pow2_const_nz_in_range_returns_power_of_2(x in 0..=251u32) {
+            prop_assert_eq!(Felt252::from(pow2_const_nz(x)), Felt252::TWO.pow(x));
+        }
+
+        #[test]
+        fn pow2_const_nz_oob_returns_1(x in 252u32..) {
+            prop_assert_eq!(Felt252::from(pow2_const_nz(x)), Felt252::ONE);
+        }
+
         #[test]
         // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
         fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {
