@@ -407,31 +407,31 @@ jobs:
     - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#1-.info
+        path: lcov-test#1.info
         key: codecov-cache-test#1-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 2)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#2-.info
+        path: lcov-test#2.info
         key: codecov-cache-test#2-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 3)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#3-.info
+        path: lcov-test#3.info
         key: codecov-cache-test#3-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 4)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#4-.info
+        path: lcov-test#4.info
         key: codecov-cache-test#4-${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std-.info
+        path: lcov-test-no_std.info
         key: codecov-cache-test-no_std-${{ github.sha }}
         fail-on-cache-miss: true
 
