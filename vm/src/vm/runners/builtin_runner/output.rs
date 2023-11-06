@@ -2,7 +2,9 @@ use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::runners::cairo_pie::{BuiltinAdditionalData, OutputBuiltinAdditionalData};
+use crate::vm::runners::cairo_pie::{
+    Attributes, BuiltinAdditionalData, OutputBuiltinAdditionalData, Pages, PublicMemoryPage,
+};
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
@@ -14,6 +16,7 @@ pub struct OutputBuiltinRunner {
     base: usize,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
+    pub(crate) additional_data: OutputBuiltinAdditionalData,
 }
 
 impl OutputBuiltinRunner {
@@ -22,6 +25,10 @@ impl OutputBuiltinRunner {
             base: 0,
             stop_ptr: None,
             included,
+            additional_data: OutputBuiltinAdditionalData {
+                pages: Pages::default(),
+                attributes: Attributes::default(),
+            },
         }
     }
 
@@ -109,10 +116,35 @@ impl OutputBuiltinRunner {
     }
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
-        BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-            pages: HashMap::default(),
-            attributes: HashMap::default(),
-        })
+        BuiltinAdditionalData::Output(self.additional_data.clone())
+    }
+
+    pub fn add_page(
+        &mut self,
+        page_id: usize,
+        page_start: Relocatable,
+        page_size: usize,
+    ) -> Result<(), RunnerError> {
+        if self.additional_data.pages.contains_key(&page_id) {
+            return Err(RunnerError::PageAlreadyAssigned(page_id));
+        }
+        if page_start.segment_index != self.base {
+            return Err(RunnerError::PageOutOfSegment);
+        }
+        self.additional_data.pages.insert(
+            page_id,
+            PublicMemoryPage {
+                start: page_start.offset,
+                size: page_size,
+            },
+        );
+        Ok(())
+    }
+
+    pub fn add_attribute(&mut self, attribute_name: String, attribute_value: Vec<usize>) {
+        self.additional_data
+            .attributes
+            .insert(attribute_name, attribute_value);
     }
 }
 

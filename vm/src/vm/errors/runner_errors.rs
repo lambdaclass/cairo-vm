@@ -101,6 +101,10 @@ pub enum RunnerError {
     StrippedProgramNoMain,
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error("Page {0} was already assigned")]
+    PageAlreadyAssigned(usize),
+    #[error("page_start muse be in the output segment")]
+    PageOutOfSegment,
 }
 
 #[cfg(test)]
