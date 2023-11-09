@@ -285,20 +285,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cairo-felt"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
-dependencies = [
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits 0.2.16",
- "serde",
-]
-
-[[package]]
-name = "cairo-felt"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "arbitrary",
  "lambdaworks-math",
@@ -312,10 +299,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "cairo-lang-casm"
-version = "2.2.0"
+name = "cairo-felt"
+version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc7f7cb89bc3f52c2c738f3e87c8f8773bd3456cae1d322d100d4b0da584f3c"
+checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
+dependencies = [
+ "lazy_static",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.16",
+ "serde",
+]
+
+[[package]]
+name = "cairo-lang-casm"
+version = "2.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0cca7891c0df31a87740acbcda3f3c04e6516e283b67842386873f3a181fd91"
 dependencies = [
  "cairo-lang-utils",
  "indoc",
@@ -717,14 +717,13 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-utils"
-version = "2.2.0"
+version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f974b6e859f0b09c0f13ec8188c96e9e8bbb5da04214f911dbb5bcda67cb812b"
+checksum = "15edcd2fba78af9b753614885464c9b5bf6041b7decba46587c2b0babc4197ac"
 dependencies = [
  "indexmap 2.0.2",
  "itertools 0.11.0",
  "num-bigint",
- "num-integer",
  "num-traits 0.2.16",
  "parity-scale-codec",
  "schemars",
@@ -733,7 +732,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -742,7 +741,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.9.0",
+ "cairo-felt 0.8.2",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
@@ -772,7 +771,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -786,7 +785,7 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1406,7 +1405,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2859,7 +2858,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "0.9.0"
+version = "0.8.2"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
