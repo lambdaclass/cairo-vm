@@ -287,6 +287,22 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 [[package]]
 name = "cairo-felt"
 version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
+dependencies = [
+ "arbitrary",
+ "lambdaworks-math",
+ "lazy_static",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.17",
+ "proptest",
+ "serde",
+]
+
+[[package]]
+name = "cairo-felt"
+version = "0.8.8"
 dependencies = [
  "arbitrary",
  "lambdaworks-math",
@@ -296,19 +312,6 @@ dependencies = [
  "num-traits 0.2.17",
  "proptest",
  "rstest",
- "serde",
-]
-
-[[package]]
-name = "cairo-felt"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
-dependencies = [
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits 0.2.17",
  "serde",
 ]
 
@@ -609,7 +612,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da74c7c4a2df66b961a982396e0f5221d6594266aed48c76d8c22d5b0d96af5d"
 dependencies = [
  "assert_matches",
- "cairo-felt 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cairo-felt 0.8.7",
  "cairo-lang-casm",
  "cairo-lang-sierra",
  "cairo-lang-sierra-ap-change",
@@ -640,7 +643,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9217e979f11980609d13d3a5adea8438ec9345709ddfebca975cc9cd1f85201e"
 dependencies = [
  "anyhow",
- "cairo-felt 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cairo-felt 0.8.7",
  "cairo-lang-casm",
  "cairo-lang-compiler",
  "cairo-lang-defs",
@@ -712,7 +715,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -751,7 +754,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -765,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1394,7 +1397,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2429,9 +2432,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.11.1"
+version = "1.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "942b4a808e05215192e39f4ab80813e599068285906cc91aa64f923db842bd5a"
+checksum = "4dccd0940a2dcdf68d092b8cbab7dc0ad8fa938bf95787e1b916b0e3d0e8e970"
 
 [[package]]
 name = "smol_str"
@@ -2865,7 +2868,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
