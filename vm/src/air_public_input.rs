@@ -63,7 +63,7 @@ pub struct PublicInput<'a> {
     pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     pub public_memory: Vec<PublicMemoryEntry>,
     #[serde(rename = "dynamic_params")]
-    pub layout_params: Option<&'a CairoLayout>,
+    layout_params: Option<&'a CairoLayout>,
 }
 
 impl<'a> PublicInput<'a> {
