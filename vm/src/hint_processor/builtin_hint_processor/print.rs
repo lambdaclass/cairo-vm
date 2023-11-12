@@ -5,7 +5,7 @@ use num_traits::ToPrimitive;
 
 use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, get_ptr_from_var_name, get_relocatable_from_var_name,
+    get_integer_from_var_name, get_ptr_from_var_name,
 };
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::collections::HashMap;
@@ -17,17 +17,13 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
 
-pub fn print_u256(
+pub fn print_felt(
     vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let val = get_relocatable_from_var_name("val", vm, ids_data, ap_tracking)?;
-    let low = vm.get_relocatable(val)?;
-    let low = vm.get_integer(low)?;
-    let high = vm.get_relocatable(val)?;
-    let high = vm.get_integer((high + 1_usize)?)?;
-    println!("Uint256(low={low}, high={high}) = {{2 ** 128 * high + low}}");
+    let val = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
+    println!("{val}");
     Ok(())
 }
 
