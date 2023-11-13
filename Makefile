@@ -175,7 +175,7 @@ build-cairo-2-compiler:
 	fi
 
 cargo-deps:
-	cargo install --version 0.3.1 iai-callgrind-runner
+	cargo install --version 0.8.0 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
