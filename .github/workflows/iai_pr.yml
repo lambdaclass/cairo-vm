@@ -37,10 +37,15 @@ jobs:
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: |
         echo "1111111"
+        echo "cargo --version"
         cargo --version
+        echo "pip install -r requirements.txt"
         pip install -r requirements.txt
+        echo "sudo apt update"
         sudo apt update
+        echo "sudo apt install -y valgrind"
         sudo apt install -y valgrind
+        echo "cargo install --version 0.3.1 iai-callgrind-runner"
         cargo install --version 0.3.1 iai-callgrind-runner
 
     - name: Run iai benchmarks
