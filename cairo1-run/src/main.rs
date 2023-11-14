@@ -136,7 +136,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         ..CompilerConfig::default()
     };
     let sierra_program =
-        (*compile_cairo_project_at_path(&args.filename, compiler_config).unwrap()).clone();
+        compile_cairo_project_at_path(&args.filename, compiler_config).unwrap();
 
     // variable needed for the SierraCasmRunner
     let contracts_info = OrderedHashMap::default();
