@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482)
+* chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482), [#1483](https://github.com/lambdaclass/cairo-vm/pull/1483)
 
 * feat: Make PublicInput fields public [#1474](https://github.com/lambdaclass/cairo-vm/pull/1474)
 
