@@ -303,6 +303,7 @@ version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5972097b8800ca5dffb458040e74c724a2ac4fa4b5b480b50f5b96c7e67d6427"
 dependencies = [
+ "lambdaworks-math",
  "lazy_static",
  "num-bigint",
  "num-integer",
@@ -718,7 +719,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.8.2",
+ "cairo-felt 0.8.7",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",

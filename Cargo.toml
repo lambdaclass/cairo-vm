@@ -14,7 +14,7 @@ repository = "https://github.com/lambdaclass/cairo-vm/"
 readme = "README.md"
 
 [workspace.dependencies]
-felt = { package = "cairo-felt", path = "./felt", version = "0.8.2", default-features = false, features = [
+felt = { package = "cairo-felt", version = "0.8.2", default-features = false, features = [
     "alloc",
 ] }
 cairo-vm = { path = "./vm", version = "0.8.2", default-features = false }
