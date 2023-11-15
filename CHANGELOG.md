@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482)
+
+* feat: Make PublicInput fields public [#1474](https://github.com/lambdaclass/cairo-vm/pull/1474)
+
 * chore: bump starknet-crypto to v0.6.1 [#1469](https://github.com/lambdaclass/cairo-vm/pull/1469)
 
 * feat: Implement the Serialize and Deserialize methods for the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)

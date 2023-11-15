@@ -181,7 +181,7 @@ cargo-deps:
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.11.0 wasm-pack
+	cargo install --version 0.12.1 wasm-pack
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
