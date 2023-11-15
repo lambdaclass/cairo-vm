@@ -1033,24 +1033,29 @@ fn divmod_igcdex_not_one() {
     run_program_with_error(program_data.as_slice(), error_msg);
 }
 
+#[test]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_felt.json");
     run_program_simple(program_data);
 }
 
 #[test]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_array() {
     let program_data = include_bytes!("../../../cairo_programs/print_array.json");
     run_program_simple(program_data);
 }
 
 #[test]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_dict_felt.json");
     run_program_simple_with_memory_holes(program_data, 5);
 }
 
 #[test]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_array() {
     let program_data = include_bytes!("../../../cairo_programs/print_dict_array.json");
     run_program_simple_with_memory_holes(program_data, 4);
