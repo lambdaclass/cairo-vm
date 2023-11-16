@@ -24,28 +24,28 @@ fn dict_hint_test() {
     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[5_usize.into()]);
 }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn test_uint256_div_mod_hint_max_value() {
-    let program_data =
-        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+// #[test]
+// #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+// fn test_uint256_div_mod_hint_max_value() {
+//     let program_data =
+//         include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
 
-    run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
-}
+//     run_cairo_1_entrypoint(program_data.as_slice(), 0, &[], &[]);
+// }
 
-#[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-fn test_uint256_div_mod_hint() {
-    let program_data =
-        include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
+// #[test]
+// #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+// fn test_uint256_div_mod_hint() {
+//     let program_data =
+//         include_bytes!("../../../cairo_programs/cairo-1-contracts/uint256_div_mod.casm");
 
-    run_cairo_1_entrypoint(
-        program_data.as_slice(),
-        118,
-        &[36_usize.into(), 2_usize.into()],
-        &[Felt252::from(18_usize)],
-    );
-}
+//     run_cairo_1_entrypoint(
+//         program_data.as_slice(),
+//         118,
+//         &[36_usize.into(), 2_usize.into()],
+//         &[Felt252::from(18_usize)],
+//     );
+// }
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

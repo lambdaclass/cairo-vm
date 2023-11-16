@@ -68,7 +68,7 @@ pub fn cairo_run(
         cairo_runner.finalize_segments(&mut vm)?;
     }
     if secure_run {
-        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+        verify_secure_runner(&cairo_runner, true, None, &vm)?;
     }
     cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
