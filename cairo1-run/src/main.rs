@@ -202,7 +202,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let footer = create_code_footer();
 
     let check_gas_usage = true;
-    let metadata = calc_metadata(&sierra_program, Default::default())?;
+    let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
     let instructions = chain!(
@@ -537,7 +537,7 @@ fn create_metadata(
     metadata_config: Option<MetadataComputationConfig>,
 ) -> Result<Metadata, VirtualMachineError> {
     if let Some(metadata_config) = metadata_config {
-        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
+        calc_metadata(sierra_program, metadata_config, false).map_err(|err| match err {
             MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
             MetadataError::CostError(_) => VirtualMachineError::Unexpected,
         })
