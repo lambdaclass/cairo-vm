@@ -59,7 +59,7 @@ Implements hint:
 */
 pub fn verify_zero_with_external_const(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -82,7 +82,7 @@ Implements hint:
 %}
 */
 pub fn reduce(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -102,7 +102,7 @@ Implements hint:
 %}
 */
 pub fn is_zero_pack(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -115,7 +115,7 @@ pub fn is_zero_pack(
 }
 
 pub fn is_zero_pack_external_secp(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -137,7 +137,7 @@ On .json compiled program
 */
 pub fn is_zero_nondet(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;

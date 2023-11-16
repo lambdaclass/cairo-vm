@@ -24,7 +24,7 @@ use super::{dict_manager::DictManager, hint_utils::get_maybe_relocatable_from_va
 pub const DICT_ACCESS_SIZE: usize = 3;
 
 fn copy_initial_dict(
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
 ) -> Option<HashMap<MaybeRelocatable, MaybeRelocatable>> {
     let mut initial_dict: Option<HashMap<MaybeRelocatable, MaybeRelocatable>> = None;
     if let Some(variable) = exec_scopes.get_local_variables().ok()?.get("initial_dict") {
@@ -106,7 +106,7 @@ pub fn default_dict_new(
 */
 pub fn dict_read(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -128,7 +128,7 @@ pub fn dict_read(
 */
 pub fn dict_write(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -166,8 +166,8 @@ pub fn dict_write(
         dict_tracker.current_ptr += ids.DictAccess.SIZE
 */
 pub fn dict_update(
-    vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    vm: &VirtualMachine,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -206,7 +206,7 @@ pub fn dict_update(
    })
 */
 pub fn dict_squash_copy_dict(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -235,8 +235,8 @@ pub fn dict_squash_copy_dict(
     ids.squashed_dict_end.address_
 */
 pub fn dict_squash_update_ptr(
-    vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    vm: &VirtualMachine,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {

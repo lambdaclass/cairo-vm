@@ -24,7 +24,7 @@ pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: bool,
     program_segment_size: Option<usize>,
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     let builtins_segment_info = match verify_builtins {
         true => runner.get_builtin_segments_info(vm)?,

@@ -17,7 +17,7 @@ use num_traits::{One, Signed};
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
 pub fn memset_enter_scope(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

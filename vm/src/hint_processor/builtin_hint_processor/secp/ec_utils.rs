@@ -51,7 +51,7 @@ impl EcPoint<'_> {
 Implements main logic for `EC_NEGATE` and `EC_NEGATE_EMBEDDED_SECP` hints
 */
 pub fn ec_negate(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -78,7 +78,7 @@ Implements hint:
 %}
 */
 pub fn ec_negate_import_secp_p(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -98,7 +98,7 @@ Implements hint:
 %}
 */
 pub fn ec_negate_embedded_secp_p(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -120,7 +120,7 @@ Implements hint:
 %}
 */
 pub fn compute_doubling_slope(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -151,7 +151,7 @@ Implements hint:
 %}
 */
 pub fn compute_doubling_slope_external_consts(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -182,7 +182,7 @@ Implements hint:
 %}
 */
 pub fn compute_slope_and_assing_secp_p(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -202,7 +202,7 @@ pub fn compute_slope_and_assing_secp_p(
 }
 
 pub fn compute_slope(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -239,7 +239,7 @@ value = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P
 %}
 */
 pub fn square_slope_minus_xs(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -267,7 +267,7 @@ pub fn square_slope_minus_xs(
 }
 
 pub fn ec_double_assign_new_x_v2(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -290,7 +290,7 @@ Implements hint:
 %}
 */
 pub fn ec_double_assign_new_x(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -352,7 +352,7 @@ Implements hint:
 %}
 */
 pub fn fast_ec_add_assign_new_x(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

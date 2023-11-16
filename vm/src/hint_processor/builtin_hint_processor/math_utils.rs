@@ -158,7 +158,7 @@ pub fn assert_le_felt(
 }
 
 pub fn assert_le_felt_v_0_6(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -198,7 +198,7 @@ pub fn assert_le_felt_v_0_8(
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
-pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn assert_le_felt_excluded_2(exec_scopes: &ExecutionScopes) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
     if excluded != Felt252::new(2_i32) {
@@ -210,7 +210,7 @@ pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<()
 
 pub fn assert_le_felt_excluded_1(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
@@ -223,7 +223,7 @@ pub fn assert_le_felt_excluded_1(
 
 pub fn assert_le_felt_excluded_0(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
@@ -260,7 +260,7 @@ pub fn is_le_felt(
 //            f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -299,7 +299,7 @@ pub fn assert_not_equal(
 //     assert 0 <= ids.a % PRIME < range_check_builtin.bound, f'a = {ids.a} is out of range.'
 // %}
 pub fn assert_nn(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -322,7 +322,7 @@ pub fn assert_nn(
 // assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'
 // %}
 pub fn assert_not_zero(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -338,7 +338,7 @@ pub fn assert_not_zero(
 
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -658,7 +658,7 @@ Implements hint:
 %}
 */
 pub fn assert_lt_felt(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {

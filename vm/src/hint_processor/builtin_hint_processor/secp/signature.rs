@@ -32,7 +32,7 @@ b = pack(ids.b, PRIME)
 value = res = div_mod(a, b, N)
 */
 pub fn div_mod_n_packed(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -105,7 +105,7 @@ pub fn div_mod_n_safe_div(
 %}
 */
 pub fn get_point_from_x(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -142,7 +142,7 @@ pub fn get_point_from_x(
     value = res = div_mod(x, s, N)
 */
 pub fn pack_modn_div_modn(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

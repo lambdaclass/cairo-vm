@@ -31,7 +31,7 @@ use super::hint_utils::insert_value_from_var_name;
 /// value = res = div_mod(x, y, p)
 /// ```
 pub fn bigint_pack_div_mod_hint(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,

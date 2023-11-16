@@ -46,7 +46,7 @@ const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_
 */
 pub fn unsafe_keccak(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {

@@ -89,7 +89,7 @@ pub fn find_element(
 
 pub fn search_sorted_lower(
     vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
@@ -162,7 +162,7 @@ mod tests {
             vm.segments.add();
         }
 
-        let addresses = vec![
+        let addresses = [
             Relocatable::from((1, 0)),
             Relocatable::from((1, 1)),
             Relocatable::from((1, 2)),

@@ -60,7 +60,7 @@ pub fn get_ptr_from_var_name(
 //Gets the address, as a MaybeRelocatable of the variable given by the ids name
 pub fn get_address_from_var_name(
     var_name: &str,
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<MaybeRelocatable, HintError> {

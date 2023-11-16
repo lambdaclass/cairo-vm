@@ -510,7 +510,7 @@ impl CairoRunner {
     pub fn get_hint_data_dictionary(
         &self,
         references: &[HintReference],
-        hint_executor: &mut dyn HintProcessor,
+        hint_executor: &dyn HintProcessor,
     ) -> Result<HashMap<usize, Vec<Box<dyn Any>>>, VirtualMachineError> {
         let mut hint_data_dictionary = HashMap::<usize, Vec<Box<dyn Any>>>::new();
         for (hint_index, hints) in self.program.shared_program_data.hints.iter() {
@@ -744,7 +744,7 @@ impl CairoRunner {
     /// on its segment number.
     fn relocate_memory(
         &mut self,
-        vm: &mut VirtualMachine,
+        vm: &VirtualMachine,
         relocation_table: &Vec<usize>,
     ) -> Result<(), MemoryError> {
         if !(self.relocated_memory.is_empty()) {

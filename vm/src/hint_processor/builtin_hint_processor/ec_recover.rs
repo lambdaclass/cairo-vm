@@ -24,7 +24,7 @@ use num_bigint::BigInt;
 %}
  */
 pub fn ec_recover_divmod_n_packed(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -50,7 +50,7 @@ pub fn ec_recover_divmod_n_packed(
 %}
  */
 pub fn ec_recover_sub_a_b(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -78,7 +78,7 @@ pub fn ec_recover_sub_a_b(
 %}
  */
 pub fn ec_recover_product_mod(
-    vm: &mut VirtualMachine,
+    vm: &VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
