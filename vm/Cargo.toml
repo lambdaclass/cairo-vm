@@ -37,7 +37,7 @@ test_utils = [
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
-print = []
+print = ["std"]
 
 [dependencies]
 mimalloc = { workspace = true, optional = true }
