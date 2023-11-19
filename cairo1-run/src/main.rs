@@ -40,6 +40,7 @@ use cairo_vm::serde::deserialize_program::BuiltinName;
 use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
+use cairo_vm::vm::decoding::decoder::decode_instruction;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
@@ -188,11 +189,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let main_func = find_function(&sierra_program, "::main")?;
 
+    println!("Main func: {:?}", main_func.entry_point);
+
     let initial_gas = 9999999999999_usize;
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
-    let (entry_code, builtins) = create_entry_code(
+
+    // We are replacing the entry with a proof mode like code
+
+    let (_, builtins) = create_entry_code(
         &sierra_program_registry,
         &casm_program,
         &type_sizes,
@@ -201,17 +207,45 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     )?;
     let footer = create_code_footer();
 
-    let check_gas_usage = true;
+    // We don't want additional data regarding gas for offchain programs 
+    let check_gas_usage = false;
+
+    // ap_change_info maybe useful ? 
     let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
+
+    // Error: VirtualMachine(DiffAssertValues((RelocatableValue(Relocatable { segment_index: 4, offset: 0 }), RelocatableValue(Relocatable { segment_index: 4, offset: 8 }))))
+
+    // Error: VirtualMachine(DiffAssertValues((RelocatableValue(Relocatable { segment_index: 4, offset: 0 }), RelocatableValue(Relocatable { segment_index: 4, offset: 1 }))))
+
+    // 
+    let mut ctx = casm! {};
+    casm_extend! {ctx,
+        ap += 1;
+        call rel 4;
+        jmp rel 0;
+    };
+
+    // ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
+
+    // println!("Main {:?}", main_func);
+
+
+    let program_instructions = casm_program.instructions.iter();
+
+    let proof_mode_header = ctx.instructions;
+
     let instructions = chain!(
-        entry_code.iter(),
-        casm_program.instructions.iter(),
-        footer.iter()
+        proof_mode_header.iter(),
+        program_instructions
     );
 
+    // println!("Instructions: {:?}", instructions);
+    // println!("Builtins: {:?}", builtins);
+        
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
+    
     let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
 
     let data: Vec<MaybeRelocatable> = instructions
@@ -222,7 +256,21 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let data_len = data.len();
 
-    let program = Program::new(
+    let program = Program::new_for_proof(
+        builtins,
+        data,
+        0,
+        4,
+        program_hints,
+        ReferenceManager {
+            references: Vec::new(),
+        },
+        HashMap::new(),
+        vec![],
+        None,
+    )?;
+
+    /* let program = Program::new(
         builtins,
         data,
         Some(0),
@@ -233,16 +281,28 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         HashMap::new(),
         vec![],
         None,
-    )?;
+    )?; */
 
-    let mut runner = CairoRunner::new(&program, &args.layout, false)?;
+    let mut runner = CairoRunner::new(&program, &args.layout, true)?;
+
     let mut vm = VirtualMachine::new(args.trace_file.is_some());
     let end = runner.initialize(&mut vm)?;
 
     additional_initialization(&mut vm, data_len)?;
 
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    /* 
+    runner
+        .run_for_steps(50, &mut vm, &mut hint_processor)
+        .unwrap();
     runner.end_run(true, false, &mut vm, &mut hint_processor)?;
+    */
+    /*
+        output: true,
+        pedersen: Some(PedersenInstanceDef::default()),
+        range_check: Some(RangeCheckInstanceDef::default()),
+        ecdsa: Some(EcdsaInstanceDef::default()),
+     */
 
     // Fetch return type data
     let return_type_id = main_func
