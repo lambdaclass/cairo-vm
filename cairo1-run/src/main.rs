@@ -270,19 +270,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         None,
     )?;
 
-    /* let program = Program::new(
-        builtins,
-        data,
-        Some(0),
-        program_hints,
-        ReferenceManager {
-            references: Vec::new(),
-        },
-        HashMap::new(),
-        vec![],
-        None,
-    )?; */
-
     let mut runner = CairoRunner::new(&program, &args.layout, true)?;
 
     let mut vm = VirtualMachine::new(args.trace_file.is_some());
@@ -291,6 +278,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     additional_initialization(&mut vm, data_len)?;
 
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+
+    runner.run_until_next_power_of_2(&mut vm, &mut hint_processor)?;
     /* 
     runner
         .run_for_steps(50, &mut vm, &mut hint_processor)
