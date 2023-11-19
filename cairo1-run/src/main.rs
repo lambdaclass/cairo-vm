@@ -213,12 +213,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
+    let n = builtins.len();
+
     let mut ctx = casm! {};
     casm_extend! {ctx,
         // ap += #builtin pointers + main args
-        // Setting it to a high number should work for all cases, but it's allocating more memory than needing
         // CairoZero: ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
-        ap += 16;
+        ap += n;
         call rel 4;
         jmp rel 0;
     };
