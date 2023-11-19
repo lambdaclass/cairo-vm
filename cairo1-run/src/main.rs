@@ -196,7 +196,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
 
-    // We are replacing the entry with a proof mode like code
+    // We are replacing the entry with a proof mode like code, so this is unused
 
     let (_, builtins) = create_entry_code(
         &sierra_program_registry,
@@ -205,47 +205,35 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         main_func,
         initial_gas,
     )?;
-    let footer = create_code_footer();
 
-    // We don't want additional data regarding gas for offchain programs 
+    // We don't want additional data regarding gas for offchain programs
     let check_gas_usage = false;
 
-    // ap_change_info maybe useful ? 
+    // ap_change_info maybe useful, we can also count builtins from sierra
     let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
-
-    // Error: VirtualMachine(DiffAssertValues((RelocatableValue(Relocatable { segment_index: 4, offset: 0 }), RelocatableValue(Relocatable { segment_index: 4, offset: 8 }))))
-
-    // Error: VirtualMachine(DiffAssertValues((RelocatableValue(Relocatable { segment_index: 4, offset: 0 }), RelocatableValue(Relocatable { segment_index: 4, offset: 1 }))))
-
-    // 
     let mut ctx = casm! {};
     casm_extend! {ctx,
-        ap += 1;
+        // ap += #builtin pointers + main args
+        // Setting it to a high number should work for all cases, but it's allocating more memory than needing
+        // CairoZero: ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
+        ap += 16;
         call rel 4;
         jmp rel 0;
     };
-
-    // ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
-
-    // println!("Main {:?}", main_func);
-
 
     let program_instructions = casm_program.instructions.iter();
 
     let proof_mode_header = ctx.instructions;
 
-    let instructions = chain!(
-        proof_mode_header.iter(),
-        program_instructions
-    );
+    let instructions = chain!(proof_mode_header.iter(), program_instructions);
 
     // println!("Instructions: {:?}", instructions);
     // println!("Builtins: {:?}", builtins);
-        
+
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
-    
+
     let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
 
     let data: Vec<MaybeRelocatable> = instructions
@@ -277,21 +265,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     additional_initialization(&mut vm, data_len)?;
 
+    // Run it until the infinite loop
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
 
+    // Then pad it to the power of 2
     runner.run_until_next_power_of_2(&mut vm, &mut hint_processor)?;
-    /* 
-    runner
-        .run_for_steps(50, &mut vm, &mut hint_processor)
-        .unwrap();
-    runner.end_run(true, false, &mut vm, &mut hint_processor)?;
-    */
-    /*
-        output: true,
-        pedersen: Some(PedersenInstanceDef::default()),
-        range_check: Some(RangeCheckInstanceDef::default()),
-        ecdsa: Some(EcdsaInstanceDef::default()),
-     */
 
     // Fetch return type data
     let return_type_id = main_func
