@@ -1057,6 +1057,7 @@ fn cairo_run_print_dict_felt() {
 #[test]
 #[cfg(feature = "print")]
 fn cairo_run_print_dict_array() {
-    let program_data = include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
+    let program_data =
+        include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
     run_program_simple_with_memory_holes(program_data, 4);
 }
