@@ -23,13 +23,7 @@ use super::{
 };
 
 type BeforeFirstStepHookFunc = Arc<
-    dyn Fn(
-            &mut VirtualMachine,
-            &mut CairoRunner,
-            &[Box<dyn Any>],
-        ) -> Result<(), VirtualMachineError>
-        + Sync
-        + Send,
+    dyn Fn(&mut VirtualMachine, &mut CairoRunner) -> Result<(), VirtualMachineError> + Sync + Send,
 >;
 
 type StepHookFunc = Arc<
@@ -72,10 +66,9 @@ impl VirtualMachine {
     pub fn execute_before_first_step(
         &mut self,
         runner: &mut CairoRunner,
-        hint_data: &[Box<dyn Any>],
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().before_first_step {
-            (hook_func)(self, runner, hint_data)?;
+            (hook_func)(self, runner)?;
         }
 
         Ok(())
