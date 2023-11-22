@@ -107,7 +107,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc},
+    stdlib::{collections::HashMap, prelude::*, rc::Rc},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -176,9 +176,10 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         &mut self,
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &Box<dyn Any>,
+        hint_idx: usize,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), HintError> {
+        let hint_data = vm.hint_data.get(hint_idx).ok_or(HintError::WrongHintData)?;
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
@@ -1249,29 +1250,18 @@ mod tests {
         hint_processor.add_hint(String::from("enter_scope_custom_a"), Rc::clone(&hint_func));
         hint_processor.add_hint(String::from("enter_scope_custom_b"), hint_func);
         let mut vm = vm!();
-        let exec_scopes = exec_scopes_ref!();
-        assert_eq!(exec_scopes.data.len(), 1);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
+        vm.hint_data = vec![any_box!(hint_data)];
+        let exec_scopes = exec_scopes_ref!();
+        assert_eq!(exec_scopes.data.len(), 1);
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, 0, &HashMap::new(),),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 2);
-        let hint_data =
-            HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, 0, &HashMap::new(),),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 3);

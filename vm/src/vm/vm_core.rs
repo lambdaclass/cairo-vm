@@ -449,15 +449,16 @@ impl VirtualMachine {
 
     pub fn step_hint(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_data.iter().enumerate() {
-            hint_executor
-                .execute_hint(self, exec_scopes, hint_data, constants)
-                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        if let Some((start, len)) = self.get_hint_range_for_pc(self.run_context.pc) {
+            for (hint_idx, i) in (start..(start + len.get())).enumerate() {
+                hint_processor
+                    .execute_hint(self, exec_scopes, hint_idx, constants)
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((i, err))))?
+            }
         }
         Ok(())
     }
@@ -491,10 +492,9 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
+        self.step_hint(hint_executor, exec_scopes, constants)?;
 
         #[cfg(feature = "hooks")]
         self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
@@ -1159,10 +1159,8 @@ mod tests {
     };
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
-        any_box,
-        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
-            BuiltinHintProcessor, HintProcessorData,
-        },
+        //any_box,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         types::{
             instance_definitions::{
@@ -2690,12 +2688,7 @@ mod tests {
         assert!(addresses == expected_addresses);
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            vm.step(
-                &mut hint_processor,
-                exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new(),
-            ),
+            vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new(),),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, relocatable!(0, 4));
@@ -2919,12 +2912,7 @@ mod tests {
         ];
 
         assert_matches!(
-            vm.step(
-                &mut hint_processor,
-                exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
-            ),
+            vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         let trace = vm.trace.unwrap();
@@ -3001,12 +2989,7 @@ mod tests {
         //Run steps
         while vm.run_context.pc != final_pc {
             assert_matches!(
-                vm.step(
-                    &mut hint_processor,
-                    exec_scopes_ref!(),
-                    &Vec::new(),
-                    &HashMap::new()
-                ),
+                vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
             );
         }
@@ -3097,12 +3080,7 @@ mod tests {
         assert_eq!(vm.run_context.ap, 2);
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            vm.step(
-                &mut hint_processor,
-                exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
-            ),
+            vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 2)));
@@ -3118,12 +3096,7 @@ mod tests {
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            vm.step(
-                &mut hint_processor,
-                exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
-            ),
+            vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 4)));
@@ -3140,12 +3113,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
-            vm.step(
-                &mut hint_processor,
-                exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
-            ),
+            vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
             Ok(())
         );
         assert_eq!(vm.run_context.pc, Relocatable::from((0, 6)));
@@ -3663,10 +3631,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
-        let hint_data = vec![any_box!(HintProcessorData::new_default(
-            "memory[ap] = segments.add()".to_string(),
-            HashMap::new(),
-        ))];
+        // let hint_data = vec![any_box!(HintProcessorData::new_default(
+        //     "memory[ap] = segments.add()".to_string(),
+        //     HashMap::new(),
+        // ))];
 
         //Initialzie registers
         run_context!(vm, 3, 2, 2);
@@ -3701,18 +3669,13 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            let hint_data = if vm.run_context.pc == (0, 0).into() {
-                &hint_data[0..]
-            } else {
-                &hint_data[0..0]
-            };
+            // let hint_data = if vm.run_context.pc == (0, 0).into() {
+            //     &hint_data[0..]
+            // } else {
+            //     &hint_data[0..0]
+            // };
             assert_matches!(
-                vm.step(
-                    &mut hint_processor,
-                    exec_scopes_ref!(),
-                    hint_data,
-                    &HashMap::new()
-                ),
+                vm.step(&mut hint_processor, exec_scopes_ref!(), &HashMap::new()),
                 Ok(())
             );
         }

@@ -430,19 +430,21 @@ pub mod test_utils {
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            $vm.hint_data = vec![any_box!(hint_data)];
             let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, 0, $constants)
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default(
                 crate::stdlib::string::ToString::to_string($hint_code),
                 $ids_data,
             );
+            $vm.hint_data = vec![any_box!(hint_data)];
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 $exec_scopes,
-                &any_box!(hint_data),
+                0,
                 &crate::stdlib::collections::HashMap::new(),
             )
         }};
@@ -451,11 +453,12 @@ pub mod test_utils {
                 crate::stdlib::string::ToString::to_string($hint_code),
                 $ids_data,
             );
+            $vm.hint_data = vec![any_box!(hint_data)];
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(
                 &mut $vm,
                 exec_scopes_ref!(),
-                &any_box!(hint_data),
+                0,
                 &crate::stdlib::collections::HashMap::new(),
             )
         }};

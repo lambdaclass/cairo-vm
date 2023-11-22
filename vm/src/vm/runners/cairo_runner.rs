@@ -565,19 +565,12 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let references = &self.program.shared_program_data.reference_manager;
-        let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = &vm
-                .get_hint_range_for_pc(vm.run_context.pc)
-                .and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                hint_data,
                 &self.program.constants,
             )?;
             hint_processor.consume_step();
@@ -597,22 +590,13 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let references = &self.program.shared_program_data.reference_manager;
-        let hint_data = self.get_hint_data(references, hint_processor)?;
-
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
-
-            let hint_data = &vm
-                .get_hint_range_for_pc(vm.run_context.pc)
-                .and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                hint_data,
                 &self.program.constants,
             )?;
         }
