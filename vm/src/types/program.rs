@@ -34,6 +34,8 @@ use std::path::Path;
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{Arbitrary, Unstructured};
 
+use super::relocatable::Relocatable;
+
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
 // and some that will be allocated on the heap inside an `Arc<_>`.
 // This is because it has been reported that cloning the whole structure when creating
@@ -106,7 +108,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    hints_ranges: Vec<HintRange>,
+    hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -122,7 +124,7 @@ impl HintsCollection {
         let Some((max_hint_pc, full_len)) = bounds else {
             return Ok(HintsCollection {
                 hints: Vec::new(),
-                hints_ranges: Vec::new(),
+                hints_ranges: HashMap::new(),
             });
         };
 
@@ -131,14 +133,14 @@ impl HintsCollection {
         }
 
         let mut hints_values = Vec::with_capacity(full_len);
-        let mut hints_ranges = vec![None; max_hint_pc + 1];
+        let mut hints_ranges = HashMap::new();
 
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (
                 hints_values.len(),
                 NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
             );
-            hints_ranges[*pc] = Some(range);
+            hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
         }
 
@@ -152,28 +154,23 @@ impl HintsCollection {
         self.hints.iter()
     }
 
-    pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
-        self.hints_ranges.get(pc).cloned()
+    pub fn get_hint_range_for_pc(&self, pc: Relocatable) -> Option<HintRange> {
+        self.hints_ranges.get(&pc).cloned()
     }
 }
 
-impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
-    fn from(hc: &HintsCollection) -> Self {
-        let mut hint_map = BTreeMap::new();
-        for (i, r) in hc.hints_ranges.iter().enumerate() {
-            let Some(r) = r else {
-                continue;
-            };
-            hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
-        }
-        hint_map
-    }
-}
+// impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+//     fn from(hc: &HintsCollection) -> Self {
+//         let mut hint_map = BTreeMap::new();
+//         for (pc, r) in hc.hints_ranges.iter() {
+//             hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+//         }
+//         hint_map
+//     }
+// }
 
-/// Represents a range of hints corresponding to a PC.
-///
-/// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
-type HintRange = Option<(usize, NonZeroUsize)>;
+/// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
+type HintRange = (usize, NonZeroUsize);
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -493,7 +490,7 @@ mod tests {
         );
         assert_eq!(
             program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
+            HashMap::new()
         );
     }
 
@@ -1250,7 +1247,7 @@ mod tests {
     fn default_program() {
         let hints_collection = HintsCollection {
             hints: Vec::new(),
-            hints_ranges: Vec::new(),
+            hints_ranges: HashMap::new(),
         };
 
         let shared_program_data = SharedProgramData {
