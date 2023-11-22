@@ -77,9 +77,6 @@ PRINT_TEST_DIR=cairo_programs/print_feature
 PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
 COMPILED_PRINT_TESTS:=$(patsubst $(PRINT_TEST_DIR)/%.cairo, $(PRINT_TEST_DIR)/%.json, $(PRINT_TEST_FILES))
 
-$(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
-	cairo-compile $< --output $@
-
 NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
 NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
 COMPILED_NORETROCOMPAT_TESTS:=$(patsubst $(NORETROCOMPAT_DIR)/%.cairo, $(NORETROCOMPAT_DIR)/%.json, $(NORETROCOMPAT_FILES))
@@ -99,13 +96,10 @@ $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
 
-
-BAD_TEST_DIR=cairo_programs/bad_programs
-BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
-COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
-
-
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
+	cairo-compile $< --output $@
+
+$(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
 # ======================
