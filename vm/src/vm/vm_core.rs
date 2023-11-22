@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
+use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -445,15 +446,17 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_data.iter().enumerate() {
-            hint_executor
-                .execute_hint(self, exec_scopes, hint_data, constants)
-                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
-        }
-        Ok(())
+        hint_executor.execute_and_mutate_hints(
+            self,
+            exec_scopes,
+            constants,
+            hint_datas,
+            hint_ranges,
+        )
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
@@ -485,10 +488,17 @@ impl VirtualMachine {
         &mut self,
         hint_executor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
+        self.step_hint(
+            hint_executor,
+            exec_scopes,
+            hint_datas,
+            hint_ranges,
+            constants,
+        )?;
 
         #[cfg(feature = "hooks")]
         self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;

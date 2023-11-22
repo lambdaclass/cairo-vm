@@ -6,6 +6,8 @@ use crate::serde::deserialize_program::OffsetValue;
 use crate::serde::deserialize_program::Reference;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
+use crate::types::program::HintRange;
+use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::cairo_runner::ResourceTracker;
@@ -51,6 +53,32 @@ pub trait HintProcessorLogic {
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
         }))
+    }
+
+    //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
+    fn execute_and_mutate_hints(
+        &mut self,
+        //Proxy to VM, contains refrences to necessary data
+        //+ MemoryProxy, which provides the necessary methods to manipulate memory
+        vm: &mut VirtualMachine,
+        //Proxy to ExecutionScopes, provides the necessary methods to manipulate the scopes and
+        //access current scope variables
+        exec_scopes: &mut ExecutionScopes,
+        //Constant values extracted from the program specification.
+        constants: &HashMap<String, Felt252>,
+        // hint muatbles
+        mutable_hints: &mut [Box<dyn Any>],
+        mutable_ranges: &mut HashMap<Relocatable, HintRange>,
+    ) -> Result<(), VirtualMachineError> {
+        let hint_range = &mutable_ranges
+            .get(&vm.run_context.pc)
+            .and_then(|(start, length)| mutable_hints.get(*start..*start + length.get()))
+            .unwrap_or(&[]);
+        for (hint_index, hint_data) in hint_range.iter().enumerate() {
+            self.execute_hint(vm, exec_scopes, hint_data, constants)
+                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        }
+        Ok(())
     }
 }
 
