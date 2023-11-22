@@ -515,6 +515,12 @@ impl CairoRunner {
         let references = &self.program.shared_program_data.reference_manager;
         let hint_data = self.get_hint_data(references, hint_processor)?;
         vm.hint_data = hint_data;
+        vm.hints_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
         Ok(())
     }
 
@@ -564,10 +570,7 @@ impl CairoRunner {
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = &self
-                .program
-                .shared_program_data
-                .hints_collection
+            let hint_data = &vm
                 .get_hint_range_for_pc(vm.run_context.pc)
                 .and_then(|(start, length)| hint_data.get(start..start + length.get()))
                 .unwrap_or(&[]);
@@ -602,10 +605,7 @@ impl CairoRunner {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
-            let hint_data = &self
-                .program
-                .shared_program_data
-                .hints_collection
+            let hint_data = &vm
                 .get_hint_range_for_pc(vm.run_context.pc)
                 .and_then(|(start, length)| hint_data.get(start..start + length.get()))
                 .unwrap_or(&[]);

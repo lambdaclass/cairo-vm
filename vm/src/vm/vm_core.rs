@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
+use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -88,6 +89,8 @@ pub struct VirtualMachine {
     pub(crate) hooks: crate::vm::hooks::Hooks,
     pub(crate) relocation_table: Option<Vec<usize>>,
     pub(crate) hint_data: Vec<Box<dyn Any>>,
+    /// This maps a PC to the range of hints in `hints` that correspond to it.
+    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl VirtualMachine {
@@ -119,6 +122,7 @@ impl VirtualMachine {
             hooks: Default::default(),
             relocation_table: None,
             hint_data: Vec::new(),
+            hints_ranges: HashMap::new(),
         }
     }
 
@@ -499,6 +503,10 @@ impl VirtualMachine {
         self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
 
         Ok(())
+    }
+
+    pub(crate) fn get_hint_range_for_pc(&self, pc: Relocatable) -> Option<HintRange> {
+        self.hints_ranges.get(&pc).cloned()
     }
 
     fn compute_op0_deductions(
@@ -1136,6 +1144,7 @@ impl VirtualMachineBuilder {
             hooks: self.hooks,
             relocation_table: None,
             hint_data: Vec::new(),
+            hints_ranges: HashMap::new(),
         }
     }
 }

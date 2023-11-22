@@ -108,7 +108,7 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    hints_ranges: HashMap<Relocatable, HintRange>,
+    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -153,10 +153,6 @@ impl HintsCollection {
     pub fn iter_hints(&self) -> impl Iterator<Item = &HintParams> {
         self.hints.iter()
     }
-
-    pub fn get_hint_range_for_pc(&self, pc: Relocatable) -> Option<HintRange> {
-        self.hints_ranges.get(&pc).cloned()
-    }
 }
 
 // impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
@@ -170,7 +166,7 @@ impl HintsCollection {
 // }
 
 /// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
-type HintRange = (usize, NonZeroUsize);
+pub(crate) type HintRange = (usize, NonZeroUsize);
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
