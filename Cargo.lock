@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-felt"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "arbitrary",
  "lambdaworks-math",
@@ -712,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -721,7 +721,7 @@ dependencies = [
  "assert_matches",
  "bincode",
  "bitvec",
- "cairo-felt 0.9.0",
+ "cairo-felt 0.9.1",
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
@@ -751,7 +751,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1135,9 +1135,9 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c18ee0ed65a5f1f81cac6b1d213b69c35fa47d4252ad41f1486dbd8226fe36e"
+checksum = "f258a7194e7f7c2a7837a8913aeab7fd8c383457034fa20ce4dd3dcb813e8eb8"
 dependencies = [
  "libc",
  "windows-sys",
@@ -1394,7 +1394,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2224,9 +2224,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.23"
+version = "0.38.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb93593068e9babdad10e4fce47dc9b3ac25315a72a59766ffd9e9a71996a04"
+checksum = "9ad981d6c340a49cdc40a1028d9c6084ec7e9fa33fcb839cab656a267071e234"
 dependencies = [
  "bitflags 2.4.1",
  "errno",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
@@ -3036,9 +3036,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a0956f1ba7c7909bfb66c2e9e4124ab6f6482560f6628b5aaeba39207c9aad9"
+checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
 dependencies = [
  "zeroize_derive",
 ]
