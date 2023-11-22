@@ -178,6 +178,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         .map_err(|err| Error::SierraCompilation(err.to_string()))?)
     .clone();
 
+    println!("Sierra: {}", sierra_program);
+
     let metadata_config = Some(Default::default());
     let gas_usage_check = metadata_config.is_some();
     let metadata = create_metadata(&sierra_program, metadata_config)?;
@@ -191,13 +193,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     println!("Main func: {:?}", main_func.entry_point);
 
-    let initial_gas = 9999999999999_usize;
-
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
 
     // We are replacing the entry with a proof mode like code, so this is unused
+    let initial_gas = 9999999999999_usize;
 
+    // This call should be removed
     let (_, builtins) = create_entry_code(
         &sierra_program_registry,
         &casm_program,
@@ -210,28 +212,81 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let check_gas_usage = false;
 
     // ap_change_info maybe useful, we can also count builtins from sierra
+    println!("Ap change info: {:?}", metadata.ap_change_info);
     let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
-    let n = builtins.len();
+    println!("Builtins: {:?}", builtins);
+
+    println!(" Main signs: {:?}", main_func.signature.param_types);
+
+    // Each params needs the AP to be updated for them to work
+    let amount_of_main_args = main_func.signature.param_types.len();
+
+    // Additionally, some params need extra logic
+    // We look for a gas builtin, since it needs us to set the implicit param in the header of the initial amount of gas.
+    // Adittionally :
+    // - SegmentArena additional segments should be handled here too.
+    // - Array arguments should be tested in the future too
+    // - Syscalls don't apply to programs
+    // - Other params shouldn't need an explicit handling, they just need the ap to be handled
+
+    let mut has_gas_builtin = false;
+    for ty in main_func.signature.param_types.iter() {
+        let info = get_info(&sierra_program_registry, ty)
+            .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
+        let generic_ty = &info.long_id.generic_id;
+        if generic_ty == &GasBuiltinType::ID {
+            has_gas_builtin = true;
+        }
+    }
+
+    let mut ap_offset = amount_of_main_args;
 
     let mut ctx = casm! {};
+
+    // Gas builtin requires saving the max amount of gas in a header, and increasing the ap manually. So we will remove it from the base ap offset
+    if has_gas_builtin {
+        ap_offset -= 1;
+    }
+
+    // Here we prepare the header
+    // AP needs to be updated. Each argument moves the ap by one
     casm_extend! {ctx,
         // ap += #builtin pointers + main args
         // CairoZero: ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
-        ap += n;
+        ap += ap_offset;
+    };
+
+    if has_gas_builtin {
+        // If there's a gas builtin, we need to set the initial gas to a high number. It shouldn't be needed, but cairo sierra compiler will add the "gas builtin" for programs with explicit recursion
+        // ap needs to be increased at this moment, and not with the usual ap offset
+        println!("Appending gas builtin code");
+        casm_extend! {ctx,
+            [ap + 0] = initial_gas, ap++;
+        }
+    }
+
+    // Then goes the main proof mode code. Notice we expect main to be at the beggining of the casm code, that's why call rel is 4.
+    casm_extend! {ctx,
         call rel 4;
         jmp rel 0;
     };
 
-    let program_instructions = casm_program.instructions.iter();
-
     let proof_mode_header = ctx.instructions;
 
-    let instructions = chain!(proof_mode_header.iter(), program_instructions);
+    let program_instructions = casm_program.instructions.iter();
 
-    // println!("Instructions: {:?}", instructions);
-    // println!("Builtins: {:?}", builtins);
+    // This footer is used by lib funcs
+    let libfunc_footer = create_code_footer();
+
+    // This is the program we are actually proving
+    // With embedded proof mode and the libfunc footer
+    let instructions = chain!(
+        proof_mode_header.iter(),
+        program_instructions,
+        libfunc_footer.iter()
+    );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
@@ -245,11 +300,19 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let data_len = data.len();
 
+    let starting_pc = 0;
+    let mut final_pc = 4;
+
+    // Notice we added an additional instruction with the initial gas when gas builtin was activated, so the infinite loop has moved
+    if has_gas_builtin {
+        final_pc += 2;
+    }
+
     let program = Program::new_for_proof(
         builtins,
         data,
-        0,
-        4,
+        starting_pc,
+        final_pc,
         program_hints,
         ReferenceManager {
             references: Vec::new(),
