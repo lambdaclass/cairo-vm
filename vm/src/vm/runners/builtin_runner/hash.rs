@@ -357,7 +357,9 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -401,7 +403,9 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)

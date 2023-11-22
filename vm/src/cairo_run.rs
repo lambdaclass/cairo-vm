@@ -78,7 +78,7 @@ pub fn cairo_run(
     )?;
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = cairo_runner.initialize(&mut vm)?;
+    let end = cairo_runner.initialize(&mut vm, hint_executor)?;
     // check step calculation
 
     cairo_runner
@@ -222,7 +222,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         let end = cairo_runner
-            .initialize(&mut vm)
+            .initialize(&mut vm, hint_processor)
             .map_err(CairoRunError::Runner)?;
 
         assert!(cairo_runner
@@ -244,7 +244,9 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
@@ -364,7 +366,9 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());

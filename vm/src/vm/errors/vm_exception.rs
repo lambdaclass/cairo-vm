@@ -644,7 +644,9 @@ mod test {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -658,7 +660,9 @@ mod test {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -696,7 +700,9 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -855,7 +861,9 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -900,7 +908,9 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -939,7 +949,9 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -978,7 +990,9 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -1017,7 +1031,9 @@ cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -1054,7 +1070,9 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();

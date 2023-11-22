@@ -101,6 +101,8 @@ pub enum RunnerError {
     StrippedProgramNoMain,
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error("Failed to compile hint: {0}")]
+    CompileHintFail(Box<str>),
 }
 
 #[cfg(test)]

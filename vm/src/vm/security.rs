@@ -121,7 +121,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         vm.segments.compute_effective_sizes();
         assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
@@ -134,7 +135,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
 
         vm.segments = segments![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -153,7 +155,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
 
         vm.segments = segments![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -171,7 +174,8 @@ mod test {
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         vm.builtin_runners[0].set_stop_ptr(0);
         vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
@@ -189,7 +193,8 @@ mod test {
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
@@ -218,7 +223,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
@@ -246,7 +252,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         vm.segments.memory = memory![
             ((0, 1), (1, 0)),
             ((0, 2), (2, 1)),
@@ -274,7 +281,8 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.initialize(&mut vm, &mut hint_processor).unwrap();
         vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),

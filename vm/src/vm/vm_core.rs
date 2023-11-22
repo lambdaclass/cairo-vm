@@ -87,6 +87,7 @@ pub struct VirtualMachine {
     #[cfg(feature = "hooks")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
     pub(crate) relocation_table: Option<Vec<usize>>,
+    pub(crate) hint_data: Vec<Box<dyn Any>>,
 }
 
 impl VirtualMachine {
@@ -117,6 +118,7 @@ impl VirtualMachine {
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
             relocation_table: None,
+            hint_data: Vec::new(),
         }
     }
 
@@ -1133,6 +1135,7 @@ impl VirtualMachineBuilder {
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
             relocation_table: None,
+            hint_data: Vec::new(),
         }
     }
 }
@@ -4174,7 +4177,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -4199,7 +4204,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner
+            .initialize(&mut vm, &mut hint_processor)
+            .unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
