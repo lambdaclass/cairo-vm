@@ -77,6 +77,8 @@ PRINT_TEST_DIR=cairo_programs/print_feature
 PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
 COMPILED_PRINT_TESTS:=$(patsubst $(PRINT_TEST_DIR)/%.cairo, $(PRINT_TEST_DIR)/%.json, $(PRINT_TEST_FILES))
 
+$(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
+	cairo-compile $< --output $@
 
 NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
 NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
