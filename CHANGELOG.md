@@ -2,10 +2,10 @@
 
 #### Upcoming Changes
 
-* feat: `Partially Revert Optimize trace relocation #906` [#492](https://github.com/lambdaclass/cairo-vm/pull/492)
+* feat: Partially Revert `Optimize trace relocation #906` [#492](https://github.com/lambdaclass/cairo-vm/pull/492)
 
   * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`
-  * Add `relocated_trace` field  to `CairoRunner`
+  * Add `relocated_trace` field to `CairoRunner`
 
 #### [0.9.1] - 2023-11-16
 
