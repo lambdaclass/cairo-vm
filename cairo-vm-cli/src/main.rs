@@ -152,14 +152,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         let relocated_trace = cairo_runner
             .relocated_trace
             .as_ref()
-            .ok_or(Error::Trace(TraceError::TraceNotRelocated))?
-            .clone();
+            .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
             FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-        cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
+        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
 
