@@ -51,7 +51,7 @@ pub trait HintProcessorLogic {
     }
 
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
-    // Can also return a map of hints to be loaded after the current hint is executed
+    // Also returns a map of hints to be loaded after the current hint is executed
     fn execute_hint_extensive(
         &mut self,
         vm: &mut VirtualMachine,
@@ -60,9 +60,9 @@ pub trait HintProcessorLogic {
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt252>,
-    ) -> Result<Option<HintExtension>, HintError> {
+    ) -> Result<HintExtension, HintError> {
         self.execute_hint(vm, exec_scopes, hint_data, constants)?;
-        Ok(None)
+        Ok(HintExtension::default())
     }
 }
 

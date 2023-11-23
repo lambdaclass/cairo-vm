@@ -457,7 +457,7 @@ impl VirtualMachine {
             let s = *s;
             // Execute each hint for the given range
             for idx in s..(s + l.get()) {
-                let res = hint_processor
+                let hint_extension = hint_processor
                     .execute_hint_extensive(
                         self,
                         exec_scopes,
@@ -465,13 +465,11 @@ impl VirtualMachine {
                         constants,
                     )
                     .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
-                // Check if the hint executed adds new hints, and update the hint_ranges & hint_datas accordingly
-                if let Some(hint_extension) = res {
-                    for (hint_pc, hints) in hint_extension {
-                        if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
-                            hint_ranges.insert(hint_pc, (hint_datas.len(), len));
-                            hint_datas.extend(hints);
-                        }
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
                     }
                 }
             }
