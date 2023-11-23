@@ -55,7 +55,7 @@ pub trait HintProcessorLogic {
     }
 
     //Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
-
+    // Can also return a map of hints to be loaded after the current hint is executed
     fn execute_hint_extensive(
         &mut self,
         //Proxy to VM, contains refrences to necessary data
@@ -74,6 +74,8 @@ pub trait HintProcessorLogic {
     }
 }
 
+// A map of hints that can be used to extend the current map of hints for the vm run
+// The map matches the pc at which the hints should be executed to a vec of compiled hints (Outputed by HintProcessor::CompileHint)
 pub type HintExtension = Box<HashMap<Relocatable, Vec<Box<dyn Any>>>>;
 
 pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
