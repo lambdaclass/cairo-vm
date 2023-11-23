@@ -1309,8 +1309,7 @@ impl CairoRunner {
             dyn_layout,
             &vm.get_public_memory_addresses()?,
             vm.get_memory_segment_addresses()?,
-            &self
-                .relocated_trace
+            self.relocated_trace
                 .as_ref()
                 .ok_or(PublicInputError::EmptyTrace)?,
             self.get_perm_range_check_limits(vm)
@@ -2604,7 +2603,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        assert_eq!(cairo_runner.relocate_memory(&mut vm, &rel_table), Ok(()));
+        assert_eq!(cairo_runner.relocate_memory(&vm, &rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2710,7 +2709,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        assert_eq!(cairo_runner.relocate_memory(&mut vm, &rel_table), Ok(()));
+        assert_eq!(cairo_runner.relocate_memory(&vm, &rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
