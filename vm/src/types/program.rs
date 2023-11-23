@@ -155,15 +155,15 @@ impl HintsCollection {
     }
 }
 
-// impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
-//     fn from(hc: &HintsCollection) -> Self {
-//         let mut hint_map = BTreeMap::new();
-//         for (pc, r) in hc.hints_ranges.iter() {
-//             hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
-//         }
-//         hint_map
-//     }
-// }
+impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+    fn from(hc: &HintsCollection) -> Self {
+        let mut hint_map = BTreeMap::new();
+        for (pc, r) in hc.hints_ranges.iter() {
+            hint_map.insert(pc.offset, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        hint_map
+    }
+}
 
 /// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
 pub type HintRange = (usize, NonZeroUsize);
@@ -415,880 +415,874 @@ impl TryFrom<CasmContractClass> for Program {
     }
 }
 
-// #[cfg(test)]
-// impl HintsCollection {
-//     pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
-//         self.hints_ranges
-//             .iter()
-//             .enumerate()
-//             .filter_map(|(pc, range)| {
-//                 range.and_then(|(start, len)| {
-//                     let end = start + len.get();
-//                     if end <= self.hints.len() {
-//                         Some((pc, &self.hints[start..end]))
-//                     } else {
-//                         None
-//                     }
-//                 })
-//             })
-//     }
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
-//     use crate::utils::test_utils::*;
-//     use felt::felt_str;
-//     use num_traits::Zero;
-
-//     use assert_matches::assert_matches;
-
-//     #[cfg(target_arch = "wasm32")]
-//     use wasm_bindgen_test::*;
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn new() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let program = Program::new(
-//             builtins.clone(),
-//             data.clone(),
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, None);
-//         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-//         assert_eq!(
-//             program.shared_program_data.hints_collection.hints,
-//             Vec::new()
-//         );
-//         assert_eq!(
-//             program.shared_program_data.hints_collection.hints_ranges,
-//             HashMap::new()
-//         );
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn new_for_proof() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let program = Program::new_for_proof(
-//             builtins.clone(),
-//             data.clone(),
-//             0,
-//             1,
-//             HashMap::new(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, None);
-//         assert_eq!(program.shared_program_data.start, Some(0));
-//         assert_eq!(program.shared_program_data.end, Some(1));
-//         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-//         assert_eq!(
-//             program.shared_program_data.hints_collection.hints,
-//             Vec::new()
-//         );
-//         assert_eq!(
-//             program.shared_program_data.hints_collection.hints_ranges,
-//             Vec::new()
-//         );
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn new_program_with_hints() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let str_to_hint_param = |s: &str| HintParams {
-//             code: s.to_string(),
-//             accessible_scopes: vec![],
-//             flow_tracking_data: FlowTrackingData {
-//                 ap_tracking: ApTracking {
-//                     group: 0,
-//                     offset: 0,
-//                 },
-//                 reference_ids: HashMap::new(),
-//             },
-//         };
-
-//         let hints = HashMap::from([
-//             (5, vec![str_to_hint_param("c"), str_to_hint_param("d")]),
-//             (1, vec![str_to_hint_param("a")]),
-//             (4, vec![str_to_hint_param("b")]),
-//         ]);
-
-//         let program = Program::new(
-//             builtins.clone(),
-//             data.clone(),
-//             None,
-//             hints.clone(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, None);
-//         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
-
-//         let program_hints: HashMap<_, _> = program
-//             .shared_program_data
-//             .hints_collection
-//             .hints_ranges
-//             .iter()
-//             .enumerate()
-//             .filter_map(|(pc, r)| r.map(|(s, l)| (pc, (s, s + l.get()))))
-//             .map(|(pc, (s, e))| {
-//                 (
-//                     pc,
-//                     program.shared_program_data.hints_collection.hints[s..e].to_vec(),
-//                 )
-//             })
-//             .collect();
-//         assert_eq!(program_hints, hints);
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn new_program_with_identifiers() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         let program = Program::new(
-//             builtins.clone(),
-//             data.clone(),
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             identifiers.clone(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, None);
-//         assert_eq!(program.shared_program_data.identifiers, identifiers);
-//         assert_eq!(
-//             program.constants,
-//             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
-//                 .into_iter()
-//                 .map(|(key, value)| (key.to_string(), value))
-//                 .collect::<HashMap<_, _>>(),
-//         );
-//     }
-
-//     #[test]
-//     fn extract_constants() {
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         assert_eq!(
-//             Program::extract_constants(&identifiers).unwrap(),
-//             [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
-//                 .into_iter()
-//                 .map(|(key, value)| (key.to_string(), value))
-//                 .collect::<HashMap<_, _>>(),
-//         );
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn get_prime() {
-//         let program = Program::default();
-//         assert_eq!(PRIME_STR, program.prime());
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn iter_builtins() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<_> = vec![BuiltinName::range_check, BuiltinName::bitwise];
-//         let data: Vec<_> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let program = Program::new(
-//             builtins.clone(),
-//             data,
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(
-//             program.iter_builtins().cloned().collect::<Vec<_>>(),
-//             builtins
-//         );
-
-//         assert_eq!(program.builtins_len(), 2);
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn iter_data() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let program = Program::new(
-//             builtins,
-//             data.clone(),
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.iter_data().cloned().collect::<Vec<_>>(), data);
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn data_len() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let program = Program::new(
-//             builtins,
-//             data.clone(),
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             HashMap::new(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(program.data_len(), data.len());
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn get_identifier() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         let program = Program::new(
-//             builtins,
-//             data,
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             identifiers.clone(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         assert_eq!(
-//             program.get_identifier("__main__.main"),
-//             identifiers.get("__main__.main"),
-//         );
-//         assert_eq!(
-//             program.get_identifier("__main__.main.SIZEOF_LOCALS"),
-//             identifiers.get("__main__.main.SIZEOF_LOCALS"),
-//         );
-//         assert_eq!(
-//             program.get_identifier("missing"),
-//             identifiers.get("missing"),
-//         );
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn iter_identifiers() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         let program = Program::new(
-//             builtins,
-//             data,
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             identifiers.clone(),
-//             Vec::new(),
-//             None,
-//         )
-//         .unwrap();
-
-//         let collected_identifiers: HashMap<_, _> = program
-//             .iter_identifiers()
-//             .map(|(cairo_type, identifier)| (cairo_type.to_string(), identifier.clone()))
-//             .collect();
-
-//         assert_eq!(collected_identifiers, identifiers);
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn new_program_with_invalid_identifiers() {
-//         let reference_manager = ReferenceManager {
-//             references: Vec::new(),
-//         };
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         let program = Program::new(
-//             builtins,
-//             data,
-//             None,
-//             HashMap::new(),
-//             reference_manager,
-//             identifiers.clone(),
-//             Vec::new(),
-//             None,
-//         );
-
-//         assert!(program.is_err());
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn deserialize_program_test() {
-//         let program = Program::from_bytes(
-//             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
-//             Some("main"),
-//         )
-//         .unwrap();
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.Args"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.Args".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.ImplicitArgs"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.Return"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.Return".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, Some(0));
-//         assert_eq!(program.shared_program_data.identifiers, identifiers);
-//     }
-
-//     /// Deserialize a program without an entrypoint.
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn deserialize_program_without_entrypoint_test() {
-//         let program = Program::from_bytes(
-//             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
-//             None,
-//         )
-//         .unwrap();
-
-//         let builtins: Vec<BuiltinName> = Vec::new();
-
-//         let error_message_attributes: Vec<Attribute> = vec![Attribute {
-//             name: String::from("error_message"),
-//             start_pc: 379,
-//             end_pc: 381,
-//             value: String::from("SafeUint256: addition overflow"),
-//             flow_tracking_data: Some(FlowTrackingData {
-//                 ap_tracking: ApTracking {
-//                     group: 14,
-//                     offset: 35,
-//                 },
-//                 reference_ids: HashMap::new(),
-//             }),
-//         }];
-
-//         let data: Vec<MaybeRelocatable> = vec![
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(1000),
-//             mayberelocatable!(5189976364521848832),
-//             mayberelocatable!(2000),
-//             mayberelocatable!(5201798304953696256),
-//             mayberelocatable!(2345108766317314046),
-//         ];
-
-//         let mut identifiers: HashMap<String, Identifier> = HashMap::new();
-
-//         identifiers.insert(
-//             String::from("__main__.main"),
-//             Identifier {
-//                 pc: Some(0),
-//                 type_: Some(String::from("function")),
-//                 value: None,
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.Args"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.Args".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.ImplicitArgs"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.Return"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("struct")),
-//                 value: None,
-//                 full_name: Some("__main__.main.Return".to_string()),
-//                 members: Some(HashMap::new()),
-//                 cairo_type: None,
-//             },
-//         );
-//         identifiers.insert(
-//             String::from("__main__.main.SIZEOF_LOCALS"),
-//             Identifier {
-//                 pc: None,
-//                 type_: Some(String::from("const")),
-//                 value: Some(Felt252::zero()),
-//                 full_name: None,
-//                 members: None,
-//                 cairo_type: None,
-//             },
-//         );
-
-//         assert_eq!(program.builtins, builtins);
-//         assert_eq!(program.shared_program_data.data, data);
-//         assert_eq!(program.shared_program_data.main, None);
-//         assert_eq!(program.shared_program_data.identifiers, identifiers);
-//         assert_eq!(
-//             program.shared_program_data.error_message_attributes,
-//             error_message_attributes
-//         )
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn deserialize_program_constants_test() {
-//         let program = Program::from_bytes(
-//             include_bytes!(
-//                 "../../../cairo_programs/manually_compiled/deserialize_constant_test.json"
-//             ),
-//             Some("main"),
-//         )
-//         .unwrap();
-
-//         let constants = [
-//             ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
-//             (
-//                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-//                 felt_str!(
-//                     "3618502788666131106986593281521497120414687020801267626233049500247285301247"
-//                 ),
-//             ),
-//             (
-//                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-//                 Felt252::new(3),
-//             ),
-//             (
-//                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-//                 felt_str!(
-//                     "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-//                 ),
-//             ),
-//             (
-//                 "starkware.cairo.common.uint256.SHIFT",
-//                 felt_str!("340282366920938463463374607431768211456"),
-//             ),
-//         ]
-//         .into_iter()
-//         .map(|(key, value)| (key.to_string(), value))
-//         .collect::<HashMap<_, _>>();
-
-//         assert_eq!(program.constants, constants);
-//     }
-
-//     #[test]
-//     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-//     fn default_program() {
-//         let hints_collection = HintsCollection {
-//             hints: Vec::new(),
-//             hints_ranges: HashMap::new(),
-//         };
-
-//         let shared_program_data = SharedProgramData {
-//             data: Vec::new(),
-//             hints_collection,
-//             main: None,
-//             start: None,
-//             end: None,
-//             error_message_attributes: Vec::new(),
-//             instruction_locations: None,
-//             identifiers: HashMap::new(),
-//             reference_manager: Program::get_reference_list(&ReferenceManager {
-//                 references: Vec::new(),
-//             }),
-//         };
-//         let program = Program {
-//             shared_program_data: Arc::new(shared_program_data),
-//             constants: HashMap::new(),
-//             builtins: Vec::new(),
-//         };
-
-//         assert_eq!(program, Program::default());
-//     }
-
-//     #[test]
-//     fn get_stripped_program() {
-//         let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
-//         let program = Program::from_bytes(program_content, Some("main")).unwrap();
-//         let stripped_program = program.get_stripped_program().unwrap();
-//         assert_eq!(stripped_program.builtins, program.builtins);
-//         assert_eq!(stripped_program.data, program.shared_program_data.data);
-//         assert_eq!(
-//             stripped_program.main,
-//             program.shared_program_data.main.unwrap()
-//         );
-//     }
-
-//     #[test]
-//     fn get_stripped_no_main() {
-//         let program_content =
-//             include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
-//         let program = Program::from_bytes(program_content, None).unwrap();
-//         assert_matches!(
-//             program.get_stripped_program(),
-//             Err(ProgramError::StrippedProgramNoMain)
-//         );
-//     }
-// }
+#[cfg(test)]
+impl HintsCollection {
+    pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
+        self.hints_ranges.iter().filter_map(|(pc, (start, len))| {
+            let end = start + len.get();
+            if end <= self.hints.len() {
+                Some((pc.offset, &self.hints[*start..end]))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+    use crate::utils::test_utils::*;
+    use felt::felt_str;
+    use num_traits::Zero;
+
+    use assert_matches::assert_matches;
+
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::*;
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            HashMap::new()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_for_proof() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new_for_proof(
+            builtins.clone(),
+            data.clone(),
+            0,
+            1,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.start, Some(0));
+        assert_eq!(program.shared_program_data.end, Some(1));
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints,
+            Vec::new()
+        );
+        assert_eq!(
+            program.shared_program_data.hints_collection.hints_ranges,
+            Vec::new()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_program_with_hints() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let str_to_hint_param = |s: &str| HintParams {
+            code: s.to_string(),
+            accessible_scopes: vec![],
+            flow_tracking_data: FlowTrackingData {
+                ap_tracking: ApTracking {
+                    group: 0,
+                    offset: 0,
+                },
+                reference_ids: HashMap::new(),
+            },
+        };
+
+        let hints = HashMap::from([
+            (5, vec![str_to_hint_param("c"), str_to_hint_param("d")]),
+            (1, vec![str_to_hint_param("a")]),
+            (4, vec![str_to_hint_param("b")]),
+        ]);
+
+        let program = Program::new(
+            builtins.clone(),
+            data.clone(),
+            None,
+            hints.clone(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, HashMap::new());
+
+        let program_hints: HashMap<_, _> = program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .iter()
+            .filter_map(|(pc, (s, l))| {
+                (
+                    pc,
+                    program.shared_program_data.hints_collection.hints[*s..((s, s + l.get()))]
+                        .to_vec(),
+                )
+            })
+            .collect();
+        assert_eq!(program_hints, hints);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_program_with_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins.clone(),
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
+        assert_eq!(
+            program.constants,
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn extract_constants() {
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(
+            Program::extract_constants(&identifiers).unwrap(),
+            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_prime() {
+        let program = Program::default();
+        assert_eq!(PRIME_STR, program.prime());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_builtins() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<_> = vec![BuiltinName::range_check, BuiltinName::bitwise];
+        let data: Vec<_> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins.clone(),
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.iter_builtins().cloned().collect::<Vec<_>>(),
+            builtins
+        );
+
+        assert_eq!(program.builtins_len(), 2);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_data() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.iter_data().cloned().collect::<Vec<_>>(), data);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn data_len() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let program = Program::new(
+            builtins,
+            data.clone(),
+            None,
+            HashMap::new(),
+            reference_manager,
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(program.data_len(), data.len());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.get_identifier("__main__.main"),
+            identifiers.get("__main__.main"),
+        );
+        assert_eq!(
+            program.get_identifier("__main__.main.SIZEOF_LOCALS"),
+            identifiers.get("__main__.main.SIZEOF_LOCALS"),
+        );
+        assert_eq!(
+            program.get_identifier("missing"),
+            identifiers.get("missing"),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn iter_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+
+        let collected_identifiers: HashMap<_, _> = program
+            .iter_identifiers()
+            .map(|(cairo_type, identifier)| (cairo_type.to_string(), identifier.clone()))
+            .collect();
+
+        assert_eq!(collected_identifiers, identifiers);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn new_program_with_invalid_identifiers() {
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers.clone(),
+            Vec::new(),
+            None,
+        );
+
+        assert!(program.is_err());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_program_test() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Args"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.Args".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.ImplicitArgs"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.ImplicitArgs".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Return"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.Return".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, Some(0));
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
+    }
+
+    /// Deserialize a program without an entrypoint.
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_program_without_entrypoint_test() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
+            None,
+        )
+        .unwrap();
+
+        let builtins: Vec<BuiltinName> = Vec::new();
+
+        let error_message_attributes: Vec<Attribute> = vec![Attribute {
+            name: String::from("error_message"),
+            start_pc: 379,
+            end_pc: 381,
+            value: String::from("SafeUint256: addition overflow"),
+            flow_tracking_data: Some(FlowTrackingData {
+                ap_tracking: ApTracking {
+                    group: 14,
+                    offset: 35,
+                },
+                reference_ids: HashMap::new(),
+            }),
+        }];
+
+        let data: Vec<MaybeRelocatable> = vec![
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(1000),
+            mayberelocatable!(5189976364521848832),
+            mayberelocatable!(2000),
+            mayberelocatable!(5201798304953696256),
+            mayberelocatable!(2345108766317314046),
+        ];
+
+        let mut identifiers: HashMap<String, Identifier> = HashMap::new();
+
+        identifiers.insert(
+            String::from("__main__.main"),
+            Identifier {
+                pc: Some(0),
+                type_: Some(String::from("function")),
+                value: None,
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Args"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.Args".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.ImplicitArgs"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.ImplicitArgs".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.Return"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("struct")),
+                value: None,
+                full_name: Some("__main__.main.Return".to_string()),
+                members: Some(HashMap::new()),
+                cairo_type: None,
+            },
+        );
+        identifiers.insert(
+            String::from("__main__.main.SIZEOF_LOCALS"),
+            Identifier {
+                pc: None,
+                type_: Some(String::from("const")),
+                value: Some(Felt252::zero()),
+                full_name: None,
+                members: None,
+                cairo_type: None,
+            },
+        );
+
+        assert_eq!(program.builtins, builtins);
+        assert_eq!(program.shared_program_data.data, data);
+        assert_eq!(program.shared_program_data.main, None);
+        assert_eq!(program.shared_program_data.identifiers, identifiers);
+        assert_eq!(
+            program.shared_program_data.error_message_attributes,
+            error_message_attributes
+        )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_program_constants_test() {
+        let program = Program::from_bytes(
+            include_bytes!(
+                "../../../cairo_programs/manually_compiled/deserialize_constant_test.json"
+            ),
+            Some("main"),
+        )
+        .unwrap();
+
+        let constants = [
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
+            (
+                "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
+                felt_str!(
+                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
+                ),
+            ),
+            (
+                "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
+                Felt252::new(3),
+            ),
+            (
+                "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
+                felt_str!(
+                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
+                ),
+            ),
+            (
+                "starkware.cairo.common.uint256.SHIFT",
+                felt_str!("340282366920938463463374607431768211456"),
+            ),
+        ]
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), value))
+        .collect::<HashMap<_, _>>();
+
+        assert_eq!(program.constants, constants);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn default_program() {
+        let hints_collection = HintsCollection {
+            hints: Vec::new(),
+            hints_ranges: HashMap::new(),
+        };
+
+        let shared_program_data = SharedProgramData {
+            data: Vec::new(),
+            hints_collection,
+            main: None,
+            start: None,
+            end: None,
+            error_message_attributes: Vec::new(),
+            instruction_locations: None,
+            identifiers: HashMap::new(),
+            reference_manager: Program::get_reference_list(&ReferenceManager {
+                references: Vec::new(),
+            }),
+        };
+        let program = Program {
+            shared_program_data: Arc::new(shared_program_data),
+            constants: HashMap::new(),
+            builtins: Vec::new(),
+        };
+
+        assert_eq!(program, Program::default());
+    }
+
+    #[test]
+    fn get_stripped_program() {
+        let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let stripped_program = program.get_stripped_program().unwrap();
+        assert_eq!(stripped_program.builtins, program.builtins);
+        assert_eq!(stripped_program.data, program.shared_program_data.data);
+        assert_eq!(
+            stripped_program.main,
+            program.shared_program_data.main.unwrap()
+        );
+    }
+
+    #[test]
+    fn get_stripped_no_main() {
+        let program_content =
+            include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, None).unwrap();
+        assert_matches!(
+            program.get_stripped_program(),
+            Err(ProgramError::StrippedProgramNoMain)
+        );
+    }
+}
