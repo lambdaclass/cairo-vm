@@ -842,8 +842,9 @@ impl CairoRunner {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-
-        self.relocate_trace(vm, &relocation_table)?;
+        if vm.trace.is_some() {
+            self.relocate_trace(vm, &relocation_table)?;
+        }
         vm.relocation_table = Some(relocation_table);
         Ok(())
     }
@@ -2842,11 +2843,11 @@ mod tests {
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
         cairo_runner.relocate_trace(&mut vm, &rel_table).unwrap();
-        let relocated_trace = vm.trace.unwrap();
+        let relocated_trace = cairo_runner.relocated_trace.unwrap();
         assert_eq!(relocated_trace.len(), 12);
         assert_eq!(
             relocated_trace[0],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 5,
                 ap: 18,
                 fp: 18
@@ -2854,7 +2855,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[1],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 6,
                 ap: 19,
                 fp: 18
@@ -2862,7 +2863,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[2],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 8,
                 ap: 20,
                 fp: 18
@@ -2870,7 +2871,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[3],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 1,
                 ap: 22,
                 fp: 22
@@ -2878,7 +2879,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[4],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 2,
                 ap: 22,
                 fp: 22
@@ -2886,7 +2887,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[5],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 4,
                 ap: 23,
                 fp: 22
@@ -2894,7 +2895,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[6],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 10,
                 ap: 23,
                 fp: 18
@@ -2902,7 +2903,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[7],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 12,
                 ap: 24,
                 fp: 18
@@ -2910,7 +2911,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[8],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 1,
                 ap: 26,
                 fp: 26
@@ -2918,7 +2919,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[9],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 2,
                 ap: 26,
                 fp: 26
@@ -2926,7 +2927,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[10],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 4,
                 ap: 27,
                 fp: 26
@@ -2934,7 +2935,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[11],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 14,
                 ap: 27,
                 fp: 18
