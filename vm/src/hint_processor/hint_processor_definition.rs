@@ -66,8 +66,9 @@ pub trait HintProcessorLogic {
         exec_scopes: &mut ExecutionScopes,
         //Constant values extracted from the program specification.
         constants: &HashMap<String, Felt252>,
-        // hint muatbles
+        // Mutable hints
         mutable_hints: &mut [Box<dyn Any>],
+        // Mutable hint ranges
         mutable_ranges: &mut HashMap<Relocatable, HintRange>,
     ) -> Result<(), VirtualMachineError> {
         let hint_range = &mutable_ranges
