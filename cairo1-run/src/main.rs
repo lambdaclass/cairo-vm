@@ -178,8 +178,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         .map_err(|err| Error::SierraCompilation(err.to_string()))?)
     .clone();
 
-    println!("Sierra: {}", sierra_program);
-
     let metadata_config = Some(Default::default());
     let gas_usage_check = metadata_config.is_some();
     let metadata = create_metadata(&sierra_program, metadata_config)?;
@@ -191,12 +189,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let main_func = find_function(&sierra_program, "::main")?;
 
-    println!("Main func: {:?}", main_func.entry_point);
+    // println!("Main func: {:?}", main_func.entry_point);
 
     // Entry code and footer are part of the whole instructions that are
     // ran by the VM.
 
-    // We are replacing the entry with a proof mode like code, so this is unused
     let initial_gas = 9999999999999_usize;
 
     // This call should be removed
@@ -212,13 +209,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let check_gas_usage = false;
 
     // ap_change_info maybe useful, we can also count builtins from sierra
-    println!("Ap change info: {:?}", metadata.ap_change_info);
     let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
     let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
 
-    println!("Builtins: {:?}", builtins);
+    println!("Compiling with proof mode and running ...");
 
-    println!(" Main signs: {:?}", main_func.signature.param_types);
+    println!("Builtins used: {:?}", builtins);
+
+    // println!(" Main signs: {:?}", main_func.signature.param_types);
+
+
 
     // Each params needs the AP to be updated for them to work
     let amount_of_main_args = main_func.signature.param_types.len();
@@ -261,7 +261,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     if has_gas_builtin {
         // If there's a gas builtin, we need to set the initial gas to a high number. It shouldn't be needed, but cairo sierra compiler will add the "gas builtin" for programs with explicit recursion
         // ap needs to be increased at this moment, and not with the usual ap offset
-        println!("Appending gas builtin code");
         casm_extend! {ctx,
             [ap + 0] = initial_gas, ap++;
         }
