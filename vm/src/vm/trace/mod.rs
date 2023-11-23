@@ -4,6 +4,7 @@ pub mod trace_entry {
     use crate::{
         types::relocatable::Relocatable,
         vm::errors::{memory_errors::MemoryError, trace_errors::TraceError},
+        stdlib::prelude::*,
     };
 
     ///A trace entry for every instruction that was executed.
