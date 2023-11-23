@@ -469,20 +469,26 @@ impl VirtualMachine {
         //     }
         // }
         if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
-        for idx in *s..l.get() {
-            let res = hint_processor
-                .execute_hint_extensive(self, exec_scopes, hint_datas.get(idx).unwrap(), constants)
-                .unwrap();
-            if let Some(hint_extension) = res {
-                for (hint_pc, hints) in hint_extension {
-                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
-                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
-                        hint_datas.extend(hints);
+            let s = *s;
+            for idx in s..l.get() {
+                let res = hint_processor
+                    .execute_hint_extensive(
+                        self,
+                        exec_scopes,
+                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                        constants,
+                    )
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                if let Some(hint_extension) = res {
+                    for (hint_pc, hints) in hint_extension {
+                        if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                            hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                            hint_datas.extend(hints);
+                        }
                     }
                 }
             }
         }
-    }
         Ok(())
     }
 
