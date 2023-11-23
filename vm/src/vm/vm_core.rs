@@ -25,6 +25,7 @@ use crate::{
 };
 
 use core::cmp::Ordering;
+use core::num::NonZeroUsize;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
@@ -450,15 +451,38 @@ impl VirtualMachine {
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        let hint_range = &hint_ranges
-            .get(&self.run_context.pc)
-            .and_then(|(start, length)| hint_datas.get(*start..*start + length.get()))
-            .unwrap_or(&[]);
-        for (hint_index, hint_data) in hint_range.iter().enumerate() {
-            hint_processor
-                .execute_hint(self, exec_scopes, hint_data, constants)
-                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        // let hint_range = &hint_ranges
+        //     .get(&self.run_context.pc)
+        //     .and_then(|(start, length)| hint_datas.get(*start..*start + length.get()))
+        //     .unwrap_or(&[]);
+        // for (hint_index, hint_data) in hint_range.iter().enumerate() {
+        //     if let Some(hint_extension) = hint_processor
+        //         .execute_hint_extensive(self, exec_scopes, hint_data, constants)
+        //         .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        //     {
+        //         for (hint_pc, hints) in hint_extension {
+        //             if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+        //                 hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+        //                 hint_datas.extend(hints);
+        //             }
+        //         }
+        //     }
+        // }
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+        for idx in *s..l.get() {
+            let res = hint_processor
+                .execute_hint_extensive(self, exec_scopes, hint_datas.get(idx).unwrap(), constants)
+                .unwrap();
+            if let Some(hint_extension) = res {
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
+                    }
+                }
+            }
         }
+    }
         Ok(())
     }
 
