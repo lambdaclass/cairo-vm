@@ -7,6 +7,8 @@
   * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`
   * Add `relocated_trace` field to `CairoRunner`
 
+* feat: add debugging capabilities behind `print` feature flag. [#1476](https://github.com/lambdaclass/cairo-vm/pull/1476)
+
 #### [0.9.1] - 2023-11-16
 
 * chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482), [#1483](https://github.com/lambdaclass/cairo-vm/pull/1483)

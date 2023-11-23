@@ -1032,3 +1032,32 @@ fn divmod_igcdex_not_one() {
     let error_msg = "Operation failed: divmod(1, 340282366920938463463374607431768211457, 340282366920938463463374607431768211457), igcdex(340282366920938463463374607431768211457, 340282366920938463463374607431768211457) != 1";
     run_program_with_error(program_data.as_slice(), error_msg);
 }
+
+#[test]
+#[cfg(feature = "print")]
+fn cairo_run_print_felt() {
+    let program_data = include_bytes!("../../../cairo_programs/print_feature/print_felt.json");
+    run_program_simple(program_data);
+}
+
+#[test]
+#[cfg(feature = "print")]
+fn cairo_run_print_array() {
+    let program_data = include_bytes!("../../../cairo_programs/print_feature/print_array.json");
+    run_program_simple(program_data);
+}
+
+#[test]
+#[cfg(feature = "print")]
+fn cairo_run_print_dict_felt() {
+    let program_data = include_bytes!("../../../cairo_programs/print_feature/print_dict_felt.json");
+    run_program_simple_with_memory_holes(program_data, 5);
+}
+
+#[test]
+#[cfg(feature = "print")]
+fn cairo_run_print_dict_array() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
+    run_program_simple_with_memory_holes(program_data, 4);
+}

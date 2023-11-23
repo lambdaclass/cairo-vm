@@ -2,9 +2,9 @@ pub mod trace_entry {
     use serde::{Deserialize, Serialize};
 
     use crate::{
+        stdlib::prelude::*,
         types::relocatable::Relocatable,
         vm::errors::{memory_errors::MemoryError, trace_errors::TraceError},
-        stdlib::prelude::*,
     };
 
     ///A trace entry for every instruction that was executed.

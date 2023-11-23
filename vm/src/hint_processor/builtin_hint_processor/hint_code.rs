@@ -1409,3 +1409,15 @@ ids.x.low = x & ((1<<128)-1)
 ids.x.high = x >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
+
+pub const PRINT_FELT: &str = "print(ids.x)";
+
+pub const PRINT_ARR: &str = r#"print(bytes.fromhex(f"{ids.name:062x}").decode().replace('\x00',''))
+arr = [memory[ids.arr + i] for i in range(ids.arr_len)]
+print(arr)"#;
+
+pub const PRINT_DICT: &str = r#"print(bytes.fromhex(f"{ids.name:062x}").decode().replace('\x00',''))
+data = __dict_manager.get_dict(ids.dict_ptr)
+print(
+    {k: v if isinstance(v, int) else [memory[v + i] for i in range(ids.pointer_size)] for k, v in data.items()}
+)"#;
