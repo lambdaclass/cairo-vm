@@ -444,19 +444,22 @@ impl VirtualMachine {
 
     pub fn step_hint(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        hint_executor.execute_and_mutate_hints(
-            self,
-            exec_scopes,
-            constants,
-            hint_datas,
-            hint_ranges,
-        )
+        let hint_range = &hint_ranges
+            .get(&self.run_context.pc)
+            .and_then(|(start, length)| hint_datas.get(*start..*start + length.get()))
+            .unwrap_or(&[]);
+        for (hint_index, hint_data) in hint_range.iter().enumerate() {
+            hint_processor
+                .execute_hint(self, exec_scopes, hint_data, constants)
+                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        }
+        Ok(())
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
@@ -2691,7 +2694,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -2920,8 +2924,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
+                &mut Vec::new(),
+                &mut HashMap::new(),
+                &HashMap::new(),
             ),
             Ok(())
         );
@@ -3002,7 +3007,8 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &Vec::new(),
+                    &mut Vec::new(),
+                    &mut HashMap::new(),
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3098,7 +3104,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3708,8 +3715,9 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    hint_data,
-                    &HashMap::new()
+                    &mut hint_data,
+                    &mut HashMap::new(),
+                    &HashMap::new(),
                 ),
                 Ok(())
             );
