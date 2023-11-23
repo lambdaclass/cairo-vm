@@ -13,7 +13,7 @@ pub mod trace_entry {
 
     /// A trace entry for every instruction that was executed.
     /// Holds the register values before the instruction was executed, after going through the relocation process
-    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize, Clone)]
     pub struct RelocatedTraceEntry {
         pub pc: usize,
         pub ap: usize,

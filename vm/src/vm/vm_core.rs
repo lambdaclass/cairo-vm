@@ -28,7 +28,6 @@ use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
@@ -80,7 +79,6 @@ pub struct VirtualMachine {
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     pub(crate) rc_limits: Option<(isize, isize)>,
-    trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
@@ -112,7 +110,6 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             rc_limits: None,
             run_finished: false,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
@@ -965,34 +962,6 @@ impl VirtualMachine {
         Ok(())
     }
 
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
-        if let Some(ref mut trace) = self.trace {
-            if self.trace_relocated {
-                return Err(TraceError::AlreadyRelocated);
-            }
-            let segment_1_base = relocation_table
-                .get(1)
-                .ok_or(TraceError::NoRelocationFound)?;
-
-            trace.iter_mut().for_each(|entry| {
-                entry.pc += 1;
-                entry.ap += segment_1_base;
-                entry.fp += segment_1_base;
-            });
-            self.trace_relocated = true;
-        }
-        Ok(())
-    }
-
-    pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
-        if self.trace_relocated {
-            self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)
-        } else {
-            Err(TraceError::TraceNotRelocated)
-        }
-    }
-
     /// Returns a list of addresses of memory cells that constitute the public memory.
     pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
         if let Some(relocation_table) = &self.relocation_table {
@@ -1128,7 +1097,6 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             rc_limits: None,
             run_finished: self.run_finished,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
