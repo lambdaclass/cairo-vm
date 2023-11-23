@@ -451,25 +451,11 @@ impl VirtualMachine {
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        // let hint_range = &hint_ranges
-        //     .get(&self.run_context.pc)
-        //     .and_then(|(start, length)| hint_datas.get(*start..*start + length.get()))
-        //     .unwrap_or(&[]);
-        // for (hint_index, hint_data) in hint_range.iter().enumerate() {
-        //     if let Some(hint_extension) = hint_processor
-        //         .execute_hint_extensive(self, exec_scopes, hint_data, constants)
-        //         .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
-        //     {
-        //         for (hint_pc, hints) in hint_extension {
-        //             if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
-        //                 hint_ranges.insert(hint_pc, (hint_datas.len(), len));
-        //                 hint_datas.extend(hints);
-        //             }
-        //         }
-        //     }
-        // }
+        // Check if there is a hint range for the current pc
         if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
             let s = *s;
+            // Execute each hint for the given range
             for idx in s..l.get() {
                 let res = hint_processor
                     .execute_hint_extensive(
@@ -479,6 +465,7 @@ impl VirtualMachine {
                         constants,
                     )
                     .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Check if the hint executed adds new hints, and update the hint_ranges & hint_datas accordingly
                 if let Some(hint_extension) = res {
                     for (hint_pc, hints) in hint_extension {
                         if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
