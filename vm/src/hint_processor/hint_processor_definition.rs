@@ -74,7 +74,7 @@ pub trait HintProcessorLogic {
     }
 }
 
-pub type HintExtension = HashMap<Relocatable, Vec<Box<dyn Any>>>;
+pub type HintExtension = Box<HashMap<Relocatable, Vec<Box<dyn Any>>>>;
 
 pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
 impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
