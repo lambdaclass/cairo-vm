@@ -3730,7 +3730,10 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut hint_data,
-                    &mut HashMap::from([(Relocatable::from((0,0)), (0_usize, NonZeroUsize::new(1).unwrap()))]),
+                    &mut HashMap::from([(
+                        Relocatable::from((0, 0)),
+                        (0_usize, NonZeroUsize::new(1).unwrap())
+                    )]),
                     &HashMap::new(),
                 ),
                 Ok(())
