@@ -527,7 +527,7 @@ mod tests {
         );
         assert_eq!(
             program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
+            HashMap::new()
         );
     }
 
@@ -588,10 +588,10 @@ mod tests {
             .hints_collection
             .hints_ranges
             .iter()
-            .filter_map(|(pc, (s, l))| {
+            .map(|(pc, (s, l))| {
                 (
-                    pc,
-                    program.shared_program_data.hints_collection.hints[*s..((s, s + l.get()))]
+                    pc.offset,
+                    program.shared_program_data.hints_collection.hints[*s..(s + l.get())]
                         .to_vec(),
                 )
             })

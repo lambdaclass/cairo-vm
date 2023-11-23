@@ -3687,7 +3687,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
-        let hint_data = vec![any_box!(HintProcessorData::new_default(
+        let mut hint_data = vec![any_box!(HintProcessorData::new_default(
             "memory[ap] = segments.add()".to_string(),
             HashMap::new(),
         ))];
@@ -3725,17 +3725,12 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            let hint_data = if vm.run_context.pc == (0, 0).into() {
-                &hint_data[0..]
-            } else {
-                &hint_data[0..0]
-            };
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut hint_data,
-                    &mut HashMap::new(),
+                    &mut HashMap::from([(Relocatable::from((0,0)), (0_usize, NonZeroUsize::new(1).unwrap()))]),
                     &HashMap::new(),
                 ),
                 Ok(())
