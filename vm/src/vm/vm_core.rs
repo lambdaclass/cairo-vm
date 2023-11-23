@@ -393,7 +393,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc.offset,
+                pc: self.run_context.pc,
                 ap: self.run_context.ap,
                 fp: self.run_context.fp,
             });
@@ -2884,7 +2884,7 @@ mod tests {
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check(&trace, &[(0, 2, 2)]);
+        trace_check(&trace, &[((0, 0).into(), 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
@@ -2978,7 +2978,13 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check(
             &trace,
-            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
+            &[
+                ((0, 3).into(), 2, 2),
+                ((0, 5).into(), 3, 2),
+                ((0, 0).into(), 5, 5),
+                ((0, 2).into(), 6, 5),
+                ((0, 7).into(), 6, 2),
+            ],
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
@@ -3677,12 +3683,12 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (3, 2, 2),
-                (0, 4, 4),
-                (2, 5, 4),
-                (5, 5, 2),
-                (7, 6, 2),
-                (8, 6, 2),
+                ((0, 3).into(), 2, 2),
+                ((0, 0).into(), 4, 4),
+                ((0, 2).into(), 5, 4),
+                ((0, 5).into(), 5, 2),
+                ((0, 7).into(), 6, 2),
+                ((0, 8).into(), 6, 2),
             ],
         );
 
@@ -4197,7 +4203,7 @@ mod tests {
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }]));
@@ -4239,7 +4245,7 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder.trace,
             Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }])

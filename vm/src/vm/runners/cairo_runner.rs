@@ -8,7 +8,8 @@ use crate::{
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
     vm::{
-        runners::builtin_runner::SegmentArenaBuiltinRunner, trace::trace_entry::RelocatedTraceEntry,
+        runners::builtin_runner::SegmentArenaBuiltinRunner,
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
     },
 };
 
@@ -778,7 +779,7 @@ impl CairoRunner {
 
         for entry in trace {
             relocated_trace.push(RelocatedTraceEntry {
-                pc: entry.pc + 1,
+                pc: relocate_trace_register(entry.pc, relocation_table)?,
                 ap: entry.ap + segment_1_base,
                 fp: entry.fp + segment_1_base,
             })
@@ -2144,7 +2145,13 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check(
             &trace,
-            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
+            &[
+                ((0, 3).into(), 2, 2),
+                ((0, 5).into(), 3, 2),
+                ((0, 0).into(), 5, 5),
+                ((0, 2).into(), 6, 5),
+                ((0, 7).into(), 6, 2),
+            ],
         );
     }
 
@@ -2221,16 +2228,16 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (8, 3, 3),
-                (9, 4, 3),
-                (11, 5, 3),
-                (0, 7, 7),
-                (1, 7, 7),
-                (3, 8, 7),
-                (4, 9, 7),
-                (5, 9, 7),
-                (7, 10, 7),
-                (13, 10, 3),
+                ((0, 8).into(), 3, 3),
+                ((0, 9).into(), 4, 3),
+                ((0, 11).into(), 5, 3),
+                ((0, 0).into(), 7, 7),
+                ((0, 1).into(), 7, 7),
+                ((0, 3).into(), 8, 7),
+                ((0, 4).into(), 9, 7),
+                ((0, 5).into(), 9, 7),
+                ((0, 7).into(), 10, 7),
+                ((0, 13).into(), 10, 3),
             ],
         );
         //Check the range_check builtin segment
@@ -2337,18 +2344,18 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (4, 3, 3),
-                (5, 4, 3),
-                (7, 5, 3),
-                (0, 7, 7),
-                (1, 7, 7),
-                (3, 8, 7),
-                (9, 8, 3),
-                (11, 9, 3),
-                (0, 11, 11),
-                (1, 11, 11),
-                (3, 12, 11),
-                (13, 12, 3),
+                ((0, 4).into(), 3, 3),
+                ((0, 5).into(), 4, 3),
+                ((0, 7).into(), 5, 3),
+                ((0, 0).into(), 7, 7),
+                ((0, 1).into(), 7, 7),
+                ((0, 3).into(), 8, 7),
+                ((0, 9).into(), 8, 3),
+                ((0, 11).into(), 9, 3),
+                ((0, 0).into(), 11, 11),
+                ((0, 1).into(), 11, 11),
+                ((0, 3).into(), 12, 11),
+                ((0, 13).into(), 12, 3),
             ],
         );
         //Check that the output to be printed is correct
@@ -2475,24 +2482,24 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (13, 4, 4),
-                (14, 5, 4),
-                (16, 6, 4),
-                (4, 8, 8),
-                (5, 8, 8),
-                (7, 9, 8),
-                (8, 10, 8),
-                (9, 10, 8),
-                (11, 11, 8),
-                (12, 12, 8),
-                (18, 12, 4),
-                (19, 13, 4),
-                (20, 14, 4),
-                (0, 16, 16),
-                (1, 16, 16),
-                (3, 17, 16),
-                (22, 17, 4),
-                (23, 18, 4),
+                ((0, 13).into(), 4, 4),
+                ((0, 14).into(), 5, 4),
+                ((0, 16).into(), 6, 4),
+                ((0, 4).into(), 8, 8),
+                ((0, 5).into(), 8, 8),
+                ((0, 7).into(), 9, 8),
+                ((0, 8).into(), 10, 8),
+                ((0, 9).into(), 10, 8),
+                ((0, 11).into(), 11, 8),
+                ((0, 12).into(), 12, 8),
+                ((0, 18).into(), 12, 4),
+                ((0, 19).into(), 13, 4),
+                ((0, 20).into(), 14, 4),
+                ((0, 0).into(), 16, 16),
+                ((0, 1).into(), 16, 16),
+                ((0, 3).into(), 17, 16),
+                ((0, 22).into(), 17, 4),
+                ((0, 23).into(), 18, 4),
             ],
         );
         //Check the range_check builtin segment
@@ -4007,7 +4014,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
@@ -4029,7 +4036,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
@@ -4097,7 +4104,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
