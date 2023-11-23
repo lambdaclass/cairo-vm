@@ -155,15 +155,15 @@ impl HintsCollection {
     }
 }
 
-// impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
-//     fn from(hc: &HintsCollection) -> Self {
-//         let mut hint_map = BTreeMap::new();
-//         for (pc, r) in hc.hints_ranges.iter() {
-//             hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
-//         }
-//         hint_map
-//     }
-// }
+impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+    fn from(hc: &HintsCollection) -> Self {
+        let mut hint_map = BTreeMap::new();
+        for (pc, r) in hc.hints_ranges.iter() {
+            hint_map.insert(pc.offset, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        hint_map
+    }
+}
 
 /// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
 pub(crate) type HintRange = (usize, NonZeroUsize);
@@ -418,19 +418,14 @@ impl TryFrom<CasmContractClass> for Program {
 #[cfg(test)]
 impl HintsCollection {
     pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
-        self.hints_ranges
-            .iter()
-            .enumerate()
-            .filter_map(|(pc, range)| {
-                range.and_then(|(start, len)| {
-                    let end = start + len.get();
-                    if end <= self.hints.len() {
-                        Some((pc, &self.hints[start..end]))
-                    } else {
-                        None
-                    }
-                })
-            })
+        self.hints_ranges.iter().filter_map(|(pc, (start, len))| {
+            let end = start + len.get();
+            if end <= self.hints.len() {
+                Some((pc.offset, &self.hints[*start..end]))
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -532,7 +527,7 @@ mod tests {
         );
         assert_eq!(
             program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
+            HashMap::new()
         );
     }
 
@@ -593,12 +588,10 @@ mod tests {
             .hints_collection
             .hints_ranges
             .iter()
-            .enumerate()
-            .filter_map(|(pc, r)| r.map(|(s, l)| (pc, (s, s + l.get()))))
-            .map(|(pc, (s, e))| {
+            .map(|(pc, (s, l))| {
                 (
-                    pc,
-                    program.shared_program_data.hints_collection.hints[s..e].to_vec(),
+                    pc.offset,
+                    program.shared_program_data.hints_collection.hints[*s..(s + l.get())].to_vec(),
                 )
             })
             .collect();

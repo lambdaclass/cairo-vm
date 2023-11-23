@@ -184,16 +184,16 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
 
-        if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
-            return hint_func.0(
-                vm,
-                exec_scopes,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                constants,
-            );
-        }
-        match &*hint_data.code {
+        // if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
+        //     return hint_func.0(
+        //         vm,
+        //         exec_scopes,
+        //         &hint_data.ids_data,
+        //         &hint_data.ap_tracking,
+        //         constants,
+        //     );
+        // }
+        match &*hint_data.code.clone() {
             hint_code::ADD_SEGMENT => add_segment(vm),
             hint_code::IS_NN => is_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_NN_OUT_OF_RANGE => {
