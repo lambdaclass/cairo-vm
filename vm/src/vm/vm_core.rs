@@ -456,7 +456,7 @@ impl VirtualMachine {
             // Re-binding to avoid mutability problems
             let s = *s;
             // Execute each hint for the given range
-            for idx in s..l.get() {
+            for idx in s..(s + l.get()) {
                 let res = hint_processor
                     .execute_hint_extensive(
                         self,
