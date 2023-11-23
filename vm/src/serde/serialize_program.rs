@@ -208,15 +208,15 @@ impl From<&Program> for ProgramSerializer {
             identifiers.insert(key, identifier.into());
         }
 
-        let hints: BTreeMap<usize, Vec<HintParamsSerializer>> = BTreeMap::new();
-        // for (key, hint_params_vec) in BTreeMap::from(&program.shared_program_data.hints_collection)
-        // {
-        //     let mut new_hints_params = Vec::new();
-        //     for hint_params in hint_params_vec {
-        //         new_hints_params.push(hint_params.clone().into());
-        //     }
-        //     hints.insert(key, new_hints_params);
-        // }
+        let mut hints: BTreeMap<usize, Vec<HintParamsSerializer>> = BTreeMap::new();
+        for (key, hint_params_vec) in BTreeMap::from(&program.shared_program_data.hints_collection)
+        {
+            let mut new_hints_params = Vec::new();
+            for hint_params in hint_params_vec {
+                new_hints_params.push(hint_params.clone().into());
+            }
+            hints.insert(key, new_hints_params);
+        }
 
         ProgramSerializer {
             prime: program.prime().into(),
