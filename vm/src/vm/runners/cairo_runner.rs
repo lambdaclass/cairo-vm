@@ -7,7 +7,9 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
-    vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
+    vm::{
+        runners::builtin_runner::SegmentArenaBuiltinRunner, trace::trace_entry::RelocatedTraceEntry,
+    },
 };
 
 use crate::{
@@ -143,6 +145,7 @@ pub struct CairoRunner {
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
+    pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
 }
 
 impl CairoRunner {
@@ -184,6 +187,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
+            relocated_trace: None,
         })
     }
 
@@ -756,12 +760,39 @@ impl CairoRunner {
         Ok(())
     }
 
+    ///Relocates the VM's trace, turning relocatable registers to numbered ones
+    fn relocate_trace(
+        &mut self,
+        vm: &VirtualMachine,
+        relocation_table: &Vec<usize>,
+    ) -> Result<(), TraceError> {
+        if self.relocated_trace.is_some() {
+            return Err(TraceError::AlreadyRelocated);
+        }
+
+        let trace = vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.iter();
+        let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
+        let segment_1_base = relocation_table
+            .get(1)
+            .ok_or(TraceError::NoRelocationFound)?;
+
+        for entry in trace {
+            relocated_trace.push(RelocatedTraceEntry {
+                pc: entry.pc + 1,
+                ap: entry.ap + segment_1_base,
+                fp: entry.fp + segment_1_base,
+            })
+        }
+        self.relocated_trace = Some(relocated_trace);
+        Ok(())
+    }
+
     /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
     /// into Felt252s. Uses the relocation_table to asign each index a number according to the value
     /// on its segment number.
     fn relocate_memory(
         &mut self,
-        vm: &mut VirtualMachine,
+        vm: &VirtualMachine,
         relocation_table: &Vec<usize>,
     ) -> Result<(), MemoryError> {
         if !(self.relocated_memory.is_empty()) {
@@ -812,7 +843,7 @@ impl CairoRunner {
             }
         }
 
-        vm.relocate_trace(&relocation_table)?;
+        self.relocate_trace(vm, &relocation_table)?;
         vm.relocation_table = Some(relocation_table);
         Ok(())
     }

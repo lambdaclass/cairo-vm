@@ -11,7 +11,6 @@ pub mod trace_entry {
         pub fp: usize,
     }
 
-
     /// A trace entry for every instruction that was executed.
     /// Holds the register values before the instruction was executed, after going through the relocation process
     #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
