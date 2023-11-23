@@ -521,10 +521,10 @@ impl VirtualMachine {
         )?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
     }
@@ -4273,6 +4273,7 @@ mod tests {
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
             _runner: &mut CairoRunner,
+            _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
