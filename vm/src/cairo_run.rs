@@ -369,5 +369,6 @@ mod tests {
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
         assert!(cairo_runner.relocate(&mut vm, false).is_ok());
+        assert!(cairo_runner.relocated_trace.is_none());
     }
 }
