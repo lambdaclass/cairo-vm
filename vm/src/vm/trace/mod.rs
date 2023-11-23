@@ -3,12 +3,19 @@ pub mod trace_entry {
 
     ///A trace entry for every instruction that was executed.
     ///Holds the register values before the instruction was executed.
-    /// Before relocation:
-    ///     Register values are represented as their offsets, as their indexes will always be 0,1,1 respectively
-    ///     The index of the last pc will not be equal to 0, but it is not appended to the trace
-    /// After relocation the value of each register will be a single integer
+    ///Register values for ap & fp are represented as their offsets, as their indexes will always be 1
     #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
     pub struct TraceEntry {
+        pub pc: usize,
+        pub ap: usize,
+        pub fp: usize,
+    }
+
+
+    /// A trace entry for every instruction that was executed.
+    /// Holds the register values before the instruction was executed, after going through the relocation process
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+    pub struct RelocatedTraceEntry {
         pub pc: usize,
         pub ap: usize,
         pub fp: usize,
