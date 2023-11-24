@@ -13,7 +13,7 @@
    The purpose of this test is to check the functionality of the HintProcessor::execute_hint_extensive functionality
    And to show a very simplified example on how it can be used to achieve the `vm_load_data` functionality used by starknet os programs
 */
-use std::collections::HashMap;
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use felt::{felt_str, Felt252};
 use num_traits::{Num, One, Zero};
