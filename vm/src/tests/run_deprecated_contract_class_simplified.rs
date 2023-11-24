@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use felt::Felt252;
-use num_traits::{One, Zero};
+use num_traits::{One, Zero, Num};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -139,6 +139,11 @@ pub fn compile_class(
     // Now we can fill each struct field with our hardcoded values
     let mut ptr = compiled_class_ptr;
     // For this test's purpose we will be using the following cairo 0 contract:
+    // %lang starknet
+    // @view
+    // func get_number() -> (number: felt) {
+    //     return (number=14);
+    // }
 
     // struct DeprecatedCompiledClass {
     // compiled_class_version: felt,
@@ -202,11 +207,37 @@ pub fn compile_class(
     ptr.offset += 1;
 
     // // The length and pointer of the bytecode.
+    let byte_code = vec![
+        Felt252::from_str_radix("480680017fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("e", 16).unwrap().into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
+        Felt252::from_str_radix("40780017fff7fff", 16).unwrap().into(),
+        Felt252::from_str_radix("1", 16).unwrap().into(),
+        Felt252::from_str_radix("4003800080007ffc", 16).unwrap().into(),
+        Felt252::from_str_radix("4826800180008000", 16).unwrap().into(),
+        Felt252::from_str_radix("1", 16).unwrap().into(),
+        Felt252::from_str_radix("480a7ffd7fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("4828800080007ffe", 16).unwrap().into(),
+        Felt252::from_str_radix("480a80007fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
+        Felt252::from_str_radix("402b7ffd7ffc7ffd", 16).unwrap().into(),
+        Felt252::from_str_radix("1104800180018000", 16).unwrap().into(),
+        Felt252::from_str_radix("800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4", 16).unwrap().into(),
+        Felt252::from_str_radix("480280017ffb8000", 16).unwrap().into(),
+        Felt252::from_str_radix("1104800180018000", 16).unwrap().into(),
+        Felt252::from_str_radix("800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4", 16).unwrap().into(),
+        Felt252::from_str_radix("480280007ffb8000", 16).unwrap().into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
+    ];
     // bytecode_length: felt,
-    vm.insert_value(ptr, Felt252::zero())?; // TODO
+    vm.insert_value(ptr, Felt252::from(byte_code.len()))?;
     ptr.offset += 1;
     // bytecode_ptr: felt*,
-    let byte_code_ptr = vm.add_memory_segment(); // TODO
+    let byte_code_ptr = vm.add_memory_segment();
+    vm.load_data(byte_code_ptr, &byte_code)?;
     vm.insert_value(ptr, byte_code_ptr)?;
     //}
 
