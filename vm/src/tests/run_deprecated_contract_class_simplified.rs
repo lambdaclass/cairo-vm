@@ -356,7 +356,7 @@ pub fn vm_load_program(
 
 const HELLO_WORLD: &str = "print(\"hello world\")";
 pub fn hello_world() -> Result<HintExtension, HintError> {
-    println!(" hello world ");
+    println!("hello world");
     Ok(HintExtension::default())
 }
 
