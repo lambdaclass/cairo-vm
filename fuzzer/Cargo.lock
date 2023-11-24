@@ -181,8 +181,8 @@ dependencies = [
  "serde_json",
  "sha2",
  "sha3",
- "stark-felt",
  "starknet-crypto",
+ "starknet-types-core",
  "thiserror-no-std",
 ]
 
@@ -412,8 +412,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d42a591b9e2e587277c9ab2f0c16605364bb474d1d17a68dd2ee40f10fa473c6"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=f940e14ed17370d29fe129951448037d11b65ce8#f940e14ed17370d29fe129951448037d11b65ce8"
 
 [[package]]
 name = "lazy_static"
@@ -850,22 +849,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
-name = "stark-felt"
-version = "0.0.3"
-source = "git+https://github.com/lambdaclass/types-rs.git?rev=ea52b64a52fd832222adf400feb2dd3b4dc286a2#ea52b64a52fd832222adf400feb2dd3b4dc286a2"
-dependencies = [
- "arbitrary",
- "bitvec",
- "lambdaworks-math",
- "num-traits",
- "serde",
-]
-
-[[package]]
 name = "starknet-crypto"
-version = "0.5.1"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "693e6362f150f9276e429a910481fb7f3bcb8d6aa643743f587cfece0b374874"
+checksum = "33c03f5ac70f9b067f48db7d2d70bdf18ee0f731e8192b6cfa679136becfcdb0"
 dependencies = [
  "crypto-bigint",
  "hex",
@@ -876,7 +863,7 @@ dependencies = [
  "rfc6979",
  "sha2",
  "starknet-crypto-codegen",
- "starknet-curve 0.3.0",
+ "starknet-curve",
  "starknet-ff",
  "zeroize",
 ]
@@ -887,18 +874,9 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af6527b845423542c8a16e060ea1bc43f67229848e7cd4c4d80be994a84220ce"
 dependencies = [
- "starknet-curve 0.4.0",
+ "starknet-curve",
  "starknet-ff",
  "syn 2.0.29",
-]
-
-[[package]]
-name = "starknet-curve"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "252610baff59e4c4332ce3569f7469c5d3f9b415a2240d698fb238b2b4fc0942"
-dependencies = [
- "starknet-ff",
 ]
 
 [[package]]
@@ -920,6 +898,20 @@ dependencies = [
  "crypto-bigint",
  "getrandom",
  "hex",
+]
+
+[[package]]
+name = "starknet-types-core"
+version = "0.0.3"
+source = "git+https://github.com/starknet-io/types-rs.git?rev=5c77a9184aaecfaddf39c49d8bf64343fa7c0720#5c77a9184aaecfaddf39c49d8bf64343fa7c0720"
+dependencies = [
+ "arbitrary",
+ "bitvec",
+ "lambdaworks-math",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]

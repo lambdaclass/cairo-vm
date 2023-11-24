@@ -104,8 +104,8 @@ pub fn unsafe_keccak(
     high_bytes.extend_from_slice(&hashed[0..16]);
     low_bytes.extend_from_slice(&hashed[16..32]);
 
-    let high = Felt252::from_bytes_be(&high_bytes).map_err(|_| MathError::ByteConversionError)?;
-    let low = Felt252::from_bytes_be(&low_bytes).map_err(|_| MathError::ByteConversionError)?;
+    let high = Felt252::from_bytes_be_slice(&high_bytes);
+    let low = Felt252::from_bytes_be_slice(&low_bytes);
 
     vm.insert_value(high_addr, high)?;
     vm.insert_value(low_addr, low)?;
@@ -177,8 +177,8 @@ pub fn unsafe_keccak_finalize(
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
 
-    let high = Felt252::from_bytes_be(&high_bytes).map_err(|_| MathError::ByteConversionError)?;
-    let low = Felt252::from_bytes_be(&low_bytes).map_err(|_| MathError::ByteConversionError)?;
+    let high = Felt252::from_bytes_be_slice(&high_bytes);
+    let low = Felt252::from_bytes_be_slice(&low_bytes);
 
     vm.insert_value(high_addr, high)?;
     vm.insert_value(low_addr, low)?;

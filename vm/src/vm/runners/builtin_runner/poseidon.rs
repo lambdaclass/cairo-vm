@@ -102,8 +102,7 @@ impl PoseidonBuiltinRunner {
         for (i, elem) in poseidon_state.iter().enumerate() {
             self.cache.borrow_mut().insert(
                 (first_output_addr + i)?,
-                Felt252::from_bytes_be(&elem.to_bytes_be())
-                    .map_err(|_| MathError::ByteConversionError)?,
+                Felt252::from_bytes_be(&elem.to_bytes_be()),
             );
         }
 

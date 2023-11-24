@@ -15,7 +15,7 @@ std = [
     "serde_json/std",
     "bincode/std",
     "anyhow/std",
-    "stark-felt/std",
+    "starknet-types-core/std",
     "starknet-crypto/std",
     "dep:num-prime",
     "thiserror-no-std/std",
@@ -34,7 +34,7 @@ test_utils = [
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
-arbitrary = ["dep:arbitrary", "std", "stark-felt/arbitrary", "stark-felt/std"]
+arbitrary = ["dep:arbitrary", "std", "starknet-types-core/arbitrary", "starknet-types-core/std"]
 
 [dependencies]
 mimalloc = { workspace = true, optional = true }
@@ -56,7 +56,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
-stark-felt = { git = "https://github.com/lambdaclass/types-rs.git", rev = "ea52b64a52fd832222adf400feb2dd3b4dc286a2", default-features = false, features = ["serde"] }
+starknet-types-core = { git = "https://github.com/starknet-io/types-rs.git", rev = "5c77a9184aaecfaddf39c49d8bf64343fa7c0720", default-features = false, features = ["serde"] }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }

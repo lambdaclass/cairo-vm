@@ -401,7 +401,7 @@ mod tests {
     proptest! {
         #[test]
         fn add_relocatable_felt(offset in any::<u64>(), ref bigint in any::<[u8; 32]>()) {
-            let big = &Felt252::from_bytes_be(bigint).unwrap();
+            let big = &Felt252::from_bytes_be(bigint);
             let rel = Relocatable::from((0, offset as usize));
 
             let sum = (big + offset).to_usize()

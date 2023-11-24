@@ -63,7 +63,7 @@ pub mod utils;
 pub mod vm;
 
 // TODO: use `Felt` directly
-pub use stark_felt::Felt as Felt252;
+pub use starknet_types_core::felt::Felt as Felt252;
 
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,5 @@
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
-use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -122,7 +121,7 @@ impl KeccakBuiltinRunner {
             self.cache.borrow_mut().insert((first_output_addr + i)?, {
                 let mut bytes = keccak_result[start_index..end_index].to_vec();
                 bytes.resize(32, 0);
-                Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)?
+                Felt252::from_bytes_le_slice(&bytes)
             });
             start_index = end_index;
         }

@@ -252,7 +252,7 @@ pub fn split_64(
     bytes[16..24].copy_from_slice(digits[3].to_le_bytes().as_slice());
 
     let low = Felt252::from(digits[0]);
-    let high = Felt252::from_bytes_le(bytes.as_slice()).expect("come on!");
+    let high = Felt252::from_bytes_le(&bytes);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }

@@ -65,17 +65,15 @@ pub fn felt_to_bigint(felt: crate::Felt252) -> BigInt {
 }
 
 pub fn biguint_to_felt(biguint: &BigUint) -> Result<crate::Felt252, MathError> {
-    let mut bytes = biguint.to_bytes_le();
-    bytes.resize(32, 0);
-    crate::Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)
+    // TODO This funtions should return a Felt252 instead of a Result
+    Ok(crate::Felt252::from_bytes_le_slice(&biguint.to_bytes_le()))
 }
 
 pub fn bigint_to_felt(bigint: &BigInt) -> Result<crate::Felt252, MathError> {
-    let (sign, mut bytes) = bigint
+    let (sign, bytes) = bigint
         .mod_floor(&CAIRO_PRIME.to_bigint().unwrap())
         .to_bytes_le();
-    bytes.resize(32, 0);
-    let felt = crate::Felt252::from_bytes_le(&bytes).map_err(|_| MathError::ByteConversionError)?;
+    let felt = crate::Felt252::from_bytes_le_slice(&bytes);
     if sign == Sign::Minus {
         Ok(felt.neg())
     } else {

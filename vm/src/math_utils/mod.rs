@@ -13,7 +13,7 @@ use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
-use stark_felt::NonZeroFelt;
+use starknet_types_core::felt::NonZeroFelt;
 
 lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
