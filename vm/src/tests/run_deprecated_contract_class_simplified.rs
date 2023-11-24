@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use felt::Felt252;
+use felt::{Felt252, felt_str};
 use num_traits::{Num, One, Zero};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -20,6 +20,7 @@ use crate::{
     vm::{
         errors::hint_errors::HintError,
         runners::cairo_runner::{ResourceTracker, RunResources},
+        trace::trace_entry::RelocatedTraceEntry,
         vm_core::VirtualMachine,
     },
 };
@@ -202,12 +203,14 @@ pub fn compile_class(
     ptr.offset += 1;
 
     // n_builtins: felt,
-    vm.insert_value(ptr, Felt252::zero())?;
+    vm.insert_value(ptr, Felt252::one())?;
     ptr.offset += 1;
     // // 'builtin_list' is a continuous memory segment containing the ASCII encoding of the (ordered)
     // // builtins used by the program.
     // builtin_list: felt*,
     let builtins_ptr = vm.add_memory_segment();
+    // One builtin: range_check = 138277649577220228665140075
+    vm.insert_value(builtins_ptr, felt_str!("138277649577220228665140075"))?;
     vm.insert_value(ptr, builtins_ptr)?;
     ptr.offset += 1;
 
@@ -366,10 +369,54 @@ fn run_deprecated_cc() {
     let mut hint_processor = SimplifiedOsHintProcessor::default();
     let program_content =
         include_bytes!("../../../cairo_programs/noretrocompat/starknet_os_deprecated_cc.json");
-    let _ = cairo_run(
+    let (runner, _) = cairo_run(
         program_content,
-        &CairoRunConfig::default(),
+        &CairoRunConfig {
+            trace_enabled: true,
+            ..Default::default()
+        },
         &mut hint_processor,
     )
     .unwrap();
+    // Check trace against cairo-lang vm run
+    assert_eq!(
+        runner.relocated_trace,
+        Some(vec![
+            RelocatedTraceEntry {
+                pc: 4,
+                ap: 12,
+                fp: 12
+            },
+            RelocatedTraceEntry {
+                pc: 6,
+                ap: 15,
+                fp: 12
+            },
+            RelocatedTraceEntry {
+                pc: 7,
+                ap: 15,
+                fp: 12
+            },
+            RelocatedTraceEntry {
+                pc: 8,
+                ap: 15,
+                fp: 12
+            },
+            RelocatedTraceEntry {
+                pc: 35,
+                ap: 17,
+                fp: 17
+            },
+            RelocatedTraceEntry {
+                pc: 37,
+                ap: 18,
+                fp: 17
+            },
+            RelocatedTraceEntry {
+                pc: 9,
+                ap: 18,
+                fp: 12
+            }
+        ])
+    );
 }
