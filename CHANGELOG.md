@@ -10,6 +10,15 @@
   * Add `relocated_trace` field  & `relocate_trace` method to `CairoRunner`.
   * Swap `TraceEntry` for `RelocatedTraceEntry` type in `write_encoded_trace` & `PublicInput::new` signatures.
   * Now takes into account the program counter's segment index when building the execution trace instead of assuming it to be 0.
+* feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
+
+  * Add trait method `HintProcessorLogic::execute_hint_extensive`:
+    * This method has a similar behaviour to `HintProcessorLogic::execute_hint` but it also returns a `HintExtension` (type alias for `HashMap<Relocatable, Vec<Box<dyn Any>>>`) that can be used to extend the current map of hints used by the VM. This behaviour achieves what the `vm_load_data` primitive does for cairo-lang, and is needed to implement os hints.
+    * This method is now used by the VM to execute hints instead of `execute_hint`, but it's default implementation calls `execute_hint`, so current implementors of the `HintProcessor` trait won't notice any change.
+
+  * Signature changes:
+    * `pub fn step_hint(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step_hint(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
+    * `pub fn step(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_data: &[Box<dyn Any>], constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
 
 * feat: add debugging capabilities behind `print` feature flag. [#1476](https://github.com/lambdaclass/cairo-vm/pull/1476)
 
