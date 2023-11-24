@@ -31,10 +31,12 @@ cairo-1-hints = [
 test_utils = [
     "skip_next_instruction_hint",
     "hooks",
+    "print",
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
 arbitrary = ["dep:arbitrary", "std", "starknet-types-core/arbitrary", "starknet-types-core/std"]
+print = ["std"]
 
 [dependencies]
 mimalloc = { workspace = true, optional = true }

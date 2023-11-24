@@ -15,7 +15,7 @@ MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIR
 deps:
 	git clone https://github.com/starkware-libs/cairo.git \
 	&& cd cairo \
-	&& git checkout v2.2.0 \
+	&& git checkout v2.3.1 \
 	&& cd .. \
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/

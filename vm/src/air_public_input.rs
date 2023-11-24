@@ -16,10 +16,10 @@ use crate::{
 
 #[derive(Serialize, Debug)]
 pub struct PublicMemoryEntry {
-    address: usize,
+    pub address: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
-    value: Option<Felt252>,
-    page: usize,
+    pub value: Option<Felt252>,
+    pub page: usize,
 }
 
 mod mem_value_serde {
@@ -40,9 +40,9 @@ mod mem_value_serde {
 }
 
 #[derive(Serialize, Debug)]
-struct MemorySegmentAddresses {
-    begin_addr: usize,
-    stop_ptr: usize,
+pub struct MemorySegmentAddresses {
+    pub begin_addr: usize,
+    pub stop_ptr: usize,
 }
 
 impl From<(usize, usize)> for MemorySegmentAddresses {
@@ -57,12 +57,12 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
 
 #[derive(Serialize, Debug)]
 pub struct PublicInput<'a> {
-    layout: &'a str,
-    rc_min: isize,
-    rc_max: isize,
-    n_steps: usize,
-    memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
-    public_memory: Vec<PublicMemoryEntry>,
+    pub layout: &'a str,
+    pub rc_min: isize,
+    pub rc_max: isize,
+    pub n_steps: usize,
+    pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
+    pub public_memory: Vec<PublicMemoryEntry>,
     #[serde(rename = "dynamic_params")]
     layout_params: Option<&'a CairoLayout>,
 }

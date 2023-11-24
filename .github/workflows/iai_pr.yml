@@ -8,6 +8,10 @@ jobs:
   fetch-iai-results:
     runs-on: ubuntu-22.04
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.base.sha }}
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache@v3
       id: cache-iai-results
@@ -28,11 +32,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    - name: Checkout
-      if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
-      uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.base.sha }}
     - name: Install test dependencies
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: |
@@ -49,6 +48,8 @@ jobs:
     needs: fetch-iai-results
     runs-on: ubuntu-22.04
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.70.0
     - name: Set up cargo cache
@@ -57,8 +58,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    - name: Checkout
-      uses: actions/checkout@v3
     - name: Install test dependencies
       run: |
         pip install -r requirements.txt
