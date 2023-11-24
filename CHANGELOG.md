@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* feat: Partially Revert `Optimize trace relocation #906` [#492](https://github.com/lambdaclass/cairo-vm/pull/492)
+* feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/14923)
+
+* feat: Partially Revert `Optimize trace relocation #906` [#1492](https://github.com/lambdaclass/cairo-vm/pull/1492)
 
   * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`
   * Add `relocated_trace` field to `CairoRunner`
