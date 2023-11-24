@@ -1,5 +1,6 @@
 /* This file contains a test that runs the program: cairo_programs/starknet_os_deprecated_cc.cairo
     For testsing purposes, the contract ran by this program is hardcoded, with values taken from compiling:
+
     %lang starknet
 
     @view
@@ -145,8 +146,8 @@ pub fn compile_class(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<HintExtension, HintError> {
-    // We wil use a hardcoded constract to avoid importing starknet-related code for this test
-    // What this hint does is to load the `ids.compiled_class` variable of type *DeprecatedCompiledClass with the compiled cairo contract "test_contract.json"
+    // We wil use a hardcoded contract to avoid importing starknet-related code for this test
+    // What this hint does is load the  "test_contract.json" compiled contract into the `ids.compiled_class` variable of type *DeprecatedCompiledClass
     // First we need to allocate the struct
     let compiled_class_ptr = vm.add_memory_segment();
     insert_value_from_var_name(
@@ -174,16 +175,12 @@ pub fn compile_class(
     // compiled_class_version: felt,
     vm.insert_value(ptr, Felt252::default())?; // Not relevant
     ptr.offset += 1;
-
-    // // The length and pointer to the external entry point table of the contract.
     // n_external_functions: felt,
     vm.insert_value(ptr, Felt252::one())?; // Only one external entrypoint
     ptr.offset += 1;
     // external_functions: DeprecatedContractEntryPoint*,
     let mut entrypoints_ptr = vm.add_memory_segment();
-    // We only insert one entrypoint:
     // struct DeprecatedContractEntryPoint {
-    //     // A field element that encodes the signature of the called function.
     //     selector: felt,
     let selector = Felt252::from_str_radix(
         "23180acc053dfb2dbc82a0da33515906d37498b42f34ee4ed308f9d5fb51b6c",
@@ -192,14 +189,12 @@ pub fn compile_class(
     .unwrap();
     vm.insert_value(entrypoints_ptr, selector)?;
     entrypoints_ptr.offset += 1;
-    //     // The offset of the instruction that should be called within the contract bytecode.
     //     offset: felt,
     let offset = Felt252::from(12);
     vm.insert_value(entrypoints_ptr, offset)?;
     // }
     vm.insert_value(ptr, entrypoints_ptr)?; // Only one external entrypoint
     ptr.offset += 1;
-    // // The length and pointer to the L1 handler entry point table of the contract.
     // n_l1_handlers: felt,
     vm.insert_value(ptr, Felt252::zero())?;
     ptr.offset += 1;
@@ -207,7 +202,6 @@ pub fn compile_class(
     let l1_handler_entrypoints_ptr = vm.add_memory_segment();
     vm.insert_value(ptr, l1_handler_entrypoints_ptr)?;
     ptr.offset += 1;
-    // // The length and pointer to the constructor entry point table of the contract.
     // n_constructors: felt,
     vm.insert_value(ptr, Felt252::zero())?;
     ptr.offset += 1;
@@ -215,29 +209,19 @@ pub fn compile_class(
     let constructor_entrypoints_ptr = vm.add_memory_segment();
     vm.insert_value(ptr, constructor_entrypoints_ptr)?;
     ptr.offset += 1;
-
     // n_builtins: felt,
     vm.insert_value(ptr, Felt252::one())?;
     ptr.offset += 1;
-    // // 'builtin_list' is a continuous memory segment containing the ASCII encoding of the (ordered)
-    // // builtins used by the program.
     // builtin_list: felt*,
     let builtins_ptr = vm.add_memory_segment();
     // One builtin: range_check = 138277649577220228665140075
     vm.insert_value(builtins_ptr, felt_str!("138277649577220228665140075"))?;
     vm.insert_value(ptr, builtins_ptr)?;
     ptr.offset += 1;
-
-    // The hinted_class_hash field should be set to the starknet_keccak of the
-    // contract program, including its hints. However the OS does not validate that.
-    // This field may be used by the operator to differentiate between contract classes that
-    // differ only in the hints.
-    // This field is included in the hash of the ContractClass to simplify the implementation.
     // hinted_class_hash: felt,
     vm.insert_value(ptr, Felt252::zero())?;
     ptr.offset += 1;
-
-    // // The length and pointer of the bytecode.
+    // bytecode_length: felt,
     let byte_code = vec![
         Felt252::from_str_radix("480680017fff8000", 16)
             .unwrap()
@@ -309,14 +293,12 @@ pub fn compile_class(
             .unwrap()
             .into(),
     ];
-    // bytecode_length: felt,
     vm.insert_value(ptr, Felt252::from(byte_code.len()))?;
     ptr.offset += 1;
     // bytecode_ptr: felt*,
     let byte_code_ptr = vm.add_memory_segment();
     vm.load_data(byte_code_ptr, &byte_code)?;
     vm.insert_value(ptr, byte_code_ptr)?;
-    //}
 
     Ok(HintExtension::default())
 }
