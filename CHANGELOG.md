@@ -2,10 +2,15 @@
 
 #### Upcoming Changes
 
+* feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
+
+  * Signature changes:
+    * `pub fn step_hint(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step_hint(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
+    * `pub fn step(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_data: &[Box<dyn Any>], constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
+
 * feat: add debugging capabilities behind `print` feature flag. [#1476](https://github.com/lambdaclass/cairo-vm/pull/1476)
 
 #### [0.9.1] - 2023-11-16
-
 
 * chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482), [#1483](https://github.com/lambdaclass/cairo-vm/pull/1483)
 

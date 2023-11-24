@@ -504,14 +504,14 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(
-            hint_executor,
+            hint_processor,
             exec_scopes,
             hint_datas,
             hint_ranges,
