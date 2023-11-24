@@ -457,27 +457,41 @@ impl VirtualMachine {
     }
 
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
-        let pc = self.run_context.pc.offset;
+        if self.run_context.pc.segment_index == 0 {
+            // Run instructions from program segment, using instruction cache
+            let pc = self.run_context.pc.offset;
 
-        if self.segments.memory.data[0].len() <= pc {
-            return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
-        }
+            if self.segments.memory.data[0].len() <= pc {
+                return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
+            }
 
-        let mut inst_cache = core::mem::take(&mut self.instruction_cache);
-        inst_cache.resize((pc + 1).max(inst_cache.len()), None);
+            let mut inst_cache = core::mem::take(&mut self.instruction_cache);
+            inst_cache.resize((pc + 1).max(inst_cache.len()), None);
 
-        let instruction = inst_cache.get_mut(pc).unwrap();
-        if instruction.is_none() {
-            *instruction = Some(self.decode_current_instruction()?);
-        }
-        let instruction = instruction.as_ref().unwrap();
-        if !self.skip_instruction_execution {
-            self.run_instruction(instruction)?;
+            let instruction = inst_cache.get_mut(pc).unwrap();
+            if instruction.is_none() {
+                *instruction = Some(self.decode_current_instruction()?);
+            }
+            let instruction = instruction.as_ref().unwrap();
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
+            self.instruction_cache = inst_cache;
         } else {
-            self.run_context.pc += instruction.size();
-            self.skip_instruction_execution = false;
+            // Run instructions from programs loaded in other segments, without instruction cache
+            let instruction = self.decode_current_instruction()?;
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(&instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
         }
-        self.instruction_cache = inst_cache;
         Ok(())
     }
 
