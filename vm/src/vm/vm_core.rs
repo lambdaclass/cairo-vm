@@ -4353,7 +4353,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -4438,7 +4439,8 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &Vec::new(),
+                    &mut Vec::new(),
+                    &mut HashMap::new(),
                     &HashMap::new()
                 ),
                 Ok(())
