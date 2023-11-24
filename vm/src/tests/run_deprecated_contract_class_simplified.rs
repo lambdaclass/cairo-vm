@@ -1,3 +1,17 @@
+/* This file contains a test that runs the program: cairo_programs/starknet_os_deprecated_cc.cairo
+    For testsing purposes, the contract ran by this program is hardcoded, with values taken from compiling:
+    %lang starknet
+
+    @view
+    func get_number() -> (number: felt) {
+        let number = 14;
+        %{print("hello world")%}
+        return (number=number);
+    }
+
+    The purpose of this test is to check the functionality of the HintProcessor::execute_hint_extensive functionality
+    And to show a very simplified example on how it can be used to achieve the `vm_load_data` functionality used by starknet os programs
+ */
 use std::collections::HashMap;
 
 use felt::{Felt252, felt_str};
