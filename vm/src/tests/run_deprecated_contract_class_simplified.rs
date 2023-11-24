@@ -1,15 +1,24 @@
+use std::collections::HashMap;
+
+use felt::Felt252;
+use num_traits::{One, Zero};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::{
-        builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        hint_processor_definition::HintProcessorLogic,
+        builtin_hint_processor::{
+            builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
+            hint_utils::insert_value_from_var_name,
+        },
+        hint_processor_definition::{HintExtension, HintProcessorLogic, HintReference},
     },
+    serde::deserialize_program::ApTracking,
     vm::{
         errors::hint_errors::HintError,
         runners::cairo_runner::{ResourceTracker, RunResources},
+        vm_core::VirtualMachine,
     },
 };
 
@@ -81,8 +90,137 @@ impl HintProcessorLogic for SimplifiedOsHintProcessor {
             Err(HintError::UnknownHint(_)) => {}
             res => return res,
         }
-        panic!("Oh no")
+        // Execute os-specific hints
+        let hint_data = hint_data
+            .downcast_ref::<HintProcessorData>()
+            .ok_or(HintError::WrongHintData)?;
+        match &*hint_data.code {
+            ALLOC_FACTS => alloc_facts(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            COMPILE_CLASS => compile_class(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            VM_LOAD_PROGRAM => vm_load_program(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
+        }
     }
+}
+
+// Hints & Hint impls
+const ALLOC_FACTS: &str = "ids.compiled_class_facts = segments.add()";
+pub fn alloc_facts(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<HintExtension, HintError> {
+    insert_value_from_var_name(
+        "compiled_class_facts",
+        vm.add_memory_segment(),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    Ok(HintExtension::default())
+}
+const COMPILE_CLASS: &str = "from starkware.starknet.services.api.contract_class.contract_class import DeprecatedCompiledClass\nfrom starkware.starknet.core.os.contract_class.deprecated_class_hash import (\n    get_deprecated_contract_class_struct,\n)\nwith open(\"test_contract.json\", \"r\") as f:\n    compiled_class = DeprecatedCompiledClass.loads(f.read())\n \ncairo_contract = get_deprecated_contract_class_struct(\n    identifiers=ids._context.identifiers, contract_class=compiled_class)\nids.compiled_class = segments.gen_arg(cairo_contract)";
+pub fn compile_class(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<HintExtension, HintError> {
+    // We wil use a hardcoded constract to avoid importing starknet-related code for this test
+    // What this hint does is to load the `ids.compiled_class` variable of type *DeprecatedCompiledClass with the compiled cairo contract "test_contract.json"
+    // First we need to allocate the struct
+    let compiled_class_ptr = vm.add_memory_segment();
+    insert_value_from_var_name(
+        "compiled_class",
+        compiled_class_ptr,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    // Now we can fill each struct field with our hardcoded values
+    let mut ptr = compiled_class_ptr;
+    // For this test's purpose we will be using the following cairo 0 contract:
+
+    // struct DeprecatedCompiledClass {
+    // compiled_class_version: felt,
+    vm.insert_value(ptr, Felt252::default())?; // Not relevant
+    ptr.offset += 1;
+
+    // // The length and pointer to the external entry point table of the contract.
+    // n_external_functions: felt,
+    vm.insert_value(ptr, Felt252::one())?; // Only one external entrypoint
+    ptr.offset += 1;
+    // external_functions: DeprecatedContractEntryPoint*,
+    let mut entrypoints_ptr = vm.add_memory_segment();
+    // We only insert one entrypoint:
+    // struct DeprecatedContractEntryPoint {
+    //     // A field element that encodes the signature of the called function.
+    //     selector: felt,
+    let selector = Felt252::one(); //TODO
+    vm.insert_value(entrypoints_ptr, selector)?;
+    entrypoints_ptr.offset += 1;
+    //     // The offset of the instruction that should be called within the contract bytecode.
+    //     offset: felt,
+    let offset = Felt252::one(); //TODO
+    vm.insert_value(entrypoints_ptr, offset)?;
+    // }
+    vm.insert_value(ptr, entrypoints_ptr)?; // Only one external entrypoint
+    ptr.offset += 1;
+    // // The length and pointer to the L1 handler entry point table of the contract.
+    // n_l1_handlers: felt,
+    vm.insert_value(ptr, Felt252::zero())?;
+    ptr.offset += 1;
+    // l1_handlers: DeprecatedContractEntryPoint*,
+    let l1_handler_entrypoints_ptr = vm.add_memory_segment();
+    vm.insert_value(ptr, l1_handler_entrypoints_ptr)?;
+    ptr.offset += 1;
+    // // The length and pointer to the constructor entry point table of the contract.
+    // n_constructors: felt,
+    vm.insert_value(ptr, Felt252::zero())?;
+    ptr.offset += 1;
+    // constructors: DeprecatedContractEntryPoint*,
+    let constructor_entrypoints_ptr = vm.add_memory_segment();
+    vm.insert_value(ptr, constructor_entrypoints_ptr)?;
+    ptr.offset += 1;
+
+    // n_builtins: felt,
+    vm.insert_value(ptr, Felt252::zero())?;
+    ptr.offset += 1;
+    // // 'builtin_list' is a continuous memory segment containing the ASCII encoding of the (ordered)
+    // // builtins used by the program.
+    // builtin_list: felt*,
+    let builtins_ptr = vm.add_memory_segment();
+    vm.insert_value(ptr, builtins_ptr)?;
+    ptr.offset += 1;
+
+    // The hinted_class_hash field should be set to the starknet_keccak of the
+    // contract program, including its hints. However the OS does not validate that.
+    // This field may be used by the operator to differentiate between contract classes that
+    // differ only in the hints.
+    // This field is included in the hash of the ContractClass to simplify the implementation.
+    // hinted_class_hash: felt,
+    vm.insert_value(ptr, Felt252::zero())?;
+    ptr.offset += 1;
+
+    // // The length and pointer of the bytecode.
+    // bytecode_length: felt,
+    vm.insert_value(ptr, Felt252::zero())?; // TODO
+    ptr.offset += 1;
+    // bytecode_ptr: felt*,
+    let byte_code_ptr = vm.add_memory_segment(); // TODO
+    vm.insert_value(ptr, byte_code_ptr)?;
+    //}
+
+    Ok(HintExtension::default())
+}
+
+const VM_LOAD_PROGRAM: &str = "vm_load_program(compiled_class.program, ids.compiled_class.bytecode_ptr)";
+pub fn vm_load_program(
+    _vm: &mut VirtualMachine,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+) -> Result<HintExtension, HintError> {
+    // TODO: Load Hints
+    Ok(HintExtension::default())
 }
 
 #[test]
