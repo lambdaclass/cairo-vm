@@ -16,8 +16,7 @@ use crate::{
             HintExtension, HintProcessor, HintProcessorLogic, HintReference,
         },
     },
-    serde::deserialize_program::{ApTracking, OffsetValue},
-    types::instruction::Register,
+    serde::deserialize_program::ApTracking,
     vm::{
         errors::hint_errors::HintError,
         runners::cairo_runner::{ResourceTracker, RunResources},
@@ -97,13 +96,13 @@ impl HintProcessorLogic for SimplifiedOsHintProcessor {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
-        dbg!(&*hint_data.code);
         match &*hint_data.code {
             ALLOC_FACTS => alloc_facts(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             COMPILE_CLASS => compile_class(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             VM_LOAD_PROGRAM => {
                 vm_load_program(self, vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            HELLO_WORLD => hello_world(),
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }
@@ -148,12 +147,10 @@ pub fn compile_class(
     /*
     %lang starknet
 
-    from starkware.cairo.common.math import assert_not_zero
-
     @view
     func get_number() -> (number: felt) {
         let number = 14;
-        assert_not_zero(number);
+        %{print("hello world")%}
         return (number=number);
     }
     */
@@ -182,7 +179,7 @@ pub fn compile_class(
     entrypoints_ptr.offset += 1;
     //     // The offset of the instruction that should be called within the contract bytecode.
     //     offset: felt,
-    let offset = Felt252::from(21);
+    let offset = Felt252::from(12);
     vm.insert_value(entrypoints_ptr, offset)?;
     // }
     vm.insert_value(ptr, entrypoints_ptr)?; // Only one external entrypoint
@@ -225,30 +222,6 @@ pub fn compile_class(
 
     // // The length and pointer of the bytecode.
     let byte_code = vec![
-        Felt252::from_str_radix("20780017fff7ffd", 16)
-            .unwrap()
-            .into(),
-        Felt252::from_str_radix("4", 16).unwrap().into(),
-        Felt252::from_str_radix("400780017fff7ffd", 16)
-            .unwrap()
-            .into(),
-        Felt252::from_str_radix("1", 16).unwrap().into(),
-        Felt252::from_str_radix("208b7fff7fff7ffe", 16)
-            .unwrap()
-            .into(),
-        Felt252::from_str_radix("480680017fff8000", 16)
-            .unwrap()
-            .into(),
-        Felt252::from_str_radix("e", 16).unwrap().into(),
-        Felt252::from_str_radix("1104800180018000", 16)
-            .unwrap()
-            .into(),
-        Felt252::from_str_radix(
-            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffffa",
-            16,
-        )
-        .unwrap()
-        .into(),
         Felt252::from_str_radix("480680017fff8000", 16)
             .unwrap()
             .into(),
@@ -286,7 +259,7 @@ pub fn compile_class(
             .unwrap()
             .into(),
         Felt252::from_str_radix(
-            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffff0",
+            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4",
             16,
         )
         .unwrap()
@@ -325,8 +298,6 @@ pub fn compile_class(
     // bytecode_ptr: felt*,
     let byte_code_ptr = vm.add_memory_segment();
     vm.load_data(byte_code_ptr, &byte_code)?;
-    // Adjust bytecode_ptr so that execution begins at our desired entrypoint maybe?
-    //byte_code_ptr.offset += 21; // get_number function offset
     vm.insert_value(ptr, byte_code_ptr)?;
     //}
 
@@ -343,51 +314,29 @@ pub fn vm_load_program(
 ) -> Result<HintExtension, HintError> {
     // We will be hardcoding the hint-related values instead of taking them from the compiled contract
     // The contract has the following hint:
-    // "hints": {
-    //     "0": [
-    //         {
-    //             "accessible_scopes": [
-    //                 "starkware.cairo.common.math",
-    //                 "starkware.cairo.common.math.assert_not_zero"
-    //             ],
-    //             "code": "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'",
-    //             "flow_tracking_data": {
-    //                 "ap_tracking": {
-    //                     "group": 0,
-    //                     "offset": 0
-    //                 },
-    //                 "reference_ids": {
-    //                     "starkware.cairo.common.math.assert_not_zero.value": 0
-    //                 }
-    //             }
-    //         }
-    //     ],
-    let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
+    /*
+    "0": [
+                {
+                    "accessible_scopes": [
+                        "__main__",
+                        "__main__",
+                        "__main__.get_number"
+                    ],
+                    "code": "print(\"hello world\")",
+                    "flow_tracking_data": {
+                        "ap_tracking": {
+                            "group": 0,
+                            "offset": 0
+                        },
+                        "reference_ids": {}
+                    }
+                }
+            ],
+     */
+    let hint_code = "print(\"hello world\")";
     let hint_ap_tracking_data = ApTracking::default();
-    let reference_ids = HashMap::from([(
-        "starkware.cairo.common.math.assert_not_zero.value".to_string(),
-        0,
-    )]);
-    // And the following reference manager:
-    // "reference_manager": {
-    //     "references": [
-    //         {
-    //             "ap_tracking_data": {
-    //                 "group": 0,
-    //                 "offset": 0
-    //             },
-    //             "pc": 0,
-    //             "value": "[cast(fp + (-3), felt*)]"
-    //         }
-    //     ]
-    // }
-    let references = vec![HintReference {
-        offset1: OffsetValue::Reference(Register::FP, -3, false),
-        offset2: OffsetValue::Value(0),
-        dereference: true,
-        ap_tracking_data: None,
-        cairo_type: Some("felt*".into()),
-    }];
+    let reference_ids = HashMap::default();
+    let references = vec![];
     // Compile the hint
     let compiled_hint = hint_processor.compile_hint(
         hint_code,
@@ -403,6 +352,12 @@ pub fn vm_load_program(
     let byte_code_ptr = vm.get_relocatable((compiled_class + 11)?)?;
     let hint_extension = HashMap::from([(byte_code_ptr, vec![compiled_hint])]);
     Ok(hint_extension)
+}
+
+const HELLO_WORLD: &str = "print(\"hello world\")";
+pub fn hello_world() -> Result<HintExtension, HintError> {
+    println!(" hello world ");
+    Ok(HintExtension::default())
 }
 
 #[test]
