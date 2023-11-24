@@ -4308,4 +4308,60 @@ mod tests {
                 .is_err());
         }
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /// Test for a simple program execution
+    /// Used program code:
+    /// func main():
+    ///     let a = 1
+    ///     let b = 2
+    ///     let c = a + b
+    ///     return()
+    /// end
+    /// Memory taken from original vm
+    /// {RelocatableValue(segment_index=0, offset=0): 2345108766317314046,
+    ///  RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    ///  RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    /// Current register values:
+    /// AP 1:2
+    /// FP 1:2
+    /// PC 0:0
+    fn test_step_for_preset_memory_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        run_context!(vm, 0, 2, 2);
+
+        vm.segments = segments![
+            ((2, 0), 2345108766317314046_u64), // Load program into new segment
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 2;
+
+        assert_matches!(
+            vm.step(
+                &mut hint_processor,
+                exec_scopes_ref!(),
+                &Vec::new(),
+                &HashMap::new()
+            ),
+            Ok(())
+        );
+        let trace = vm.trace.unwrap();
+        trace_check(&trace, &[(0, 2, 2)]);
+
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 2);
+        assert_eq!(vm.run_context.fp, 0);
+
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = vm.segments.memory.data;
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+    }
 }
