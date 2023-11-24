@@ -530,10 +530,10 @@ impl VirtualMachine {
         )?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_datas, constants)?;
+        self.execute_pre_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_datas, constants)?;
+        self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
     }
