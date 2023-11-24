@@ -4326,7 +4326,7 @@ mod tests {
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check(&trace, &[(0, 2, 2)]);
+        trace_check(&trace, &[((2,0).into(), 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
