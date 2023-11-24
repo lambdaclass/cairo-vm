@@ -762,7 +762,7 @@ impl CairoRunner {
     }
 
     ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    fn relocate_trace(
+    pub fn relocate_trace(
         &mut self,
         vm: &VirtualMachine,
         relocation_table: &Vec<usize>,
