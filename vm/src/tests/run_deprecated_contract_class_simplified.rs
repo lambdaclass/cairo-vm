@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use felt::Felt252;
-use num_traits::{One, Zero, Num};
+use num_traits::{Num, One, Zero};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -10,11 +10,14 @@ use crate::{
     hint_processor::{
         builtin_hint_processor::{
             builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},
-            hint_utils::insert_value_from_var_name,
+            hint_utils::{get_ptr_from_var_name, insert_value_from_var_name},
         },
-        hint_processor_definition::{HintExtension, HintProcessorLogic, HintReference},
+        hint_processor_definition::{
+            HintExtension, HintProcessor, HintProcessorLogic, HintReference,
+        },
     },
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, OffsetValue},
+    types::instruction::Register,
     vm::{
         errors::hint_errors::HintError,
         runners::cairo_runner::{ResourceTracker, RunResources},
@@ -94,10 +97,13 @@ impl HintProcessorLogic for SimplifiedOsHintProcessor {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
+        dbg!(&*hint_data.code);
         match &*hint_data.code {
             ALLOC_FACTS => alloc_facts(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             COMPILE_CLASS => compile_class(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            VM_LOAD_PROGRAM => vm_load_program(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            VM_LOAD_PROGRAM => {
+                vm_load_program(self, vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }
@@ -139,11 +145,18 @@ pub fn compile_class(
     // Now we can fill each struct field with our hardcoded values
     let mut ptr = compiled_class_ptr;
     // For this test's purpose we will be using the following cairo 0 contract:
-    // %lang starknet
-    // @view
-    // func get_number() -> (number: felt) {
-    //     return (number=14);
-    // }
+    /*
+    %lang starknet
+
+    from starkware.cairo.common.math import assert_not_zero
+
+    @view
+    func get_number() -> (number: felt) {
+        let number = 14;
+        assert_not_zero(number);
+        return (number=number);
+    }
+    */
 
     // struct DeprecatedCompiledClass {
     // compiled_class_version: felt,
@@ -160,12 +173,16 @@ pub fn compile_class(
     // struct DeprecatedContractEntryPoint {
     //     // A field element that encodes the signature of the called function.
     //     selector: felt,
-    let selector = Felt252::one(); //TODO
+    let selector = Felt252::from_str_radix(
+        "23180acc053dfb2dbc82a0da33515906d37498b42f34ee4ed308f9d5fb51b6c",
+        16,
+    )
+    .unwrap();
     vm.insert_value(entrypoints_ptr, selector)?;
     entrypoints_ptr.offset += 1;
     //     // The offset of the instruction that should be called within the contract bytecode.
     //     offset: felt,
-    let offset = Felt252::one(); //TODO
+    let offset = Felt252::from(21);
     vm.insert_value(entrypoints_ptr, offset)?;
     // }
     vm.insert_value(ptr, entrypoints_ptr)?; // Only one external entrypoint
@@ -208,29 +225,99 @@ pub fn compile_class(
 
     // // The length and pointer of the bytecode.
     let byte_code = vec![
-        Felt252::from_str_radix("480680017fff8000", 16).unwrap().into(),
+        Felt252::from_str_radix("20780017fff7ffd", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("4", 16).unwrap().into(),
+        Felt252::from_str_radix("400780017fff7ffd", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("1", 16).unwrap().into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("480680017fff8000", 16)
+            .unwrap()
+            .into(),
         Felt252::from_str_radix("e", 16).unwrap().into(),
-        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
-        Felt252::from_str_radix("40780017fff7fff", 16).unwrap().into(),
+        Felt252::from_str_radix("1104800180018000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix(
+            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffffa",
+            16,
+        )
+        .unwrap()
+        .into(),
+        Felt252::from_str_radix("480680017fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("e", 16).unwrap().into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("40780017fff7fff", 16)
+            .unwrap()
+            .into(),
         Felt252::from_str_radix("1", 16).unwrap().into(),
-        Felt252::from_str_radix("4003800080007ffc", 16).unwrap().into(),
-        Felt252::from_str_radix("4826800180008000", 16).unwrap().into(),
+        Felt252::from_str_radix("4003800080007ffc", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("4826800180008000", 16)
+            .unwrap()
+            .into(),
         Felt252::from_str_radix("1", 16).unwrap().into(),
-        Felt252::from_str_radix("480a7ffd7fff8000", 16).unwrap().into(),
-        Felt252::from_str_radix("4828800080007ffe", 16).unwrap().into(),
-        Felt252::from_str_radix("480a80007fff8000", 16).unwrap().into(),
-        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
-        Felt252::from_str_radix("402b7ffd7ffc7ffd", 16).unwrap().into(),
-        Felt252::from_str_radix("1104800180018000", 16).unwrap().into(),
-        Felt252::from_str_radix("800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4", 16).unwrap().into(),
-        Felt252::from_str_radix("480280017ffb8000", 16).unwrap().into(),
-        Felt252::from_str_radix("1104800180018000", 16).unwrap().into(),
-        Felt252::from_str_radix("800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4", 16).unwrap().into(),
-        Felt252::from_str_radix("480280007ffb8000", 16).unwrap().into(),
-        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
-        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
-        Felt252::from_str_radix("48127ffc7fff8000", 16).unwrap().into(),
-        Felt252::from_str_radix("208b7fff7fff7ffe", 16).unwrap().into(),
+        Felt252::from_str_radix("480a7ffd7fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("4828800080007ffe", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("480a80007fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("402b7ffd7ffc7ffd", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("1104800180018000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix(
+            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffff0",
+            16,
+        )
+        .unwrap()
+        .into(),
+        Felt252::from_str_radix("480280017ffb8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("1104800180018000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix(
+            "800000000000010fffffffffffffffffffffffffffffffffffffffffffffff4",
+            16,
+        )
+        .unwrap()
+        .into(),
+        Felt252::from_str_radix("480280007ffb8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("48127ffc7fff8000", 16)
+            .unwrap()
+            .into(),
+        Felt252::from_str_radix("208b7fff7fff7ffe", 16)
+            .unwrap()
+            .into(),
     ];
     // bytecode_length: felt,
     vm.insert_value(ptr, Felt252::from(byte_code.len()))?;
@@ -238,20 +325,84 @@ pub fn compile_class(
     // bytecode_ptr: felt*,
     let byte_code_ptr = vm.add_memory_segment();
     vm.load_data(byte_code_ptr, &byte_code)?;
+    // Adjust bytecode_ptr so that execution begins at our desired entrypoint maybe?
+    //byte_code_ptr.offset += 21; // get_number function offset
     vm.insert_value(ptr, byte_code_ptr)?;
     //}
 
     Ok(HintExtension::default())
 }
 
-const VM_LOAD_PROGRAM: &str = "vm_load_program(compiled_class.program, ids.compiled_class.bytecode_ptr)";
+const VM_LOAD_PROGRAM: &str =
+    "vm_load_program(compiled_class.program, ids.compiled_class.bytecode_ptr)";
 pub fn vm_load_program(
-    _vm: &mut VirtualMachine,
-    _ids_data: &HashMap<String, HintReference>,
-    _ap_tracking: &ApTracking,
+    hint_processor: &dyn HintProcessor,
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
 ) -> Result<HintExtension, HintError> {
-    // TODO: Load Hints
-    Ok(HintExtension::default())
+    // We will be hardcoding the hint-related values instead of taking them from the compiled contract
+    // The contract has the following hint:
+    // "hints": {
+    //     "0": [
+    //         {
+    //             "accessible_scopes": [
+    //                 "starkware.cairo.common.math",
+    //                 "starkware.cairo.common.math.assert_not_zero"
+    //             ],
+    //             "code": "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'",
+    //             "flow_tracking_data": {
+    //                 "ap_tracking": {
+    //                     "group": 0,
+    //                     "offset": 0
+    //                 },
+    //                 "reference_ids": {
+    //                     "starkware.cairo.common.math.assert_not_zero.value": 0
+    //                 }
+    //             }
+    //         }
+    //     ],
+    let hint_code = "from starkware.cairo.common.math_utils import assert_integer\nassert_integer(ids.value)\nassert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'";
+    let hint_ap_tracking_data = ApTracking::default();
+    let reference_ids = HashMap::from([(
+        "starkware.cairo.common.math.assert_not_zero.value".to_string(),
+        0,
+    )]);
+    // And the following reference manager:
+    // "reference_manager": {
+    //     "references": [
+    //         {
+    //             "ap_tracking_data": {
+    //                 "group": 0,
+    //                 "offset": 0
+    //             },
+    //             "pc": 0,
+    //             "value": "[cast(fp + (-3), felt*)]"
+    //         }
+    //     ]
+    // }
+    let references = vec![HintReference {
+        offset1: OffsetValue::Reference(Register::FP, -3, false),
+        offset2: OffsetValue::Value(0),
+        dereference: true,
+        ap_tracking_data: None,
+        cairo_type: Some("felt*".into()),
+    }];
+    // Compile the hint
+    let compiled_hint = hint_processor.compile_hint(
+        hint_code,
+        &hint_ap_tracking_data,
+        &reference_ids,
+        &references,
+    )?;
+    // Create the hint extension
+    // As the hint from the compiled constract has offset 0, the hint pc will be equal to the loaded contract's program base:
+    // This ptr can be found at ids.compiled_class.bytecode_ptr
+    let compiled_class = get_ptr_from_var_name("compiled_class", vm, ids_data, ap_tracking)?;
+    // ids.compiled_class.bytecode_ptr = [ids.compiled_class + 11]
+    let byte_code_ptr = vm.get_relocatable((compiled_class + 11)?)?;
+    let hint_extension = HashMap::from([(byte_code_ptr, vec![compiled_hint])]);
+    Ok(hint_extension)
 }
 
 #[test]
