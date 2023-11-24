@@ -4338,4 +4338,123 @@ mod tests {
         assert!(mem[1][0].as_ref().unwrap().is_accessed());
         assert!(mem[1][1].as_ref().unwrap().is_accessed());
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /*
+    Test for a simple program execution
+    Used program code:
+        func myfunc(a: felt) -> (r: felt):
+            let b = a * 2
+            return(b)
+        end
+        func main():
+            let a = 1
+            let b = myfunc(a)
+            return()
+        end
+    Memory taken from original vm:
+    {RelocatableValue(segment_index=0, offset=0): 5207990763031199744,
+    RelocatableValue(segment_index=0, offset=1): 2,
+    RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+    RelocatableValue(segment_index=0, offset=3): 5189976364521848832,
+    RelocatableValue(segment_index=0, offset=4): 1,
+    RelocatableValue(segment_index=0, offset=5): 1226245742482522112,
+    RelocatableValue(segment_index=0, offset=6): 3618502788666131213697322783095070105623107215331596699973092056135872020476,
+    RelocatableValue(segment_index=0, offset=7): 2345108766317314046,
+    RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    Current register values:
+    AP 1:2
+    FP 1:2
+    PC 0:3
+    Final Pc (not executed): 3:0
+    This program consists of 5 steps
+    */
+    fn test_step_for_preset_memory_function_call_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        run_context!(vm, 3, 2, 2);
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 4;
+
+        //Insert values into memory
+        vm.segments.memory =
+            memory![
+            // Load program into new segment
+            ((4, 0), 5207990763031199744_i64),
+            ((4, 1), 2),
+            ((4, 2), 2345108766317314046_i64),
+            ((4, 3), 5189976364521848832_i64),
+            ((4, 4), 1),
+            ((4, 5), 1226245742482522112_i64),
+            (
+                (4, 6),
+                ("3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
+            ),
+            ((4, 7), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+
+        let final_pc = Relocatable::from((3, 0));
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        //Run steps
+        while vm.run_context.pc != final_pc {
+            assert_matches!(
+                vm.step(
+                    &mut hint_processor,
+                    exec_scopes_ref!(),
+                    &Vec::new(),
+                    &HashMap::new()
+                ),
+                Ok(())
+            );
+        }
+
+        //Check final register values
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+
+        assert_eq!(vm.run_context.ap, 6);
+
+        assert_eq!(vm.run_context.fp, 0);
+        //Check each TraceEntry in trace
+        let trace = vm.trace.unwrap();
+        assert_eq!(trace.len(), 5);
+        trace_check(
+            &trace,
+            &[
+                ((4, 3).into(), 2, 2),
+                ((4, 5).into(), 3, 2),
+                ((4, 0).into(), 5, 5),
+                ((4, 2).into(), 6, 5),
+                ((4, 7).into(), 6, 2),
+            ],
+        );
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = &vm.segments.memory.data;
+        assert!(mem[4][1].as_ref().unwrap().is_accessed());
+        assert!(mem[4][4].as_ref().unwrap().is_accessed());
+        assert!(mem[4][6].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][2].as_ref().unwrap().is_accessed());
+        assert!(mem[1][3].as_ref().unwrap().is_accessed());
+        assert!(mem[1][4].as_ref().unwrap().is_accessed());
+        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(4),
+            Some(3)
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(1),
+            Some(6)
+        );
+    }
+
 }
