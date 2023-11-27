@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 
+use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -24,6 +25,7 @@ use crate::{
 };
 
 use core::cmp::Ordering;
+use core::num::NonZeroUsize;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
@@ -440,15 +442,34 @@ impl VirtualMachine {
 
     pub fn step_hint(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_data.iter().enumerate() {
-            hint_executor
-                .execute_hint(self, exec_scopes, hint_data, constants)
-                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        // Check if there is a hint range for the current pc
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
+            let s = *s;
+            // Execute each hint for the given range
+            for idx in s..(s + l.get()) {
+                let hint_extension = hint_processor
+                    .execute_hint_extensive(
+                        self,
+                        exec_scopes,
+                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                        constants,
+                    )
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
+                    }
+                }
+            }
         }
         Ok(())
     }
@@ -494,18 +515,25 @@ impl VirtualMachine {
 
     pub fn step(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
+        self.step_hint(
+            hint_processor,
+            exec_scopes,
+            hint_datas,
+            hint_ranges,
+            constants,
+        )?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_pre_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
     }
@@ -2663,7 +2691,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -2892,8 +2921,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
+                &mut Vec::new(),
+                &mut HashMap::new(),
+                &HashMap::new(),
             ),
             Ok(())
         );
@@ -2974,7 +3004,8 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &Vec::new(),
+                    &mut Vec::new(),
+                    &mut HashMap::new(),
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3076,7 +3107,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3097,7 +3129,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3119,7 +3152,8 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3639,7 +3673,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
-        let hint_data = vec![any_box!(HintProcessorData::new_default(
+        let mut hint_data = vec![any_box!(HintProcessorData::new_default(
             "memory[ap] = segments.add()".to_string(),
             HashMap::new(),
         ))];
@@ -3677,17 +3711,16 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
-            let hint_data = if vm.run_context.pc == (0, 0).into() {
-                &hint_data[0..]
-            } else {
-                &hint_data[0..0]
-            };
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    hint_data,
-                    &HashMap::new()
+                    &mut hint_data,
+                    &mut HashMap::from([(
+                        Relocatable::from((0, 0)),
+                        (0_usize, NonZeroUsize::new(1).unwrap())
+                    )]),
+                    &HashMap::new(),
                 ),
                 Ok(())
             );

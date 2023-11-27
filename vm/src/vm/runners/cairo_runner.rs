@@ -553,23 +553,21 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data = self.get_hint_data(references, hint_processor)?;
+        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = &self
-                .program
-                .shared_program_data
-                .hints_collection
-                .get_hint_range_for_pc(vm.run_context.pc.offset)
-                .and_then(|range| {
-                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                })
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                hint_data,
+                &mut hint_data,
+                &mut hint_ranges,
                 &self.program.constants,
             )?;
             hint_processor.consume_step();
@@ -590,26 +588,24 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
-        let hint_data = self.get_hint_data(references, hint_processor)?;
+        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
 
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
-            let hint_data = self
-                .program
-                .shared_program_data
-                .hints_collection
-                .get_hint_range_for_pc(vm.run_context.pc.offset)
-                .and_then(|range| {
-                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                })
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                hint_data,
+                &mut hint_data,
+                &mut hint_ranges,
                 &self.program.constants,
             )?;
         }
