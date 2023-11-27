@@ -16,10 +16,3 @@ jobs:
           cancelFutureDuplicates: true
           token: ${{ secrets.GITHUB_TOKEN }}
           workflowFileName: rust.yml
-      - name: "Cancel benchmark workflow"
-        uses: potiuk/cancel-workflow-runs@master
-        with:
-          cancelMode: allDuplicates
-          cancelFutureDuplicates: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          workflowFileName: bench.yml
