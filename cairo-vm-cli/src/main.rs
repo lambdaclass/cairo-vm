@@ -149,7 +149,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(trace_path) = args.trace_file {
-        let relocated_trace = vm.get_relocated_trace()?;
+        let relocated_trace = cairo_runner
+            .relocated_trace
+            .as_ref()
+            .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
