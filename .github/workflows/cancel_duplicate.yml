@@ -22,4 +22,4 @@ jobs:
           cancelMode: allDuplicates
           cancelFutureDuplicates: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          workflowFileName: bench_pull_request.yml
+          workflowFileName: bench.yml
