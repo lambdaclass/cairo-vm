@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/14923)
+
 * feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
 
   * Add trait method `HintProcessorLogic::execute_hint_extensive`:
