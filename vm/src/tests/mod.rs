@@ -32,6 +32,8 @@ use wasm_bindgen_test::*;
 use alloc::{string::String, vec::Vec};
 
 mod bitwise_test;
+#[cfg(test)]
+mod run_deprecated_contract_class_simplified;
 
 #[cfg(feature = "cairo-1-hints")]
 mod cairo_1_run_from_entrypoint_tests;

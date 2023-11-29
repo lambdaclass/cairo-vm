@@ -4,6 +4,12 @@
 
 * feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/14923)
 
+* BREAKING: Partially Revert `Optimize trace relocation #906` [#1492](https://github.com/lambdaclass/cairo-vm/pull/1492)
+
+  * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`.
+  * Add `relocated_trace` field  & `relocate_trace` method to `CairoRunner`.
+  * Swap `TraceEntry` for `RelocatedTraceEntry` type in `write_encoded_trace` & `PublicInput::new` signatures.
+  * Now takes into account the program counter's segment index when building the execution trace instead of assuming it to be 0.
 * feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
 
   * Add trait method `HintProcessorLogic::execute_hint_extensive`:
@@ -13,13 +19,6 @@
   * Signature changes:
     * `pub fn step_hint(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step_hint(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
     * `pub fn step(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_data: &[Box<dyn Any>], constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
-
-* BREAKING: Partially Revert `Optimize trace relocation #906` [#1492](https://github.com/lambdaclass/cairo-vm/pull/1492)
-
-  * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`.
-  * Add `relocated_trace` field  & `relocate_trace` method to `CairoRunner`.
-  * Swap `TraceEntry` for `RelocatedTraceEntry` type in `write_encoded_trace` & `PublicInput::new` signatures.
-  * Now takes into account the program counter's segment index when building the execution trace instead of assuming it to be 0.
 
 * feat: add debugging capabilities behind `print` feature flag. [#1476](https://github.com/lambdaclass/cairo-vm/pull/1476)
 
