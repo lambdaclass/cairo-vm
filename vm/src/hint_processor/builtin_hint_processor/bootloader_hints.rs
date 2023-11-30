@@ -6,6 +6,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_from
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::runners::builtin_runner::OutputBuiltinRunner;
@@ -103,6 +104,85 @@ pub fn prepare_simple_bootloader_output_segment(
         ap_tracking,
     )?;
 
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    output_start = ids.output_ptr
+%}
+*/
+fn save_output_pointer_hint(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let output_ptr = get_ptr_from_var_name("output_ptr", vm, ids_data, ap_tracking)?;
+    exec_scopes.insert_value("output_start", output_ptr);
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    packed_outputs = bootloader_input.packed_outputs
+%}
+*/
+fn save_packed_outputs_hint(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let bootloader_input = exec_scopes.get("bootloader_input")?;
+    let packed_outputs = bootloader_input; // TODO: need type for bootloader_input / query its packed_outputs field
+    exec_scopes.insert_value("packed_outputs", packed_outputs);
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    packed_outputs = packed_output.subtasks
+%}
+*/
+fn set_packed_output_to_subtasks_hint(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let packed_outputs = exec_scopes.get("packed_outputs")?;
+    let subtasks = packed_outputs; // TODO: need type for packed_output / query its subtasks field
+    exec_scopes.insert_value("packed_outputs", subtasks);
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    data = packed_output.elements_for_hash()
+    ids.nested_subtasks_output_len = len(data)
+    ids.nested_subtasks_output = segments.gen_arg(data)";
+%}
+*/
+fn guess_pre_image_of_subtasks_output_hash_hint(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    let packed_outputs = exec_scopes.get::<Relocatable>("packed_outputs")?;
+    let data = packed_outputs; // TODO: need type for packed_output / call its elements_for_hash() fn
+    let data_len = 0usize; // TODO: should be length of data
+    insert_value_from_var_name( "nested_subtasks_output_len", data_len, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name( "nested_subtasks_output", &data, vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
