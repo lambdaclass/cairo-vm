@@ -103,7 +103,10 @@ pub fn get_location(
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
     for (_fp, traceback_pc) in vm.get_traceback_entries() {
-        if let (0, Some(ref attr)) = (traceback_pc.segment_index, get_error_attr_value(traceback_pc.offset, runner, vm)) {
+        if let (0, Some(ref attr)) = (
+            traceback_pc.segment_index,
+            get_error_attr_value(traceback_pc.offset, runner, vm),
+        ) {
             traceback.push_str(attr)
         }
         match (
@@ -340,8 +343,9 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program =
-            program!(instruction_locations = Some(HashMap::from([(pc.offset, instruction_location)])),);
+        let program = program!(
+            instruction_locations = Some(HashMap::from([(pc.offset, instruction_location)])),
+        );
         let runner = cairo_runner!(program);
         assert_matches!(
             VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
