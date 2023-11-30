@@ -1170,7 +1170,7 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
             start_col: 1,
         };
         let instruction_location = InstructionLocation {
-            inst: location.clone(),
+            inst: location,
             hints: vec![],
         };
         let program =
