@@ -103,7 +103,7 @@ pub fn get_location(
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
     for (_fp, traceback_pc) in vm.get_traceback_entries() {
-        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner, vm) {
+        if let (0, Some(ref attr)) = (traceback_pc.segment_index, get_error_attr_value(traceback_pc.offset, runner, vm)) {
             traceback.push_str(attr)
         }
         match (
