@@ -1185,7 +1185,7 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
                 inst_location: None,
                 inner_exc: VirtualMachineError::NoImm,
                 error_attr_value: None,
-                traceback: Some(_),
+                traceback: None,
             } if x == pc
         )
     }
