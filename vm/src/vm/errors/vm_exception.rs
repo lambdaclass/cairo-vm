@@ -1183,7 +1183,7 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         let mut vm = vm!();
         vm.set_pc(pc);
         assert_matches!(
-            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
+            VmException::from_vm_error(&runner, &vm, VirtualMachineError::NoImm,),
             VmException {
                 pc: x,
                 inst_location: None,
