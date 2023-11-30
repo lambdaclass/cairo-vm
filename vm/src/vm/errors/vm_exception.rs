@@ -1,7 +1,10 @@
-use crate::stdlib::{
-    fmt::{self, Display},
-    prelude::*,
-    str,
+use crate::{
+    stdlib::{
+        fmt::{self, Display},
+        prelude::*,
+        str,
+    },
+    types::relocatable::Relocatable,
 };
 
 use thiserror_no_std::Error;
@@ -16,7 +19,7 @@ use crate::{
 use super::vm_errors::VirtualMachineError;
 #[derive(Debug, Error)]
 pub struct VmException {
-    pub pc: usize,
+    pub pc: Relocatable,
     pub inst_location: Option<Location>,
     pub inner_exc: VirtualMachineError,
     pub error_attr_value: Option<String>,
@@ -29,8 +32,12 @@ impl VmException {
         vm: &VirtualMachine,
         error: VirtualMachineError,
     ) -> Self {
-        let pc = vm.run_context.pc.offset;
-        let error_attr_value = get_error_attr_value(pc, runner, vm);
+        let pc = vm.run_context.pc;
+        let error_attr_value = if pc.segment_index == 0 {
+            get_error_attr_value(pc.offset, runner, vm)
+        } else {
+            None
+        };
         let hint_index = if let VirtualMachineError::Hint(ref bx) = error {
             Some(bx.0)
         } else {
@@ -38,7 +45,11 @@ impl VmException {
         };
         VmException {
             pc,
-            inst_location: get_location(pc, runner, hint_index),
+            inst_location: if pc.segment_index == 0 {
+                get_location(pc.offset, runner, hint_index)
+            } else {
+                None
+            },
             inner_exc: error,
             error_attr_value,
             traceback: get_traceback(vm, runner),
@@ -92,18 +103,21 @@ pub fn get_location(
 pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
     for (_fp, traceback_pc) in vm.get_traceback_entries() {
-        if let Some(ref attr) = get_error_attr_value(traceback_pc.offset, runner, vm) {
+        if let (0, Some(ref attr)) = (
+            traceback_pc.segment_index,
+            get_error_attr_value(traceback_pc.offset, runner, vm),
+        ) {
             traceback.push_str(attr)
         }
-        match get_location(traceback_pc.offset, runner, None) {
-            Some(location) => traceback.push_str(&format!(
+        match (
+            traceback_pc.segment_index,
+            get_location(traceback_pc.offset, runner, None),
+        ) {
+            (0, Some(location)) => traceback.push_str(&format!(
                 "{}\n",
-                location.to_string_with_content(&format!("(pc=0:{})", traceback_pc.offset))
+                location.to_string_with_content(&format!("(pc={})", traceback_pc))
             )),
-            None => traceback.push_str(&format!(
-                "Unknown location (pc=0:{})\n",
-                traceback_pc.offset
-            )),
+            _ => traceback.push_str(&format!("Unknown location (pc={})\n", traceback_pc)),
         }
     }
     (!traceback.is_empty())
@@ -194,7 +208,7 @@ fn get_value_from_simple_reference(
 impl Display for VmException {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Build initial message
-        let message = format!("Error at pc=0:{}:\n{}", self.pc, self.inner_exc);
+        let message = format!("Error at pc={}:\n{}", self.pc, self.inner_exc);
         let mut error_msg = String::new();
         // Add error attribute value
         if let Some(ref string) = self.error_attr_value {
@@ -314,7 +328,7 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_vm_exception_from_vm_error() {
-        let pc = 0;
+        let pc: Relocatable = (0, 0).into();
         let location = Location {
             end_line: 2,
             end_col: 2,
@@ -329,8 +343,9 @@ mod test {
             inst: location.clone(),
             hints: vec![],
         };
-        let program =
-            program!(instruction_locations = Some(HashMap::from([(pc, instruction_location)])),);
+        let program = program!(
+            instruction_locations = Some(HashMap::from([(pc.offset, instruction_location)])),
+        );
         let runner = cairo_runner!(program);
         assert_matches!(
             VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
@@ -388,7 +403,7 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_no_attributes() {
         let vm_excep = VmException {
-            pc: 2,
+            pc: (0, 2).into(),
             inst_location: None,
             inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
@@ -413,7 +428,7 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn vm_exception_display_instruction_no_location_with_attributes() {
         let vm_excep = VmException {
-            pc: 2,
+            pc: (0, 2).into(),
             inst_location: None,
             inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
@@ -448,7 +463,7 @@ mod test {
             start_col: 1,
         };
         let vm_excep = VmException {
-            pc: 2,
+            pc: (0, 2).into(),
             inst_location: Some(location),
             inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
@@ -495,7 +510,7 @@ mod test {
             start_col: 1,
         };
         let vm_excep = VmException {
-            pc: 2,
+            pc: (0, 2).into(),
             inst_location: Some(location),
             inner_exc: VirtualMachineError::FailedToComputeOperands(Box::new((
                 "op0".to_string(),
@@ -1142,5 +1157,40 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
                 attribute.value
             )
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_vm_exception_from_vm_error_pc_not_program_segment() {
+        let pc = (9, 5).into();
+        let location = Location {
+            end_line: 2,
+            end_col: 2,
+            input_file: InputFile {
+                filename: String::from("Folder/file.cairo"),
+            },
+            parent_location: None,
+            start_line: 1,
+            start_col: 1,
+        };
+        let instruction_location = InstructionLocation {
+            inst: location,
+            hints: vec![],
+        };
+        let program =
+            program!(instruction_locations = Some(HashMap::from([(5, instruction_location)])),);
+        let runner = cairo_runner!(program);
+        let mut vm = vm!();
+        vm.set_pc(pc);
+        assert_matches!(
+            VmException::from_vm_error(&runner, &vm, VirtualMachineError::NoImm,),
+            VmException {
+                pc: x,
+                inst_location: None,
+                inner_exc: VirtualMachineError::NoImm,
+                error_attr_value: None,
+                traceback: None,
+            } if x == pc
+        )
     }
 }
