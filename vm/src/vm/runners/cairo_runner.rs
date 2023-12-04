@@ -564,16 +564,6 @@ impl CairoRunner {
             .hints_collection
             .hints_ranges
             .clone();
-        #[cfg(not(feature = "load_program"))]
-        let hint_data = self
-            .program
-            .shared_program_data
-            .hints_collection
-            .get_hint_range_for_pc(vm.run_context.pc.offset)
-            .and_then(|range| {
-                range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
-            })
-            .unwrap_or(&[]);
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
@@ -583,7 +573,14 @@ impl CairoRunner {
                 #[cfg(feature = "load_program")]
                 &mut hint_data,
                 #[cfg(not(feature = "load_program"))]
-                hint_data,
+                self.program
+                    .shared_program_data
+                    .hints_collection
+                    .get_hint_range_for_pc(vm.run_context.pc.offset)
+                    .and_then(|range| {
+                        range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                    })
+                    .unwrap_or(&[]),
                 #[cfg(feature = "load_program")]
                 &mut hint_ranges,
                 &self.program.constants,

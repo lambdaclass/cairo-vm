@@ -652,7 +652,6 @@ mod tests {
             .iter()
             .map(|(pc, (s, l))| {
                 (
-                    pc,
                     pc.offset,
                     program.shared_program_data.hints_collection.hints[*s..(s + l.get())].to_vec(),
                 )
