@@ -1,5 +1,5 @@
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
-
+#[cfg(feature = "load_program")]
 use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
@@ -25,6 +25,7 @@ use crate::{
 };
 
 use core::cmp::Ordering;
+#[cfg(feature = "load_program")]
 use core::num::NonZeroUsize;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
@@ -444,32 +445,42 @@ impl VirtualMachine {
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        #[cfg(feature = "load_program")] hint_datas: &mut Vec<Box<dyn Any>>,
+        #[cfg(not(feature = "load_program"))] hint_datas: &[Box<dyn Any>],
+        #[cfg(feature = "load_program")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        // Check if there is a hint range for the current pc
-        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
-            // Re-binding to avoid mutability problems
-            let s = *s;
-            // Execute each hint for the given range
-            for idx in s..(s + l.get()) {
-                let hint_extension = hint_processor
-                    .execute_hint_extensive(
-                        self,
-                        exec_scopes,
-                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
-                        constants,
-                    )
-                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
-                // Update the hint_ranges & hint_datas with the hints added by the executed hint
-                for (hint_pc, hints) in hint_extension {
-                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
-                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
-                        hint_datas.extend(hints);
+        #[cfg(feature = "load_program")]
+        {
+            // Check if there is a hint range for the current pc
+            if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+                // Re-binding to avoid mutability problems
+                let s = *s;
+                // Execute each hint for the given range
+                for idx in s..(s + l.get()) {
+                    let hint_extension = hint_processor
+                        .execute_hint_extensive(
+                            self,
+                            exec_scopes,
+                            hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                            constants,
+                        )
+                        .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                    // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                    for (hint_pc, hints) in hint_extension {
+                        if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                            hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                            hint_datas.extend(hints);
+                        }
                     }
                 }
             }
+        }
+        #[cfg(not(feature = "load_program"))]
+        for (hint_index, hint_data) in hint_datas.iter().enumerate() {
+            hint_processor
+                .execute_hint(self, exec_scopes, hint_data, constants)
+                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
         }
         Ok(())
     }
@@ -517,14 +528,16 @@ impl VirtualMachine {
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        #[cfg(feature = "load_program")] hint_datas: &mut Vec<Box<dyn Any>>,
+        #[cfg(not(feature = "load_program"))] hint_datas: &[Box<dyn Any>],
+        #[cfg(feature = "load_program")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(
             hint_processor,
             exec_scopes,
             hint_datas,
+            #[cfg(feature = "load_program")]
             hint_ranges,
             constants,
         )?;
@@ -2692,6 +2705,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new(),
             ),
@@ -2922,6 +2936,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new(),
             ),
@@ -3005,6 +3020,7 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut Vec::new(),
+                    #[cfg(feature = "load_program")]
                     &mut HashMap::new(),
                     &HashMap::new()
                 ),
@@ -3108,6 +3124,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new()
             ),
@@ -3130,6 +3147,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new()
             ),
@@ -3153,6 +3171,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new()
             ),
@@ -3716,6 +3735,7 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut hint_data,
+                    #[cfg(feature = "load_program")]
                     &mut HashMap::from([(
                         Relocatable::from((0, 0)),
                         (0_usize, NonZeroUsize::new(1).unwrap())
@@ -4354,6 +4374,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
+                #[cfg(feature = "load_program")]
                 &mut HashMap::new(),
                 &HashMap::new()
             ),
@@ -4440,6 +4461,7 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut Vec::new(),
+                    #[cfg(feature = "load_program")]
                     &mut HashMap::new(),
                     &HashMap::new()
                 ),

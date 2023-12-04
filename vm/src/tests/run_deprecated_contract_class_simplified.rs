@@ -1,3 +1,4 @@
+#![cfg(feature = "load_program")]
 /* This file contains a test that runs the program: cairo_programs/starknet_os_deprecated_cc.cairo
    For testsing purposes, the contract ran by this program is hardcoded, with values taken from compiling:
 

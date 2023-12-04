@@ -28,6 +28,7 @@ cairo-1-hints = [
 ]
 arbitrary = ["dep:arbitrary", "felt/arbitrary", "felt/std", "std"]
 lambdaworks-felt = ["felt/lambdaworks-felt"]
+load_program = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
