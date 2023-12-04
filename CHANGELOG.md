@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* perf: Add `extensive_hints` feature to prevent performance regression for the common use-case [#1503] (https://github.com/lambdaclass/cairo-vm/pull/1503)
+
+  * Gates changes added by #1491 under the feature flag `extensive_hints`
+
 * feat: Handle `pc`s outside of program segment in `VmException` [#1501] (https://github.com/lambdaclass/cairo-vm/pull/1501)
 
   * `VmException` now shows the full pc value instead of just the offset (`VmException.pc` field type changed to `Relocatable`)
@@ -16,6 +20,7 @@
   * Add `relocated_trace` field  & `relocate_trace` method to `CairoRunner`.
   * Swap `TraceEntry` for `RelocatedTraceEntry` type in `write_encoded_trace` & `PublicInput::new` signatures.
   * Now takes into account the program counter's segment index when building the execution trace instead of assuming it to be 0.
+
 * feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
 
   * Add trait method `HintProcessorLogic::execute_hint_extensive`:
