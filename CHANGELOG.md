@@ -6,13 +6,15 @@
 
   * Gates changes added by #1491 under the feature flag `extensive_hints`
 
+* chore: remove cancel-duplicates workflow [#1497](https://github.com/lambdaclass/cairo-vm/pull/1497)
+
 * feat: Handle `pc`s outside of program segment in `VmException` [#1501] (https://github.com/lambdaclass/cairo-vm/pull/1501)
 
   * `VmException` now shows the full pc value instead of just the offset (`VmException.pc` field type changed to `Relocatable`)
   * `VmException.traceback` now shows the full pc value for each entry instead of hardcoding its index to 0.
   * Disable debug information for errors produced when `pc` is outside of the program segment (segment_index != 0). `VmException` fields `inst_location` & `error_attr_value` will be `None` in such case.
 
-* feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/14923)
+* feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/1493)
 
 * BREAKING: Partially Revert `Optimize trace relocation #906` [#1492](https://github.com/lambdaclass/cairo-vm/pull/1492)
 
