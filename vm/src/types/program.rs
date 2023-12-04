@@ -146,7 +146,9 @@ impl HintsCollection {
                 NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
             );
             #[cfg(not(feature = "load_program"))]
-            hints_ranges.insert(*pc, Some(range));
+            {
+                hints_ranges[*pc] = Some(range)
+            };
             #[cfg(feature = "load_program")]
             hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
