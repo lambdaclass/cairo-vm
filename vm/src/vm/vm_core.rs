@@ -3730,6 +3730,12 @@ mod tests {
 
         //Run Steps
         for _ in 0..6 {
+            #[cfg(not(feature = "extensive_hints"))]
+            let hint_data = if vm.run_context.pc == (0, 0).into() {
+                &hint_data[0..]
+            } else {
+                &hint_data[0..0]
+            };
             assert_matches!(
                 vm.step(
                     &mut hint_processor,
