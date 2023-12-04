@@ -332,6 +332,29 @@ pub fn guess_pre_image_of_subtasks_output_hash(
     Ok(())
 }
 
+/*
+Implements hint:
+%{
+    # Sanity check.
+    assert ids.program_address == program_address"
+%}
+*/
+pub fn assert_program_address(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let ids_program_address = get_ptr_from_var_name("program_address", vm, ids_data, ap_tracking)?;
+    let program_address = exec_scopes.get_any_boxed_ref("program_address")?;
+    let program_address = program_address.downcast_ref::<Relocatable>().ok_or(HintError::WrongHintData)?;
+
+    if &ids_program_address != program_address {
+        return Err(HintError::CustomHint("program address is incorrect".to_string().into_boxed_str()));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
