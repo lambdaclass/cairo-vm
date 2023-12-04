@@ -51,7 +51,7 @@ pub trait HintProcessorLogic {
         }))
     }
 
-    #[cfg(feature = "load_program")]
+    #[cfg(feature = "extensive_hints")]
     // Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     // Also returns a map of hints to be loaded after the current hint is executed
     // Note: This is the method used by the vm to execute hints,
