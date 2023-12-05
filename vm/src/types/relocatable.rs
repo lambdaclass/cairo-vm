@@ -24,7 +24,7 @@ pub struct Relocatable {
 
 impl Hash for Relocatable {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        (((self.segment_index as u64) << 48) | (self.offset as u64)).hash(state);
+        (((self.segment_index as i64) << 48) | (self.offset as i64)).hash(state);
     }
 }
 
