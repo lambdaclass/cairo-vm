@@ -727,7 +727,6 @@ dependencies = [
  "cairo-lang-casm",
  "cairo-lang-starknet",
  "criterion",
- "fnv_rs",
  "generic-array",
  "hashbrown 0.14.2",
  "hex",
@@ -742,7 +741,6 @@ dependencies = [
  "num-traits 0.2.17",
  "proptest",
  "rand",
- "ritehash",
  "rstest",
  "serde",
  "serde_json",
@@ -1164,17 +1162,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "fnv_rs"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37d1a20ad5887f117a162e550abf373f3913617e0e392e3fb859610da7e9092b"
-dependencies = [
- "hex",
- "paste",
- "rustc_version",
-]
 
 [[package]]
 name = "funty"
@@ -2195,12 +2182,6 @@ dependencies = [
  "hmac",
  "subtle",
 ]
-
-[[package]]
-name = "ritehash"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80eb5f11ebcdd09266eb7897503d7451c2fceea3881538c63dd2651e2c5ebe0c"
 
 [[package]]
 name = "rstest"

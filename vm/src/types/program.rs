@@ -104,21 +104,11 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     }
 }
 
-/*
-use ritehash::FxHasher;
-use std::hash::BuildHasherDefault;
-
-pub type FxBuildHasher = BuildHasherDefault<FxHasher>;
-pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
-*/
-use ahash::AHashMap;
-pub type FxHashMap<K, V> = AHashMap<K, V>;
-
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    pub(crate) hints_ranges: FxHashMap<Relocatable, HintRange>,
+    pub(crate) hints_ranges: HashMap<Relocatable, HintRange, ahash::RandomState>,
 }
 
 impl HintsCollection {
@@ -134,7 +124,7 @@ impl HintsCollection {
         let Some((max_hint_pc, full_len)) = bounds else {
             return Ok(HintsCollection {
                 hints: Vec::new(),
-                hints_ranges: FxHashMap::default(),
+                hints_ranges: HashMap::default(),
             });
         };
 
@@ -143,7 +133,7 @@ impl HintsCollection {
         }
 
         let mut hints_values = Vec::with_capacity(full_len);
-        let mut hints_ranges = FxHashMap::default();
+        let mut hints_ranges = HashMap::default();
 
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (
@@ -491,7 +481,7 @@ mod tests {
         );
         assert_eq!(
             program.shared_program_data.hints_collection.hints_ranges,
-            HashMap::new()
+            HashMap::default()
         );
     }
 
@@ -537,7 +527,7 @@ mod tests {
         );
         assert_eq!(
             program.shared_program_data.hints_collection.hints_ranges,
-            HashMap::new()
+            HashMap::default()
         );
     }
 
@@ -1246,7 +1236,7 @@ mod tests {
     fn default_program() {
         let hints_collection = HintsCollection {
             hints: Vec::new(),
-            hints_ranges: HashMap::new(),
+            hints_ranges: HashMap::default(),
         };
 
         let shared_program_data = SharedProgramData {

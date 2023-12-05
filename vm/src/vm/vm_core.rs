@@ -445,7 +445,7 @@ impl VirtualMachine {
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut crate::types::program::FxHashMap<Relocatable, HintRange>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange, ahash::RandomState>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         // Check if there is a hint range for the current pc
@@ -518,7 +518,7 @@ impl VirtualMachine {
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut crate::types::program::FxHashMap<Relocatable, HintRange>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange, ahash::RandomState>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(
@@ -2692,7 +2692,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -2922,7 +2922,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -3005,7 +3005,7 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut Vec::new(),
-                    &mut HashMap::new(),
+                    &mut HashMap::default(),
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3108,7 +3108,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3130,7 +3130,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3153,7 +3153,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3716,10 +3716,12 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut hint_data,
-                    &mut HashMap::from([(
+                    &mut [(
                         Relocatable::from((0, 0)),
                         (0_usize, NonZeroUsize::new(1).unwrap())
-                    )]),
+                    )]
+                    .into_iter()
+                    .collect(),
                     &HashMap::new(),
                 ),
                 Ok(())
@@ -4354,7 +4356,7 @@ mod tests {
                 &mut hint_processor,
                 exec_scopes_ref!(),
                 &mut Vec::new(),
-                &mut HashMap::new(),
+                &mut HashMap::default(),
                 &HashMap::new()
             ),
             Ok(())
@@ -4440,7 +4442,7 @@ mod tests {
                     &mut hint_processor,
                     exec_scopes_ref!(),
                     &mut Vec::new(),
-                    &mut HashMap::new(),
+                    &mut HashMap::default(),
                     &HashMap::new()
                 ),
                 Ok(())

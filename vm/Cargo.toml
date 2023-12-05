@@ -41,8 +41,6 @@ print = ["std"]
 
 [dependencies]
 ahash = "*"
-fnv_rs = "*"
-ritehash = "*"
 mimalloc = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }
