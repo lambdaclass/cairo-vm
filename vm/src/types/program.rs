@@ -104,11 +104,17 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     }
 }
 
+use ritehash::FxHasher;
+use std::hash::BuildHasherDefault;
+
+pub type FxBuildHasher = BuildHasherDefault<FxHasher>;
+pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
+
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
+    pub(crate) hints_ranges: FxHashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -124,7 +130,7 @@ impl HintsCollection {
         let Some((max_hint_pc, full_len)) = bounds else {
             return Ok(HintsCollection {
                 hints: Vec::new(),
-                hints_ranges: HashMap::new(),
+                hints_ranges: FxHashMap::default(),
             });
         };
 
@@ -133,7 +139,7 @@ impl HintsCollection {
         }
 
         let mut hints_values = Vec::with_capacity(full_len);
-        let mut hints_ranges = HashMap::new();
+        let mut hints_ranges = FxHashMap::default();
 
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (

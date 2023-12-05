@@ -445,7 +445,7 @@ impl VirtualMachine {
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        hint_ranges: &mut crate::types::program::FxHashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         // Check if there is a hint range for the current pc
@@ -518,7 +518,7 @@ impl VirtualMachine {
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
-        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        hint_ranges: &mut crate::types::program::FxHashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(
