@@ -40,7 +40,7 @@ hooks = []
 print = ["std"]
 
 [dependencies]
-ahash = "*"
+ahash = { version = "0.8.6", default-features = false }
 mimalloc = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }
