@@ -441,46 +441,53 @@ impl VirtualMachine {
         decode_instruction(instruction)
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
     pub fn step_hint(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        #[cfg(feature = "extensive_hints")] hint_datas: &mut Vec<Box<dyn Any>>,
-        #[cfg(not(feature = "extensive_hints"))] hint_datas: &[Box<dyn Any>],
-        #[cfg(feature = "extensive_hints")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        hint_datas: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        #[cfg(feature = "extensive_hints")]
-        {
-            // Check if there is a hint range for the current pc
-            if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
-                // Re-binding to avoid mutability problems
-                let s = *s;
-                // Execute each hint for the given range
-                for idx in s..(s + l.get()) {
-                    let hint_extension = hint_processor
-                        .execute_hint_extensive(
-                            self,
-                            exec_scopes,
-                            hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
-                            constants,
-                        )
-                        .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
-                    // Update the hint_ranges & hint_datas with the hints added by the executed hint
-                    for (hint_pc, hints) in hint_extension {
-                        if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
-                            hint_ranges.insert(hint_pc, (hint_datas.len(), len));
-                            hint_datas.extend(hints);
-                        }
-                    }
-                }
-            }
-        }
-        #[cfg(not(feature = "extensive_hints"))]
         for (hint_index, hint_data) in hint_datas.iter().enumerate() {
             hint_processor
                 .execute_hint(self, exec_scopes, hint_data, constants)
                 .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "extensive_hints")]
+    pub fn step_hint(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        constants: &HashMap<String, Felt252>,
+    ) -> Result<(), VirtualMachineError> {
+        // Check if there is a hint range for the current pc
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
+            let s = *s;
+            // Execute each hint for the given range
+            for idx in s..(s + l.get()) {
+                let hint_extension = hint_processor
+                    .execute_hint_extensive(
+                        self,
+                        exec_scopes,
+                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                        constants,
+                    )
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
+                    }
+                }
+            }
         }
         Ok(())
     }
