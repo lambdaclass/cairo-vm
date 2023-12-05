@@ -104,11 +104,15 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
     }
 }
 
+/*
 use ritehash::FxHasher;
 use std::hash::BuildHasherDefault;
 
 pub type FxBuildHasher = BuildHasherDefault<FxHasher>;
 pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
+*/
+use ahash::AHashMap;
+pub type FxHashMap<K, V> = AHashMap<K, V>;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub(crate) struct HintsCollection {
