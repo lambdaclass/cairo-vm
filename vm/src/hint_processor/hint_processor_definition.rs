@@ -20,9 +20,7 @@ use arbitrary::Arbitrary;
 
 pub trait HintProcessorLogic {
     // Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
-    // Note: The method used by the vm to execute hints is `execute_hint_extensive`.
-    // The default implementation for `execute_hint_extensive` calls this method, so it can be ignored unless loading hints during the vm run is needed.
-    // If you chose to implement `execute_hint_extensive` instead of using the default implementation, then this method will not be used.
+    // Note: if the `extensive_hints` feature is activated the method used by the vm to execute hints is `execute_hint_extensive`, which's default implementation calls this method.
     fn execute_hint(
         &mut self,
         vm: &mut VirtualMachine,
@@ -53,6 +51,7 @@ pub trait HintProcessorLogic {
         }))
     }
 
+    #[cfg(feature = "extensive_hints")]
     // Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     // Also returns a map of hints to be loaded after the current hint is executed
     // Note: This is the method used by the vm to execute hints,
