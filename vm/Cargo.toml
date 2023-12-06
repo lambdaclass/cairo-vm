@@ -36,6 +36,9 @@ test_utils = [
 skip_next_instruction_hint = []
 hooks = []
 arbitrary = ["dep:arbitrary", "std", "starknet-types-core/arbitrary", "starknet-types-core/std"]
+# Allows extending the set of hints for the current vm run from within a hint.
+# For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
+extensive_hints = []
 print = ["std"]
 
 [dependencies]

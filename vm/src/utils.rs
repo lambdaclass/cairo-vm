@@ -462,7 +462,10 @@ pub mod test_utils {
     pub(crate) use non_continuous_ids_data;
 
     #[track_caller]
-    pub(crate) fn trace_check(actual: &[TraceEntry], expected: &[(usize, usize, usize)]) {
+    pub(crate) fn trace_check(
+        actual: &[TraceEntry],
+        expected: &[(crate::utils::Relocatable, usize, usize)],
+    ) {
         assert_eq!(actual.len(), expected.len());
         for (entry, expected) in actual.iter().zip(expected.iter()) {
             assert_eq!(&(entry.pc, entry.ap, entry.fp), expected);
@@ -751,22 +754,29 @@ mod test {
     fn assert_trace() {
         let trace = vec![
             TraceEntry {
-                pc: 2,
+                pc: (0, 2).into(),
                 ap: 7,
                 fp: 1,
             },
             TraceEntry {
-                pc: 5,
+                pc: (0, 5).into(),
                 ap: 1,
                 fp: 0,
             },
             TraceEntry {
-                pc: 9,
+                pc: (0, 9).into(),
                 ap: 5,
                 fp: 7,
             },
         ];
-        trace_check(&trace, &[(2, 7, 1), (5, 1, 0), (9, 5, 7)]);
+        trace_check(
+            &trace,
+            &[
+                ((0, 2).into(), 7, 1),
+                ((0, 5).into(), 1, 0),
+                ((0, 9).into(), 5, 7),
+            ],
+        );
     }
 
     #[test]

@@ -295,12 +295,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     runner.relocate(&mut vm, true)?;
 
     if let Some(trace_path) = args.trace_file {
-        let relocated_trace = vm.get_relocated_trace()?;
+        let relocated_trace = runner
+            .relocated_trace
+            .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
             FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
+        cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
     if let Some(memory_path) = args.memory_file {
