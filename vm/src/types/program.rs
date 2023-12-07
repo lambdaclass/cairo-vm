@@ -31,6 +31,8 @@ use felt::{Felt252, PRIME_STR};
 #[cfg(feature = "std")]
 use std::path::Path;
 
+#[cfg(feature = "extensive_hints")]
+use super::relocatable::Relocatable;
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{Arbitrary, Unstructured};
 
@@ -106,7 +108,10 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    hints_ranges: Vec<HintRange>,
+    #[cfg(not(feature = "extensive_hints"))]
+    pub(crate) hints_ranges: Vec<HintRange>,
+    #[cfg(feature = "extensive_hints")]
+    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -122,7 +127,7 @@ impl HintsCollection {
         let Some((max_hint_pc, full_len)) = bounds else {
             return Ok(HintsCollection {
                 hints: Vec::new(),
-                hints_ranges: Vec::new(),
+                hints_ranges: Default::default(),
             });
         };
 
@@ -131,14 +136,21 @@ impl HintsCollection {
         }
 
         let mut hints_values = Vec::with_capacity(full_len);
+        #[cfg(not(feature = "extensive_hints"))]
         let mut hints_ranges = vec![None; max_hint_pc + 1];
-
+        #[cfg(feature = "extensive_hints")]
+        let mut hints_ranges = HashMap::default();
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (
                 hints_values.len(),
                 NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
             );
-            hints_ranges[*pc] = Some(range);
+            #[cfg(not(feature = "extensive_hints"))]
+            {
+                hints_ranges[*pc] = Some(range)
+            };
+            #[cfg(feature = "extensive_hints")]
+            hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
         }
 
@@ -152,6 +164,7 @@ impl HintsCollection {
         self.hints.iter()
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
     pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
         self.hints_ranges.get(pc).cloned()
     }
@@ -160,20 +173,27 @@ impl HintsCollection {
 impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
     fn from(hc: &HintsCollection) -> Self {
         let mut hint_map = BTreeMap::new();
+        #[cfg(not(feature = "extensive_hints"))]
         for (i, r) in hc.hints_ranges.iter().enumerate() {
             let Some(r) = r else {
                 continue;
             };
             hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
         }
+        #[cfg(feature = "extensive_hints")]
+        for (pc, r) in hc.hints_ranges.iter() {
+            hint_map.insert(pc.offset, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
         hint_map
     }
 }
 
-/// Represents a range of hints corresponding to a PC.
-///
+/// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
+#[cfg(not(feature = "extensive_hints"))]
 /// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
 type HintRange = Option<(usize, NonZeroUsize)>;
+#[cfg(feature = "extensive_hints")]
+pub type HintRange = (usize, NonZeroUsize);
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -425,7 +445,9 @@ impl TryFrom<CasmContractClass> for Program {
 #[cfg(test)]
 impl HintsCollection {
     pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
-        self.hints_ranges
+        #[cfg(not(feature = "extensive_hints"))]
+        let iter = self
+            .hints_ranges
             .iter()
             .enumerate()
             .filter_map(|(pc, range)| {
@@ -437,7 +459,17 @@ impl HintsCollection {
                         None
                     }
                 })
-            })
+            });
+        #[cfg(feature = "extensive_hints")]
+        let iter = self.hints_ranges.iter().filter_map(|(pc, (start, len))| {
+            let end = start + len.get();
+            if end <= self.hints.len() {
+                Some((pc.offset, &self.hints[*start..end]))
+            } else {
+                None
+            }
+        });
+        iter
     }
 }
 
@@ -491,10 +523,11 @@ mod tests {
             program.shared_program_data.hints_collection.hints,
             Vec::new()
         );
-        assert_eq!(
-            program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
-        );
+        assert!(program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .is_empty());
     }
 
     #[test]
@@ -537,10 +570,11 @@ mod tests {
             program.shared_program_data.hints_collection.hints,
             Vec::new()
         );
-        assert_eq!(
-            program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
-        );
+        assert!(program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .is_empty());
     }
 
     #[test]
@@ -595,6 +629,7 @@ mod tests {
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
 
+        #[cfg(not(feature = "extensive_hints"))]
         let program_hints: HashMap<_, _> = program
             .shared_program_data
             .hints_collection
@@ -606,6 +641,19 @@ mod tests {
                 (
                     pc,
                     program.shared_program_data.hints_collection.hints[s..e].to_vec(),
+                )
+            })
+            .collect();
+        #[cfg(feature = "extensive_hints")]
+        let program_hints: HashMap<_, _> = program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .iter()
+            .map(|(pc, (s, l))| {
+                (
+                    pc.offset,
+                    program.shared_program_data.hints_collection.hints[*s..(s + l.get())].to_vec(),
                 )
             })
             .collect();
@@ -1250,7 +1298,7 @@ mod tests {
     fn default_program() {
         let hints_collection = HintsCollection {
             hints: Vec::new(),
-            hints_ranges: Vec::new(),
+            hints_ranges: Default::default(),
         };
 
         let shared_program_data = SharedProgramData {

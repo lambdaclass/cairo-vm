@@ -7,7 +7,10 @@ use crate::{
         prelude::*,
     },
     types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
-    vm::runners::builtin_runner::SegmentArenaBuiltinRunner,
+    vm::{
+        runners::builtin_runner::SegmentArenaBuiltinRunner,
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
+    },
 };
 
 use crate::{
@@ -143,6 +146,7 @@ pub struct CairoRunner {
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
+    pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
 }
 
 impl CairoRunner {
@@ -184,6 +188,7 @@ impl CairoRunner {
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
+            relocated_trace: None,
         })
     }
 
@@ -548,23 +553,36 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
+        #[cfg(not(feature = "extensive_hints"))]
         let hint_data = self.get_hint_data(references, hint_processor)?;
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
         #[cfg(feature = "hooks")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
-            let hint_data = &self
-                .program
-                .shared_program_data
-                .hints_collection
-                .get_hint_range_for_pc(vm.run_context.pc.offset)
-                .and_then(|range| {
-                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                })
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
-                hint_data,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_data,
+                #[cfg(not(feature = "extensive_hints"))]
+                self.program
+                    .shared_program_data
+                    .hints_collection
+                    .get_hint_range_for_pc(vm.run_context.pc.offset)
+                    .and_then(|range| {
+                        range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                    })
+                    .unwrap_or(&[]),
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_ranges,
                 &self.program.constants,
             )?;
             hint_processor.consume_step();
@@ -585,26 +603,42 @@ impl CairoRunner {
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
+        #[cfg(not(feature = "extensive_hints"))]
         let hint_data = self.get_hint_data(references, hint_processor)?;
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
+        #[cfg(not(feature = "extensive_hints"))]
+        let hint_data = &self
+            .program
+            .shared_program_data
+            .hints_collection
+            .get_hint_range_for_pc(vm.run_context.pc.offset)
+            .and_then(|range| {
+                range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+            })
+            .unwrap_or(&[]);
 
         for remaining_steps in (1..=steps).rev() {
             if self.final_pc.as_ref() == Some(&vm.run_context.pc) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
-            let hint_data = self
-                .program
-                .shared_program_data
-                .hints_collection
-                .get_hint_range_for_pc(vm.run_context.pc.offset)
-                .and_then(|range| {
-                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
-                })
-                .unwrap_or(&[]);
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_data,
+                #[cfg(not(feature = "extensive_hints"))]
                 hint_data,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_ranges,
                 &self.program.constants,
             )?;
         }
@@ -756,12 +790,39 @@ impl CairoRunner {
         Ok(())
     }
 
+    ///Relocates the VM's trace, turning relocatable registers to numbered ones
+    pub fn relocate_trace(
+        &mut self,
+        vm: &VirtualMachine,
+        relocation_table: &Vec<usize>,
+    ) -> Result<(), TraceError> {
+        if self.relocated_trace.is_some() {
+            return Err(TraceError::AlreadyRelocated);
+        }
+
+        let trace = vm.trace.as_ref().ok_or(TraceError::TraceNotEnabled)?.iter();
+        let mut relocated_trace = Vec::<RelocatedTraceEntry>::with_capacity(trace.len());
+        let segment_1_base = relocation_table
+            .get(1)
+            .ok_or(TraceError::NoRelocationFound)?;
+
+        for entry in trace {
+            relocated_trace.push(RelocatedTraceEntry {
+                pc: relocate_trace_register(entry.pc, relocation_table)?,
+                ap: entry.ap + segment_1_base,
+                fp: entry.fp + segment_1_base,
+            })
+        }
+        self.relocated_trace = Some(relocated_trace);
+        Ok(())
+    }
+
     /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
     /// into Felt252s. Uses the relocation_table to asign each index a number according to the value
     /// on its segment number.
     fn relocate_memory(
         &mut self,
-        vm: &mut VirtualMachine,
+        vm: &VirtualMachine,
         relocation_table: &Vec<usize>,
     ) -> Result<(), MemoryError> {
         if !(self.relocated_memory.is_empty()) {
@@ -811,8 +872,9 @@ impl CairoRunner {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-
-        vm.relocate_trace(&relocation_table)?;
+        if vm.trace.is_some() {
+            self.relocate_trace(vm, &relocation_table)?;
+        }
         vm.relocation_table = Some(relocation_table);
         Ok(())
     }
@@ -1276,7 +1338,9 @@ impl CairoRunner {
             dyn_layout,
             &vm.get_public_memory_addresses()?,
             vm.get_memory_segment_addresses()?,
-            vm.get_relocated_trace()?,
+            self.relocated_trace
+                .as_ref()
+                .ok_or(PublicInputError::EmptyTrace)?,
             self.get_perm_range_check_limits(vm)
                 .ok_or(PublicInputError::NoRangeCheckLimits)?,
         )
@@ -2109,7 +2173,13 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check(
             &trace,
-            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
+            &[
+                ((0, 3).into(), 2, 2),
+                ((0, 5).into(), 3, 2),
+                ((0, 0).into(), 5, 5),
+                ((0, 2).into(), 6, 5),
+                ((0, 7).into(), 6, 2),
+            ],
         );
     }
 
@@ -2186,16 +2256,16 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (8, 3, 3),
-                (9, 4, 3),
-                (11, 5, 3),
-                (0, 7, 7),
-                (1, 7, 7),
-                (3, 8, 7),
-                (4, 9, 7),
-                (5, 9, 7),
-                (7, 10, 7),
-                (13, 10, 3),
+                ((0, 8).into(), 3, 3),
+                ((0, 9).into(), 4, 3),
+                ((0, 11).into(), 5, 3),
+                ((0, 0).into(), 7, 7),
+                ((0, 1).into(), 7, 7),
+                ((0, 3).into(), 8, 7),
+                ((0, 4).into(), 9, 7),
+                ((0, 5).into(), 9, 7),
+                ((0, 7).into(), 10, 7),
+                ((0, 13).into(), 10, 3),
             ],
         );
         //Check the range_check builtin segment
@@ -2302,18 +2372,18 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (4, 3, 3),
-                (5, 4, 3),
-                (7, 5, 3),
-                (0, 7, 7),
-                (1, 7, 7),
-                (3, 8, 7),
-                (9, 8, 3),
-                (11, 9, 3),
-                (0, 11, 11),
-                (1, 11, 11),
-                (3, 12, 11),
-                (13, 12, 3),
+                ((0, 4).into(), 3, 3),
+                ((0, 5).into(), 4, 3),
+                ((0, 7).into(), 5, 3),
+                ((0, 0).into(), 7, 7),
+                ((0, 1).into(), 7, 7),
+                ((0, 3).into(), 8, 7),
+                ((0, 9).into(), 8, 3),
+                ((0, 11).into(), 9, 3),
+                ((0, 0).into(), 11, 11),
+                ((0, 1).into(), 11, 11),
+                ((0, 3).into(), 12, 11),
+                ((0, 13).into(), 12, 3),
             ],
         );
         //Check that the output to be printed is correct
@@ -2440,24 +2510,24 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (13, 4, 4),
-                (14, 5, 4),
-                (16, 6, 4),
-                (4, 8, 8),
-                (5, 8, 8),
-                (7, 9, 8),
-                (8, 10, 8),
-                (9, 10, 8),
-                (11, 11, 8),
-                (12, 12, 8),
-                (18, 12, 4),
-                (19, 13, 4),
-                (20, 14, 4),
-                (0, 16, 16),
-                (1, 16, 16),
-                (3, 17, 16),
-                (22, 17, 4),
-                (23, 18, 4),
+                ((0, 13).into(), 4, 4),
+                ((0, 14).into(), 5, 4),
+                ((0, 16).into(), 6, 4),
+                ((0, 4).into(), 8, 8),
+                ((0, 5).into(), 8, 8),
+                ((0, 7).into(), 9, 8),
+                ((0, 8).into(), 10, 8),
+                ((0, 9).into(), 10, 8),
+                ((0, 11).into(), 11, 8),
+                ((0, 12).into(), 12, 8),
+                ((0, 18).into(), 12, 4),
+                ((0, 19).into(), 13, 4),
+                ((0, 20).into(), 14, 4),
+                ((0, 0).into(), 16, 16),
+                ((0, 1).into(), 16, 16),
+                ((0, 3).into(), 17, 16),
+                ((0, 22).into(), 17, 4),
+                ((0, 23).into(), 18, 4),
             ],
         );
         //Check the range_check builtin segment
@@ -2562,7 +2632,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        assert_eq!(cairo_runner.relocate_memory(&mut vm, &rel_table), Ok(()));
+        assert_eq!(cairo_runner.relocate_memory(&vm, &rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2668,7 +2738,7 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        assert_eq!(cairo_runner.relocate_memory(&mut vm, &rel_table), Ok(()));
+        assert_eq!(cairo_runner.relocate_memory(&vm, &rel_table), Ok(()));
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
@@ -2807,12 +2877,12 @@ mod tests {
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
-        vm.relocate_trace(&rel_table).unwrap();
-        let relocated_trace = vm.trace.unwrap();
+        cairo_runner.relocate_trace(&vm, &rel_table).unwrap();
+        let relocated_trace = cairo_runner.relocated_trace.unwrap();
         assert_eq!(relocated_trace.len(), 12);
         assert_eq!(
             relocated_trace[0],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 5,
                 ap: 18,
                 fp: 18
@@ -2820,7 +2890,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[1],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 6,
                 ap: 19,
                 fp: 18
@@ -2828,7 +2898,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[2],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 8,
                 ap: 20,
                 fp: 18
@@ -2836,7 +2906,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[3],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 1,
                 ap: 22,
                 fp: 22
@@ -2844,7 +2914,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[4],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 2,
                 ap: 22,
                 fp: 22
@@ -2852,7 +2922,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[5],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 4,
                 ap: 23,
                 fp: 22
@@ -2860,7 +2930,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[6],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 10,
                 ap: 23,
                 fp: 18
@@ -2868,7 +2938,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[7],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 12,
                 ap: 24,
                 fp: 18
@@ -2876,7 +2946,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[8],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 1,
                 ap: 26,
                 fp: 26
@@ -2884,7 +2954,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[9],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 2,
                 ap: 26,
                 fp: 26
@@ -2892,7 +2962,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[10],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 4,
                 ap: 27,
                 fp: 26
@@ -2900,7 +2970,7 @@ mod tests {
         );
         assert_eq!(
             relocated_trace[11],
-            TraceEntry {
+            RelocatedTraceEntry {
                 pc: 14,
                 ap: 27,
                 fp: 18
@@ -3972,7 +4042,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
@@ -3994,7 +4064,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
@@ -4062,7 +4132,7 @@ mod tests {
             0x80FF_8000_0530u64
         )))]];
         vm.trace = Some(vec![TraceEntry {
-            pc: 0,
+            pc: (0, 0).into(),
             ap: 0,
             fp: 0,
         }]);
