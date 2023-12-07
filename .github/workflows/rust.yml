@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ '*' ]
+    branches: [ '**' ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -198,6 +198,26 @@ jobs:
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
+    - name: check and free hdd space left
+      run: |
+        echo "Listing 20 largest packages"
+        dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 20
+        df -h
+        sudo apt-get update
+        sudo apt-get remove -y '^llvm-.*'
+        sudo apt-get remove -y 'php.*'
+        sudo apt-get remove -y '^dotnet-.*'
+        sudo apt-get remove -y '^temurin-.*'
+        sudo apt-get remove -y azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox powershell mono-devel
+        sudo apt-get autoremove -y
+        sudo apt-get clean
+        df -h
+        echo "Removing large directories"
+        # deleting 15GB
+        sudo rm -rf /usr/share/dotnet/
+        sudo rm -rf /usr/local/lib/android
+        df -h
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.69.0
       with:

@@ -81,7 +81,7 @@ Implements hint:
     value = pack(ids.x, PRIME) % SECP_P
 %}
 */
-pub fn reduce(
+pub fn reduce_v1(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -90,6 +90,25 @@ pub fn reduce(
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let value = bigint3_pack(Uint384::from_var_name("x", vm, ids_data, ap_tracking)?);
     exec_scopes.insert_value("value", value.mod_floor(&SECP_P));
+    Ok(())
+}
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import pack
+    value = pack(ids.x, PRIME) % SECP_P
+%}
+*/
+pub fn reduce_v2(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let secp_p = exec_scopes.get_ref("SECP_P")?;
+    let value = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
+    exec_scopes.insert_value("value", value.mod_floor(secp_p));
     Ok(())
 }
 
@@ -194,7 +213,7 @@ pub fn is_zero_assign_scope_variables_external_const(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hint_processor::builtin_hint_processor::hint_code;
+    use crate::hint_processor::builtin_hint_processor::hint_code::{self, REDUCE_V2};
     use crate::stdlib::string::ToString;
 
     use crate::{
@@ -396,6 +415,61 @@ mod tests {
             Err(HintError::IdentifierHasNoMember(bx))
             if *bx == ("x".to_string(), "d0".to_string())
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_reduce_v2_ok() {
+        let hint_code = REDUCE_V2;
+        let mut vm = vm_with_range_check!();
+        add_segments!(vm, 3);
+
+        //Initialize fp
+        vm.run_context.fp = 25;
+
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("x", -5)];
+
+        vm.segments = segments![
+            ((1, 20), ("132181232131231239112312312313213083892150", 10)),
+            ((1, 21), ("12354812987893128791212331231233", 10)),
+            ((1, 22), ("654867675805132187", 10))
+        ];
+
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("SECP_P", SECP_P.clone());
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+        //Check 'value' is defined in the vm scope
+        assert_matches!(
+            exec_scopes.get::<BigInt>("value"),
+            Ok(x) if x == bigint_str!(
+                "3920241379018821570896271640300310233395357371896837069219347149797814"
+            )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_reduce_v2_with_no_secp() {
+        let hint_code = REDUCE_V2;
+        let mut vm = vm_with_range_check!();
+        add_segments!(vm, 3);
+
+        //Initialize fp
+        vm.run_context.fp = 25;
+
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("x", -5)];
+
+        vm.segments = segments![((1, 20), 1), ((1, 21), 1), ((1, 22), 1)];
+
+        let mut exec_scopes = ExecutionScopes::new();
+        // Skip the SECP definition, so the hint fails
+        // exec_scopes.insert_value("SECP_P", SECP_P.clone());
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Err(_));
     }
 
     #[test]
