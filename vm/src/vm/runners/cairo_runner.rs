@@ -460,6 +460,7 @@ impl CairoRunner {
                 MaybeRelocatable::from(Felt252::zero()),
             ];
             stack_prefix.extend(stack);
+            let stack_len = stack_prefix.len();
             self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
             self.initialize_state(
                 vm,
@@ -473,7 +474,7 @@ impl CairoRunner {
                 self.execution_base
                     .as_ref()
                     .ok_or(RunnerError::NoExecBase)?
-                    + 2,
+                    + stack_len,
             );
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
