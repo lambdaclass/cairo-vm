@@ -1,5 +1,9 @@
 ## Cairo-VM Changelog
 
+### [0.8.3] - 2023-12-10
+
+* Version bump. Same code as in 0.8.2-hotfix1 branch.
+
 #### [0.8.2-hotfix1] - 2023-12-07
 
 * Add REDUCE_V2 hint [#1420](https://github.com/lambdaclass/cairo-vm/pull/1420):
