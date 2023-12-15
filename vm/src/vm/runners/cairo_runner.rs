@@ -439,36 +439,55 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
+        println!("Runners {}", vm.builtin_runners.len());
         for builtin_runner in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if proof_mode is enabled
+
+        //Different process should be used for cairo0 and cairo1. Final version should support both
+
         if self.proof_mode {
             // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
+            let target_offset = stack.len() + 2;
+            // Original stack len: 2
             let mut stack_prefix = vec![
                 Into::<MaybeRelocatable>::into(
                     self.execution_base
                         .as_ref()
                         .ok_or(RunnerError::NoExecBase)?
-                        + 2,
+                        + target_offset,
                 ),
                 MaybeRelocatable::from(Felt252::zero()),
             ];
-            stack_prefix.extend(stack);
+            stack_prefix.extend(stack.clone());
+
+            let return_fp = vm.segments.add();
+            let end = vm.segments.add();
+            // This
+
+            stack.append(&mut vec![
+                MaybeRelocatable::RelocatableValue(return_fp),
+                MaybeRelocatable::RelocatableValue(end),
+            ]);
+
+            let stack_len_minus_one = stack_prefix.len() - 1;
+            println!("Stack len minus one: {}", stack_len_minus_one);
             self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
+
             self.initialize_state(
                 vm,
                 self.program
                     .shared_program_data
                     .start
                     .ok_or(RunnerError::NoProgramStart)?,
-                stack_prefix,
+                stack,
             )?;
             self.initial_fp = Some(
                 self.execution_base
                     .as_ref()
                     .ok_or(RunnerError::NoExecBase)?
-                    + 2,
+                    // This depends on where main is ?
+                    + target_offset,
             );
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
@@ -547,6 +566,12 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
+        println!(
+            "PC, FP, AP: {} {} {} ",
+            vm.get_pc(),
+            vm.get_fp(),
+            vm.get_ap()
+        );
         let references = &self.program.shared_program_data.reference_manager;
         let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "hooks")]
@@ -561,12 +586,14 @@ impl CairoRunner {
                     range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
                 })
                 .unwrap_or(&[]);
+
             vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
                 hint_data,
                 &self.program.constants,
             )?;
+
             hint_processor.consume_step();
         }
 

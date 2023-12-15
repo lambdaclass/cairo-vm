@@ -197,7 +197,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let initial_gas = 9999999999999_usize;
 
     // This call should be removed
-    let (_, builtins) = create_entry_code(
+    let (entry_code, builtins) = create_entry_code(
         &sierra_program_registry,
         &casm_program,
         &type_sizes,
@@ -216,57 +216,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     println!("Builtins used: {:?}", builtins);
 
-    // println!(" Main signs: {:?}", main_func.signature.param_types);
-
-
-
-    // Each params needs the AP to be updated for them to work
-    let amount_of_main_args = main_func.signature.param_types.len();
-
-    // Additionally, some params need extra logic
-    // We look for a gas builtin, since it needs us to set the implicit param in the header of the initial amount of gas.
-    // Adittionally :
-    // - SegmentArena additional segments should be handled here too.
-    // - Array arguments should be tested in the future too
-    // - Syscalls don't apply to programs
-    // - Other params shouldn't need an explicit handling, they just need the ap to be handled
-
-    let mut has_gas_builtin = false;
-    for ty in main_func.signature.param_types.iter() {
-        let info = get_info(&sierra_program_registry, ty)
-            .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
-        let generic_ty = &info.long_id.generic_id;
-        if generic_ty == &GasBuiltinType::ID {
-            has_gas_builtin = true;
-        }
-    }
-
-    let mut ap_offset = amount_of_main_args;
-
     let mut ctx = casm! {};
 
-    // Gas builtin requires saving the max amount of gas in a header, and increasing the ap manually. So we will remove it from the base ap offset
-    if has_gas_builtin {
-        ap_offset -= 1;
-    }
-
-    // Here we prepare the header
-    // AP needs to be updated. Each argument moves the ap by one
-    casm_extend! {ctx,
-        // ap += #builtin pointers + main args
-        // CairoZero: ap += main.Args.SIZE + main.ImplicitArgs.SIZE;
-        ap += ap_offset;
-    };
-
-    if has_gas_builtin {
-        // If there's a gas builtin, we need to set the initial gas to a high number. It shouldn't be needed, but cairo sierra compiler will add the "gas builtin" for programs with explicit recursion
-        // ap needs to be increased at this moment, and not with the usual ap offset
-        casm_extend! {ctx,
-            [ap + 0] = initial_gas, ap++;
-        }
-    }
-
-    // Then goes the main proof mode code. Notice we expect main to be at the beggining of the casm code, that's why call rel is 4.
     casm_extend! {ctx,
         call rel 4;
         jmp rel 0;
@@ -282,6 +233,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     // This is the program we are actually proving
     // With embedded proof mode and the libfunc footer
     let instructions = chain!(
+        entry_code.iter(),
         proof_mode_header.iter(),
         program_instructions,
         libfunc_footer.iter()
@@ -300,18 +252,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     let data_len = data.len();
 
     let starting_pc = 0;
-    let mut final_pc = 4;
 
-    // Notice we added an additional instruction with the initial gas when gas builtin was activated, so the infinite loop has moved
-    if has_gas_builtin {
-        final_pc += 2;
-    }
+    let jmp_rel_0_pc = entry_code
+        .iter()
+        .fold(0, |acc, ins| acc + ins.body.op_size())
+        + 2;
 
     let program = Program::new_for_proof(
         builtins,
         data,
         starting_pc,
-        final_pc,
+        jmp_rel_0_pc,
         program_hints,
         ReferenceManager {
             references: Vec::new(),
@@ -333,7 +284,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     // Then pad it to the power of 2
     runner.run_until_next_power_of_2(&mut vm, &mut hint_processor)?;
-
     // Fetch return type data
     let return_type_id = main_func
         .signature
@@ -599,15 +549,22 @@ fn create_entry_code(
     //         actual: args.len(),
     //     });
     // }
-    let before_final_call = ctx.current_code_offset;
+    let _before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
+
+    println!("Offset: {}", offset);
+    println!("Ins: {}", ctx.instructions.len());
+
+    // Original header code is not needed, it's going to be replaced by proof mode instructions
+    /*
     casm_extend! {ctx,
         call rel offset;
         ret;
     }
-    assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
+    // assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
+     */
     Ok((ctx.instructions, builtins))
 }
 
