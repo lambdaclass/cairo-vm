@@ -439,7 +439,7 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
-        println!("Runners {}", vm.builtin_runners.len());
+
         for builtin_runner in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
@@ -470,8 +470,6 @@ impl CairoRunner {
                 MaybeRelocatable::RelocatableValue(end),
             ]);
 
-            let stack_len_minus_one = stack_prefix.len() - 1;
-            println!("Stack len minus one: {}", stack_len_minus_one);
             self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
 
             self.initialize_state(
@@ -566,12 +564,6 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        println!(
-            "PC, FP, AP: {} {} {} ",
-            vm.get_pc(),
-            vm.get_fp(),
-            vm.get_ap()
-        );
         let references = &self.program.shared_program_data.reference_manager;
         let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "hooks")]

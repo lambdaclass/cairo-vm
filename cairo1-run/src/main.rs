@@ -468,7 +468,7 @@ fn create_code_footer() -> Vec<Instruction> {
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
-    casm_program: &CairoProgram,
+    _casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
@@ -549,14 +549,12 @@ fn create_entry_code(
     //         actual: args.len(),
     //     });
     // }
+    /*
     let _before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
-
-    println!("Offset: {}", offset);
-    println!("Ins: {}", ctx.instructions.len());
-
+    */
     // Original header code is not needed, it's going to be replaced by proof mode instructions
     /*
     casm_extend! {ctx,
