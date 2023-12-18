@@ -179,7 +179,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     .clone();
 
     let metadata_config = Some(Default::default());
-    let gas_usage_check = metadata_config.is_some();
+
+    // No gas usage check is needed
+    let gas_usage_check = false;
+
     let metadata = create_metadata(&sierra_program, metadata_config)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
     let type_sizes =
@@ -189,14 +192,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let main_func = find_function(&sierra_program, "::main")?;
 
-    // println!("Main func: {:?}", main_func.entry_point);
-
-    // Entry code and footer are part of the whole instructions that are
-    // ran by the VM.
-
     let initial_gas = 9999999999999_usize;
 
-    // This call should be removed
+    // Modified entry code to be compatible with custom cairo1 Proof Mode.
+    // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
     let (entry_code, builtins) = create_entry_code(
         &sierra_program_registry,
         &casm_program,
@@ -205,33 +204,27 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         initial_gas,
     )?;
 
-    // We don't want additional data regarding gas for offchain programs
-    let check_gas_usage = false;
-
-    // ap_change_info maybe useful, we can also count builtins from sierra
-    let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
-    let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
-
     println!("Compiling with proof mode and running ...");
 
+    // This information can be useful for the users using the prover.
     println!("Builtins used: {:?}", builtins);
 
+    // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
     let mut ctx = casm! {};
-
     casm_extend! {ctx,
         call rel 4;
         jmp rel 0;
     };
-
     let proof_mode_header = ctx.instructions;
 
+    // Get the user program instructions
     let program_instructions = casm_program.instructions.iter();
 
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
 
     // This is the program we are actually proving
-    // With embedded proof mode and the libfunc footer
+    // With embedded proof mode, cairo1 header and the libfunc footer
     let instructions = chain!(
         entry_code.iter(),
         proof_mode_header.iter(),
@@ -253,9 +246,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let starting_pc = 0;
 
+    // We need to find the final jmp rel 0, to stop the program.
+    // In cairo 0 it was always in the same place, but with the dynamic cairo 1 header, we need to add an initial offset, based on the size of the instructions added
     let jmp_rel_0_pc = entry_code
         .iter()
+        // Instruction size is equivalent to open size (1 or 2 words)
         .fold(0, |acc, ins| acc + ins.body.op_size())
+        // This is +2 is to account for the call rel 4
         + 2;
 
     let program = Program::new_for_proof(
@@ -521,6 +518,8 @@ fn create_entry_code(
             casm_extend! {ctx,
                 [ap + 0] = [ap + offset] + 3, ap++;
             }
+            // This code should be re enabled to make the programs work with arguments
+
             // } else if let Some(Arg::Array(_)) = arg_iter.peek() {
             //     let values = extract_matches!(arg_iter.next().unwrap(), Arg::Array);
             //     let offset = -ap_offset + vecs.pop().unwrap();
@@ -550,6 +549,9 @@ fn create_entry_code(
     //     });
     // }
     /*
+
+    This code should be re enabled to support non proof mode execution
+
     let _before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
