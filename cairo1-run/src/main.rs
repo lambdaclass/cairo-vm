@@ -46,6 +46,7 @@ use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use cairo_vm::vm::runners::cairo_runner::RunnerMode;
 use cairo_vm::{
     felt::Felt252,
     serde::deserialize_program::ReferenceManager,
@@ -269,7 +270,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         None,
     )?;
 
-    let mut runner = CairoRunner::new(&program, &args.layout, true)?;
+    let mut runner = CairoRunner::new_v2(&program, &args.layout, RunnerMode::ProofModeCairo1)?;
 
     let mut vm = VirtualMachine::new(args.trace_file.is_some());
     let end = runner.initialize(&mut vm)?;
