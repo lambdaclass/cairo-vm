@@ -194,7 +194,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let initial_gas = 9999999999999_usize;
 
-    // Modified entry code to be compatible with custom cairo1 Proof Mode.
+    // Modified entry code to be compatible with custom cairo1 Proof Mode. 
     // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
     let (entry_code, builtins) = create_entry_code(
         &sierra_program_registry,
@@ -281,6 +281,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     // Then pad it to the power of 2
     runner.run_until_next_power_of_2(&mut vm, &mut hint_processor)?;
+    
     // Fetch return type data
     let return_type_id = main_func
         .signature
