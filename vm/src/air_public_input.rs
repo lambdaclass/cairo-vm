@@ -10,7 +10,7 @@ use crate::{
     types::layout::CairoLayout,
     vm::{
         errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
-        trace::trace_entry::TraceEntry,
+        trace::trace_entry::RelocatedTraceEntry,
     },
 };
 
@@ -73,7 +73,7 @@ impl<'a> PublicInput<'a> {
         dyn_layout_params: Option<&'a CairoLayout>,
         public_memory_addresses: &[(usize, usize)],
         memory_segment_addresses: HashMap<&'static str, (usize, usize)>,
-        trace: &[TraceEntry],
+        trace: &[RelocatedTraceEntry],
         rc_limits: (isize, isize),
     ) -> Result<Self, PublicInputError> {
         let memory_entry =

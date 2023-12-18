@@ -28,14 +28,19 @@ cairo-1-hints = [
 ]
 arbitrary = ["dep:arbitrary", "felt/arbitrary", "felt/std", "std"]
 lambdaworks-felt = ["felt/lambdaworks-felt"]
+# Allows extending the set of hints for the current vm run from within a hint.
+# For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
+extensive_hints = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
     "skip_next_instruction_hint",
     "hooks",
+    "print",
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
+print = ["std"]
 
 [dependencies]
 mimalloc = { workspace = true, optional = true }

@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
-
+#[cfg(feature = "extensive_hints")]
+use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -24,11 +25,12 @@ use crate::{
 };
 
 use core::cmp::Ordering;
+#[cfg(feature = "extensive_hints")]
+use core::num::NonZeroUsize;
 use felt::Felt252;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
@@ -80,7 +82,6 @@ pub struct VirtualMachine {
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     pub(crate) rc_limits: Option<(isize, isize)>,
-    trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
@@ -112,7 +113,6 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             rc_limits: None,
             run_finished: false,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
@@ -396,7 +396,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc.offset,
+                pc: self.run_context.pc,
                 ap: self.run_context.ap,
                 fp: self.run_context.fp,
             });
@@ -441,60 +441,119 @@ impl VirtualMachine {
         decode_instruction(instruction)
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
     pub fn step_hint(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_data.iter().enumerate() {
-            hint_executor
+        for (hint_index, hint_data) in hint_datas.iter().enumerate() {
+            hint_processor
                 .execute_hint(self, exec_scopes, hint_data, constants)
                 .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
         }
         Ok(())
     }
 
+    #[cfg(feature = "extensive_hints")]
+    pub fn step_hint(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        constants: &HashMap<String, Felt252>,
+    ) -> Result<(), VirtualMachineError> {
+        // Check if there is a hint range for the current pc
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
+            let s = *s;
+            // Execute each hint for the given range
+            for idx in s..(s + l.get()) {
+                let hint_extension = hint_processor
+                    .execute_hint_extensive(
+                        self,
+                        exec_scopes,
+                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                        constants,
+                    )
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
-        let pc = self.run_context.pc.offset;
+        if self.run_context.pc.segment_index == 0 {
+            // Run instructions from program segment, using instruction cache
+            let pc = self.run_context.pc.offset;
 
-        if self.segments.memory.data[0].len() <= pc {
-            return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
-        }
+            if self.segments.memory.data[0].len() <= pc {
+                return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
+            }
 
-        let mut inst_cache = core::mem::take(&mut self.instruction_cache);
-        inst_cache.resize((pc + 1).max(inst_cache.len()), None);
+            let mut inst_cache = core::mem::take(&mut self.instruction_cache);
+            inst_cache.resize((pc + 1).max(inst_cache.len()), None);
 
-        let instruction = inst_cache.get_mut(pc).unwrap();
-        if instruction.is_none() {
-            *instruction = Some(self.decode_current_instruction()?);
-        }
-        let instruction = instruction.as_ref().unwrap();
-        if !self.skip_instruction_execution {
-            self.run_instruction(instruction)?;
+            let instruction = inst_cache.get_mut(pc).unwrap();
+            if instruction.is_none() {
+                *instruction = Some(self.decode_current_instruction()?);
+            }
+            let instruction = instruction.as_ref().unwrap();
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
+            self.instruction_cache = inst_cache;
         } else {
-            self.run_context.pc += instruction.size();
-            self.skip_instruction_execution = false;
+            // Run instructions from programs loaded in other segments, without instruction cache
+            let instruction = self.decode_current_instruction()?;
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(&instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
         }
-        self.instruction_cache = inst_cache;
         Ok(())
     }
 
     pub fn step(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        #[cfg(feature = "extensive_hints")] hint_datas: &mut Vec<Box<dyn Any>>,
+        #[cfg(not(feature = "extensive_hints"))] hint_datas: &[Box<dyn Any>],
+        #[cfg(feature = "extensive_hints")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
+        self.step_hint(
+            hint_processor,
+            exec_scopes,
+            hint_datas,
+            #[cfg(feature = "extensive_hints")]
+            hint_ranges,
+            constants,
+        )?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_pre_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
     }
@@ -965,34 +1024,6 @@ impl VirtualMachine {
         Ok(())
     }
 
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
-        if let Some(ref mut trace) = self.trace {
-            if self.trace_relocated {
-                return Err(TraceError::AlreadyRelocated);
-            }
-            let segment_1_base = relocation_table
-                .get(1)
-                .ok_or(TraceError::NoRelocationFound)?;
-
-            trace.iter_mut().for_each(|entry| {
-                entry.pc += 1;
-                entry.ap += segment_1_base;
-                entry.fp += segment_1_base;
-            });
-            self.trace_relocated = true;
-        }
-        Ok(())
-    }
-
-    pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
-        if self.trace_relocated {
-            self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)
-        } else {
-            Err(TraceError::TraceNotRelocated)
-        }
-    }
-
     /// Returns a list of addresses of memory cells that constitute the public memory.
     pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
         if let Some(relocation_table) = &self.relocation_table {
@@ -1128,7 +1159,6 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             rc_limits: None,
             run_finished: self.run_finished,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
@@ -2681,7 +2711,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -2910,13 +2942,15 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
+                &HashMap::new(),
             ),
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check(&trace, &[(0, 2, 2)]);
+        trace_check(&trace, &[((0, 0).into(), 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
@@ -2992,7 +3026,9 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &Vec::new(),
+                    &mut Vec::new(),
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::new(),
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3010,7 +3046,13 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check(
             &trace,
-            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
+            &[
+                ((0, 3).into(), 2, 2),
+                ((0, 5).into(), 3, 2),
+                ((0, 0).into(), 5, 5),
+                ((0, 2).into(), 6, 5),
+                ((0, 7).into(), 6, 2),
+            ],
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
@@ -3088,7 +3130,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3109,7 +3153,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3131,7 +3177,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3687,9 +3735,13 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_data = hint_data;
+
         //Run Steps
         for _ in 0..6 {
-            let hint_data = if vm.run_context.pc == (0, 0).into() {
+            #[cfg(not(feature = "extensive_hints"))]
+            let mut hint_data = if vm.run_context.pc == (0, 0).into() {
                 &hint_data[0..]
             } else {
                 &hint_data[0..0]
@@ -3698,8 +3750,13 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    hint_data,
-                    &HashMap::new()
+                    &mut hint_data,
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::from([(
+                        Relocatable::from((0, 0)),
+                        (0_usize, NonZeroUsize::new(1).unwrap())
+                    )]),
+                    &HashMap::new(),
                 ),
                 Ok(())
             );
@@ -3709,12 +3766,12 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (3, 2, 2),
-                (0, 4, 4),
-                (2, 5, 4),
-                (5, 5, 2),
-                (7, 6, 2),
-                (8, 6, 2),
+                ((0, 3).into(), 2, 2),
+                ((0, 0).into(), 4, 4),
+                ((0, 2).into(), 5, 4),
+                ((0, 5).into(), 5, 2),
+                ((0, 7).into(), 6, 2),
+                ((0, 8).into(), 6, 2),
             ],
         );
 
@@ -4229,7 +4286,7 @@ mod tests {
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }]));
@@ -4271,7 +4328,7 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder.trace,
             Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }])
@@ -4293,5 +4350,183 @@ mod tests {
                 .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
                 .is_err());
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /// Test for a simple program execution
+    /// Used program code:
+    /// func main():
+    ///     let a = 1
+    ///     let b = 2
+    ///     let c = a + b
+    ///     return()
+    /// end
+    /// Memory taken from original vm
+    /// {RelocatableValue(segment_index=0, offset=0): 2345108766317314046,
+    ///  RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    ///  RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    /// Current register values:
+    /// AP 1:2
+    /// FP 1:2
+    /// PC 0:0
+    fn test_step_for_preset_memory_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        run_context!(vm, 0, 2, 2);
+
+        vm.segments = segments![
+            ((2, 0), 2345108766317314046_u64), // Load program into new segment
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 2;
+
+        assert_matches!(
+            vm.step(
+                &mut hint_processor,
+                exec_scopes_ref!(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
+                &HashMap::new()
+            ),
+            Ok(())
+        );
+        let trace = vm.trace.unwrap();
+        trace_check(&trace, &[((2, 0).into(), 2, 2)]);
+
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 2);
+        assert_eq!(vm.run_context.fp, 0);
+
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = vm.segments.memory.data;
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /*
+    Test for a simple program execution
+    Used program code:
+        func myfunc(a: felt) -> (r: felt):
+            let b = a * 2
+            return(b)
+        end
+        func main():
+            let a = 1
+            let b = myfunc(a)
+            return()
+        end
+    Memory taken from original vm:
+    {RelocatableValue(segment_index=0, offset=0): 5207990763031199744,
+    RelocatableValue(segment_index=0, offset=1): 2,
+    RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+    RelocatableValue(segment_index=0, offset=3): 5189976364521848832,
+    RelocatableValue(segment_index=0, offset=4): 1,
+    RelocatableValue(segment_index=0, offset=5): 1226245742482522112,
+    RelocatableValue(segment_index=0, offset=6): 3618502788666131213697322783095070105623107215331596699973092056135872020476,
+    RelocatableValue(segment_index=0, offset=7): 2345108766317314046,
+    RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    Current register values:
+    AP 1:2
+    FP 1:2
+    PC 0:3
+    Final Pc (not executed): 3:0
+    This program consists of 5 steps
+    */
+    fn test_step_for_preset_memory_function_call_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        run_context!(vm, 3, 2, 2);
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 4;
+
+        //Insert values into memory
+        vm.segments.memory =
+            memory![
+            // Load program into new segment
+            ((4, 0), 5207990763031199744_i64),
+            ((4, 1), 2),
+            ((4, 2), 2345108766317314046_i64),
+            ((4, 3), 5189976364521848832_i64),
+            ((4, 4), 1),
+            ((4, 5), 1226245742482522112_i64),
+            (
+                (4, 6),
+                ("3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
+            ),
+            ((4, 7), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+
+        let final_pc = Relocatable::from((3, 0));
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        //Run steps
+        while vm.run_context.pc != final_pc {
+            assert_matches!(
+                vm.step(
+                    &mut hint_processor,
+                    exec_scopes_ref!(),
+                    &mut Vec::new(),
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::new(),
+                    &HashMap::new()
+                ),
+                Ok(())
+            );
+        }
+
+        //Check final register values
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+
+        assert_eq!(vm.run_context.ap, 6);
+
+        assert_eq!(vm.run_context.fp, 0);
+        //Check each TraceEntry in trace
+        let trace = vm.trace.unwrap();
+        assert_eq!(trace.len(), 5);
+        trace_check(
+            &trace,
+            &[
+                ((4, 3).into(), 2, 2),
+                ((4, 5).into(), 3, 2),
+                ((4, 0).into(), 5, 5),
+                ((4, 2).into(), 6, 5),
+                ((4, 7).into(), 6, 2),
+            ],
+        );
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = &vm.segments.memory.data;
+        assert!(mem[4][1].as_ref().unwrap().is_accessed());
+        assert!(mem[4][4].as_ref().unwrap().is_accessed());
+        assert!(mem[4][6].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][2].as_ref().unwrap().is_accessed());
+        assert!(mem[1][3].as_ref().unwrap().is_accessed());
+        assert!(mem[1][4].as_ref().unwrap().is_accessed());
+        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(4),
+            Some(3)
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(1),
+            Some(6)
+        );
     }
 }

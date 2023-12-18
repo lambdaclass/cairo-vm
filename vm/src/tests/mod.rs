@@ -2,6 +2,7 @@
 use crate::vm::errors::cairo_run_errors::CairoRunError;
 #[cfg(feature = "cairo-1-hints")]
 use crate::vm::runners::cairo_runner::RunResources;
+use crate::vm::trace::trace_entry::RelocatedTraceEntry;
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
@@ -22,7 +23,6 @@ use crate::stdlib::prelude::*;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::trace::trace_entry::TraceEntry,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -32,6 +32,8 @@ use wasm_bindgen_test::*;
 use alloc::{string::String, vec::Vec};
 
 mod bitwise_test;
+#[cfg(test)]
+mod run_deprecated_contract_class_simplified;
 
 #[cfg(feature = "cairo-1-hints")]
 mod cairo_1_run_from_entrypoint_tests;
@@ -93,9 +95,9 @@ pub(self) fn run_program(
         let expected_trace: Vec<_> = trace
             .iter()
             .copied()
-            .map(|(pc, ap, fp)| TraceEntry { pc, ap, fp })
+            .map(|(pc, ap, fp)| RelocatedTraceEntry { pc, ap, fp })
             .collect();
-        let trace = vm.get_relocated_trace().unwrap();
+        let trace = runner.relocated_trace.as_ref().unwrap();
         assert_eq!(trace.len(), expected_trace.len());
         for (entry, expected) in trace.iter().zip(expected_trace.iter()) {
             assert_eq!(entry, expected);
