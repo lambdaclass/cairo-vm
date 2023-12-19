@@ -181,9 +181,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let metadata_config = Some(Default::default());
 
-    // No gas usage check is needed
-    let gas_usage_check = false;
-
+    let gas_usage_check = metadata_config.is_some();
     let metadata = create_metadata(&sierra_program, metadata_config)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
     let type_sizes =
@@ -227,8 +225,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     // This is the program we are actually proving
     // With embedded proof mode, cairo1 header and the libfunc footer
     let instructions = chain!(
-        entry_code.iter(),
         proof_mode_header.iter(),
+        entry_code.iter(),
         program_instructions,
         libfunc_footer.iter()
     );
@@ -247,20 +245,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let starting_pc = 0;
 
-    // We need to find the final jmp rel 0, to stop the program.
-    // In cairo 0 it was always in the same place, but with the dynamic cairo 1 header, we need to add an initial offset, based on the size of the instructions added
-    let jmp_rel_0_pc = entry_code
-        .iter()
-        // Instruction size is equivalent to open size (1 or 2 words)
-        .fold(0, |acc, ins| acc + ins.body.op_size())
-        // This is +2 is to account for the call rel 4
-        + 2;
-
     let program = Program::new_for_proof(
         builtins,
         data,
         starting_pc,
-        jmp_rel_0_pc,
+        // Proof mode is on top
+        // jmp rel 0 is on PC == 2
+        2,
         program_hints,
         ReferenceManager {
             references: Vec::new(),
@@ -469,7 +460,7 @@ fn create_code_footer() -> Vec<Instruction> {
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
-    _casm_program: &CairoProgram,
+    casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
@@ -505,6 +496,9 @@ fn create_entry_code(
         let ty_size = type_sizes[ty];
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
+            // Everything is off by 2 due to the proof mode header
+            let offset = offset + 2;
+            // Changing this
             casm_extend! {ctx,
                 [ap + 0] = [fp - offset], ap++;
             }
@@ -552,23 +546,22 @@ fn create_entry_code(
     //         actual: args.len(),
     //     });
     // }
-    /*
 
-    This code should be re enabled to support non proof mode execution
+    // This code should be re enabled to support non proof mode execution
 
-    let _before_final_call = ctx.current_code_offset;
+    let before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
-    */
+
     // Original header code is not needed, it's going to be replaced by proof mode instructions
-    /*
+
     casm_extend! {ctx,
         call rel offset;
         ret;
     }
-    // assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
-     */
+    assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
+
     Ok((ctx.instructions, builtins))
 }
 
@@ -733,7 +726,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_sample_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("500000500000"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("5050"))]);
     }
 
     #[rstest]
