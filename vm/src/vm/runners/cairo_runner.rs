@@ -485,24 +485,11 @@ impl CairoRunner {
             // canonical offset should be 2 for Cairo 0
             let mut target_offset = 2;
 
-            // For cairo1 offset = 2 may no longer be valid
+            // We are not using stack_prefix in cairo1, we should patch in the future when a verifier needs to check [fp - 2] = fp.
             if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
                 // This condition needs to be checked by a smart verifier of Cairo1
                 target_offset = stack.len() + 2;
-            }
 
-            let mut stack_prefix = vec![
-                Into::<MaybeRelocatable>::into(
-                    self.execution_base
-                        .as_ref()
-                        .ok_or(RunnerError::NoExecBase)?
-                        + target_offset,
-                ),
-                MaybeRelocatable::from(Felt252::zero()),
-            ];
-            stack_prefix.extend(stack.clone());
-
-            if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
                 // This values shouldn't be used, but the cairo1 canonical header/compiler is expecting it. Maybe we can remove it by tuning the headers/compiler
                 let return_fp = vm.segments.add();
                 let end = vm.segments.add();
@@ -510,24 +497,46 @@ impl CairoRunner {
                     MaybeRelocatable::RelocatableValue(return_fp),
                     MaybeRelocatable::RelocatableValue(end),
                 ]);
+
+                self.initialize_state(
+                    vm,
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack,
+                )?;
+            } else {
+                let mut stack_prefix = vec![
+                    Into::<MaybeRelocatable>::into(
+                        self.execution_base
+                            .as_ref()
+                            .ok_or(RunnerError::NoExecBase)?
+                            + target_offset,
+                    ),
+                    MaybeRelocatable::from(Felt252::zero()),
+                ];
+                stack_prefix.extend(stack.clone());
+
+                self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
+
+                self.initialize_state(
+                    vm,
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack_prefix.clone(),
+                )?;
             }
 
-            self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
-
-            self.initialize_state(
-                vm,
-                self.program
-                    .shared_program_data
-                    .start
-                    .ok_or(RunnerError::NoProgramStart)?,
-                stack,
-            )?;
             self.initial_fp = Some(
                 self.execution_base
                     .as_ref()
                     .ok_or(RunnerError::NoExecBase)?
                     + target_offset,
             );
+
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
                 + self
@@ -536,6 +545,7 @@ impl CairoRunner {
                     .end
                     .ok_or(RunnerError::NoProgramEnd)?);
         }
+
         let return_fp = vm.segments.add();
         if let Some(main) = &self.entrypoint {
             let main_clone = *main;
