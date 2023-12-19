@@ -477,20 +477,19 @@ impl CairoRunner {
             stack.append(&mut builtin_runner.initial_stack());
         }
 
-        //Different process should be used for cairo0 and cairo1. Final version should support both
-
         if self.is_proof_mode() {
-            // In canonical proof mode, add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
+            // In canonical proof mode, add the dummy last fp and pc to the public memory, so that the verifier can enforce
 
             // canonical offset should be 2 for Cairo 0
             let mut target_offset = 2;
 
-            // We are not using stack_prefix in cairo1, we should patch in the future when a verifier needs to check [fp - 2] = fp.
+            // Cairo1 is not adding data to check [fp - 2] = fp, and has a different initialization of the stack. This should be updated.
+            // Cairo0 remains canonical
+
             if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
-                // This condition needs to be checked by a smart verifier of Cairo1
                 target_offset = stack.len() + 2;
 
-                // This values shouldn't be used, but the cairo1 canonical header/compiler is expecting it. Maybe we can remove it by tuning the headers/compiler
+                // This values shouldn't be needed with a canonical proof mode
                 let return_fp = vm.segments.add();
                 let end = vm.segments.add();
                 stack.append(&mut vec![
