@@ -211,7 +211,7 @@ impl CairoRunner {
         if proof_mode {
             Self::new_v2(program, layout, RunnerMode::ProofModeCanonical)
         } else {
-            Self::new_v2(program, layout, RunnerMode::ProofModeCairo1)
+            Self::new_v2(program, layout, RunnerMode::ExecutionMode)
         }
     }
 
