@@ -3904,7 +3904,7 @@ mod tests {
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.proof_mode = true;
+        cairo_runner.runner_mode = RunnerMode::ProofModeCanonical;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
@@ -4453,7 +4453,7 @@ mod tests {
     fn initialize_main_entrypoint_proof_mode_empty_program() {
         let program = program!(start = Some(0), end = Some(0), main = Some(8),);
         let mut runner = cairo_runner!(program);
-        runner.proof_mode = true;
+        runner.runner_mode = RunnerMode::ProofModeCanonical;
         let mut vm = vm!();
         runner.initialize_segments(&mut vm, None);
         assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
@@ -4477,7 +4477,7 @@ mod tests {
             builtins = vec![BuiltinName::output, BuiltinName::ec_op],
         );
         let mut runner = cairo_runner!(program);
-        runner.proof_mode = true;
+        runner.runner_mode = RunnerMode::ProofModeCanonical;
         let mut vm = vm!();
         runner.initialize_builtins(&mut vm).unwrap();
         runner.initialize_segments(&mut vm, None);
