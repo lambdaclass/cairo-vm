@@ -498,7 +498,6 @@ fn create_entry_code(
         if let Some(offset) = builtin_offset.get(generic_ty) {
             // Everything is off by 2 due to the proof mode header
             let offset = offset + 2;
-            // Changing this
             casm_extend! {ctx,
                 [ap + 0] = [fp - offset], ap++;
             }
@@ -547,14 +546,10 @@ fn create_entry_code(
     //     });
     // }
 
-    // This code should be re enabled to support non proof mode execution
-
     let before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
-
-    // Original header code is not needed, it's going to be replaced by proof mode instructions
 
     casm_extend! {ctx,
         call rel offset;
