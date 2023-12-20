@@ -60,10 +60,10 @@ pub fn find_element(
                 ))));
             }
         }
-        let n_elms_iter: i32 = n_elms
+        let n_elms_iter: u32 = n_elms
             .to_u32()
             .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?
-            as i32;
+            as u32;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
