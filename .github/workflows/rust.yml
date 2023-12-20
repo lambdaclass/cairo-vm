@@ -18,6 +18,7 @@ env:
     cairo_programs/**/*.json
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
+  TEST_COLLECT_COVERAGE: 1
 
 jobs:
   build-programs:
