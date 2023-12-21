@@ -29,5 +29,4 @@ mimalloc = { version = "0.1.37", default-features = false, optional = true }
 
 [features]
 default = ["with_mimalloc"]
-with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
-lambdaworks-felt = ["cairo-vm/lambdaworks-felt"]
+with_mimalloc = ["cairo-vm/with_mimalloc", "dep:mimalloc"]

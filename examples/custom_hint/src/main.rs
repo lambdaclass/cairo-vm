@@ -1,5 +1,4 @@
 use cairo_vm::cairo_run::{cairo_run, CairoRunConfig};
-use cairo_vm::felt::Felt252;
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
     BuiltinHintProcessor, HintFunc,
 };
@@ -8,6 +7,7 @@ use cairo_vm::hint_processor::hint_processor_definition::HintReference;
 use cairo_vm::serde::deserialize_program::ApTracking;
 use cairo_vm::types::exec_scope::ExecutionScopes;
 use cairo_vm::vm::{errors::hint_errors::HintError, vm_core::VirtualMachine};
+use cairo_vm::Felt252;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};

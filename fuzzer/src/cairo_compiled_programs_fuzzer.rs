@@ -1,7 +1,9 @@
 #![no_main]
-use cairo_felt::Felt252;
-use cairo_vm::cairo_run::{self, CairoRunConfig};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+use cairo_vm::{
+    cairo_run::{self, CairoRunConfig},
+    Felt252,
+};
 use libfuzzer_sys::{
     arbitrary::{Arbitrary, Unstructured},
     fuzz_target,
@@ -197,9 +199,14 @@ fn program_bitwise(
     cairo_run_config: &CairoRunConfig,
     hint_executor: &mut BuiltinHintProcessor,
 ) {
-    let and = num1 & num2;
-    let xor = num1 ^ num2;
-    let or = num1 | num2;
+    use num_bigint::BigUint;
+
+    let bnum1 = &BigUint::from_bytes_be(&num1.to_bytes_be());
+    let bnum2 = &BigUint::from_bytes_be(&num2.to_bytes_be());
+
+    let and = bnum1 & bnum2;
+    let xor = bnum1 ^ bnum2;
+    let or = bnum1 | bnum2;
     let file_content = format!("
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or, bitwise_operations

@@ -187,12 +187,6 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (felt)
-      run: |
-        cd felt
-        cargo check-all-features
-        cargo check-all-features --workspace --all-targets
-
     - name: Check all features (vm)
       run: |
         cd vm
@@ -218,7 +212,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: ["", "lambdaworks-felt", "extensive_hints"]
+        special_features: ["", "extensive_hints"]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
@@ -445,37 +439,37 @@ jobs:
         path: lcov-test-no_std-.info
         key: codecov-cache-test-no_std--${{ github.sha }}
         fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-extensive_hints.info
+        key: codecov-cache-test#1-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-extensive_hints.info
+        key: codecov-cache-test#2-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-extensive_hints.info
+        key: codecov-cache-test#3-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-extensive_hints.info
+        key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-no_std-extensive_hints.info
+        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
 
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#1-lambdaworks-felt.info
-        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#2-lambdaworks-felt.info
-        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 3)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#3-lambdaworks-felt.info
-        key: codecov-cache-test#3-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 4)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#4-lambdaworks-felt.info
-        key: codecov-cache-test#4-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/lambdaworks)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test-no_std-lambdaworks-felt.info
-        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3

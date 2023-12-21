@@ -40,6 +40,7 @@ use cairo_vm::serde::deserialize_program::BuiltinName;
 use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
+use cairo_vm::utils::bigint_to_felt;
 use cairo_vm::vm::decoding::decoder::decode_instruction;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
@@ -48,13 +49,13 @@ use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use cairo_vm::vm::runners::cairo_runner::RunnerMode;
 use cairo_vm::{
-    felt::Felt252,
     serde::deserialize_program::ReferenceManager,
     types::{program::Program, relocatable::MaybeRelocatable},
     vm::{
         runners::cairo_runner::{CairoRunner, RunResources},
         vm_core::VirtualMachine,
     },
+    Felt252,
 };
 use clap::{CommandFactory, Parser, ValueHint};
 use itertools::{chain, Itertools};
@@ -237,7 +238,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
-        .map(Felt252::from)
+        .map(|x| bigint_to_felt(&x).unwrap_or_default())
         .map(MaybeRelocatable::from)
         .collect();
 
@@ -311,7 +312,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                 (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
             )?;
             return Err(Error::RunPanic(
-                panic_data.iter().map(|c| c.as_ref().clone()).collect(),
+                panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
             if return_values.len() < 3 {
@@ -383,7 +384,7 @@ fn main() -> Result<(), Error> {
                     .iter()
                     .map(|m| {
                         // Try to parse to utf8 string
-                        let msg = String::from_utf8(m.to_be_bytes().to_vec());
+                        let msg = String::from_utf8(m.to_bytes_be().to_vec());
                         if let Ok(msg) = msg {
                             format!("{} ('{}')", m, msg)
                         } else {
@@ -651,8 +652,12 @@ mod tests {
     #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
-    use cairo_vm::felt::felt_str;
     use rstest::rstest;
+
+    // FIXME: bit of copy-paste to avoid dealing with visibility issues
+    fn felt_str(x: impl AsRef<str>) -> Felt252 {
+        crate::Felt252::from_dec_str(x.as_ref()).expect("Couldn't parse bytes")
+    }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
@@ -686,7 +691,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_match.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_enum_match_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(10), MaybeRelocatable::from(felt_str!("3618502788666131213697322783095070105623107215331596699973092056135872020471"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(10), MaybeRelocatable::from(felt_str("3618502788666131213697322783095070105623107215331596699973092056135872020471"))]);
     }
 
     #[rstest]
@@ -714,35 +719,35 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/recursion.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_recursion_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("1154076154663935037074198317650845438095734251249125412074882362667803016453"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1154076154663935037074198317650845438095734251249125412074882362667803016453"))]);
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_sample_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("5050"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("5050"))]);
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_poseidon_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("1099385018355113290651252669115094675591288647745213771718157553170111442461"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1099385018355113290651252669115094675591288647745213771718157553170111442461"))]);
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon_pedersen.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_poseidon_pedersen_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("1036257840396636296853154602823055519264738423488122322497453114874087006398"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1036257840396636296853154602823055519264738423488122322497453114874087006398"))]);
     }
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/pedersen_example.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_pedersen_example_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str!("1089549915800264549621536909767699778745926517555586332772759280702396009108"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1089549915800264549621536909767699778745926517555586332772759280702396009108"))]);
     }
 
     #[rstest]

@@ -10,13 +10,13 @@ keywords.workspace = true
 
 [features]
 default = ["std", "with_mimalloc"]
-with_mimalloc = ["mimalloc"]
+with_mimalloc = ["dep:mimalloc"]
 std = [
     "serde_json/std",
     "bincode/std",
     "anyhow/std",
+    "starknet-types-core/std",
     "starknet-crypto/std",
-    "felt/std",
     "dep:num-prime",
     "thiserror-no-std/std",
 ]
@@ -26,11 +26,6 @@ cairo-1-hints = [
     "dep:ark-ff",
     "dep:ark-std",
 ]
-arbitrary = ["dep:arbitrary", "felt/arbitrary", "felt/std", "std"]
-lambdaworks-felt = ["felt/lambdaworks-felt"]
-# Allows extending the set of hints for the current vm run from within a hint.
-# For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
-extensive_hints = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
@@ -40,6 +35,10 @@ test_utils = [
 ] # This feature will reference every test-oriented feature
 skip_next_instruction_hint = []
 hooks = []
+arbitrary = ["dep:arbitrary", "std", "starknet-types-core/arbitrary", "starknet-types-core/std"]
+# Allows extending the set of hints for the current vm run from within a hint.
+# For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
+extensive_hints = []
 print = ["std"]
 
 [dependencies]
@@ -62,10 +61,10 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
+starknet-types-core = { version = "0.0.4", default-features = false, features = ["serde"] }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
-felt = { workspace = true }
 bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature

@@ -1,12 +1,12 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::stdlib::prelude::String;
+use crate::utils::bigint_to_felt;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
     serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
     vm::errors::hint_errors::HintError,
 };
-use felt::Felt252;
 use num_bigint::BigInt;
 use num_traits::One;
 
@@ -38,8 +38,11 @@ pub fn inv_mod_p_uint512(
 
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
-    let x_inverse_mod_p =
-        Felt252::from(div_mod(&BigInt::one(), &BigInt::from(x), &BigInt::from(p))?);
+    let x_inverse_mod_p = bigint_to_felt(&div_mod(
+        &BigInt::one(),
+        &BigInt::from(x),
+        &BigInt::from(p),
+    )?)?;
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
@@ -51,6 +54,7 @@ pub fn inv_mod_p_uint512(
 mod tests {
     use super::*;
     use crate::any_box;
+    use crate::felt_str;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
@@ -59,6 +63,7 @@ mod tests {
     use crate::utils::test_utils::memory;
     use crate::utils::test_utils::memory_from_memory;
     use crate::utils::test_utils::memory_inner;
+    use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::hint_code::INV_MOD_P_UINT512,
         types::exec_scope::ExecutionScopes,
@@ -67,7 +72,7 @@ mod tests {
         },
     };
     use num_bigint::BigUint;
-    use num_traits::{FromPrimitive, Num};
+    use num_traits::Num;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -75,10 +80,10 @@ mod tests {
     fn test_pack_512() {
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(13123),
-                Felt252::new(534354),
-                Felt252::new(9901823),
-                Felt252::new(7812371)
+                Felt252::from(13123),
+                Felt252::from(534354),
+                Felt252::from(9901823),
+                Felt252::from(7812371)
             ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
@@ -87,10 +92,10 @@ mod tests {
         );
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(13123),
-                Felt252::new(534354),
-                Felt252::new(9901823),
-                Felt252::new(7812371)
+                Felt252::from(13123),
+                Felt252::from(534354),
+                Felt252::from(9901823),
+                Felt252::from(7812371)
             ]).pack(),
             BigUint::from_str_radix(
                 "307823090550532533958111616786199064327151160536573522012843486812312234767517005952120863393832102810613083123402814796611",
@@ -101,10 +106,10 @@ mod tests {
 
         assert_eq!(
             Uint512::from_values([
-                Felt252::new(90812398),
-                Felt252::new(55),
-                Felt252::new(83127),
-                Felt252::from_i128(45312309123).unwrap()
+                Felt252::from(90812398),
+                Felt252::from(55),
+                Felt252::from(83127),
+                Felt252::from(45312309123_u64)
             ]).pack(),
             BigUint::from_str_radix("1785395884837388090117385402351420305430103423113021825538726783888669416377532493875431795584456624829488631993250169127284718", 10).unwrap()
         );
@@ -131,12 +136,12 @@ mod tests {
         ];
         vm.insert_value(
             Relocatable::from((1, 15)),
-            Felt252::from_str_radix("201385395114098847380338600778089168199", 10).unwrap(),
+            felt_str!("201385395114098847380338600778089168199"),
         )
         .expect("error setting ids.p");
         vm.insert_value(
             Relocatable::from((1, 16)),
-            Felt252::from_str_radix("64323764613183177041862057485226039389", 10).unwrap(),
+            felt_str!("64323764613183177041862057485226039389"),
         )
         .expect("error setting ids.p");
 
@@ -149,13 +154,13 @@ mod tests {
             vm.get_integer(Relocatable::from((1, 5)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("80275402838848031859800366538378848249", 10).unwrap()
+            felt_str!("80275402838848031859800366538378848249")
         );
         assert_eq!(
             vm.get_integer(Relocatable::from((1, 6)))
                 .unwrap()
                 .into_owned(),
-            Felt252::from_str_radix("5810892639608724280512701676461676039", 10).unwrap()
+            felt_str!("5810892639608724280512701676461676039")
         );
     }
 }

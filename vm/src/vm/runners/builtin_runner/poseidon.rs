@@ -1,4 +1,5 @@
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
+use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
@@ -7,7 +8,7 @@ use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
+use crate::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
@@ -82,14 +83,14 @@ impl PoseidonBuiltinRunner {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
-                    let num = value.get_int_ref().ok_or_else(|| {
-                        RunnerError::BuiltinExpectedInteger(Box::new((
+                    let num = value
+                        .get_int_ref()
+                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
                             POSEIDON_BUILTIN_NAME,
-                            m_index,
-                        )))
-                    })?;
-                    FieldElement::from_dec_str(&num.to_str_radix(10))
-                        .map_err(|_| RunnerError::FailedStringConversion)?
+                            (first_input_addr + i)?,
+                        ))))?;
+                    FieldElement::from_bytes_be(&num.to_bytes_be())
+                        .map_err(|_| MathError::ByteConversionError)?
                 }
                 _ => return Ok(None),
             };

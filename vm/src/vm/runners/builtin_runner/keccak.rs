@@ -7,10 +7,9 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
-use num_traits::One;
 
 use super::KECCAK_BUILTIN_NAME;
 
@@ -87,42 +86,43 @@ impl KeccakBuiltinRunner {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
-                    let num = value.get_int_ref().ok_or_else(|| {
-                        RunnerError::BuiltinExpectedInteger(Box::new((
+                    let num = value
+                        .get_int_ref()
+                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
                             KECCAK_BUILTIN_NAME,
-                            m_index,
-                        )))
-                    })?;
-                    if num >= &(Felt252::one() << self.state_rep[i]) {
+                            (first_input_addr + i)?,
+                        ))))?;
+                    if num >= &(Felt252::TWO.pow(self.state_rep[i])) {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
-                            m_index,
+                            (first_input_addr + i)?,
                             self.state_rep[i],
-                            num.clone(),
+                            *num,
                         ))));
                     }
-                    num.clone()
+                    *num
                 }
                 _ => return Ok(None),
             };
-
             input_felts.push(val)
         }
-
         let input_message: Vec<u8> = input_felts
             .iter()
-            .flat_map(|x| Self::right_pad(&x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| {
+                let mut bytes = x.to_bytes_le().to_vec();
+                bytes.resize(KECCAK_FELT_BYTE_SIZE, 0);
+                bytes
+            })
             .collect();
         let keccak_result = Self::keccak_f(&input_message)?;
 
         let mut start_index = 0_usize;
         for (i, bits) in self.state_rep.iter().enumerate() {
             let end_index = start_index + *bits as usize / 8;
-            self.cache.borrow_mut().insert(
-                (first_output_addr + i)?,
-                Felt252::from(BigUint::from_bytes_le(
-                    &keccak_result[start_index..end_index],
-                )),
-            );
+            self.cache.borrow_mut().insert((first_output_addr + i)?, {
+                let mut bytes = keccak_result[start_index..end_index].to_vec();
+                bytes.resize(32, 0);
+                Felt252::from_bytes_le_slice(&bytes)
+            });
             start_index = end_index;
         }
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
@@ -211,13 +211,6 @@ impl KeccakBuiltinRunner {
         safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or(0)
     }
 
-    fn right_pad(bytes: &[u8], final_size: usize) -> Vec<u8> {
-        let zeros: Vec<u8> = vec![0; final_size - bytes.len()];
-        let mut bytes_vector = bytes.to_vec();
-        bytes_vector.extend(zeros);
-        bytes_vector
-    }
-
     fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
         let bigint = BigUint::from_bytes_le(input_message);
         let mut keccak_input = bigint.to_u64_digits();
@@ -231,15 +224,13 @@ impl KeccakBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::Num;
-
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -538,13 +529,9 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(
-                Felt252::from_str_radix(
-                    "1006979841721999878391288827876533441431370448293338267890891",
-                    10
-                )
-                .unwrap()
-            )))
+            Ok(Some(MaybeRelocatable::from(felt_hex!(
+                "0xa06bd018ba91b93146f53563cff2efba46fee2eabe9d89b4cb"
+            ))))
         );
     }
 
@@ -684,13 +671,6 @@ mod tests {
         let result: usize = builtin.get_used_diluted_check_units(16);
 
         assert_eq!(result, 16384);
-    }
-
-    #[test]
-    fn right_pad() {
-        let num = [1_u8];
-        let padded_num = KeccakBuiltinRunner::right_pad(&num, 5);
-        assert_eq!(padded_num, vec![1, 0, 0, 0, 0]);
     }
 
     #[test]

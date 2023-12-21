@@ -5,7 +5,7 @@ use crate::stdlib::prelude::*;
 
 use thiserror_no_std::Error;
 
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
 
 use crate::types::{
@@ -191,12 +191,11 @@ mod tests {
     use super::*;
     #[test]
     fn test_multiple_members_variant_message_format() {
-        let a = Felt252::new(42);
-        let b = Felt252::new(53);
+        let a = Felt252::from(42);
+        let b = Felt252::from(53);
         let string = "test";
 
-        let error_msg =
-            HintError::InvalidValue(Box::new((string, a.clone(), b.clone()))).to_string();
+        let error_msg = HintError::InvalidValue(Box::new((string, a, b))).to_string();
 
         let expected_msg = format!("Invalid value for {string}. Got: {a}. Expected: {b}");
         assert_eq!(error_msg, expected_msg)
@@ -204,9 +203,9 @@ mod tests {
 
     #[test]
     fn test_single_felt_variant_message_format() {
-        let x = Felt252::new(15131);
+        let x = Felt252::from(15131);
 
-        let error_msg = HintError::InvalidKeccakStateSizeFelt252s(Box::new(x.clone())).to_string();
+        let error_msg = HintError::InvalidKeccakStateSizeFelt252s(Box::new(x)).to_string();
 
         let expected_msg = format!("Expected size to be in the range from [0, 100), got: {x}");
         assert_eq!(error_msg, expected_msg)
