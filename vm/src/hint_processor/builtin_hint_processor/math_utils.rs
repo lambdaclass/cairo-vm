@@ -106,12 +106,12 @@ pub fn assert_le_felt(
     const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
     const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
 
-    let prime_over_3_high = constants
-        .get(PRIME_OVER_3_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
-    let prime_over_2_high = constants
-        .get(PRIME_OVER_2_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
+    let prime_over_3_high = constants.get(PRIME_OVER_3_HIGH).ok_or_else(|| {
+        HintError::MissingConstant(PRIME_OVER_3_HIGH.to_string().into_boxed_str())
+    })?;
+    let prime_over_2_high = constants.get(PRIME_OVER_2_HIGH).ok_or_else(|| {
+        HintError::MissingConstant(PRIME_OVER_2_HIGH.to_string().into_boxed_str())
+    })?;
     let a = felt_to_biguint(*get_integer_from_var_name("a", vm, ids_data, ap_tracking)?);
     let b = felt_to_biguint(*get_integer_from_var_name("b", vm, ids_data, ap_tracking)?);
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
@@ -628,7 +628,7 @@ pub fn is_addr_bounded(
     let addr_bound = felt_to_biguint(
         *constants
             .get(ADDR_BOUND)
-            .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?,
+            .ok_or_else(|| HintError::MissingConstant(ADDR_BOUND.to_string().into_boxed_str()))?,
     );
 
     let lower_bound = BigUint::one() << 250_usize;
@@ -2085,7 +2085,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND
+            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND.to_string()
         );
     }
 
@@ -2309,7 +2309,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
+            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH".to_string()
         );
     }
 
