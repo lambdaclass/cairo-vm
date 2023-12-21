@@ -41,11 +41,13 @@ use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintPar
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
 use cairo_vm::utils::bigint_to_felt;
+use cairo_vm::vm::decoding::decoder::decode_instruction;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use cairo_vm::vm::runners::cairo_runner::RunnerMode;
 use cairo_vm::{
     serde::deserialize_program::ReferenceManager,
     types::{program::Program, relocatable::MaybeRelocatable},
@@ -179,6 +181,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     .clone();
 
     let metadata_config = Some(Default::default());
+
     let gas_usage_check = metadata_config.is_some();
     let metadata = create_metadata(&sierra_program, metadata_config)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
@@ -191,8 +194,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let initial_gas = 9999999999999_usize;
 
-    // Entry code and footer are part of the whole instructions that are
-    // ran by the VM.
+    // Modified entry code to be compatible with custom cairo1 Proof Mode.
+    // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
     let (entry_code, builtins) = create_entry_code(
         &sierra_program_registry,
         &casm_program,
@@ -200,19 +203,37 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         main_func,
         initial_gas,
     )?;
-    let footer = create_code_footer();
 
-    let check_gas_usage = true;
-    let metadata = calc_metadata(&sierra_program, Default::default(), false)?;
-    let casm_program = compile(&sierra_program, &metadata, check_gas_usage)?;
+    println!("Compiling with proof mode and running ...");
 
+    // This information can be useful for the users using the prover.
+    println!("Builtins used: {:?}", builtins);
+
+    // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
+    let mut ctx = casm! {};
+    casm_extend! {ctx,
+        call rel 4;
+        jmp rel 0;
+    };
+    let proof_mode_header = ctx.instructions;
+
+    // Get the user program instructions
+    let program_instructions = casm_program.instructions.iter();
+
+    // This footer is used by lib funcs
+    let libfunc_footer = create_code_footer();
+
+    // This is the program we are actually proving
+    // With embedded proof mode, cairo1 header and the libfunc footer
     let instructions = chain!(
+        proof_mode_header.iter(),
         entry_code.iter(),
-        casm_program.instructions.iter(),
-        footer.iter()
+        program_instructions,
+        libfunc_footer.iter()
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
+
     let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
 
     let data: Vec<MaybeRelocatable> = instructions
@@ -223,10 +244,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let data_len = data.len();
 
-    let program = Program::new(
+    let starting_pc = 0;
+
+    let program = Program::new_for_proof(
         builtins,
         data,
-        Some(0),
+        starting_pc,
+        // Proof mode is on top
+        // jmp rel 0 is on PC == 2
+        2,
         program_hints,
         ReferenceManager {
             references: Vec::new(),
@@ -236,14 +262,18 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         None,
     )?;
 
-    let mut runner = CairoRunner::new(&program, &args.layout, false)?;
+    let mut runner = CairoRunner::new_v2(&program, &args.layout, RunnerMode::ProofModeCairo1)?;
+
     let mut vm = VirtualMachine::new(args.trace_file.is_some());
     let end = runner.initialize(&mut vm)?;
 
     additional_initialization(&mut vm, data_len)?;
 
+    // Run it until the infinite loop
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
-    runner.end_run(true, false, &mut vm, &mut hint_processor)?;
+
+    // Then pad it to the power of 2
+    runner.run_until_next_power_of_2(&mut vm, &mut hint_processor)?;
 
     // Fetch return type data
     let return_type_id = main_func
@@ -467,6 +497,8 @@ fn create_entry_code(
         let ty_size = type_sizes[ty];
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
+            // Everything is off by 2 due to the proof mode header
+            let offset = offset + 2;
             casm_extend! {ctx,
                 [ap + 0] = [fp - offset], ap++;
             }
@@ -484,6 +516,8 @@ fn create_entry_code(
             casm_extend! {ctx,
                 [ap + 0] = [ap + offset] + 3, ap++;
             }
+            // This code should be re enabled to make the programs work with arguments
+
             // } else if let Some(Arg::Array(_)) = arg_iter.peek() {
             //     let values = extract_matches!(arg_iter.next().unwrap(), Arg::Array);
             //     let offset = -ap_offset + vecs.pop().unwrap();
@@ -512,15 +546,18 @@ fn create_entry_code(
     //         actual: args.len(),
     //     });
     // }
+
     let before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
+
     casm_extend! {ctx,
         call rel offset;
         ret;
     }
     assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
+
     Ok((ctx.instructions, builtins))
 }
 
@@ -689,7 +726,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
     fn test_run_sample_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("500000500000"))]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("5050"))]);
     }
 
     #[rstest]
@@ -725,5 +762,12 @@ mod tests {
     fn test_run_simple_struct_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(100)]);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    fn test_run_dictionaries(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1024)]);
     }
 }

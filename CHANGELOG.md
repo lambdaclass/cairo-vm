@@ -4,6 +4,10 @@
 
 * feat(breaking): Replace `cairo-felt` crate with `stark-felt` [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
+* feat/BREAKING: Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)
+    * In the cairo1-run crate, now the Cairo 1 Programs are compiled and executed in proof-mode
+    * BREAKING: Remove `CairoRunner.proof_mode: bool` field and replace it with `CairoRunner.runner_mode: RunnerMode`
+
 * perf: Add `extensive_hints` feature to prevent performance regression for the common use-case [#1503] (https://github.com/lambdaclass/cairo-vm/pull/1503)
 
   * Gates changes added by #1491 under the feature flag `extensive_hints`
