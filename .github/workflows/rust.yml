@@ -412,62 +412,62 @@ jobs:
     - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
+        path: lcov-test#1-.info
         key: codecov-cache-test#1--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 2)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
+        path: lcov-test#2-.info
         key: codecov-cache-test#2--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 3)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
+        path: lcov-test#3-.info
         key: codecov-cache-test#3--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 4)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
+        path: lcov-test#4-.info
         key: codecov-cache-test#4--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
+        path: lcov-test-no_std-.info
         key: codecov-cache-test-no_std--${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (part. 1)
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
-        key: codecov-cache-test#1-extensive-hints-${{ github.sha }}
+        path: lcov-test#1-extensive_hints.info
+        key: codecov-cache-test#1-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (part. 2)
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 2)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
-        key: codecov-cache-test#2-extensive-hints-${{ github.sha }}
+        path: lcov-test#2-extensive_hints.info
+        key: codecov-cache-test#2-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (part. 3)
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 3)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
-        key: codecov-cache-test#3-extensive-hints-${{ github.sha }}
+        path: lcov-test#3-extensive_hints.info
+        key: codecov-cache-test#3-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (part. 4)
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 4)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
-        key: codecov-cache-test#4-extensive-hints-${{ github.sha }}
+        path: lcov-test#4-extensive_hints.info
+        key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib
+    - name: Fetch results for tests without stdlib (w/extensive_hints)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-*.info
-        key: codecov-cache-test-no_std-extensive-hints-${{ github.sha }}
+        path: lcov-no_std-extensive_hints.info
+        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
 
 
