@@ -62,8 +62,7 @@ pub fn find_element(
         }
         let n_elms_iter: u32 = n_elms
             .to_u32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?
-            as u32;
+            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm

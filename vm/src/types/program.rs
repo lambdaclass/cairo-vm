@@ -150,8 +150,8 @@ impl HintsCollection {
             );
             #[cfg(not(feature = "extensive_hints"))]
             {
-                hints_ranges[*pc] = Some(range)
-            };
+                hints_ranges[*pc] = Some(range);
+            }
             #[cfg(feature = "extensive_hints")]
             hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
