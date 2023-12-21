@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` `Felt` [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
+* feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
 * feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)
     * In the cairo1-run crate, now the Cairo 1 Programs are compiled and executed in proof-mode
