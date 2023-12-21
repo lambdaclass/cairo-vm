@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: remove static lifetime for name str parameter requirement for constant getter
+
 * feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
 * feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)

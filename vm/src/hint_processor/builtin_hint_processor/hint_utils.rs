@@ -124,7 +124,7 @@ pub fn get_reference_from_var_name<'a>(
 }
 
 pub fn get_constant_from_var_name<'a>(
-    var_name: &'a str,
+    var_name: &str,
     constants: &'a HashMap<String, Felt252>,
 ) -> Result<&'a Felt252, HintError> {
     constants
