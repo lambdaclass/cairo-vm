@@ -252,18 +252,18 @@ jobs:
         # FIXME: we need to update the Makefile to do this correctly
         case ${NAME} in
         'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info \
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
               --partition count:${PARTITION}/4 \
-              --workspace --features "cairo-1-hints,  test_utils"
+              --workspace --features "cairo-1-hints,  test_utils, ${{ matrix.special_features }}"
           ;;
         'test-no_std')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}.info \
+          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
               --partition count:${PARTITION}/4 \
-              --workspace --no-default-features
+              --workspace --no-default-features --features "${{ matrix.special_features }}"
           ;;
         'test-wasm')
           # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node vm --no-default-features
+          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
           ;;
         esac
 
@@ -271,8 +271,8 @@ jobs:
       if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
-        path: lcov-${{ matrix.target }}.info
-        key: codecov-cache-${{ matrix.target }}-${{ github.sha }}
+        path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
+        key: codecov-cache-${{ matrix.target }}-${{ matrix.special_features }}-${{ github.sha }}
 
   build-release:
     name: Build release binary for comparisons
@@ -412,33 +412,64 @@ jobs:
     - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#1.info
-        key: codecov-cache-test#1-${{ github.sha }}
+        path: lcov-*.info
+        key: codecov-cache-test#1--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 2)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#2.info
-        key: codecov-cache-test#2-${{ github.sha }}
+        path: lcov-*.info
+        key: codecov-cache-test#2--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 3)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#3.info
-        key: codecov-cache-test#3-${{ github.sha }}
+        path: lcov-*.info
+        key: codecov-cache-test#3--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (part. 4)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test#4.info
-        key: codecov-cache-test#4-${{ github.sha }}
+        path: lcov-*.info
+        key: codecov-cache-test#4--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests without stdlib
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std.info
-        key: codecov-cache-test-no_std-${{ github.sha }}
+        path: lcov-*.info
+        key: codecov-cache-test-no_std--${{ github.sha }}
         fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-*.info
+        key: codecov-cache-test#1-extensive-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-*.info
+        key: codecov-cache-test#2-extensive-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-*.info
+        key: codecov-cache-test#3-extensive-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-*.info
+        key: codecov-cache-test#4-extensive-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-*.info
+        key: codecov-cache-test-no_std-extensive-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+
 
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
