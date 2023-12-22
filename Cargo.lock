@@ -2450,9 +2450,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-types-core"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78b4af540664e3dec02f36a47b79ba4df825a7752bf0941954f69753a98a397e"
+checksum = "b2441eb61d91a6bae832fda48e50b6ff09faa6cf63bfadd22dc16798d2cc024d"
 dependencies = [
  "arbitrary",
  "bitvec",
