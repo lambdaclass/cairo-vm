@@ -39,6 +39,7 @@ starknet-crypto = { version = "0.5.0", default-features = false, features = [
     "signature-display",
     "alloc",
 ] }
+starknet-curve = { version = "0.4.0", default-features = false }
 sha3 = { version = "0.10.8", default-features = false }
 lazy_static = { version = "1.4.0", default-features = false, features = [
     "spin_no_std",
