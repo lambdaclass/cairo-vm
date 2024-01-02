@@ -66,9 +66,9 @@ impl EcOpBuiltinRunner {
     ) -> Result<(Felt252, Felt252), RunnerError> {
         let mut slope = felt_to_bigint(*m);
         let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
-            .map_err(|_| RunnerError::InvalidPoint)?;
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
         let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
-            .map_err(|_| RunnerError::InvalidPoint)?;
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
         for _ in 0..height {
             if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 #[allow(deprecated)]

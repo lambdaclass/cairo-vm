@@ -50,10 +50,10 @@ pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
 /// ```
 /// # use cairo_vm::{Felt252, math_utils::signed_felt};
 /// # use num_bigint::BigInt;
-/// let positive = Felt252::new(5);
+/// let positive = Felt252::from(5);
 /// assert_eq!(signed_felt(positive), BigInt::from(5));
 ///
-/// let negative = Felt252::max_value();
+/// let negative = Felt252::MAX;
 /// assert_eq!(signed_felt(negative), BigInt::from(-1));
 /// ```
 
