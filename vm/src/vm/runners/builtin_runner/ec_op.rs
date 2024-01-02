@@ -4,13 +4,13 @@ use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::utils::{felt_to_bigint, CAIRO_PRIME};
+use crate::utils::felt_to_bigint;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
-use num_bigint::{BigInt, ToBigInt};
+use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
 use num_traits::{One, Zero};
 use starknet_types_core::curve::ProjectivePoint;
@@ -62,8 +62,6 @@ impl EcOpBuiltinRunner {
         partial_sum: (Felt252, Felt252),
         doubled_point: (Felt252, Felt252),
         m: &Felt252,
-        alpha: &BigInt,
-        prime: &BigInt,
         height: u32,
     ) -> Result<(Felt252, Felt252), RunnerError> {
         let mut slope = felt_to_bigint(*m);
@@ -181,14 +179,11 @@ impl EcOpBuiltinRunner {
                 ))));
             };
         }
-        let prime = CAIRO_PRIME.to_bigint().unwrap();
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
             input_cells[4],
             #[allow(deprecated)]
-            &felt_to_bigint(alpha),
-            &prime,
             self.ec_op_builtin.scalar_height,
         )?;
         self.cache.borrow_mut().insert(x_addr, result.0);
@@ -281,7 +276,7 @@ mod tests {
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
-    use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -551,11 +546,8 @@ mod tests {
             felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
@@ -581,11 +573,8 @@ mod tests {
             felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
@@ -603,14 +592,17 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt252::ONE, Felt252::from(9));
-        let doubled_point = (Felt252::ONE, Felt252::from(12));
+        let partial_sum = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
+        let doubled_point = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
