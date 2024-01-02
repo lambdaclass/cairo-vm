@@ -13,6 +13,10 @@ use crate::{
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+#[cfg(feature = "cairo-1-hints")]
+use crate::utils::biguint_to_felt;
+use crate::utils::PRIME_STR;
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
@@ -26,7 +30,6 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
-use felt::{Felt252, PRIME_STR};
 
 #[cfg(feature = "std")]
 use std::path::Path;
@@ -147,8 +150,8 @@ impl HintsCollection {
             );
             #[cfg(not(feature = "extensive_hints"))]
             {
-                hints_ranges[*pc] = Some(range)
-            };
+                hints_ranges[*pc] = Some(range);
+            }
             #[cfg(feature = "extensive_hints")]
             hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
@@ -345,7 +348,6 @@ impl Program {
             if value.type_.as_deref() == Some("const") {
                 let value = value
                     .value
-                    .clone()
                     .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
                 constants.insert(key.clone(), value);
             }
@@ -404,7 +406,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(Felt252::from(x.value.clone())))
+            .map(|x| MaybeRelocatable::from(biguint_to_felt(&x.value).unwrap_or_default()))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
@@ -475,11 +477,12 @@ impl HintsCollection {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Neg;
+
     use super::*;
+    use crate::felt_hex;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
-    use felt::felt_str;
-    use num_traits::Zero;
 
     use assert_matches::assert_matches;
 
@@ -697,7 +700,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -722,7 +725,7 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -750,7 +753,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -759,7 +762,7 @@ mod tests {
 
         assert_eq!(
             Program::extract_constants(&identifiers).unwrap(),
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -911,7 +914,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -981,7 +984,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1136,7 +1139,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1235,7 +1238,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1264,26 +1267,23 @@ mod tests {
         .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::ZERO),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                felt_str!(
-                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
-                ),
+                felt_hex!("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt252::new(3),
+                Felt252::from(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                felt_str!(
-                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                ),
+                felt_hex!("0x800000000000011000000000000000000000000000000000000000000000001")
+                    .neg(),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
-                felt_str!("340282366920938463463374607431768211456"),
+                felt_hex!("0x100000000000000000000000000000000"),
             ),
         ]
         .into_iter()

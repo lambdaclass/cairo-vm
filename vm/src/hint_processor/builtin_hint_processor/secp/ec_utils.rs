@@ -1,3 +1,5 @@
+use crate::utils::{biguint_to_felt, felt_to_biguint};
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -14,11 +16,10 @@ use crate::{
     },
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, ops::BitAnd, prelude::*},
+    stdlib::{collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 
@@ -416,7 +417,7 @@ pub fn ec_mul_inner(
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
         .as_ref()
-        .bitand(&Felt252::one());
+        .mod_floor(&Felt252::TWO.try_into().expect("nonzero by construction"));
     insert_value_into_ap(vm, scalar)
 }
 
@@ -502,7 +503,7 @@ pub fn n_pair_bits(
         return Err(HintError::NPairBitsTooLowM);
     }
 
-    let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
+    let (scalar_v, scalar_u) = (felt_to_biguint(*scalar_v), felt_to_biguint(*scalar_u));
 
     // Each step, fetches the bits in mth position for v and u,
     // and appends them to the accumulator. i.e:
@@ -511,21 +512,22 @@ pub fn n_pair_bits(
     //  1010101__ -> 101010110
     let get_bit =
         |x: &BigUint, i| m.checked_sub(i).map(|i| x.bit(i.into())).unwrap_or(false) as u32;
-    let res: Felt252 = (0..number_of_pairs)
-        .map(|i| {
-            // This code is definitely verbose, but it's the only way I found to avoid a `panic`
-            // when `m < number_of_pairs` while still being correct and hopefully fast.
-            let bit_1 = get_bit(&scalar_v, i);
-            // 1 * ((ids.scalar_u >> ids.m) & 1)
-            let bit_0 = get_bit(&scalar_u, i);
-            bit_0 | (bit_1 << 1)
-        })
-        .fold(BigUint::zero(), |mut acc, x| {
-            acc <<= 2_u32;
-            acc += x;
-            acc
-        })
-        .into();
+    let res: Felt252 = biguint_to_felt(
+        &(0..number_of_pairs)
+            .map(|i| {
+                // This code is definitely verbose, but it's the only way I found to avoid a `panic`
+                // when `m < number_of_pairs` while still being correct and hopefully fast.
+                let bit_1 = get_bit(&scalar_v, i);
+                // 1 * ((ids.scalar_u >> ids.m) & 1)
+                let bit_0 = get_bit(&scalar_u, i);
+                bit_0 | (bit_1 << 1)
+            })
+            .fold(BigUint::zero(), |mut acc, x| {
+                acc <<= 2_u32;
+                acc += x;
+                acc
+            }),
+    )?;
     /*
         ids.quad_bit = (
             8 * ((ids.scalar_v >> ids.m) & 1)
@@ -1272,7 +1274,7 @@ mod tests {
         let ids_data = ids_data!["e"];
         let ap_tracking = ApTracking::default();
         let e = EcPoint::from_var_name("e", &vm, &ids_data, &ap_tracking).unwrap();
-        assert_eq!(e.x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(e.x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(e.x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(e.x.limbs[2].as_ref(), &Felt252::from(3));
         assert_eq!(e.y.limbs[0].as_ref(), &Felt252::from(4));

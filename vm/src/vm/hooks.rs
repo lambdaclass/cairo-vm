@@ -11,7 +11,7 @@
 
 use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
 
-use felt::Felt252;
+use crate::Felt252;
 
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor, types::exec_scope::ExecutionScopes,

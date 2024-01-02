@@ -78,9 +78,8 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use felt::felt_str;
-    use felt::Felt252;
-    use num_traits::One;
+    use crate::felt_str;
+    use crate::Felt252;
     use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -98,7 +97,7 @@ mod tests {
             ((1, 5), 6)
         ];
         let x = Uint768::from_base_addr((1, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
@@ -186,7 +185,7 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = Uint768::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }

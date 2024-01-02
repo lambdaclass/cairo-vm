@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -10,8 +11,6 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
-use num_integer::Integer;
 
 /*
 Implements hint:
@@ -29,14 +28,8 @@ pub fn pow(
         .map_err(|_| {
             HintError::IdentifierHasNoMember(Box::new(("prev_locs".to_string(), "exp".to_string())))
         })?;
-    let locs_bit = prev_locs_exp.is_odd();
-    insert_value_from_var_name(
-        "locs",
-        Felt252::new(locs_bit as u8),
-        vm,
-        ids_data,
-        ap_tracking,
-    )?;
+    let locs_bit = prev_locs_exp.mod_floor(&Felt252::TWO.try_into().unwrap());
+    insert_value_from_var_name("locs", locs_bit, vm, ids_data, ap_tracking)?;
     Ok(())
 }
 
@@ -57,7 +50,6 @@ mod tests {
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -146,8 +138,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 11)),
-                    MaybeRelocatable::from(Felt252::new(3)),
-                    MaybeRelocatable::from(Felt252::one()))
+                    MaybeRelocatable::from(Felt252::from(3)),
+                    MaybeRelocatable::from(Felt252::ONE))
         );
     }
 }

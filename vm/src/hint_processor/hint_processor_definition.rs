@@ -13,7 +13,7 @@ use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-use felt::Felt252;
+use crate::Felt252;
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;

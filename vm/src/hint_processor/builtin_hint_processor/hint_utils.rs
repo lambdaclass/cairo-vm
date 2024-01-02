@@ -1,6 +1,6 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 
-use felt::Felt252;
+use crate::Felt252;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::hint_processor::hint_processor_utils::{
@@ -260,7 +260,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Ok(Cow::Borrowed(x)) if x == &Felt252::new(1)
+            Ok(Cow::Borrowed(x)) if x == &Felt252::from(1)
         );
     }
 

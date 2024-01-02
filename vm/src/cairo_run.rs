@@ -9,8 +9,8 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use bincode::enc::write::Writer;
-use felt::Felt252;
 
 use thiserror_no_std::Error;
 
@@ -196,7 +196,7 @@ pub fn write_encoded_memory(
             Some(unwrapped_memory_cell) => {
                 dest.write(&(i as u64).to_le_bytes())
                     .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write(&unwrapped_memory_cell.to_le_bytes())
+                dest.write(&unwrapped_memory_cell.to_bytes_le())
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }
@@ -209,6 +209,7 @@ pub fn write_encoded_memory(
 mod tests {
     use super::*;
     use crate::stdlib::prelude::*;
+    use crate::Felt252;
     use crate::{
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -217,7 +218,6 @@ mod tests {
         utils::test_utils::*,
     };
     use bincode::enc::write::SliceWriter;
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -259,7 +259,7 @@ mod tests {
         assert!(cairo_runner.relocate(&mut vm, true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(123)));
     }
 
     #[test]

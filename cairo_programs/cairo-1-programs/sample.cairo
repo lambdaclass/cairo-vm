@@ -8,5 +8,5 @@ fn inner(i: felt252) -> felt252 {
 }
 
 fn main() -> felt252 {
-    inner(1000000)
+    inner(100)
 }

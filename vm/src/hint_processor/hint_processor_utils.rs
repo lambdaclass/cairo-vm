@@ -11,7 +11,8 @@ use crate::{
 };
 
 use super::hint_processor_definition::HintReference;
-use felt::Felt252;
+use crate::Felt252;
+
 use num_traits::ToPrimitive;
 
 ///Inserts value into the address of the given ids variable
@@ -136,13 +137,13 @@ fn apply_ap_tracking_correction(
 //Tries to convert a Felt252 value to usize
 pub fn felt_to_usize(felt: &Felt252) -> Result<usize, MathError> {
     felt.to_usize()
-        .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(felt.clone())))
+        .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(*felt)))
 }
 
 ///Tries to convert a Felt252 value to u32
 pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
     felt.to_u32()
-        .ok_or_else(|| MathError::Felt252ToU32Conversion(Box::new(felt.clone())))
+        .ok_or_else(|| MathError::Felt252ToU32Conversion(Box::new(*felt)))
 }
 
 fn get_offset_value_reference(
@@ -196,13 +197,13 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
-        hint_ref.offset1 = OffsetValue::Immediate(Felt252::new(2));
+        hint_ref.offset1 = OffsetValue::Immediate(Felt252::from(2));
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
                 .expect("Unexpected get integer fail")
                 .into_owned(),
-            Felt252::new(2)
+            Felt252::from(2)
         );
     }
 
@@ -286,7 +287,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false);
-        hint_reference.offset1 = OffsetValue::Immediate(Felt252::new(2_i32));
+        hint_reference.offset1 = OffsetValue::Immediate(Felt252::from(2_i32));
 
         assert!(compute_addr_from_reference(&hint_reference, &vm, &ApTracking::new()).is_none());
     }

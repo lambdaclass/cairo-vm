@@ -49,7 +49,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
 
-    use felt::Felt252;
+    use crate::Felt252;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -75,7 +75,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
                 .unwrap()
                 .as_ref(),
-            &Felt252::new(10)
+            &Felt252::from(10)
         );
     }
 

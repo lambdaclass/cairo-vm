@@ -13,6 +13,7 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div_usize,
@@ -48,7 +49,6 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
@@ -142,18 +142,25 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    proof_mode: bool,
+    runner_mode: RunnerMode,
     pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum RunnerMode {
+    ExecutionMode,
+    ProofModeCanonical,
+    ProofModeCairo1,
+}
+
 impl CairoRunner {
-    pub fn new(
+    pub fn new_v2(
         program: &Program,
         layout: &str,
-        proof_mode: bool,
+        mode: RunnerMode,
     ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout {
             "plain" => CairoLayout::plain_instance(),
@@ -183,13 +190,29 @@ impl CairoRunner {
             initial_pc: None,
             run_ended: false,
             segments_finalized: false,
-            proof_mode,
+            runner_mode: mode.clone(),
             original_steps: None,
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: if proof_mode { Some(Vec::new()) } else { None },
+            execution_public_memory: if mode != RunnerMode::ExecutionMode {
+                Some(Vec::new())
+            } else {
+                None
+            },
             relocated_trace: None,
         })
+    }
+
+    pub fn new(
+        program: &Program,
+        layout: &str,
+        proof_mode: bool,
+    ) -> Result<CairoRunner, RunnerError> {
+        if proof_mode {
+            Self::new_v2(program, layout, RunnerMode::ProofModeCanonical)
+        } else {
+            Self::new_v2(program, layout, RunnerMode::ExecutionMode)
+        }
     }
 
     pub fn initialize(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, RunnerError> {
@@ -219,21 +242,21 @@ impl CairoRunner {
 
         if self.layout.builtins.output {
             let included = program_builtins.remove(&BuiltinName::output);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(OutputBuiltinRunner::new(included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
             let included = program_builtins.remove(&BuiltinName::pedersen);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(HashBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
             let included = program_builtins.remove(&BuiltinName::range_check);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(
                     RangeCheckBuiltinRunner::new(
                         instance_def.ratio,
@@ -247,35 +270,35 @@ impl CairoRunner {
 
         if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ecdsa);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(SignatureBuiltinRunner::new(instance_def, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = program_builtins.remove(&BuiltinName::bitwise);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(BitwiseBuiltinRunner::new(instance_def, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ec_op);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(EcOpBuiltinRunner::new(instance_def, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
             let included = program_builtins.remove(&BuiltinName::keccak);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners.push(KeccakBuiltinRunner::new(instance_def, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.poseidon.as_ref() {
             let included = program_builtins.remove(&BuiltinName::poseidon);
-            if included || self.proof_mode {
+            if included || self.is_proof_mode() {
                 builtin_runners
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
             }
@@ -289,6 +312,11 @@ impl CairoRunner {
 
         vm.builtin_runners = builtin_runners;
         Ok(())
+    }
+
+    fn is_proof_mode(&self) -> bool {
+        self.runner_mode == RunnerMode::ProofModeCanonical
+            || self.runner_mode == RunnerMode::ProofModeCairo1
     }
 
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
@@ -437,44 +465,77 @@ impl CairoRunner {
     }
 
     ///Initializes state for running a program from the main() entrypoint.
-    ///If self.proof_mode == True, the execution starts from the start label rather then the main() function.
+    ///If self.is_proof_mode() == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.
     fn initialize_main_entrypoint(
         &mut self,
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
+
         for builtin_runner in vm.builtin_runners.iter() {
             stack.append(&mut builtin_runner.initial_stack());
         }
-        //Different process if proof_mode is enabled
-        if self.proof_mode {
-            // Add the dummy last fp and pc to the public memory, so that the verifier can enforce [fp - 2] = fp.
-            let mut stack_prefix = vec![
-                Into::<MaybeRelocatable>::into(
-                    self.execution_base
-                        .as_ref()
-                        .ok_or(RunnerError::NoExecBase)?
-                        + 2,
-                ),
-                MaybeRelocatable::from(Felt252::zero()),
-            ];
-            stack_prefix.extend(stack);
-            self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
-            self.initialize_state(
-                vm,
-                self.program
-                    .shared_program_data
-                    .start
-                    .ok_or(RunnerError::NoProgramStart)?,
-                stack_prefix,
-            )?;
+
+        if self.is_proof_mode() {
+            // In canonical proof mode, add the dummy last fp and pc to the public memory, so that the verifier can enforce
+
+            // canonical offset should be 2 for Cairo 0
+            let mut target_offset = 2;
+
+            // Cairo1 is not adding data to check [fp - 2] = fp, and has a different initialization of the stack. This should be updated.
+            // Cairo0 remains canonical
+
+            if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
+                target_offset = stack.len() + 2;
+
+                // This values shouldn't be needed with a canonical proof mode
+                let return_fp = vm.segments.add();
+                let end = vm.segments.add();
+                stack.append(&mut vec![
+                    MaybeRelocatable::RelocatableValue(return_fp),
+                    MaybeRelocatable::RelocatableValue(end),
+                ]);
+
+                self.initialize_state(
+                    vm,
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack,
+                )?;
+            } else {
+                let mut stack_prefix = vec![
+                    Into::<MaybeRelocatable>::into(
+                        self.execution_base
+                            .as_ref()
+                            .ok_or(RunnerError::NoExecBase)?
+                            + target_offset,
+                    ),
+                    MaybeRelocatable::from(Felt252::zero()),
+                ];
+                stack_prefix.extend(stack.clone());
+
+                self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
+
+                self.initialize_state(
+                    vm,
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack_prefix.clone(),
+                )?;
+            }
+
             self.initial_fp = Some(
                 self.execution_base
                     .as_ref()
                     .ok_or(RunnerError::NoExecBase)?
-                    + 2,
+                    + target_offset,
             );
+
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
                 + self
@@ -483,6 +544,7 @@ impl CairoRunner {
                     .end
                     .ok_or(RunnerError::NoProgramEnd)?);
         }
+
         let return_fp = vm.segments.add();
         if let Some(main) = &self.entrypoint {
             let main_clone = *main;
@@ -585,6 +647,7 @@ impl CairoRunner {
                 &mut hint_ranges,
                 &self.program.constants,
             )?;
+
             hint_processor.consume_step();
         }
 
@@ -769,7 +832,7 @@ impl CairoRunner {
         }
 
         vm.segments.compute_effective_sizes();
-        if self.proof_mode && !disable_trace_padding {
+        if self.is_proof_mode() && !disable_trace_padding {
             self.run_until_next_power_of_2(vm, hint_processor)?;
             loop {
                 match self.check_used_cells(vm) {
@@ -1160,7 +1223,7 @@ impl CairoRunner {
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        if self.proof_mode {
+        if self.is_proof_mode() {
             let exec_base = *self
                 .execution_base
                 .as_ref()
@@ -1456,6 +1519,7 @@ mod tests {
     };
     use crate::vm::vm_memory::memory::MemoryCell;
 
+    use crate::felt_hex;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
@@ -1465,8 +1529,6 @@ mod tests {
         vm::trace::trace_entry::TraceEntry,
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -1665,8 +1727,8 @@ mod tests {
             offset: 0,
         });
         let stack = vec![
-            MaybeRelocatable::from(Felt252::new(4_i32)),
-            MaybeRelocatable::from(Felt252::new(6_i32)),
+            MaybeRelocatable::from(Felt252::from(4_i32)),
+            MaybeRelocatable::from(Felt252::from(6_i32)),
         ];
         assert!(cairo_runner.initialize_state(&mut vm, 1, stack).is_err());
     }
@@ -1683,8 +1745,8 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(1, 0));
         let stack = vec![
-            MaybeRelocatable::from(Felt252::new(4_i32)),
-            MaybeRelocatable::from(Felt252::new(6_i32)),
+            MaybeRelocatable::from(Felt252::from(4_i32)),
+            MaybeRelocatable::from(Felt252::from(6_i32)),
         ];
         cairo_runner.initialize_state(&mut vm, 1, stack).unwrap();
     }
@@ -1702,7 +1764,7 @@ mod tests {
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
         let stack = Vec::new();
-        let return_fp = MaybeRelocatable::from(Felt252::new(9_i32));
+        let return_fp = MaybeRelocatable::from(Felt252::from(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 0, stack, return_fp)
             .unwrap();
@@ -1723,8 +1785,8 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
-        let stack = vec![MaybeRelocatable::from(Felt252::new(7_i32))];
-        let return_fp = MaybeRelocatable::from(Felt252::new(9_i32));
+        let stack = vec![MaybeRelocatable::from(Felt252::from(7_i32))];
+        let return_fp = MaybeRelocatable::from(Felt252::from(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 1, stack, return_fp)
             .unwrap();
@@ -1745,8 +1807,8 @@ mod tests {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let stack = vec![MaybeRelocatable::from(Felt252::new(7_i32))];
-        let return_fp = MaybeRelocatable::from(Felt252::new(9_i32));
+        let stack = vec![MaybeRelocatable::from(Felt252::from(7_i32))];
+        let return_fp = MaybeRelocatable::from(Felt252::from(9_i32));
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 1, stack, return_fp)
             .unwrap();
@@ -2595,21 +2657,21 @@ mod tests {
             .memory
             .insert(
                 Relocatable::from((0, 0)),
-                &MaybeRelocatable::from(Felt252::new(4613515612218425347_i64)),
+                &MaybeRelocatable::from(Felt252::from(4613515612218425347_i64)),
             )
             .unwrap();
         vm.segments
             .memory
             .insert(
                 Relocatable::from((0, 1)),
-                &MaybeRelocatable::from(Felt252::new(5)),
+                &MaybeRelocatable::from(Felt252::from(5)),
             )
             .unwrap();
         vm.segments
             .memory
             .insert(
                 Relocatable::from((0, 2)),
-                &MaybeRelocatable::from(Felt252::new(2345108766317314046_i64)),
+                &MaybeRelocatable::from(Felt252::from(2345108766317314046_i64)),
             )
             .unwrap();
         vm.segments
@@ -2624,7 +2686,7 @@ mod tests {
             .memory
             .insert(
                 Relocatable::from((1, 5)),
-                &MaybeRelocatable::from(Felt252::new(5)),
+                &MaybeRelocatable::from(Felt252::from(5)),
             )
             .unwrap();
         vm.segments.compute_effective_sizes();
@@ -2636,19 +2698,19 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(Felt252::new(4613515612218425347_i64))
+            Some(Felt252::from(4613515612218425347_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(5)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(5)));
         assert_eq!(
             cairo_runner.relocated_memory[3],
-            Some(Felt252::new(2345108766317314046_i64))
+            Some(Felt252::from(2345108766317314046_i64))
         );
-        assert_eq!(cairo_runner.relocated_memory[4], Some(Felt252::new(10)));
-        assert_eq!(cairo_runner.relocated_memory[5], Some(Felt252::new(10)));
+        assert_eq!(cairo_runner.relocated_memory[4], Some(Felt252::from(10)));
+        assert_eq!(cairo_runner.relocated_memory[5], Some(Felt252::from(10)));
         assert_eq!(cairo_runner.relocated_memory[6], None);
         assert_eq!(cairo_runner.relocated_memory[7], None);
         assert_eq!(cairo_runner.relocated_memory[8], None);
-        assert_eq!(cairo_runner.relocated_memory[9], Some(Felt252::new(5)));
+        assert_eq!(cairo_runner.relocated_memory[9], Some(Felt252::from(5)));
     }
 
     #[test]
@@ -2742,72 +2804,72 @@ mod tests {
         assert_eq!(cairo_runner.relocated_memory[0], None);
         assert_eq!(
             cairo_runner.relocated_memory[1],
-            Some(Felt252::new(4612671182993129469_i64))
+            Some(Felt252::from(4612671182993129469_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[2],
-            Some(Felt252::new(5198983563776393216_i64))
+            Some(Felt252::from(5198983563776393216_u64))
         );
-        assert_eq!(cairo_runner.relocated_memory[3], Some(Felt252::one()));
+        assert_eq!(cairo_runner.relocated_memory[3], Some(Felt252::ONE));
         assert_eq!(
             cairo_runner.relocated_memory[4],
-            Some(Felt252::new(2345108766317314046_i64))
+            Some(Felt252::from(2345108766317314046_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[5],
-            Some(Felt252::new(5191102247248822272_i64))
+            Some(Felt252::from(5191102247248822272_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[6],
-            Some(Felt252::new(5189976364521848832_i64))
+            Some(Felt252::from(5189976364521848832_u64))
         );
-        assert_eq!(cairo_runner.relocated_memory[7], Some(Felt252::one()));
+        assert_eq!(cairo_runner.relocated_memory[7], Some(Felt252::ONE));
         assert_eq!(
             cairo_runner.relocated_memory[8],
-            Some(Felt252::new(1226245742482522112_i64))
+            Some(Felt252::from(1226245742482522112_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[9],
-            Some(felt_str!(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020474"
+            Some(felt_hex!(
+                "0x800000000000010fffffffffffffffffffffffffffffffffffffffffffffffa"
             ))
         );
         assert_eq!(
             cairo_runner.relocated_memory[10],
-            Some(Felt252::new(5189976364521848832_i64))
+            Some(Felt252::from(5189976364521848832_u64))
         );
-        assert_eq!(cairo_runner.relocated_memory[11], Some(Felt252::new(17)));
+        assert_eq!(cairo_runner.relocated_memory[11], Some(Felt252::from(17)));
         assert_eq!(
             cairo_runner.relocated_memory[12],
-            Some(Felt252::new(1226245742482522112_i64))
+            Some(Felt252::from(1226245742482522112_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[13],
-            Some(felt_str!(
-                "3618502788666131213697322783095070105623107215331596699973092056135872020470"
+            Some(felt_hex!(
+                "0x800000000000010fffffffffffffffffffffffffffffffffffffffffffffff6"
             ))
         );
         assert_eq!(
             cairo_runner.relocated_memory[14],
-            Some(Felt252::new(2345108766317314046_i64))
+            Some(Felt252::from(2345108766317314046_u64))
         );
         assert_eq!(
             cairo_runner.relocated_memory[15],
-            Some(Felt252::new(27_i32))
+            Some(Felt252::from(27_u64))
         );
-        assert_eq!(cairo_runner.relocated_memory[16], Some(Felt252::new(29)));
-        assert_eq!(cairo_runner.relocated_memory[17], Some(Felt252::new(29)));
-        assert_eq!(cairo_runner.relocated_memory[18], Some(Felt252::new(27)));
-        assert_eq!(cairo_runner.relocated_memory[19], Some(Felt252::one()));
-        assert_eq!(cairo_runner.relocated_memory[20], Some(Felt252::new(18)));
-        assert_eq!(cairo_runner.relocated_memory[21], Some(Felt252::new(10)));
-        assert_eq!(cairo_runner.relocated_memory[22], Some(Felt252::new(28)));
-        assert_eq!(cairo_runner.relocated_memory[23], Some(Felt252::new(17)));
-        assert_eq!(cairo_runner.relocated_memory[24], Some(Felt252::new(18)));
-        assert_eq!(cairo_runner.relocated_memory[25], Some(Felt252::new(14)));
-        assert_eq!(cairo_runner.relocated_memory[26], Some(Felt252::new(29)));
-        assert_eq!(cairo_runner.relocated_memory[27], Some(Felt252::one()));
-        assert_eq!(cairo_runner.relocated_memory[28], Some(Felt252::new(17)));
+        assert_eq!(cairo_runner.relocated_memory[16], Some(Felt252::from(29)));
+        assert_eq!(cairo_runner.relocated_memory[17], Some(Felt252::from(29)));
+        assert_eq!(cairo_runner.relocated_memory[18], Some(Felt252::from(27)));
+        assert_eq!(cairo_runner.relocated_memory[19], Some(Felt252::ONE));
+        assert_eq!(cairo_runner.relocated_memory[20], Some(Felt252::from(18)));
+        assert_eq!(cairo_runner.relocated_memory[21], Some(Felt252::from(10)));
+        assert_eq!(cairo_runner.relocated_memory[22], Some(Felt252::from(28)));
+        assert_eq!(cairo_runner.relocated_memory[23], Some(Felt252::from(17)));
+        assert_eq!(cairo_runner.relocated_memory[24], Some(Felt252::from(18)));
+        assert_eq!(cairo_runner.relocated_memory[25], Some(Felt252::from(14)));
+        assert_eq!(cairo_runner.relocated_memory[26], Some(Felt252::from(29)));
+        assert_eq!(cairo_runner.relocated_memory[27], Some(Felt252::ONE));
+        assert_eq!(cairo_runner.relocated_memory[28], Some(Felt252::from(17)));
     }
 
     #[test]
@@ -3466,8 +3528,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_constants() {
         let program_constants = HashMap::from([
-            ("MAX".to_string(), Felt252::new(300)),
-            ("MIN".to_string(), Felt252::new(20)),
+            ("MAX".to_string(), Felt252::from(300)),
+            ("MIN".to_string(), Felt252::from(20)),
         ]);
         let program = program!(constants = program_constants.clone(),);
         let cairo_runner = cairo_runner!(program);
@@ -3850,7 +3912,7 @@ mod tests {
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
-        cairo_runner.proof_mode = true;
+        cairo_runner.runner_mode = RunnerMode::ProofModeCanonical;
         cairo_runner.program_base = Some(Relocatable::from((0, 0)));
         cairo_runner.run_ended = true;
         let mut vm = vm!();
@@ -3975,9 +4037,9 @@ mod tests {
 
         vm.segments.memory.data = vec![
             vec![
-                Some(MemoryCell::new(Felt252::new(0x8000_8023_8012u64).into())),
-                Some(MemoryCell::new(Felt252::new(0xBFFF_8000_0620u64).into())),
-                Some(MemoryCell::new(Felt252::new(0x8FFF_8000_0750u64).into())),
+                Some(MemoryCell::new(Felt252::from(0x8000_8023_8012u64).into())),
+                Some(MemoryCell::new(Felt252::from(0xBFFF_8000_0620u64).into())),
+                Some(MemoryCell::new(Felt252::from(0x8FFF_8000_0750u64).into())),
             ],
             vec![Some(MemoryCell::new((0isize, 0usize).into())); 128 * 1024],
         ];
@@ -4100,7 +4162,7 @@ mod tests {
         }
         cairo_runner.program_base = Some(relocatable!(0, 0));
         cairo_runner.execution_base = Some(relocatable!(1, 0));
-        let return_fp = Felt252::new(9_i32).into();
+        let return_fp = Felt252::from(9_i32).into();
         cairo_runner
             .initialize_function_entrypoint(&mut vm, 0, vec![], return_fp)
             .unwrap();
@@ -4399,7 +4461,7 @@ mod tests {
     fn initialize_main_entrypoint_proof_mode_empty_program() {
         let program = program!(start = Some(0), end = Some(0), main = Some(8),);
         let mut runner = cairo_runner!(program);
-        runner.proof_mode = true;
+        runner.runner_mode = RunnerMode::ProofModeCanonical;
         let mut vm = vm!();
         runner.initialize_segments(&mut vm, None);
         assert_eq!(runner.execution_base, Some(Relocatable::from((1, 0))));
@@ -4423,7 +4485,7 @@ mod tests {
             builtins = vec![BuiltinName::output, BuiltinName::ec_op],
         );
         let mut runner = cairo_runner!(program);
-        runner.proof_mode = true;
+        runner.runner_mode = RunnerMode::ProofModeCanonical;
         let mut vm = vm!();
         runner.initialize_builtins(&mut vm).unwrap();
         runner.initialize_segments(&mut vm, None);

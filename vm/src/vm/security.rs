@@ -91,10 +91,9 @@ mod test {
 
     use crate::types::relocatable::Relocatable;
 
+    use crate::Felt252;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use felt::Felt252;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -207,10 +206,10 @@ mod test {
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
@@ -235,10 +234,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_properly_relocated() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
@@ -263,10 +262,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_not_fully_relocated() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
