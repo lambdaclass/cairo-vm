@@ -320,7 +320,7 @@ mod tests {
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
-    use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
