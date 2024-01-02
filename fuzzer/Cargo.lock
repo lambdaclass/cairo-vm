@@ -413,8 +413,10 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "540c0715d7da472edc421ceca702d3f3a716b3b9168b6211f2e3939cb14c863c"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=55731492f8d919523a692265b1c34e7ca6387a0d#55731492f8d919523a692265b1c34e7ca6387a0d"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "lazy_static"
@@ -904,9 +906,8 @@ dependencies = [
 
 [[package]]
 name = "starknet-types-core"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78b4af540664e3dec02f36a47b79ba4df825a7752bf0941954f69753a98a397e"
+version = "0.0.5"
+source = "git+https://github.com/lambdaclass/types-rs.git?rev=2cdd735eda7d225ce801e8fa62cdf534f960fc04#2cdd735eda7d225ce801e8fa62cdf534f960fc04"
 dependencies = [
  "arbitrary",
  "bitvec",
@@ -957,6 +958,26 @@ name = "target-lexicon"
 version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c39fd04924ca3a864207c66fc2cd7d22d7c016007f9ce846cbb9326331930a"
+
+[[package]]
+name = "thiserror"
+version = "1.0.55"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e3de26b0965292219b4287ff031fcba86837900fe9cd2b34ea8ad893c0953d2"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.55"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "268026685b2be38d7103e9e507c938a1fcb3d7e6eb15e87870b617bf37b6d581"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
+]
 
 [[package]]
 name = "thiserror-impl-no-std"
