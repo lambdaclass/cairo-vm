@@ -1,9 +1,9 @@
 use super::cairo_runner::ExecutionResources;
 use crate::{
-    felt::Felt252,
     serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
     types::relocatable::{MaybeRelocatable, Relocatable},
+    Felt252,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,8 +98,7 @@ pub struct CairoPieVersion {
 
 mod serde_impl {
     use super::CAIRO_PIE_VERSION;
-    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME};
-    use felt::Felt252;
+    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME, Felt252};
     use num_bigint::BigUint;
     use num_traits::Num;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
@@ -187,7 +186,7 @@ mod serde_impl {
                 MaybeRelocatable::Int(data_val) => {
                     let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
                     res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
-                    res.extend_from_slice(data_val.to_le_bytes().as_ref());
+                    res.extend_from_slice(data_val.to_bytes_le().as_ref());
                 }
             };
         }

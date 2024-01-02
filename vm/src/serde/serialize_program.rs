@@ -3,7 +3,6 @@ use crate::stdlib::{
     prelude::*,
 };
 
-use felt::Felt252;
 use serde::{Deserialize, Serialize};
 
 use super::deserialize_program::{
@@ -12,6 +11,7 @@ use super::deserialize_program::{
 };
 use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 // This struct is used to Serialize and Deserialize a Program struct
 // Their fields are equal to the ProgramJson

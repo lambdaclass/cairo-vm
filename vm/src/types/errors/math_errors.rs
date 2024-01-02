@@ -2,9 +2,8 @@
 #![allow(clippy::explicit_auto_deref)]
 
 use crate::stdlib::boxed::Box;
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
-
 use thiserror_no_std::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -60,6 +59,8 @@ pub enum MathError {
     Felt252ToUsizeConversion(Box<Felt252>),
     #[error("Conversion to u64 failed for Felt252 {0}")]
     Felt252ToU64Conversion(Box<Felt252>),
+    #[error("Byte conversion error")]
+    ByteConversionError,
     #[error(
         "Operation failed: divmod({}, {}, {}), igcdex({}, {}) != 1 ", (*.0).0, (*.0).1, (*.0).2, (*.0).1, (*.0).2
     )]

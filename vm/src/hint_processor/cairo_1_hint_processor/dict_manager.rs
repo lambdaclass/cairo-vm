@@ -1,9 +1,10 @@
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::*;
 use num_traits::One;
 
-use crate::felt::Felt252;
+use crate::stdlib::collections::HashMap;
+use crate::stdlib::prelude::*;
+
 use crate::vm::errors::hint_errors::HintError;
+use crate::Felt252;
 use crate::{types::relocatable::Relocatable, vm::vm_core::VirtualMachine};
 
 /// Stores the data of a specific dictionary.
