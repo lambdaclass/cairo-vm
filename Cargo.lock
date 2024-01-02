@@ -1506,8 +1506,10 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "540c0715d7da472edc421ceca702d3f3a716b3b9168b6211f2e3939cb14c863c"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=55731492f8d919523a692265b1c34e7ca6387a0d#55731492f8d919523a692265b1c34e7ca6387a0d"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "lazy_static"
@@ -2451,8 +2453,6 @@ dependencies = [
 [[package]]
 name = "starknet-types-core"
 version = "0.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2441eb61d91a6bae832fda48e50b6ff09faa6cf63bfadd22dc16798d2cc024d"
 dependencies = [
  "arbitrary",
  "bitvec",

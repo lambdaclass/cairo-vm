@@ -1,11 +1,10 @@
-use crate::math_utils::{ec_add, ec_double};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::utils::{bigint_to_felt, felt_to_bigint, CAIRO_PRIME};
+use crate::utils::{felt_to_bigint, CAIRO_PRIME};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
@@ -14,6 +13,7 @@ use crate::Felt252;
 use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
 use num_traits::{One, Zero};
+use starknet_types_core::curve::ProjectivePoint;
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -65,15 +65,14 @@ impl EcOpBuiltinRunner {
         alpha: &BigInt,
         prime: &BigInt,
         height: u32,
-    ) -> Result<(BigInt, BigInt), RunnerError> {
+    ) -> Result<(Felt252, Felt252), RunnerError> {
         let mut slope = felt_to_bigint(*m);
-        let mut partial_sum_b = (felt_to_bigint(partial_sum.0), felt_to_bigint(partial_sum.1));
-        let mut doubled_point_b = (
-            felt_to_bigint(doubled_point.0),
-            felt_to_bigint(doubled_point.1),
-        );
+        let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
+            .map_err(|_| RunnerError::InvalidPoint)?;
+        let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
+            .map_err(|_| RunnerError::InvalidPoint)?;
         for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+            if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(
                     Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
@@ -81,12 +80,15 @@ impl EcOpBuiltinRunner {
                 ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
+                partial_sum_b += &doubled_point_b;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
+            doubled_point_b = doubled_point_b.double();
             slope = slope.clone() >> 1_u32;
         }
-        Ok(partial_sum_b)
+        partial_sum_b
+            .to_affine()
+            .map(|p| (p.x(), p.y()))
+            .map_err(|_| RunnerError::InvalidPoint)
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
@@ -189,7 +191,6 @@ impl EcOpBuiltinRunner {
             &prime,
             self.ec_op_builtin.scalar_height,
         )?;
-        let result = (bigint_to_felt(&result.0)?, bigint_to_felt(&result.1)?);
         self.cache.borrow_mut().insert(x_addr, result.0);
         self.cache.borrow_mut().insert(
             (x_addr + 1usize)
@@ -259,10 +260,12 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn format_ec_op_error(
-        p: (num_bigint::BigInt, num_bigint::BigInt),
+        p: ProjectivePoint,
         m: num_bigint::BigInt,
-        q: (num_bigint::BigInt, num_bigint::BigInt),
+        q: ProjectivePoint,
     ) -> String {
+        let p = p.to_affine().map(|p| (p.x(), p.y())).unwrap_or_default();
+        let q = q.to_affine().map(|q| (q.x(), q.y())).unwrap_or_default();
         format!("Cannot apply EC operation: computation reached two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {p:?} \n
@@ -556,10 +559,10 @@ mod tests {
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                bigint_str!(
+                felt_str!(
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ))
@@ -586,10 +589,10 @@ mod tests {
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
-                bigint_str!(
+                felt_str!(
                     "3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             ))
@@ -612,12 +615,9 @@ mod tests {
             result,
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
-                    (felt_to_bigint(partial_sum.0), felt_to_bigint(partial_sum.1)),
+                    ProjectivePoint::from_affine(partial_sum.0, partial_sum.1).unwrap(),
                     felt_to_bigint(m),
-                    (
-                        felt_to_bigint(doubled_point.0),
-                        felt_to_bigint(doubled_point.1)
-                    )
+                    ProjectivePoint::from_affine(doubled_point.0, doubled_point.1).unwrap(),
                 )
                 .into_boxed_str()
             ))
