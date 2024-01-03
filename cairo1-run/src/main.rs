@@ -237,8 +237,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         entry_code.iter(),
         program_instructions,
         libfunc_footer.iter()
-    )
-    .into_iter();
+    );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
