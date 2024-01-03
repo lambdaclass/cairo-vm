@@ -1,4 +1,3 @@
-use crate::math_utils::{ec_add, ec_double};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
@@ -10,11 +9,53 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use felt::Felt252;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign};
 use num_integer::{div_ceil, Integer};
-use num_traits::{Num, One, Pow, Zero};
+use num_traits::{One, Pow, Zero};
+
+use starknet_crypto::FieldElement;
+use starknet_curve::{AffinePoint, ProjectivePoint};
 
 use super::EC_OP_BUILTIN_NAME;
+
+/// Converts [Felt252] to [FieldElement].
+fn felt252_to_field_element(felt252: &Felt252) -> FieldElement {
+    FieldElement::from_bytes_be(&felt252.to_be_bytes())
+        .expect("Failed to convert Felt252 to FieldElement.")
+}
+
+/// Converts [FieldElement] to [BigInt].
+fn field_element_to_bigint(felt: &FieldElement) -> BigInt {
+    BigInt::from_bytes_be(Sign::Plus, &felt.to_bytes_be())
+}
+
+/// Constructs a non-zero [ProjectivePoint] from the `(x, y)` coordinates.
+fn felt252_to_projective_point(pt: &(Felt252, Felt252)) -> ProjectivePoint {
+    ProjectivePoint::from_affine_point(&AffinePoint {
+        x: felt252_to_field_element(&pt.0),
+        y: felt252_to_field_element(&pt.1),
+        infinity: false,
+    })
+}
+
+/// Takes a [ProjectivePoint] and returns the `(x, y)` coordinates.
+fn projective_point_to_coords(pt_proj: ProjectivePoint) -> Option<(BigInt, BigInt)> {
+    let pt_affine = AffinePoint::from(&pt_proj);
+    if pt_affine.infinity {
+        None
+    } else {
+        Some((
+            field_element_to_bigint(&pt_affine.x),
+            field_element_to_bigint(&pt_affine.y),
+        ))
+    }
+}
+
+/// Takes a non-zero [ProjectivePoint] and returns the `(x, y)` coordinates.
+/// Fails if the point is zero.
+fn nonzero_projective_point_to_coords(pt_proj: ProjectivePoint) -> (BigInt, BigInt) {
+    projective_point_to_coords(pt_proj).expect("Internal error: got the zero point.")
+}
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
@@ -61,28 +102,33 @@ impl EcOpBuiltinRunner {
         partial_sum: (Felt252, Felt252),
         doubled_point: (Felt252, Felt252),
         m: &Felt252,
-        alpha: &BigInt,
-        prime: &BigInt,
         height: u32,
     ) -> Result<(BigInt, BigInt), RunnerError> {
         let mut slope = m.to_bigint();
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
+        let mut partial_sum_proj = felt252_to_projective_point(&partial_sum);
+        let mut doubled_point_proj = felt252_to_projective_point(&doubled_point);
+
         for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
+            let is_equal = partial_sum_proj.x * doubled_point_proj.z
+                == partial_sum_proj.z * doubled_point_proj.x;
+            if is_equal {
                 #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(
-                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b)
-                        .into_boxed_str(),
+                    Self::format_ec_op_error(
+                        nonzero_projective_point_to_coords(partial_sum_proj),
+                        m.clone().to_bigint(),
+                        nonzero_projective_point_to_coords(doubled_point_proj),
+                    )
+                    .into_boxed_str(),
                 ));
             };
             if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
+                partial_sum_proj += &doubled_point_proj;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
+            doubled_point_proj.double_assign();
             slope = slope.clone() >> 1_u32;
         }
-        Ok(partial_sum_b)
+        Ok(nonzero_projective_point_to_coords(partial_sum_proj))
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
@@ -175,15 +221,11 @@ impl EcOpBuiltinRunner {
                 ))));
             };
         }
-        let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
-            .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
             input_cells[4],
             #[allow(deprecated)]
-            &alpha.to_bigint(),
-            &prime,
             self.ec_op_builtin.scalar_height,
         )?;
         self.cache
@@ -277,7 +319,7 @@ mod tests {
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
-    use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -579,11 +621,8 @@ mod tests {
             ),
         );
         let m = Felt252::new(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
@@ -617,11 +656,8 @@ mod tests {
             ),
         );
         let m = Felt252::new(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
@@ -642,17 +678,9 @@ mod tests {
         let partial_sum = (Felt252::one(), Felt252::new(9));
         let doubled_point = (Felt252::one(), Felt252::new(12));
         let m = Felt252::new(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result = EcOpBuiltinRunner::ec_op_impl(
-            partial_sum.clone(),
-            doubled_point.clone(),
-            &m,
-            &alpha,
-            &prime,
-            height,
-        );
+        let result =
+            EcOpBuiltinRunner::ec_op_impl(partial_sum.clone(), doubled_point.clone(), &m, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(

@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Change ec_op_impl() to use ProjectivePoint [#1531](https://github.com/lambdaclass/cairo-vm/pull/1531)
+
 #### [0.9.1] - 2023-11-16
 
 * chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482), [#1483](https://github.com/lambdaclass/cairo-vm/pull/1483)
