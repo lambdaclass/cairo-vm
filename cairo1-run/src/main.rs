@@ -531,7 +531,7 @@ fn create_entry_code(
             let mut offset = *offset;
             if proof_mode {
                 // Everything is off by 2 due to the proof mode header
-                offset = offset + 2;
+                offset += 2;
             }
             casm_extend! {ctx,
                 [ap + 0] = [fp - offset], ap++;
