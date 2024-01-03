@@ -743,6 +743,7 @@ dependencies = [
  "sha2",
  "sha3",
  "starknet-crypto",
+ "starknet-curve 0.4.0",
  "thiserror-no-std",
  "wasm-bindgen-test",
 ]
