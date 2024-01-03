@@ -1,5 +1,7 @@
 ## Cairo-VM Changelog
 
+### [0.8.4-rc.0]
+
 Change ec_op_impl() to use ProjectivePoint [#1531](https://github.com/lambdaclass/cairo-vm/pull/1531)
 
 ### [0.8.3] - 2023-12-10
