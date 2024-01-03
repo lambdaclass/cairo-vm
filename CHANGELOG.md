@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* Change ec_op_impl() to use ProjectivePoint [#1531](https://github.com/lambdaclass/cairo-vm/pull/1531)
+* Change ec_op_impl() to use ProjectivePoint [#1534](https://github.com/lambdaclass/cairo-vm/pull/1534)
 
 #### [0.9.1] - 2023-11-16
 
