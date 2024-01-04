@@ -7,6 +7,11 @@ STARKNET_SIERRA_COMPILE_CAIRO_1:=cairo1/bin/starknet-sierra-compile
 STARKNET_COMPILE_CAIRO_2:=cairo2/bin/starknet-compile
 STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 
+ifndef PROPTEST_CASES
+	PROPTEST_CASES:=10
+	export PROPTEST_CASES
+endif
+
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
 	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
 	compare_benchmarks_deps compare_benchmarks docs clean \
