@@ -9,9 +9,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
-use num_bigint::BigInt;
 use num_integer::{div_ceil, Integer};
-use num_traits::{One, Zero};
 use starknet_types_core::curve::ProjectivePoint;
 
 use super::EC_OP_BUILTIN_NAME;
@@ -62,23 +60,22 @@ impl EcOpBuiltinRunner {
         m: &Felt252,
         height: u32,
     ) -> Result<(Felt252, Felt252), RunnerError> {
-        let mut slope = m.to_bigint();
+        let slope = m.to_biguint();
         let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
         let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
-        for _ in 0..height {
+        for i in 0..(Into::<u64>::into(height)).min(slope.bits()) {
             if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 return Err(RunnerError::EcOpSameXCoordinate(
                     Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
                         .into_boxed_str(),
                 ));
             };
-            if !(slope.clone() & &BigInt::one()).is_zero() {
+            if slope.bit(i) {
                 partial_sum_b += &doubled_point_b;
             }
             doubled_point_b = doubled_point_b.double();
-            slope = slope.clone() >> 1_u32;
         }
         partial_sum_b
             .to_affine()
@@ -252,7 +249,7 @@ impl EcOpBuiltinRunner {
 
     pub fn format_ec_op_error(
         p: ProjectivePoint,
-        m: num_bigint::BigInt,
+        m: num_bigint::BigUint,
         q: ProjectivePoint,
     ) -> String {
         let p = p.to_affine().map(|p| (p.x(), p.y())).unwrap_or_default();
@@ -603,7 +600,7 @@ mod tests {
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
                     ProjectivePoint::from_affine(partial_sum.0, partial_sum.1).unwrap(),
-                    m.to_bigint(),
+                    m.to_biguint(),
                     ProjectivePoint::from_affine(doubled_point.0, doubled_point.1).unwrap(),
                 )
                 .into_boxed_str()
