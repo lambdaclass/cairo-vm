@@ -62,7 +62,7 @@ hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
 # FIXME: Update after release
-starknet-types-core = { git = "https://github.com/lambdaclass/types-rs.git", rev = "2cdd735eda7d225ce801e8fa62cdf534f960fc04", default-features = false, features = ["serde", "curve", "num-traits"] }
+starknet-types-core = { version = "0.0.6", default-features = false, features = ["serde", "curve", "num-traits"] }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
