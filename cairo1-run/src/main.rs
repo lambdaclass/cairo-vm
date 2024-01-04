@@ -299,7 +299,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let mut runner = CairoRunner::new_v2(&program, &args.layout, runner_mode)?;
 
-    let mut vm = VirtualMachine::new(args.trace_file.is_some());
+    let mut vm = VirtualMachine::new(args.trace_file.is_some() || args.air_public_input.is_some());
     let end = runner.initialize(&mut vm)?;
 
     additional_initialization(&mut vm, data_len)?;
