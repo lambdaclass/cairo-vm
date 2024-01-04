@@ -355,8 +355,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         }
     }
 
-    // Set stop pointers for builtins
-    if args.proof_mode {
+    // Set stop pointers for builtins so we can obtain the air public input
+    if args.air_public_input.is_some() {
         let ret_types_sizes = main_func
             .signature
             .ret_types
@@ -367,9 +367,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             .ret_types
             .iter()
             .zip(ret_types_sizes.clone());
+
         let full_ret_types_size: i16 = ret_types_sizes.sum();
         let mut stack_pointer = (vm.get_ap() - (full_ret_types_size - 1) as usize)
             .map_err(VirtualMachineError::Math)?;
+
+        // Calculate the stack_ptr for each return value as if it were a builtin
+        let mut builtin_name_to_stack_pointer = HashMap::new();
         for (id, size) in ret_types_and_sizes {
             if let Some(ref name) = id.debug_name {
                 let mut builtin_name = name.to_lowercase();
@@ -377,21 +381,20 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                     builtin_name = "range_check".to_string();
                 }
                 builtin_name = format!("{}_builtin", builtin_name.to_lowercase());
-                if let Some(builtin) = vm
-                    .builtin_runners
-                    .iter_mut()
-                    .find(|b| dbg!(b.name()) == dbg!(&builtin_name))
-                {
-                    // Fetch pointer from vm_ret_values
-                    builtin.final_stack(&vm.segments, stack_pointer)?;
-                }
+                builtin_name_to_stack_pointer.insert(builtin_name, stack_pointer);
             }
             stack_pointer.offset += size as usize;
         }
-        // Set stop pointer for builtins that are not included
-        // for builtin in vm.get_builtin_runners_as_mut() {
-        //     if builtin.include
-        // }
+        // Set stop pointer for each builtin
+        for builtin in vm.builtin_runners.iter_mut() {
+            builtin.final_stack(
+                &vm.segments,
+                builtin_name_to_stack_pointer
+                    .get(builtin.name())
+                    .cloned()
+                    .unwrap_or_default(),
+            )?;
+        }
     }
 
     runner.relocate(&mut vm, true)?;
