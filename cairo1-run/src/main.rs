@@ -369,7 +369,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             .zip(ret_types_sizes.clone());
 
         let full_ret_types_size: i16 = ret_types_sizes.sum();
-        let mut stack_pointer = (vm.get_ap() - (full_ret_types_size - 1) as usize)
+        let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
             .map_err(VirtualMachineError::Math)?;
 
         // Calculate the stack_ptr for each return value as if it were a builtin
