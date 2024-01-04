@@ -14,9 +14,14 @@ use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use crate::Felt252;
+use std::fmt::{Debug, Display};
 
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
+
+pub trait HintProcessorError: Debug + Display {
+    fn as_any(&self) -> &dyn Any;
+}
 
 pub trait HintProcessorLogic {
     // Executes the hint which's data is provided by a dynamic structure previously created by compile_hint

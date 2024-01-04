@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* feat: Add HintError::CustomHintEx [#1540](https://github.com/lambdaclass/cairo-vm/pull/1540)
+    * Add trait `HintProcessorError`.
+    * Add `HintError::CustomHintEx(Box<dyn HintProcessorError>)` that allows wrapping non-string errors.
+
 * feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` (0.0.5) [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
 * feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)

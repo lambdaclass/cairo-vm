@@ -8,6 +8,7 @@ use thiserror_no_std::Error;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
 
+use crate::hint_processor::hint_processor_definition::HintProcessorError;
 use crate::types::{
     errors::math_errors::MathError,
     relocatable::{MaybeRelocatable, Relocatable},
@@ -44,6 +45,8 @@ pub enum HintError {
     WrongIdentifierTypeInternal(Box<Relocatable>),
     #[error("Hint Error: {0}")]
     CustomHint(Box<str>),
+    #[error("Hint Error: {0}")]
+    CustomHintEx(Box<dyn HintProcessorError>),
     #[error("Missing constant: {0}")]
     MissingConstant(Box<&'static str>),
     #[error("Fail to get constants for hint execution")]
