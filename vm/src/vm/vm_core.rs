@@ -78,7 +78,7 @@ impl DeducedOperands {
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
-    pub(crate) builtin_runners: Vec<BuiltinRunner>,
+    pub builtin_runners: Vec<BuiltinRunner>,
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
