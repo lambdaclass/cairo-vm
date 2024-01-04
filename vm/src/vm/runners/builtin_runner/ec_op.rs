@@ -4,7 +4,6 @@ use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::utils::felt_to_bigint;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
@@ -51,7 +50,6 @@ impl EcOpBuiltinRunner {
         y.pow(2_u32) == (x.pow(3_u32) + alpha * x) + beta
     }
 
-    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -64,14 +62,13 @@ impl EcOpBuiltinRunner {
         m: &Felt252,
         height: u32,
     ) -> Result<(Felt252, Felt252), RunnerError> {
-        let mut slope = felt_to_bigint(*m);
+        let mut slope = m.to_bigint();
         let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
         let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
         for _ in 0..height {
             if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
-                #[allow(deprecated)]
                 return Err(RunnerError::EcOpSameXCoordinate(
                     Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
                         .into_boxed_str(),
@@ -183,7 +180,6 @@ impl EcOpBuiltinRunner {
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
             input_cells[4],
-            #[allow(deprecated)]
             self.ec_op_builtin.scalar_height,
         )?;
         self.cache.borrow_mut().insert(x_addr, result.0);
@@ -590,7 +586,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
         let partial_sum = (
             felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
@@ -608,7 +603,7 @@ mod tests {
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
                     ProjectivePoint::from_affine(partial_sum.0, partial_sum.1).unwrap(),
-                    felt_to_bigint(m),
+                    m.to_bigint(),
                     ProjectivePoint::from_affine(doubled_point.0, doubled_point.1).unwrap(),
                 )
                 .into_boxed_str()
