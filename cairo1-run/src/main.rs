@@ -395,6 +395,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                     .unwrap_or_default(),
             )?;
         }
+
+        // Build execution public memory
+        runner.finalize_segments(&mut vm)?;
     }
 
     runner.relocate(&mut vm, true)?;
