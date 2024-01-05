@@ -682,7 +682,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "0.9.1"
+version = "1.0.0-rc0"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "0.9.1"
+version = "1.0.0-rc0"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "0.9.1"
+version = "1.0.0-rc0"
 dependencies = [
  "assert_matches",
  "bincode",
@@ -1336,7 +1336,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "0.9.1"
+version = "1.0.0-rc0"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -2806,7 +2806,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "0.9.1"
+version = "1.0.0-rc0"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
