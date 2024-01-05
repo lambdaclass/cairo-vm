@@ -65,7 +65,7 @@ impl EcOpBuiltinRunner {
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
         let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
-        for i in 0..(Into::<u64>::into(height)).min(slope.bits()) {
+        for i in 0..(height as u64).min(slope.bits()) {
             if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 return Err(RunnerError::EcOpSameXCoordinate(
                     Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
