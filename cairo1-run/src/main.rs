@@ -270,12 +270,20 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         return Err(Error::Cli(error));
     }
 
-    let compiler_config = CompilerConfig {
-        replace_ids: true,
-        ..CompilerConfig::default()
+    // Try to parse the file as a sierra program
+    let file = std::fs::read_to_string(&args.filename)?;
+    let sierra_program = match cairo_lang_sierra::ProgramParser::new().parse(&file) {
+        Ok(program) => program,
+        Err(_) => {
+            // If it fails, try to compile it as a cairo program
+            let compiler_config = CompilerConfig {
+                replace_ids: true,
+                ..CompilerConfig::default()
+            };
+            compile_cairo_project_at_path(&args.filename, compiler_config)
+                .map_err(|err| Error::SierraCompilation(err.to_string()))?
+        }
     };
-    let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
-        .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
     let metadata_config = Some(Default::default());
 
