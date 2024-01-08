@@ -190,13 +190,11 @@ mod serde_impl {
                 }
             };
         }
-
-        serializer.serialize_str(
-            res.iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>()
-                .as_str(),
-        )
+        use std::fmt::Write;
+        serializer.serialize_str(&res.iter().fold(String::new(), |mut output, b| {
+            let _ = write!(output, "{b:02X}");
+            output
+        }))
     }
 
     pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>

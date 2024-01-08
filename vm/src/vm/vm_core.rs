@@ -4321,7 +4321,7 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners
-                .get(0)
+                .first()
                 .unwrap()
                 .name(),
             "pedersen_builtin"
