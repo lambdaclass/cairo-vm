@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Bump rust verison to 1.72 [#1547](https://github.com/lambdaclass/cairo-vm/pull/1547)
+
 #### [1.0.0-rc0] - 2024-1-5
 
 * feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
