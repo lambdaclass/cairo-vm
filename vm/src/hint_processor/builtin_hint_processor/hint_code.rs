@@ -29,14 +29,14 @@ pub const ASSERT_NOT_ZERO: &str = r#"from starkware.cairo.common.math_utils impo
 assert_integer(ids.value)
 assert ids.value % PRIME != 0, f'assert_not_zero failed: {ids.value} = 0.'"#;
 
-pub const ASSERT_NOT_EQUAL: &str = r#"from starkware.cairo.lang.vm.relocatable import RelocatableValue
+pub const ASSERT_NOT_EQUAL: &str = r"from starkware.cairo.lang.vm.relocatable import RelocatableValue
 both_ints = isinstance(ids.a, int) and isinstance(ids.b, int)
 both_relocatable = (
     isinstance(ids.a, RelocatableValue) and isinstance(ids.b, RelocatableValue) and
     ids.a.segment_index == ids.b.segment_index)
 assert both_ints or both_relocatable, \
     f'assert_not_equal failed: non-comparable values: {ids.a}, {ids.b}.'
-assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'"#;
+assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'";
 
 pub const ASSERT_LE_FELT: &str = r#"import itertools
 
@@ -80,11 +80,11 @@ pub const ASSERT_LE_FELT_EXCLUDED_0: &str = "memory[ap] = 1 if excluded != 0 els
 pub const ASSERT_LE_FELT_EXCLUDED_1: &str = "memory[ap] = 1 if excluded != 1 else 0";
 pub const ASSERT_LE_FELT_EXCLUDED_2: &str = "assert excluded == 2";
 
-pub const ASSERT_LT_FELT: &str = r#"from starkware.cairo.common.math_utils import assert_integer
+pub const ASSERT_LT_FELT: &str = r"from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.a)
 assert_integer(ids.b)
 assert (ids.a % PRIME) < (ids.b % PRIME), \
-    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'"#;
+    f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'";
 
 pub const SPLIT_INT_ASSERT_RANGE: &str =
     "assert ids.value == 0, 'split_int(): value is out of range.'";
@@ -100,12 +100,12 @@ ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 
 pub const IS_250_BITS: &str = r#"ids.is_250 = 1 if ids.addr < 2**250 else 0"#;
 
-pub const IS_ADDR_BOUNDED: &str = r#"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
+pub const IS_ADDR_BOUNDED: &str = r"# Verify the assumptions on the relationship between 2**250, ADDR_BOUND and PRIME.
 ADDR_BOUND = ids.ADDR_BOUND % PRIME
 assert (2**250 < ADDR_BOUND <= 2**251) and (2 * 2**250 < PRIME) and (
         ADDR_BOUND * 2 > PRIME), \
     'normalize_address() cannot be used with the current constants.'
-ids.is_small = 1 if ids.addr < ADDR_BOUND else 0"#;
+ids.is_small = 1 if ids.addr < ADDR_BOUND else 0";
 
 pub const SPLIT_INT: &str = r#"memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base
 assert res < ids.bound, f'split_int(): Limb {res} is out of range.'"#;
@@ -126,13 +126,13 @@ assert value < 2 ** 250, f"value={value} is outside of the range [0, 2**250)."
 assert 2 ** 250 < PRIME
 ids.root = isqrt(value)"#;
 
-pub const UNSIGNED_DIV_REM: &str = r#"from starkware.cairo.common.math_utils import assert_integer
+pub const UNSIGNED_DIV_REM: &str = r"from starkware.cairo.common.math_utils import assert_integer
 assert_integer(ids.div)
 assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
     f'div={hex(ids.div)} is out of the valid range.'
-ids.q, ids.r = divmod(ids.value, ids.div)"#;
+ids.q, ids.r = divmod(ids.value, ids.div)";
 
-pub const SIGNED_DIV_REM: &str = r#"from starkware.cairo.common.math_utils import as_int, assert_integer
+pub const SIGNED_DIV_REM: &str = r"from starkware.cairo.common.math_utils import as_int, assert_integer
 
 assert_integer(ids.div)
 assert 0 < ids.div <= PRIME // range_check_builtin.bound, \
@@ -148,7 +148,7 @@ q, ids.r = divmod(int_value, ids.div)
 assert -ids.bound <= q < ids.bound, \
     f'{int_value} / {ids.div} = {q} is out of the range [{-ids.bound}, {ids.bound}).'
 
-ids.biased_q = q + ids.bound"#;
+ids.biased_q = q + ids.bound";
 
 pub const IS_QUAD_RESIDUE: &str = r#"from starkware.crypto.signature.signature import FIELD_PRIME
 from starkware.python.math_utils import div_mod, is_quad_residue, sqrt
@@ -159,7 +159,7 @@ if is_quad_residue(x, FIELD_PRIME):
 else:
     ids.y = sqrt(div_mod(x, 3, FIELD_PRIME), FIELD_PRIME)"#;
 
-pub const FIND_ELEMENT: &str = r#"array_ptr = ids.array_ptr
+pub const FIND_ELEMENT: &str = r"array_ptr = ids.array_ptr
 elm_size = ids.elm_size
 assert isinstance(elm_size, int) and elm_size > 0, \
     f'Invalid value for elm_size. Got: {elm_size}.'
@@ -187,9 +187,9 @@ else:
             ids.index = i
             break
     else:
-        raise ValueError(f'Key {key} was not found.')"#;
+        raise ValueError(f'Key {key} was not found.')";
 
-pub const SEARCH_SORTED_LOWER: &str = r#"array_ptr = ids.array_ptr
+pub const SEARCH_SORTED_LOWER: &str = r"array_ptr = ids.array_ptr
 elm_size = ids.elm_size
 assert isinstance(elm_size, int) and elm_size > 0, \
     f'Invalid value for elm_size. Got: {elm_size}.'
@@ -207,7 +207,7 @@ for i in range(n_elms):
         ids.index = i
         break
 else:
-    ids.index = n_elms"#;
+    ids.index = n_elms";
 
 pub const SET_ADD: &str = r#"assert ids.elm_size > 0
 assert ids.set_ptr <= ids.set_end_ptr
@@ -242,7 +242,7 @@ dict_tracker.current_ptr += ids.DictAccess.SIZE
 ids.dict_ptr.prev_value = dict_tracker.data[ids.key]
 dict_tracker.data[ids.key] = ids.new_value"#;
 
-pub const DICT_UPDATE: &str = r#"# Verify dict pointer and prev value.
+pub const DICT_UPDATE: &str = r"# Verify dict pointer and prev value.
 dict_tracker = __dict_manager.get_tracker(ids.dict_ptr)
 current_value = dict_tracker.data[ids.key]
 assert current_value == ids.prev_value, \
@@ -250,9 +250,9 @@ assert current_value == ids.prev_value, \
 
 # Update value.
 dict_tracker.data[ids.key] = ids.new_value
-dict_tracker.current_ptr += ids.DictAccess.SIZE"#;
+dict_tracker.current_ptr += ids.DictAccess.SIZE";
 
-pub const SQUASH_DICT: &str = r#"dict_access_size = ids.DictAccess.SIZE
+pub const SQUASH_DICT: &str = r"dict_access_size = ids.DictAccess.SIZE
 address = ids.dict_accesses.address_
 assert ids.ptr_diff % dict_access_size == 0, \
     'Accesses array size must be divisible by DictAccess.SIZE'
@@ -270,7 +270,7 @@ for i in range(n_accesses):
 keys = sorted(access_indices.keys(), reverse=True)
 # Are the keys used bigger than range_check bound.
 ids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0
-ids.first_key = key = keys.pop()"#;
+ids.first_key = key = keys.pop()";
 
 pub const SQUASH_DICT_INNER_SKIP_LOOP: &str =
     "ids.should_skip_loop = 0 if current_access_indices else 1";
@@ -300,9 +300,9 @@ vm_enter_scope({
     'initial_dict': dict(__dict_manager.get_dict(ids.dict_accesses_end)),
 })"#;
 
-pub const DICT_SQUASH_UPDATE_PTR: &str = r#"# Update the DictTracker's current_ptr to point to the end of the squashed dict.
+pub const DICT_SQUASH_UPDATE_PTR: &str = r"# Update the DictTracker's current_ptr to point to the end of the squashed dict.
 __dict_manager.get_tracker(ids.squashed_dict_start).current_ptr = \
-    ids.squashed_dict_end.address_"#;
+    ids.squashed_dict_end.address_";
 
 pub const BIGINT_TO_UINT256: &str = "ids.low = (ids.x.d0 + ids.x.d1 * ids.BASE) & ((1 << 128) - 1)";
 pub const UINT256_ADD: &str = r#"sum_low = ids.a.low + ids.b.low
@@ -544,7 +544,7 @@ SECP_P=2**255-19
 
 value = pack(ids.x, PRIME) % SECP_P"#;
 
-pub const UNSAFE_KECCAK: &str = r#"from eth_hash.auto import keccak
+pub const UNSAFE_KECCAK: &str = r"from eth_hash.auto import keccak
 
 data, length = ids.data, ids.length
 
@@ -562,7 +562,7 @@ for word_i, byte_i in enumerate(range(0, length, 16)):
 
 hashed = keccak(keccak_input)
 ids.high = int.from_bytes(hashed[:16], 'big')
-ids.low = int.from_bytes(hashed[16:32], 'big')"#;
+ids.low = int.from_bytes(hashed[16:32], 'big')";
 
 pub const UNSAFE_KECCAK_FINALIZE: &str = r#"from eth_hash.auto import keccak
 keccak_input = bytearray()

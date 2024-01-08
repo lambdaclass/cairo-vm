@@ -434,17 +434,21 @@ pub mod test_utils {
     pub(crate) use run_context;
 
     macro_rules! ids_data {
-        ( $( $name: expr ),* ) => {
-            {
-                let ids_names = vec![$( $name ),*];
-                let references = references!(ids_names.len() as i32);
-                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
-                for (i, name) in ids_names.iter().enumerate() {
-                    ids_data.insert(crate::stdlib::string::ToString::to_string(name), references.get(&i).unwrap().clone());
-                }
-                ids_data
+        ( $( $name: expr ),* ) => {{
+            let ids_names = ["input", "input_len"];
+            let references = references!(ids_names.len() as i32);
+            let mut ids_data = crate::stdlib::collections::HashMap::<
+                crate::stdlib::string::String,
+                HintReference,
+            >::new();
+            for (i, name) in ids_names.iter().enumerate() {
+                ids_data.insert(
+                    crate::stdlib::string::ToString::to_string(name),
+                    references.get(&i).unwrap().clone(),
+                );
             }
-        };
+            ids_data
+        }};
     }
     pub(crate) use ids_data;
 

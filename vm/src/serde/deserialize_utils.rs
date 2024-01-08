@@ -678,8 +678,8 @@ mod tests {
             Ok(("", "u(())r()labc"))
         );
         assert_eq!(
-            take_until_unbalanced('(', ')')(r#"u\((\))r()labc"#),
-            Ok(("", r#"u\((\))r()labc"#))
+            take_until_unbalanced('(', ')')(r"u\((\))r()labc"),
+            Ok(("", r"u\((\))r()labc"))
         );
         assert_eq!(
             take_until_unbalanced('(', ')')("u(())r(labc"),
