@@ -192,6 +192,7 @@ mod serde_impl {
         }
 
         serializer.serialize_str(
+            #[allow(clippy::format_collect)]
             res.iter()
                 .map(|b| format!("{:02x}", b))
                 .collect::<String>()
