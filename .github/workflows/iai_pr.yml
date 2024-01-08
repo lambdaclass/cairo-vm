@@ -23,7 +23,7 @@ jobs:
 
     - name: Install Rust
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.72.0
     - name: Set up cargo cache
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       uses: Swatinem/rust-cache@v2
