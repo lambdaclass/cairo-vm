@@ -377,7 +377,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         for (id, size) in ret_types_and_sizes {
             if let Some(ref name) = id.debug_name {
                 let mut builtin_name = name.to_lowercase();
-                // This could be avoided by propery converting between UpperCamelCase & snake_case
+                // This could be avoided by properly converting between UpperCamelCase & snake_case
                 // But given the limited amount of cases it is possible to handle it manually instead of adding an external dependency
                 if builtin_name == "rangecheck" {
                     builtin_name = "range_check".to_string();
