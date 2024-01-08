@@ -435,7 +435,7 @@ pub mod test_utils {
 
     macro_rules! ids_data {
         ( $( $name: expr ),* ) => {{
-            let ids_names = ["input", "input_len"];
+            let ids_names = [$( $name ),* ];
             let references = references!(ids_names.len() as i32);
             let mut ids_data = crate::stdlib::collections::HashMap::<
                 crate::stdlib::string::String,
