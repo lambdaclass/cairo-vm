@@ -47,6 +47,10 @@ use cairo_vm::vm::errors::memory_errors::MemoryError;
 use cairo_vm::vm::errors::runner_errors::RunnerError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use cairo_vm::vm::runners::builtin_runner::{
+    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 use cairo_vm::vm::runners::cairo_runner::RunnerMode;
 use cairo_vm::{
     serde::deserialize_program::ReferenceManager,
@@ -376,16 +380,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         let mut builtin_name_to_stack_pointer = HashMap::new();
         for (id, size) in ret_types_and_sizes {
             if let Some(ref name) = id.debug_name {
-                let mut builtin_name = name.to_lowercase();
-                // This could be avoided by properly converting between UpperCamelCase & snake_case
-                // But given the limited amount of cases it is possible to handle it manually instead of adding an external dependency
-                if builtin_name == "rangecheck" {
-                    builtin_name = "range_check".to_string();
-                }
-                if builtin_name == "ecop" {
-                    builtin_name = "ec_op".to_string();
-                }
-                builtin_name = format!("{}_builtin", builtin_name.to_lowercase());
+                let builtin_name = match &*name.to_string() {
+                    "RangeCheck" => RANGE_CHECK_BUILTIN_NAME,
+                    "Poseidon" => POSEIDON_BUILTIN_NAME,
+                    "EcOp" => EC_OP_BUILTIN_NAME,
+                    "Bitwise" => BITWISE_BUILTIN_NAME,
+                    "Pedersen" => HASH_BUILTIN_NAME,
+                    "Output" => OUTPUT_BUILTIN_NAME,
+                    "Ecdsa" => SIGNATURE_BUILTIN_NAME,
+                    _ => break,
+                };
                 builtin_name_to_stack_pointer.insert(builtin_name, stack_pointer);
             }
             stack_pointer.offset += size as usize;
