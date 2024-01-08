@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Bump rust verison to 1.72 [#1547](https://github.com/lambdaclass/cairo-vm/pull/1547)
+* feat: Bump rust verison to 1.73 [#1549](https://github.com/lambdaclass/cairo-vm/pull/1549)
 
 #### [1.0.0-rc0] - 2024-1-5
 
