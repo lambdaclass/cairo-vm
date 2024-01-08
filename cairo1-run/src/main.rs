@@ -361,6 +361,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     // Set stop pointers for builtins so we can obtain the air public input
     if args.air_public_input.is_some() {
+        // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
         let ret_types_sizes = main_func
             .signature
             .ret_types
@@ -376,7 +377,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
             .map_err(VirtualMachineError::Math)?;
 
-        // Calculate the stack_ptr for each return value as if it were a builtin
+        // Calculate the stack_ptr for each return builtin in the return values
         let mut builtin_name_to_stack_pointer = HashMap::new();
         for (id, size) in ret_types_and_sizes {
             if let Some(ref name) = id.debug_name {
