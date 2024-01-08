@@ -388,7 +388,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                     "Pedersen" => HASH_BUILTIN_NAME,
                     "Output" => OUTPUT_BUILTIN_NAME,
                     "Ecdsa" => SIGNATURE_BUILTIN_NAME,
-                    _ => break,
+                    _ => {
+                        stack_pointer.offset += size as usize;
+                        continue;
+                    }
                 };
                 builtin_name_to_stack_pointer.insert(builtin_name, stack_pointer);
             }
