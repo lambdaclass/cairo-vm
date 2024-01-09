@@ -85,6 +85,8 @@ struct Args {
     proof_mode: bool,
     #[clap(long = "air_public_input", value_parser)]
     air_public_input: Option<PathBuf>,
+    #[clap(long = "args", num_args=1.., value_delimiter = ' ')]
+    args: Vec<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
