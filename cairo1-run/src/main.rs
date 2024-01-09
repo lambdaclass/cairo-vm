@@ -220,6 +220,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         main_func,
         initial_gas,
         args.proof_mode,
+        &args.args,
     )?;
 
     // Get the user program instructions
@@ -564,6 +565,7 @@ fn create_entry_code(
     func: &Function,
     initial_gas: usize,
     proof_mode: bool,
+    args: &Vec<String>,
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
@@ -571,6 +573,7 @@ fn create_entry_code(
     // Load all vecs to memory.
     let mut ap_offset: i16 = 0;
     let after_vecs_offset = ap_offset;
+    let mut arg_iter = args.iter();
     if func.signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
@@ -618,7 +621,8 @@ fn create_entry_code(
             casm_extend! {ctx,
                 [ap + 0] = [ap + offset] + 3, ap++;
             }
-            // This code should be re enabled to make the programs work with arguments
+
+            // This cli's args flag only supports single values, so we skip the array handling
 
             // } else if let Some(Arg::Array(_)) = arg_iter.peek() {
             //     let values = extract_matches!(arg_iter.next().unwrap(), Arg::Array);
@@ -639,6 +643,17 @@ fn create_entry_code(
             //             }
             //         }
             //     }
+        } else {
+            let arg_size = ty_size;
+            //expected_arguments_size += arg_size as usize;
+            for _ in 0..arg_size {
+                if let Some(value) = arg_iter.next() {
+                    let value = Felt252::from_dec_str(value).unwrap();
+                    casm_extend! {ctx,
+                        [ap + 0] = (value.to_bigint()), ap++;
+                    }
+                }
+            }
         };
         ap_offset += ty_size;
     }
