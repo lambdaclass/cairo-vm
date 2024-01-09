@@ -103,10 +103,10 @@ enum FuncArg {
 struct FuncArgs(Vec<FuncArg>);
 
 fn process_args(value: &str) -> Result<FuncArgs, String> {
-    let mut args = Vec::new();
     if value.is_empty() {
         return Ok(FuncArgs::default());
     }
+    let mut args = Vec::new();
     let mut input = value.split(' ');
     while let Some(value) = input.next() {
         // First argument in an array
