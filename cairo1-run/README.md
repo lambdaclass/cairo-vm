@@ -30,8 +30,8 @@ cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cai
 
 To pass arguments to `main`
 
-* Separate arguments with a space in between
-* In order to pass arrays, wrap array values inside brackets
+* Separate arguments with a whitespace inbetween
+* In order to pass arrays, wrap array values between brackets
 
 Example:
 
