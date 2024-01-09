@@ -1,6 +1,9 @@
-use crate::stdlib::{
-    cmp::{max, min},
-    prelude::*,
+use crate::{
+    air_private_input::{PrivateInput, PrivateInputValue},
+    stdlib::{
+        cmp::{max, min},
+        prelude::*,
+    },
 };
 
 use crate::Felt252;
@@ -191,6 +194,18 @@ impl RangeCheckBuiltinRunner {
             self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            for (index, val) in segment.iter().enumerate() {
+                if let Some(value) = val.as_ref().and_then(|cell| cell.get_value().get_int()) {
+                    private_inputs.push(PrivateInput::Value(PrivateInputValue { index, value }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
