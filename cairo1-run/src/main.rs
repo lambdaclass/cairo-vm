@@ -144,6 +144,8 @@ enum Error {
     NoInfoForType(ConcreteTypeId),
     #[error("Failed to extract return values from VM")]
     FailedToExtractReturnValues,
+    #[error("Function expects arguments of size {expected} and received {actual} instead.")]
+    ArgumentsSizeMismatch { expected: usize, actual: usize },
 }
 
 pub struct FileWriter {
@@ -574,6 +576,7 @@ fn create_entry_code(
     let mut ap_offset: i16 = 0;
     let after_vecs_offset = ap_offset;
     let mut arg_iter = args.iter();
+    let mut expected_arguments_size = 0;
     if func.signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
@@ -645,7 +648,7 @@ fn create_entry_code(
             //     }
         } else {
             let arg_size = ty_size;
-            //expected_arguments_size += arg_size as usize;
+            expected_arguments_size += arg_size as usize;
             for _ in 0..arg_size {
                 if let Some(value) = arg_iter.next() {
                     let value = Felt252::from_dec_str(value).unwrap();
@@ -657,12 +660,12 @@ fn create_entry_code(
         };
         ap_offset += ty_size;
     }
-    // if expected_arguments_size != args.len() {
-    //     return Err(RunnerError::ArgumentsSizeMismatch {
-    //         expected: expected_arguments_size,
-    //         actual: args.len(),
-    //     });
-    // }
+    if expected_arguments_size != args.len() {
+        return Err(Error::ArgumentsSizeMismatch {
+            expected: expected_arguments_size,
+            actual: args.len(),
+        });
+    }
 
     let before_final_call = ctx.current_code_offset;
     let final_call_size = 3;
@@ -902,5 +905,37 @@ mod tests {
     fn test_run_dictionaries(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1024)]);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "0"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--args", "0"].as_slice())]
+    fn test_run_branching_0(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1)]);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "17"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--args", "96"].as_slice())]
+    fn test_run_branching_not_0(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(0)]);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--layout", "all_cairo", "--proof_mode"].as_slice())]
+    fn test_run_branching_no_args(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 0);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--layout", "all_cairo","--args", "1, 2, 3"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1, 2, 3"].as_slice())]
+    fn test_run_branching_too_many_args(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 3);
     }
 }
