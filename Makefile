@@ -352,4 +352,4 @@ hint-accountant: build-cairo-lang
 	cargo r -p hint_accountant
 
 create-symlinks:
-	for file in cairo_programs/*.cairo; do ln -s "$$file" cairo_programs/proof_programs/; done
+	ln -s cairo_programs/*.cairo cairo_programs/proof_programs/
