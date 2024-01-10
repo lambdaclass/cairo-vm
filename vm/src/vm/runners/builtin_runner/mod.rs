@@ -490,6 +490,8 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
             _ => todo!(),
         }
     }

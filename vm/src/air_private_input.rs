@@ -8,6 +8,8 @@ pub enum PrivateInput {
     Value(PrivateInputValue),
     Pair(PrivateInputPair),
     EcOp(PrivateInputEcOp),
+    PoseidonState(PrivateInputPoseidonState),
+    Signature(PrivateInputSignature),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -31,4 +33,26 @@ pub struct PrivateInputEcOp {
     pub m: Felt252,
     pub q_x: Felt252,
     pub q_y: Felt252,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PrivateInputPoseidonState {
+    pub index: usize,
+    pub input_s0: Felt252,
+    pub input_s1: Felt252,
+    pub input_s2: Felt252,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PrivateInputSignature {
+    pub index: usize,
+    pub pubkey: Felt252,
+    pub msg: Felt252,
+    pub signature_input: SignatureInput,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SignatureInput {
+    pub r: Felt252,
+    pub w: Felt252,
 }
