@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
@@ -259,6 +260,36 @@ impl EcOpBuiltinRunner {
     P = {p:?} \n
     m = {m:?}\n
     Q = {q:?}.")
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_EC_OP as usize)
+                .enumerate()
+            {
+                // Add the input cells of each ec_op instance to the private inputs
+                if let (Ok(p_x), Ok(p_y), Ok(m), Ok(q_x), Ok(q_y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                ) {
+                    private_inputs.push(PrivateInput::EcOp(PrivateInputEcOp {
+                        index,
+                        p_x: *p_x,
+                        p_y: *p_y,
+                        m: *m,
+                        q_x: *q_x,
+                        q_y: *q_y,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 

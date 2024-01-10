@@ -488,6 +488,8 @@ impl BuiltinRunner {
         match self {
             BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
             _ => todo!(),
         }
     }
