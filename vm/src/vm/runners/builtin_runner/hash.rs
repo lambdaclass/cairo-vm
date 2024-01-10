@@ -193,7 +193,10 @@ impl HashBuiltinRunner {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
             let segment_len = segment.len();
-            for (index, off) in (0..segment_len).step_by(CELLS_PER_HASH as usize).enumerate() {
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_HASH as usize)
+                .enumerate()
+            {
                 // Add the input cells of each hash instance to the private inputs
                 if let (Ok(x), Ok(y)) = (
                     memory.get_integer((self.base as isize, off).into()),
