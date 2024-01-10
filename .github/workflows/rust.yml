@@ -77,6 +77,10 @@ jobs:
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
       run: make build-cairo-2-compiler
 
+    - name: Create proof_programs symlinks
+      if: steps.cache-programs.outputs.cache-hit != 'true'
+      run: make create-symlinks
+
     - name: Build programs
       if: steps.cache-programs.outputs.cache-hit != 'true'
       run: make -j ${{ matrix.program-target }}
