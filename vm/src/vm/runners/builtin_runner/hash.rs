@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::pedersen_instance_def::{
@@ -186,6 +187,27 @@ impl HashBuiltinRunner {
             }
         }
         BuiltinAdditionalData::Hash(verified_addresses)
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len).step_by(CELLS_PER_HASH as usize).enumerate() {
+                // Add the input cells of each hash instance to the private inputs
+                if let (Ok(x), Ok(y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                ) {
+                    private_inputs.push(PrivateInput::Pair(PrivateInputPair {
+                        index,
+                        x: *x,
+                        y: *y,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
