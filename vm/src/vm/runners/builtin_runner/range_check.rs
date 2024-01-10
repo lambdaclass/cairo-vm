@@ -196,7 +196,7 @@ impl RangeCheckBuiltinRunner {
         }
     }
 
-    fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
             for (index, val) in segment.iter().enumerate() {
