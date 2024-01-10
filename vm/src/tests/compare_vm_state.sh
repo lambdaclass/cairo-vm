@@ -9,6 +9,7 @@ exit_code=0
 trace=false
 memory=false
 air_public_input=false
+air_private_input=false
 passed_tests=0
 failed_tests=0
 
@@ -25,6 +26,9 @@ for i in $@; do
         ;;
         "air_public_input") air_public_input=true
         echo "Requested air_public_input comparison"
+        ;;
+        "air_private_input") air_private_input=true
+        echo "Requested air_private_input comparison"
         ;;
         *)
         ;;
@@ -70,6 +74,16 @@ for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
     if $air_public_input; then
         if ! ./air_public_input_comparator.py $path_file.air_public_input $path_file.rs.air_public_input; then
             echo "Air Public Input differs for $file"
+            exit_code=1
+            failed_tests=$((failed_tests + 1))
+        else
+            passed_tests=$((passed_tests + 1))
+        fi
+    fi
+
+    if $air_private_input; then
+        if ! ./air_public_input_comparator.py $path_file.air_private_input $path_file.rs.air_private_input; then
+            echo "Air Private Input differs for $file"
             exit_code=1
             failed_tests=$((failed_tests + 1))
         else
