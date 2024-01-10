@@ -192,7 +192,7 @@ cargo-deps:
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
+deps: build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -202,7 +202,7 @@ deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
+deps-macos: build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
