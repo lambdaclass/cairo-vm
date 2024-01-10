@@ -2,6 +2,7 @@ use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInp
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::types::errors::math_errors::MathError;
+use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::Felt252;
 use crate::{
@@ -246,7 +247,11 @@ impl SignatureBuiltinRunner {
             if let (Ok(pubkey), Ok(msg)) = (memory.get_integer(*addr), memory.get_integer(addr + 1))
             {
                 private_inputs.push(PrivateInput::Signature(PrivateInputSignature {
-                    index: addr.offset.saturating_sub(self.base),
+                    index: addr
+                        .offset
+                        .saturating_sub(self.base)
+                        .checked_div(CELLS_PER_SIGNATURE as usize)
+                        .unwrap_or_default(),
                     pubkey: *pubkey,
                     msg: *msg,
                     signature_input: SignatureInput {

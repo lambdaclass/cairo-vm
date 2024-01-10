@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -219,6 +220,51 @@ impl KeccakBuiltinRunner {
         let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
         keccak::f1600(&mut keccak_input);
         Ok(keccak_input.iter().flat_map(|x| x.to_le_bytes()).collect())
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(self.cells_per_instance as usize)
+                .enumerate()
+            {
+                // Add the input cells of each keccak instance to the private inputs
+                if let (
+                    Ok(input_s0),
+                    Ok(input_s1),
+                    Ok(input_s2),
+                    Ok(input_s3),
+                    Ok(input_s4),
+                    Ok(input_s5),
+                    Ok(input_s6),
+                    Ok(input_s7),
+                ) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                    memory.get_integer((self.base as isize, off + 5).into()),
+                    memory.get_integer((self.base as isize, off + 6).into()),
+                    memory.get_integer((self.base as isize, off + 7).into()),
+                ) {
+                    private_inputs.push(PrivateInput::KeccakState(PrivateInputKeccakState {
+                        index,
+                        input_s0: *input_s0,
+                        input_s1: *input_s1,
+                        input_s2: *input_s2,
+                        input_s3: *input_s3,
+                        input_s4: *input_s4,
+                        input_s5: *input_s5,
+                        input_s6: *input_s6,
+                        input_s7: *input_s7,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 

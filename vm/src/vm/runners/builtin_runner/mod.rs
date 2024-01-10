@@ -492,6 +492,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(memory),
             _ => todo!(),
         }
     }
