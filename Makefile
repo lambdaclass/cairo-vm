@@ -13,7 +13,7 @@ ifndef PROPTEST_CASES
 endif
 
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
-	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input \
@@ -183,7 +183,6 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
@@ -268,9 +267,6 @@ benchmark-action: cairo_bench_programs
 
 iai-benchmark-action: cairo_bench_programs
 	cargo bench --bench iai_benchmark
-
-flamegraph:
-	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
 compare_benchmarks: cairo_bench_programs
 	cd bench && ./run_benchmarks.sh
