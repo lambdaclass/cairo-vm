@@ -207,7 +207,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             .get_air_private_input(&vm)
             .to_serializable(args.trace_file.unwrap(), args.memory_file.unwrap())
             .serialize_json()
-            .unwrap();
+            .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
     }
 
