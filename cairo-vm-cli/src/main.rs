@@ -40,6 +40,8 @@ struct Args {
     secure_run: Option<bool>,
     #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
+    #[clap(long = "air_private_input")]
+    air_private_input: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -119,6 +121,30 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         return Err(Error::Cli(error));
     }
 
+    if args.air_public_input.is_some() && !args.proof_mode {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--air_private_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.trace_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--trace_file must be set when --air_private_input is set.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.memory_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--memory_file must be set when --air_private_input is set.",
+        );
+        return Err(Error::Cli(error));
+    }
+
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -148,7 +174,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         print!("{output_buffer}");
     }
 
-    if let Some(trace_path) = args.trace_file {
+    if let Some(ref trace_path) = args.trace_file {
         let relocated_trace = cairo_runner
             .relocated_trace
             .as_ref()
@@ -162,7 +188,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         trace_writer.flush()?;
     }
 
-    if let Some(memory_path) = args.memory_file {
+    if let Some(ref memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
         let mut memory_writer =
             FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
@@ -173,6 +199,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     if let Some(file_path) = args.air_public_input {
         let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
+        std::fs::write(file_path, json)?;
+    }
+
+    if let Some(file_path) = args.air_private_input {
+        let json = cairo_runner
+            .get_air_private_input(&vm)
+            .to_serializable(args.trace_file.unwrap(), args.memory_file.unwrap())
+            .serialize_json()
+            .unwrap();
         std::fs::write(file_path, json)?;
     }
 

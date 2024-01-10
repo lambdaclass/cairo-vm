@@ -1,4 +1,5 @@
 use crate::{
+    air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
@@ -1407,6 +1408,17 @@ impl CairoRunner {
             self.get_perm_range_check_limits(vm)
                 .ok_or(PublicInputError::NoRangeCheckLimits)?,
         )
+    }
+
+    pub fn get_air_private_input(&self, vm: &VirtualMachine) -> AirPrivateInput {
+        let mut private_inputs = HashMap::new();
+        for builtin in vm.builtin_runners.iter() {
+            private_inputs.insert(
+                builtin.name(),
+                builtin.air_private_input(&vm.segments.memory),
+            );
+        }
+        AirPrivateInput(private_inputs)
     }
 }
 

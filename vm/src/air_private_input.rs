@@ -1,6 +1,29 @@
+#[cfg(feature = "std")]
+use std::path::PathBuf;
+
+use crate::{stdlib::collections::HashMap, vm::runners::builtin_runner::{HASH_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, KECCAK_BUILTIN_NAME, POSEIDON_BUILTIN_NAME}};
 use serde::{Deserialize, Serialize};
 
 use crate::Felt252;
+
+// Serializable format, matches the file output of the python implementation
+#[cfg(feature = "std")]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AirPrivateInputSerializable {
+    trace_path: PathBuf,
+    memory_path: PathBuf,
+    pedersen: Vec<PrivateInput>,
+    range_check: Vec<PrivateInput>,
+    ecdsa: Vec<PrivateInput>,
+    bitwise: Vec<PrivateInput>,
+    ec_op: Vec<PrivateInput>,
+    keccak: Vec<PrivateInput>,
+    poseidon: Vec<PrivateInput>,
+}
+
+// Contains only builtin public inputs, useful for library users
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AirPrivateInput(pub HashMap<&'static str, Vec<PrivateInput>>);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
@@ -69,4 +92,32 @@ pub struct PrivateInputSignature {
 pub struct SignatureInput {
     pub r: Felt252,
     pub w: Felt252,
+}
+
+#[cfg(feature = "std")]
+impl AirPrivateInput {
+    pub fn to_serializable(
+        &self,
+        trace_file: PathBuf,
+        memory_file: PathBuf,
+    ) -> AirPrivateInputSerializable {
+        AirPrivateInputSerializable {
+            trace_path: trace_file.as_path().canonicalize().unwrap_or(trace_file),
+            memory_path: memory_file.as_path().canonicalize().unwrap_or(memory_file),
+            pedersen: self.0.get(HASH_BUILTIN_NAME).cloned().unwrap_or_default(),
+            range_check: self.0.get(RANGE_CHECK_BUILTIN_NAME).cloned().unwrap_or_default(),
+            ecdsa: self.0.get(SIGNATURE_BUILTIN_NAME).cloned().unwrap_or_default(),
+            bitwise: self.0.get(BITWISE_BUILTIN_NAME).cloned().unwrap_or_default(),
+            ec_op: self.0.get(EC_OP_BUILTIN_NAME).cloned().unwrap_or_default(),
+            keccak: self.0.get(KECCAK_BUILTIN_NAME).cloned().unwrap_or_default(),
+            poseidon: self.0.get(POSEIDON_BUILTIN_NAME).cloned().unwrap_or_default(),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl AirPrivateInputSerializable {
+    pub fn serialize_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(&self)
+    }
 }
