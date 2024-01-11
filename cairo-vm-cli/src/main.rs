@@ -344,7 +344,7 @@ mod tests {
 
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
         if air_public_input && !proof_mode
-            || air_private_input && !proof_mode && !trace_file && !memory_file
+            || (air_private_input && (!proof_mode || !trace_file || !memory_file))
         {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {
