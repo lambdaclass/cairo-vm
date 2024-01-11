@@ -321,6 +321,7 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -f $(TEST_PROOF_DIR)/*.air_public_input
+	rm -f $(TEST_PROOF_DIR)/*.air_private_input
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
