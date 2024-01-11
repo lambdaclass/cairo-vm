@@ -52,7 +52,7 @@ $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
 $(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory $(TEST_PROOF_DIR)/%.rs.air_public_input $(TEST_PROOF_DIR)/%.rs.air_private_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input --air_private_input $(@D)/$(*F).rs.air_private_input
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input --air_private_input $(@D)/$(*F).rs.air_private_input
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_public_input $(TEST_PROOF_DIR)/%.air_private_input: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory --air_private_input $(@D)/$(*F).air_private_input
