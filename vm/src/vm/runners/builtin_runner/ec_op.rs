@@ -990,4 +990,30 @@ mod tests {
             Ok(_) => panic!("Expected run to fail"),
         }
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![PrivateInput::EcOp(PrivateInputEcOp {
+                index: 0,
+                p_x: 0.into(),
+                p_y: 1.into(),
+                m: 4.into(),
+                q_x: 2.into(),
+                q_y: 3.into(),
+            })])
+        );
+    }
 }

@@ -496,4 +496,13 @@ mod tests {
         let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
         assert_eq!(builtin.instances_per_component(), 1)
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
+
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        assert!(builtin.air_private_input(&memory).is_empty());
+    }
 }

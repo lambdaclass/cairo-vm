@@ -603,4 +603,29 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![1]);
         assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(8));
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(None, 4, true).into();
+
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Value(PrivateInputValue {
+                    index: 0,
+                    value: 0.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 1,
+                    value: 1.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 2,
+                    value: 2.into(),
+                }),
+            ]),
+        );
+    }
 }

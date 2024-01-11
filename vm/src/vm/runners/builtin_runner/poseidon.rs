@@ -437,4 +437,42 @@ mod tests {
             Ok(None)
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                    index: 0,
+                    input_s0: 0.into(),
+                    input_s1: 1.into(),
+                    input_s2: 2.into(),
+                }),
+                PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                    index: 1,
+                    input_s0: 6.into(),
+                    input_s1: 7.into(),
+                    input_s2: 8.into(),
+                }),
+            ]),
+        );
+    }
 }

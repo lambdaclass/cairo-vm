@@ -499,9 +499,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         std::fs::write(file_path, json)?;
     }
 
-    if let (Some(file_path), Some(trace_file), Some(memory_file)) =
-        (args.air_private_input, args.trace_file.clone(), args.memory_file.clone())
-    {
+    if let (Some(file_path), Some(trace_file), Some(memory_file)) = (
+        args.air_private_input,
+        args.trace_file.clone(),
+        args.memory_file.clone(),
+    ) {
         // Get absolute paths of trace_file & memory_file
         let trace_path = trace_file
             .as_path()
