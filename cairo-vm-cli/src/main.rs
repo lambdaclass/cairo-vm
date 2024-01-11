@@ -202,24 +202,20 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         std::fs::write(file_path, json)?;
     }
 
-    if let Some(file_path) = args.air_private_input {
+    if let (Some(file_path), Some(ref trace_file), Some(ref memory_file)) =
+        (args.air_private_input, args.trace_file, args.memory_file)
+    {
         // Get absolute paths of trace_file & memory_file
-        let trace_path = args
-            .trace_file
-            .clone()
-            .unwrap()
+        let trace_path = trace_file
             .as_path()
             .canonicalize()
-            .unwrap_or(args.trace_file.unwrap())
+            .unwrap_or(trace_file.clone())
             .to_string_lossy()
             .to_string();
-        let memory_path = args
-            .memory_file
-            .clone()
-            .unwrap()
+        let memory_path = memory_file
             .as_path()
             .canonicalize()
-            .unwrap_or(args.memory_file.unwrap())
+            .unwrap_or(memory_file.clone())
             .to_string_lossy()
             .to_string();
 
