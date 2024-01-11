@@ -1,6 +1,5 @@
-use crate::stdlib::prelude::String;
 use crate::{
-    stdlib::collections::HashMap,
+    stdlib::{collections::HashMap, prelude::{String, Vec}},
     vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
         POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
