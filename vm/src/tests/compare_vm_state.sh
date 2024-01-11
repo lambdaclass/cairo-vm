@@ -82,7 +82,7 @@ for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
     fi
 
     if $air_private_input; then
-        if ! ./air_public_input_comparator.py $path_file.air_private_input $path_file.rs.air_private_input; then
+        if ! ./air_private_input_comparator.py $path_file.air_private_input $path_file.rs.air_private_input; then
             echo "Air Private Input differs for $file"
             exit_code=1
             failed_tests=$((failed_tests + 1))
