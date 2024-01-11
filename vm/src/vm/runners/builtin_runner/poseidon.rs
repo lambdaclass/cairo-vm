@@ -81,19 +81,17 @@ impl PoseidonBuiltinRunner {
 
         for i in 0..self.n_input_cells as usize {
             let m_index = (first_input_addr + i)?;
-            let val = match memory.get(&m_index) {
-                Some(value) => {
-                    let num = value
-                        .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            POSEIDON_BUILTIN_NAME,
-                            (first_input_addr + i)?,
-                        ))))?;
-                    FieldElement::from_bytes_be(&num.to_bytes_be())
-                        .map_err(|_| MathError::ByteConversionError)?
-                }
-                _ => return Ok(None),
-            };
+            let val =
+                match memory.get(&m_index) {
+                    Some(value) => {
+                        let num = value.get_int().ok_or(RunnerError::BuiltinExpectedInteger(
+                            Box::new((POSEIDON_BUILTIN_NAME, (first_input_addr + i)?)),
+                        ))?;
+                        FieldElement::from_bytes_be(&num.to_bytes_be())
+                            .map_err(|_| MathError::ByteConversionError)?
+                    }
+                    _ => return Ok(None),
+                };
             input_felts.push(val)
         }
         // n_input_cells is fixed to 3, so this try_into will never fail

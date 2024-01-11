@@ -84,25 +84,23 @@ impl KeccakBuiltinRunner {
 
         for i in 0..self.n_input_cells as usize {
             let m_index = (first_input_addr + i)?;
-            let val = match memory.get(&m_index) {
-                Some(value) => {
-                    let num = value
-                        .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            KECCAK_BUILTIN_NAME,
-                            (first_input_addr + i)?,
-                        ))))?;
-                    if num >= &(Felt252::TWO.pow(self.state_rep[i])) {
-                        return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
-                            (first_input_addr + i)?,
-                            self.state_rep[i],
-                            *num,
-                        ))));
+            let val =
+                match memory.get(&m_index) {
+                    Some(value) => {
+                        let num = value.get_int().ok_or(RunnerError::BuiltinExpectedInteger(
+                            Box::new((KECCAK_BUILTIN_NAME, (first_input_addr + i)?)),
+                        ))?;
+                        if num >= (Felt252::TWO.pow(self.state_rep[i])) {
+                            return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
+                                (first_input_addr + i)?,
+                                self.state_rep[i],
+                                num,
+                            ))));
+                        }
+                        num
                     }
-                    *num
-                }
-                _ => return Ok(None),
-            };
+                    _ => return Ok(None),
+                };
             input_felts.push(val)
         }
         let input_message: Vec<u8> = input_felts

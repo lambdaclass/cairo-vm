@@ -132,7 +132,7 @@ impl RangeCheckBuiltinRunner {
             rc_bounds = value
                 .as_ref()?
                 .get_value()
-                .get_int_ref()?
+                .get_int()?
                 .to_le_digits()
                 // TODO: maybe skip leading zeros
                 .into_iter()

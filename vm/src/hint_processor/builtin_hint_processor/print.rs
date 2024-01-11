@@ -102,7 +102,7 @@ pub fn print_dict(
 
     let mut acc = HashMap::new();
     for (k, v) in map.iter() {
-        let key = k.get_int_ref().ok_or_else(|| {
+        let key = k.get_int().ok_or_else(|| {
             HintError::CustomHint(String::from("Expected felt key for dict").into_boxed_str())
         })?;
         match v {

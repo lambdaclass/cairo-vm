@@ -320,10 +320,10 @@ impl MaybeRelocatable {
         }
     }
 
-    /// Returns a reference to the inner value if it is a Felt252, returns None otherwise.
-    pub fn get_int_ref(&self) -> Option<&Felt252> {
+    /// Returns a the inner value if it is a Felt252, returns None otherwise.
+    pub fn get_int(&self) -> Option<Felt252> {
         match self {
-            MaybeRelocatable::Int(num) => Some(num),
+            MaybeRelocatable::Int(num) => Some(*num),
             MaybeRelocatable::RelocatableValue(_) => None,
         }
     }
