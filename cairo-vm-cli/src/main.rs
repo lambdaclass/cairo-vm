@@ -121,7 +121,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         return Err(Error::Cli(error));
     }
 
-    if args.air_public_input.is_some() && !args.proof_mode {
+    if args.air_private_input.is_some() && !args.proof_mode {
         let error = Args::command().error(
             clap::error::ErrorKind::ArgumentConflict,
             "--air_private_input can only be used in proof_mode.",
