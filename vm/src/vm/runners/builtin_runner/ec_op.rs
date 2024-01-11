@@ -271,7 +271,7 @@ impl EcOpBuiltinRunner {
                 .enumerate()
             {
                 // Add the input cells of each ec_op instance to the private inputs
-                if let (Ok(p_x), Ok(p_y), Ok(m), Ok(q_x), Ok(q_y)) = (
+                if let (Ok(p_x), Ok(p_y), Ok(q_x), Ok(q_y), Ok(m)) = (
                     memory.get_integer((self.base as isize, off).into()),
                     memory.get_integer((self.base as isize, off + 1).into()),
                     memory.get_integer((self.base as isize, off + 2).into()),

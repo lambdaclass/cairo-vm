@@ -1,7 +1,13 @@
 #[cfg(feature = "std")]
 use std::path::PathBuf;
 
-use crate::{stdlib::collections::HashMap, vm::runners::builtin_runner::{HASH_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, KECCAK_BUILTIN_NAME, POSEIDON_BUILTIN_NAME}};
+use crate::{
+    stdlib::collections::HashMap,
+    vm::runners::builtin_runner::{
+        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
+        POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+    },
+};
 use serde::{Deserialize, Serialize};
 
 use crate::Felt252;
@@ -105,12 +111,28 @@ impl AirPrivateInput {
             trace_path: trace_file.as_path().canonicalize().unwrap_or(trace_file),
             memory_path: memory_file.as_path().canonicalize().unwrap_or(memory_file),
             pedersen: self.0.get(HASH_BUILTIN_NAME).cloned().unwrap_or_default(),
-            range_check: self.0.get(RANGE_CHECK_BUILTIN_NAME).cloned().unwrap_or_default(),
-            ecdsa: self.0.get(SIGNATURE_BUILTIN_NAME).cloned().unwrap_or_default(),
-            bitwise: self.0.get(BITWISE_BUILTIN_NAME).cloned().unwrap_or_default(),
+            range_check: self
+                .0
+                .get(RANGE_CHECK_BUILTIN_NAME)
+                .cloned()
+                .unwrap_or_default(),
+            ecdsa: self
+                .0
+                .get(SIGNATURE_BUILTIN_NAME)
+                .cloned()
+                .unwrap_or_default(),
+            bitwise: self
+                .0
+                .get(BITWISE_BUILTIN_NAME)
+                .cloned()
+                .unwrap_or_default(),
             ec_op: self.0.get(EC_OP_BUILTIN_NAME).cloned().unwrap_or_default(),
             keccak: self.0.get(KECCAK_BUILTIN_NAME).cloned().unwrap_or_default(),
-            poseidon: self.0.get(POSEIDON_BUILTIN_NAME).cloned().unwrap_or_default(),
+            poseidon: self
+                .0
+                .get(POSEIDON_BUILTIN_NAME)
+                .cloned()
+                .unwrap_or_default(),
         }
     }
 }
