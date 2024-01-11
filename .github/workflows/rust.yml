@@ -79,7 +79,7 @@ jobs:
 
     - name: Create proof_programs symlinks
       if: steps.cache-programs.outputs.cache-hit != 'true'
-      run: make create-symlinks
+      run: make create-proof-programs-symlinks
 
     - name: Build programs
       if: steps.cache-programs.outputs.cache-hit != 'true'
