@@ -1,6 +1,3 @@
-#[cfg(feature = "std")]
-use std::path::PathBuf;
-
 use crate::{
     stdlib::collections::HashMap,
     vm::runners::builtin_runner::{
@@ -13,11 +10,10 @@ use serde::{Deserialize, Serialize};
 use crate::Felt252;
 
 // Serializable format, matches the file output of the python implementation
-#[cfg(feature = "std")]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AirPrivateInputSerializable {
-    trace_path: PathBuf,
-    memory_path: PathBuf,
+    trace_path: String,
+    memory_path: String,
     pedersen: Vec<PrivateInput>,
     range_check: Vec<PrivateInput>,
     ecdsa: Vec<PrivateInput>,
@@ -100,16 +96,15 @@ pub struct SignatureInput {
     pub w: Felt252,
 }
 
-#[cfg(feature = "std")]
 impl AirPrivateInput {
     pub fn to_serializable(
         &self,
-        trace_file: PathBuf,
-        memory_file: PathBuf,
+        trace_path: String,
+        memory_path: String,
     ) -> AirPrivateInputSerializable {
         AirPrivateInputSerializable {
-            trace_path: trace_file.as_path().canonicalize().unwrap_or(trace_file),
-            memory_path: memory_file.as_path().canonicalize().unwrap_or(memory_file),
+            trace_path,
+            memory_path,
             pedersen: self.0.get(HASH_BUILTIN_NAME).cloned().unwrap_or_default(),
             range_check: self
                 .0
@@ -137,7 +132,6 @@ impl AirPrivateInput {
     }
 }
 
-#[cfg(feature = "std")]
 impl AirPrivateInputSerializable {
     pub fn serialize_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(&self)

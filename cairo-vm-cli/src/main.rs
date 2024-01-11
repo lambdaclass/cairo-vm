@@ -203,9 +203,29 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(file_path) = args.air_private_input {
+        // Get absolute paths of trace_file & memory_file
+        let trace_path = args
+            .trace_file
+            .clone()
+            .unwrap()
+            .as_path()
+            .canonicalize()
+            .unwrap_or(args.trace_file.unwrap())
+            .to_string_lossy()
+            .to_string();
+        let memory_path = args
+            .memory_file
+            .clone()
+            .unwrap()
+            .as_path()
+            .canonicalize()
+            .unwrap_or(args.memory_file.unwrap())
+            .to_string_lossy()
+            .to_string();
+
         let json = cairo_runner
             .get_air_private_input(&vm)
-            .to_serializable(args.trace_file.unwrap(), args.memory_file.unwrap())
+            .to_serializable(trace_path, memory_path)
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
