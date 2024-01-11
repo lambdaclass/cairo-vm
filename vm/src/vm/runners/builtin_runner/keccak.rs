@@ -747,7 +747,7 @@ mod tests {
             builtin.air_private_input(&memory),
             (vec![PrivateInput::KeccakState(PrivateInputKeccakState {
                 index: 0,
-                input_s0: 1.into(),
+                input_s0: 0.into(),
                 input_s1: 1.into(),
                 input_s2: 2.into(),
                 input_s3: 3.into(),
