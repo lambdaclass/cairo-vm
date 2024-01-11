@@ -588,12 +588,7 @@ mod tests {
             ((0, 6), 6),
             ((0, 7), 7),
             ((0, 8), 8),
-            ((0, 9), 9),
-            ((0, 10), 10),
-            ((0, 11), 11),
-            ((0, 12), 12),
-            ((0, 13), 13),
-            ((0, 14), 14)
+            ((0, 9), 9)
         ];
         assert_eq!(
             builtin.air_private_input(&memory),
@@ -605,13 +600,13 @@ mod tests {
                 }),
                 PrivateInput::Pair(PrivateInputPair {
                     index: 1,
-                    x: 5.into(),
-                    y: 6.into()
+                    x: 3.into(),
+                    y: 4.into()
                 }),
                 PrivateInput::Pair(PrivateInputPair {
                     index: 2,
-                    x: 10.into(),
-                    y: 11.into()
+                    x: 6.into(),
+                    y: 7.into()
                 }),
             ]),
         );
