@@ -399,15 +399,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             stack_pointer.offset += size as usize;
         }
         // Set stop pointer for each builtin
-        for builtin in vm.builtin_runners.iter_mut() {
-            builtin.final_stack(
-                &vm.segments,
-                builtin_name_to_stack_pointer
-                    .get(builtin.name())
-                    .cloned()
-                    .unwrap_or_default(),
-            )?;
-        }
+        vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer)?;
 
         // Build execution public memory
         runner.finalize_segments(&mut vm)?;
