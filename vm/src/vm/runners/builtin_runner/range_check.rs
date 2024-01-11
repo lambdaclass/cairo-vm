@@ -609,7 +609,7 @@ mod tests {
     fn get_air_private_input() {
         let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(None, 4, true).into();
 
-        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2)];
         assert_eq!(
             builtin.air_private_input(&memory),
             (vec![
