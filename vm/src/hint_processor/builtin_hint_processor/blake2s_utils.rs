@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::Felt252;
@@ -21,9 +21,7 @@ use num_traits::ToPrimitive;
 
 use super::hint_utils::get_integer_from_var_name;
 
-fn get_fixed_size_u32_array<const T: usize>(
-    h_range: &Vec<Cow<Felt252>>,
-) -> Result<[u32; T], HintError> {
+fn get_fixed_size_u32_array<const T: usize>(h_range: &Vec<Felt252>) -> Result<[u32; T], HintError> {
     let mut u32_vec = Vec::<u32>::with_capacity(h_range.len());
     for num in h_range {
         u32_vec.push(num.to_u32().ok_or(HintError::BigintToU32Fail)?);
@@ -182,8 +180,8 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let mut low = vm.get_integer(low_addr)?.into_owned();
-    let mut high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?;
+    let mut high = vm.get_integer(high_addr)?;
     //Main logic
     //Build first batch of data
     let b = pow2_const_nz(32);
@@ -218,8 +216,8 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let mut low = vm.get_integer(low_addr)?.into_owned();
-    let mut high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?;
+    let mut high = vm.get_integer(high_addr)?;
     //Main logic
     let b = pow2_const_nz(32);
     let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
@@ -271,9 +269,8 @@ pub fn example_blake2s_compress(
     let blake2s_start = get_ptr_from_var_name("blake2s_start", vm, ids_data, ap_tracking)?;
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).map(|x| {
-        x.to_u32().ok_or_else(|| {
-            HintError::Math(MathError::Felt252ToU32Conversion(Box::new(x.into_owned())))
-        })
+        x.to_u32()
+            .ok_or_else(|| HintError::Math(MathError::Felt252ToU32Conversion(Box::new(x))))
     })??;
 
     let message = get_fixed_size_u32_array::<16>(&vm.get_integer_range(blake2s_start, 16)?)?;

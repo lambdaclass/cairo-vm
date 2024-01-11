@@ -151,15 +151,11 @@ mod tests {
 
         // Check VM inserts
         assert_eq!(
-            vm.get_integer(Relocatable::from((1, 5)))
-                .unwrap()
-                .into_owned(),
+            vm.get_integer(Relocatable::from((1, 5))).unwrap(),
             felt_str!("80275402838848031859800366538378848249")
         );
         assert_eq!(
-            vm.get_integer(Relocatable::from((1, 6)))
-                .unwrap()
-                .into_owned(),
+            vm.get_integer(Relocatable::from((1, 6))).unwrap(),
             felt_str!("5810892639608724280512701676461676039")
         );
     }

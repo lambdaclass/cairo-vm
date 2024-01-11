@@ -30,9 +30,7 @@ pub fn find_element(
         .to_usize()
         .ok_or_else(|| HintError::ValueOutOfRange(Box::new(*elm_size_bigint.as_ref())))?;
     if elm_size == 0 {
-        return Err(HintError::ValueOutOfRange(Box::new(
-            elm_size_bigint.into_owned(),
-        )));
+        return Err(HintError::ValueOutOfRange(Box::new(elm_size_bigint)));
     }
 
     if let Some(find_element_index_value) = find_element_index {
@@ -44,8 +42,8 @@ pub fn find_element(
         if found_key.as_ref() != key.as_ref() {
             return Err(HintError::InvalidIndex(Box::new((
                 find_element_index_value,
-                key.into_owned(),
-                found_key.into_owned(),
+                key,
+                found_key,
             ))));
         }
         insert_value_from_var_name("index", find_element_index_value, vm, ids_data, ap_tracking)?;
@@ -56,13 +54,13 @@ pub fn find_element(
             if n_elms.as_ref() > find_element_max_size {
                 return Err(HintError::FindElemMaxSize(Box::new((
                     *find_element_max_size,
-                    n_elms.into_owned(),
+                    n_elms,
                 ))));
             }
         }
         let n_elms_iter: u32 = n_elms
             .to_u32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?;
+            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms)))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
@@ -80,9 +78,7 @@ pub fn find_element(
             }
         }
 
-        Err(HintError::NoValueForKeyFindElement(Box::new(
-            key.into_owned(),
-        )))
+        Err(HintError::NoValueForKeyFindElement(Box::new(key)))
     }
 }
 

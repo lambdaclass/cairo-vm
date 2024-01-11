@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, boxed::Box};
+use crate::stdlib::boxed::Box;
 
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
@@ -29,16 +29,16 @@ pub fn insert_value_from_reference(
 
 ///Returns the Integer value stored in the given ids variable
 /// Returns an internal error, users should map it into a more informative type
-pub fn get_integer_from_reference<'a>(
-    vm: &'a VirtualMachine,
-    hint_reference: &'a HintReference,
+pub fn get_integer_from_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt252>, HintError> {
+) -> Result<Felt252, HintError> {
     // if the reference register is none, this means it is an immediate value and we
     // should return that value.
 
     if let (OffsetValue::Immediate(int_1), _) = (&hint_reference.offset1, &hint_reference.offset2) {
-        return Ok(Cow::Borrowed(int_1));
+        return Ok(*int_1);
     }
 
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
@@ -201,8 +201,7 @@ mod tests {
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
-                .expect("Unexpected get integer fail")
-                .into_owned(),
+                .expect("Unexpected get integer fail"),
             Felt252::from(2)
         );
     }

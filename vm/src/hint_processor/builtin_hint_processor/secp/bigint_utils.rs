@@ -2,7 +2,7 @@ use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::utils::biguint_to_felt;
 use crate::Felt252;
@@ -24,23 +24,23 @@ use crate::{
 };
 use num_bigint::{BigInt, BigUint};
 
-pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
-pub(crate) type Uint384<'a> = BigIntN<'a, 3>;
-pub(crate) type Uint512<'a> = BigIntN<'a, 4>;
-pub(crate) type BigInt5<'a> = BigIntN<'a, 5>;
-pub(crate) type Uint768<'a> = BigIntN<'a, 6>;
+pub(crate) type BigInt3 = BigIntN<3>;
+pub(crate) type Uint384 = BigIntN<3>;
+pub(crate) type Uint512 = BigIntN<4>;
+pub(crate) type BigInt5 = BigIntN<5>;
+pub(crate) type Uint768 = BigIntN<6>;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct BigIntN<'a, const NUM_LIMBS: usize> {
-    pub(crate) limbs: [Cow<'a, Felt252>; NUM_LIMBS],
+pub(crate) struct BigIntN<const NUM_LIMBS: usize> {
+    pub(crate) limbs: [Felt252; NUM_LIMBS],
 }
 
-impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
-    pub(crate) fn from_base_addr<'a>(
+impl<const NUM_LIMBS: usize> BigIntN<NUM_LIMBS> {
+    pub(crate) fn from_base_addr(
         addr: Relocatable,
         name: &str,
-        vm: &'a VirtualMachine,
-    ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
+        vm: &VirtualMachine,
+    ) -> Result<BigIntN<NUM_LIMBS>, HintError> {
         let mut limbs = vec![];
         for i in 0..NUM_LIMBS {
             limbs.push(vm.get_integer((addr + i)?).map_err(|_| {
@@ -54,20 +54,18 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
         })
     }
 
-    pub(crate) fn from_var_name<'a>(
+    pub(crate) fn from_var_name(
         name: &str,
-        vm: &'a VirtualMachine,
+        vm: &VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
-    ) -> Result<BigIntN<'a, NUM_LIMBS>, HintError> {
+    ) -> Result<BigIntN<NUM_LIMBS>, HintError> {
         let base_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         BigIntN::from_base_addr(base_addr, name, vm)
     }
 
     pub(crate) fn from_values(limbs: [Felt252; NUM_LIMBS]) -> Self {
-        Self {
-            limbs: limbs.map(Cow::Owned),
-        }
+        Self { limbs }
     }
 
     pub(crate) fn insert_from_var_name(
@@ -93,7 +91,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
             .into_iter()
             .take(3)
             .enumerate()
-            .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
+            .map(|(idx, value)| signed_felt(value).shl(idx * 86))
             .sum()
     }
 
@@ -103,8 +101,8 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     }
 }
 
-impl<'a, const NUM_LIMBS: usize> From<&'a BigUint> for BigIntN<'a, NUM_LIMBS> {
-    fn from(value: &'a BigUint) -> Self {
+impl<const NUM_LIMBS: usize> From<&BigUint> for BigIntN<NUM_LIMBS> {
+    fn from(value: &BigUint) -> Self {
         Self::split(value)
     }
 }
@@ -442,9 +440,9 @@ mod tests {
     fn u384_pack86() {
         let pack_1 = Uint384 {
             limbs: [
-                Cow::Borrowed(&Felt252::from(10_i32)),
-                Cow::Borrowed(&Felt252::from(10_i32)),
-                Cow::Borrowed(&Felt252::from(10_i32)),
+                Felt252::from(10_i32),
+                Felt252::from(10_i32),
+                Felt252::from(10_i32),
             ],
         }
         .pack86();
@@ -455,9 +453,9 @@ mod tests {
 
         let pack_2 = Uint384 {
             limbs: [
-                Cow::Borrowed(&felt_str!("773712524553362")),
-                Cow::Borrowed(&felt_str!("57408430697461422066401280")),
-                Cow::Borrowed(&felt_str!("1292469707114105")),
+                felt_str!("773712524553362"),
+                felt_str!("57408430697461422066401280"),
+                felt_str!("1292469707114105"),
             ],
         }
         .pack86();

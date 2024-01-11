@@ -269,15 +269,11 @@ impl Memory {
 
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
-        match self
-            .get(&key)
+    pub fn get_integer(&self, key: Relocatable) -> Result<Felt252, MemoryError> {
+        self.get(&key)
             .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
-        {
-            Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
-            Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
-        }
+            .get_int()
+            .ok_or_else(|| MemoryError::ExpectedInteger(Box::new(key)))
     }
 
     /// Gets the value from memory address as a Relocatable value.
@@ -471,7 +467,7 @@ impl Memory {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
+    ) -> Result<Vec<Felt252>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {

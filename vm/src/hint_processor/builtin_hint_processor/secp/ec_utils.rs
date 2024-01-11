@@ -28,17 +28,17 @@ use num_traits::{One, ToPrimitive, Zero};
 use super::secp_utils::SECP256R1_P;
 
 #[derive(Debug, PartialEq)]
-struct EcPoint<'a> {
-    x: BigInt3<'a>,
-    y: BigInt3<'a>,
+struct EcPoint {
+    x: BigInt3,
+    y: BigInt3,
 }
-impl EcPoint<'_> {
-    fn from_var_name<'a>(
-        name: &'a str,
-        vm: &'a VirtualMachine,
-        ids_data: &'a HashMap<String, HintReference>,
-        ap_tracking: &'a ApTracking,
-    ) -> Result<EcPoint<'a>, HintError> {
+impl EcPoint {
+    fn from_var_name(
+        name: &str,
+        vm: &VirtualMachine,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+    ) -> Result<EcPoint, HintError> {
         // Get first addr of EcPoint struct
         let point_addr = get_relocatable_from_var_name(name, vm, ids_data, ap_tracking)?;
         Ok(EcPoint {

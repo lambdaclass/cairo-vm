@@ -9,7 +9,6 @@ use crate::{
     math_utils::{isqrt, pow2_const, pow2_const_nz},
     serde::deserialize_program::ApTracking,
     stdlib::{
-        borrow::Cow,
         boxed::Box,
         collections::HashMap,
         ops::{Shl, Shr},
@@ -23,16 +22,16 @@ use num_integer::{div_rem, Integer};
 use num_traits::{One, Zero};
 
 // TODO: use this type in all uint256 functions
-pub(crate) struct Uint256<'a> {
-    pub low: Cow<'a, Felt252>,
-    pub high: Cow<'a, Felt252>,
+pub(crate) struct Uint256 {
+    pub low: Felt252,
+    pub high: Felt252,
 }
 
-impl<'a> Uint256<'a> {
+impl Uint256 {
     pub(crate) fn from_base_addr(
         addr: Relocatable,
         name: &str,
-        vm: &'a VirtualMachine,
+        vm: &VirtualMachine,
     ) -> Result<Self, HintError> {
         Ok(Self {
             low: vm.get_integer(addr).map_err(|_| {
@@ -46,7 +45,7 @@ impl<'a> Uint256<'a> {
 
     pub(crate) fn from_var_name(
         name: &str,
-        vm: &'a VirtualMachine,
+        vm: &VirtualMachine,
         ids_data: &HashMap<String, HintReference>,
         ap_tracking: &ApTracking,
     ) -> Result<Self, HintError> {
@@ -55,8 +54,6 @@ impl<'a> Uint256<'a> {
     }
 
     pub(crate) fn from_values(low: Felt252, high: Felt252) -> Self {
-        let low = Cow::Owned(low);
-        let high = Cow::Owned(high);
         Self { low, high }
     }
 
@@ -69,14 +66,14 @@ impl<'a> Uint256<'a> {
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
 
-        vm.insert_value(addr, self.low.into_owned())?;
-        vm.insert_value((addr + 1)?, self.high.into_owned())?;
+        vm.insert_value(addr, self.low)?;
+        vm.insert_value((addr + 1)?, self.high)?;
 
         Ok(())
     }
 
     pub(crate) fn pack(self) -> BigUint {
-        (felt_to_biguint(*self.high) << 128) + felt_to_biguint(*self.low)
+        (self.high.to_biguint() << 128) + self.low.to_biguint()
     }
 
     pub(crate) fn split(num: &BigUint) -> Self {
@@ -87,13 +84,13 @@ impl<'a> Uint256<'a> {
     }
 }
 
-impl<'a> From<&BigUint> for Uint256<'a> {
+impl From<&BigUint> for Uint256 {
     fn from(value: &BigUint) -> Self {
         Self::split(value)
     }
 }
 
-impl<'a> From<Felt252> for Uint256<'a> {
+impl From<Felt252> for Uint256 {
     fn from(value: Felt252) -> Self {
         let (high, low) = value.div_rem(pow2_const_nz(128));
         Self::from_values(low, high)
@@ -316,12 +313,12 @@ pub fn uint256_signed_nn(
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
-    let result: Felt252 =
-        if *a_high >= Felt252::ZERO && a_high.as_ref() <= &Felt252::from(i128::MAX) {
-            Felt252::ONE
-        } else {
-            Felt252::ZERO
-        };
+    let result: Felt252 = if a_high >= Felt252::ZERO && a_high.as_ref() <= &Felt252::from(i128::MAX)
+    {
+        Felt252::ONE
+    } else {
+        Felt252::ZERO
+    };
     insert_value_into_ap(vm, result)
 }
 

@@ -6,6 +6,13 @@
 
 * feat: Yeet the Cows (name pending, or not?)
   * Replace `MaybeRelocatable` method  `get_int_ref(&self) -> Option<Cow<Felt252>>` with `get_int(&self) -> Option<Felt252>`
+  * Remove `Cow` from the following method & function's return values:
+    * `Memory.get_integer`
+    * `Memory.get_integer_range`
+    * `VirtualMachine.get_integer`
+    * `VirtualMachine.get_integer_range`
+    * `get_integer_from_var_name`
+    * `get_integer_from_reference`
 
 * feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
 

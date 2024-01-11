@@ -827,7 +827,7 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Felt252, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
@@ -918,7 +918,7 @@ impl VirtualMachine {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
+    ) -> Result<Vec<Felt252>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 

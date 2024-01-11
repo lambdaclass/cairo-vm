@@ -536,7 +536,6 @@ impl Cairo1HintProcessor {
 
         let n_dicts = vm
             .get_integer((dict_manager_address - 2)?)?
-            .into_owned()
             .to_usize()
             .ok_or_else(|| {
                 HintError::CustomHint(
@@ -910,7 +909,7 @@ impl Cairo1HintProcessor {
             let current_key = vm.get_integer((dict_accesses_address + i * dict_access_size)?)?;
             dict_squash_exec_scope
                 .access_indices
-                .entry(current_key.into_owned())
+                .entry(current_key)
                 .and_modify(|indices| indices.push(Felt252::from(i)))
                 .or_insert_with(|| vec![Felt252::from(i)]);
         }

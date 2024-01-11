@@ -209,7 +209,7 @@ pub(self) fn run_cairo_1_entrypoint(
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()
-        .map(|c| c.clone().into_owned())
+        .map(|c| *c)
         .collect();
     assert_eq!(expected_retdata, &retdata);
 }
@@ -309,7 +309,7 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()
-        .map(|c| c.clone().into_owned())
+        .map(|c| *c)
         .collect();
     Ok(retdata)
 }

@@ -43,14 +43,14 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(HintError::UsortOutOfRange(Box::new((
                 usort_max_size,
-                input_len.into_owned(),
+                input_len,
             ))));
         }
     }
     let mut positions_dict: HashMap<Felt252, Vec<u64>> = HashMap::new();
     let mut output: Vec<Felt252> = Vec::new();
     for i in 0..input_len_u64 {
-        let val = vm.get_integer((input_ptr + i as usize)?)?.into_owned();
+        let val = vm.get_integer((input_ptr + i as usize)?)?;
         if let Err(output_index) = output.binary_search(&val) {
             output.insert(output_index, val);
         }
