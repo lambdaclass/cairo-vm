@@ -268,6 +268,27 @@ mod tests {
     }
 
     #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--proof_mode", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_trace(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--proof_mode", "--trace_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_memory(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_proof(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
     fn test_run_ok(
         #[values(None,
                  Some("plain"),
