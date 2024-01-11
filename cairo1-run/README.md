@@ -37,7 +37,7 @@ Example:
 
 ```bash
 
-cargo run ../cairo_programs/cairo-1-programs/array_input_sum.cairo --args '2 [1 2 3 4] 0 [9 8]'
+cargo run ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --layout all_cairo --args '2 [1 2 3 4] 0 [9 8]'
 
 ```
 
