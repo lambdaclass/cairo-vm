@@ -15,7 +15,9 @@ use serde::{Deserialize, Serialize};
 use arbitrary::Arbitrary;
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(
+    Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default,
+)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
