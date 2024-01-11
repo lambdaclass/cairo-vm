@@ -6,6 +6,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
+use crate::stdlib::prelude::String;
 
 use crate::Felt252;
 
