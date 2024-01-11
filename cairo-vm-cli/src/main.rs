@@ -310,16 +310,17 @@ mod tests {
         #[values(false, true)] print_output: bool,
         #[values(false, true)] entrypoint: bool,
         #[values(false, true)] air_public_input: bool,
+        #[values(false, true)] air_private_input: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
             args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
         }
         if air_public_input {
-            args.extend_from_slice(&[
-                "--air_public_input".to_string(),
-                "air_input.pub".to_string(),
-            ]);
+            args.extend_from_slice(&["--air_public_input".to_string(), "/dev/null".to_string()]);
+        }
+        if air_private_input {
+            args.extend_from_slice(&["--air_private_input".to_string(), "/dev/null".to_string()]);
         }
         if proof_mode {
             trace_file = true;
@@ -342,7 +343,9 @@ mod tests {
         }
 
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
-        if air_public_input && !proof_mode {
+        if air_public_input && !proof_mode
+            || air_private_input && !proof_mode && !trace_file && !memory_file
+        {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {
             assert_matches!(run(args.into_iter()), Ok(_));

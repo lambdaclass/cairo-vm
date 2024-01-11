@@ -1,3 +1,4 @@
+use crate::stdlib::prelude::String;
 use crate::{
     stdlib::collections::HashMap,
     vm::runners::builtin_runner::{
@@ -6,7 +7,6 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use crate::stdlib::prelude::String;
 
 use crate::Felt252;
 
