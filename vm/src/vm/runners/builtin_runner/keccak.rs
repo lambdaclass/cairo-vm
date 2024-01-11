@@ -726,4 +726,36 @@ mod tests {
         let output_bytes = KeccakBuiltinRunner::keccak_f(input_bytes);
         assert_eq!(output_bytes, Ok(expected_output_bytes.to_vec()));
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+                index: 0,
+                input_s0: 1.into(),
+                input_s1: 1.into(),
+                input_s2: 2.into(),
+                input_s3: 3.into(),
+                input_s4: 4.into(),
+                input_s5: 5.into(),
+                input_s6: 6.into(),
+                input_s7: 7.into()
+            }),]),
+        );
+    }
 }
