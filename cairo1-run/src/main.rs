@@ -87,6 +87,8 @@ struct Args {
     proof_mode: bool,
     #[clap(long = "air_public_input", value_parser)]
     air_public_input: Option<PathBuf>,
+    #[clap(long = "air_private_input", value_parser)]
+    air_private_input: Option<PathBuf>,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args)]
@@ -235,6 +237,30 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         let error = Args::command().error(
             clap::error::ErrorKind::ArgumentConflict,
             "--air_public_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && !args.proof_mode {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--air_private_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.trace_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--trace_file must be set when --air_private_input is set.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.memory_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--memory_file must be set when --air_private_input is set.",
         );
         return Err(Error::Cli(error));
     }
@@ -470,6 +496,35 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
+        std::fs::write(file_path, json)?;
+    }
+
+    if let Some(file_path) = args.air_private_input {
+        // Get absolute paths of trace_file & memory_file
+        let trace_path = args
+            .trace_file
+            .clone()
+            .unwrap()
+            .as_path()
+            .canonicalize()
+            .unwrap_or(args.trace_file.clone().unwrap())
+            .to_string_lossy()
+            .to_string();
+        let memory_path = args
+            .memory_file
+            .clone()
+            .unwrap()
+            .as_path()
+            .canonicalize()
+            .unwrap_or(args.memory_file.clone().unwrap())
+            .to_string_lossy()
+            .to_string();
+
+        let json = runner
+            .get_air_private_input(&vm)
+            .to_serializable(trace_path, memory_path)
+            .serialize_json()
+            .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
     }
 
