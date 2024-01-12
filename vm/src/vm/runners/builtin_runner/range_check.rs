@@ -95,7 +95,7 @@ impl RangeCheckBuiltinRunner {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
-                        num.into_owned(),
+                        num,
                         Felt252::TWO.pow((N_PARTS * INNER_RC_BOUND_SHIFT) as u128),
                     ))))
                 }

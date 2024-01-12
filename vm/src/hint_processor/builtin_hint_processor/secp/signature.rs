@@ -125,7 +125,7 @@ pub fn get_point_from_x(
     let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
 
     #[allow(deprecated)]
-    let v = felt_to_biguint(*get_integer_from_var_name("v", vm, ids_data, ap_tracking)?);
+    let v = felt_to_biguint(get_integer_from_var_name("v", vm, ids_data, ap_tracking)?);
     if v.is_even() != y.is_even() {
         y = &*SECP_P - y;
     }

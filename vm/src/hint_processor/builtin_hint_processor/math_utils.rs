@@ -112,8 +112,8 @@ pub fn assert_le_felt(
     let prime_over_2_high = constants
         .get(PRIME_OVER_2_HIGH)
         .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
-    let a = felt_to_biguint(*get_integer_from_var_name("a", vm, ids_data, ap_tracking)?);
-    let b = felt_to_biguint(*get_integer_from_var_name("b", vm, ids_data, ap_tracking)?);
+    let a = felt_to_biguint(get_integer_from_var_name("a", vm, ids_data, ap_tracking)?);
+    let b = felt_to_biguint(get_integer_from_var_name("b", vm, ids_data, ap_tracking)?);
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
 
     // TODO: use UnsignedInteger for this
@@ -162,10 +162,10 @@ pub fn assert_le_felt_v_0_6(
     let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
-    if a.as_ref() > b.as_ref() {
+    if a > b {
         return Err(HintError::NonLeFelt252(Box::new((
-            a.clone().into_owned(),
-            b.clone().into_owned(),
+            *a,
+            *b,
         ))));
     }
     Ok(())
@@ -179,15 +179,15 @@ pub fn assert_le_felt_v_0_8(
     let a = &get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
-    if a.as_ref() > b.as_ref() {
+    if a > b {
         return Err(HintError::NonLeFelt252(Box::new((
-            a.clone().into_owned(),
-            b.clone().into_owned(),
+            *a,
+            *b,
         ))));
     }
     let bound = vm.get_range_check_builtin()?._bound.unwrap_or_default();
     let small_inputs =
-        Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < bound) as u8);
+        Felt252::from((a < &bound && b - a < bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
@@ -302,7 +302,7 @@ pub fn assert_nn(
     // as prime > 0, a % prime will always be > 0
     match &range_check_builtin._bound {
         Some(bound) if a.as_ref() >= bound => {
-            Err(HintError::AssertNNValueOutOfRange(Box::new(a.into_owned())))
+            Err(HintError::AssertNNValueOutOfRange(Box::new(a)))
         }
         _ => Ok(()),
     }
@@ -322,7 +322,7 @@ pub fn assert_not_zero(
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     if value.is_zero() {
         return Err(HintError::AssertNotZero(Box::new((
-            value.into_owned(),
+            value,
             crate::utils::PRIME_STR.to_string(),
         ))));
     };
@@ -376,7 +376,7 @@ pub fn is_positive(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    let value_as_int = signed_felt(*value);
+    let value_as_int = signed_felt(value);
     let range_check_builtin = vm.get_range_check_builtin()?;
 
     // Avoid using abs so we don't allocate a new BigInt
@@ -385,7 +385,7 @@ pub fn is_positive(
     match &range_check_builtin._bound {
         Some(bound) if abs_value > felt_to_biguint(*bound) => {
             return Err(HintError::ValueOutsideValidRange(Box::new(
-                value.into_owned(),
+                value,
             )))
         }
         _ => {}
@@ -448,16 +448,16 @@ pub fn sqrt(
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::from(2).pow(250)
-    if *mod_value > pow2_const(250) {
+    if mod_value > pow2_const(250) {
         return Err(HintError::ValueOutside250BitRange(Box::new(
-            mod_value.into_owned(),
+            mod_value,
         )));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
     #[allow(deprecated)]
     insert_value_from_var_name(
         "root",
-        biguint_to_felt(&isqrt(&felt_to_biguint(*mod_value))?)?,
+        biguint_to_felt(&isqrt(&felt_to_biguint(mod_value))?)?,
         vm,
         ids_data,
         ap_tracking,
@@ -478,27 +478,27 @@ pub fn signed_div_rem(
     let builtin_bound = &builtin._bound.unwrap_or(Felt252::MAX);
     if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
         return Err(HintError::OutOfValidRange(Box::new((
-            div.into_owned(),
+            div,
             *builtin_bound,
         ))));
     }
     let builtin_bound_div_2 = builtin_bound.field_div(&Felt252::TWO.try_into().unwrap());
-    if *bound > builtin_bound_div_2 {
+    if bound > builtin_bound_div_2 {
         return Err(HintError::OutOfValidRange(Box::new((
-            bound.into_owned(),
+            bound,
             builtin_bound_div_2,
         ))));
     }
 
     let int_value = signed_felt(*value);
-    let int_div = felt_to_bigint(*div);
-    let int_bound = felt_to_bigint(*bound);
+    let int_div = felt_to_bigint(div);
+    let int_bound = felt_to_bigint(bound);
     let (q, r) = int_value.div_mod_floor(&int_div);
 
     if int_bound.abs() < q.abs() {
         return Err(HintError::OutOfValidRange(Box::new((
             bigint_to_felt(&q)?,
-            bound.into_owned(),
+            bound,
         ))));
     }
 
@@ -537,20 +537,20 @@ pub fn unsigned_div_rem(
             if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
         {
             return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
+                div,
                 *builtin_bound,
             ))));
         }
         None if div.is_zero() => {
             return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
+                div,
                 Felt252::ZERO - Felt252::ONE,
             ))));
         }
         _ => {}
     }
 
-    let (q, r) = value.div_rem(&(*div).try_into().map_err(|_| MathError::DividedByZero)?);
+    let (q, r) = value.div_rem(&(div).try_into().map_err(|_| MathError::DividedByZero)?);
     insert_value_from_var_name("r", r, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("q", q, vm, ids_data, ap_tracking)
 }
@@ -576,7 +576,7 @@ pub fn assert_250_bit(
     let shift = constants
         .get(SHIFT)
         .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
-    let value = bigint_to_felt(&signed_felt(*get_integer_from_var_name(
+    let value = bigint_to_felt(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
         ids_data,
@@ -679,8 +679,8 @@ pub fn assert_lt_felt(
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a >= b {
         return Err(HintError::AssertLtFelt252(Box::new((
-            a.into_owned(),
-            b.into_owned(),
+            a,
+            b,
         ))));
     };
     Ok(())
@@ -691,7 +691,7 @@ pub fn is_quad_residue(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let x = *get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
+    let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
     if x.is_zero() || x == Felt252::ONE {
         insert_value_from_var_name("y", *x.as_ref(), vm, ids_data, ap_tracking)
@@ -780,7 +780,7 @@ pub fn split_xx(
 ) -> Result<(), HintError> {
     let xx = Uint256::from_var_name("xx", vm, ids_data, ap_tracking)?;
     let x_addr = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
-    let xx: BigUint = felt_to_biguint(*xx.low) + felt_to_biguint(*xx.high * pow2_const(128));
+    let xx: BigUint = felt_to_biguint(xx.low) + felt_to_biguint(xx.high * pow2_const(128));
     let mut x = xx.modpow(
         &(&*SPLIT_XX_PRIME + 3_u32).div_floor(&BigUint::from(8_u32)),
         &SPLIT_XX_PRIME,
@@ -2541,9 +2541,9 @@ mod tests {
             if x.is_zero() || x == Felt252::ONE {
                 assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().as_ref(), &x);
             } else if x.pow_felt(&Felt252::MAX.field_div(&Felt252::TWO.try_into().unwrap())) == Felt252::ONE {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), x.sqrt().unwrap());
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap(), x.sqrt().unwrap());
             } else {
-                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap().into_owned(), (x.field_div(&(Felt252::from(3).try_into().unwrap())).sqrt().unwrap()));
+                assert_eq!(vm.get_integer(Relocatable::from((1, 0))).unwrap(), (x.field_div(&(Felt252::from(3).try_into().unwrap())).sqrt().unwrap()));
             }
         }
     }

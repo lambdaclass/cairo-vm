@@ -50,7 +50,7 @@ mod tests {
         vm.insert_value((1, 0).into(), x).unwrap();
 
         run_hint!(vm, ids_data, hint_code::GET_FELT_BIT_LENGTH).unwrap();
-        Ok(vm.get_integer((1, 1).into()).unwrap().into_owned())
+        Ok(vm.get_integer((1, 1).into()).unwrap())
     }
 
     #[test]

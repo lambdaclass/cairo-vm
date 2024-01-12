@@ -207,10 +207,7 @@ pub(self) fn run_cairo_1_entrypoint(
     let retdata_end = return_values[4].get_relocatable().unwrap();
     let retdata: Vec<Felt252> = vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
-        .unwrap()
-        .iter()
-        .map(|c| *c)
-        .collect();
+        .unwrap();
     assert_eq!(expected_retdata, &retdata);
 }
 
@@ -307,10 +304,7 @@ pub(self) fn run_cairo_1_entrypoint_with_run_resources(
     let retdata_end = return_values[4].get_relocatable().unwrap();
     let retdata: Vec<Felt252> = vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
-        .unwrap()
-        .iter()
-        .map(|c| *c)
-        .collect();
+        .unwrap();
     Ok(retdata)
 }
 

@@ -133,8 +133,8 @@ impl SignatureBuiltinRunner {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
                         format!("({}, {})", signature.r, signature.s),
-                        pubkey.into_owned(),
-                        msg.into_owned(),
+                        pubkey,
+                        msg,
                     )))),
                 }
             },
