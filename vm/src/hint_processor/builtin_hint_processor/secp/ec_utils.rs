@@ -487,15 +487,15 @@ pub fn n_pair_bits(
     result_name: &str,
     number_of_pairs: u32,
 ) -> Result<(), HintError> {
-    let scalar_v_cow = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
-    let scalar_u_cow = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
-    let m_cow = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
+    let scalar_v = get_integer_from_var_name("scalar_v", vm, ids_data, ap_tracking)?;
+    let scalar_u = get_integer_from_var_name("scalar_u", vm, ids_data, ap_tracking)?;
+    let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
 
-    let scalar_v = scalar_v_cow.as_ref();
-    let scalar_u = scalar_u_cow.as_ref();
+    let scalar_v = scalar_v.as_ref();
+    let scalar_u = scalar_u.as_ref();
 
     // If m is too high the shift result will always be zero
-    let m = m_cow.as_ref().to_u32().unwrap_or(253);
+    let m = m.as_ref().to_u32().unwrap_or(253);
     if m >= 253 {
         return insert_value_from_var_name(result_name, 0, vm, ids_data, ap_tracking);
     }

@@ -59,7 +59,6 @@ use cairo_vm::{
 };
 use clap::{CommandFactory, Parser, ValueHint};
 use itertools::{chain, Itertools};
-use std::borrow::Cow;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
