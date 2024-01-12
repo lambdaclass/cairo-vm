@@ -2,6 +2,13 @@
 
 #### Upcoming Changes
 
+* feat: Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
+  * Remove the following functions:
+    * felt_from_biguint
+    * felt_from_bigint
+    * felt_to_biguint
+    * felt_to_bigint
+
 * dev: bump cairo 1 compiler dep to 2.4 [#1530](https://github.com/lambdaclass/cairo-vm/pull/1530)
 
 #### [1.0.0-rc0] - 2024-1-5
