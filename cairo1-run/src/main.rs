@@ -176,9 +176,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         replace_ids: true,
         ..CompilerConfig::default()
     };
-    let sierra_program = (*compile_cairo_project_at_path(&args.filename, compiler_config)
-        .map_err(|err| Error::SierraCompilation(err.to_string()))?)
-    .clone();
+    let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
+        .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
     let metadata_config = Some(Default::default());
 
@@ -577,7 +576,7 @@ fn create_metadata(
     metadata_config: Option<MetadataComputationConfig>,
 ) -> Result<Metadata, VirtualMachineError> {
     if let Some(metadata_config) = metadata_config {
-        calc_metadata(sierra_program, metadata_config, false).map_err(|err| match err {
+        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
             MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
             MetadataError::CostError(_) => VirtualMachineError::Unexpected,
         })
