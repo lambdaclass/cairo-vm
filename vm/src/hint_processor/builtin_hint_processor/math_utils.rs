@@ -163,10 +163,7 @@ pub fn assert_le_felt_v_0_6(
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     if a > b {
-        return Err(HintError::NonLeFelt252(Box::new((
-            *a,
-            *b,
-        ))));
+        return Err(HintError::NonLeFelt252(Box::new((*a, *b))));
     }
     Ok(())
 }
@@ -180,14 +177,10 @@ pub fn assert_le_felt_v_0_8(
     let b = &get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
 
     if a > b {
-        return Err(HintError::NonLeFelt252(Box::new((
-            *a,
-            *b,
-        ))));
+        return Err(HintError::NonLeFelt252(Box::new((*a, *b))));
     }
     let bound = vm.get_range_check_builtin()?._bound.unwrap_or_default();
-    let small_inputs =
-        Felt252::from((a < &bound && b - a < bound) as u8);
+    let small_inputs = Felt252::from((a < &bound && b - a < bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
@@ -301,9 +294,7 @@ pub fn assert_nn(
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
     match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() >= bound => {
-            Err(HintError::AssertNNValueOutOfRange(Box::new(a)))
-        }
+        Some(bound) if a.as_ref() >= bound => Err(HintError::AssertNNValueOutOfRange(Box::new(a))),
         _ => Ok(()),
     }
 }
@@ -384,9 +375,7 @@ pub fn is_positive(
     //Main logic (assert a is positive)
     match &range_check_builtin._bound {
         Some(bound) if abs_value > felt_to_biguint(*bound) => {
-            return Err(HintError::ValueOutsideValidRange(Box::new(
-                value,
-            )))
+            return Err(HintError::ValueOutsideValidRange(Box::new(value)))
         }
         _ => {}
     };
@@ -449,9 +438,7 @@ pub fn sqrt(
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::from(2).pow(250)
     if mod_value > pow2_const(250) {
-        return Err(HintError::ValueOutside250BitRange(Box::new(
-            mod_value,
-        )));
+        return Err(HintError::ValueOutside250BitRange(Box::new(mod_value)));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
     #[allow(deprecated)]
@@ -477,10 +464,7 @@ pub fn signed_div_rem(
 
     let builtin_bound = &builtin._bound.unwrap_or(Felt252::MAX);
     if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
-        return Err(HintError::OutOfValidRange(Box::new((
-            div,
-            *builtin_bound,
-        ))));
+        return Err(HintError::OutOfValidRange(Box::new((div, *builtin_bound))));
     }
     let builtin_bound_div_2 = builtin_bound.field_div(&Felt252::TWO.try_into().unwrap());
     if bound > builtin_bound_div_2 {
@@ -536,10 +520,7 @@ pub fn unsigned_div_rem(
         Some(builtin_bound)
             if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
         {
-            return Err(HintError::OutOfValidRange(Box::new((
-                div,
-                *builtin_bound,
-            ))));
+            return Err(HintError::OutOfValidRange(Box::new((div, *builtin_bound))));
         }
         None if div.is_zero() => {
             return Err(HintError::OutOfValidRange(Box::new((
@@ -678,10 +659,7 @@ pub fn assert_lt_felt(
     // assert (ids.a % PRIME) < (ids.b % PRIME), \
     //     f'a = {ids.a % PRIME} is not less than b = {ids.b % PRIME}.'
     if a >= b {
-        return Err(HintError::AssertLtFelt252(Box::new((
-            a,
-            b,
-        ))));
+        return Err(HintError::AssertLtFelt252(Box::new((a, b))));
     };
     Ok(())
 }

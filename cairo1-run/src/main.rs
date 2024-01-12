@@ -310,9 +310,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                 panic_data_start,
                 (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
             )?;
-            return Err(Error::RunPanic(
-                panic_data.to_vec(),
-            ));
+            return Err(Error::RunPanic(panic_data.to_vec()));
         } else {
             if return_values.len() < 3 {
                 return Err(Error::FailedToExtractReturnValues);

@@ -243,9 +243,8 @@ pub fn split_n_bytes(
 ) -> Result<(), HintError> {
     let n_bytes =
         get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
-            x.to_u64().ok_or_else(|| {
-                HintError::Math(MathError::Felt252ToU64Conversion(Box::new(x)))
-            })
+            x.to_u64()
+                .ok_or_else(|| HintError::Math(MathError::Felt252ToU64Conversion(Box::new(x))))
         })?;
     let bytes_in_word = constants
         .get(BYTES_IN_WORD)
