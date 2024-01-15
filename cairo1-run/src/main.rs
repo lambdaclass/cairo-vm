@@ -1022,17 +1022,17 @@ mod tests {
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
     fn test_array_input_sum(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(12)]);
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "[2 2] [1 2 3 4]"].as_slice())]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
     fn test_tensor(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(12)]);
+        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1)]);
     }
 }
