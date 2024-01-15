@@ -9,6 +9,7 @@
 **/*.trace
 **/*.memory
 **/*.air_public_input
+**/*.air_private_input
 **/*.swp
 bench/results
 .python-version

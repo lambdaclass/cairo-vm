@@ -1,6 +1,9 @@
+use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
+use crate::math_utils::div_mod;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::types::errors::math_errors::MathError;
+use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::Felt252;
 use crate::{
@@ -16,8 +19,19 @@ use crate::{
         },
     },
 };
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, Sign};
 use num_integer::div_ceil;
+use num_traits::{Num, One};
 use starknet_crypto::{verify, FieldElement, Signature};
+
+lazy_static! {
+    static ref EC_ORDER: BigInt = BigInt::from_str_radix(
+        "3618502788666131213697322783095070105526743751716087489154079457884512865583",
+        10
+    )
+    .unwrap();
+}
 
 use super::SIGNATURE_BUILTIN_NAME;
 
@@ -226,6 +240,36 @@ impl SignatureBuiltinRunner {
             })
             .collect();
         BuiltinAdditionalData::Signature(signatures)
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        for (addr, signature) in self.signatures.borrow().iter() {
+            if let (Ok(pubkey), Ok(msg)) = (memory.get_integer(*addr), memory.get_integer(addr + 1))
+            {
+                private_inputs.push(PrivateInput::Signature(PrivateInputSignature {
+                    index: addr
+                        .offset
+                        .saturating_sub(self.base)
+                        .checked_div(CELLS_PER_SIGNATURE as usize)
+                        .unwrap_or_default(),
+                    pubkey: *pubkey,
+                    msg: *msg,
+                    signature_input: SignatureInput {
+                        r: Felt252::from_bytes_be(&signature.r.to_bytes_be()),
+                        w: Felt252::from(
+                            &div_mod(
+                                &BigInt::one(),
+                                &BigInt::from_bytes_be(Sign::Plus, &signature.s.to_bytes_be()),
+                                &EC_ORDER,
+                            )
+                            .unwrap_or_default(),
+                        ),
+                    },
+                }))
+            }
+        }
+        private_inputs
     }
 }
 
