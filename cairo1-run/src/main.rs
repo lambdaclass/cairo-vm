@@ -883,10 +883,10 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
-fn serialize_output(vm: &VirtualMachine, return_values: &Vec<MaybeRelocatable>) -> String {
+fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
     let mut output_string = String::new();
     let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output_inner(&mut return_values_iter, &mut output_string, &vm);
+    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
     fn serialize_output_inner(
         iter: &mut Peekable<Iter<MaybeRelocatable>>,
         output_string: &mut String,
@@ -902,12 +902,12 @@ fn serialize_output(vm: &VirtualMachine, return_values: &Vec<MaybeRelocatable>) 
                         iter.next();
                         // Fetch array
                         maybe_add_whitespace(output_string);
-                        output_string.push_str("[");
+                        output_string.push('[');
                         let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
                         let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
                             array.iter().peekable();
                         serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push_str("]");
+                        output_string.push(']');
                         continue;
                     }
                 }
@@ -918,7 +918,7 @@ fn serialize_output(vm: &VirtualMachine, return_values: &Vec<MaybeRelocatable>) 
     }
 
     fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty() && !string.ends_with("[") {
+        if !string.is_empty() && !string.ends_with('[') {
             string.push(' ');
         }
     }
@@ -993,7 +993,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/print.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_print_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "");
+        assert_matches!(run(args), Ok(Some(res)) if res.is_empty());
     }
 
     #[rstest]
