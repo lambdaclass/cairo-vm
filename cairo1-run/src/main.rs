@@ -97,6 +97,8 @@ struct Args {
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args)]
     args: FuncArgs,
+    #[clap(long = "print_output", value_parser)]
+    print_output: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -235,7 +237,7 @@ impl FileWriter {
     }
 }
 
-fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Error> {
+fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let args = Args::try_parse_from(args)?;
     if args.air_public_input.is_some() && !args.proof_mode {
         let error = Args::command().error(
@@ -442,44 +444,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         }
     }
 
-    let mut output_string = String::new();
-    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output(&mut return_values_iter, &mut output_string, &vm);
-    fn serialize_output(
-        iter: &mut Peekable<Iter<MaybeRelocatable>>,
-        output_string: &mut String,
-        vm: &VirtualMachine,
-    ) {
-        while let Some(val) = iter.next() {
-            if let MaybeRelocatable::RelocatableValue(x) = val {
-                // Check if the next value is a relocatable of the same index
-                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
-                    // Check if the two relocatable values represent a valid array in memory
-                    if x.segment_index == y.segment_index && x.offset <= y.offset {
-                        // Fetch the y value from the iterator so we don't serialize it twice
-                        iter.next();
-                        // Fetch array
-                        output_string.push_str("[");
-                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output(&mut array_iter, output_string, vm);
-                        output_string.push_str("]");
-                        continue;
-                    }
-                }
-            }
-            maybe_add_whitespace(output_string);
-            output_string.push_str(&val.to_string());
-        }
-    }
-
-    fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty() && !string.ends_with("[") {
-            string.push(' ');
-        }
-    }
-    dbg!(output_string);
+    let output_string = if args.print_output {
+        Some(serialize_output(&vm, &return_values))
+    } else {
+        None
+    };
 
     // Set stop pointers for builtins so we can obtain the air public input
     if args.air_public_input.is_some() {
@@ -589,7 +558,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         memory_writer.flush()?;
     }
 
-    Ok(return_values)
+    Ok(output_string)
 }
 
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
@@ -615,11 +584,9 @@ fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result
 fn main() -> Result<(), Error> {
     match run(std::env::args()) {
         Err(Error::Cli(err)) => err.exit(),
-        Ok(return_values) => {
-            if !return_values.is_empty() {
-                let return_values_string_list =
-                    return_values.iter().map(|m| m.to_string()).join(", ");
-                println!("Return values : [{}]", return_values_string_list);
+        Ok(output) => {
+            if let Some(output_string) = output {
+                println!("Program Output : {}", output_string);
             }
             Ok(())
         }
@@ -916,6 +883,47 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+fn serialize_output(vm: &VirtualMachine, return_values: &Vec<MaybeRelocatable>) -> String {
+    let mut output_string = String::new();
+    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
+    serialize_output_inner(&mut return_values_iter, &mut output_string, &vm);
+    fn serialize_output_inner(
+        iter: &mut Peekable<Iter<MaybeRelocatable>>,
+        output_string: &mut String,
+        vm: &VirtualMachine,
+    ) {
+        while let Some(val) = iter.next() {
+            if let MaybeRelocatable::RelocatableValue(x) = val {
+                // Check if the next value is a relocatable of the same index
+                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
+                    // Check if the two relocatable values represent a valid array in memory
+                    if x.segment_index == y.segment_index && x.offset <= y.offset {
+                        // Fetch the y value from the iterator so we don't serialize it twice
+                        iter.next();
+                        // Fetch array
+                        output_string.push_str("[");
+                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
+                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                            array.iter().peekable();
+                        serialize_output_inner(&mut array_iter, output_string, vm);
+                        output_string.push_str("]");
+                        continue;
+                    }
+                }
+            }
+            maybe_add_whitespace(output_string);
+            output_string.push_str(&val.to_string());
+        }
+    }
+
+    fn maybe_add_whitespace(string: &mut String) {
+        if !string.is_empty() && !string.ends_with("[") {
+            string.push(' ');
+        }
+    }
+    output_string
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::too_many_arguments)]
@@ -923,153 +931,148 @@ mod tests {
     use assert_matches::assert_matches;
     use rstest::rstest;
 
-    // FIXME: bit of copy-paste to avoid dealing with visibility issues
-    fn felt_str(x: impl AsRef<str>) -> Felt252 {
-        crate::Felt252::from_dec_str(x.as_ref()).expect("Couldn't parse bytes")
-    }
-
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/fibonacci.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_fibonacci_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(89)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "89");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/factorial.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(3628800)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "3628800");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_get.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_get.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_get.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_get.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_array_get_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(3)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "3");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_flow.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_flow.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_flow.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_flow.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_enum_flow_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(300)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "300");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_match.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_match.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_match.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/enum_match.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_enum_match_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(10), MaybeRelocatable::from(felt_str("3618502788666131213697322783095070105623107215331596699973092056135872020471"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "10 3618502788666131213697322783095070105623107215331596699973092056135872020471");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_hello_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1), MaybeRelocatable::from(1234)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1 1234");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ops.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ops.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ops.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ops.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_ops_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(6)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "6");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/print.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/print.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/print.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/print.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_print_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/recursion.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/recursion.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/recursion.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/recursion.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_recursion_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1154076154663935037074198317650845438095734251249125412074882362667803016453"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1154076154663935037074198317650845438095734251249125412074882362667803016453");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/sample.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_sample_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("5050"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "5050");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_poseidon_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1099385018355113290651252669115094675591288647745213771718157553170111442461"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1099385018355113290651252669115094675591288647745213771718157553170111442461");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon_pedersen.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon_pedersen.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon_pedersen.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/poseidon_pedersen.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_poseidon_pedersen_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1036257840396636296853154602823055519264738423488122322497453114874087006398"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1036257840396636296853154602823055519264738423488122322497453114874087006398");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/pedersen_example.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/pedersen_example.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/pedersen_example.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/pedersen_example.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_pedersen_example_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(felt_str("1089549915800264549621536909767699778745926517555586332772759280702396009108"))]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1089549915800264549621536909767699778745926517555586332772759280702396009108");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_simple_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple_struct.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple_struct.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_simple_struct_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(100)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "100");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dictionaries.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_dictionaries(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1024)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1024");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "0"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "0"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "0"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "0"].as_slice())]
     fn test_run_branching_0(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(1)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1");
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "17"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "96"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "17"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "96"].as_slice())]
     fn test_run_branching_not_0(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(0)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "0");
     }
 
     #[rstest]
@@ -1089,10 +1092,18 @@ mod tests {
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
     fn test_array_input_sum(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(res) if res == vec![MaybeRelocatable::from(12)]);
+        assert_matches!(run(args), Ok(Some(res)) if res == "12");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_struct_span_return(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "[[4 3][2 1]]");
     }
 }
