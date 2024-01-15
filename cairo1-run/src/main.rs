@@ -901,6 +901,7 @@ fn serialize_output(vm: &VirtualMachine, return_values: &Vec<MaybeRelocatable>) 
                         // Fetch the y value from the iterator so we don't serialize it twice
                         iter.next();
                         // Fetch array
+                        maybe_add_whitespace(output_string);
                         output_string.push_str("[");
                         let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
                         let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
