@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
+
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
 * feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
