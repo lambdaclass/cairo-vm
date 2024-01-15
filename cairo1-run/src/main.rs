@@ -451,32 +451,26 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         vm: &VirtualMachine,
     ) {
         while let Some(val) = iter.next() {
-            match val {
-                MaybeRelocatable::Int(x) => {
-                    maybe_add_whitespace(output_string);
-                    output_string.push_str(&format!("{}", x));
-                }
-                MaybeRelocatable::RelocatableValue(x) => {
-                    // Check if the next value is a relocatable of the same index
-                    if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
-                        // Check if the two relocatable values represent a valid array in memory
-                        if x.segment_index == y.segment_index && x.offset <= y.offset {
-                            // Fetch the y value from the iterator so we don't serialize it twice
-                            iter.next();
-                            // Fetch array
-                            output_string.push_str("[");
-                            let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
-                            let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                                array.iter().peekable();
-                            serialize_output(&mut array_iter, output_string, vm);
-                            output_string.push_str("]");
-                            continue;
-                        }
+            if let MaybeRelocatable::RelocatableValue(x) = val {
+                // Check if the next value is a relocatable of the same index
+                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
+                    // Check if the two relocatable values represent a valid array in memory
+                    if x.segment_index == y.segment_index && x.offset <= y.offset {
+                        // Fetch the y value from the iterator so we don't serialize it twice
+                        iter.next();
+                        // Fetch array
+                        output_string.push_str("[");
+                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
+                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                            array.iter().peekable();
+                        serialize_output(&mut array_iter, output_string, vm);
+                        output_string.push_str("]");
+                        continue;
                     }
-                    maybe_add_whitespace(output_string);
-                    output_string.push_str(&format!(" {}", x));
                 }
             }
+            maybe_add_whitespace(output_string);
+            output_string.push_str(&val.to_string());
         }
     }
 
