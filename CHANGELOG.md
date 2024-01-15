@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
+
 * feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
 
 * feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
