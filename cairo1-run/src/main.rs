@@ -444,8 +444,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
 
     let mut output_string = String::new();
     let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    process_output(&mut return_values_iter, &mut output_string, &vm);
-    fn process_output(
+    serialize_output(&mut return_values_iter, &mut output_string, &vm);
+    fn serialize_output(
         iter: &mut Peekable<Iter<MaybeRelocatable>>,
         output_string: &mut String,
         vm: &VirtualMachine,
@@ -460,14 +460,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                     if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
                         // Check if the two relocatable values represent a valid array in memory
                         if x.segment_index == y.segment_index && x.offset <= y.offset {
-                            // Fetch the y value from the iterator so we don't process it twice
+                            // Fetch the y value from the iterator so we don't serialize it twice
                             iter.next();
                             // Fetch array
                             output_string.push_str("[");
                             let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
                             let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
                                 array.iter().peekable();
-                            process_output(&mut array_iter, output_string, vm);
+                            serialize_output(&mut array_iter, output_string, vm);
                             output_string.push_str("]");
                             continue;
                         }
