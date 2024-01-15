@@ -15,7 +15,7 @@ MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIR
 deps:
 	git clone https://github.com/starkware-libs/cairo.git \
 	&& cd cairo \
-	&& git checkout v2.3.1 \
+	&& git checkout v2.4.2 \
 	&& cd .. \
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/
@@ -30,4 +30,3 @@ clean:
 	rm -rf cairo
 	rm -rf ../cairo_programs/cairo-1-programs/*.memory
 	rm -rf ../cairo_programs/cairo-1-programs/*.trace
-	
