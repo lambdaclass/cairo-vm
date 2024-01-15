@@ -96,13 +96,13 @@ struct Args {
 }
 
 #[derive(Debug, Clone)]
-enum FuncArg {
+enum CairoArg {
     Array(Vec<Felt252>),
     Single(Felt252),
 }
 
 #[derive(Debug, Clone, Default)]
-struct FuncArgs(Vec<FuncArg>);
+struct FuncArgs(Vec<CairoArg>);
 
 fn process_args(value: &str) -> Result<FuncArgs, String> {
     if value.is_empty() {
@@ -130,10 +130,10 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
                 }
             }
             // Finalize array
-            args.push(FuncArg::Array(array_arg))
+            args.push(CairoArg::Array(array_arg))
         } else {
             // Single argument
-            args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap()))
+            args.push(CairoArg::Single(Felt252::from_dec_str(value).unwrap()))
         }
     }
     Ok(FuncArgs(args))
@@ -668,7 +668,7 @@ fn create_entry_code(
     func: &Function,
     initial_gas: usize,
     proof_mode: bool,
-    args: &Vec<FuncArg>,
+    args: &Vec<CairoArg>,
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
@@ -678,7 +678,7 @@ fn create_entry_code(
     let mut array_args_data = vec![];
     let mut ap_offset: i16 = 0;
     for arg in args {
-        let FuncArg::Array(values) = arg else { continue };
+        let CairoArg::Array(values) = arg else { continue };
         array_args_data.push(ap_offset);
         casm_extend! {ctx,
             %{ memory[ap + 0] = segments.add() %}
@@ -744,8 +744,8 @@ fn create_entry_code(
             casm_extend! {ctx,
                 [ap + 0] = [ap + offset] + 3, ap++;
             }
-        } else if let Some(FuncArg::Array(_)) = arg_iter.peek() {
-            let values = extract_matches!(arg_iter.next().unwrap(), FuncArg::Array);
+        } else if let Some(CairoArg::Array(_)) = arg_iter.peek() {
+            let values = extract_matches!(arg_iter.next().unwrap(), CairoArg::Array);
             let offset = -ap_offset + array_args_data_iter.next().unwrap();
             expected_arguments_size += 1;
             casm_extend! {ctx,
@@ -757,7 +757,7 @@ fn create_entry_code(
             expected_arguments_size += arg_size as usize;
             for _ in 0..arg_size {
                 if let Some(value) = arg_iter.next() {
-                    let value = extract_matches!(value, FuncArg::Single);
+                    let value = extract_matches!(value, CairoArg::Single);
                     casm_extend! {ctx,
                         [ap + 0] = (value.to_bigint()), ap++;
                     }
