@@ -151,10 +151,10 @@ The `StrippedProgram` contains minimal information, it doesn't have hints, ident
 * `attributes` : a list of AttributeScope (serializable)
 * `debug_info` : an optional DebugInfo
 
-This class is a marshmellowdataclass, this allows many of its attributes to be serialized
-[Marshmellow Documentation](https://marshmallow.readthedocs.io/en/stable/)
+This class is a marshmallow dataclass, this allows many of its attributes to be serialized
+[Marshmallow Documentation](https://marshmallow.readthedocs.io/en/stable/)
     
-A `CairoHint` contains a `code` (a string) and accesible_scopes (a list of ScopedName, that can be serialized as strings), and `flow_tracking_data`, a FlowTrackingDataActual.
+A `CairoHint` contains a `code` (a string) and accessible_scopes (a list of ScopedName, that can be serialized as strings), and `flow_tracking_data`, a FlowTrackingDataActual.
 Where `ScopedName` is a frozen dataclass that contains a path as a string tuple and a SEPARATOR ("."), this should be the path for imports (shuch as starkware.common.serialize). 
 
 A `FlowTrackingDataActual` contains an `ap_tracking` (as a RegTrackingData), a `reference_ids`, as a dictionary that maps reference names (ScopedName) to reference instances (int). A RegTrackingData is used to track the progress of a register during a run. It contains a group (int) which starts at zero and increases by one each time an unknown change happens, and an offset (int) which begins at zero and increases the same way the register does.
@@ -304,7 +304,7 @@ Creates a ProgramBase with the data from the json file (the one declared with --
 
 *Overall we could say initialize_segments creates the empty memory segments needed for the program itself, its execution, and each builtin.*
 
-This function sets the `program_base` as the received program base, or creates a new segment for it, and asigns its first address (offset 0).
+This function sets the `program_base` as the received program base, or creates a new segment for it, and assigns its first address (offset 0).
 Creates a new segment for the execution_base and asigns its first address (offset 0).
 Iterates over the builtin runners and calls their `initialize_segments`, this method differs between each subclass of BuiltinRunner and adds memory segments for the builtin. SimpleBuiltinRunner just creates a memory segment for itself.
 
@@ -370,7 +370,7 @@ Then creates an initializer, a map between maybe relocatable values which contai
 This initializer is then used to create a MemoryDict, which is stored as the CairoRunner's `relocated_memory`.
 Then the trace is relocated by calling `relocate_trace` on the vm's trace, the segment offsets, and the program's prime. This returns a new trace entry with the relocated fp, pc, and ap of each trace entry.
 Then iterates over the builtin runners, and relocates their internal values (if applicable).
-After this relocation, each address whould be an Int instead of a RelocatableValue.
+After this relocation, each address would be an Int instead of a RelocatableValue.
 
 ## [`print_output`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L653)
 
@@ -387,7 +387,7 @@ The following is a broad analysis of how hints are processed from the compiled j
 
 ### During initialization phase (before step)
 
-On the compiled json file, there is a hint section that includes each hint's code, accesible scopes (includes main, current function, builtins, and import path if inside an imported function) flow-tracking data, and the reference_ids which would be the variables it can interact with (the ones available on the scope the moment the hint is "called").
+On the compiled json file, there is a hint section that includes each hint's code, accessible scopes (includes main, current function, builtins, and import path if inside an imported function) flow-tracking data, and the reference_ids which would be the variables it can interact with (the ones available on the scope the moment the hint is "called").
 Once we load the json file and create a [Program](https://github.com/starkware-libs/cairo-lang/blob/2abd303e1808612b724bc1412b2b5babd04bb4e7/src/starkware/cairo/lang/compiler/program.py#L83) object, it will have a field called hints, which will be a dictionary containing this same information we saw on the json file.
 When the vm is initialized, and the program’s data is loaded through `load_program`, [`load_hints`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L202) is called, which creates a dictionary that maps an address to a list of compiled hints (there may be more than one hint for an address) this is called hints, and also creates a map from an id (the hint’s id) to a pc (address) and an index (in case there is more than one hint on a particular address), this is called hint_pc_and_index.
 The compiled hints are obtained by using python's [`compile`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L278) function in exec mode using the hint's code.

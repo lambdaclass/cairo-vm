@@ -109,7 +109,7 @@ There are many helper functions available [here](../../../src/hint_processor/bui
 
 These methods take the name of the ids variable along with vm, ids_data and ap_tracking.
 
-Note: When handling pointer type variables, computing the address and using it to get the variable from memory might not lead to the correct value (as the variable reference may contain an immediate value that has to be added to the ptr itself), so using the functiom `get_ptr_from_var_name` is strongly recommended.
+Note: When handling pointer type variables, computing the address and using it to get the variable from memory might not lead to the correct value (as the variable reference may contain an immediate value that has to be added to the ptr itself), so using the function `get_ptr_from_var_name` is strongly recommended.
 
 Note: Cairo's memory is write-once, read-only, so when using `insert_value_from_var_name` its important to first make sure that the variable doesnt contain any value (for example, it may be defined as local but never written) to avoid inconsistent memory errors.
 
