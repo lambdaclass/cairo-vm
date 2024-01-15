@@ -1077,6 +1077,23 @@ impl VirtualMachine {
             })
             .collect()
     }
+
+    #[doc(hidden)]
+    pub fn builtins_final_stack_from_stack_pointer_dict(
+        &mut self,
+        builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+    ) -> Result<(), RunnerError> {
+        for builtin in self.builtin_runners.iter_mut() {
+            builtin.final_stack(
+                &self.segments,
+                builtin_name_to_stack_pointer
+                    .get(builtin.name())
+                    .cloned()
+                    .unwrap_or_default(),
+            )?;
+        }
+        Ok(())
+    }
 }
 
 pub struct VirtualMachineBuilder {

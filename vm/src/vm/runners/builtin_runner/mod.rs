@@ -1,3 +1,4 @@
+use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -480,6 +481,20 @@ impl BuiltinRunner {
             BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
             BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
             _ => BuiltinAdditionalData::None,
+        }
+    }
+
+    // Returns information about the builtin that should be added to the AIR private input.
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        match self {
+            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(memory),
+            _ => vec![],
         }
     }
 

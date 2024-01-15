@@ -2,7 +2,6 @@
 #![allow(clippy::explicit_auto_deref)]
 
 use crate::stdlib::{collections::HashSet, prelude::*};
-
 use thiserror_no_std::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
@@ -101,6 +100,8 @@ pub enum RunnerError {
     StrippedProgramNoMain,
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error("EcOp builtin: Invalid Point")]
+    InvalidPoint,
 }
 
 #[cfg(test)]
