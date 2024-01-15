@@ -453,6 +453,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         while let Some(val) = iter.next() {
             match val {
                 MaybeRelocatable::Int(x) => {
+                    maybe_add_whitespace(output_string);
                     output_string.push_str(&format!("{}", x));
                 }
                 MaybeRelocatable::RelocatableValue(x) => {
@@ -472,9 +473,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
                             continue;
                         }
                     }
+                    maybe_add_whitespace(output_string);
                     output_string.push_str(&format!(" {}", x));
                 }
             }
+        }
+    }
+
+    fn maybe_add_whitespace(string: &mut String) {
+        if !string.is_empty() && !string.ends_with("[") {
+            string.push(' ');
         }
     }
     dbg!(output_string);
