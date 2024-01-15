@@ -53,7 +53,9 @@ use cairo_vm::vm::runners::builtin_runner::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
+use cairo_vm::vm::runners::cairo_runner::CairoArg;
 use cairo_vm::vm::runners::cairo_runner::RunnerMode;
+use cairo_vm::vm::vm_memory::memory::Memory;
 use cairo_vm::{
     serde::deserialize_program::ReferenceManager,
     types::{program::Program, relocatable::MaybeRelocatable},
@@ -68,7 +70,9 @@ use itertools::{chain, Itertools};
 use std::borrow::Cow;
 use std::io::BufWriter;
 use std::io::Write;
+use std::iter::Peekable;
 use std::path::PathBuf;
+use std::slice::Iter;
 use std::{collections::HashMap, io, path::Path};
 use thiserror::Error;
 
@@ -437,6 +441,43 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             return_values = return_values[2..].to_vec()
         }
     }
+
+    let mut output_string = String::new();
+    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
+    process_output(&mut return_values_iter, &mut output_string, &vm);
+    fn process_output(
+        iter: &mut Peekable<Iter<MaybeRelocatable>>,
+        output_string: &mut String,
+        vm: &VirtualMachine,
+    ) {
+        while let Some(val) = iter.next() {
+            match val {
+                MaybeRelocatable::Int(x) => {
+                    output_string.push_str(&format!("{}", x));
+                }
+                MaybeRelocatable::RelocatableValue(x) => {
+                    // Check if the next value is a relocatable of the same index
+                    if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
+                        // Check if the two relocatable values represent a valid array in memory
+                        if x.segment_index == y.segment_index && x.offset <= y.offset {
+                            // Fetch the y value from the iterator so we don't process it twice
+                            iter.next();
+                            // Fetch array
+                            output_string.push_str("[");
+                            let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
+                            let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                                array.iter().peekable();
+                            process_output(&mut array_iter, output_string, vm);
+                            output_string.push_str("]");
+                            continue;
+                        }
+                    }
+                    output_string.push_str(&format!(" {}", x));
+                }
+            }
+        }
+    }
+    dbg!(output_string);
 
     // Set stop pointers for builtins so we can obtain the air public input
     if args.air_public_input.is_some() {
