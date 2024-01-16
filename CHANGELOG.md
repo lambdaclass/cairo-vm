@@ -16,11 +16,8 @@
   * The cairo1-run crate no longer compiles and executes in proof_mode by default
   * Add flag `proof_mode` to cairo1-run crate. Activating this flag will enable proof_mode compilation and execution
 
-<<<<<<< HEAD
-=======
 * dev: bump cairo 1 compiler dep to 2.4 [#1530](https://github.com/lambdaclass/cairo-vm/pull/1530)
 
->>>>>>> 1a78237b32c9489e120c4c920bff548bf2a83b89
 #### [1.0.0-rc0] - 2024-1-5
 
 * feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
