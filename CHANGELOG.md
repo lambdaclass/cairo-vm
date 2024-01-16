@@ -21,7 +21,6 @@
 #### [1.0.0-rc0] - 2024-1-5
 
 * feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
-* feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
 
 * feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` (0.0.5) [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
