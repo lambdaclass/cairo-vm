@@ -2,22 +2,16 @@
 
 #### Upcoming Changes
 
-<<<<<<< HEAD
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
 * feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
 
-=======
->>>>>>> 1a78237b32c9489e120c4c920bff548bf2a83b89
 * feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
 
 * feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
 
-<<<<<<< HEAD
-=======
 * feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
 
->>>>>>> 1a78237b32c9489e120c4c920bff548bf2a83b89
 * feat: Add `proof_mode` flag to `cairo1-run` [#1537] (https://github.com/lambdaclass/cairo-vm/pull/1537)
   * The cairo1-run crate no longer compiles and executes in proof_mode by default
   * Add flag `proof_mode` to cairo1-run crate. Activating this flag will enable proof_mode compilation and execution
