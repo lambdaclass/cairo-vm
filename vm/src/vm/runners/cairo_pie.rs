@@ -55,6 +55,7 @@ pub enum BuiltinAdditionalData {
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
+    #[serde(serialize_with = "serde_impl::serialize_signature_additional_data")]
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
@@ -134,11 +135,20 @@ impl CairoPie {
 }
 
 mod serde_impl {
+    use std::collections::HashMap;
+
     use super::CAIRO_PIE_VERSION;
-    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME, Felt252};
+    use crate::{
+        types::relocatable::{MaybeRelocatable, Relocatable},
+        utils::CAIRO_PRIME,
+        Felt252,
+    };
     use num_bigint::BigUint;
     use num_traits::Num;
-    use serde::{ser::SerializeSeq, Serialize, Serializer};
+    use serde::{
+        ser::{SerializeMap, SerializeSeq},
+        Serialize, Serializer,
+    };
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
@@ -252,6 +262,21 @@ mod serde_impl {
         S: Serializer,
     {
         serializer.serialize_str(CAIRO_PIE_VERSION)
+    }
+
+    pub fn serialize_signature_additional_data<S>(
+        values: &HashMap<Relocatable, (Felt252, Felt252)>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
+
+        for (key, (x, y)) in values {
+            map_serializer.serialize_entry(&key.to_string(), &format!("[{}, {}]", x, y))?;
+        }
+        map_serializer.end()
     }
 }
 
