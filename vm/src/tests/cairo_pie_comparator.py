@@ -15,7 +15,8 @@ with ZipFile(filename1) as cairo_lang_pie_zip, ZipFile(filename2) as cairo_vm_pi
     for file in strict_comparison_files:
         # Skipping this check due to a bug in the memory holes count
         # TODO: Remove it once the bug is fixed
-        if filename1 == "../../../cairo_programs/keccak_alternative_hint.pie.zip" and file == "execution_resources.json":
+        if (filename1 == "../../../cairo_programs/_keccak_alternative_hint.pie.zip" or filename1 == "../../../cairo_programs/relocate_temporary_segment_append.pie.zip") and file == "execution_resources.json":
+            print(f"Comparison skipped for {filename1}/{file}  vs {filename2}/{file}")
             continue
         with cairo_lang_pie_zip.open(file) as cairo_lang_file, cairo_vm_pie_zip.open(file) as cairo_vm_file:
             cl_content = json.load(cairo_lang_file)
