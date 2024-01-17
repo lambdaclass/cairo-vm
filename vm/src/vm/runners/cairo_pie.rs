@@ -52,6 +52,7 @@ pub struct OutputBuiltinAdditionalData {
 #[serde(untagged)]
 pub enum BuiltinAdditionalData {
     // Contains verified addresses as contiguous index, value pairs
+    #[serde(serialize_with = "serde_impl::serialize_hash_additional_data")]
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
@@ -277,6 +278,23 @@ mod serde_impl {
             map_serializer.serialize_entry(&key.to_string(), &format!("[{}, {}]", x, y))?;
         }
         map_serializer.end()
+    }
+
+    pub fn serialize_hash_additional_data<S>(
+        values: &[Relocatable],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+
+        for value in values {
+            seq_serializer
+                .serialize_element(&format!("[{}, {}]", value.segment_index, value.offset))?;
+        }
+
+        seq_serializer.end()
     }
 }
 
