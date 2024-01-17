@@ -46,3 +46,21 @@ To execute all the cairo 1 programs inside `../cairo_programs/cairo-1-programs/`
 ```bash
 make run 
 ```
+
+## CLI argument list
+
+The cairo1-run cli supports the following optional arguments:
+
+* `--layout <LAYOUT>`: Sets the layout for the cairo_run. This will limit the available builtins. The deafult layout is `plain`, which has no builtins. For general purpose, the `all_cairo` layout contains all currently available builtins.
+
+* `--args <ARGUMENTS>`: Receives the arguments to be passed to the program's main function. Receives whitespace-separated values which can be numbers or arrays, with arrays consisting of whitespace-separated numbers wrapped between brackets
+
+* `--trace_file <TRACE_FILE>`: Receives the name of a file and outputs the relocated trace into it
+
+* `--memory_file <MEMORY_FILE>`: Receives the name of a file and outputs the relocated memory into it
+
+* `--proof_mode`: Runs the program in proof_mode
+
+* `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
+
+* `--air_private_input <AIR_PRIVATE_INPUT>`: Receives the name of a file and outputs the AIR private inputs into it. Can only be used if proof_mode, trace_file & memory_file are also enabled.
