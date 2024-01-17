@@ -42,6 +42,7 @@ extensive_hints = []
 print = ["std"]
 
 [dependencies]
+zip = "0.6.6"
 mimalloc = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }

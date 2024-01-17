@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write, path::Path};
+
 use super::cairo_runner::ExecutionResources;
 use crate::{
     serde::deserialize_program::BuiltinName,
@@ -6,6 +8,7 @@ use crate::{
     Felt252,
 };
 use serde::{Deserialize, Serialize};
+use zip::ZipWriter;
 
 const CAIRO_PIE_VERSION: &str = "1.1";
 
@@ -94,6 +97,40 @@ pub struct CairoPieVersion {
     // Dummy field for serialization only.
     #[serde(serialize_with = "serde_impl::serialize_version")]
     pub cairo_pie: (),
+}
+
+impl CairoPie {
+    pub fn serialize_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(&self)
+    }
+
+    pub fn write_zip_file(&self, file_name: &String) -> Result<(), std::io::Error> {
+        let path = Path::new(file_name);
+        let file = File::create(path).unwrap();
+        let mut zip_writer = ZipWriter::new(file);
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip_writer.start_file("version.json", options)?;
+        zip_writer.write(serde_json::to_string(&self.version).unwrap().as_bytes())?;
+        zip_writer.start_file("metadata.json", options)?;
+        zip_writer.write(serde_json::to_string(&self.metadata).unwrap().as_bytes())?;
+        zip_writer.start_file("memory.bin", options)?;
+        zip_writer.write(serde_json::to_string(&self.memory).unwrap().as_bytes())?;
+        zip_writer.start_file("additional_data.json", options)?;
+        zip_writer.write(
+            serde_json::to_string(&self.additional_data)
+                .unwrap()
+                .as_bytes(),
+        )?;
+        zip_writer.start_file("execution_resources.json", options)?;
+        zip_writer.write(
+            serde_json::to_string(&self.execution_resources)
+                .unwrap()
+                .as_bytes(),
+        )?;
+        zip_writer.finish().unwrap();
+        Ok(())
+    }
 }
 
 mod serde_impl {

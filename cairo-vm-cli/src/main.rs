@@ -42,6 +42,8 @@ struct Args {
     air_public_input: Option<String>,
     #[clap(long = "air_private_input")]
     air_private_input: Option<String>,
+    #[clap(long = "cairo_pie_output")]
+    cairo_pie_output: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -145,6 +147,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         return Err(Error::Cli(error));
     }
 
+    if args.cairo_pie_output.is_some() && args.proof_mode {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--proof_mode and --cairo_pie_output cannot be both specified.",
+        );
+        return Err(Error::Cli(error));
+    }
+
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -225,6 +235,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
+    }
+
+    if let Some(file_name) = args.cairo_pie_output {
+        cairo_runner
+            .get_cairo_pie(&vm)
+            .map_err(CairoRunError::Runner)?
+            .write_zip_file(&file_name)
+            .unwrap()
     }
 
     Ok(())
