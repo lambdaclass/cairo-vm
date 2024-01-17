@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::poseidon_instance_def::{
@@ -162,6 +163,32 @@ impl PoseidonBuiltinRunner {
             self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_POSEIDON as usize)
+                .enumerate()
+            {
+                // Add the input cells of each poseidon instance to the private inputs
+                if let (Ok(input_s0), Ok(input_s1), Ok(input_s2)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                ) {
+                    private_inputs.push(PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                        index,
+                        input_s0: *input_s0,
+                        input_s1: *input_s1,
+                        input_s2: *input_s2,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -408,6 +435,44 @@ mod tests {
         assert_eq!(
             builtin.deduce_memory_cell(relocatable!(0, 1), &vm.segments.memory),
             Ok(None)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                    index: 0,
+                    input_s0: 0.into(),
+                    input_s1: 1.into(),
+                    input_s2: 2.into(),
+                }),
+                PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                    index: 1,
+                    input_s0: 6.into(),
+                    input_s1: 7.into(),
+                    input_s2: 8.into(),
+                }),
+            ]),
         );
     }
 }

@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{boxed::Box, vec::Vec};
 use crate::Felt252;
 use crate::{
@@ -190,6 +191,30 @@ impl BitwiseBuiltinRunner {
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_BITWISE as usize)
+                .enumerate()
+            {
+                // Add the input cells of each bitwise instance to the private inputs
+                if let (Ok(x), Ok(y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                ) {
+                    private_inputs.push(PrivateInput::Pair(PrivateInputPair {
+                        index,
+                        x: *x,
+                        y: *y,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -593,5 +618,50 @@ mod tests {
             true,
         ));
         assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11),
+            ((0, 12), 12),
+            ((0, 13), 13),
+            ((0, 14), 14)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 0,
+                    x: 0.into(),
+                    y: 1.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 1,
+                    x: 5.into(),
+                    y: 6.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 2,
+                    x: 10.into(),
+                    y: 11.into()
+                }),
+            ]),
+        );
     }
 }

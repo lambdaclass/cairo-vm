@@ -110,13 +110,9 @@ pub fn add_no_uint384_check(
 
     let sum_d0 = (*a.limbs[0].as_ref()) + (*b.limbs[0].as_ref());
     let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
-    let sum_d1 = (*a.limbs[1].as_ref())
-        + (*b.limbs[1].as_ref())
-        + carry_d0;
+    let sum_d1 = (*a.limbs[1].as_ref()) + (*b.limbs[1].as_ref()) + carry_d0;
     let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
-    let sum_d2 = (*a.limbs[2].as_ref())
-        + (*b.limbs[2].as_ref())
-        + carry_d1;
+    let sum_d2 = (*a.limbs[2].as_ref()) + (*b.limbs[2].as_ref()) + carry_d1;
     let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
     insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;

@@ -1,3 +1,4 @@
+use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
@@ -219,6 +220,51 @@ impl KeccakBuiltinRunner {
         let mut keccak_input: [u64; 25] = keccak_input.try_into().unwrap();
         keccak::f1600(&mut keccak_input);
         Ok(keccak_input.iter().flat_map(|x| x.to_le_bytes()).collect())
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(self.cells_per_instance as usize)
+                .enumerate()
+            {
+                // Add the input cells of each keccak instance to the private inputs
+                if let (
+                    Ok(input_s0),
+                    Ok(input_s1),
+                    Ok(input_s2),
+                    Ok(input_s3),
+                    Ok(input_s4),
+                    Ok(input_s5),
+                    Ok(input_s6),
+                    Ok(input_s7),
+                ) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                    memory.get_integer((self.base as isize, off + 5).into()),
+                    memory.get_integer((self.base as isize, off + 6).into()),
+                    memory.get_integer((self.base as isize, off + 7).into()),
+                ) {
+                    private_inputs.push(PrivateInput::KeccakState(PrivateInputKeccakState {
+                        index,
+                        input_s0: *input_s0,
+                        input_s1: *input_s1,
+                        input_s2: *input_s2,
+                        input_s3: *input_s3,
+                        input_s4: *input_s4,
+                        input_s5: *input_s5,
+                        input_s6: *input_s6,
+                        input_s7: *input_s7,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -679,5 +725,37 @@ mod tests {
         let expected_output_bytes = b"\xf6\x98\x81\xe1\x00!\x1f.\xc4*\x8c\x0c\x7fF\xc8q8\xdf\xb9\xbe\x07H\xca7T1\xab\x16\x17\xa9\x11\xff-L\x87\xb2iY.\x96\x82x\xde\xbb\\up?uz:0\xee\x08\x1b\x15\xd6\n\xab\r\x0b\x87T:w\x0fH\xe7!f},\x08a\xe5\xbe8\x16\x13\x9a?\xad~<9\xf7\x03`\x8b\xd8\xa3F\x8aQ\xf9\n9\xcdD\xb7.X\xf7\x8e\x1f\x17\x9e \xe5i\x01rr\xdf\xaf\x99k\x9f\x8e\x84\\\xday`\xf1``\x02q+\x8e\xad\x96\xd8\xff\xff3<\xb6\x01o\xd7\xa6\x86\x9d\xea\xbc\xfb\x08\xe1\xa3\x1c\x06z\xab@\xa1\xc1\xb1xZ\x92\x96\xc0.\x01\x13g\x93\x87!\xa6\xa8z\x9c@\x0bY'\xe7\xa7Qr\xe5\xc1\xa3\xa6\x88H\xa5\xc0@9k:y\xd1Kw\xd5";
         let output_bytes = KeccakBuiltinRunner::keccak_f(input_bytes);
         assert_eq!(output_bytes, Ok(expected_output_bytes.to_vec()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+                index: 0,
+                input_s0: 0.into(),
+                input_s1: 1.into(),
+                input_s2: 2.into(),
+                input_s3: 3.into(),
+                input_s4: 4.into(),
+                input_s5: 5.into(),
+                input_s6: 6.into(),
+                input_s7: 7.into()
+            }),]),
+        );
     }
 }
