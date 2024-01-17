@@ -69,8 +69,10 @@ TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
 COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
 CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
 CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
+CAIRO_PIE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.pie.zip, $(COMPILED_TESTS))
 CAIRO_RS_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.memory, $(COMPILED_TESTS))
 CAIRO_RS_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.trace, $(COMPILED_TESTS))
+CAIRO_RS_PIE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.pie.zip, $(COMPILED_TESTS))
 
 BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
@@ -94,11 +96,11 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory $(TEST_DIR)/%.rs.pie.zip: $(TEST_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
 
-$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
+$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory $(TEST_DIR)/%.pie.zip: $(TEST_DIR)/%.json
+	cairo-run --layout starknet_with_keccak --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory --cairo_pie_output $(@D)/$(*F).pie.zip
 
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
@@ -306,6 +308,9 @@ compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
 compare_air_private_input: $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_private_input
 
+compare_pie: $(CAIRO_RS_PIE) $(CAIRO_PIE)
+	cd vm/src/tests; ./compare_vm_state.sh pie
+
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
 	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
@@ -314,6 +319,7 @@ clean:
 	rm -f $(TEST_DIR)/*.json
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
+	rm -f $(TEST_DIR)/*.pie.zip
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json
