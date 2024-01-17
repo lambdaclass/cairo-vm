@@ -291,7 +291,7 @@ mod serde_impl {
 
         for value in values {
             seq_serializer
-                .serialize_element(&format!("[{}, {}]", value.segment_index, value.offset))?;
+                .serialize_element(&[value.segment_index, value.offset as isize])?;
         }
 
         seq_serializer.end()
