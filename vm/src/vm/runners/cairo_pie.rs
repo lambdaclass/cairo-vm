@@ -30,7 +30,11 @@ impl From<(isize, usize)> for SegmentInfo {
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
 // Allows practical serialization + conversion between CairoPieMemory & Memory
-pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieMemory(
+    #[serde(serialize_with = "serde_impl::serialize_memory")]
+    pub  Vec<((usize, usize), MaybeRelocatable)>,
+);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PublicMemoryPage {
@@ -64,7 +68,6 @@ pub enum BuiltinAdditionalData {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
-    #[serde(serialize_with = "serde_impl::serialize_memory")]
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
@@ -144,8 +147,6 @@ mod serde_impl {
         utils::CAIRO_PRIME,
         Felt252,
     };
-    use num_bigint::BigUint;
-    use num_traits::Num;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
 
     pub const ADDR_BYTE_LEN: usize = 8;
@@ -216,12 +217,12 @@ mod serde_impl {
                 MaybeRelocatable::RelocatableValue(rel_val) => {
                     let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
 
-                    let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
+                    let reloc_base = Felt252::from_hex(RELOCATE_BASE)
                         .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
                     let reloc_value = reloc_base
-                        + BigUint::from(rel_val.segment_index as usize)
-                            * BigUint::from(OFFSET_BASE)
-                        + BigUint::from(rel_val.offset);
+                        + Felt252::from(rel_val.segment_index as usize)
+                            * Felt252::from(OFFSET_BASE)
+                        + Felt252::from(rel_val.offset);
                     res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                     res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
                 }
@@ -236,12 +237,7 @@ mod serde_impl {
             };
         }
 
-        serializer.serialize_str(
-            res.iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>()
-                .as_str(),
-        )
+        serializer.serialize_bytes(&res)
     }
 
     pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
@@ -306,11 +302,6 @@ mod test {
 
     #[test]
     fn serialize_cairo_pie_memory() {
-        #[derive(Serialize)]
-        struct MemoryWrapper(
-            #[serde(serialize_with = "serde_impl::serialize_memory")] CairoPieMemory,
-        );
-
         let addrs = [
             ((1, 0), "0000000000800080"),
             ((1, 1), "0100000000800080"),
@@ -320,7 +311,7 @@ mod test {
             ((5, 8), "0800000000800280"),
         ];
 
-        let memory = MemoryWrapper(vec![
+        let memory = CairoPieMemory(vec![
             (addrs[0].0, MaybeRelocatable::Int(1234.into())),
             (addrs[1].0, MaybeRelocatable::Int(11.into())),
             (addrs[2].0, MaybeRelocatable::Int(12.into())),

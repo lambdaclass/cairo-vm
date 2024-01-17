@@ -524,7 +524,7 @@ impl From<&Memory> for CairoPieMemory {
                 }
             }
         }
-        pie_memory
+        CairoPieMemory(pie_memory)
     }
 }
 
