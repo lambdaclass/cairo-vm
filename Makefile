@@ -97,10 +97,10 @@ $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory $(TEST_DIR)/%.rs.pie.zip: $(TEST_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $(@D)/$(*F) --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory $(TEST_DIR)/%.pie.zip: $(TEST_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory --cairo_pie_output $(@D)/$(*F).pie.zip
+	cairo-run --layout starknet_with_keccak --program $< --trace_file $(@D)/$(*F) --memory_file $(@D)/$(*F).memory --cairo_pie_output $(@D)/$(*F).pie.zip
 
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
