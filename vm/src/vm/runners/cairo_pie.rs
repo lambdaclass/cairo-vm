@@ -146,10 +146,7 @@ mod serde_impl {
     };
     use num_bigint::BigUint;
     use num_traits::Num;
-    use serde::{
-        ser::{SerializeMap, SerializeSeq},
-        Serialize, Serializer,
-    };
+    use serde::{ser::SerializeSeq, Serialize, Serializer};
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
@@ -272,12 +269,18 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
+        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
 
         for (key, (x, y)) in values {
-            map_serializer.serialize_entry(&key.to_string(), &format!("[{}, {}]", x, y))?;
+            seq_serializer.serialize_element(&[
+                [
+                    Felt252Wrapper(&Felt252::from(key.segment_index)),
+                    Felt252Wrapper(&Felt252::from(key.offset)),
+                ],
+                [Felt252Wrapper(x), Felt252Wrapper(y)],
+            ])?;
         }
-        map_serializer.end()
+        seq_serializer.end()
     }
 
     pub fn serialize_hash_additional_data<S>(
@@ -290,8 +293,7 @@ mod serde_impl {
         let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
 
         for value in values {
-            seq_serializer
-                .serialize_element(&[value.segment_index, value.offset as isize])?;
+            seq_serializer.serialize_element(&[value.segment_index, value.offset as isize])?;
         }
 
         seq_serializer.end()
