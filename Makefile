@@ -15,7 +15,7 @@ endif
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
 	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
 	compare_benchmarks_deps compare_benchmarks docs clean \
-	compare_vm_output compare_trace_memory compare_trace compare_memory \
+	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
@@ -282,6 +282,9 @@ compare_benchmarks: cairo_bench_programs
 	cd bench && ./run_benchmarks.sh
 
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
+	cd vm/src/tests; ./compare_vm_state.sh trace memory
+
+compare_all_no_proof: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM) $(CAIRO_RS_PIE) $(CAIRO_PIE)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
