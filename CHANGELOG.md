@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* bugfixes: Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
+  * Output builtin memory segment is no longer skipped when counting memory holes
+  * Temporary memory cells now keep their accessed status when relocated
+
 * feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
   * Fix serialization of CairoPie to be fully compatible with the python version
   * Add `CairoPie::write_zip_file`
