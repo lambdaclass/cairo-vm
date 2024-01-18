@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
+  * Fix serialization of CairoPie to be fully compatible with the python version
+  * Add `CairoPie::write_zip_file`
+  * Move handling of required and exclusive arguments in `cairo-vm-cli` to struct definition using clap derives
+
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
 * feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
