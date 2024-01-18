@@ -1,4 +1,5 @@
 use crate::Felt252;
+use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::Zero;
 
@@ -109,14 +110,28 @@ pub fn add_no_uint384_check(
     let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
 
     let sum_d0 = (a.limbs[0].as_ref().to_biguint()) + (b.limbs[0].as_ref().to_biguint());
-    let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
-    let sum_d1 = (a.limbs[1].as_ref().to_biguint()) + (b.limbs[1].as_ref().to_biguint()) + carry_d0.to_biguint();
-    let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
-    let sum_d2 = (a.limbs[2].as_ref().to_biguint()) + (b.limbs[2].as_ref().to_biguint()) + carry_d1.to_biguint();
+    let carry_d0 = BigUint::from((sum_d0 >= shift) as usize);
+    let sum_d1 =
+        (a.limbs[1].as_ref().to_biguint()) + (b.limbs[1].as_ref().to_biguint()) + &carry_d0;
+    let carry_d1 = BigUint::from((sum_d1 >= shift) as usize);
+    let sum_d2 =
+        (a.limbs[2].as_ref().to_biguint()) + (b.limbs[2].as_ref().to_biguint()) + &carry_d1;
     let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
-    insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "carry_d0",
+        Felt252::from(&carry_d0),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "carry_d1",
+        Felt252::from(&carry_d1),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     insert_value_from_var_name("carry_d2", carry_d2, vm, ids_data, ap_tracking)
 }
 
