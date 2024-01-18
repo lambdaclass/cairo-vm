@@ -25,12 +25,8 @@ with ZipFile(filename1) as cairo_lang_pie_zip, ZipFile(filename2) as cairo_vm_pi
                 print(f"Comparison unsuccesful for {filename1}/{file}  vs {filename2}/{file}")
                 exit(1)
 
-    print(f"Comparison succesful for {filename1} vs {filename2}")
-
     # Compare binary files
-
-    cairo_mem = {}
-    cairo_rs_mem = {}
-
     with cairo_lang_pie_zip.open("memory.bin", 'r') as f1,  cairo_vm_pie_zip.open("memory.bin", 'r') as f2:
         memory_comparator.compare_memory_file_contents(f1.read(), f2.read())
+
+    print(f"Comparison succesful for {filename1} vs {filename2}")
