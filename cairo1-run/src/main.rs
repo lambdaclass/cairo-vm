@@ -86,19 +86,19 @@ struct Args {
     #[clap(long = "proof_mode", value_parser)]
     proof_mode: bool,
     #[clap(long = "air_public_input", requires = "proof_mode")]
-    air_public_input: Option<String>,
+    air_public_input: Option<PathBuf>,
     #[clap(
         long = "air_private_input",
         requires_all = ["proof_mode", "trace_file", "memory_file"] 
     )]
-    air_private_input: Option<String>,
+    air_private_input: Option<PathBuf>,
     #[clap(
         long = "cairo_pie_output",
         // We need to add these air_private_input & air_public_input or else
         // passing cairo_pie_output + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
-    cairo_pie_output: Option<String>,
+    cairo_pie_output: Option<PathBuf>,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args)]
