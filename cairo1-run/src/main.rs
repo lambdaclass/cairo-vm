@@ -85,10 +85,18 @@ struct Args {
     layout: String,
     #[clap(long = "proof_mode", value_parser)]
     proof_mode: bool,
-    #[clap(long = "air_public_input", value_parser)]
+    #[clap(long = "air_public_input", value_parser, requires = "proof_mode")]
     air_public_input: Option<PathBuf>,
-    #[clap(long = "air_private_input", value_parser)]
+    #[clap(
+        long = "air_private_input",
+        value_parser,
+        requires = "proof_mode",
+        requires = "trace_file",
+        requires = "memory_file"
+    )]
     air_private_input: Option<PathBuf>,
+    #[clap(long = "cairo_pie_output", value_parser, conflicts_with = "proof_mode")]
+    cairo_pie_output: Option<PathBuf>,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args)]
@@ -238,37 +246,6 @@ impl FileWriter {
 
 fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Error> {
     let args = Args::try_parse_from(args)?;
-    if args.air_public_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_public_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_private_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.trace_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--trace_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.memory_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--memory_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
 
     let compiler_config = CompilerConfig {
         replace_ids: true,
@@ -519,6 +496,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
+    }
+
+    if let Some(ref file_name) = args.cairo_pie_output {
+        let file_path = Path::new(file_name);
+        runner.get_cairo_pie(&vm)?.write_zip_file(file_path)?
     }
 
     if let Some(trace_path) = args.trace_file {
