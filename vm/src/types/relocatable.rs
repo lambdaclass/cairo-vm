@@ -15,7 +15,9 @@ use serde::{Deserialize, Serialize};
 use arbitrary::Arbitrary;
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(
+    Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default,
+)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
@@ -320,10 +322,19 @@ impl MaybeRelocatable {
         }
     }
 
+    // TODO: Check if its more performant to use get_int instead
     /// Returns a reference to the inner value if it is a Felt252, returns None otherwise.
     pub fn get_int_ref(&self) -> Option<&Felt252> {
         match self {
             MaybeRelocatable::Int(num) => Some(num),
+            MaybeRelocatable::RelocatableValue(_) => None,
+        }
+    }
+
+    /// Returns the inner value if it is a Felt252, returns None otherwise.
+    pub fn get_int(&self) -> Option<Felt252> {
+        match self {
+            MaybeRelocatable::Int(num) => Some(*num),
             MaybeRelocatable::RelocatableValue(_) => None,
         }
     }

@@ -1,4 +1,5 @@
 use crate::{
+    air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
     stdlib::{
         any::Any,
@@ -1408,6 +1409,17 @@ impl CairoRunner {
                 .ok_or(PublicInputError::NoRangeCheckLimits)?,
         )
     }
+
+    pub fn get_air_private_input(&self, vm: &VirtualMachine) -> AirPrivateInput {
+        let mut private_inputs = HashMap::new();
+        for builtin in vm.builtin_runners.iter() {
+            private_inputs.insert(
+                builtin.name(),
+                builtin.air_private_input(&vm.segments.memory),
+            );
+        }
+        AirPrivateInput(private_inputs)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1510,6 +1522,7 @@ impl MulAssign<usize> for ExecutionResources {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
     use crate::vm::runners::builtin_runner::{
@@ -5434,5 +5447,46 @@ mod tests {
             .unwrap();
         // segment sizes
         vm.segments.segment_sizes = HashMap::from([(0, 0), (1, 2), (2, 0), (3, 0)]);
+    }
+
+    #[test]
+    fn get_air_private_input() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
+        let (runner, vm) = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                proof_mode: true,
+                layout: "all_cairo",
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let air_private_input = runner.get_air_private_input(&vm);
+        assert!(air_private_input.0[HASH_BUILTIN_NAME].is_empty());
+        assert!(air_private_input.0[RANGE_CHECK_BUILTIN_NAME].is_empty());
+        assert!(air_private_input.0[BITWISE_BUILTIN_NAME].is_empty());
+        assert!(air_private_input.0[EC_OP_BUILTIN_NAME].is_empty());
+        assert!(air_private_input.0[KECCAK_BUILTIN_NAME].is_empty());
+        assert!(air_private_input.0[POSEIDON_BUILTIN_NAME].is_empty());
+        assert_eq!(
+            air_private_input.0[SIGNATURE_BUILTIN_NAME],
+            vec![PrivateInput::Signature(PrivateInputSignature {
+                index: 0,
+                pubkey: felt_hex!(
+                    "0x3d60886c2353d93ec2862e91e23036cd9999a534481166e5a616a983070434d"
+                ),
+                msg: felt_hex!("0xa9e"),
+                signature_input: SignatureInput {
+                    r: felt_hex!(
+                        "0x6d2e2e00dfceffd6a375db04764da249a5a1534c7584738dfe01cb3944a33ee"
+                    ),
+                    w: felt_hex!(
+                        "0x396362a34ff391372fca63f691e27753ce8f0c2271a614cbd240e1dc1596b28"
+                    )
+                }
+            })]
+        );
     }
 }
