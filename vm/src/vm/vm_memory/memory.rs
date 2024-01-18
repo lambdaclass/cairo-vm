@@ -227,6 +227,10 @@ impl Memory {
                     if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(addr, cell.get_value())?;
+                        // If the cell is accessed, mark the relocated one as accessed too
+                        if cell.is_accessed() {
+                            self.mark_as_accessed(addr)
+                        }
                     }
                     addr = (addr + 1)?;
                 }
