@@ -207,8 +207,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_runner
             .get_cairo_pie(&vm)
             .map_err(CairoRunError::Runner)?
-            .write_zip_file(file_path)
-            .unwrap()
+            .write_zip_file(file_path)?
     }
 
     Ok(())
@@ -291,6 +290,7 @@ mod tests {
         #[values(false, true)] entrypoint: bool,
         #[values(false, true)] air_public_input: bool,
         #[values(false, true)] air_private_input: bool,
+        #[values(false, true)] cairo_pie_output: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
@@ -301,6 +301,9 @@ mod tests {
         }
         if air_private_input {
             args.extend_from_slice(&["--air_private_input".to_string(), "/dev/null".to_string()]);
+        }
+        if cairo_pie_output {
+            args.extend_from_slice(&["--cairo_pie_output".to_string(), "/dev/null".to_string()]);
         }
         if proof_mode {
             trace_file = true;
@@ -325,6 +328,7 @@ mod tests {
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
         if air_public_input && !proof_mode
             || (air_private_input && (!proof_mode || !trace_file || !memory_file))
+            || cairo_pie_output && proof_mode
         {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {
