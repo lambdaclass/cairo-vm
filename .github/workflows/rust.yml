@@ -40,6 +40,10 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Create proof_programs symlinks
+      if: matrix.program-target == 'cairo_proof_programs'
+      run: make create-proof-programs-symlinks
+
     - name: Fetch from cache
       uses: actions/cache@v3
       id: cache-programs
@@ -76,9 +80,6 @@ jobs:
     - name: Install cairo 2 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
       run: make build-cairo-2-compiler
-
-    - name: Create proof_programs symlinks
-      run: make create-proof-programs-symlinks
 
     - name: Build programs
       if: steps.cache-programs.outputs.cache-hit != 'true'
