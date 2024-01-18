@@ -7,7 +7,7 @@ use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_def
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{CommandFactory, Parser, ValueHint};
+use clap::{Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -38,11 +38,16 @@ struct Args {
     proof_mode: bool,
     #[structopt(long = "secure_run")]
     secure_run: Option<bool>,
-    #[clap(long = "air_public_input")]
+    #[clap(long = "air_public_input", requires = "proof_mode")]
     air_public_input: Option<String>,
-    #[clap(long = "air_private_input")]
+    #[clap(
+        long = "air_private_input",
+        requires = "proof_mode",
+        requires = "trace_file",
+        requires = "memory_file"
+    )]
     air_private_input: Option<String>,
-    #[clap(long = "cairo_pie_output")]
+    #[clap(long = "cairo_pie_output", conflicts_with = "proof_mode")]
     cairo_pie_output: Option<String>,
 }
 
@@ -112,54 +117,8 @@ impl FileWriter {
     }
 }
 
-fn validate_args(args: &Args) -> Result<(), Error> {
-    if args.air_public_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_public_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_private_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.trace_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--trace_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.memory_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--memory_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.cairo_pie_output.is_some() && args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--proof_mode and --cairo_pie_output cannot be both specified.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    Ok(())
-}
-
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
-
-    validate_args(&args)?;
 
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
