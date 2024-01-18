@@ -78,7 +78,6 @@ jobs:
       run: make build-cairo-2-compiler
 
     - name: Create proof_programs symlinks
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_proof_programs'
       run: make create-proof-programs-symlinks
 
     - name: Build programs
