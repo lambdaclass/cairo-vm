@@ -105,35 +105,23 @@ pub struct CairoPieVersion {
 }
 
 impl CairoPie {
-    pub fn serialize_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string_pretty(&self)
-    }
-
-    pub fn write_zip_file(&self, file_name: &String) -> Result<(), std::io::Error> {
-        let path = Path::new(file_name);
-        let file = File::create(path).unwrap();
+    #[cfg(feature = "std")]
+    pub fn write_zip_file(&self, file_path: &Path) -> Result<(), std::io::Error> {
+        let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
         zip_writer.start_file("version.json", options)?;
-        zip_writer.write(serde_json::to_string(&self.version).unwrap().as_bytes())?;
+        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
         zip_writer.start_file("metadata.json", options)?;
-        zip_writer.write(serde_json::to_string(&self.metadata).unwrap().as_bytes())?;
+        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
         zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write(&self.memory.to_bytes())?;
+        zip_writer.write_all(&self.memory.to_bytes())?;
         zip_writer.start_file("additional_data.json", options)?;
-        zip_writer.write(
-            serde_json::to_string(&self.additional_data)
-                .unwrap()
-                .as_bytes(),
-        )?;
+        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
         zip_writer.start_file("execution_resources.json", options)?;
-        zip_writer.write(
-            serde_json::to_string(&self.execution_resources)
-                .unwrap()
-                .as_bytes(),
-        )?;
-        zip_writer.finish().unwrap();
+        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        zip_writer.finish()?;
         Ok(())
     }
 }
@@ -142,7 +130,7 @@ mod serde_impl {
     use num_traits::Num;
     use std::collections::HashMap;
 
-    use super::{CAIRO_PIE_VERSION, CairoPieMemory};
+    use super::{CairoPieMemory, CAIRO_PIE_VERSION};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::CAIRO_PRIME,
@@ -245,44 +233,44 @@ mod serde_impl {
     }
 
     impl CairoPieMemory {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::string::String;
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::vec::Vec;
+        pub fn to_bytes(&self) -> Vec<u8> {
+            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+            use alloc::string::String;
+            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+            use alloc::vec::Vec;
 
-        // Missing segment and memory holes can be ignored
-        // as they can be inferred by the address on the prover side
-        let values = &self.0;
-        let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
-        let mut res = Vec::with_capacity(mem_cap);
+            // Missing segment and memory holes can be ignored
+            // as they can be inferred by the address on the prover side
+            let values = &self.0;
+            let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
+            let mut res = Vec::with_capacity(mem_cap);
 
-        for ((segment, offset), value) in values.iter() {
-            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
-            res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
-            match value {
-                // Serializes RelocatableValue(little endian):
-                // 1bit |   SEGMENT_BITS |   OFFSET_BITS
-                // 1    |     segment    |   offset
-                MaybeRelocatable::RelocatableValue(rel_val) => {
-                    let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16).unwrap();
-                    let reloc_value = reloc_base
-                        + BigUint::from(rel_val.segment_index as usize)
-                            * BigUint::from(OFFSET_BASE)
-                        + BigUint::from(rel_val.offset);
-                    res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
-                }
-                // Serializes Int(little endian):
-                // 1bit | Num
-                // 0    | num
-                MaybeRelocatable::Int(data_val) => {
-                    res.extend_from_slice(data_val.to_bytes_le().as_ref());
-                }
-            };
+            for ((segment, offset), value) in values.iter() {
+                let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+                res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
+                match value {
+                    // Serializes RelocatableValue(little endian):
+                    // 1bit |   SEGMENT_BITS |   OFFSET_BITS
+                    // 1    |     segment    |   offset
+                    MaybeRelocatable::RelocatableValue(rel_val) => {
+                        let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16).unwrap();
+                        let reloc_value = reloc_base
+                            + BigUint::from(rel_val.segment_index as usize)
+                                * BigUint::from(OFFSET_BASE)
+                            + BigUint::from(rel_val.offset);
+                        res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
+                    }
+                    // Serializes Int(little endian):
+                    // 1bit | Num
+                    // 0    | num
+                    MaybeRelocatable::Int(data_val) => {
+                        res.extend_from_slice(data_val.to_bytes_le().as_ref());
+                    }
+                };
+            }
+            res
         }
-        res
     }
-}
 
     pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
     where

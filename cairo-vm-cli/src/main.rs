@@ -9,7 +9,7 @@ use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use clap::{CommandFactory, Parser, ValueHint};
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[cfg(feature = "with_mimalloc")]
@@ -238,10 +238,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(file_name) = args.cairo_pie_output {
+        let file_path = Path::new(&file_name);
         cairo_runner
             .get_cairo_pie(&vm)
             .map_err(CairoRunError::Runner)?
-            .write_zip_file(&file_name)
+            .write_zip_file(&file_path)
             .unwrap()
     }
 

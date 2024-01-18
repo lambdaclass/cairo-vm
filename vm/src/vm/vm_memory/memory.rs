@@ -1634,7 +1634,7 @@ mod memory_tests {
                 ((1, 2), MaybeRelocatable::from(5)),
                 ((7, 6), MaybeRelocatable::from((1, 2))),
                 ((8, 9), MaybeRelocatable::from(3))
-            ]
-        ))
+            ])
+        )
     }
 }
