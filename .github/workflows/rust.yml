@@ -19,6 +19,7 @@ env:
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
   TEST_COLLECT_COVERAGE: 1
+  PROPTEST_CASES: 100
 
 jobs:
   build-programs:
@@ -321,6 +322,7 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
@@ -360,7 +362,7 @@ jobs:
         include:
         - program-target: cairo_proof_programs
           programs-dir: cairo_programs/proof_programs
-          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input '
+          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input --air_private_input {program}.rs.air_private_input '
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
           extra-args: ''
@@ -399,6 +401,7 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
 
 
@@ -498,6 +501,7 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
@@ -508,6 +512,7 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
 
@@ -516,8 +521,9 @@ jobs:
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
           PROOF=proof_mode 
           AIR_PUBLIC_INPUT=air_public_input
+          AIR_PRIVATE_INPUT=air_private_input
         fi
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
 
   wasm-demo:

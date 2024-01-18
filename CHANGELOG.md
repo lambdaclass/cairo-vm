@@ -2,6 +2,24 @@
 
 #### Upcoming Changes
 
+* feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
+
+* feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
+
+* feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
+
+* feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
+
+* feat: Add `proof_mode` flag to `cairo1-run` [#1537] (https://github.com/lambdaclass/cairo-vm/pull/1537)
+  * The cairo1-run crate no longer compiles and executes in proof_mode by default
+  * Add flag `proof_mode` to cairo1-run crate. Activating this flag will enable proof_mode compilation and execution
+
+* dev: bump cairo 1 compiler dep to 2.4 [#1530](https://github.com/lambdaclass/cairo-vm/pull/1530)
+
+#### [1.0.0-rc0] - 2024-1-5
+
+* feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
+
 * feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` (0.0.5) [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
 
 * feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)
