@@ -319,6 +319,7 @@ clean:
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
