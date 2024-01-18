@@ -1,6 +1,5 @@
-use std::{fs::File, io::Write, path::Path};
-
 use super::cairo_runner::ExecutionResources;
+use crate::stdlib::prelude::{String, Vec};
 use crate::{
     serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
@@ -8,7 +7,11 @@ use crate::{
     Felt252,
 };
 use serde::{Deserialize, Serialize};
-use zip::ZipWriter;
+#[cfg(feature = "std")]
+use {
+    std::{fs::File, io::Write, path::Path},
+    zip::ZipWriter,
+};
 
 const CAIRO_PIE_VERSION: &str = "1.1";
 
@@ -127,10 +130,11 @@ impl CairoPie {
 }
 
 mod serde_impl {
+    use crate::stdlib::collections::HashMap;
     use num_traits::Num;
-    use std::collections::HashMap;
 
     use super::{CairoPieMemory, CAIRO_PIE_VERSION};
+    use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::CAIRO_PRIME,
@@ -189,11 +193,6 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::string::String;
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::vec::Vec;
-
         // Missing segment and memory holes can be ignored
         // as they can be inferred by the address on the prover side
         let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
@@ -234,11 +233,6 @@ mod serde_impl {
 
     impl CairoPieMemory {
         pub fn to_bytes(&self) -> Vec<u8> {
-            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-            use alloc::string::String;
-            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-            use alloc::vec::Vec;
-
             // Missing segment and memory holes can be ignored
             // as they can be inferred by the address on the prover side
             let values = &self.0;
