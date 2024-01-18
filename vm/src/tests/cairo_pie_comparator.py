@@ -8,11 +8,11 @@ import memory_comparator
 filename1 = sys.argv[1]
 filename2 = sys.argv[2]
 
-strict_comparison_files = ["version.json", "metadata.json", "execution_resources.json", "additional_data.json"]
+json_files = ["version.json", "metadata.json", "execution_resources.json", "additional_data.json"]
 
 with ZipFile(filename1) as cairo_lang_pie_zip, ZipFile(filename2) as cairo_vm_pie_zip:
     # Compare json files
-    for file in strict_comparison_files:
+    for file in json_files:
         # Skipping this check due to a bug in the memory holes count
         # TODO: Remove it once the bug is fixed
         if (filename1 == "../../../cairo_programs/_keccak_alternative_hint.pie.zip" or filename1 == "../../../cairo_programs/relocate_temporary_segment_append.pie.zip" or filename1 == "../../../cairo_programs/keccak_alternative_hint.pie.zip") and file == "execution_resources.json":
