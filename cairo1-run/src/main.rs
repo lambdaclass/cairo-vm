@@ -419,7 +419,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
     }
 
     // Set stop pointers for builtins so we can obtain the air public input
-    if args.air_public_input.is_some() {
+    if args.air_public_input.is_some() || args.cairo_pie_output.is_some() {
         // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
         let ret_types_sizes = main_func
             .signature
@@ -461,7 +461,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer)?;
 
         // Build execution public memory
-        runner.finalize_segments(&mut vm)?;
+        if args.proof_mode {
+            runner.finalize_segments(&mut vm)?;
+        }
     }
 
     runner.relocate(&mut vm, true)?;
@@ -498,8 +500,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Vec<MaybeRelocatable>, Erro
         std::fs::write(file_path, json)?;
     }
 
-    if let Some(ref file_name) = args.cairo_pie_output {
-        let file_path = Path::new(file_name);
+    if let Some(ref file_path) = args.cairo_pie_output {
         runner.get_cairo_pie(&vm)?.write_zip_file(file_path)?
     }
 
