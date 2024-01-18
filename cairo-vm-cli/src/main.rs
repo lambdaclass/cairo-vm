@@ -237,8 +237,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         std::fs::write(file_path, json)?;
     }
 
-    if let Some(file_name) = args.cairo_pie_output {
-        let file_path = Path::new(&file_name);
+    if let Some(ref file_name) = args.cairo_pie_output {
+        let file_path = Path::new(file_name);
         cairo_runner
             .get_cairo_pie(&vm)
             .map_err(CairoRunError::Runner)?

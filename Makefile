@@ -285,7 +285,7 @@ compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_M
 	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
 compare_all_no_proof: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM) $(CAIRO_RS_PIE) $(CAIRO_PIE)
-	cd vm/src/tests; ./compare_vm_state.sh trace memory
+	cd vm/src/tests; ./compare_vm_state.sh trace memory pie
 
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
 	cd vm/src/tests; ./compare_vm_state.sh trace
