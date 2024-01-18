@@ -42,12 +42,15 @@ struct Args {
     air_public_input: Option<String>,
     #[clap(
         long = "air_private_input",
-        requires = "proof_mode",
-        requires = "trace_file",
-        requires = "memory_file"
+        requires_all = ["proof_mode", "trace_file", "memory_file"] 
     )]
     air_private_input: Option<String>,
-    #[clap(long = "cairo_pie_output", conflicts_with = "proof_mode")]
+    #[clap(
+        long = "cairo_pie_output",
+        // We need to add these air_private_input & air_public_input or else
+        // passing cairo_pie_output + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
     cairo_pie_output: Option<String>,
 }
 
