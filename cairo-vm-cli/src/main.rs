@@ -112,9 +112,7 @@ impl FileWriter {
     }
 }
 
-fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
-    let args = Args::try_parse_from(args)?;
-
+fn validate_args(args: &Args) -> Result<(), Error> {
     if args.air_public_input.is_some() && !args.proof_mode {
         let error = Args::command().error(
             clap::error::ErrorKind::ArgumentConflict,
@@ -154,6 +152,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         );
         return Err(Error::Cli(error));
     }
+
+    Ok(())
+}
+
+fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
+    let args = Args::try_parse_from(args)?;
+
+    validate_args(&args)?;
 
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
