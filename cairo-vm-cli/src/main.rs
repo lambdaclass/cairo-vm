@@ -47,7 +47,13 @@ struct Args {
         requires = "memory_file"
     )]
     air_private_input: Option<String>,
-    #[clap(long = "cairo_pie_output", conflicts_with = "proof_mode")]
+    #[clap(
+        long = "cairo_pie_output",
+        conflicts_with = "proof_mode",
+        // We need to add these two or else passing cairo_pie_output + either of these without proof_mode will fail
+        conflicts_with = "air_private_input",
+        conflicts_with = "air_public_input",
+    )]
     cairo_pie_output: Option<String>,
 }
 
