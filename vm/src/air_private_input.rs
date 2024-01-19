@@ -135,6 +135,20 @@ impl AirPrivateInput {
     }
 }
 
+impl From<AirPrivateInputSerializable> for AirPrivateInput {
+    fn from(private_input: AirPrivateInputSerializable) -> Self {
+        Self(HashMap::from([
+            (HASH_BUILTIN_NAME, private_input.pedersen),
+            (RANGE_CHECK_BUILTIN_NAME, private_input.range_check),
+            (SIGNATURE_BUILTIN_NAME, private_input.ecdsa),
+            (BITWISE_BUILTIN_NAME, private_input.bitwise),
+            (EC_OP_BUILTIN_NAME, private_input.ec_op),
+            (KECCAK_BUILTIN_NAME, private_input.keccak),
+            (POSEIDON_BUILTIN_NAME, private_input.poseidon),
+        ]))
+    }
+}
+
 impl AirPrivateInputSerializable {
     pub fn serialize_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(&self)
