@@ -1,4 +1,6 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{boxed::Box, vec::Vec};
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::bitwise_instance_def::{
@@ -72,38 +74,50 @@ impl BitwiseBuiltinRunner {
         if index <= 1 {
             return Ok(None);
         }
-        let x_addr = Relocatable::from((address.segment_index, address.offset - index));
+        let x_addr = (address - index)?;
         let y_addr = (x_addr + 1_usize)?;
 
-        let num_x = memory.get(&x_addr);
-        let num_y = memory.get(&y_addr);
-        if let (Some(MaybeRelocatable::Int(ref num_x)), Some(MaybeRelocatable::Int(ref num_y))) = (
-            num_x.as_ref().map(|x| x.as_ref()),
-            num_y.as_ref().map(|x| x.as_ref()),
-        ) {
-            if num_x.bits() > self.bitwise_builtin.total_n_bits as u64 {
+        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr)) else {
+            return Ok(None);
+        };
+
+        // NOTE: we could operate on bytes here, but it caused a 20% slowdown
+        // on several benchmarks.
+        let to_limbs = |x_addr, x: &Felt252| -> Result<[u64; 4], RunnerError> {
+            const LEADING_BITS: u64 = 0xf800000000000000;
+            let limbs = x.to_le_digits();
+            if limbs[3] & LEADING_BITS != 0 {
                 return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                     x_addr,
                     self.bitwise_builtin.total_n_bits,
-                    num_x.clone(),
+                    *x,
                 ))));
+            }
+            Ok(limbs)
+        };
+        let (limbs_x, limbs_y) = (to_limbs(x_addr, &num_x)?, to_limbs(y_addr, &num_y)?);
+        let mut limbs_xy = [0u64; 4];
+        for (xy, (x, y)) in limbs_xy
+            .iter_mut()
+            .zip(limbs_x.into_iter().zip(limbs_y.into_iter()))
+        {
+            *xy = match index {
+                2 => x & y,
+                3 => x ^ y,
+                4 => x | y,
+                _ => {
+                    return Ok(None);
+                }
             };
-            if num_y.bits() > self.bitwise_builtin.total_n_bits as u64 {
-                return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
-                    y_addr,
-                    self.bitwise_builtin.total_n_bits,
-                    num_y.clone(),
-                ))));
-            };
-            let res = match index {
-                2 => Some(MaybeRelocatable::from(num_x & num_y)),
-                3 => Some(MaybeRelocatable::from(num_x ^ num_y)),
-                4 => Some(MaybeRelocatable::from(num_x | num_y)),
-                _ => None,
-            };
-            return Ok(res);
         }
-        Ok(None)
+        let mut bytes_xy = [0u8; 32];
+        bytes_xy[..8].copy_from_slice(limbs_xy[0].to_le_bytes().as_slice());
+        bytes_xy[8..16].copy_from_slice(limbs_xy[1].to_le_bytes().as_slice());
+        bytes_xy[16..24].copy_from_slice(limbs_xy[2].to_le_bytes().as_slice());
+        bytes_xy[24..].copy_from_slice(limbs_xy[3].to_le_bytes().as_slice());
+        Ok(Some(MaybeRelocatable::from(Felt252::from_bytes_le_slice(
+            &bytes_xy,
+        ))))
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
@@ -178,6 +192,30 @@ impl BitwiseBuiltinRunner {
         let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance as usize))
     }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_BITWISE as usize)
+                .enumerate()
+            {
+                // Add the input cells of each bitwise instance to the private inputs
+                if let (Ok(x), Ok(y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                ) {
+                    private_inputs.push(PrivateInput::Pair(PrivateInputPair {
+                        index,
+                        x: *x,
+                        y: *y,
+                    }))
+                }
+            }
+        }
+        private_inputs
+    }
 }
 
 #[cfg(test)]
@@ -189,11 +227,11 @@ mod tests {
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
+    use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
     };
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -415,7 +453,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 7)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(8)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(8)))));
     }
 
     #[test]
@@ -424,7 +462,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 8), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 8)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(6)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(6)))));
     }
 
     #[test]
@@ -433,7 +471,7 @@ mod tests {
         let memory = memory![((0, 5), 10), ((0, 6), 12), ((0, 9), 0)];
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
-        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::new(14)))));
+        assert_eq!(result, Ok(Some(MaybeRelocatable::from(Felt252::from(14)))));
     }
 
     #[test]
@@ -580,5 +618,50 @@ mod tests {
             true,
         ));
         assert_eq!(builtin.get_used_diluted_check_units(50, 25), 250);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9),
+            ((0, 10), 10),
+            ((0, 11), 11),
+            ((0, 12), 12),
+            ((0, 13), 13),
+            ((0, 14), 14)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 0,
+                    x: 0.into(),
+                    y: 1.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 1,
+                    x: 5.into(),
+                    y: 6.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 2,
+                    x: 10.into(),
+                    y: 11.into()
+                }),
+            ]),
+        );
     }
 }

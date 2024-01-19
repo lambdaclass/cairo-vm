@@ -1,5 +1,7 @@
+use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
-
+#[cfg(feature = "extensive_hints")]
+use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -23,12 +25,13 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use core::cmp::Ordering;
-use felt::Felt252;
+#[cfg(feature = "extensive_hints")]
+use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::errors::trace_errors::TraceError;
 use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
@@ -75,12 +78,11 @@ impl DeducedOperands {
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
-    pub(crate) builtin_runners: Vec<BuiltinRunner>,
-    pub(crate) segments: MemorySegmentManager,
+    pub builtin_runners: Vec<BuiltinRunner>,
+    pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     pub(crate) rc_limits: Option<(isize, isize)>,
-    trace_relocated: bool,
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
@@ -112,7 +114,6 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             rc_limits: None,
             run_finished: false,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: Default::default(),
@@ -135,7 +136,7 @@ impl VirtualMachine {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
                 MaybeRelocatable::Int(ref num) => num
                     .to_usize()
-                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(num.clone())))?,
+                    .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(*num)))?,
             },
             FpUpdate::Regular => return Ok(()),
         };
@@ -232,9 +233,12 @@ impl VirtualMachine {
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => {
-                    Ok((Some(MaybeRelocatable::Int(num_dst / num_op1)), dst.cloned()))
-                }
+                ) if !num_op1.is_zero() => Ok((
+                    Some(MaybeRelocatable::Int(num_dst.field_div(
+                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
+                    ))),
+                    dst.cloned(),
+                )),
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -264,7 +268,12 @@ impl VirtualMachine {
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
                     ) if !num_op0.is_zero() => {
-                        return Ok((Some(MaybeRelocatable::Int(num_dst / num_op0)), dst.cloned()))
+                        return Ok((
+                            Some(MaybeRelocatable::Int(num_dst.field_div(
+                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
+                            ))),
+                            dst.cloned(),
+                        ))
                     }
                     _ => (),
                 },
@@ -396,7 +405,7 @@ impl VirtualMachine {
 
         if let Some(ref mut trace) = &mut self.trace {
             trace.push(TraceEntry {
-                pc: self.run_context.pc.offset,
+                pc: self.run_context.pc,
                 ap: self.run_context.ap,
                 fp: self.run_context.fp,
             });
@@ -441,60 +450,119 @@ impl VirtualMachine {
         decode_instruction(instruction)
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
     pub fn step_hint(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        hint_datas: &[Box<dyn Any>],
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_data.iter().enumerate() {
-            hint_executor
+        for (hint_index, hint_data) in hint_datas.iter().enumerate() {
+            hint_processor
                 .execute_hint(self, exec_scopes, hint_data, constants)
                 .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
         }
         Ok(())
     }
 
+    #[cfg(feature = "extensive_hints")]
+    pub fn step_hint(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_datas: &mut Vec<Box<dyn Any>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+        constants: &HashMap<String, Felt252>,
+    ) -> Result<(), VirtualMachineError> {
+        // Check if there is a hint range for the current pc
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
+            let s = *s;
+            // Execute each hint for the given range
+            for idx in s..(s + l.get()) {
+                let hint_extension = hint_processor
+                    .execute_hint_extensive(
+                        self,
+                        exec_scopes,
+                        hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
+                        constants,
+                    )
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn step_instruction(&mut self) -> Result<(), VirtualMachineError> {
-        let pc = self.run_context.pc.offset;
+        if self.run_context.pc.segment_index == 0 {
+            // Run instructions from program segment, using instruction cache
+            let pc = self.run_context.pc.offset;
 
-        if self.segments.memory.data[0].len() <= pc {
-            return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
-        }
+            if self.segments.memory.data[0].len() <= pc {
+                return Err(MemoryError::UnknownMemoryCell(Box::new((0, pc).into())))?;
+            }
 
-        let mut inst_cache = core::mem::take(&mut self.instruction_cache);
-        inst_cache.resize((pc + 1).max(inst_cache.len()), None);
+            let mut inst_cache = core::mem::take(&mut self.instruction_cache);
+            inst_cache.resize((pc + 1).max(inst_cache.len()), None);
 
-        let instruction = inst_cache.get_mut(pc).unwrap();
-        if instruction.is_none() {
-            *instruction = Some(self.decode_current_instruction()?);
-        }
-        let instruction = instruction.as_ref().unwrap();
-        if !self.skip_instruction_execution {
-            self.run_instruction(instruction)?;
+            let instruction = inst_cache.get_mut(pc).unwrap();
+            if instruction.is_none() {
+                *instruction = Some(self.decode_current_instruction()?);
+            }
+            let instruction = instruction.as_ref().unwrap();
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
+            self.instruction_cache = inst_cache;
         } else {
-            self.run_context.pc += instruction.size();
-            self.skip_instruction_execution = false;
+            // Run instructions from programs loaded in other segments, without instruction cache
+            let instruction = self.decode_current_instruction()?;
+
+            if !self.skip_instruction_execution {
+                self.run_instruction(&instruction)?;
+            } else {
+                self.run_context.pc += instruction.size();
+                self.skip_instruction_execution = false;
+            }
         }
-        self.instruction_cache = inst_cache;
         Ok(())
     }
 
     pub fn step(
         &mut self,
-        hint_executor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
-        hint_data: &[Box<dyn Any>],
+        #[cfg(feature = "extensive_hints")] hint_datas: &mut Vec<Box<dyn Any>>,
+        #[cfg(not(feature = "extensive_hints"))] hint_datas: &[Box<dyn Any>],
+        #[cfg(feature = "extensive_hints")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
         constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
-        self.step_hint(hint_executor, exec_scopes, hint_data, constants)?;
+        self.step_hint(
+            hint_processor,
+            exec_scopes,
+            hint_datas,
+            #[cfg(feature = "extensive_hints")]
+            hint_ranges,
+            constants,
+        )?;
 
         #[cfg(feature = "hooks")]
-        self.execute_pre_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_pre_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
         #[cfg(feature = "hooks")]
-        self.execute_post_step_instruction(hint_executor, exec_scopes, hint_data, constants)?;
+        self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
     }
@@ -953,7 +1021,7 @@ impl VirtualMachine {
                 .get(&Relocatable::from((segment_index as isize, i)))
             {
                 Some(val) => match val.as_ref() {
-                    MaybeRelocatable::Int(num) => format!("{}", num.to_signed_felt()),
+                    MaybeRelocatable::Int(num) => format!("{}", signed_felt(*num)),
                     MaybeRelocatable::RelocatableValue(rel) => format!("{}", rel),
                 },
                 _ => "<missing>".to_string(),
@@ -963,34 +1031,6 @@ impl VirtualMachine {
         }
 
         Ok(())
-    }
-
-    ///Relocates the VM's trace, turning relocatable registers to numbered ones
-    pub fn relocate_trace(&mut self, relocation_table: &[usize]) -> Result<(), TraceError> {
-        if let Some(ref mut trace) = self.trace {
-            if self.trace_relocated {
-                return Err(TraceError::AlreadyRelocated);
-            }
-            let segment_1_base = relocation_table
-                .get(1)
-                .ok_or(TraceError::NoRelocationFound)?;
-
-            trace.iter_mut().for_each(|entry| {
-                entry.pc += 1;
-                entry.ap += segment_1_base;
-                entry.fp += segment_1_base;
-            });
-            self.trace_relocated = true;
-        }
-        Ok(())
-    }
-
-    pub fn get_relocated_trace(&self) -> Result<&Vec<TraceEntry>, TraceError> {
-        if self.trace_relocated {
-            self.trace.as_ref().ok_or(TraceError::TraceNotEnabled)
-        } else {
-            Err(TraceError::TraceNotRelocated)
-        }
     }
 
     /// Returns a list of addresses of memory cells that constitute the public memory.
@@ -1036,6 +1076,23 @@ impl VirtualMachine {
                 ))
             })
             .collect()
+    }
+
+    #[doc(hidden)]
+    pub fn builtins_final_stack_from_stack_pointer_dict(
+        &mut self,
+        builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+    ) -> Result<(), RunnerError> {
+        for builtin in self.builtin_runners.iter_mut() {
+            builtin.final_stack(
+                &self.segments,
+                builtin_name_to_stack_pointer
+                    .get(builtin.name())
+                    .cloned()
+                    .unwrap_or_default(),
+            )?;
+        }
+        Ok(())
     }
 }
 
@@ -1128,7 +1185,6 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             rc_limits: None,
             run_finished: self.run_finished,
-            trace_relocated: false,
             instruction_cache: Vec::new(),
             #[cfg(feature = "hooks")]
             hooks: self.hooks,
@@ -1140,6 +1196,7 @@ impl VirtualMachineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::vm::runners::builtin_runner::{
@@ -1170,8 +1227,6 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    use felt::felt_str;
-
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -1193,10 +1248,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1259,10 +1314,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11_u64)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8_u64))),
+            op0: MaybeRelocatable::Int(Felt252::from(9_u64)),
+            op1: MaybeRelocatable::Int(Felt252::from(10_u64)),
         };
 
         let mut vm = vm!();
@@ -1292,10 +1347,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1326,10 +1381,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = VirtualMachine::new(false);
@@ -1362,10 +1417,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1397,10 +1452,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1433,10 +1488,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11_u64)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8_u64))),
+            op0: MaybeRelocatable::Int(Felt252::from(9_u64)),
+            op1: MaybeRelocatable::Int(Felt252::from(10_u64)),
         };
 
         let mut vm = vm!();
@@ -1469,10 +1524,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1505,10 +1560,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1538,10 +1593,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1573,8 +1628,8 @@ mod tests {
         let operands = Operands {
             dst: mayberelocatable!(1, 11),
             res: Some(mayberelocatable!(0, 8)),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1604,10 +1659,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1639,10 +1694,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1673,10 +1728,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1705,10 +1760,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
             res: Some(MaybeRelocatable::from((1, 4))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1736,10 +1791,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(0)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(0))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(0)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(0))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1769,10 +1824,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1802,10 +1857,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            dst: MaybeRelocatable::Int(Felt252::from(11)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1841,9 +1896,9 @@ mod tests {
 
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 11)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8))),
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8))),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let mut vm = vm!();
@@ -1861,7 +1916,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_zero_int_value() {
-        let value = MaybeRelocatable::Int(Felt252::new(1));
+        let value = MaybeRelocatable::Int(Felt252::from(1));
         assert!(!VirtualMachine::is_zero(&value));
     }
 
@@ -1919,16 +1974,16 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(3));
-        let op1 = MaybeRelocatable::Int(Felt252::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::from(3));
+        let op1 = MaybeRelocatable::Int(Felt252::from(2));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt252::new(1))) &&
-                    y == Some(MaybeRelocatable::Int(Felt252::new(3)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::from(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::from(3)))
         );
     }
 
@@ -1978,16 +2033,16 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op1 = MaybeRelocatable::Int(Felt252::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op1 = MaybeRelocatable::Int(Felt252::from(2));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 Some(x),
                 Some(y)
-            )) if x == MaybeRelocatable::Int(Felt252::new(2)) &&
-                    y == MaybeRelocatable::Int(Felt252::new(4))
+            )) if x == MaybeRelocatable::Int(Felt252::from(2)) &&
+                    y == MaybeRelocatable::Int(Felt252::from(4))
         );
     }
 
@@ -2010,8 +2065,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op1 = MaybeRelocatable::Int(Felt252::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op1 = MaybeRelocatable::Int(Felt252::from(0));
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2039,8 +2094,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op1 = MaybeRelocatable::Int(Felt252::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op1 = MaybeRelocatable::Int(Felt252::from(0));
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2068,8 +2123,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op1 = MaybeRelocatable::Int(Felt252::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op1 = MaybeRelocatable::Int(Felt252::from(0));
 
         assert_matches!(
             vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
@@ -2125,15 +2180,15 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(3));
-        let op0 = MaybeRelocatable::Int(Felt252::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::from(3));
+        let op0 = MaybeRelocatable::Int(Felt252::from(2));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt252::new(1))) &&
-                    y == Some(MaybeRelocatable::Int(Felt252::new(3)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::from(1))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::from(3)))
         );
     }
 
@@ -2182,15 +2237,15 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op0 = MaybeRelocatable::Int(Felt252::new(2));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op0 = MaybeRelocatable::Int(Felt252::from(2));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt252::new(2))) &&
-                    y == Some(MaybeRelocatable::Int(Felt252::new(4)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::from(2))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::from(4)))
         );
     }
 
@@ -2213,8 +2268,8 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(4));
-        let op0 = MaybeRelocatable::Int(Felt252::new(0));
+        let dst = MaybeRelocatable::Int(Felt252::from(4));
+        let op0 = MaybeRelocatable::Int(Felt252::from(0));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2242,7 +2297,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0 = MaybeRelocatable::Int(Felt252::new(0));
+        let op0 = MaybeRelocatable::Int(Felt252::from(0));
         assert_matches!(
             vm.deduce_op1(&instruction, None, Some(op0)),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
@@ -2270,14 +2325,14 @@ mod tests {
 
         let vm = vm!();
 
-        let dst = MaybeRelocatable::Int(Felt252::new(7));
+        let dst = MaybeRelocatable::Int(Felt252::from(7));
         assert_matches!(
             vm.deduce_op1(&instruction, Some(&dst), None),
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(Felt252::new(7))) &&
-                    y == Some(MaybeRelocatable::Int(Felt252::new(7)))
+            )) if x == Some(MaybeRelocatable::Int(Felt252::from(7))) &&
+                    y == Some(MaybeRelocatable::Int(Felt252::from(7)))
         );
     }
 
@@ -2300,13 +2355,13 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt252::new(7));
-        let op0 = MaybeRelocatable::Int(Felt252::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::from(7));
+        let op0 = MaybeRelocatable::Int(Felt252::from(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt252::new(7)
+            ))) if x == Felt252::from(7)
         );
     }
 
@@ -2329,13 +2384,13 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt252::new(7));
-        let op0 = MaybeRelocatable::Int(Felt252::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::from(7));
+        let op0 = MaybeRelocatable::Int(Felt252::from(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt252::new(16)
+            ))) if x == Felt252::from(16)
         );
     }
 
@@ -2358,13 +2413,13 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt252::new(7));
-        let op0 = MaybeRelocatable::Int(Felt252::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::from(7));
+        let op0 = MaybeRelocatable::Int(Felt252::from(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == Felt252::new(63)
+            ))) if x == Felt252::from(63)
         );
     }
 
@@ -2414,8 +2469,8 @@ mod tests {
 
         let vm = vm!();
 
-        let op1 = MaybeRelocatable::Int(Felt252::new(7));
-        let op0 = MaybeRelocatable::Int(Felt252::new(9));
+        let op1 = MaybeRelocatable::Int(Felt252::from(7));
+        let op0 = MaybeRelocatable::Int(Felt252::from(9));
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(None)
@@ -2441,9 +2496,9 @@ mod tests {
 
         let vm = vm!();
 
-        let res = MaybeRelocatable::Int(Felt252::new(7));
+        let res = MaybeRelocatable::Int(Felt252::from(7));
         assert_eq!(
-            MaybeRelocatable::Int(Felt252::new(7)),
+            MaybeRelocatable::Int(Felt252::from(7)),
             vm.deduce_dst(&instruction, &Some(res)).unwrap()
         );
     }
@@ -2541,11 +2596,11 @@ mod tests {
 
         vm.segments.memory.data.push(Vec::new());
         let dst_addr = Relocatable::from((1, 0));
-        let dst_addr_value = MaybeRelocatable::Int(Felt252::new(5));
+        let dst_addr_value = MaybeRelocatable::Int(Felt252::from(5));
         let op0_addr = Relocatable::from((1, 1));
-        let op0_addr_value = MaybeRelocatable::Int(Felt252::new(2));
+        let op0_addr_value = MaybeRelocatable::Int(Felt252::from(2));
         let op1_addr = Relocatable::from((1, 2));
-        let op1_addr_value = MaybeRelocatable::Int(Felt252::new(3));
+        let op1_addr_value = MaybeRelocatable::Int(Felt252::from(3));
         vm.segments
             .memory
             .insert(dst_addr, &dst_addr_value)
@@ -2681,7 +2736,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new(),
             ),
             Ok(())
@@ -2732,10 +2789,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(8)),
+            dst: MaybeRelocatable::Int(Felt252::from(8)),
             res: None,
-            op0: MaybeRelocatable::Int(Felt252::new(9)),
-            op1: MaybeRelocatable::Int(Felt252::new(10)),
+            op0: MaybeRelocatable::Int(Felt252::from(9)),
+            op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
         let vm = vm!();
@@ -2762,10 +2819,10 @@ mod tests {
         };
 
         let operands = Operands {
-            dst: MaybeRelocatable::Int(Felt252::new(9_i32)),
-            res: Some(MaybeRelocatable::Int(Felt252::new(8_i32))),
-            op0: MaybeRelocatable::Int(Felt252::new(9_i32)),
-            op1: MaybeRelocatable::Int(Felt252::new(10_i32)),
+            dst: MaybeRelocatable::Int(Felt252::from(9_i32)),
+            res: Some(MaybeRelocatable::Int(Felt252::from(8_i32))),
+            op0: MaybeRelocatable::Int(Felt252::from(9_i32)),
+            op1: MaybeRelocatable::Int(Felt252::from(10_i32)),
         };
 
         let vm = vm!();
@@ -2773,8 +2830,8 @@ mod tests {
         assert_matches!(
             vm.opcode_assertions(&instruction, &operands),
             Err(VirtualMachineError::DiffAssertValues(bx))
-            if *bx == (MaybeRelocatable::Int(Felt252::new(9_i32)),
-                 MaybeRelocatable::Int(Felt252::new(8_i32)))
+            if *bx == (MaybeRelocatable::Int(Felt252::from(9_i32)),
+                 MaybeRelocatable::Int(Felt252::from(8_i32)))
         );
     }
 
@@ -2798,8 +2855,8 @@ mod tests {
         let operands = Operands {
             dst: MaybeRelocatable::from((1, 1)),
             res: Some(MaybeRelocatable::from((1, 2))),
-            op0: MaybeRelocatable::Int(Felt252::new(9_i32)),
-            op1: MaybeRelocatable::Int(Felt252::new(10_i32)),
+            op0: MaybeRelocatable::Int(Felt252::from(9_i32)),
+            op1: MaybeRelocatable::Int(Felt252::from(10_i32)),
         };
 
         let vm = vm!();
@@ -2910,13 +2967,15 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
-                &HashMap::new()
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
+                &HashMap::new(),
             ),
             Ok(())
         );
         let trace = vm.trace.unwrap();
-        trace_check(&trace, &[(0, 2, 2)]);
+        trace_check(&trace, &[((0, 0).into(), 2, 2)]);
 
         assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
         assert_eq!(vm.run_context.ap, 2);
@@ -2992,7 +3051,9 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    &Vec::new(),
+                    &mut Vec::new(),
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::new(),
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3010,7 +3071,13 @@ mod tests {
         assert_eq!(trace.len(), 5);
         trace_check(
             &trace,
-            &[(3, 2, 2), (5, 3, 2), (0, 5, 5), (2, 6, 5), (7, 6, 2)],
+            &[
+                ((0, 3).into(), 2, 2),
+                ((0, 5).into(), 3, 2),
+                ((0, 0).into(), 5, 5),
+                ((0, 2).into(), 6, 5),
+                ((0, 7).into(), 6, 2),
+            ],
         );
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
@@ -3088,7 +3155,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3102,14 +3171,16 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt252::new(0x4)),
+            &MaybeRelocatable::Int(Felt252::from(0x4)),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         assert_matches!(
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3123,7 +3194,7 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt252::new(0x5))
+            &MaybeRelocatable::Int(Felt252::from(0x5))
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -3131,7 +3202,9 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &Vec::new(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
                 &HashMap::new()
             ),
             Ok(())
@@ -3145,7 +3218,7 @@ mod tests {
                 .get(&vm.run_context.get_ap())
                 .unwrap()
                 .as_ref(),
-            &MaybeRelocatable::Int(Felt252::new(0x14)),
+            &MaybeRelocatable::Int(Felt252::from(0x14)),
         );
     }
 
@@ -3165,8 +3238,8 @@ mod tests {
         vm.segments = segments![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 5))),
-            Ok(i) if i == Some(MaybeRelocatable::from(felt::felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(i) if i == Some(MaybeRelocatable::from(crate::felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             )))
         );
     }
@@ -3236,15 +3309,15 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            dst: MaybeRelocatable::from(crate::felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             )),
-            res: Some(MaybeRelocatable::from(felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            res: Some(MaybeRelocatable::from(crate::felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             ))),
             op0: MaybeRelocatable::from((3, 0)),
-            op1: MaybeRelocatable::from(felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            op1: MaybeRelocatable::from(crate::felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             )),
         };
         let expected_operands_mem_addresses = OperandsAddresses {
@@ -3266,7 +3339,7 @@ mod tests {
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 7))),
-            Ok(i) if i == Some(MaybeRelocatable::from(Felt252::new(8_i32)))
+            Ok(i) if i == Some(MaybeRelocatable::from(Felt252::from(8_i32)))
         );
     }
 
@@ -3321,10 +3394,10 @@ mod tests {
         ];
 
         let expected_operands = Operands {
-            dst: MaybeRelocatable::from(Felt252::new(8_i32)),
-            res: Some(MaybeRelocatable::from(Felt252::new(8_i32))),
+            dst: MaybeRelocatable::from(Felt252::from(8_i32)),
+            res: Some(MaybeRelocatable::from(Felt252::from(8_i32))),
             op0: MaybeRelocatable::from((2, 0)),
-            op1: MaybeRelocatable::from(Felt252::new(8_i32)),
+            op1: MaybeRelocatable::from(Felt252::from(8_i32)),
         };
         let expected_operands_mem_addresses = OperandsAddresses {
             dst_addr: Relocatable::from((1, 9)),
@@ -3347,45 +3420,45 @@ mod tests {
             (
                 (0, 0),
                 (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
                 )
             ),
             (
                 (0, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (0, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             (
                 (0, 3),
                 (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
                 )
             ),
             ((0, 4), 34),
             (
                 (0, 5),
                 (
-                    "2778063437308421278851140253538604815869848682781135193774472480292420096757",
-                    10
+                    "0x6245403e2fafe5df3b79ea28d050d477771bc560fc59e915b302cc9b70a92f5",
+                    16
                 )
             )
         ];
 
         assert_matches!(
             vm.deduce_memory_cell(Relocatable::from((0, 6))),
-            Ok(i) if i == Some(MaybeRelocatable::from(felt_str!(
-                "3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            Ok(i) if i == Some(MaybeRelocatable::from(felt_hex!(
+                "0x7f49de2c3a7d1671437406869edb1805ba43e1c0173b35f8c2e8fcc13c3fa6d"
             )))
         );
     }
@@ -3500,15 +3573,14 @@ mod tests {
             )
         ];
         let error = vm.verify_auto_deductions();
-        assert_eq!(error.as_ref().unwrap_err().to_string(), "Inconsistent auto-deduction for builtin ec_op_builtin, expected 2739017437753868763038285897969098325279422804143820990343394856167768859289, got Some(Int(2778063437308421278851140253538604815869848682781135193774472480292420096757))");
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(bx))
             if *bx == (EC_OP_BUILTIN_NAME,
-                    MaybeRelocatable::Int(felt_str!(
+                    MaybeRelocatable::Int(crate::felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )),
-                    Some(MaybeRelocatable::Int(felt_str!(
+                    Some(MaybeRelocatable::Int(crate::felt_str!(
                         "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                     ))))
         );
@@ -3608,10 +3680,10 @@ mod tests {
         vm.set_ap(4);
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3), ((1, 3), 4)];
         let expected = vec![
-            MaybeRelocatable::Int(Felt252::new(1_i32)),
-            MaybeRelocatable::Int(Felt252::new(2_i32)),
-            MaybeRelocatable::Int(Felt252::new(3_i32)),
-            MaybeRelocatable::Int(Felt252::new(4_i32)),
+            MaybeRelocatable::Int(Felt252::from(1_i32)),
+            MaybeRelocatable::Int(Felt252::from(2_i32)),
+            MaybeRelocatable::Int(Felt252::from(3_i32)),
+            MaybeRelocatable::Int(Felt252::from(4_i32)),
         ];
         assert_eq!(vm.get_return_values(4).unwrap(), expected);
     }
@@ -3687,9 +3759,13 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_data = hint_data;
+
         //Run Steps
         for _ in 0..6 {
-            let hint_data = if vm.run_context.pc == (0, 0).into() {
+            #[cfg(not(feature = "extensive_hints"))]
+            let mut hint_data = if vm.run_context.pc == (0, 0).into() {
                 &hint_data[0..]
             } else {
                 &hint_data[0..0]
@@ -3698,8 +3774,13 @@ mod tests {
                 vm.step(
                     &mut hint_processor,
                     exec_scopes_ref!(),
-                    hint_data,
-                    &HashMap::new()
+                    &mut hint_data,
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::from([(
+                        Relocatable::from((0, 0)),
+                        (0_usize, NonZeroUsize::new(1).unwrap())
+                    )]),
+                    &HashMap::new(),
                 ),
                 Ok(())
             );
@@ -3709,12 +3790,12 @@ mod tests {
         trace_check(
             &trace,
             &[
-                (3, 2, 2),
-                (0, 4, 4),
-                (2, 5, 4),
-                (5, 5, 2),
-                (7, 6, 2),
-                (8, 6, 2),
+                ((0, 3).into(), 2, 2),
+                ((0, 0).into(), 4, 4),
+                ((0, 2).into(), 5, 4),
+                ((0, 5).into(), 5, 2),
+                ((0, 7).into(), 6, 2),
+                ((0, 8).into(), 6, 2),
             ],
         );
 
@@ -3758,9 +3839,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::from(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::from(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::from(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3776,9 +3857,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::from(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::from(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::from(4_i32));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -3795,9 +3876,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::new(2_i32));
-        let value2 = MaybeRelocatable::from(Felt252::new(3_i32));
-        let value3 = MaybeRelocatable::from(Felt252::new(4_i32));
+        let value1 = MaybeRelocatable::from(Felt252::from(2_i32));
+        let value2 = MaybeRelocatable::from(Felt252::from(3_i32));
+        let value3 = MaybeRelocatable::from(Felt252::from(4_i32));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
@@ -3923,7 +4004,7 @@ mod tests {
     fn get_maybe_error() {
         let vm = vm!();
         assert_eq!(
-            vm.get_maybe(&MaybeRelocatable::Int(Felt252::new(0_i32))),
+            vm.get_maybe(&MaybeRelocatable::Int(Felt252::from(0_i32))),
             None,
         );
     }
@@ -4033,7 +4114,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_bigint_prime() {
         let mut vm = vm!();
-        let prime = felt_str!(felt::PRIME_STR[2..], 16);
+        let prime = felt_hex!(crate::utils::PRIME_STR);
         let prime_maybe = MaybeRelocatable::from(prime);
 
         assert_matches!(vm.gen_arg(&prime_maybe), Ok(x) if x == mayberelocatable!(0));
@@ -4229,7 +4310,7 @@ mod tests {
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }]));
@@ -4271,7 +4352,7 @@ mod tests {
         assert_eq!(
             virtual_machine_from_builder.trace,
             Some(vec![TraceEntry {
-                pc: 1,
+                pc: (0, 1).into(),
                 ap: 1,
                 fp: 1,
             }])
@@ -4293,5 +4374,183 @@ mod tests {
                 .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
                 .is_err());
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /// Test for a simple program execution
+    /// Used program code:
+    /// func main():
+    ///     let a = 1
+    ///     let b = 2
+    ///     let c = a + b
+    ///     return()
+    /// end
+    /// Memory taken from original vm
+    /// {RelocatableValue(segment_index=0, offset=0): 2345108766317314046,
+    ///  RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    ///  RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    /// Current register values:
+    /// AP 1:2
+    /// FP 1:2
+    /// PC 0:0
+    fn test_step_for_preset_memory_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+
+        run_context!(vm, 0, 2, 2);
+
+        vm.segments = segments![
+            ((2, 0), 2345108766317314046_u64), // Load program into new segment
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 2;
+
+        assert_matches!(
+            vm.step(
+                &mut hint_processor,
+                exec_scopes_ref!(),
+                &mut Vec::new(),
+                #[cfg(feature = "extensive_hints")]
+                &mut HashMap::new(),
+                &HashMap::new()
+            ),
+            Ok(())
+        );
+        let trace = vm.trace.unwrap();
+        trace_check(&trace, &[((2, 0).into(), 2, 2)]);
+
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+        assert_eq!(vm.run_context.ap, 2);
+        assert_eq!(vm.run_context.fp, 0);
+
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = vm.segments.memory.data;
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    /*
+    Test for a simple program execution
+    Used program code:
+        func myfunc(a: felt) -> (r: felt):
+            let b = a * 2
+            return(b)
+        end
+        func main():
+            let a = 1
+            let b = myfunc(a)
+            return()
+        end
+    Memory taken from original vm:
+    {RelocatableValue(segment_index=0, offset=0): 5207990763031199744,
+    RelocatableValue(segment_index=0, offset=1): 2,
+    RelocatableValue(segment_index=0, offset=2): 2345108766317314046,
+    RelocatableValue(segment_index=0, offset=3): 5189976364521848832,
+    RelocatableValue(segment_index=0, offset=4): 1,
+    RelocatableValue(segment_index=0, offset=5): 1226245742482522112,
+    RelocatableValue(segment_index=0, offset=6): 3618502788666131213697322783095070105623107215331596699973092056135872020476,
+    RelocatableValue(segment_index=0, offset=7): 2345108766317314046,
+    RelocatableValue(segment_index=1, offset=0): RelocatableValue(segment_index=2, offset=0),
+    RelocatableValue(segment_index=1, offset=1): RelocatableValue(segment_index=3, offset=0)}
+    Current register values:
+    AP 1:2
+    FP 1:2
+    PC 0:3
+    Final Pc (not executed): 3:0
+    This program consists of 5 steps
+    */
+    fn test_step_for_preset_memory_function_call_program_loaded_into_user_segment() {
+        let mut vm = vm!(true);
+
+        run_context!(vm, 3, 2, 2);
+        // set starting pc on new segemt to run loaded program
+        vm.run_context.pc.segment_index = 4;
+
+        //Insert values into memory
+        vm.segments.memory =
+            memory![
+            // Load program into new segment
+            ((4, 0), 5207990763031199744_i64),
+            ((4, 1), 2),
+            ((4, 2), 2345108766317314046_i64),
+            ((4, 3), 5189976364521848832_i64),
+            ((4, 4), 1),
+            ((4, 5), 1226245742482522112_i64),
+            (
+                (4, 6),
+                ("3618502788666131213697322783095070105623107215331596699973092056135872020476",10)
+            ),
+            ((4, 7), 2345108766317314046_i64),
+            ((1, 0), (2, 0)),
+            ((1, 1), (3, 0))
+        ];
+
+        let final_pc = Relocatable::from((3, 0));
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        //Run steps
+        while vm.run_context.pc != final_pc {
+            assert_matches!(
+                vm.step(
+                    &mut hint_processor,
+                    exec_scopes_ref!(),
+                    &mut Vec::new(),
+                    #[cfg(feature = "extensive_hints")]
+                    &mut HashMap::new(),
+                    &HashMap::new()
+                ),
+                Ok(())
+            );
+        }
+
+        //Check final register values
+        assert_eq!(vm.run_context.pc, Relocatable::from((3, 0)));
+
+        assert_eq!(vm.run_context.ap, 6);
+
+        assert_eq!(vm.run_context.fp, 0);
+        //Check each TraceEntry in trace
+        let trace = vm.trace.unwrap();
+        assert_eq!(trace.len(), 5);
+        trace_check(
+            &trace,
+            &[
+                ((4, 3).into(), 2, 2),
+                ((4, 5).into(), 3, 2),
+                ((4, 0).into(), 5, 5),
+                ((4, 2).into(), 6, 5),
+                ((4, 7).into(), 6, 2),
+            ],
+        );
+        //Check that the following addresses have been accessed:
+        // Addresses have been copied from python execution:
+        let mem = &vm.segments.memory.data;
+        assert!(mem[4][1].as_ref().unwrap().is_accessed());
+        assert!(mem[4][4].as_ref().unwrap().is_accessed());
+        assert!(mem[4][6].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].as_ref().unwrap().is_accessed());
+        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][2].as_ref().unwrap().is_accessed());
+        assert!(mem[1][3].as_ref().unwrap().is_accessed());
+        assert!(mem[1][4].as_ref().unwrap().is_accessed());
+        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(4),
+            Some(3)
+        );
+        assert_eq!(
+            vm.segments
+                .memory
+                .get_amount_of_accessed_addresses_for_segment(1),
+            Some(6)
+        );
     }
 }

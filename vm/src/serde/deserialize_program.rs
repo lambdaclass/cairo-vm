@@ -6,14 +6,19 @@
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    fmt,
-    prelude::*,
-    sync::Arc,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        fmt,
+        prelude::*,
+        sync::Arc,
+    },
+    utils::CAIRO_PRIME,
 };
 
+use crate::utils::PRIME_STR;
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
+use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
     types::{
@@ -28,9 +33,8 @@ use crate::{
         SIGNATURE_BUILTIN_NAME,
     },
 };
-use felt::{Felt252, PRIME_STR};
-use num_traits::float::FloatCore;
-use num_traits::{Num, Pow};
+use num_bigint::BigUint;
+use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
@@ -79,6 +83,7 @@ pub struct ProgramJson {
     pub identifiers: HashMap<String, Identifier>,
     pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
+    #[serde(default)]
     pub attributes: Vec<Attribute>,
     pub debug_info: Option<DebugInfo>,
 }
@@ -194,13 +199,10 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(
-    all(feature = "arbitrary", feature = "std"),
-    derive(Arbitrary, Clone, Serialize)
-)]
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
-    instruction_locations: HashMap<usize, InstructionLocation>,
+    pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
@@ -228,7 +230,7 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    match Felt252::parse_bytes(n.to_string().as_bytes(), 10) {
+    match Felt252::from_dec_str(&n.to_string()).ok() {
         Some(x) => Ok(Some(x)),
         None => {
             // Handle de Number with scientific notation cases
@@ -250,12 +252,17 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
         None => {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
-
-            let exponent = list[1].parse::<u32>().ok()?;
-            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+            let exponent = list[1].parse::<u128>().ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
+            let base_biguint = BigUint::from_str_radix(list[0], 10).ok()? % CAIRO_PRIME.clone();
+            let base = Felt252::from_dec_str(&base_biguint.to_string()).ok()?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::parse_bytes(FloatCore::round(float).to_string().as_bytes(), 10),
+        Some(float) => {
+            let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
+            Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
+        }
     }
 }
 
@@ -323,14 +330,9 @@ impl<'de> de::Visitor<'de> for Felt252Visitor {
     where
         E: de::Error,
     {
-        // Strip the '0x' prefix from the encoded hex string
-        if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-            // Add padding if necessary
-            let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
-        } else {
-            Err(String::from("hex prefix error")).map_err(de::Error::custom)
-        }
+        // Add padding if necessary
+        let value = deserialize_utils::maybe_add_padding(value.to_string());
+        Felt252::from_hex(&value).map_err(de::Error::custom)
     }
 }
 
@@ -350,15 +352,11 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
         let mut data: Vec<MaybeRelocatable> = vec![];
 
         while let Some(value) = seq.next_element::<String>()? {
-            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-                // Add padding if necessary
-                let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                data.push(MaybeRelocatable::Int(
-                    Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
-                ));
-            } else {
-                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
-            };
+            // Add padding if necessary
+            let value = deserialize_utils::maybe_add_padding(value.to_string());
+            data.push(MaybeRelocatable::Int(
+                Felt252::from_hex(&value).map_err(de::Error::custom)?,
+            ));
         }
         Ok(data)
     }
@@ -477,7 +475,6 @@ pub fn parse_program_json(
         if value.type_.as_deref() == Some("const") {
             let value = value
                 .value
-                .clone()
                 .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
             constants.insert(key.clone(), value);
         }
@@ -512,11 +509,9 @@ pub fn parse_program_json(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use assert_matches::assert_matches;
     use core::num::NonZeroUsize;
-    use felt::felt_str;
-    use num_traits::One;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -676,12 +671,12 @@ mod tests {
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let mut hints = BTreeMap::new();
@@ -756,7 +751,7 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Felt252::new(2)),
+                        offset2: OffsetValue::Immediate(Felt252::from(2)),
                         dereference: false,
                         value_type: "felt".to_string(),
                     },
@@ -882,12 +877,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let hints: HashMap<_, _> = [
@@ -951,12 +946,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let hints: HashMap<_, _> = [
@@ -1068,7 +1063,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::new(3)),
+                value: Some(Felt252::from(3)),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1079,7 +1074,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1502,7 +1497,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+            Ok(x) if x == Some(Felt252::ONE * Felt252::from(10).pow(27_u32))
         );
     }
 
@@ -1513,7 +1508,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::from_str_radix("64", 10).unwrap() * Felt252::from(10).pow(74))
+            Ok(x) if x == Some(Felt252::from_dec_str("64").unwrap() * Felt252::from(10).pow(74_u32))
         );
     }
 
@@ -1524,9 +1519,8 @@ mod tests {
         assert_eq!(
             felt_from_number(n).unwrap(),
             Some(
-                Felt252::from_str_radix(
+                Felt252::from_dec_str(
                     "2082797363194934431336897723140298717588791783575467744530053896730196177808",
-                    10
                 )
                 .unwrap()
             )
@@ -1552,9 +1546,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             f,
-            Felt252::from_str_radix(
+            Felt252::from_dec_str(
                 "2471602022505793130446032259107029522557827898253184929958153020344968292412",
-                10
             )
             .unwrap()
         );
@@ -1605,5 +1598,25 @@ mod tests {
             deserialization_result.unwrap_err(),
             ProgramError::InvalidHintPc(1, 1)
         );
+    }
+
+    #[test]
+    fn parse_without_program_attributes() {
+        // Extracted from: https://testnet.starkscan.co/class/0x068dd0dd8a54ebdaa10563fbe193e6be1e0f7c423c0c3ce1e91c0b682a86b5f9
+        let program = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../cairo_programs/manually_compiled/program_without_attributes.json",
+        ));
+        _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
+    }
+
+    #[test]
+    fn parse_without_program_attributes_2() {
+        // Extracted from: https://testnet.starkscan.co/class/0x071b7f73b5e2b4f81f7cf01d4d1569ccba2921b3fa3170cf11cff3720dfe918e
+        let program = include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../cairo_programs/manually_compiled/program_without_attributes_2.json",
+        ));
+        _ = deserialize_and_parse_program(program, None).expect("should be able to read file");
     }
 }

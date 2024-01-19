@@ -40,6 +40,8 @@ struct Args {
     secure_run: Option<bool>,
     #[clap(long = "air_public_input")]
     air_public_input: Option<String>,
+    #[clap(long = "air_private_input")]
+    air_private_input: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -119,6 +121,30 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         return Err(Error::Cli(error));
     }
 
+    if args.air_private_input.is_some() && !args.proof_mode {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--air_private_input can only be used in proof_mode.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.trace_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--trace_file must be set when --air_private_input is set.",
+        );
+        return Err(Error::Cli(error));
+    }
+
+    if args.air_private_input.is_some() && args.memory_file.is_none() {
+        let error = Args::command().error(
+            clap::error::ErrorKind::ArgumentConflict,
+            "--memory_file must be set when --air_private_input is set.",
+        );
+        return Err(Error::Cli(error));
+    }
+
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = cairo_run::CairoRunConfig {
@@ -148,8 +174,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         print!("{output_buffer}");
     }
 
-    if let Some(trace_path) = args.trace_file {
-        let relocated_trace = vm.get_relocated_trace()?;
+    if let Some(ref trace_path) = args.trace_file {
+        let relocated_trace = cairo_runner
+            .relocated_trace
+            .as_ref()
+            .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
         let mut trace_writer =
@@ -159,7 +188,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         trace_writer.flush()?;
     }
 
-    if let Some(memory_path) = args.memory_file {
+    if let Some(ref memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
         let mut memory_writer =
             FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
@@ -170,6 +199,31 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     if let Some(file_path) = args.air_public_input {
         let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
+        std::fs::write(file_path, json)?;
+    }
+
+    if let (Some(file_path), Some(ref trace_file), Some(ref memory_file)) =
+        (args.air_private_input, args.trace_file, args.memory_file)
+    {
+        // Get absolute paths of trace_file & memory_file
+        let trace_path = trace_file
+            .as_path()
+            .canonicalize()
+            .unwrap_or(trace_file.clone())
+            .to_string_lossy()
+            .to_string();
+        let memory_path = memory_file
+            .as_path()
+            .canonicalize()
+            .unwrap_or(memory_file.clone())
+            .to_string_lossy()
+            .to_string();
+
+        let json = cairo_runner
+            .get_air_private_input(&vm)
+            .to_serializable(trace_path, memory_path)
+            .serialize_json()
+            .map_err(PublicInputError::Serde)?;
         std::fs::write(file_path, json)?;
     }
 
@@ -210,6 +264,27 @@ mod tests {
     }
 
     #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--proof_mode", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_trace(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--proof_mode", "--trace_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_memory(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
+    #[case(["cairo-vm-cli", "../cairo_programs/fibonacci.json", "--air_private_input", "/dev/null", "--trace_file", "/dev/null", "--memory_file", "/dev/null"].as_slice())]
+    fn test_run_air_private_input_no_proof(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::Cli(_)));
+    }
+
+    #[rstest]
     fn test_run_ok(
         #[values(None,
                  Some("plain"),
@@ -231,16 +306,17 @@ mod tests {
         #[values(false, true)] print_output: bool,
         #[values(false, true)] entrypoint: bool,
         #[values(false, true)] air_public_input: bool,
+        #[values(false, true)] air_private_input: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
             args.extend_from_slice(&["--layout".to_string(), layout.to_string()]);
         }
         if air_public_input {
-            args.extend_from_slice(&[
-                "--air_public_input".to_string(),
-                "air_input.pub".to_string(),
-            ]);
+            args.extend_from_slice(&["--air_public_input".to_string(), "/dev/null".to_string()]);
+        }
+        if air_private_input {
+            args.extend_from_slice(&["--air_private_input".to_string(), "/dev/null".to_string()]);
         }
         if proof_mode {
             trace_file = true;
@@ -263,7 +339,9 @@ mod tests {
         }
 
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
-        if air_public_input && !proof_mode {
+        if air_public_input && !proof_mode
+            || (air_private_input && (!proof_mode || !trace_file || !memory_file))
+        {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {
             assert_matches!(run(args.into_iter()), Ok(_));

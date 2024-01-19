@@ -8,12 +8,12 @@ readme.workspace = true
 keywords.workspace = true
 
 [dependencies]
-bincode = { version = "2.0.0-rc.3", tag = "v2.0.0-rc.3", git = "https://github.com/bincode-org/bincode.git" }
 cairo-vm = { workspace = true, features = ["std"] }
 clap = { version = "4.3.10", features = ["derive"] }
 mimalloc = { version = "0.1.37", default-features = false, optional = true }
 nom = "7"
 thiserror = { version = "1.0.40" }
+bincode.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"
@@ -22,4 +22,3 @@ rstest = "0.17.0"
 [features]
 default = ["with_mimalloc"]
 with_mimalloc = ["dep:mimalloc"]
-lambdaworks-felt = ["cairo-vm/lambdaworks-felt"]

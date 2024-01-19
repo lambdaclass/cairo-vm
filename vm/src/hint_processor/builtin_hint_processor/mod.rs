@@ -18,6 +18,8 @@ pub mod memcpy_hint_utils;
 pub mod memset_utils;
 pub mod poseidon_utils;
 pub mod pow_utils;
+#[cfg(feature = "print")]
+pub mod print;
 pub mod secp;
 pub mod segments;
 pub mod set;

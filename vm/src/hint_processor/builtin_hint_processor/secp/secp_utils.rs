@@ -90,13 +90,12 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
-    use felt::Felt252;
     use num_bigint::BigUint;
 
-    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -104,7 +103,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
-        constants.insert(BASE_86.to_string(), Felt252::one() << 86_usize);
+        constants.insert(BASE_86.to_string(), crate::math_utils::pow2_const(86));
 
         let array_1 = bigint3_split(&BigUint::zero());
         #[allow(deprecated)]

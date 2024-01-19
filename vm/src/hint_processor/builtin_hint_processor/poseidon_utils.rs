@@ -1,7 +1,6 @@
 use crate::stdlib::{collections::HashMap, string::String};
 
-use felt::Felt252;
-use num_traits::ToPrimitive;
+use crate::Felt252;
 
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -10,6 +9,7 @@ use crate::{
 };
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
+use num_traits::ToPrimitive;
 
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 10)"
 pub fn n_greater_than_10(

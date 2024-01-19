@@ -7,11 +7,16 @@ STARKNET_SIERRA_COMPILE_CAIRO_1:=cairo1/bin/starknet-sierra-compile
 STARKNET_COMPILE_CAIRO_2:=cairo2/bin/starknet-compile
 STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 
+ifndef PROPTEST_CASES
+	PROPTEST_CASES:=10
+	export PROPTEST_CASES
+endif
+
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
-	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_vm_output compare_trace_memory compare_trace compare_memory \
-	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input \
+	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
 	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \
@@ -32,10 +37,12 @@ COMPILED_PROOF_TESTS:=$(patsubst $(TEST_PROOF_DIR)/%.cairo, $(TEST_PROOF_DIR)/%.
 CAIRO_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.trace, $(COMPILED_PROOF_TESTS))
 CAIRO_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_AIR_PRIVATE_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.air_private_input, $(COMPILED_PROOF_TESTS))
 
 CAIRO_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.memory, $(COMPILED_PROOF_TESTS))
 CAIRO_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.trace, $(COMPILED_PROOF_TESTS))
 CAIRO_RS_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_RS_AIR_PRIVATE_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.air_private_input, $(COMPILED_PROOF_TESTS))
 
 PROOF_BENCH_DIR=cairo_programs/benchmarks
 PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
@@ -44,11 +51,11 @@ PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
-$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory $(TEST_PROOF_DIR)/%.rs.air_public_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input
+$(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory $(TEST_PROOF_DIR)/%.rs.air_public_input $(TEST_PROOF_DIR)/%.rs.air_private_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input --air_private_input $(@D)/$(*F).rs.air_private_input
 
-$(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_public_input: $(TEST_PROOF_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory
+$(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_public_input $(TEST_PROOF_DIR)/%.air_private_input: $(TEST_PROOF_DIR)/%.json
+	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory --air_private_input $(@D)/$(*F).air_private_input
 
 $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
@@ -73,6 +80,10 @@ BAD_TEST_DIR=cairo_programs/bad_programs
 BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
 
+PRINT_TEST_DIR=cairo_programs/print_feature
+PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
+COMPILED_PRINT_TESTS:=$(patsubst $(PRINT_TEST_DIR)/%.cairo, $(PRINT_TEST_DIR)/%.json, $(PRINT_TEST_FILES))
+
 NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
 NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
 COMPILED_NORETROCOMPAT_TESTS:=$(patsubst $(NORETROCOMPAT_DIR)/%.cairo, $(NORETROCOMPAT_DIR)/%.json, $(NORETROCOMPAT_FILES))
@@ -92,13 +103,10 @@ $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
 
-
-BAD_TEST_DIR=cairo_programs/bad_programs
-BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
-COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
-
-
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
+	cairo-compile $< --output $@
+
+$(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
 # ======================
@@ -158,7 +166,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.1.0-rc1
+CAIRO_2_VERSION = 2.4.2
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
@@ -177,13 +185,17 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	cargo install --version 0.6.1 flamegraph
+	# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
+	# cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.11.0 wasm-pack
+	cargo install --version 0.12.1 wasm-pack
 
-deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler
+cairo1-run-deps:
+	cd cairo1-run; make deps
+
+deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -193,7 +205,7 @@ deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos
+deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -214,7 +226,7 @@ run:
 check:
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS)
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
@@ -226,13 +238,20 @@ cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_A
 cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
+TEST_COMMAND:=cargo nextest run
+ifdef TEST_COLLECT_COVERAGE
+	TEST_COMMAND:=cargo llvm-cov nextest --no-report
+endif
+
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
-	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
-	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
+	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
 test-wasm: cairo_proof_programs cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
+test-extensive_hints: cairo_proof_programs cairo_test_programs
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, extensive_hints"
 
 check-fmt:
 	cargo fmt --all -- --check
@@ -258,8 +277,9 @@ benchmark-action: cairo_bench_programs
 iai-benchmark-action: cairo_bench_programs
 	cargo bench --bench iai_benchmark
 
-flamegraph:
-	cargo flamegraph --root --bench criterion_benchmark -- --bench
+# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
+# flamegraph:
+# 	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
 compare_benchmarks: cairo_bench_programs
 	cd bench && ./run_benchmarks.sh
@@ -276,8 +296,8 @@ compare_memory: $(CAIRO_RS_MEM) $(CAIRO_MEM)
 compare_trace_memory_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode
 
-compare_all_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
-	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode air_public_input
+compare_all_proof: $(COMPILED_PROOF_TESTS) $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
+	cd vm/src/tests; ./compare_vm_state.sh trace memory proof_mode air_public_input air_private_input
 
 compare_trace_proof: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_TRACE_PROOF)
 	cd vm/src/tests; ./compare_vm_state.sh trace proof_mode
@@ -287,6 +307,9 @@ compare_memory_proof: $(CAIRO_RS_MEM_PROOF) $(CAIRO_MEM_PROOF)
 
 compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_public_input
+
+compare_air_private_input: $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
+	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_private_input
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
@@ -298,18 +321,23 @@ clean:
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
+	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
+	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -f $(TEST_PROOF_DIR)/*.air_public_input
+	rm -f $(TEST_PROOF_DIR)/*.air_private_input
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
 	rm -rf cairo1
 	rm -rf cairo2
 	rm -rf cairo-lang
+	cd cairo1-run; make clean
 
 fuzzer-deps: build
 	cargo +nightly install cargo-fuzz

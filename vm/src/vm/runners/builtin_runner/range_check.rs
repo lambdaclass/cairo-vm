@@ -1,9 +1,12 @@
-use crate::stdlib::{
-    cmp::{max, min},
-    ops::Shl,
-    prelude::*,
+use crate::{
+    air_private_input::{PrivateInput, PrivateInputValue},
+    stdlib::{
+        cmp::{max, min},
+        prelude::*,
+    },
 };
 
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
@@ -17,8 +20,8 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
-use num_traits::{One, Zero};
+
+use num_traits::Zero;
 
 use super::RANGE_CHECK_BUILTIN_NAME;
 
@@ -45,11 +48,11 @@ pub struct RangeCheckBuiltinRunner {
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::one().shl(16 * n_parts);
+        let bound = Felt252::TWO.pow(16 * n_parts as u128);
         let _bound = if n_parts != 0 && bound.is_zero() {
             None
         } else {
-            Some(Felt252::new(bound))
+            Some(bound)
         };
 
         RangeCheckBuiltinRunner {
@@ -91,12 +94,12 @@ impl RangeCheckBuiltinRunner {
                 let num = memory
                     .get_integer(address)
                     .map_err(|_| MemoryError::RangeCheckFoundNonInt(Box::new(address)))?;
-                if num.bits() <= N_PARTS * INNER_RC_BOUND_SHIFT {
+                if num.bits() as u64 <= N_PARTS * INNER_RC_BOUND_SHIFT {
                     Ok(vec![address.to_owned()])
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::one() << ((N_PARTS * INNER_RC_BOUND_SHIFT) as u32),
+                        Felt252::TWO.pow((N_PARTS * INNER_RC_BOUND_SHIFT) as u128),
                     ))))
                 }
             },
@@ -191,6 +194,18 @@ impl RangeCheckBuiltinRunner {
             self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            for (index, val) in segment.iter().enumerate() {
+                if let Some(value) = val.as_ref().and_then(|cell| cell.get_value().get_int()) {
+                    private_inputs.push(PrivateInput::Value(PrivateInputValue { index, value }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -587,5 +602,30 @@ mod tests {
         vm.current_step = 8;
         vm.segments.segment_used_sizes = Some(vec![1]);
         assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(8));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(None, 4, true).into();
+
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2)];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Value(PrivateInputValue {
+                    index: 0,
+                    value: 0.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 1,
+                    value: 1.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 2,
+                    value: 2.into(),
+                }),
+            ]),
+        );
     }
 }

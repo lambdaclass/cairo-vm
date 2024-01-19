@@ -2,12 +2,11 @@
 #![allow(clippy::explicit_auto_deref)]
 
 use crate::stdlib::{collections::HashSet, prelude::*};
-
 use thiserror_no_std::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
-use felt::Felt252;
+use crate::Felt252;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum RunnerError {
@@ -101,6 +100,8 @@ pub enum RunnerError {
     StrippedProgramNoMain,
     #[error(transparent)]
     Trace(#[from] TraceError),
+    #[error("EcOp builtin: Invalid Point")]
+    InvalidPoint,
 }
 
 #[cfg(test)]

@@ -1,6 +1,11 @@
+use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
+use crate::math_utils::div_mod;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::types::errors::math_errors::MathError;
+use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
+use crate::Felt252;
 use crate::{
     types::{
         instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
@@ -14,9 +19,19 @@ use crate::{
         },
     },
 };
-use felt::Felt252;
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, Sign};
 use num_integer::div_ceil;
+use num_traits::{Num, One};
 use starknet_crypto::{verify, FieldElement, Signature};
+
+lazy_static! {
+    static ref EC_ORDER: BigInt = BigInt::from_str_radix(
+        "3618502788666131213697322783095070105526743751716087489154079457884512865583",
+        10
+    )
+    .unwrap();
+}
 
 use super::SIGNATURE_BUILTIN_NAME;
 
@@ -53,15 +68,11 @@ impl SignatureBuiltinRunner {
         relocatable: Relocatable,
         (r, s): &(Felt252, Felt252),
     ) -> Result<(), MemoryError> {
-        let r_string = r.to_str_radix(10);
-        let s_string = s.to_str_radix(10);
+        let r_be_bytes = r.to_bytes_be();
+        let s_be_bytes = s.to_bytes_be();
         let (r_felt, s_felt) = (
-            FieldElement::from_dec_str(&r_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(r_string.into_boxed_str())
-            })?,
-            FieldElement::from_dec_str(&s_string).map_err(|_| {
-                MemoryError::FailedStringToFieldElementConversion(s_string.into_boxed_str())
-            })?,
+            FieldElement::from_bytes_be(&r_be_bytes).map_err(|_| MathError::ByteConversionError)?,
+            FieldElement::from_bytes_be(&s_be_bytes).map_err(|_| MathError::ByteConversionError)?,
         );
 
         let signature = Signature {
@@ -127,14 +138,11 @@ impl SignatureBuiltinRunner {
                     .get(&pubkey_addr)
                     .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key =
-                    FieldElement::from_dec_str(&pubkey.to_str_radix(10)).map_err(|_| {
-                        MemoryError::ErrorParsingPubKey(pubkey.to_str_radix(10).into_boxed_str())
-                    })?;
+                let public_key = FieldElement::from_bytes_be(&pubkey.to_bytes_be())
+                    .map_err(|_| MathError::ByteConversionError)?;
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_dec_str(&msg.to_str_radix(10)).map_err(|_| {
-                    MemoryError::ErrorRetrievingMessage(msg.to_str_radix(10).into_boxed_str())
-                })?;
+                let message = FieldElement::from_bytes_be(&msg.to_bytes_be())
+                    .map_err(|_| MathError::ByteConversionError)?;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
@@ -233,6 +241,36 @@ impl SignatureBuiltinRunner {
             .collect();
         BuiltinAdditionalData::Signature(signatures)
     }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        for (addr, signature) in self.signatures.borrow().iter() {
+            if let (Ok(pubkey), Ok(msg)) = (memory.get_integer(*addr), memory.get_integer(addr + 1))
+            {
+                private_inputs.push(PrivateInput::Signature(PrivateInputSignature {
+                    index: addr
+                        .offset
+                        .saturating_sub(self.base)
+                        .checked_div(CELLS_PER_SIGNATURE as usize)
+                        .unwrap_or_default(),
+                    pubkey: *pubkey,
+                    msg: *msg,
+                    signature_input: SignatureInput {
+                        r: Felt252::from_bytes_be(&signature.r.to_bytes_be()),
+                        w: Felt252::from(
+                            &div_mod(
+                                &BigInt::one(),
+                                &BigInt::from_bytes_be(Sign::Plus, &signature.s.to_bytes_be()),
+                                &EC_ORDER,
+                            )
+                            .unwrap_or_default(),
+                        ),
+                    },
+                }))
+            }
+        }
+        private_inputs
+    }
 }
 
 #[cfg(test)]
@@ -250,7 +288,7 @@ mod tests {
         },
     };
 
-    use felt::felt_str;
+    use crate::felt_str;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

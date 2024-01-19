@@ -90,7 +90,7 @@ In order to code your custom hints you need to take into account the accessible 
 
 ### Data which can be accessed by hint functions:
 * Hint function arguments:
-  * `exec_scopes` is the way to interact with the execution scopes in the VM and share data bewteen hints without inserting them into the Cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables of specific types.
+  * `exec_scopes` is the way to interact with the execution scopes in the VM and share data between hints without inserting them into the Cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables of specific types.
   * `vm` is passed in order to give access to the internal state of the VM. It provides mutable references to the memory, memory segment manager and the run context, and immutable references to the builtin runners and the program's prime.
   * `constants`: A dictionary mapping constant's paths to its values. Used to access constants defined in Cairo code.
   * `ap_tracking`: Ap-tracking data of the hint.
@@ -109,7 +109,7 @@ There are many helper functions available [here](../../../src/hint_processor/bui
 
 These methods take the name of the ids variable along with vm, ids_data and ap_tracking.
 
-Note: When handling pointer type variables, computing the address and using it to get the variable from memory might not lead to the correct value (as the variable refrence may contain an immediate value that has to be added to the ptr itself), so using the functiom `get_ptr_from_var_name` is strongly recomended.
+Note: When handling pointer type variables, computing the address and using it to get the variable from memory might not lead to the correct value (as the variable reference may contain an immediate value that has to be added to the ptr itself), so using the functiom `get_ptr_from_var_name` is strongly recommended.
 
 Note: Cairo's memory is write-once, read-only, so when using `insert_value_from_var_name` its important to first make sure that the variable doesnt contain any value (for example, it may be defined as local but never written) to avoid inconsistent memory errors.
 

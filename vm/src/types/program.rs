@@ -1,11 +1,22 @@
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    prelude::*,
-    sync::Arc,
+use crate::{
+    serde::{
+        deserialize_program::{parse_program_json, ProgramJson},
+        serialize_program::ProgramSerializer,
+    },
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+        sync::Arc,
+    },
+    vm::runners::cairo_pie::StrippedProgram,
 };
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+#[cfg(feature = "cairo-1-hints")]
+use crate::utils::biguint_to_felt;
+use crate::utils::PRIME_STR;
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
@@ -19,12 +30,12 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
-use felt::{Felt252, PRIME_STR};
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
+#[cfg(feature = "extensive_hints")]
+use super::relocatable::Relocatable;
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{Arbitrary, Unstructured};
 
@@ -100,7 +111,10 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 pub(crate) struct HintsCollection {
     hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
-    hints_ranges: Vec<HintRange>,
+    #[cfg(not(feature = "extensive_hints"))]
+    pub(crate) hints_ranges: Vec<HintRange>,
+    #[cfg(feature = "extensive_hints")]
+    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -116,7 +130,7 @@ impl HintsCollection {
         let Some((max_hint_pc, full_len)) = bounds else {
             return Ok(HintsCollection {
                 hints: Vec::new(),
-                hints_ranges: Vec::new(),
+                hints_ranges: Default::default(),
             });
         };
 
@@ -125,14 +139,21 @@ impl HintsCollection {
         }
 
         let mut hints_values = Vec::with_capacity(full_len);
+        #[cfg(not(feature = "extensive_hints"))]
         let mut hints_ranges = vec![None; max_hint_pc + 1];
-
+        #[cfg(feature = "extensive_hints")]
+        let mut hints_ranges = HashMap::default();
         for (pc, hs) in hints.iter().filter(|(_, hs)| !hs.is_empty()) {
             let range = (
                 hints_values.len(),
                 NonZeroUsize::new(hs.len()).expect("empty vecs already filtered"),
             );
-            hints_ranges[*pc] = Some(range);
+            #[cfg(not(feature = "extensive_hints"))]
+            {
+                hints_ranges[*pc] = Some(range);
+            }
+            #[cfg(feature = "extensive_hints")]
+            hints_ranges.insert(Relocatable::from((0_isize, *pc)), range);
             hints_values.extend_from_slice(&hs[..]);
         }
 
@@ -146,15 +167,36 @@ impl HintsCollection {
         self.hints.iter()
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
     pub fn get_hint_range_for_pc(&self, pc: usize) -> Option<HintRange> {
         self.hints_ranges.get(pc).cloned()
     }
 }
 
-/// Represents a range of hints corresponding to a PC.
-///
+impl From<&HintsCollection> for BTreeMap<usize, Vec<HintParams>> {
+    fn from(hc: &HintsCollection) -> Self {
+        let mut hint_map = BTreeMap::new();
+        #[cfg(not(feature = "extensive_hints"))]
+        for (i, r) in hc.hints_ranges.iter().enumerate() {
+            let Some(r) = r else {
+                continue;
+            };
+            hint_map.insert(i, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        #[cfg(feature = "extensive_hints")]
+        for (pc, r) in hc.hints_ranges.iter() {
+            hint_map.insert(pc.offset, hc.hints[r.0..r.0 + r.1.get()].to_owned());
+        }
+        hint_map
+    }
+}
+
+/// Represents a range of hints corresponding to a PC as a  tuple `(start, length)`.
+#[cfg(not(feature = "extensive_hints"))]
 /// Is [`None`] if the range is empty, and it is [`Some`] tuple `(start, length)` otherwise.
 type HintRange = Option<(usize, NonZeroUsize)>;
+#[cfg(feature = "extensive_hints")]
+pub type HintRange = (usize, NonZeroUsize);
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -162,13 +204,6 @@ pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
     pub(crate) constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct StrippedProgram {
-    pub data: Vec<MaybeRelocatable>,
-    pub builtins: Vec<BuiltinName>,
-    pub main: usize,
 }
 
 impl Program {
@@ -313,7 +348,6 @@ impl Program {
             if value.type_.as_deref() == Some("const") {
                 let value = value
                     .value
-                    .clone()
                     .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
                 constants.insert(key.clone(), value);
             }
@@ -332,7 +366,25 @@ impl Program {
                 .shared_program_data
                 .main
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
+            prime: (),
         })
+    }
+
+    pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
+        let program_serializer: ProgramSerializer = ProgramSerializer::from(self);
+        let bytes: Vec<u8> = serde_json::to_vec(&program_serializer)?;
+        Ok(bytes)
+    }
+
+    pub fn deserialize(
+        program_serializer_bytes: &[u8],
+        entrypoint: Option<&str>,
+    ) -> Result<Program, ProgramError> {
+        let program_serializer: ProgramSerializer =
+            serde_json::from_slice(program_serializer_bytes)?;
+        let program_json = ProgramJson::from(program_serializer);
+        let program = parse_program_json(program_json, entrypoint)?;
+        Ok(program)
     }
 }
 
@@ -354,7 +406,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(Felt252::from(x.value.clone())))
+            .map(|x| MaybeRelocatable::from(biguint_to_felt(&x.value).unwrap_or_default()))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
@@ -395,7 +447,9 @@ impl TryFrom<CasmContractClass> for Program {
 #[cfg(test)]
 impl HintsCollection {
     pub fn iter(&self) -> impl Iterator<Item = (usize, &[HintParams])> {
-        self.hints_ranges
+        #[cfg(not(feature = "extensive_hints"))]
+        let iter = self
+            .hints_ranges
             .iter()
             .enumerate()
             .filter_map(|(pc, range)| {
@@ -407,17 +461,28 @@ impl HintsCollection {
                         None
                     }
                 })
-            })
+            });
+        #[cfg(feature = "extensive_hints")]
+        let iter = self.hints_ranges.iter().filter_map(|(pc, (start, len))| {
+            let end = start + len.get();
+            if end <= self.hints.len() {
+                Some((pc.offset, &self.hints[*start..end]))
+            } else {
+                None
+            }
+        });
+        iter
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Neg;
+
     use super::*;
+    use crate::felt_hex;
     use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
     use crate::utils::test_utils::*;
-    use felt::felt_str;
-    use num_traits::Zero;
 
     use assert_matches::assert_matches;
 
@@ -461,10 +526,11 @@ mod tests {
             program.shared_program_data.hints_collection.hints,
             Vec::new()
         );
-        assert_eq!(
-            program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
-        );
+        assert!(program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .is_empty());
     }
 
     #[test]
@@ -507,10 +573,11 @@ mod tests {
             program.shared_program_data.hints_collection.hints,
             Vec::new()
         );
-        assert_eq!(
-            program.shared_program_data.hints_collection.hints_ranges,
-            Vec::new()
-        );
+        assert!(program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .is_empty());
     }
 
     #[test]
@@ -565,6 +632,7 @@ mod tests {
         assert_eq!(program.shared_program_data.main, None);
         assert_eq!(program.shared_program_data.identifiers, HashMap::new());
 
+        #[cfg(not(feature = "extensive_hints"))]
         let program_hints: HashMap<_, _> = program
             .shared_program_data
             .hints_collection
@@ -576,6 +644,19 @@ mod tests {
                 (
                     pc,
                     program.shared_program_data.hints_collection.hints[s..e].to_vec(),
+                )
+            })
+            .collect();
+        #[cfg(feature = "extensive_hints")]
+        let program_hints: HashMap<_, _> = program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .iter()
+            .map(|(pc, (s, l))| {
+                (
+                    pc.offset,
+                    program.shared_program_data.hints_collection.hints[*s..(s + l.get())].to_vec(),
                 )
             })
             .collect();
@@ -619,7 +700,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -644,7 +725,7 @@ mod tests {
         assert_eq!(program.shared_program_data.identifiers, identifiers);
         assert_eq!(
             program.constants,
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -672,7 +753,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -681,7 +762,7 @@ mod tests {
 
         assert_eq!(
             Program::extract_constants(&identifiers).unwrap(),
-            [("__main__.main.SIZEOF_LOCALS", Felt252::zero())]
+            [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
                 .collect::<HashMap<_, _>>(),
@@ -833,7 +914,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -903,7 +984,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1058,7 +1139,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1157,7 +1238,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1186,26 +1267,23 @@ mod tests {
         .unwrap();
 
         let constants = [
-            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::zero()),
+            ("__main__.compare_abs_arrays.SIZEOF_LOCALS", Felt252::ZERO),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.ALL_ONES",
-                felt_str!(
-                    "3618502788666131106986593281521497120414687020801267626233049500247285301247"
-                ),
+                felt_hex!("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
             ),
             (
                 "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE",
-                Felt252::new(3),
+                Felt252::from(3),
             ),
             (
                 "starkware.cairo.common.alloc.alloc.SIZEOF_LOCALS",
-                felt_str!(
-                    "-3618502788666131213697322783095070105623107215331596699973092056135872020481"
-                ),
+                felt_hex!("0x800000000000011000000000000000000000000000000000000000000000001")
+                    .neg(),
             ),
             (
                 "starkware.cairo.common.uint256.SHIFT",
-                felt_str!("340282366920938463463374607431768211456"),
+                felt_hex!("0x100000000000000000000000000000000"),
             ),
         ]
         .into_iter()
@@ -1220,7 +1298,7 @@ mod tests {
     fn default_program() {
         let hints_collection = HintsCollection {
             hints: Vec::new(),
-            hints_ranges: Vec::new(),
+            hints_ranges: Default::default(),
         };
 
         let shared_program_data = SharedProgramData {
