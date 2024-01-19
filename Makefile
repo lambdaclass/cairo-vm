@@ -234,11 +234,11 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
 
-cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT)
-cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT)
+cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT)
 
-cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
-cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
+cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM) $(CAIRO_PIE)
+cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM) $(CAIRO_RS_PIE)
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
 	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
