@@ -161,6 +161,16 @@ jobs:
   smoke:
     needs: merge-caches
     name: Make sure all builds work
+    strategy:
+      matrix:
+        # NOTE: we build cairo_bench_programs so clippy can check the benchmarks too
+        crate: [
+          workspace,
+          vm,
+          cairo-vm-cli,
+          cairo1-run,
+          ensure-no_std,
+        ]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
@@ -188,21 +198,19 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (vm)
+    - name: Check all features (${{ matrix.crate }})
+      if: matrix.crate == 'vm' || 'cairo_vm_cli' || 'cairo1-run'
       run: |
-        cd vm
-        cargo check-all-features
-
-    - name: Check all features (CLI)
-      run: |
-        cd cairo-vm-cli
+        cd ${{ matrix.crate }}
         cargo check-all-features
     
     - name: Check all features (workspace)
+      if: matrix.crate == 'workspace'
       run: |
         cargo check-all-features --workspace --all-targets
 
     - name: Check no-std
+      if: matrix.crate == 'ensure-no_std'
       run: |
         cd ensure-no_std
         cargo check --no-default-features
