@@ -317,6 +317,10 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Create proof_programs symlinks
+      if: matrix.program-target == 'cairo_proof_programs'
+      run: make create-proof-programs-symlinks
+
     - name: Check cache
       uses: actions/cache@v3
       id: trace-cache
@@ -382,6 +386,10 @@ jobs:
         key: cli-bin-rel-${{ github.sha }}
         path: target/release/cairo-vm-cli
         fail-on-cache-miss: true
+
+    - name: Create proof_programs symlinks
+      if: matrix.program-target == 'cairo_proof_programs'
+      run: make create-proof-programs-symlinks
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
