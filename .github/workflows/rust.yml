@@ -505,6 +505,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: Create proof_programs symlinks
+      if: matrix.program-target == 'cairo_proof_programs'
+      run: make create-proof-programs-symlinks
+
     - name: Fetch traces for cairo-lang
       uses: actions/cache/restore@v3
       with:
