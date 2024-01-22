@@ -19,6 +19,7 @@ std = [
     "starknet-crypto/std",
     "dep:num-prime",
     "thiserror-no-std/std",
+    "dep:zip",
 ]
 cairo-1-hints = [
     "dep:cairo-lang-starknet",
@@ -42,6 +43,7 @@ extensive_hints = []
 print = ["std"]
 
 [dependencies]
+zip = {version = "0.6.6", optional = true }
 mimalloc = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }
