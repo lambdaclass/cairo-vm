@@ -1,6 +1,6 @@
 <div align="center">
-<img src="./cairovm.png#gh-light-mode-only" height="150">
-<img src="./cairovm_white.png#gh-dark-mode-only" height="150">
+<img src="./docs/images/cairovm.png#gh-light-mode-only" height="150">
+<img src="./docs/images/cairovm_white.png#gh-dark-mode-only" height="150">
 
 
 ### ⚡ Cairo-vm ⚡
