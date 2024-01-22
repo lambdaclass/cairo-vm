@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./bonaparte.webp" height="150">
+<img src="./cairovm.png" height="150">
 
 ### ⚡ Cairo-vm ⚡
 
