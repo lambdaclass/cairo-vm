@@ -7,6 +7,8 @@
   * Add `CairoPie::write_zip_file`
   * Move handling of required and exclusive arguments in `cairo-vm-cli` to struct definition using clap derives
 
+* feat: Add doc + default impl for ResourceTracker trait [#1576] (https://github.com/lambdaclass/cairo-vm/pull/1576)
+
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
 * feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
