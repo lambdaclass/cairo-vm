@@ -1,19 +1,17 @@
-use crate::math_utils::{ec_add, ec_double};
+use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::utils::{bigint_to_felt, felt_to_bigint, CAIRO_PRIME};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
-use num_bigint::{BigInt, ToBigInt};
 use num_integer::{div_ceil, Integer};
-use num_traits::{One, Zero};
+use starknet_types_core::curve::ProjectivePoint;
 
 use super::EC_OP_BUILTIN_NAME;
 
@@ -51,7 +49,6 @@ impl EcOpBuiltinRunner {
         y.pow(2_u32) == (x.pow(3_u32) + alpha * x) + beta
     }
 
-    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -62,31 +59,29 @@ impl EcOpBuiltinRunner {
         partial_sum: (Felt252, Felt252),
         doubled_point: (Felt252, Felt252),
         m: &Felt252,
-        alpha: &BigInt,
-        prime: &BigInt,
         height: u32,
-    ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = felt_to_bigint(*m);
-        let mut partial_sum_b = (felt_to_bigint(partial_sum.0), felt_to_bigint(partial_sum.1));
-        let mut doubled_point_b = (
-            felt_to_bigint(doubled_point.0),
-            felt_to_bigint(doubled_point.1),
-        );
-        for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
-                #[allow(deprecated)]
+    ) -> Result<(Felt252, Felt252), RunnerError> {
+        let slope = m.to_biguint();
+        let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
+        let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
+        for i in 0..(height as u64).min(slope.bits()) {
+            if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 return Err(RunnerError::EcOpSameXCoordinate(
                     Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
                         .into_boxed_str(),
                 ));
             };
-            if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
+            if slope.bit(i) {
+                partial_sum_b += &doubled_point_b;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
-            slope = slope.clone() >> 1_u32;
+            doubled_point_b = doubled_point_b.double();
         }
-        Ok(partial_sum_b)
+        partial_sum_b
+            .to_affine()
+            .map(|p| (p.x(), p.y()))
+            .map_err(|_| RunnerError::InvalidPoint)
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
@@ -179,17 +174,12 @@ impl EcOpBuiltinRunner {
                 ))));
             };
         }
-        let prime = CAIRO_PRIME.to_bigint().unwrap();
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
             input_cells[4],
-            #[allow(deprecated)]
-            &felt_to_bigint(alpha),
-            &prime,
             self.ec_op_builtin.scalar_height,
         )?;
-        let result = (bigint_to_felt(&result.0)?, bigint_to_felt(&result.1)?);
         self.cache.borrow_mut().insert(x_addr, result.0);
         self.cache.borrow_mut().insert(
             (x_addr + 1usize)
@@ -259,15 +249,47 @@ impl EcOpBuiltinRunner {
     }
 
     pub fn format_ec_op_error(
-        p: (num_bigint::BigInt, num_bigint::BigInt),
-        m: num_bigint::BigInt,
-        q: (num_bigint::BigInt, num_bigint::BigInt),
+        p: ProjectivePoint,
+        m: num_bigint::BigUint,
+        q: ProjectivePoint,
     ) -> String {
+        let p = p.to_affine().map(|p| (p.x(), p.y())).unwrap_or_default();
+        let q = q.to_affine().map(|q| (q.x(), q.y())).unwrap_or_default();
         format!("Cannot apply EC operation: computation reached two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {p:?} \n
     m = {m:?}\n
     Q = {q:?}.")
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_EC_OP as usize)
+                .enumerate()
+            {
+                // Add the input cells of each ec_op instance to the private inputs
+                if let (Ok(p_x), Ok(p_y), Ok(q_x), Ok(q_y), Ok(m)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                ) {
+                    private_inputs.push(PrivateInput::EcOp(PrivateInputEcOp {
+                        index,
+                        p_x: *p_x,
+                        p_y: *p_y,
+                        m: *m,
+                        q_x: *q_x,
+                        q_y: *q_y,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -278,7 +300,7 @@ mod tests {
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
-    use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -548,18 +570,15 @@ mod tests {
             felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                bigint_str!(
+                felt_str!(
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ))
@@ -578,18 +597,15 @@ mod tests {
             felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
-                bigint_str!(
+                felt_str!(
                     "3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             ))
@@ -598,26 +614,25 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt252::ONE, Felt252::from(9));
-        let doubled_point = (Felt252::ONE, Felt252::from(12));
+        let partial_sum = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
+        let doubled_point = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
         let m = Felt252::from(34);
-        let alpha = bigint!(1);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
-                    (felt_to_bigint(partial_sum.0), felt_to_bigint(partial_sum.1)),
-                    felt_to_bigint(m),
-                    (
-                        felt_to_bigint(doubled_point.0),
-                        felt_to_bigint(doubled_point.1)
-                    )
+                    ProjectivePoint::from_affine(partial_sum.0, partial_sum.1).unwrap(),
+                    m.to_biguint(),
+                    ProjectivePoint::from_affine(doubled_point.0, doubled_point.1).unwrap(),
                 )
                 .into_boxed_str()
             ))
@@ -974,5 +989,31 @@ mod tests {
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner =
+            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![PrivateInput::EcOp(PrivateInputEcOp {
+                index: 0,
+                p_x: 0.into(),
+                p_y: 1.into(),
+                m: 4.into(),
+                q_x: 2.into(),
+                q_y: 3.into(),
+            })])
+        );
     }
 }

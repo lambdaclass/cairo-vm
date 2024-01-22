@@ -1,6 +1,9 @@
-use crate::stdlib::{
-    cmp::{max, min},
-    prelude::*,
+use crate::{
+    air_private_input::{PrivateInput, PrivateInputValue},
+    stdlib::{
+        cmp::{max, min},
+        prelude::*,
+    },
 };
 
 use crate::Felt252;
@@ -191,6 +194,18 @@ impl RangeCheckBuiltinRunner {
             self.stop_ptr = Some(0);
             Ok(pointer)
         }
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            for (index, val) in segment.iter().enumerate() {
+                if let Some(value) = val.as_ref().and_then(|cell| cell.get_value().get_int()) {
+                    private_inputs.push(PrivateInput::Value(PrivateInputValue { index, value }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -587,5 +602,30 @@ mod tests {
         vm.current_step = 8;
         vm.segments.segment_used_sizes = Some(vec![1]);
         assert_eq!(builtin_runner.get_used_perm_range_check_units(&vm), Ok(8));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(None, 4, true).into();
+
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2)];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Value(PrivateInputValue {
+                    index: 0,
+                    value: 0.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 1,
+                    value: 1.into(),
+                }),
+                PrivateInput::Value(PrivateInputValue {
+                    index: 2,
+                    value: 2.into(),
+                }),
+            ]),
+        );
     }
 }

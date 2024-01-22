@@ -53,6 +53,7 @@ pub mod stdlib {
     pub use crate::without_std::*;
 }
 
+pub mod air_private_input;
 pub mod air_public_input;
 pub mod cairo_run;
 pub mod hint_processor;
