@@ -1,4 +1,5 @@
 use super::cairo_runner::ExecutionResources;
+use crate::stdlib::prelude::{String, Vec};
 use crate::{
     serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
@@ -6,6 +7,11 @@ use crate::{
     Felt252,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
+use {
+    std::{fs::File, io::Write, path::Path},
+    zip::ZipWriter,
+};
 
 const CAIRO_PIE_VERSION: &str = "1.1";
 
@@ -27,7 +33,11 @@ impl From<(isize, usize)> for SegmentInfo {
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
 // Allows practical serialization + conversion between CairoPieMemory & Memory
-pub type CairoPieMemory = Vec<((usize, usize), MaybeRelocatable)>;
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieMemory(
+    #[serde(serialize_with = "serde_impl::serialize_memory")]
+    pub  Vec<((usize, usize), MaybeRelocatable)>,
+);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PublicMemoryPage {
@@ -49,9 +59,11 @@ pub struct OutputBuiltinAdditionalData {
 #[serde(untagged)]
 pub enum BuiltinAdditionalData {
     // Contains verified addresses as contiguous index, value pairs
+    #[serde(serialize_with = "serde_impl::serialize_hash_additional_data")]
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
+    #[serde(serialize_with = "serde_impl::serialize_signature_additional_data")]
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
@@ -59,7 +71,6 @@ pub enum BuiltinAdditionalData {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
-    #[serde(serialize_with = "serde_impl::serialize_memory")]
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
     pub additional_data: HashMap<String, BuiltinAdditionalData>,
@@ -96,11 +107,40 @@ pub struct CairoPieVersion {
     pub cairo_pie: (),
 }
 
+impl CairoPie {
+    #[cfg(feature = "std")]
+    pub fn write_zip_file(&self, file_path: &Path) -> Result<(), std::io::Error> {
+        let file = File::create(file_path)?;
+        let mut zip_writer = ZipWriter::new(file);
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip_writer.start_file("version.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
+        zip_writer.start_file("metadata.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
+        zip_writer.start_file("memory.bin", options)?;
+        zip_writer.write_all(&self.memory.to_bytes())?;
+        zip_writer.start_file("additional_data.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        zip_writer.start_file("execution_resources.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        zip_writer.finish()?;
+        Ok(())
+    }
+}
+
 mod serde_impl {
-    use super::CAIRO_PIE_VERSION;
-    use crate::{types::relocatable::MaybeRelocatable, utils::CAIRO_PRIME, Felt252};
-    use num_bigint::BigUint;
+    use crate::stdlib::collections::HashMap;
     use num_traits::Num;
+
+    use super::{CairoPieMemory, CAIRO_PIE_VERSION};
+    use crate::stdlib::prelude::{String, Vec};
+    use crate::{
+        types::relocatable::{MaybeRelocatable, Relocatable},
+        utils::CAIRO_PRIME,
+        Felt252,
+    };
+    use num_bigint::BigUint;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
 
     pub const ADDR_BYTE_LEN: usize = 8;
@@ -153,39 +193,31 @@ mod serde_impl {
     where
         S: Serializer,
     {
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::string::String;
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use alloc::vec::Vec;
-
         // Missing segment and memory holes can be ignored
         // as they can be inferred by the address on the prover side
         let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
         let mut res = Vec::with_capacity(mem_cap);
 
         for ((segment, offset), value) in values.iter() {
+            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+            res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
             match value {
                 // Serializes RelocatableValue(little endian):
                 // 1bit |   SEGMENT_BITS |   OFFSET_BITS
                 // 1    |     segment    |   offset
                 MaybeRelocatable::RelocatableValue(rel_val) => {
-                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
-
                     let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
                         .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
                     let reloc_value = reloc_base
                         + BigUint::from(rel_val.segment_index as usize)
                             * BigUint::from(OFFSET_BASE)
                         + BigUint::from(rel_val.offset);
-                    res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                     res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
                 }
                 // Serializes Int(little endian):
                 // 1bit | Num
                 // 0    | num
                 MaybeRelocatable::Int(data_val) => {
-                    let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
-                    res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                     res.extend_from_slice(data_val.to_bytes_le().as_ref());
                 }
             };
@@ -197,6 +229,41 @@ mod serde_impl {
                 .collect::<String>()
                 .as_str(),
         )
+    }
+
+    impl CairoPieMemory {
+        pub fn to_bytes(&self) -> Vec<u8> {
+            // Missing segment and memory holes can be ignored
+            // as they can be inferred by the address on the prover side
+            let values = &self.0;
+            let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
+            let mut res = Vec::with_capacity(mem_cap);
+
+            for ((segment, offset), value) in values.iter() {
+                let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+                res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
+                match value {
+                    // Serializes RelocatableValue(little endian):
+                    // 1bit |   SEGMENT_BITS |   OFFSET_BITS
+                    // 1    |     segment    |   offset
+                    MaybeRelocatable::RelocatableValue(rel_val) => {
+                        let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16).unwrap();
+                        let reloc_value = reloc_base
+                            + BigUint::from(rel_val.segment_index as usize)
+                                * BigUint::from(OFFSET_BASE)
+                            + BigUint::from(rel_val.offset);
+                        res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
+                    }
+                    // Serializes Int(little endian):
+                    // 1bit | Num
+                    // 0    | num
+                    MaybeRelocatable::Int(data_val) => {
+                        res.extend_from_slice(data_val.to_bytes_le().as_ref());
+                    }
+                };
+            }
+            res
+        }
     }
 
     pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
@@ -216,6 +283,43 @@ mod serde_impl {
     {
         serializer.serialize_str(CAIRO_PIE_VERSION)
     }
+
+    pub fn serialize_signature_additional_data<S>(
+        values: &HashMap<Relocatable, (Felt252, Felt252)>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+
+        for (key, (x, y)) in values {
+            seq_serializer.serialize_element(&[
+                [
+                    Felt252Wrapper(&Felt252::from(key.segment_index)),
+                    Felt252Wrapper(&Felt252::from(key.offset)),
+                ],
+                [Felt252Wrapper(x), Felt252Wrapper(y)],
+            ])?;
+        }
+        seq_serializer.end()
+    }
+
+    pub fn serialize_hash_additional_data<S>(
+        values: &[Relocatable],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+
+        for value in values {
+            seq_serializer.serialize_element(&[value.segment_index, value.offset as isize])?;
+        }
+
+        seq_serializer.end()
+    }
 }
 
 #[cfg(test)]
@@ -224,11 +328,6 @@ mod test {
 
     #[test]
     fn serialize_cairo_pie_memory() {
-        #[derive(Serialize)]
-        struct MemoryWrapper(
-            #[serde(serialize_with = "serde_impl::serialize_memory")] CairoPieMemory,
-        );
-
         let addrs = [
             ((1, 0), "0000000000800080"),
             ((1, 1), "0100000000800080"),
@@ -238,7 +337,7 @@ mod test {
             ((5, 8), "0800000000800280"),
         ];
 
-        let memory = MemoryWrapper(vec![
+        let memory = CairoPieMemory(vec![
             (addrs[0].0, MaybeRelocatable::Int(1234.into())),
             (addrs[1].0, MaybeRelocatable::Int(11.into())),
             (addrs[2].0, MaybeRelocatable::Int(12.into())),

@@ -323,6 +323,7 @@ jobs:
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
@@ -365,7 +366,7 @@ jobs:
           extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input --air_private_input {program}.rs.air_private_input '
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
-          extra-args: ''
+          extra-args: '--cairo_pie_output {program}.rs.pie.zip'
     name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
@@ -402,6 +403,7 @@ jobs:
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
 
 
@@ -502,6 +504,7 @@ jobs:
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
@@ -513,6 +516,7 @@ jobs:
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
 
@@ -522,9 +526,10 @@ jobs:
           PROOF=proof_mode 
           AIR_PUBLIC_INPUT=air_public_input
           AIR_PRIVATE_INPUT=air_private_input
+        else
+          PIE=pie
         fi
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT $PIE
 
   wasm-demo:
     name: Build the wasm demo

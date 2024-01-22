@@ -462,7 +462,7 @@ fn keccak_add_uint256() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn keccak() {
-    let program_data = include_bytes!("../../../cairo_programs/_keccak.json");
+    let program_data = include_bytes!("../../../cairo_programs/keccak.json");
     run_program_simple(program_data.as_slice());
 }
 
@@ -732,7 +732,7 @@ fn mul_s_inv() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn keccak_alternative_hint() {
-    let program_data = include_bytes!("../../../cairo_programs/_keccak_alternative_hint.json");
+    let program_data = include_bytes!("../../../cairo_programs/keccak_alternative_hint.json");
     run_program_simple(program_data.as_slice());
 }
 

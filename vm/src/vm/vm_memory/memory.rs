@@ -524,7 +524,7 @@ impl From<&Memory> for CairoPieMemory {
                 }
             }
         }
-        pie_memory
+        CairoPieMemory(pie_memory)
     }
 }
 
@@ -1630,11 +1630,11 @@ mod memory_tests {
 
         assert_eq!(
             CairoPieMemory::from(&memory),
-            vec![
+            CairoPieMemory(vec![
                 ((1, 2), MaybeRelocatable::from(5)),
                 ((7, 6), MaybeRelocatable::from((1, 2))),
                 ((8, 9), MaybeRelocatable::from(3))
-            ]
+            ])
         )
     }
 }
