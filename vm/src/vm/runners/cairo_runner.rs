@@ -88,14 +88,26 @@ pub struct RunResources {
     n_steps: Option<usize>,
 }
 
+/// This trait is in charge of overseeing the VM's step usage in contexts where a limited amount of steps are available
+/// for a single execution (which may or not involve other executions taking place in the duration of it ).
+/// This is mostly used in the context of starknet, where contracts can call other contracts while sharing the same step limit.
+/// For the general use case, the default implementation can be used, which ignores resource tracking altogether
+/// For an example on how to implement this trait for its intended purpose check out [BuiltinHintProcessor](cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor)
 pub trait ResourceTracker {
-    fn consumed(&self) -> bool;
-
-    fn consume_step(&mut self);
-
-    fn get_n_steps(&self) -> Option<usize>;
-
-    fn run_resources(&self) -> &RunResources;
+    /// Returns true if there are no more steps left to run
+    fn consumed(&self) -> bool {
+        false
+    }
+    /// Subtracts 1 step from the available steps
+    fn consume_step(&mut self) {}
+    /// Returns the available steps for the run
+    fn get_n_steps(&self) -> Option<usize> {
+        None
+    }
+    /// Returns a reference to the available resources
+    fn run_resources(&self) -> &RunResources {
+        &RunResources { n_steps: None }
+    }
 }
 
 impl RunResources {

@@ -234,21 +234,26 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
 
-cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT)
-cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT)
+cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT)
 
-cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
-cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
+cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM) $(CAIRO_PIE)
+cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM) $(CAIRO_RS_PIE)
+
+TEST_COMMAND:=cargo nextest run
+ifdef TEST_COLLECT_COVERAGE
+	TEST_COMMAND:=cargo llvm-cov nextest --no-report
+endif
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
-	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
-	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
+	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
 test-wasm: cairo_proof_programs cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 test-extensive_hints: cairo_proof_programs cairo_test_programs
-	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints, extensive_hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, extensive_hints"
 
 check-fmt:
 	cargo fmt --all -- --check
@@ -328,6 +333,8 @@ clean:
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
+	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace
