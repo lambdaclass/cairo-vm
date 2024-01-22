@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
+* feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
   * Remove the following functions:
     * felt_from_biguint
     * felt_from_bigint
