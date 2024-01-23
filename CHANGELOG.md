@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
+  * Output builtin memory segment is no longer skipped when counting memory holes
+  * Temporary memory cells now keep their accessed status when relocated
+  * BREAKING: Signature change: `get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>` ->  `get_memory_holes(&self, builtin_count: usize,  has_output_builtin: bool) -> Result<usize, MemoryError>`
+
 * feat: Add `cairo_pie_output` flag to `cairo1-run` [#1581] (https://github.com/lambdaclass/cairo-vm/pull/1581)
 
 * feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
