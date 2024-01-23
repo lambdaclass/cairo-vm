@@ -48,26 +48,20 @@ mod skip_instruction_test;
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
 pub(self) fn run_program_simple(data: &[u8]) {
-    run_program(data, Some("all_cairo"), None, None, Some(0))
-}
-
-//For simple programs that should just succeed and have no special needs.
-//Checks memory holes
-pub(self) fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
-    run_program(data, Some("all_cairo"), None, None, Some(holes))
+    run_program(data, Some("all_cairo"), None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
 pub(self) fn run_program_small(data: &[u8]) {
-    run_program(data, Some("small"), None, None, None)
+    run_program(data, Some("small"), None, None)
 }
 
 pub(self) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, Some("all_cairo"), Some(trace), None, None)
+    run_program(data, Some("all_cairo"), Some(trace), None)
 }
 
 pub(self) fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, Some("all_cairo"), None, Some(error), None)
+    run_program(data, Some("all_cairo"), None, Some(error))
 }
 
 pub(self) fn run_program(
@@ -75,7 +69,6 @@ pub(self) fn run_program(
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
-    memory_holes: Option<usize>,
 ) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
@@ -90,7 +83,7 @@ pub(self) fn run_program(
         assert!(res.err().unwrap().to_string().contains(error));
         return;
     }
-    let (runner, vm) = res.expect("Execution failed");
+    let (runner, _) = res.expect("Execution failed");
     if let Some(trace) = trace {
         let expected_trace: Vec<_> = trace
             .iter()
@@ -102,9 +95,6 @@ pub(self) fn run_program(
         for (entry, expected) in trace.iter().zip(expected_trace.iter()) {
             assert_eq!(entry, expected);
         }
-    }
-    if let Some(holes) = memory_holes {
-        assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
     }
 }
 

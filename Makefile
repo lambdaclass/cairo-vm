@@ -15,7 +15,7 @@ endif
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
 	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
 	compare_benchmarks_deps compare_benchmarks docs clean \
-	compare_vm_output compare_trace_memory compare_trace compare_memory \
+	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
@@ -69,8 +69,10 @@ TEST_FILES:=$(wildcard $(TEST_DIR)/*.cairo)
 COMPILED_TESTS:=$(patsubst $(TEST_DIR)/%.cairo, $(TEST_DIR)/%.json, $(TEST_FILES))
 CAIRO_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.memory, $(COMPILED_TESTS))
 CAIRO_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.trace, $(COMPILED_TESTS))
+CAIRO_PIE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.pie.zip, $(COMPILED_TESTS))
 CAIRO_RS_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.memory, $(COMPILED_TESTS))
 CAIRO_RS_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.trace, $(COMPILED_TESTS))
+CAIRO_RS_PIE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.pie.zip, $(COMPILED_TESTS))
 
 BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
@@ -94,11 +96,11 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
-$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+$(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory $(TEST_DIR)/%.rs.pie.zip: $(TEST_DIR)/%.json $(RELBIN)
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
 
-$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
+$(TEST_DIR)/%.trace $(TEST_DIR)/%.memory $(TEST_DIR)/%.pie.zip: $(TEST_DIR)/%.json
+	cairo-run --layout starknet_with_keccak --program $< --trace_file $(@D)/$(*F).trace --memory_file $(@D)/$(*F).memory --cairo_pie_output $(@D)/$(*F).pie.zip
 
 $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
@@ -232,21 +234,26 @@ cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
 
-cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT)
-cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT)
+cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
+cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT)
 
-cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
-cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
+cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM) $(CAIRO_PIE)
+cairo-vm_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM) $(CAIRO_RS_PIE)
+
+TEST_COMMAND:=cargo nextest run
+ifdef TEST_COLLECT_COVERAGE
+	TEST_COMMAND:=cargo llvm-cov nextest --no-report
+endif
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
-	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
-	cargo llvm-cov nextest --no-report --workspace --features test_utils --no-default-features
+	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
 test-wasm: cairo_proof_programs cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 test-extensive_hints: cairo_proof_programs cairo_test_programs
-	cargo llvm-cov nextest --no-report --workspace --features "test_utils, cairo-1-hints, extensive_hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, extensive_hints"
 
 check-fmt:
 	cargo fmt --all -- --check
@@ -282,6 +289,9 @@ compare_benchmarks: cairo_bench_programs
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
+compare_all_no_proof: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM) $(CAIRO_RS_PIE) $(CAIRO_PIE)
+	cd vm/src/tests; ./compare_vm_state.sh trace memory pie
+
 compare_trace: $(CAIRO_RS_TRACE) $(CAIRO_TRACE)
 	cd vm/src/tests; ./compare_vm_state.sh trace
 
@@ -306,6 +316,9 @@ compare_air_public_input: $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PUBLIC_INPUT)
 compare_air_private_input: $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
 	cd vm/src/tests; ./compare_vm_state.sh memory proof_mode air_private_input
 
+compare_pie: $(CAIRO_RS_PIE) $(CAIRO_PIE)
+	cd vm/src/tests; ./compare_vm_state.sh pie
+
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
 	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
@@ -314,6 +327,7 @@ clean:
 	rm -f $(TEST_DIR)/*.json
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
+	rm -f $(TEST_DIR)/*.pie.zip
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json
