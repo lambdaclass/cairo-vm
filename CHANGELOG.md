@@ -7,6 +7,8 @@
   * Temporary memory cells now keep their accessed status when relocated
   * BREAKING: Signature change: `get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>` ->  `get_memory_holes(&self, builtin_count: usize,  has_output_builtin: bool) -> Result<usize, MemoryError>`
 
+* feat: Add `cairo_pie_output` flag to `cairo1-run` [#1581] (https://github.com/lambdaclass/cairo-vm/pull/1581)
+
 * feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
   * Fix serialization of CairoPie to be fully compatible with the python version
   * Add `CairoPie::write_zip_file`
