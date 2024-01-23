@@ -2085,7 +2085,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND.to_string()
+            Err(HintError::MissingConstant(bx)) if &*bx == ADDR_BOUND
         );
     }
 
@@ -2309,7 +2309,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH".to_string()
+            Err(HintError::MissingConstant(x)) if &*x == "MAX_HIGH"
         );
     }
 
