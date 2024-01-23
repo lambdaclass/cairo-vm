@@ -154,3 +154,80 @@ impl AirPrivateInputSerializable {
         serde_json::to_string_pretty(&self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::air_private_input::{AirPrivateInput, AirPrivateInputSerializable};
+    use crate::vm::runners::builtin_runner::{
+        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
+        POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+    };
+    use assert_matches::assert_matches;
+
+    #[test]
+    fn test_from_serializable() {
+        let serializable_private_input = AirPrivateInputSerializable {
+            trace_path: "trace.bin".to_string(),
+            memory_path: "memory.bin".to_string(),
+            pedersen: vec![PrivateInput::Pair(PrivateInputPair {
+                index: 0,
+                x: Felt252::from(100),
+                y: Felt252::from(200),
+            })],
+            range_check: vec![PrivateInput::Value(PrivateInputValue {
+                index: 10000,
+                value: Felt252::from(8000),
+            })],
+            ecdsa: vec![PrivateInput::Signature(PrivateInputSignature {
+                index: 0,
+                pubkey: Felt252::from(123),
+                msg: Felt252::from(456),
+                signature_input: SignatureInput {
+                    r: Felt252::from(654),
+                    w: Felt252::from(321),
+                },
+            })],
+            bitwise: vec![PrivateInput::Pair(PrivateInputPair {
+                index: 4,
+                x: Felt252::from(7),
+                y: Felt252::from(8),
+            })],
+            ec_op: vec![PrivateInput::EcOp(PrivateInputEcOp {
+                index: 1,
+                p_x: Felt252::from(10),
+                p_y: Felt252::from(10),
+                m: Felt252::from(100),
+                q_x: Felt252::from(11),
+                q_y: Felt252::from(14),
+            })],
+            keccak: vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+                index: 0,
+                input_s0: Felt252::from(0),
+                input_s1: Felt252::from(1),
+                input_s2: Felt252::from(2),
+                input_s3: Felt252::from(3),
+                input_s4: Felt252::from(4),
+                input_s5: Felt252::from(5),
+                input_s6: Felt252::from(6),
+                input_s7: Felt252::from(7),
+            })],
+            poseidon: vec![PrivateInput::PoseidonState(PrivateInputPoseidonState {
+                index: 42,
+                input_s0: Felt252::from(1),
+                input_s1: Felt252::from(2),
+                input_s2: Felt252::from(3),
+            })],
+        };
+
+        let private_input = AirPrivateInput::from(serializable_private_input.clone());
+
+        assert_matches!(private_input.0.get(HASH_BUILTIN_NAME), Some(data) if *data == serializable_private_input.pedersen);
+        assert_matches!(private_input.0.get(RANGE_CHECK_BUILTIN_NAME), Some(data) if *data == serializable_private_input.range_check);
+        assert_matches!(private_input.0.get(SIGNATURE_BUILTIN_NAME), Some(data) if *data == serializable_private_input.ecdsa);
+        assert_matches!(private_input.0.get(BITWISE_BUILTIN_NAME), Some(data) if *data == serializable_private_input.bitwise);
+        assert_matches!(private_input.0.get(EC_OP_BUILTIN_NAME), Some(data) if *data == serializable_private_input.ec_op);
+        assert_matches!(private_input.0.get(KECCAK_BUILTIN_NAME), Some(data) if *data == serializable_private_input.keccak);
+        assert_matches!(private_input.0.get(POSEIDON_BUILTIN_NAME), Some(data) if *data == serializable_private_input.poseidon);
+    }
+}
