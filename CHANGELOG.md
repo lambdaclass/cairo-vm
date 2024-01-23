@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
+
 * bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
   * Output builtin memory segment is no longer skipped when counting memory holes
   * Temporary memory cells now keep their accessed status when relocated
@@ -18,7 +20,7 @@
 
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
-* feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
+* feat: Add `args` flag to `cairo1-run` [#1551] (https://github.com/lambdaclass/cairo-vm/pull/1551)
 
 * feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
 
