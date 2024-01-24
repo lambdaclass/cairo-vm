@@ -577,7 +577,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                }, 
+                },
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -857,13 +857,12 @@ mod tests {
     }
 
     fn get_hints_as_map(program: &Program) -> HashMap<usize, Vec<HintParams>> {
-        let hints_collection = &program.shared_program_data.hints_collection;
-        let hints_map: HashMap<usize, Vec<HintParams>> = hints_collection
+        program
+            .shared_program_data
+            .hints_collection
             .iter()
-            .map(|(pc, hints)| (pc, hints.to_vec()))
-            .collect();
-
-        hints_map
+            .map(|(pc, hints)| (*pc, hints.to_vec()))
+            .collect()
     }
 
     #[test]
@@ -1104,7 +1103,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                },  
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1185,10 +1184,10 @@ mod tests {
                         "start_pc": 402,
                         "value": "SafeUint256: subtraction overflow"
                     }
-                ], 
+                ],
                 "debug_info": {
                     "instruction_locations": {}
-                },           
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1242,7 +1241,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1293,7 +1292,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1351,7 +1350,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1398,7 +1397,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
