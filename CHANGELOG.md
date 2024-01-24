@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: remove static lifetime for name str parameter requirement for constant getter
+
 * feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
 
 * bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
