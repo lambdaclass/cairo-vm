@@ -22,7 +22,23 @@ env:
   PROPTEST_CASES: 100
 
 jobs:
+
+  # We need to use the same files across all jobs or else hashing will fail
+  upload_proof_programs_symlinks:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Create proof_programs symlinks
+      run: make create-proof-programs-symlinks
+    - uses: actions/upload-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
+  
   build-programs:
+    needs: upload_proof_programs_symlinks
     strategy:
       matrix:
         # NOTE: we build cairo_bench_programs so clippy can check the benchmarks too
@@ -41,9 +57,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Create proof_programs symlinks
-      if: matrix.program-target == 'cairo_proof_programs'
-      run: make create-proof-programs-symlinks
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch from cache
       uses: actions/cache@v3
@@ -95,6 +112,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+    
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -147,11 +169,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
+
     - name: Format
       run: make check-fmt
 
-    - name: Create proof_programs symlinks
-      run: make create-proof-programs-symlinks
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -187,6 +212,11 @@ jobs:
         tool: cargo-all-features
     - name: Checkout
       uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -234,6 +264,11 @@ jobs:
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -321,9 +356,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Create proof_programs symlinks
-      if: matrix.program-target == 'cairo_proof_programs'
-      run: make create-proof-programs-symlinks
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Check cache
       uses: actions/cache@v3
@@ -392,9 +428,10 @@ jobs:
         path: target/release/cairo-vm-cli
         fail-on-cache-miss: true
 
-    - name: Create proof_programs symlinks
-      if: matrix.program-target == 'cairo_proof_programs'
-      run: make create-proof-programs-symlinks
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -511,9 +548,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Create proof_programs symlinks
-      if: matrix.program-target == 'cairo_proof_programs'
-      run: make create-proof-programs-symlinks
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
 
     - name: Fetch traces for cairo-lang
       uses: actions/cache/restore@v3
