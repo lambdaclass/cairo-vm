@@ -150,6 +150,9 @@ jobs:
     - name: Format
       run: make check-fmt
 
+    - name: Create proof_programs symlinks
+      run: make create-proof-programs-symlinks
+
     - name: Fetch programs
       uses: actions/cache/restore@v3
       with:
