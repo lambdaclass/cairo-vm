@@ -60,7 +60,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch from cache
       uses: actions/cache@v3
@@ -116,7 +116,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -172,7 +172,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Format
       run: make check-fmt
@@ -216,7 +216,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -268,7 +268,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -359,7 +359,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Check cache
       uses: actions/cache@v3
@@ -431,7 +431,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -551,7 +551,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
+        path: cairo_programs/proof_programs/
 
     - name: Fetch traces for cairo-lang
       uses: actions/cache/restore@v3
