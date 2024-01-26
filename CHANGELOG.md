@@ -4,9 +4,25 @@
 
 * feat: `cairo1-run` accepts Sierra programs [#1544](https://github.com/lambdaclass/cairo-vm/pull/1544)
 
+* feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
+
+* bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
+  * Output builtin memory segment is no longer skipped when counting memory holes
+  * Temporary memory cells now keep their accessed status when relocated
+  * BREAKING: Signature change: `get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>` ->  `get_memory_holes(&self, builtin_count: usize,  has_output_builtin: bool) -> Result<usize, MemoryError>`
+
+* feat: Add `cairo_pie_output` flag to `cairo1-run` [#1581] (https://github.com/lambdaclass/cairo-vm/pull/1581)
+
+* feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
+  * Fix serialization of CairoPie to be fully compatible with the python version
+  * Add `CairoPie::write_zip_file`
+  * Move handling of required and exclusive arguments in `cairo-vm-cli` to struct definition using clap derives
+
+* feat: Add doc + default impl for ResourceTracker trait [#1576] (https://github.com/lambdaclass/cairo-vm/pull/1576)
+
 * feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
 
-* feat: Add `args` flag to `cairo1-run` [#15551] (https://github.com/lambdaclass/cairo-vm/pull/15551)
+* feat: Add `args` flag to `cairo1-run` [#1551] (https://github.com/lambdaclass/cairo-vm/pull/1551)
 
 * feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
 
