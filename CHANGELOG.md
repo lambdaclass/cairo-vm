@@ -4,6 +4,107 @@
 
 * perf: optimize instruction cache allocations by using `VirtualMachine::load_data` [#1441](https://github.com/lambdaclass/cairo-vm/pull/1441)
 
+* feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
+
+* bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
+  * Output builtin memory segment is no longer skipped when counting memory holes
+  * Temporary memory cells now keep their accessed status when relocated
+  * BREAKING: Signature change: `get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>` ->  `get_memory_holes(&self, builtin_count: usize,  has_output_builtin: bool) -> Result<usize, MemoryError>`
+
+* feat: Add `cairo_pie_output` flag to `cairo1-run` [#1581] (https://github.com/lambdaclass/cairo-vm/pull/1581)
+
+* feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
+  * Fix serialization of CairoPie to be fully compatible with the python version
+  * Add `CairoPie::write_zip_file`
+  * Move handling of required and exclusive arguments in `cairo-vm-cli` to struct definition using clap derives
+
+* feat: Add doc + default impl for ResourceTracker trait [#1576] (https://github.com/lambdaclass/cairo-vm/pull/1576)
+
+* feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
+
+* feat: Add `args` flag to `cairo1-run` [#1551] (https://github.com/lambdaclass/cairo-vm/pull/1551)
+
+* feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
+
+* feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
+
+* feat: Add `proof_mode` flag to `cairo1-run` [#1537] (https://github.com/lambdaclass/cairo-vm/pull/1537)
+  * The cairo1-run crate no longer compiles and executes in proof_mode by default
+  * Add flag `proof_mode` to cairo1-run crate. Activating this flag will enable proof_mode compilation and execution
+
+* dev: bump cairo 1 compiler dep to 2.4 [#1530](https://github.com/lambdaclass/cairo-vm/pull/1530)
+
+#### [1.0.0-rc0] - 2024-1-5
+
+* feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
+
+* feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` (0.0.5) [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
+
+* feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)
+    * In the cairo1-run crate, now the Cairo 1 Programs are compiled and executed in proof-mode
+    * BREAKING: Remove `CairoRunner.proof_mode: bool` field and replace it with `CairoRunner.runner_mode: RunnerMode`
+
+* perf: Add `extensive_hints` feature to prevent performance regression for the common use-case [#1503] (https://github.com/lambdaclass/cairo-vm/pull/1503)
+
+  * Gates changes added by #1491 under the feature flag `extensive_hints`
+
+* chore: remove cancel-duplicates workflow [#1497](https://github.com/lambdaclass/cairo-vm/pull/1497)
+
+* feat: Handle `pc`s outside of program segment in `VmException` [#1501] (https://github.com/lambdaclass/cairo-vm/pull/1501)
+
+  * `VmException` now shows the full pc value instead of just the offset (`VmException.pc` field type changed to `Relocatable`)
+  * `VmException.traceback` now shows the full pc value for each entry instead of hardcoding its index to 0.
+  * Disable debug information for errors produced when `pc` is outside of the program segment (segment_index != 0). `VmException` fields `inst_location` & `error_attr_value` will be `None` in such case.
+
+* feat: Allow running instructions from pcs outside the program segement [#1493](https://github.com/lambdaclass/cairo-vm/pull/1493)
+
+* BREAKING: Partially Revert `Optimize trace relocation #906` [#1492](https://github.com/lambdaclass/cairo-vm/pull/1492)
+
+  * Remove methods `VirtualMachine::get_relocated_trace`& `VirtualMachine::relocate_trace`.
+  * Add `relocated_trace` field  & `relocate_trace` method to `CairoRunner`.
+  * Swap `TraceEntry` for `RelocatedTraceEntry` type in `write_encoded_trace` & `PublicInput::new` signatures.
+  * Now takes into account the program counter's segment index when building the execution trace instead of assuming it to be 0.
+
+* feat: Add HintProcessor::execute_hint_extensive + refactor hint_ranges [#1491](https://github.com/lambdaclass/cairo-vm/pull/1491)
+
+  * Add trait method `HintProcessorLogic::execute_hint_extensive`:
+    * This method has a similar behaviour to `HintProcessorLogic::execute_hint` but it also returns a `HintExtension` (type alias for `HashMap<Relocatable, Vec<Box<dyn Any>>>`) that can be used to extend the current map of hints used by the VM. This behaviour achieves what the `vm_load_data` primitive does for cairo-lang, and is needed to implement os hints.
+    * This method is now used by the VM to execute hints instead of `execute_hint`, but it's default implementation calls `execute_hint`, so current implementors of the `HintProcessor` trait won't notice any change.
+
+  * Signature changes:
+    * `pub fn step_hint(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step_hint(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
+    * `pub fn step(&mut self, hint_executor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_data: &[Box<dyn Any>], constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>` -> `pub fn step(&mut self, hint_processor: &mut dyn HintProcessor, exec_scopes: &mut ExecutionScopes, hint_datas: &mut Vec<Box<dyn Any>>, hint_ranges: &mut HashMap<Relocatable, HintRange>, constants: &HashMap<String, Felt252>) -> Result<(), VirtualMachineError>`
+
+* feat: add debugging capabilities behind `print` feature flag. [#1476](https://github.com/lambdaclass/cairo-vm/pull/1476)
+
+* feat: add `cairo_run_program` function that takes a `Program` as an arg. [#1496](https://github.com/lambdaclass/cairo-vm/pull/1496)
+
+#### [0.9.1] - 2023-11-16
+
+* chore: bump `cairo-lang-` dependencies to 2.3.1 [#1482](https://github.com/lambdaclass/cairo-vm/pull/1482), [#1483](https://github.com/lambdaclass/cairo-vm/pull/1483)
+
+* feat: Make PublicInput fields public [#1474](https://github.com/lambdaclass/cairo-vm/pull/1474)
+
+* chore: bump starknet-crypto to v0.6.1 [#1469](https://github.com/lambdaclass/cairo-vm/pull/1469)
+
+* feat: Implement the Serialize and Deserialize methods for the Program struct [#1458](https://github.com/lambdaclass/cairo-vm/pull/1458)
+
+* feat: Use only program builtins when running cairo 1 programs [#1457](https://github.com/lambdaclass/cairo-vm/pull/1457)
+
+* feat: Use latest cairo-vm version in cairo1-run crate [#1455](https://github.com/lambdaclass/cairo-vm/pull/1455)
+
+* feat: Implement a CLI to run cairo 1 programs [#1370](https://github.com/lambdaclass/cairo-vm/pull/1370)
+
+* fix: Fix string code of `BLAKE2S_ADD_UINT256` hint [#1454](https://github.com/lambdaclass/cairo-vm/pull/1454)
+
+#### [0.9.0] - 2023-10-03
+
+* fix: Default to empty attributes vector when the field is missing from the program JSON [#1450](https://github.com/lambdaclass/cairo-vm/pull/1450)
+
+* fix: Change serialization of CairoPieMemory to match Python's binary format [#1447](https://github.com/lambdaclass/cairo-vm/pull/1447)
+
+* fix: Remove Deserialize derive from CairoPie and fix Serialize implementation to match Python's [#1444](https://github.com/lambdaclass/cairo-vm/pull/1444)
+
 * fix: ec_recover hints no longer panic when divisor is 0 [#1433](https://github.com/lambdaclass/cairo-vm/pull/1433)
 
 * feat: Implement the Serialize and Deserialize traits for the CairoPie struct [#1438](https://github.com/lambdaclass/cairo-vm/pull/1438)
@@ -12,7 +113,7 @@
 
 * feat: Added a differential fuzzer for programs with whitelisted hints [#1358](https://github.com/lambdaclass/cairo-vm/pull/1358)
 
-* fix: Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
+* fix(breaking): Change return type of `get_execution_resources` to `RunnerError` [#1398](https://github.com/lambdaclass/cairo-vm/pull/1398)
 
 * Don't build wasm-demo in `build` target + add ci job to run the wasm demo [#1393](https://github.com/lambdaclass/cairo-vm/pull/1393)
 
@@ -109,7 +210,7 @@
     `get_hint_data(self, &[HintReference], &mut dyn HintProcessor) -> Result<Vec<Box<dyn Any>, VirtualMachineError>`
   * Hook methods receive `&[Box<dyn Any>]` rather than `&HashMap<usize, Vec<Box<dyn Any>>>`
 
-#### [0.8.4] 
+#### [0.8.4]
 **YANKED**
 
 #### [0.8.3]
@@ -196,12 +297,12 @@
 
 * BREAKING: Change `RunResources` usage:
     * Modify field type `RunResources.n_steps: Option<usize>,`
-    
+
     * Public Api Changes:
         *  CairoRunner::run_until_pc: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
         *  CairoRunner::run_from_entrypoint: Now receive a `&mut RunResources` instead of an `&mut Option<RunResources>`
         * VirtualMachine::Step: Add `&mut RunResources` as input
-        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input 
+        * Trait HintProcessor::execute_hint: Add  `&mut RunResources` as an input
 
 * perf: accumulate `min` and `max` instruction offsets during run to speed up range check [#1080](https://github.com/lambdaclass/cairo-vm/pull/)
   BREAKING: `Cairo_runner::get_perm_range_check_limits` no longer returns an error when called without trace enabled, as it no longer depends on it
@@ -215,7 +316,7 @@
 * BREAKING: Add no_std compatibility to cairo-vm (cairo-1-hints feature still not supported)
     * Move the vm to its own directory and crate, different from the workspace [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215)
 
-    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215) [#1232](https://github.com/lambdaclass/cairo-vm/pull/1232) 
+    * Add an `ensure_no_std` crate that the CI will use to check that new changes don't revert `no_std` support [#1215](https://github.com/lambdaclass/cairo-vm/pull/1215) [#1232](https://github.com/lambdaclass/cairo-vm/pull/1232)
 
     * replace the use of `num-prime::is_prime` by a custom implementation, therefore restoring `no_std` compatibility [#1238](https://github.com/lambdaclass/cairo-vm/pull/1238)
 
@@ -516,7 +617,7 @@
 
     value = x_inv = div_mod(1, x, SECP_P)
     ```
-    
+
 * Implement hint for `starkware.cairo.common.cairo_keccak.keccak._copy_inputs` as described by whitelist `starknet/security/whitelists/cairo_keccak.json` [#1058](https://github.com/lambdaclass/cairo-vm/pull/1058)
 
     `BuiltinHintProcessor` now supports the following hint:
@@ -1165,7 +1266,7 @@
 * Implement hint on vrf.json lib [#1049](https://github.com/lambdaclass/cairo-vm/pull/1049)
 
     `BuiltinHintProcessor` now supports the following hint:
-    
+
     ```python
         def split(num: int, num_bits_shift: int, length: int):
             a = []
@@ -1308,19 +1409,19 @@
 * Implement hint on uint384_extension lib [#983](https://github.com/lambdaclass/cairo-vm/pull/983)
 
     `BuiltinHintProcessor` now supports the following hint:
-    
+
     ```python
         def split(num: int, num_bits_shift: int, length: int):
             a = []
             for _ in range(length):
                 a.append( num & ((1 << num_bits_shift) - 1) )
-                num = num >> num_bits_shift 
+                num = num >> num_bits_shift
             return tuple(a)
 
         def pack(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-            
+
         def pack_extended(z, num_bits_shift: int) -> int:
             limbs = (z.d0, z.d1, z.d2, z.d3, z.d4, z.d5)
             return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
@@ -1356,13 +1457,13 @@
     * Add missing hints [#1014](https://github.com/lambdaclass/cairo-vm/pull/1014):
         `BuiltinHintProcessor` now supports the following hints:
         ```python
-            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P 
+            from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
         ```
-        and: 
+        and:
         ```python
             from starkware.cairo.common.cairo_secp.secp_utils import pack
             from starkware.python.math_utils import line_slope
-            
+
             # Compute the slope.
             x0 = pack(ids.point0.x, PRIME)
             y0 = pack(ids.point0.y, PRIME)
@@ -1381,7 +1482,7 @@
         s = pack(ids.s, PRIME) % N
         value = res = div_mod(x, s, N)
         ```
-        and: 
+        and:
         ```python
         value = k = safe_div(res * s - x, N)
         ```

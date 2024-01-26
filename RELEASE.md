@@ -12,7 +12,7 @@
       `git checkout -b release-N`
 - [ ] Update the version field in the package entry of `Cargo.toml` files.
   - The versions must be the same.
-  - You need to update the workspace dependencies `felt` and `cairo-vm`, which
+  - You need to update the workspace dependency `cairo-vm`, which
     you can find in the root cargo manifest under the section `[workspace.dependencies]`.
   - [Here](https://github.com/lambdaclass/cairo-rs/pull/1301/files) is an
     example pull request with these changes.
@@ -30,7 +30,6 @@
 - [ ] Verify all the crates are available on crates.io with the correct
       versions.
   - [cairo-vm](https://crates.io/crates/cairo-vm)
-  - [cairo-felt](https://crates.io/crates/cairo-felt)
 - [ ] Create a release in Github.
   - Select the recently created tag.
   - Set the title to the version string.

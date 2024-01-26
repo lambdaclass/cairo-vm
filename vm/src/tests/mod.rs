@@ -2,6 +2,9 @@
 use crate::vm::errors::cairo_run_errors::CairoRunError;
 #[cfg(feature = "cairo-1-hints")]
 use crate::vm::runners::cairo_runner::RunResources;
+use crate::vm::trace::trace_entry::RelocatedTraceEntry;
+#[cfg(feature = "cairo-1-hints")]
+use crate::Felt252;
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
@@ -14,15 +17,12 @@ use crate::{
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-#[cfg(feature = "cairo-1-hints")]
-use felt::Felt252;
 
 use crate::stdlib::prelude::*;
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    vm::trace::trace_entry::TraceEntry,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -32,6 +32,8 @@ use wasm_bindgen_test::*;
 use alloc::{string::String, vec::Vec};
 
 mod bitwise_test;
+#[cfg(test)]
+mod run_deprecated_contract_class_simplified;
 
 #[cfg(feature = "cairo-1-hints")]
 mod cairo_1_run_from_entrypoint_tests;
@@ -39,33 +41,27 @@ mod cairo_run_test;
 mod pedersen_test;
 mod struct_test;
 
-mod get_cairo_pie_tests;
+mod cairo_pie_test;
 #[cfg(feature = "skip_next_instruction_hint")]
 mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
 pub(self) fn run_program_simple(data: &[u8]) {
-    run_program(data, Some("all_cairo"), None, None, Some(0))
-}
-
-//For simple programs that should just succeed and have no special needs.
-//Checks memory holes
-pub(self) fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
-    run_program(data, Some("all_cairo"), None, None, Some(holes))
+    run_program(data, Some("all_cairo"), None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
 pub(self) fn run_program_small(data: &[u8]) {
-    run_program(data, Some("small"), None, None, None)
+    run_program(data, Some("small"), None, None)
 }
 
 pub(self) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, Some("all_cairo"), Some(trace), None, None)
+    run_program(data, Some("all_cairo"), Some(trace), None)
 }
 
 pub(self) fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, Some("all_cairo"), None, Some(error), None)
+    run_program(data, Some("all_cairo"), None, Some(error))
 }
 
 pub(self) fn run_program(
@@ -73,7 +69,6 @@ pub(self) fn run_program(
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
-    memory_holes: Option<usize>,
 ) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
@@ -88,21 +83,18 @@ pub(self) fn run_program(
         assert!(res.err().unwrap().to_string().contains(error));
         return;
     }
-    let (runner, vm) = res.expect("Execution failed");
+    let (runner, _) = res.expect("Execution failed");
     if let Some(trace) = trace {
         let expected_trace: Vec<_> = trace
             .iter()
             .copied()
-            .map(|(pc, ap, fp)| TraceEntry { pc, ap, fp })
+            .map(|(pc, ap, fp)| RelocatedTraceEntry { pc, ap, fp })
             .collect();
-        let trace = vm.get_relocated_trace().unwrap();
+        let trace = runner.relocated_trace.as_ref().unwrap();
         assert_eq!(trace.len(), expected_trace.len());
         for (entry, expected) in trace.iter().zip(expected_trace.iter()) {
             assert_eq!(entry, expected);
         }
-    }
-    if let Some(holes) = memory_holes {
-        assert_eq!(runner.get_memory_holes(&vm).unwrap(), holes);
     }
 }
 

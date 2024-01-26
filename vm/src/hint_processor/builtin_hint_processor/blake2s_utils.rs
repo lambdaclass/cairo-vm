@@ -1,6 +1,7 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -10,11 +11,12 @@ use crate::{
         hint_processor_definition::HintReference,
         hint_processor_utils::felt_to_u32,
     },
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
+
 use num_traits::ToPrimitive;
 
 use super::hint_utils::get_integer_from_var_name;
@@ -34,14 +36,11 @@ fn get_fixed_size_u32_array<const T: usize>(
 fn get_maybe_relocatable_array_from_u32(array: &Vec<u32>) -> Vec<MaybeRelocatable> {
     let mut new_array = Vec::<MaybeRelocatable>::with_capacity(array.len());
     for element in array {
-        new_array.push(MaybeRelocatable::from(Felt252::new(*element)));
+        new_array.push(MaybeRelocatable::from(Felt252::from(*element)));
     }
     new_array
 }
 
-fn get_maybe_relocatable_array_from_felt(array: &[Felt252]) -> Vec<MaybeRelocatable> {
-    array.iter().map(MaybeRelocatable::from).collect()
-}
 /*Helper function for the Cairo blake2s() implementation.
 Computes the blake2s compress function and fills the value in the right position.
 output_ptr should point to the middle of an instance, right after initial_state, message, t, f,
@@ -183,31 +182,24 @@ pub fn blake2s_add_uint256(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?.into_owned();
+    let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
-    //Declare constant
-    const MASK: u32 = u32::MAX;
-    const B: u32 = 32;
-    //Convert MASK to felt
-    let mask = Felt252::new(MASK);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((&low >> (B * i)) & &mask);
+    let b = pow2_const_nz(32);
+    let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
+    for _ in 0..4 {
+        let (q, r) = low.div_rem(b);
+        data.push(r.into());
+        low = q;
     }
-    //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
-    //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((&high >> (B * i)) & &mask);
+    for _ in 0..4 {
+        let (q, r) = high.div_rem(b);
+        data.push(r.into());
+        high = q;
     }
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data((data_ptr + 4)?, &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -226,31 +218,27 @@ pub fn blake2s_add_uint256_bigend(
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
     let low_addr = get_relocatable_from_var_name("low", vm, ids_data, ap_tracking)?;
     let high_addr = get_relocatable_from_var_name("high", vm, ids_data, ap_tracking)?;
-    let low = vm.get_integer(low_addr)?.into_owned();
-    let high = vm.get_integer(high_addr)?.into_owned();
+    let mut low = vm.get_integer(low_addr)?.into_owned();
+    let mut high = vm.get_integer(high_addr)?.into_owned();
     //Main logic
-    //Declare constant
-    const MASK: u32 = u32::MAX;
-    const B: u32 = 32;
-    //Convert MASK to felt
-    let mask = Felt252::new(MASK);
+    let b = pow2_const_nz(32);
+    let mut data = Vec::<MaybeRelocatable>::with_capacity(8);
     //Build first batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((&high >> (B * (3 - i))) & &mask);
+    for _ in 0..4 {
+        let (q, r) = low.div_rem(b);
+        data.push(r.into());
+        low = q;
     }
-    //Insert first batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     //Build second batch of data
-    let mut inner_data = Vec::<Felt252>::new();
-    for i in 0..4 {
-        inner_data.push((&low >> (B * (3 - i))) & &mask);
+    for _ in 0..4 {
+        let (q, r) = high.div_rem(b);
+        data.push(r.into());
+        high = q;
     }
+    //Reverse to make big-endian
+    data.reverse();
     //Insert second batch of data
-    let data = get_maybe_relocatable_array_from_felt(&inner_data);
-    vm.load_data((data_ptr + 4)?, &data)
-        .map_err(HintError::Memory)?;
+    vm.load_data(data_ptr, &data).map_err(HintError::Memory)?;
     Ok(())
 }
 
@@ -500,7 +488,7 @@ mod tests {
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((2, 0)),
                     MaybeRelocatable::from((2, 0)),
-                    MaybeRelocatable::from(Felt252::new(1795745351)))
+                    MaybeRelocatable::from(Felt252::from(1795745351)))
         );
     }
 
@@ -522,7 +510,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])";
         //Create vm
         let mut vm = vm!();
         //Initialize fp
@@ -555,7 +543,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_add_uint256_valid_non_zero() {
-        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)]";
+        let hint_code = "B = 32\nMASK = 2 ** 32 - 1\nsegments.write_arg(ids.data, [(ids.low >> (B * i)) & MASK for i in range(4)])\nsegments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)])";
         //Create vm
         let mut vm = vm!();
         //Initialize fp

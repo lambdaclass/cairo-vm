@@ -86,6 +86,18 @@ These dependencies are only necessary in order to run the original VM, compile C
 
 You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
 
+### Installing project dependencies
+
+In order to compile programs you need to install the cairo-lang package.
+
+Running the  `make deps` (or the `make deps-macos`  if you are runnning in MacOS) command will create a virtual environment with all the required dependencies.
+
+You can then activate this environment by running
+ ```bash
+. cairo-vm-env/bin/activate
+```
+
+
 ## 🚀 Usage
 
 ### Adding cairo-vm as a dependency
@@ -110,6 +122,11 @@ The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github
 
 Once the binary is built, it can be found in `target/release/` under the name `cairo-vm-cli`.
 
+In order to compile Cairo programs you need to activate the environment created while installing dependencies. To start it, run:
+```bash
+. cairo-vm-env/bin/activate
+```
+
 To compile a program, use `cairo-compile [path_to_the_.cairo_file] --output [desired_path_of_the_compiled_.json_file]`. For example:
 
 ```bash
@@ -133,6 +150,8 @@ cd cairo-vm
 
 cargo build --release
 
+. cairo-vm-env/bin/activate
+
 cairo-compile cairo_programs/abs_value_array.cairo --output cairo_programs/abs_value_array_compiled.json
 
 target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
@@ -153,6 +172,10 @@ The cairo-vm-cli supports the following optional arguments:
 - `--secure_run`: Runs security checks after execution. Enabled by default when not in proof_mode
 
 - `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
+
+- `--air_private_input <AIR_PRIVATE_INPUT>`: Receives the name of a file and outputs the AIR private inputs into it. Can only be used if proof_mode, trace_file & memory_file are also enabled.
+
+- `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
@@ -216,6 +239,10 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
             &mut hint_processor,
         );
 ```
+### Running cairo 1 programs 
+
+To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
+
 
 ### WebAssembly Demo
 

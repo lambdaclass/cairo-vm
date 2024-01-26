@@ -9,6 +9,7 @@
 **/*.trace
 **/*.memory
 **/*.air_public_input
+**/*.air_private_input
 **/*.swp
 bench/results
 .python-version
@@ -18,5 +19,8 @@ cairo-vm-pypy-env/*
 /cairo2/
 /cairo-lang/
 *.tar
-
+cairo1-run/corelib/
+cairo-vm-cli/air_input.pub
 ensure-no_std/Cargo.lock
+
+!vm/src/tests/cairo_pie_test_output.json

@@ -53,7 +53,7 @@ pub mod stdlib {
     pub use crate::without_std::*;
 }
 
-pub extern crate felt;
+pub mod air_private_input;
 pub mod air_public_input;
 pub mod cairo_run;
 pub mod hint_processor;
@@ -62,6 +62,9 @@ pub mod serde;
 pub mod types;
 pub mod utils;
 pub mod vm;
+
+// TODO: use `Felt` directly
+pub use starknet_types_core::felt::Felt as Felt252;
 
 #[cfg(test)]
 mod tests;
