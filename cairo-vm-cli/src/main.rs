@@ -7,9 +7,9 @@ use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_def
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{CommandFactory, Parser, ValueHint};
+use clap::{Parser, ValueHint};
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[cfg(feature = "with_mimalloc")]
@@ -38,10 +38,20 @@ struct Args {
     proof_mode: bool,
     #[structopt(long = "secure_run")]
     secure_run: Option<bool>,
-    #[clap(long = "air_public_input")]
+    #[clap(long = "air_public_input", requires = "proof_mode")]
     air_public_input: Option<String>,
-    #[clap(long = "air_private_input")]
+    #[clap(
+        long = "air_private_input",
+        requires_all = ["proof_mode", "trace_file", "memory_file"] 
+    )]
     air_private_input: Option<String>,
+    #[clap(
+        long = "cairo_pie_output",
+        // We need to add these air_private_input & air_public_input or else
+        // passing cairo_pie_output + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
+    cairo_pie_output: Option<String>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -112,38 +122,6 @@ impl FileWriter {
 
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
-
-    if args.air_public_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_public_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && !args.proof_mode {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--air_private_input can only be used in proof_mode.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.trace_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--trace_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
-
-    if args.air_private_input.is_some() && args.memory_file.is_none() {
-        let error = Args::command().error(
-            clap::error::ErrorKind::ArgumentConflict,
-            "--memory_file must be set when --air_private_input is set.",
-        );
-        return Err(Error::Cli(error));
-    }
 
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
     let mut hint_executor = BuiltinHintProcessor::new_empty();
@@ -227,6 +205,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         std::fs::write(file_path, json)?;
     }
 
+    if let Some(ref file_name) = args.cairo_pie_output {
+        let file_path = Path::new(file_name);
+        cairo_runner
+            .get_cairo_pie(&vm)
+            .map_err(CairoRunError::Runner)?
+            .write_zip_file(file_path)?
+    }
+
     Ok(())
 }
 
@@ -307,6 +293,7 @@ mod tests {
         #[values(false, true)] entrypoint: bool,
         #[values(false, true)] air_public_input: bool,
         #[values(false, true)] air_private_input: bool,
+        #[values(false, true)] cairo_pie_output: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
@@ -317,6 +304,9 @@ mod tests {
         }
         if air_private_input {
             args.extend_from_slice(&["--air_private_input".to_string(), "/dev/null".to_string()]);
+        }
+        if cairo_pie_output {
+            args.extend_from_slice(&["--cairo_pie_output".to_string(), "/dev/null".to_string()]);
         }
         if proof_mode {
             trace_file = true;
@@ -341,6 +331,7 @@ mod tests {
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
         if air_public_input && !proof_mode
             || (air_private_input && (!proof_mode || !trace_file || !memory_file))
+            || cairo_pie_output && proof_mode
         {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {

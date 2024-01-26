@@ -227,6 +227,10 @@ impl Memory {
                     if let Some(cell) = cell {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(addr, cell.get_value())?;
+                        // If the cell is accessed, mark the relocated one as accessed too
+                        if cell.is_accessed() {
+                            self.mark_as_accessed(addr)
+                        }
                     }
                     addr = (addr + 1)?;
                 }
@@ -524,7 +528,7 @@ impl From<&Memory> for CairoPieMemory {
                 }
             }
         }
-        pie_memory
+        CairoPieMemory(pie_memory)
     }
 }
 
@@ -1630,11 +1634,11 @@ mod memory_tests {
 
         assert_eq!(
             CairoPieMemory::from(&memory),
-            vec![
+            CairoPieMemory(vec![
                 ((1, 2), MaybeRelocatable::from(5)),
                 ((7, 6), MaybeRelocatable::from((1, 2))),
                 ((8, 9), MaybeRelocatable::from(3))
-            ]
+            ])
         )
     }
 }
