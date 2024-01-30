@@ -157,14 +157,18 @@ impl AirPrivateInputSerializable {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::air_private_input::{AirPrivateInput, AirPrivateInputSerializable};
-    use crate::vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+    #[cfg(feature = "std")]
+    use {
+        super::*,
+        crate::air_private_input::{AirPrivateInput, AirPrivateInputSerializable},
+        crate::vm::runners::builtin_runner::{
+            BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
+            POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+        },
+        assert_matches::assert_matches,
     };
-    use assert_matches::assert_matches;
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_from_serializable() {
         let serializable_private_input = AirPrivateInputSerializable {
