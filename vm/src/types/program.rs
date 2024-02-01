@@ -13,8 +13,6 @@ use crate::{
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
-#[cfg(feature = "cairo-1-hints")]
-use crate::utils::biguint_to_felt;
 use crate::utils::PRIME_STR;
 use crate::Felt252;
 use crate::{
@@ -406,7 +404,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(biguint_to_felt(&x.value).unwrap_or_default()))
+            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
