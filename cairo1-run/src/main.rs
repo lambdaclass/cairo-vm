@@ -924,11 +924,7 @@ fn get_function_builtins(
         current_offset += 1;
     }
     // Force an output builtin so that we can write the program output into its segment
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("Output".into()))
-        || proof_mode
-    {
+    if proof_mode {
         builtins.push(BuiltinName::output);
         builtin_offset.insert(OutputType::ID, current_offset);
     }
