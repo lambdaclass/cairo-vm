@@ -511,7 +511,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         // Build execution public memory
         if args.proof_mode {
             // As the output builtin is not used by the program we need to compute it's stop ptr manually
-            vm.set_output_stop_ptr_offset(main_func.signature.ret_types.len());
+            vm.set_output_stop_ptr_offset(return_type_size as usize);
+            // We also manually set the segment size for the output builtin's segment so memory hole counting doesn't fail
+            vm.segments.segment_sizes.insert(2, return_type_size as usize);
 
             runner.finalize_segments(&mut vm)?;
         }
