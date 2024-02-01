@@ -301,12 +301,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         println!("Builtins used: {:?}", builtins);
 
         // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
-
-        //let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // builtin bases + end segment + return fp segment
+        let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // builtin bases + end segment + return fp segment
         let mut ctx = casm! {};
         casm_extend! {ctx,
-            call rel 6; // Begin program execution
-            [ap] = 6969; // Append return values to output
+            call rel 5; // Begin program execution
+            [ap - 1] = [[fp + output_fp_offset]]; // Append last return value to output
             jmp rel 0; // Infinite loop
         };
         ctx.instructions
