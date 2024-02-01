@@ -77,7 +77,8 @@ impl BitwiseBuiltinRunner {
         let x_addr = (address - index)?;
         let y_addr = (x_addr + 1_usize)?;
 
-        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr)) else {
+        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr))
+        else {
             return Ok(None);
         };
 
