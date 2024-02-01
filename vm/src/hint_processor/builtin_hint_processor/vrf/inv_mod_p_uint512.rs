@@ -1,7 +1,7 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::stdlib::prelude::String;
-use crate::utils::bigint_to_felt;
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
     serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
@@ -38,11 +38,11 @@ pub fn inv_mod_p_uint512(
 
     let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
-    let x_inverse_mod_p = bigint_to_felt(&div_mod(
+    let x_inverse_mod_p = Felt252::from(&div_mod(
         &BigInt::one(),
         &BigInt::from(x),
         &BigInt::from(p),
-    )?)?;
+    )?);
 
     let x_inverse_mod_p = Uint256::from(x_inverse_mod_p);
     x_inverse_mod_p.insert_from_var_name("x_inverse_mod_p", vm, ids_data, ap_tracking)?;
