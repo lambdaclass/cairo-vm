@@ -317,7 +317,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         // And also appending the return values to the output builtin's memory segment
 
         // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
-        // so we can start writing values directly from its base, which is located relative to the fp before the other builtin's bases
+        // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
         let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // The 2 here represents the return_fp & end segments
 
         // The pc offset where the original program should start
@@ -945,7 +945,7 @@ fn get_function_builtins(
         builtin_offset.insert(PedersenType::ID, current_offset);
         current_offset += 1;
     }
-    // Force an output builtin so that we can write the program output into its segment
+    // Force an output builtin so that we can write the program output into it's segment
     if proof_mode {
         builtins.push(BuiltinName::output);
         builtin_offset.insert(OutputType::ID, current_offset);
