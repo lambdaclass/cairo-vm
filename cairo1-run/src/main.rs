@@ -471,11 +471,18 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             }
             stack_pointer.offset += size as usize;
         }
+
         // Set stop pointer for each builtin
-        vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer)?;
+        vm.builtins_final_stack_from_stack_pointer_dict(
+            &builtin_name_to_stack_pointer,
+            args.proof_mode
+        )?;
 
         // Build execution public memory
         if args.proof_mode {
+            // As the output builtin is not used by the program we need to compute it's stop ptr manually
+            vm.set_output_stop_ptr_offset(main_func.signature.ret_types.len());
+
             runner.finalize_segments(&mut vm)?;
         }
     }
@@ -662,7 +669,8 @@ fn create_entry_code(
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) = get_function_builtins(func);
+    let (builtins, builtin_offset) = get_function_builtins(func, proof_mode);
+
     // Load all vecs to memory.
     // Load all array args content to memory.
     let mut array_args_data = vec![];
@@ -832,8 +840,21 @@ fn create_metadata(
     }
 }
 
+/// Type representing the Output builtin.
+#[derive(Default)]
+pub struct OutputType {}
+impl cairo_lang_sierra::extensions::NoGenericArgsGenericType for OutputType {
+    const ID: cairo_lang_sierra::ids::GenericTypeId =
+        cairo_lang_sierra::ids::GenericTypeId::new_inline("Output");
+    const STORABLE: bool = true;
+    const DUPLICATABLE: bool = false;
+    const DROPPABLE: bool = false;
+    const ZERO_SIZED: bool = false;
+}
+
 fn get_function_builtins(
     func: &Function,
+    proof_mode: bool,
 ) -> (
     Vec<BuiltinName>,
     HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
@@ -881,6 +902,16 @@ fn get_function_builtins(
     {
         builtins.push(BuiltinName::pedersen);
         builtin_offset.insert(PedersenType::ID, current_offset);
+        current_offset += 1;
+    }
+    // Force an output builtin so that we can write the program output into its segment
+    if entry_params
+        .iter()
+        .any(|ti| ti.debug_name == Some("Output".into()))
+        || proof_mode
+    {
+        builtins.push(BuiltinName::output);
+        builtin_offset.insert(OutputType::ID, current_offset);
     }
     builtins.reverse();
     (builtins, builtin_offset)
