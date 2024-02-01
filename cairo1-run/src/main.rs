@@ -291,6 +291,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     // Get the user program instructions
     let program_instructions = casm_program.instructions.iter();
 
+    // Fetch return type data
+    let return_type_id = main_func
+        .signature
+        .ret_types
+        .last()
+        .ok_or(Error::NoRetTypesInSignature)?;
+    let return_type_size = type_sizes
+        .get(return_type_id)
+        .cloned()
+        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
 
@@ -302,10 +313,23 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
         // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
         let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // builtin bases + end segment + return fp segment
+                                                                  // The pc offset where the original program should start
+                                                                  // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
+                                                                  // and also 1 for each instruction added to copy each return value into the output segment
+        let program_start_offset: i16 = 4 + return_type_size;
         let mut ctx = casm! {};
         casm_extend! {ctx,
-            call rel 5; // Begin program execution
-            [ap - 1] = [[fp + output_fp_offset]]; // Append last return value to output
+            call rel program_start_offset; // Begin program execution
+        };
+        // Append each return value to the output segment
+        for (i, j) in (1..return_type_size + 1).rev().enumerate() {
+            casm_extend! {ctx,
+                // [ap -j] is where each return value is located in memory
+                // [[fp + output_fp_offet] + 0] is the base of the output segment
+                [ap - j] = [[fp + output_fp_offset] + i as i16];
+            };
+        }
+        casm_extend! {ctx,
             jmp rel 0; // Infinite loop
         };
         ctx.instructions
@@ -314,26 +338,26 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     };
 
     //let proof_mode_footer = if args.proof_mode {
-        // TODO: If the Output builtin is ever added to cairo 1 execution use the logic commented below to fetch the output ptr
-        // // Find where the output builtin's stop_ptr is located
-        // // For this we need to search for the output builtin in the main function's return types
-        // // All of these return values will be placed next to each other before the final ap value
-        // // The location of the output builtin's final pointer will be ap - offset, with offset being the size of
-        // // each return type that comes after the output builtin in the ret_types vector.
-        // let mut offset = 1;
-        // for ret_type in main_func.signature.ret_types.iter() {
-        //     match ret_type.debug_name {
-        //         Some(ref name) if name == "Output" => break,
-        //         _ => offset += type_sizes.get(ret_type).unwrap(),
-        //     }
-        // }
-        // As the Output builtin is not currently used during cairo 1 execution, we can asume it is empty by the end of the run
-        // So we can use it's base as stop_ptr, we can find it relative to fp where it is first created
+    // TODO: If the Output builtin is ever added to cairo 1 execution use the logic commented below to fetch the output ptr
+    // // Find where the output builtin's stop_ptr is located
+    // // For this we need to search for the output builtin in the main function's return types
+    // // All of these return values will be placed next to each other before the final ap value
+    // // The location of the output builtin's final pointer will be ap - offset, with offset being the size of
+    // // each return type that comes after the output builtin in the ret_types vector.
+    // let mut offset = 1;
+    // for ret_type in main_func.signature.ret_types.iter() {
+    //     match ret_type.debug_name {
+    //         Some(ref name) if name == "Output" => break,
+    //         _ => offset += type_sizes.get(ret_type).unwrap(),
+    //     }
+    // }
+    // As the Output builtin is not currently used during cairo 1 execution, we can asume it is empty by the end of the run
+    // So we can use it's base as stop_ptr, we can find it relative to fp where it is first created
 
     // This is the program we are actually running/proving
     // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
-       proof_mode_header.iter(),
+        proof_mode_header.iter(),
         entry_code.iter(),
         program_instructions,
         libfunc_footer.iter(),
