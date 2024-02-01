@@ -345,6 +345,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         casm! {}.instructions
     };
 
+    // This is the program we are actually running/proving
+    // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
         proof_mode_header.iter(),
         entry_code.iter(),
