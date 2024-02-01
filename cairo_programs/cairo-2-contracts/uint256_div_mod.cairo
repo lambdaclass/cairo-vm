@@ -16,7 +16,7 @@ mod TestUint256DivMod {
     #[storage]
     struct Storage {}
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl TestUint256DivMod of super::ITestUint256DivMod<ContractState> {
         fn test_uint256_div_mod_max(ref self: ContractState) {
             let a = BoundedInt::max();
