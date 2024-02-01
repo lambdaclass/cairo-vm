@@ -311,15 +311,21 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         // This information can be useful for the users using the prover.
         println!("Builtins used: {:?}", builtins);
 
-        // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
-        let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // builtin bases + end segment + return fp segment
+        // Create proof_mode specific instructions
+        // Including the "cannonical" proof mode instructions (the ones added by the compiler in cairo 0)
+        // wich call the firts program instruction and the initiate an infinite loop
+        // And also appending the return values to the output builtin's memory segment
+
+        // As the output builtin is not used by cairo 1 (we forced it for this purpose), its segment is always empty
+        // so we can start writing values directly from its base, which is located relative to the fp before the other builtin's bases
+        let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // The 2 here represents the return_fp & end segments
                                                                   // The pc offset where the original program should start
                                                                   // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
                                                                   // and also 1 for each instruction added to copy each return value into the output segment
         let program_start_offset: i16 = 4 + return_type_size;
         let mut ctx = casm! {};
         casm_extend! {ctx,
-            call rel program_start_offset; // Begin program execution
+            call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
         };
         // Append each return value to the output segment
         for (i, j) in (1..return_type_size + 1).rev().enumerate() {
