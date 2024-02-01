@@ -1094,6 +1094,16 @@ impl VirtualMachine {
         }
         Ok(())
     }
+
+    #[doc(hidden)]
+    pub fn set_output_stop_ptr_offset(
+        &mut self,
+        offset: usize,
+    ) {
+        if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
+            builtin.set_stop_ptr_offset(offset)
+        }
+    }
 }
 
 pub struct VirtualMachineBuilder {
