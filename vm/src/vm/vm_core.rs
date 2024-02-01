@@ -1082,8 +1082,12 @@ impl VirtualMachine {
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,
         builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+        skip_output: bool,
     ) -> Result<(), RunnerError> {
         for builtin in self.builtin_runners.iter_mut() {
+            if matches!(builtin, BuiltinRunner::Output(_)) && skip_output {
+                continue;
+            }
             builtin.final_stack(
                 &self.segments,
                 builtin_name_to_stack_pointer
