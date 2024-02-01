@@ -312,17 +312,19 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         println!("Builtins used: {:?}", builtins);
 
         // Create proof_mode specific instructions
-        // Including the "cannonical" proof mode instructions (the ones added by the compiler in cairo 0)
-        // wich call the firts program instruction and the initiate an infinite loop
+        // Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
+        // wich call the firt program instruction and then initiate an infinite loop.
         // And also appending the return values to the output builtin's memory segment
 
-        // As the output builtin is not used by cairo 1 (we forced it for this purpose), its segment is always empty
+        // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
         // so we can start writing values directly from its base, which is located relative to the fp before the other builtin's bases
         let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // The 2 here represents the return_fp & end segments
-                                                                  // The pc offset where the original program should start
-                                                                  // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
-                                                                  // and also 1 for each instruction added to copy each return value into the output segment
+
+        // The pc offset where the original program should start
+        // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
+        // and also 1 for each instruction added to copy each return value into the output segment
         let program_start_offset: i16 = 4 + return_type_size;
+
         let mut ctx = casm! {};
         casm_extend! {ctx,
             call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
@@ -410,7 +412,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     if args.proof_mode {
         // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
         // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
-        vm.segments.segment_sizes.insert(2, return_type_size as usize);
+        vm.segments
+            .segment_sizes
+            .insert(2, return_type_size as usize);
     }
     runner.end_run(false, false, &mut vm, &mut hint_processor)?;
 
@@ -510,7 +514,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         // Set stop pointer for each builtin
         vm.builtins_final_stack_from_stack_pointer_dict(
             &builtin_name_to_stack_pointer,
-            args.proof_mode
+            args.proof_mode,
         )?;
 
         // Build execution public memory
