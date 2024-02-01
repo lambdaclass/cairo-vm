@@ -301,23 +301,43 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         println!("Builtins used: {:?}", builtins);
 
         // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
+
+        //let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // builtin bases + end segment + return fp segment
         let mut ctx = casm! {};
         casm_extend! {ctx,
-            call rel 4;
-            jmp rel 0;
+            call rel 6; // Begin program execution
+            [ap] = 6969; // Append return values to output
+            jmp rel 0; // Infinite loop
         };
         ctx.instructions
     } else {
         casm! {}.instructions
     };
 
+    //let proof_mode_footer = if args.proof_mode {
+        // TODO: If the Output builtin is ever added to cairo 1 execution use the logic commented below to fetch the output ptr
+        // // Find where the output builtin's stop_ptr is located
+        // // For this we need to search for the output builtin in the main function's return types
+        // // All of these return values will be placed next to each other before the final ap value
+        // // The location of the output builtin's final pointer will be ap - offset, with offset being the size of
+        // // each return type that comes after the output builtin in the ret_types vector.
+        // let mut offset = 1;
+        // for ret_type in main_func.signature.ret_types.iter() {
+        //     match ret_type.debug_name {
+        //         Some(ref name) if name == "Output" => break,
+        //         _ => offset += type_sizes.get(ret_type).unwrap(),
+        //     }
+        // }
+        // As the Output builtin is not currently used during cairo 1 execution, we can asume it is empty by the end of the run
+        // So we can use it's base as stop_ptr, we can find it relative to fp where it is first created
+
     // This is the program we are actually running/proving
     // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
-        proof_mode_header.iter(),
+       proof_mode_header.iter(),
         entry_code.iter(),
         program_instructions,
-        libfunc_footer.iter()
+        libfunc_footer.iter(),
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
