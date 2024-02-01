@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* feat: Append return values to the output segment when running cairo1-run in proof_mode [#1597](https://github.com/lambdaclass/cairo-vm/pull/1597)
+  * Add instructions to the proof_mode header to copy return values to the output segment before initiating the infinite loop
+  * Output builtin is always included when running cairo 1 programs in proof_mode
+
 * perf: optimize instruction cache allocations by using `VirtualMachine::load_data` [#1441](https://github.com/lambdaclass/cairo-vm/pull/1441)
 
 * feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
