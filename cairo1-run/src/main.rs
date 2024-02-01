@@ -407,6 +407,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     // Run it until the end/ infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    if args.proof_mode {
+        // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
+        // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
+        vm.segments.segment_sizes.insert(2, return_type_size as usize);
+    }
     runner.end_run(false, false, &mut vm, &mut hint_processor)?;
 
     // Fetch return type data
@@ -512,8 +517,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         if args.proof_mode {
             // As the output builtin is not used by the program we need to compute it's stop ptr manually
             vm.set_output_stop_ptr_offset(return_type_size as usize);
-            // We also manually set the segment size for the output builtin's segment so memory hole counting doesn't fail
-            vm.segments.segment_sizes.insert(2, return_type_size as usize);
 
             runner.finalize_segments(&mut vm)?;
         }
