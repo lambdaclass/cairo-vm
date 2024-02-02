@@ -6,7 +6,7 @@ use core::cmp::min;
 
 use crate::stdlib::{boxed::Box, ops::Shr, prelude::Vec};
 use crate::types::errors::math_errors::MathError;
-use crate::utils::{felt_to_biguint, CAIRO_PRIME};
+use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
@@ -58,7 +58,7 @@ pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
 /// ```
 
 pub fn signed_felt(felt: Felt252) -> BigInt {
-    let biguint = felt_to_biguint(felt);
+    let biguint = felt.to_biguint();
     if biguint > *SIGNED_FELT_MAX {
         BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &biguint)
     } else {

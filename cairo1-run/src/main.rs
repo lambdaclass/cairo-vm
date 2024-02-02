@@ -42,7 +42,6 @@ use cairo_vm::serde::deserialize_program::BuiltinName;
 use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
 use cairo_vm::types::errors::program_errors::ProgramError;
 use cairo_vm::types::relocatable::Relocatable;
-use cairo_vm::utils::bigint_to_felt;
 use cairo_vm::vm::decoding::decoder::decode_instruction;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::memory_errors::MemoryError;
@@ -326,7 +325,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
-        .map(|x| bigint_to_felt(&x).unwrap_or_default())
+        .map(|x| Felt252::from(&x))
         .map(MaybeRelocatable::from)
         .collect();
 

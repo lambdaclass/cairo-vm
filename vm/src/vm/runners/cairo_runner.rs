@@ -429,8 +429,7 @@ impl CairoRunner {
                 offset: prog_base.offset + entrypoint,
             };
             self.initial_pc = Some(initial_pc);
-            vm.segments
-                .load_data(prog_base, &self.program.shared_program_data.data)
+            vm.load_data(prog_base, &self.program.shared_program_data.data)
                 .map_err(RunnerError::MemoryInitializationError)?;
 
             // Mark all addresses from the program segment as accessed
