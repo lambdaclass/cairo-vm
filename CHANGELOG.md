@@ -4,6 +4,15 @@
 
 * feat: `cairo1-run` accepts Sierra programs [#1544](https://github.com/lambdaclass/cairo-vm/pull/1544)
 
+* feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
+  * Remove the following functions:
+    * felt_from_biguint
+    * felt_from_bigint
+    * felt_to_biguint
+    * felt_to_bigint
+
+* perf: optimize instruction cache allocations by using `VirtualMachine::load_data` [#1441](https://github.com/lambdaclass/cairo-vm/pull/1441)
+
 * feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
 
 * bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
