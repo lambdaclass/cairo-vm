@@ -210,7 +210,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.69.0
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -244,7 +244,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.69.0
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
         targets: wasm32-unknown-unknown
 
