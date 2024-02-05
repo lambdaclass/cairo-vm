@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: Add `allow_missing_builtins` flag
+* feat(BREAKING): Add `allow_missing_builtins` flag [#1600](https://github.com/lambdaclass/cairo-vm/pull/1600)
 
     This new flag will skip the check that all builtins used by the program need to be present in the selected layout if enabled. It will also be enabled by default when running in proof_mode.
 
