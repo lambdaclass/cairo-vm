@@ -232,7 +232,7 @@ pub mod test_utils {
             $crate::types::relocatable::MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            $crate::types::relocatable::MaybeRelocatable::from(crate::Felt252::from($val1 as i128))
+            $crate::types::relocatable::MaybeRelocatable::from($crate::Felt252::from($val1 as i128))
         };
     }
     pub use mayberelocatable;
@@ -240,7 +240,8 @@ pub mod test_utils {
     #[macro_export]
     macro_rules! references {
         ($num: expr) => {{
-            let mut references = crate::stdlib::collections::HashMap::<usize, HintReference>::new();
+            let mut references =
+                $crate::stdlib::collections::HashMap::<usize, HintReference>::new();
             for i in 0..$num {
                 references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
             }
@@ -295,27 +296,27 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
-                data: crate::stdlib::vec::Vec::new(),
+                data: $crate::stdlib::vec::Vec::new(),
                 hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
                 main: None,
                 start: None,
                 end: None,
-                error_message_attributes: crate::stdlib::vec::Vec::new(),
+                error_message_attributes: $crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
-                identifiers: crate::stdlib::collections::HashMap::new(),
+                identifiers: $crate::stdlib::collections::HashMap::new(),
                 reference_manager: Program::get_reference_list(&ReferenceManager {
-                    references: crate::stdlib::vec::Vec::new(),
+                    references: $crate::stdlib::vec::Vec::new(),
                 }),
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
-                constants: crate::stdlib::collections::HashMap::new(),
+                constants: $crate::stdlib::collections::HashMap::new(),
                 builtins: vec![$( $builtin_name ),*],
             }
         }};
         ($($field:ident = $value:expr),* $(,)?) => {{
 
-            let program_flat = crate::utils::test_utils::ProgramFlat {
+            let program_flat = $crate::utils::test_utils::ProgramFlat {
                 $(
                     $field: $value,
                 )*
@@ -427,9 +428,9 @@ pub mod test_utils {
             {
                 let ids_names = vec![$( $name ),*];
                 let references = references!(ids_names.len() as i32);
-                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
+                let mut ids_data = $crate::stdlib::collections::HashMap::<$crate::stdlib::string::String, HintReference>::new();
                 for (i, name) in ids_names.iter().enumerate() {
-                    ids_data.insert(crate::stdlib::string::ToString::to_string(name), references.get(&i).unwrap().clone());
+                    ids_data.insert($crate::stdlib::string::ToString::to_string(name), references.get(&i).unwrap().clone());
                 }
                 ids_data
             }
@@ -441,9 +442,9 @@ pub mod test_utils {
     macro_rules! non_continuous_ids_data {
         ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
-                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
+                let mut ids_data = $crate::stdlib::collections::HashMap::<$crate::stdlib::string::String, HintReference>::new();
                 $(
-                    ids_data.insert(crate::stdlib::string::String::from($name), HintReference::new_simple($offset));
+                    ids_data.insert($crate::stdlib::string::String::from($name), HintReference::new_simple($offset));
                 )*
                 ids_data
             }
@@ -479,7 +480,7 @@ pub mod test_utils {
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
+                $crate::stdlib::string::ToString::to_string($hint_code),
                 $ids_data,
             );
             let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -487,12 +488,12 @@ pub mod test_utils {
                 &mut $vm,
                 $exec_scopes,
                 &any_box!(hint_data),
-                &crate::stdlib::collections::HashMap::new(),
+                &$crate::stdlib::collections::HashMap::new(),
             )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
             let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
+                $crate::stdlib::string::ToString::to_string($hint_code),
                 $ids_data,
             );
             let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -500,7 +501,7 @@ pub mod test_utils {
                 &mut $vm,
                 exec_scopes_ref!(),
                 &any_box!(hint_data),
-                &crate::stdlib::collections::HashMap::new(),
+                &$crate::stdlib::collections::HashMap::new(),
             )
         }};
     }
@@ -591,13 +592,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", $crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", $crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
 
     }
@@ -612,13 +613,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", $crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", $crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
     pub use dict_manager_default;
