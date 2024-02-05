@@ -51,7 +51,7 @@ fn build_runner_helper() -> (CairoRunner, VirtualMachine) {
 #[inline(never)]
 fn load_program_data() {
     let (mut runner, mut vm) = build_runner_helper();
-    _ = black_box(runner.initialize(black_box(&mut vm, false)).unwrap());
+    _ = black_box(runner.initialize(black_box(&mut vm), false).unwrap());
 }
 
 main!(
