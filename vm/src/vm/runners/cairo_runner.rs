@@ -1624,7 +1624,7 @@ mod tests {
         let mut vm = vm!();
         assert_matches!(
             cairo_runner.initialize(&mut vm, false),
-            RunnerError::NoBuiltinForInstance(_)
+            Err(RunnerError::NoBuiltinForInstance(_))
         )
     }
 

@@ -4367,7 +4367,7 @@ mod tests {
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let mut cairo_runner = cairo_runner!(program);
             let end = cairo_runner
-                .initialize(&mut virtual_machine_from_builder)
+                .initialize(&mut virtual_machine_from_builder, false)
                 .unwrap();
 
             assert!(cairo_runner
