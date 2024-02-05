@@ -4255,7 +4255,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -4280,7 +4280,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());

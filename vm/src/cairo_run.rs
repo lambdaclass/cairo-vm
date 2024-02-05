@@ -236,7 +236,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         let end = cairo_runner
-            .initialize(&mut vm)
+            .initialize(&mut vm, false)
             .map_err(CairoRunError::Runner)?;
 
         assert!(cairo_runner
@@ -258,7 +258,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
@@ -378,7 +378,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
