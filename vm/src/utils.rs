@@ -49,7 +49,7 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test_utils"))]
 #[macro_use]
 pub mod test_utils {
     use crate::types::exec_scope::ExecutionScopes;
@@ -76,7 +76,7 @@ pub mod test_utils {
             Into::<num_bigint::BigInt>::into($val)
         };
     }
-    pub(crate) use bigint;
+    pub use bigint;
 
     #[macro_export]
     macro_rules! bigint_str {
@@ -87,7 +87,7 @@ pub mod test_utils {
             num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
         };
     }
-    pub(crate) use bigint_str;
+    pub use bigint_str;
 
     #[macro_export]
     macro_rules! biguint {
@@ -95,7 +95,7 @@ pub mod test_utils {
             Into::<num_bigint::BigUint>::into($val as u128)
         };
     }
-    pub(crate) use biguint;
+    pub use biguint;
 
     #[macro_export]
     macro_rules! biguint_str {
@@ -106,7 +106,7 @@ pub mod test_utils {
             num_bigint::BigUint::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
         };
     }
-    pub(crate) use biguint_str;
+    pub use biguint_str;
 
     impl From<(&str, u8)> for MaybeRelocatable {
         fn from((string, radix): (&str, u8)) -> Self {
@@ -118,6 +118,7 @@ pub mod test_utils {
         }
     }
 
+    #[macro_export]
     macro_rules! segments {
         ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
@@ -133,8 +134,9 @@ pub mod test_utils {
 
         };
     }
-    pub(crate) use segments;
+    pub use segments;
 
+    #[macro_export]
     macro_rules! memory {
         ( $( (($si:expr, $off:expr), $val:tt) ),* ) => {
             {
@@ -144,8 +146,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use memory;
+    pub use memory;
 
+    #[macro_export]
     macro_rules! memory_from_memory {
         ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
             {
@@ -155,8 +158,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use memory_from_memory;
+    pub use memory_from_memory;
 
+    #[macro_export]
     macro_rules! memory_inner {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             let (k, v) = (($si, $off).into(), &mayberelocatable!($sival, $offval));
@@ -189,8 +193,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use memory_inner;
+    pub use memory_inner;
 
+    #[macro_export]
     macro_rules! check_memory {
         ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             $(
@@ -198,8 +203,9 @@ pub mod test_utils {
             )*
         };
     }
-    pub(crate) use check_memory;
+    pub use check_memory;
 
+    #[macro_export]
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
@@ -214,8 +220,9 @@ pub mod test_utils {
             )
         };
     }
-    pub(crate) use check_memory_address;
+    pub use check_memory_address;
 
+    #[macro_export]
     macro_rules! mayberelocatable {
         ($val1 : expr, $val2 : expr) => {
             $crate::types::relocatable::MaybeRelocatable::from(($val1, $val2))
@@ -224,8 +231,9 @@ pub mod test_utils {
             $crate::types::relocatable::MaybeRelocatable::from(crate::Felt252::from($val1 as i128))
         };
     }
-    pub(crate) use mayberelocatable;
+    pub use mayberelocatable;
 
+    #[macro_export]
     macro_rules! references {
         ($num: expr) => {{
             let mut references = crate::stdlib::collections::HashMap::<usize, HintReference>::new();
@@ -235,8 +243,9 @@ pub mod test_utils {
             references
         }};
     }
-    pub(crate) use references;
+    pub use references;
 
+    #[macro_export]
     macro_rules! vm_with_range_check {
         () => {{
             let mut vm = VirtualMachine::new(false);
@@ -247,8 +256,9 @@ pub mod test_utils {
             vm
         }};
     }
-    pub(crate) use vm_with_range_check;
+    pub use vm_with_range_check;
 
+    #[macro_export]
     macro_rules! cairo_runner {
         ($program:expr) => {
             CairoRunner::new(&$program, "all_cairo", false).unwrap()
@@ -263,12 +273,14 @@ pub mod test_utils {
             CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
         };
     }
-    pub(crate) use cairo_runner;
+    pub use cairo_runner;
 
-    pub(crate) use crate::stdlib::{collections::BTreeMap, sync::Arc};
+    pub use crate::stdlib::{collections::BTreeMap, sync::Arc};
     pub(crate) use crate::types::program::HintsCollection;
-    pub(crate) use crate::types::program::Program;
+    pub use crate::types::program::Program;
     pub(crate) use crate::types::program::SharedProgramData;
+
+    #[macro_export]
     macro_rules! program {
         //Empty program
         () => {
@@ -308,7 +320,7 @@ pub mod test_utils {
         }};
     }
 
-    pub(crate) use program;
+    pub use program;
 
     pub(crate) struct ProgramFlat {
         pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
@@ -381,6 +393,7 @@ pub mod test_utils {
         }
     }
 
+    #[macro_export]
     macro_rules! vm {
         () => {{
             VirtualMachine::new(false)
@@ -390,8 +403,9 @@ pub mod test_utils {
             VirtualMachine::new($use_trace)
         }};
     }
-    pub(crate) use vm;
+    pub use vm;
 
+    #[macro_export]
     macro_rules! run_context {
         ( $vm: expr, $pc: expr, $ap: expr, $fp: expr ) => {
             $vm.run_context.pc = Relocatable::from((0, $pc));
@@ -399,8 +413,9 @@ pub mod test_utils {
             $vm.run_context.fp = $fp;
         };
     }
-    pub(crate) use run_context;
+    pub use run_context;
 
+    #[macro_export]
     macro_rules! ids_data {
         ( $( $name: expr ),* ) => {
             {
@@ -414,8 +429,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use ids_data;
+    pub use ids_data;
 
+    #[macro_export]
     macro_rules! non_continuous_ids_data {
         ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
@@ -427,10 +443,10 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use non_continuous_ids_data;
+    pub use non_continuous_ids_data;
 
     #[track_caller]
-    pub(crate) fn trace_check(
+    pub fn trace_check(
         actual: &[TraceEntry],
         expected: &[(crate::utils::Relocatable, usize, usize)],
     ) {
@@ -440,13 +456,15 @@ pub mod test_utils {
         }
     }
 
+    #[macro_export]
     macro_rules! exec_scopes_ref {
         () => {
             &mut ExecutionScopes::new()
         };
     }
-    pub(crate) use exec_scopes_ref;
+    pub use exec_scopes_ref;
 
+    #[macro_export]
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
@@ -480,8 +498,9 @@ pub mod test_utils {
             )
         }};
     }
-    pub(crate) use run_hint;
+    pub use run_hint;
 
+    #[macro_export]
     macro_rules! add_segments {
         ($vm:expr, $n:expr) => {
             for _ in 0..$n {
@@ -489,8 +508,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use add_segments;
+    pub use add_segments;
 
+    #[macro_export]
     macro_rules! check_scope {
         ( $exec_scope: expr, [ $( ($name: expr, $val: expr)),*$(,)? ] $(,)? ) => {
             $(
@@ -498,8 +518,9 @@ pub mod test_utils {
             )*
         };
     }
-    pub(crate) use check_scope;
+    pub use check_scope;
 
+    #[macro_export]
     macro_rules! scope {
         () => { ExecutionScopes::new() };
         (  $( ($name: expr, $val: expr)),* $(,)?  ) => {
@@ -515,8 +536,9 @@ pub mod test_utils {
             }
         };
     }
-    pub(crate) use scope;
+    pub use scope;
 
+    #[macro_export]
     macro_rules! check_dictionary {
         ( $exec_scopes: expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             $(
@@ -534,8 +556,9 @@ pub mod test_utils {
             *
         };
     }
-    pub(crate) use check_dictionary;
+    pub use check_dictionary;
 
+    #[macro_export]
     macro_rules! check_dict_ptr {
         ($exec_scopes: expr, $tracker_num: expr, ($i:expr, $off:expr)) => {
             assert_eq!(
@@ -551,8 +574,9 @@ pub mod test_utils {
             );
         };
     }
-    pub(crate) use check_dict_ptr;
+    pub use check_dict_ptr;
 
+    #[macro_export]
     macro_rules! dict_manager {
         ($exec_scopes:expr, $tracker_num:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
@@ -571,8 +595,9 @@ pub mod test_utils {
         };
 
     }
-    pub(crate) use dict_manager;
+    pub use dict_manager;
 
+    #[macro_export]
     macro_rules! dict_manager_default {
         ($exec_scopes:expr, $tracker_num:expr,$default:expr, $( ($key:expr, $val:expr )),* ) => {
             let mut tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
@@ -590,15 +615,17 @@ pub mod test_utils {
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
-    pub(crate) use dict_manager_default;
+    pub use dict_manager_default;
 
+    #[macro_export]
     macro_rules! vec_data {
         ( $( ($val:tt) ),* ) => {
             vec![$( vec_data_inner!($val) ),*]
         };
     }
-    pub(crate) use vec_data;
+    pub use vec_data;
 
+    #[macro_export]
     macro_rules! vec_data_inner {
         (( $val1:expr, $val2:expr )) => {
             mayberelocatable!($val1, $val2)
@@ -607,7 +634,7 @@ pub mod test_utils {
             mayberelocatable!($val)
         };
     }
-    pub(crate) use vec_data_inner;
+    pub use vec_data_inner;
 
     pub fn check_scope_value<T: core::fmt::Debug + core::cmp::PartialEq + 'static>(
         scopes: &ExecutionScopes,
