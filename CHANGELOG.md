@@ -2,6 +2,14 @@
 
 #### Upcoming Changes
 
+* feat: Add `allow_missing_builtins` flag
+
+    This new flag will skip the check that all builtins used by the program need to be present in the selected layout if enabled. It will also be enabled by default when running in proof_mode.
+
+  * Add `allow_missing_builtins` flag to `cairo-vm-cli` crate
+  * Add `allow_missing_builtins` field to `CairoRunConfig` struct
+  * Add `allow_missing_builtins` boolean argument to `CairoRunner` methods `initialize` & `initialize_builtins`
+
 * feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
   * Remove the following functions:
     * felt_from_biguint
