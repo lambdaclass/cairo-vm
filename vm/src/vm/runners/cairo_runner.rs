@@ -1618,23 +1618,23 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn create_cairo_runner_missing_builtins_no_allow_missing() {
+    fn initialize_builtins_missing_builtins_no_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
         assert_matches!(
-            cairo_runner.initialize(&mut vm, false),
+            cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(_))
         )
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn create_cairo_runner_missing_builtins_allow_missing() {
+    fn initialize_builtins_missing_builtins_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
-        let mut cairo_runner = cairo_runner!(program);
+        let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        assert!(cairo_runner.initialize(&mut vm, true).is_ok())
+        assert!(cairo_runner.initialize_builtins(&mut vm, true).is_ok())
     }
 
     #[test]
