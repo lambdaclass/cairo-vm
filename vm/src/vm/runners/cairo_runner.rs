@@ -240,6 +240,10 @@ impl CairoRunner {
         Ok(end)
     }
 
+    /// Creates the builtin runners according to the builtins used by the program and the selected layout
+    /// When running in proof_mode, all builtins in the layout will be created, and only those in the program will be included
+    /// When not running in proof_mode, only program builtins will be created and included
+    /// Unless `allow_missing_builtins` is set to true, an error will be returned if a builtin is included in the program but not on the layout
     pub fn initialize_builtins(
         &self,
         vm: &mut VirtualMachine,
