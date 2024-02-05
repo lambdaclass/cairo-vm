@@ -56,6 +56,37 @@ pub mod test_utils {
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::trace::trace_entry::TraceEntry;
 
+    #[cfg(test)]
+    pub(crate) mod bigint {
+        #[macro_export]
+        macro_rules! bigint {
+            ($val : expr) => {
+                Into::<num_bigint::BigInt>::into($val)
+            };
+        }
+        pub(crate) use bigint;
+
+        #[macro_export]
+        macro_rules! bigint_str {
+            ($val: expr) => {
+                num_bigint::BigInt::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes")
+            };
+            ($val: expr, $opt: expr) => {
+                num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt)
+                    .expect("Couldn't parse bytes")
+            };
+        }
+        pub(crate) use bigint_str;
+
+        #[macro_export]
+        macro_rules! biguint {
+            ($val : expr) => {
+                Into::<num_bigint::BigUint>::into($val as u128)
+            };
+        }
+        pub(crate) use biguint;
+    }
+
     #[macro_export]
     macro_rules! felt_hex {
         ($val: expr) => {
@@ -69,33 +100,6 @@ pub mod test_utils {
             $crate::Felt252::from_dec_str($val).expect("Couldn't parse bytes")
         };
     }
-
-    #[macro_export]
-    macro_rules! bigint {
-        ($val : expr) => {
-            Into::<num_bigint::BigInt>::into($val)
-        };
-    }
-    pub use bigint;
-
-    #[macro_export]
-    macro_rules! bigint_str {
-        ($val: expr) => {
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), 10).expect("Couldn't parse bytes")
-        };
-        ($val: expr, $opt: expr) => {
-            num_bigint::BigInt::parse_bytes($val.as_bytes(), $opt).expect("Couldn't parse bytes")
-        };
-    }
-    pub use bigint_str;
-
-    #[macro_export]
-    macro_rules! biguint {
-        ($val : expr) => {
-            Into::<num_bigint::BigUint>::into($val as u128)
-        };
-    }
-    pub use biguint;
 
     #[macro_export]
     macro_rules! biguint_str {
@@ -275,9 +279,11 @@ pub mod test_utils {
     }
     pub use cairo_runner;
 
-    pub use crate::stdlib::{collections::BTreeMap, sync::Arc};
+    #[allow(unused_imports)]
+    pub(crate) use crate::stdlib::collections::BTreeMap;
+    pub(crate) use crate::stdlib::sync::Arc;
     pub(crate) use crate::types::program::HintsCollection;
-    pub use crate::types::program::Program;
+    pub(crate) use crate::types::program::Program;
     pub(crate) use crate::types::program::SharedProgramData;
 
     #[macro_export]
