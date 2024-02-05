@@ -228,15 +228,23 @@ impl CairoRunner {
         }
     }
 
-    pub fn initialize(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, RunnerError> {
-        self.initialize_builtins(vm)?;
+    pub fn initialize(
+        &mut self,
+        vm: &mut VirtualMachine,
+        allow_missing_builtins: bool,
+    ) -> Result<Relocatable, RunnerError> {
+        self.initialize_builtins(vm, allow_missing_builtins)?;
         self.initialize_segments(vm, None);
         let end = self.initialize_main_entrypoint(vm)?;
         self.initialize_vm(vm)?;
         Ok(end)
     }
 
-    pub fn initialize_builtins(&self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn initialize_builtins(
+        &self,
+        vm: &mut VirtualMachine,
+        allow_missing_builtins: bool,
+    ) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
             BuiltinName::pedersen,
@@ -316,7 +324,7 @@ impl CairoRunner {
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
-        if !program_builtins.is_empty() {
+        if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
                 self.layout._name.clone(),

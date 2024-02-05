@@ -370,7 +370,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let mut runner = CairoRunner::new_v2(&program, &args.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(args.trace_file.is_some() || args.air_public_input.is_some());
-    let end = runner.initialize(&mut vm)?;
+    let end = runner.initialize(&mut vm, args.proof_mode)?;
 
     additional_initialization(&mut vm, data_len)?;
 
