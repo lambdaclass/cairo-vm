@@ -682,8 +682,12 @@ fn finalize_builtins(
 
 mod tests {
     #![allow(clippy::too_many_arguments)]
+    use std::path::Path;
+
     use super::*;
+    use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
     use rstest::rstest;
+    use cairo_vm::types::relocatable::Relocatable;
 
     fn compile_to_sierra<'a>(filename: &'a str) -> SierraProgram {
         let compiler_config = CompilerConfig {
@@ -703,6 +707,7 @@ mod tests {
         // Set proof_mode
         let cairo_run_config = Cairo1RunConfig {
             proof_mode: true,
+            layout: "all_cairo",
             ..Default::default()
         };
         // Run program
