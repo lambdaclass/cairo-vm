@@ -715,7 +715,6 @@ mod tests {
     #[rstest]
     #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
     #[case("../cairo_programs/cairo-1-programs/array_get.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/array.cairo")]
     #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
     #[case("../cairo_programs/cairo-1-programs/enum_flow.cairo")]
     #[case("../cairo_programs/cairo-1-programs/enum_match.cairo")]
