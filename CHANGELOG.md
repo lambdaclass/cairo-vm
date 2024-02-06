@@ -10,6 +10,10 @@
   * Add `allow_missing_builtins` field to `CairoRunConfig` struct
   * Add `allow_missing_builtins` boolean argument to `CairoRunner` methods `initialize` & `initialize_builtins`
 
+* feat: Append return values to the output segment when running cairo1-run in proof_mode [#1597](https://github.com/lambdaclass/cairo-vm/pull/1597)
+  * Add instructions to the proof_mode header to copy return values to the output segment before initiating the infinite loop
+  * Output builtin is now always included when running cairo 1 programs in proof_mode
+
 * feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
   * Remove the following functions:
     * felt_from_biguint
