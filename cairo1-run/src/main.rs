@@ -367,7 +367,6 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
     use rstest::rstest;
