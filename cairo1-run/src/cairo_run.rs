@@ -686,8 +686,8 @@ mod tests {
 
     use super::*;
     use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-    use rstest::rstest;
     use cairo_vm::types::relocatable::Relocatable;
+    use rstest::rstest;
 
     fn compile_to_sierra<'a>(filename: &'a str) -> SierraProgram {
         let compiler_config = CompilerConfig {
@@ -699,6 +699,23 @@ mod tests {
     }
 
     #[rstest]
+    #[case(("../cairo_programs/cairo-1-programs/array_append.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/array_get.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/array.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/dictionaries.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/enum_flow.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/enum_match.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/factorial.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/fibonacci.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/hello.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/pedersen_example.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/poseidon.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/print.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/array_append.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/recursion.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/sample.cairo", true))]
+    #[case(("../cairo_programs/cairo-1-programs/simple_struct.cairo", false))]
+    #[case(("../cairo_programs/cairo-1-programs/simple.cairo", false))]
     #[case(("../cairo_programs/cairo-1-programs/struct_span_return.cairo", false))]
     fn check_append_ret_values_to_output_segment(#[case] args: (&str, bool)) {
         let (filename, may_panic) = args;
@@ -726,7 +743,7 @@ mod tests {
         let output_builtin_segment = vm
             .get_continuous_range((2, 0).into(), return_values.len())
             .unwrap();
-        assert_eq!(output_builtin_segment, return_values);
+        assert_eq!(output_builtin_segment, return_values, "{}", filename);
         // Just for consistency, we will check that there are no values in the output segment aside from the return values
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
