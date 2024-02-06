@@ -70,7 +70,7 @@ pub enum FuncArg {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct FuncArgs(Vec<FuncArg>);
+struct FuncArgs(Vec<FuncArg>);
 
 fn process_args(value: &str) -> Result<FuncArgs, String> {
     if value.is_empty() {
@@ -212,7 +212,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
-        args: args.args,
+        args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
     };
 
@@ -367,7 +367,6 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
     use rstest::rstest;

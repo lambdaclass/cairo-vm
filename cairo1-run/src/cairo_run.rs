@@ -46,11 +46,11 @@ use cairo_vm::{
 use itertools::chain;
 use std::collections::HashMap;
 
-use crate::{Error, FuncArg, FuncArgs};
+use crate::{Error, FuncArg};
 
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
-    pub args: FuncArgs,
+    pub args: &'a [FuncArg],
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: &'a str,
@@ -63,7 +63,7 @@ pub struct Cairo1RunConfig<'a> {
 impl Default for Cairo1RunConfig<'_> {
     fn default() -> Self {
         Self {
-            args: FuncArgs::default(),
+            args: Default::default(),
             trace_enabled: false,
             relocate_mem: false,
             layout: "plain",
@@ -99,7 +99,7 @@ pub fn cairo_run_program(
         main_func,
         initial_gas,
         cairo_run_config.proof_mode,
-        &cairo_run_config.args.0,
+        cairo_run_config.args,
     )?;
 
     // Fetch return type data
@@ -343,7 +343,7 @@ fn create_entry_code(
     func: &Function,
     initial_gas: usize,
     proof_mode: bool,
-    args: &Vec<FuncArg>,
+    args: &[FuncArg],
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
