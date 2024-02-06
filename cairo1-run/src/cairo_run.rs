@@ -680,8 +680,8 @@ fn finalize_builtins(
     Ok(())
 }
 
+#[cfg(test)]
 mod tests {
-    #![allow(clippy::too_many_arguments)]
     use std::path::Path;
 
     use super::*;
@@ -689,7 +689,7 @@ mod tests {
     use cairo_vm::types::relocatable::Relocatable;
     use rstest::rstest;
 
-    fn compile_to_sierra<'a>(filename: &'a str) -> SierraProgram {
+    fn compile_to_sierra(filename: &str) -> SierraProgram {
         let compiler_config = CompilerConfig {
             replace_ids: true,
             ..CompilerConfig::default()
