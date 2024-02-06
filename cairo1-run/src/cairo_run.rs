@@ -696,3 +696,52 @@ fn finalize_builtins(
     vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, proof_mode)?;
     Ok(())
 }
+
+mod tests {
+    #![allow(clippy::too_many_arguments)]
+    use super::*;
+    use rstest::rstest;
+
+    fn compile_to_sierra<'a>(filename: &'a str) -> SierraProgram {
+        let compiler_config = CompilerConfig {
+            replace_ids: true,
+            ..CompilerConfig::default()
+        };
+
+        compile_cairo_project_at_path(Path::new(filename), compiler_config).unwrap()
+    }
+
+    #[rstest]
+    #[case(("../cairo_programs/cairo-1-programs/struct_span_return.cairo", false))]
+    fn check_append_ret_values_to_output_segment(#[case] args: (&str, bool)) {
+        let (filename, may_panic) = args;
+        // Compile to sierra
+        let sierra_program = compile_to_sierra(filename);
+        // Set proof_mode
+        let cairo_run_config = Cairo1RunConfig {
+            proof_mode: true,
+            ..Default::default()
+        };
+        // Run program
+        let (_, vm, return_values) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
+        // And handle the panics returning an error, so we need to add it here
+        let return_values = if may_panic {
+            let mut rv = vec![Felt252::ZERO.into(), Felt252::ZERO.into()];
+            rv.extend_from_slice(&return_values);
+            rv
+        } else {
+            return_values
+        };
+        // Check that the output segment contains the return values
+        // The output builtin will always be the first builtin, so we know it's segment is 2
+        let output_builtin_segment = vm
+            .get_continuous_range((2, 0).into(), return_values.len())
+            .unwrap();
+        assert_eq!(output_builtin_segment, return_values);
+        // Just for consistency, we will check that there are no values in the output segment aside from the return values
+        assert!(vm
+            .get_maybe(&Relocatable::from((2_isize, return_values.len())))
+            .is_none());
+    }
+}
