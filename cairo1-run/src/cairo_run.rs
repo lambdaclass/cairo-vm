@@ -756,7 +756,7 @@ mod tests {
             .get_continuous_range((2, 0).into(), return_values.len())
             .unwrap();
         assert_eq!(output_builtin_segment, return_values, "{}", filename);
-        // Just for consistency, we will check that there are no values in the output segment aside from the return values
+        // Just for consistency, we will check that there are no values in the output segment after the return values
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
