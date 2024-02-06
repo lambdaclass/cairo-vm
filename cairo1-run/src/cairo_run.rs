@@ -92,18 +92,18 @@ pub struct Cairo1RunConfig<'a> {
 
 // Runs a Cairo 1 program
 // Returns the runner & VM after execution + the return values
-pub fn cairo_run_program<'a>(
-    sierra_program: &'a SierraProgram,
+pub fn cairo_run_program(
+    sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
 ) -> Result<(CairoRunner, VirtualMachine, Vec<MaybeRelocatable>), Error> {
-    let metadata = create_metadata(&sierra_program, Some(Default::default()))?;
-    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
+    let metadata = create_metadata(sierra_program, Some(Default::default()))?;
+    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
-        get_type_size_map(&sierra_program, &sierra_program_registry).unwrap_or_default();
+        get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
     let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, true)?;
+        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, true)?;
 
-    let main_func = find_function(&sierra_program, "::main")?;
+    let main_func = find_function(sierra_program, "::main")?;
 
     let initial_gas = 9999999999999_usize;
 
@@ -199,7 +199,7 @@ pub fn cairo_run_program<'a>(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(&program, &cairo_run_config.layout, runner_mode)?;
+    let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm)?;
 
@@ -655,7 +655,7 @@ fn fetch_return_values(
 // Calling this function is a must if either air_public_input or cairo_pie are needed
 fn finalize_builtins(
     proof_mode: bool,
-    main_ret_types: &Vec<ConcreteTypeId>,
+    main_ret_types: &[ConcreteTypeId],
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     vm: &mut VirtualMachine,
 ) -> Result<(), Error> {
