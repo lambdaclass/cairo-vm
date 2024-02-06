@@ -1,84 +1,54 @@
-#![allow(unused_imports)]
-use bincode::enc::write::Writer;
-use cairo_lang_casm::casm;
-use cairo_lang_casm::casm_extend;
-use cairo_lang_casm::hints::Hint;
-use cairo_lang_casm::instructions::Instruction;
-use cairo_lang_compiler::db;
-use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-use cairo_lang_sierra::extensions::bitwise::BitwiseType;
-use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
-use cairo_lang_sierra::extensions::ec::EcOpType;
-use cairo_lang_sierra::extensions::gas::GasBuiltinType;
-use cairo_lang_sierra::extensions::pedersen::PedersenType;
-use cairo_lang_sierra::extensions::poseidon::PoseidonType;
-use cairo_lang_sierra::extensions::range_check::RangeCheckType;
-use cairo_lang_sierra::extensions::segment_arena::SegmentArenaType;
-use cairo_lang_sierra::extensions::starknet::syscalls::SystemType;
-use cairo_lang_sierra::extensions::ConcreteType;
-use cairo_lang_sierra::extensions::NamedType;
-use cairo_lang_sierra::ids::ConcreteTypeId;
-use cairo_lang_sierra::program::Function;
-use cairo_lang_sierra::program::Program as SierraProgram;
-use cairo_lang_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
-use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
+use cairo_lang_casm::{casm, casm_extend, hints::Hint, instructions::Instruction};
+use cairo_lang_sierra::{
+    extensions::{
+        bitwise::BitwiseType,
+        core::{CoreLibfunc, CoreType},
+        ec::EcOpType,
+        gas::{CostTokenType, GasBuiltinType},
+        pedersen::PedersenType,
+        poseidon::PoseidonType,
+        range_check::RangeCheckType,
+        segment_arena::SegmentArenaType,
+        starknet::syscalls::SystemType,
+        ConcreteType, NamedType,
+    },
+    ids::ConcreteTypeId,
+    program::{Function, Program as SierraProgram},
+    program_registry::ProgramRegistry,
+};
 use cairo_lang_sierra_ap_change::calc_ap_changes;
 use cairo_lang_sierra_gas::gas_info::GasInfo;
-use cairo_lang_sierra_to_casm::compiler::CairoProgram;
-use cairo_lang_sierra_to_casm::compiler::CompilationError;
-use cairo_lang_sierra_to_casm::metadata::Metadata;
-use cairo_lang_sierra_to_casm::metadata::MetadataComputationConfig;
-use cairo_lang_sierra_to_casm::metadata::MetadataError;
-use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
-use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_utils::extract_matches;
-use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
-use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
-use cairo_vm::air_public_input::PublicInputError;
-use cairo_vm::cairo_run;
-use cairo_vm::cairo_run::EncodeTraceError;
-use cairo_vm::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
-use cairo_vm::serde::deserialize_program::BuiltinName;
-use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
-use cairo_vm::types::errors::program_errors::ProgramError;
-use cairo_vm::types::relocatable::Relocatable;
-use cairo_vm::vm::decoding::decoder::decode_instruction;
-use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_vm::vm::errors::memory_errors::MemoryError;
-use cairo_vm::vm::errors::runner_errors::RunnerError;
-use cairo_vm::vm::errors::trace_errors::TraceError;
-use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use cairo_vm::vm::runners::builtin_runner::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
-    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+use cairo_lang_sierra_to_casm::{
+    compiler::CairoProgram,
+    metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
 };
-use cairo_vm::vm::runners::cairo_runner::CairoArg;
-use cairo_vm::vm::runners::cairo_runner::RunnerMode;
-use cairo_vm::vm::vm_memory::memory::Memory;
+use cairo_lang_sierra_type_size::get_type_size_map;
+use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
 use cairo_vm::{
-    serde::deserialize_program::ReferenceManager,
+    hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    serde::deserialize_program::{
+        ApTracking, BuiltinName, FlowTrackingData, HintParams, ReferenceManager,
+    },
     types::{program::Program, relocatable::MaybeRelocatable},
     vm::{
-        runners::cairo_runner::{CairoRunner, RunResources},
+        errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
+        runners::{
+            builtin_runner::{
+                BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+                POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+            },
+            cairo_runner::{CairoRunner, RunResources, RunnerMode},
+        },
         vm_core::VirtualMachine,
     },
     Felt252,
 };
-use clap::{CommandFactory, Parser, ValueHint};
-use itertools::{chain, Itertools};
-use std::borrow::Cow;
-use std::io::BufWriter;
-use std::io::Write;
-use std::iter::Peekable;
-use std::path::PathBuf;
-use std::slice::Iter;
-use std::{collections::HashMap, io, path::Path};
+use itertools::chain;
+use std::collections::HashMap;
 
-use crate::Error;
-use crate::FuncArg;
-use crate::FuncArgs;
+use crate::{Error, FuncArg, FuncArgs};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
     pub args: FuncArgs,
     pub trace_enabled: bool,
@@ -88,6 +58,19 @@ pub struct Cairo1RunConfig<'a> {
     // Should be true if either air_public_input or cairo_pie_output are needed
     // Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
+}
+
+impl Default for Cairo1RunConfig<'_> {
+    fn default() -> Self {
+        Self {
+            args: FuncArgs::default(),
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: "plain",
+            proof_mode: false,
+            finalize_builtins: false,
+        }
+    }
 }
 
 // Runs a Cairo 1 program
