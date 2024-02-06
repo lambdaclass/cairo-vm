@@ -698,27 +698,40 @@ mod tests {
         compile_cairo_project_at_path(Path::new(filename), compiler_config).unwrap()
     }
 
+    fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
+        let main_func = find_function(sierra_program, "::main").unwrap();
+        main_func
+            .signature
+            .ret_types
+            .last()
+            .and_then(|rt| {
+                rt.debug_name
+                    .as_ref()
+                    .map(|n| n.as_ref().starts_with("core::panics::PanicResult::"))
+            })
+            .unwrap_or_default()
+    }
+
     #[rstest]
-    #[case(("../cairo_programs/cairo-1-programs/array_append.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/array_get.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/array.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/dictionaries.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/enum_flow.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/enum_match.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/factorial.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/fibonacci.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/hello.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/pedersen_example.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/poseidon.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/print.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/array_append.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/recursion.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/sample.cairo", true))]
-    #[case(("../cairo_programs/cairo-1-programs/simple_struct.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/simple.cairo", false))]
-    #[case(("../cairo_programs/cairo-1-programs/struct_span_return.cairo", false))]
-    fn check_append_ret_values_to_output_segment(#[case] args: (&str, bool)) {
-        let (filename, may_panic) = args;
+    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/array_get.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/array.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/enum_flow.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/enum_match.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/factorial.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/fibonacci.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/hello.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/pedersen_example.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/poseidon.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/print.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/recursion.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/sample.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
+    fn check_append_ret_values_to_output_segment(#[case] filename: &str) {
         // Compile to sierra
         let sierra_program = compile_to_sierra(filename);
         // Set proof_mode
@@ -731,7 +744,7 @@ mod tests {
         let (_, vm, return_values) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
-        let return_values = if may_panic {
+        let return_values = if main_hash_panic_result(&sierra_program) {
             let mut rv = vec![Felt252::ZERO.into(), Felt252::ZERO.into()];
             rv.extend_from_slice(&return_values);
             rv
