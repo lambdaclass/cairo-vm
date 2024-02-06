@@ -4,7 +4,7 @@
 
 * refactor: Refactor `cairo1-run` crate [#1601](https://github.com/lambdaclass/cairo-vm/pull/1601)
   * Add function `cairo_run_program` & struct `Cairo1RunConfig` in `cairo1-run::cairo_run` module.
-  * Function `serialize_output` in crate `cairo1-run` is now public.
+  * Function `serialize_output` & structs `FuncArg` and `Error` in crate `cairo1-run` are now public.
 
 * feat: Append return values to the output segment when running cairo1-run in proof_mode [#1597](https://github.com/lambdaclass/cairo-vm/pull/1597)
   * Add instructions to the proof_mode header to copy return values to the output segment before initiating the infinite loop
