@@ -290,6 +290,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     // Get the user program instructions
     let program_instructions = casm_program.instructions.iter();
 
+    // Fetch return type data
+    let return_type_id = main_func
+        .signature
+        .ret_types
+        .last()
+        .ok_or(Error::NoRetTypesInSignature)?;
+    let return_type_size = type_sizes
+        .get(return_type_id)
+        .cloned()
+        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
 
@@ -299,11 +310,34 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         // This information can be useful for the users using the prover.
         println!("Builtins used: {:?}", builtins);
 
-        // Prepare "canonical" proof mode instructions. These are usually added by the compiler in cairo 0
+        // Create proof_mode specific instructions
+        // Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
+        // wich call the firt program instruction and then initiate an infinite loop.
+        // And also appending the return values to the output builtin's memory segment
+
+        // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
+        // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
+        let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // The 2 here represents the return_fp & end segments
+
+        // The pc offset where the original program should start
+        // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
+        // and also 1 for each instruction added to copy each return value into the output segment
+        let program_start_offset: i16 = 4 + return_type_size;
+
         let mut ctx = casm! {};
         casm_extend! {ctx,
-            call rel 4;
-            jmp rel 0;
+            call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
+        };
+        // Append each return value to the output segment
+        for (i, j) in (1..return_type_size + 1).rev().enumerate() {
+            casm_extend! {ctx,
+                // [ap -j] is where each return value is located in memory
+                // [[fp + output_fp_offet] + 0] is the base of the output segment
+                [ap - j] = [[fp + output_fp_offset] + i as i16];
+            };
+        }
+        casm_extend! {ctx,
+            jmp rel 0; // Infinite loop
         };
         ctx.instructions
     } else {
@@ -316,7 +350,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         proof_mode_header.iter(),
         entry_code.iter(),
         program_instructions,
-        libfunc_footer.iter()
+        libfunc_footer.iter(),
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
@@ -376,6 +410,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     // Run it until the end/ infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    if args.proof_mode {
+        // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
+        // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
+        vm.segments
+            .segment_sizes
+            .insert(2, return_type_size as usize);
+    }
     runner.end_run(false, false, &mut vm, &mut hint_processor)?;
 
     // Fetch return type data
@@ -470,11 +511,18 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             }
             stack_pointer.offset += size as usize;
         }
+
         // Set stop pointer for each builtin
-        vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer)?;
+        vm.builtins_final_stack_from_stack_pointer_dict(
+            &builtin_name_to_stack_pointer,
+            args.proof_mode,
+        )?;
 
         // Build execution public memory
         if args.proof_mode {
+            // As the output builtin is not used by the program we need to compute it's stop ptr manually
+            vm.set_output_stop_ptr_offset(return_type_size as usize);
+
             runner.finalize_segments(&mut vm)?;
         }
     }
@@ -661,7 +709,8 @@ fn create_entry_code(
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) = get_function_builtins(func);
+    let (builtins, builtin_offset) = get_function_builtins(func, proof_mode);
+
     // Load all vecs to memory.
     // Load all array args content to memory.
     let mut array_args_data = vec![];
@@ -831,8 +880,21 @@ fn create_metadata(
     }
 }
 
+/// Type representing the Output builtin.
+#[derive(Default)]
+pub struct OutputType {}
+impl cairo_lang_sierra::extensions::NoGenericArgsGenericType for OutputType {
+    const ID: cairo_lang_sierra::ids::GenericTypeId =
+        cairo_lang_sierra::ids::GenericTypeId::new_inline("Output");
+    const STORABLE: bool = true;
+    const DUPLICATABLE: bool = false;
+    const DROPPABLE: bool = false;
+    const ZERO_SIZED: bool = false;
+}
+
 fn get_function_builtins(
     func: &Function,
+    proof_mode: bool,
 ) -> (
     Vec<BuiltinName>,
     HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
@@ -880,6 +942,12 @@ fn get_function_builtins(
     {
         builtins.push(BuiltinName::pedersen);
         builtin_offset.insert(PedersenType::ID, current_offset);
+        current_offset += 1;
+    }
+    // Force an output builtin so that we can write the program output into it's segment
+    if proof_mode {
+        builtins.push(BuiltinName::output);
+        builtin_offset.insert(OutputType::ID, current_offset);
     }
     builtins.reverse();
     (builtins, builtin_offset)
@@ -1100,6 +1168,14 @@ mod tests {
     fn test_array_input_sum(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res == "12");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_struct_span_return(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "[[4 3] [2 1]]");
     }
 
     #[rstest]
