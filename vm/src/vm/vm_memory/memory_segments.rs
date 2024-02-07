@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::stdlib::prelude::*;
 use crate::stdlib::{any::Any, collections::HashMap};
 use crate::vm::runners::cairo_runner::CairoArg;
@@ -266,6 +268,34 @@ impl MemorySegmentManager {
 impl Default for MemorySegmentManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Display for MemorySegmentManager {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Segment Sizes:\n")?;
+        writeln!(f, "Segment Sizes:\n {:?}", self.segment_sizes)?;
+        writeln!(
+            f,
+            "Segment Used Sizes:\n {:?}",
+            HashMap::<usize, &usize>::from_iter(
+                self.segment_used_sizes
+                    .clone()
+                    .unwrap_or_default()
+                    .iter()
+                    .enumerate()
+                    .collect::<Vec<_>>()
+                    .into_iter()
+            )
+        )?;
+        writeln!(f, "Memory:\n{}", self.memory)?;
+        writeln!(f, "Segment Info:")?;
+        if let Some(used_sizes) = &self.segment_used_sizes {
+            for (index, used_size) in used_sizes.iter().enumerate() {
+                writeln!(f, "Segment Number: {}, Used Size: {}, Size {}", index, used_size, self.segment_sizes.get(&index).map(|n| n.to_string()).unwrap_or(String::from("None")) )?;
+            }
+        }
+        Ok(())
     }
 }
 

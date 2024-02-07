@@ -551,7 +551,7 @@ impl fmt::Display for Memory {
                 }
             }
         }
-        writeln!(f, "}}")
+        Ok(())
     }
 }
 
