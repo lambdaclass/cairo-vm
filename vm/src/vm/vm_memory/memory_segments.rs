@@ -273,21 +273,6 @@ impl Default for MemorySegmentManager {
 
 impl fmt::Display for MemorySegmentManager {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "Segment Sizes:\n")?;
-        writeln!(f, "Segment Sizes:\n {:?}", self.segment_sizes)?;
-        writeln!(
-            f,
-            "Segment Used Sizes:\n {:?}",
-            HashMap::<usize, &usize>::from_iter(
-                self.segment_used_sizes
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .enumerate()
-                    .collect::<Vec<_>>()
-                    .into_iter()
-            )
-        )?;
         writeln!(f, "Memory:\n{}", self.memory)?;
         writeln!(f, "Segment Info:")?;
         if let Some(used_sizes) = &self.segment_used_sizes {
