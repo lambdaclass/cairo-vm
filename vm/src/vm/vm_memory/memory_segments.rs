@@ -277,7 +277,16 @@ impl fmt::Display for MemorySegmentManager {
         if let Some(used_sizes) = &self.segment_used_sizes {
             writeln!(f, "Segment Info:")?;
             for (index, used_size) in used_sizes.iter().enumerate() {
-                writeln!(f, "Segment Number: {}, Used Size: {}, Size {}", index, used_size, self.segment_sizes.get(&index).map(|n| n.to_string()).unwrap_or(String::from("None")) )?;
+                writeln!(
+                    f,
+                    "Segment Number: {}, Used Size: {}, Size {}",
+                    index,
+                    used_size,
+                    self.segment_sizes
+                        .get(&index)
+                        .map(|n| n.to_string())
+                        .unwrap_or(String::from("None"))
+                )?;
             }
         }
         Ok(())
