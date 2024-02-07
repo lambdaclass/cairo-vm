@@ -184,7 +184,7 @@ pub fn cairo_run_program(
 
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = runner.initialize(&mut vm)?;
+    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
 
     additional_initialization(&mut vm, data_len)?;
 
