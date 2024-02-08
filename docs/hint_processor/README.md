@@ -27,7 +27,7 @@ This method is called at the start of each VM step when there is a hint to execu
 It receives the dynamic structure created by `compile_hint` along with the program constants and a some of the VM's Internals:
 
 * `exec_scopes` Allows sharing data between hints without inserting them into the cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables. It only allows modifying the current scope, which is the last available scope before the hint's execution (Note that calling enter_scope and exit_scope won't change the current scope for the duration of the hint´s execution)
-* `vm` a mutable reference to the `VirtualMachine`, interaction with it is limited by to its public fields and methods, allowing to mutate it in a controlled manner
+* `vm` a mutable reference to the `VirtualMachine`, interaction with it is limited by to its public fields and methods allowing to mutate it in a controlled manner
 
 The purpose of this method is to carry out the execution of the hint, given the data from `compile_hint`
 
