@@ -114,6 +114,10 @@ impl OutputBuiltinRunner {
             attributes: HashMap::default(),
         })
     }
+
+    pub(crate) fn set_stop_ptr_offset(&mut self, offset: usize) {
+        self.stop_ptr = Some(offset)
+    }
 }
 
 impl Default for OutputBuiltinRunner {
@@ -449,5 +453,14 @@ mod tests {
                 attributes: HashMap::default()
             })
         )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
+
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        assert!(builtin.air_private_input(&memory).is_empty());
     }
 }

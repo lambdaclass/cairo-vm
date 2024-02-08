@@ -1,3 +1,4 @@
+use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -483,6 +484,20 @@ impl BuiltinRunner {
         }
     }
 
+    // Returns information about the builtin that should be added to the AIR private input.
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        match self {
+            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(memory),
+            _ => vec![],
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
@@ -811,7 +826,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -858,7 +873,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -902,7 +917,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -946,7 +961,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)

@@ -11,7 +11,7 @@
 
 use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
 
-use felt::Felt252;
+use crate::Felt252;
 
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor, types::exec_scope::ExecutionScopes,
@@ -131,7 +131,7 @@ mod tests {
         let mut vm = vm!();
         vm.hooks = Hooks::new(None, None, None);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
@@ -179,7 +179,7 @@ mod tests {
         let mut vm = vm!();
         vm.hooks = Hooks::new(Some(Arc::new(before_first_step_hook)), None, None);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -190,7 +190,7 @@ mod tests {
         let mut vm = vm!();
         vm.hooks = Hooks::new(None, Some(Arc::new(pre_step_hook)), None);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -201,7 +201,7 @@ mod tests {
         let mut vm = vm!();
         vm.hooks = Hooks::new(None, None, Some(Arc::new(post_step_hook)));
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -252,7 +252,7 @@ mod tests {
             Some(Arc::new(post_step_hook)),
         );
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());

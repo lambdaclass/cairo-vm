@@ -10,7 +10,9 @@ use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
-use felt::Felt252;
+
+use crate::Felt252;
+
 use nom::{
     branch::alt,
     bytes::{
@@ -27,9 +29,10 @@ use num_integer::Integer;
 
 // Checks if the hex string has an odd length.
 // If that is the case, prepends '0' to it.
-pub(crate) fn maybe_add_padding(mut hex: String) -> String {
+// Asumes hex string is prefixed by '0x'
+pub fn maybe_add_padding(mut hex: String) -> String {
     if hex.len().is_odd() {
-        hex.insert(0, '0');
+        hex.insert(2, '0');
         return hex;
     }
     hex
@@ -164,13 +167,13 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let (offset1, offset2) = if struct_ == "felt" && indirection_level.is_empty() {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::new(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
         let offset2 = match snd_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
-            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::new(val)),
+            OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
             OffsetValue::Reference(reg, val, refe) => OffsetValue::Reference(reg, val, refe),
         };
 
@@ -275,7 +278,6 @@ fn take_until_unbalanced(
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -483,7 +485,7 @@ mod tests {
                 "",
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    offset2: OffsetValue::Immediate(Felt252::one()),
+                    offset2: OffsetValue::Immediate(Felt252::ONE),
                     dereference: true,
                     value_type: "felt".to_string(),
                 }
@@ -562,8 +564,8 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    offset1: OffsetValue::Immediate(Felt252::new(825323_i32)),
-                    offset2: OffsetValue::Immediate(Felt252::zero()),
+                    offset1: OffsetValue::Immediate(Felt252::from(825323_i32)),
+                    offset2: OffsetValue::Immediate(Felt252::ZERO),
                     dereference: false,
                     value_type: "felt".to_string(),
                 }

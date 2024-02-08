@@ -2,6 +2,71 @@
 
 #### Upcoming Changes
 
+* refactor: Refactor `cairo1-run` crate [#1601](https://github.com/lambdaclass/cairo-vm/pull/1601)
+  * Add function `cairo_run_program` & struct `Cairo1RunConfig` in `cairo1-run::cairo_run` module.
+  * Function `serialize_output` & structs `FuncArg` and `Error` in crate `cairo1-run` are now public.
+
+* feat(BREAKING): Add `allow_missing_builtins` flag [#1600](https://github.com/lambdaclass/cairo-vm/pull/1600)
+
+    This new flag will skip the check that all builtins used by the program need to be present in the selected layout if enabled. It will also be enabled by default when running in proof_mode.
+
+  * Add `allow_missing_builtins` flag to `cairo-vm-cli` crate
+  * Add `allow_missing_builtins` field to `CairoRunConfig` struct
+  * Add `allow_missing_builtins` boolean argument to `CairoRunner` methods `initialize` & `initialize_builtins`
+
+* feat: Append return values to the output segment when running cairo1-run in proof_mode [#1597](https://github.com/lambdaclass/cairo-vm/pull/1597)
+  * Add instructions to the proof_mode header to copy return values to the output segment before initiating the infinite loop
+  * Output builtin is now always included when running cairo 1 programs in proof_mode
+
+* feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
+  * Remove the following functions:
+    * felt_from_biguint
+    * felt_from_bigint
+    * felt_to_biguint
+    * felt_to_bigint
+
+* perf: optimize instruction cache allocations by using `VirtualMachine::load_data` [#1441](https://github.com/lambdaclass/cairo-vm/pull/1441)
+
+* feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
+
+* bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
+  * Output builtin memory segment is no longer skipped when counting memory holes
+  * Temporary memory cells now keep their accessed status when relocated
+  * BREAKING: Signature change: `get_memory_holes(&self, builtin_count: usize) -> Result<usize, MemoryError>` ->  `get_memory_holes(&self, builtin_count: usize,  has_output_builtin: bool) -> Result<usize, MemoryError>`
+
+* feat: Add `cairo_pie_output` flag to `cairo1-run` [#1581] (https://github.com/lambdaclass/cairo-vm/pull/1581)
+
+* feat: Add `cairo_pie_output` flag to `cairo_vm_cli` [#1578] (https://github.com/lambdaclass/cairo-vm/pull/1578)
+  * Fix serialization of CairoPie to be fully compatible with the python version
+  * Add `CairoPie::write_zip_file`
+  * Move handling of required and exclusive arguments in `cairo-vm-cli` to struct definition using clap derives
+
+* feat: Add doc + default impl for ResourceTracker trait [#1576] (https://github.com/lambdaclass/cairo-vm/pull/1576)
+
+* feat: Add `air_private_input` flag to `cairo1-run` [#1559] (https://github.com/lambdaclass/cairo-vm/pull/1559)
+
+* feat: Add `args` flag to `cairo1-run` [#1551] (https://github.com/lambdaclass/cairo-vm/pull/1551)
+
+* feat: Add `air_public_input` flag to `cairo1-run` [#1539] (https://github.com/lambdaclass/cairo-vm/pull/1539)
+
+* feat: Implement air_private_input [#1552](https://github.com/lambdaclass/cairo-vm/pull/1552)
+
+* feat: Add `proof_mode` flag to `cairo1-run` [#1537] (https://github.com/lambdaclass/cairo-vm/pull/1537)
+  * The cairo1-run crate no longer compiles and executes in proof_mode by default
+  * Add flag `proof_mode` to cairo1-run crate. Activating this flag will enable proof_mode compilation and execution
+
+* dev: bump cairo 1 compiler dep to 2.4 [#1530](https://github.com/lambdaclass/cairo-vm/pull/1530)
+
+#### [1.0.0-rc0] - 2024-1-5
+
+* feat: Use `ProjectivePoint` from types-rs in ec_op builtin impl [#1532](https://github.com/lambdaclass/cairo-vm/pull/1532)
+
+* feat(BREAKING): Replace `cairo-felt` crate with `starknet-types-core` (0.0.5) [#1408](https://github.com/lambdaclass/cairo-vm/pull/1408)
+
+* feat(BREAKING): Add Cairo 1 proof mode compilation and execution [#1517] (https://github.com/lambdaclass/cairo-vm/pull/1517)
+    * In the cairo1-run crate, now the Cairo 1 Programs are compiled and executed in proof-mode
+    * BREAKING: Remove `CairoRunner.proof_mode: bool` field and replace it with `CairoRunner.runner_mode: RunnerMode`
+
 * perf: Add `extensive_hints` feature to prevent performance regression for the common use-case [#1503] (https://github.com/lambdaclass/cairo-vm/pull/1503)
 
   * Gates changes added by #1491 under the feature flag `extensive_hints`

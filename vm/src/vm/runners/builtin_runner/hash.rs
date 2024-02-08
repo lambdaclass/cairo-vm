@@ -1,4 +1,6 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
+use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
@@ -8,7 +10,7 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
+use crate::Felt252;
 use num_integer::{div_ceil, Integer};
 use starknet_crypto::{pedersen_hash, FieldElement};
 
@@ -104,20 +106,19 @@ impl HashBuiltinRunner {
             self.verified_addresses.borrow_mut()[address.offset] = true;
 
             //Convert MaybeRelocatable to FieldElement
-            let a_string = num_a.to_str_radix(10);
-            let b_string = num_b.to_str_radix(10);
+            let a_be_bytes = num_a.to_bytes_be();
+            let b_be_bytes = num_b.to_bytes_be();
             let (y, x) = match (
-                FieldElement::from_dec_str(&a_string),
-                FieldElement::from_dec_str(&b_string),
+                FieldElement::from_bytes_be(&a_be_bytes),
+                FieldElement::from_bytes_be(&b_be_bytes),
             ) {
                 (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
-                _ => return Err(RunnerError::FailedStringConversion),
+                _ => return Err(MathError::ByteConversionError.into()),
             };
             //Compute pedersen Hash
             let fe_result = pedersen_hash(&x, &y);
             //Convert result from FieldElement to MaybeRelocatable
-            let r_byte_slice = fe_result.to_bytes_be();
-            let result = Felt252::from_bytes_be(&r_byte_slice);
+            let result = Felt252::from_bytes_be(&fe_result.to_bytes_be());
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
@@ -187,24 +188,47 @@ impl HashBuiltinRunner {
         }
         BuiltinAdditionalData::Hash(verified_addresses)
     }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_HASH as usize)
+                .enumerate()
+            {
+                // Add the input cells of each hash instance to the private inputs
+                if let (Ok(x), Ok(y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                ) {
+                    private_inputs.push(PrivateInput::Pair(PrivateInputPair {
+                        index,
+                        x: *x,
+                        y: *y,
+                    }))
+                }
+            }
+        }
+        private_inputs
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use felt::felt_str;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -357,7 +381,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -401,7 +425,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -419,8 +443,8 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             ))))
         );
         assert_eq!(
@@ -547,5 +571,44 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Hash(verified_addresses)
         )
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(None, true).into();
+
+        let memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&memory),
+            (vec![
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 0,
+                    x: 0.into(),
+                    y: 1.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 1,
+                    x: 3.into(),
+                    y: 4.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 2,
+                    x: 6.into(),
+                    y: 7.into()
+                }),
+            ]),
+        );
     }
 }

@@ -1,7 +1,9 @@
 use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
+use crate::math_utils::signed_felt;
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -10,6 +12,7 @@ use crate::{
         },
         hint_processor_definition::HintReference,
     },
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     types::{
         exec_scope::ExecutionScopes,
@@ -17,9 +20,7 @@ use crate::{
     },
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::{BigInt, BigUint};
-use num_traits::Bounded;
 
 pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 pub(crate) type Uint384<'a> = BigIntN<'a, 3>;
@@ -76,7 +77,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
     ) -> Result<(), HintError> {
         let addr = get_relocatable_from_var_name(var_name, vm, ids_data, ap_tracking)?;
         for i in 0..NUM_LIMBS {
-            vm.insert_value((addr + i)?, self.limbs[i].as_ref().clone())?;
+            vm.insert_value((addr + i)?, *self.limbs[i].as_ref())?;
         }
         Ok(())
     }
@@ -90,7 +91,7 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
             .into_iter()
             .take(3)
             .enumerate()
-            .map(|(idx, value)| value.to_signed_felt().shl(idx * 86))
+            .map(|(idx, value)| signed_felt(*value).shl(idx * 86))
             .sum()
     }
 
@@ -127,8 +128,8 @@ pub fn nondet_bigint3(
         .ok_or(HintError::BigIntToBigUintFail)?;
     let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
-        .map(|n| MaybeRelocatable::from(Felt252::new(n)))
-        .collect();
+        .map(|ref n| Felt252::from(n).into())
+        .collect::<Vec<MaybeRelocatable>>();
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }
@@ -149,7 +150,8 @@ pub fn bigint_to_uint256(
     let base_86 = constants
         .get(BASE_86)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
-    let low = (d0 + &(d1 * base_86)) & &Felt252::new(u128::MAX);
+    let mask = pow2_const_nz(128);
+    let low = (d0 + (d1 * base_86)).mod_floor(mask);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)
 }
 
@@ -170,7 +172,7 @@ pub fn hi_max_bitlen(
 
     // equal to `len_hi.wrapping_sub(1)`
     let res = if len_hi == 0 {
-        Felt252::max_value()
+        Felt252::MAX
     } else {
         (len_hi - 1).into()
     };
@@ -181,14 +183,13 @@ pub fn hi_max_bitlen(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::any_box;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::ops::Shl;
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::{any_box, felt_str};
 
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::*;
@@ -196,8 +197,6 @@ mod tests {
     use crate::vm::vm_core::VirtualMachine;
 
     use assert_matches::assert_matches;
-    use felt::felt_str;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -223,7 +222,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, Felt252::one().shl(86_u32))]
+                &[(BASE_86, crate::math_utils::pow2_const(86))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -277,7 +276,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments = segments![((0, 0), 1), ((0, 1), 2), ((0, 2), 3)];
         let x = BigInt3::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
@@ -294,7 +293,7 @@ mod tests {
             ((0, 4), 5)
         ];
         let x = BigInt5::from_base_addr((0, 0).into(), "x", &vm).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
         assert_eq!(x.limbs[3].as_ref(), &Felt252::from(4));
@@ -332,7 +331,7 @@ mod tests {
         vm.segments = segments![((1, 0), 1), ((1, 1), 2), ((1, 2), 3)];
         let ids_data = ids_data!["x"];
         let x = BigInt3::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
     }
@@ -351,7 +350,7 @@ mod tests {
         ];
         let ids_data = ids_data!["x"];
         let x = BigInt5::from_var_name("x", &vm, &ids_data, &ApTracking::default()).unwrap();
-        assert_eq!(x.limbs[0].as_ref(), &Felt252::one());
+        assert_eq!(x.limbs[0].as_ref(), &Felt252::ONE);
         assert_eq!(x.limbs[1].as_ref(), &Felt252::from(2));
         assert_eq!(x.limbs[2].as_ref(), &Felt252::from(3));
         assert_eq!(x.limbs[3].as_ref(), &Felt252::from(4));
@@ -441,9 +440,9 @@ mod tests {
     fn u384_pack86() {
         let pack_1 = Uint384 {
             limbs: [
-                Cow::Borrowed(&Felt252::new(10_i32)),
-                Cow::Borrowed(&Felt252::new(10_i32)),
-                Cow::Borrowed(&Felt252::new(10_i32)),
+                Cow::Borrowed(&Felt252::from(10_i32)),
+                Cow::Borrowed(&Felt252::from(10_i32)),
+                Cow::Borrowed(&Felt252::from(10_i32)),
             ],
         }
         .pack86();

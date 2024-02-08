@@ -3,7 +3,6 @@ use crate::stdlib::{
     prelude::*,
 };
 
-use felt::Felt252;
 use serde::{Deserialize, Serialize};
 
 use super::deserialize_program::{
@@ -12,6 +11,7 @@ use super::deserialize_program::{
 };
 use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 // This struct is used to Serialize and Deserialize a Program struct
 // Their fields are equal to the ProgramJson
@@ -250,14 +250,14 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_json_from_program_test() {
         let programs_bytes: Vec<Vec<u8>> = [
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
             include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
             include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
                 .to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
             include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
             include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),
@@ -291,14 +291,14 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn serialize_and_deserialize_programs() {
         let programs_bytes: Vec<Vec<u8>> = [
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
             include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
             include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
                 .to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
             include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
             include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),

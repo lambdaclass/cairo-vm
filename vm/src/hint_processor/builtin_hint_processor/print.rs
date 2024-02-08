@@ -1,6 +1,6 @@
 use core::fmt::{Debug, Formatter};
 
-use felt::Felt252;
+use crate::Felt252;
 use num_traits::ToPrimitive;
 
 use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;
@@ -33,7 +33,7 @@ fn print_name(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let name = get_integer_from_var_name("name", vm, ids_data, ap_tracking)?;
-    let name = String::from_utf8(name.to_bigint().to_signed_bytes_be())
+    let name = String::from_utf8(name.as_ref().to_bigint().to_signed_bytes_be())
         .map_err(|err| HintError::CustomHint(err.to_string().into_boxed_str()))?;
     println!("{name}");
     Ok(())
@@ -106,12 +106,12 @@ pub fn print_dict(
         })?;
         match v {
             MaybeRelocatable::Int(value) => {
-                acc.insert(key, DictValue::Int(value.clone()));
+                acc.insert(key, DictValue::Int(*value));
             }
             MaybeRelocatable::RelocatableValue(val) => {
                 let mut structure = Vec::new();
                 for i in 0..pointer_size {
-                    let val = vm.get_integer((*val + i)?)?.as_ref().clone();
+                    let val = *vm.get_integer((*val + i)?)?.as_ref();
                     structure.push(val);
                 }
                 acc.insert(key, DictValue::Relocatable(structure));

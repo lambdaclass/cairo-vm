@@ -1,4 +1,4 @@
-use felt::Felt252;
+use crate::Felt252;
 use serde::Serialize;
 use thiserror_no_std::Error;
 
@@ -24,6 +24,7 @@ pub struct PublicMemoryEntry {
 
 mod mem_value_serde {
     use super::*;
+
     use serde::Serializer;
 
     pub(crate) fn serialize<S: Serializer>(
@@ -31,7 +32,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("0x{}", value.to_str_radix(16)))
+            serializer.serialize_str(&format!("{:x}", value))
         } else {
             serializer.serialize_none()
         }
@@ -82,10 +83,9 @@ impl<'a> PublicInput<'a> {
                 Ok(PublicMemoryEntry {
                     address: *address,
                     page: *page,
-                    value: memory
+                    value: *memory
                         .get(*address)
-                        .ok_or(PublicInputError::MemoryNotFound(*address))?
-                        .clone(),
+                        .ok_or(PublicInputError::MemoryNotFound(*address))?,
                 })
             };
         let public_memory = public_memory_addresses

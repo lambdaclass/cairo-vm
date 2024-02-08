@@ -18,6 +18,8 @@ env:
     cairo_programs/**/*.json
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
+  TEST_COLLECT_COVERAGE: 1
+  PROPTEST_CASES: 100
 
 jobs:
   build-programs:
@@ -187,12 +189,6 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (felt)
-      run: |
-        cd felt
-        cargo check-all-features
-        cargo check-all-features --workspace --all-targets
-
     - name: Check all features (vm)
       run: |
         cd vm
@@ -218,7 +214,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: ["", "lambdaworks-felt", "extensive_hints"]
+        special_features: ["", "extensive_hints"]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
@@ -326,6 +322,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
@@ -365,10 +363,10 @@ jobs:
         include:
         - program-target: cairo_proof_programs
           programs-dir: cairo_programs/proof_programs
-          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input '
+          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input --air_private_input {program}.rs.air_private_input '
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
-          extra-args: ''
+          extra-args: '--cairo_pie_output {program}.rs.pie.zip'
     name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
@@ -404,6 +402,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
 
 
@@ -445,37 +445,37 @@ jobs:
         path: lcov-test-no_std-.info
         key: codecov-cache-test-no_std--${{ github.sha }}
         fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-extensive_hints.info
+        key: codecov-cache-test#1-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-extensive_hints.info
+        key: codecov-cache-test#2-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-extensive_hints.info
+        key: codecov-cache-test#3-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-extensive_hints.info
+        key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-no_std-extensive_hints.info
+        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
 
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#1-lambdaworks-felt.info
-        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#2-lambdaworks-felt.info
-        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 3)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#3-lambdaworks-felt.info
-        key: codecov-cache-test#3-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 4)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#4-lambdaworks-felt.info
-        key: codecov-cache-test#4-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/lambdaworks)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test-no_std-lambdaworks-felt.info
-        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
@@ -503,6 +503,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
@@ -513,6 +515,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
 
@@ -521,9 +525,11 @@ jobs:
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
           PROOF=proof_mode 
           AIR_PUBLIC_INPUT=air_public_input
+          AIR_PRIVATE_INPUT=air_private_input
+        else
+          PIE=pie
         fi
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT $PIE
 
   wasm-demo:
     name: Build the wasm demo

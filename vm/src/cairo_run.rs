@@ -9,8 +9,8 @@ use crate::{
     },
 };
 
+use crate::Felt252;
 use bincode::enc::write::Writer;
-use felt::Felt252;
 
 use thiserror_no_std::Error;
 
@@ -28,6 +28,7 @@ pub struct CairoRunConfig<'a> {
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
     pub disable_trace_padding: bool,
+    pub allow_missing_builtins: Option<bool>,
 }
 
 #[cfg(feature = "arbitrary")]
@@ -56,6 +57,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             proof_mode: false,
             secure_run: None,
             disable_trace_padding: false,
+            allow_missing_builtins: None,
         }
     }
 }
@@ -69,6 +71,10 @@ pub fn cairo_run_program(
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
 
+    let allow_missing_builtins = cairo_run_config
+        .allow_missing_builtins
+        .unwrap_or(cairo_run_config.proof_mode);
+
     let mut cairo_runner = CairoRunner::new(
         program,
         cairo_run_config.layout,
@@ -76,7 +82,7 @@ pub fn cairo_run_program(
     )?;
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = cairo_runner.initialize(&mut vm)?;
+    let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
     // check step calculation
 
     cairo_runner
@@ -133,7 +139,12 @@ pub fn cairo_run_fuzzed_program(
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
-    let _end = cairo_runner.initialize(&mut vm)?;
+    let _end = cairo_runner.initialize(
+        &mut vm,
+        cairo_run_config
+            .allow_missing_builtins
+            .unwrap_or(cairo_run_config.proof_mode),
+    )?;
 
     let res = match cairo_runner.run_until_steps(steps_limit, &mut vm, hint_executor) {
         Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
@@ -196,7 +207,7 @@ pub fn write_encoded_memory(
             Some(unwrapped_memory_cell) => {
                 dest.write(&(i as u64).to_le_bytes())
                     .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write(&unwrapped_memory_cell.to_le_bytes())
+                dest.write(&unwrapped_memory_cell.to_bytes_le())
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }
@@ -209,6 +220,7 @@ pub fn write_encoded_memory(
 mod tests {
     use super::*;
     use crate::stdlib::prelude::*;
+    use crate::Felt252;
     use crate::{
         hint_processor::{
             builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -217,7 +229,6 @@ mod tests {
         utils::test_utils::*,
     };
     use bincode::enc::write::SliceWriter;
-    use felt::Felt252;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -230,7 +241,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true);
         let end = cairo_runner
-            .initialize(&mut vm)
+            .initialize(&mut vm, false)
             .map_err(CairoRunError::Runner)?;
 
         assert!(cairo_runner
@@ -252,14 +263,14 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());
         assert!(cairo_runner.relocate(&mut vm, true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
-        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::new(123)));
+        assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(123)));
     }
 
     #[test]
@@ -372,7 +383,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_ok());

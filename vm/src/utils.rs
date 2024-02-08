@@ -1,9 +1,10 @@
 use crate::stdlib::prelude::*;
-
 use crate::types::relocatable::Relocatable;
-use felt::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
+use num_traits::Num;
+
+pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
 
 #[macro_export]
 macro_rules! relocatable {
@@ -16,7 +17,7 @@ macro_rules! relocatable {
 }
 
 lazy_static! {
-    pub static ref CAIRO_PRIME: BigUint = Felt252::prime();
+    pub static ref CAIRO_PRIME: BigUint = BigUint::from_str_radix(&PRIME_STR[2..], 16).unwrap();
 }
 
 #[macro_export]
@@ -54,6 +55,20 @@ pub mod test_utils {
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::trace::trace_entry::TraceEntry;
+
+    #[macro_export]
+    macro_rules! felt_hex {
+        ($val: expr) => {
+            $crate::Felt252::from_hex($val).expect("Couldn't parse bytes")
+        };
+    }
+
+    #[macro_export]
+    macro_rules! felt_str {
+        ($val: expr) => {
+            $crate::Felt252::from_dec_str($val).expect("Couldn't parse bytes")
+        };
+    }
 
     #[macro_export]
     macro_rules! bigint {
@@ -95,7 +110,11 @@ pub mod test_utils {
 
     impl From<(&str, u8)> for MaybeRelocatable {
         fn from((string, radix): (&str, u8)) -> Self {
-            MaybeRelocatable::Int(felt::felt_str!(string, radix))
+            match radix {
+                16 => MaybeRelocatable::Int(crate::felt_hex!(string)),
+                10 => MaybeRelocatable::Int(crate::felt_str!(string)),
+                _ => panic!(" Invalid radix"),
+            }
         }
     }
 
@@ -202,7 +221,7 @@ pub mod test_utils {
             $crate::types::relocatable::MaybeRelocatable::from(($val1, $val2))
         };
         ($val1 : expr) => {
-            $crate::types::relocatable::MaybeRelocatable::from(felt::Felt252::new($val1 as i128))
+            $crate::types::relocatable::MaybeRelocatable::from(crate::Felt252::from($val1 as i128))
         };
     }
     pub(crate) use mayberelocatable;
@@ -313,10 +332,8 @@ pub mod test_utils {
             crate::stdlib::string::String,
             crate::serde::deserialize_program::Identifier,
         >,
-        pub(crate) constants: crate::stdlib::collections::HashMap<
-            crate::stdlib::string::String,
-            crate::utils::Felt252,
-        >,
+        pub(crate) constants:
+            crate::stdlib::collections::HashMap<crate::stdlib::string::String, crate::Felt252>,
         pub(crate) builtins: crate::utils::Vec<crate::serde::deserialize_program::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
@@ -620,8 +637,6 @@ mod test {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
     };
-    use felt::Felt252;
-    use num_traits::One;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -638,7 +653,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::one()),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
         memory
@@ -662,7 +677,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::one()),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
 
@@ -683,7 +698,7 @@ mod test {
         memory
             .insert(
                 Relocatable::from((1, 2)),
-                &MaybeRelocatable::from(Felt252::one()),
+                &MaybeRelocatable::from(crate::Felt252::ONE),
             )
             .unwrap();
 
@@ -803,14 +818,14 @@ mod test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn scope_macro_test() {
-        let scope_from_macro = scope![("a", Felt252::one())];
+        let scope_from_macro = scope![("a", crate::Felt252::ONE)];
         let mut scope_verbose = ExecutionScopes::new();
-        scope_verbose.assign_or_update_variable("a", any_box!(Felt252::one()));
+        scope_verbose.assign_or_update_variable("a", any_box!(crate::Felt252::ONE));
         assert_eq!(scope_from_macro.data.len(), scope_verbose.data.len());
         assert_eq!(scope_from_macro.data[0].len(), scope_verbose.data[0].len());
         assert_eq!(
             scope_from_macro.data[0].get("a").unwrap().downcast_ref(),
-            Some(&Felt252::one())
+            Some(&crate::Felt252::ONE)
         );
     }
 
@@ -819,8 +834,8 @@ mod test {
     fn check_dictionary_pass() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
         tracker.insert_value(
-            &MaybeRelocatable::from(Felt252::new(5)),
-            &MaybeRelocatable::from(Felt252::new(10)),
+            &MaybeRelocatable::from(crate::Felt252::from(5)),
+            &MaybeRelocatable::from(crate::Felt252::from(10)),
         );
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
@@ -836,10 +851,7 @@ mod test {
     #[should_panic]
     fn check_dictionary_fail() {
         let mut tracker = DictTracker::new_empty(relocatable!(2, 0));
-        tracker.insert_value(
-            &MaybeRelocatable::from(Felt252::new(5)),
-            &MaybeRelocatable::from(Felt252::new(10)),
-        );
+        tracker.insert_value(&MaybeRelocatable::from(5), &MaybeRelocatable::from(10));
         let mut dict_manager = DictManager::new();
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
@@ -897,7 +909,7 @@ mod test {
     fn dict_manager_default_macro() {
         let tracker = DictTracker::new_default_dict(
             relocatable!(2, 0),
-            &MaybeRelocatable::from(Felt252::new(17)),
+            &MaybeRelocatable::from(crate::Felt252::from(17)),
             None,
         );
         let mut dict_manager = DictManager::new();
