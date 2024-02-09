@@ -1,79 +1,32 @@
-#![allow(unused_imports)]
 use bincode::enc::write::Writer;
-use cairo_lang_casm::casm;
-use cairo_lang_casm::casm_extend;
-use cairo_lang_casm::hints::Hint;
-use cairo_lang_casm::instructions::Instruction;
-use cairo_lang_compiler::db;
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-use cairo_lang_sierra::extensions::bitwise::BitwiseType;
-use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
-use cairo_lang_sierra::extensions::ec::EcOpType;
-use cairo_lang_sierra::extensions::gas::GasBuiltinType;
-use cairo_lang_sierra::extensions::pedersen::PedersenType;
-use cairo_lang_sierra::extensions::poseidon::PoseidonType;
-use cairo_lang_sierra::extensions::range_check::RangeCheckType;
-use cairo_lang_sierra::extensions::segment_arena::SegmentArenaType;
-use cairo_lang_sierra::extensions::starknet::syscalls::SystemType;
-use cairo_lang_sierra::extensions::ConcreteType;
-use cairo_lang_sierra::extensions::NamedType;
-use cairo_lang_sierra::ids::ConcreteTypeId;
-use cairo_lang_sierra::program::Function;
-use cairo_lang_sierra::program::Program as SierraProgram;
-use cairo_lang_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
-use cairo_lang_sierra::{extensions::gas::CostTokenType, ProgramParser};
-use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::gas_info::GasInfo;
-use cairo_lang_sierra_to_casm::compiler::CairoProgram;
-use cairo_lang_sierra_to_casm::compiler::CompilationError;
-use cairo_lang_sierra_to_casm::metadata::Metadata;
-use cairo_lang_sierra_to_casm::metadata::MetadataComputationConfig;
-use cairo_lang_sierra_to_casm::metadata::MetadataError;
-use cairo_lang_sierra_to_casm::{compiler::compile, metadata::calc_metadata};
-use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_utils::extract_matches;
-use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
-use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
-use cairo_vm::air_public_input::PublicInputError;
-use cairo_vm::cairo_run;
-use cairo_vm::cairo_run::EncodeTraceError;
-use cairo_vm::hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor;
-use cairo_vm::serde::deserialize_program::BuiltinName;
-use cairo_vm::serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams};
-use cairo_vm::types::errors::program_errors::ProgramError;
-use cairo_vm::types::relocatable::Relocatable;
-use cairo_vm::vm::decoding::decoder::decode_instruction;
-use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
-use cairo_vm::vm::errors::memory_errors::MemoryError;
-use cairo_vm::vm::errors::runner_errors::RunnerError;
-use cairo_vm::vm::errors::trace_errors::TraceError;
-use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use cairo_vm::vm::runners::builtin_runner::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
-    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
-use cairo_vm::vm::runners::cairo_runner::CairoArg;
-use cairo_vm::vm::runners::cairo_runner::RunnerMode;
-use cairo_vm::vm::vm_memory::memory::Memory;
+use cairo_lang_sierra::{ids::ConcreteTypeId, program_registry::ProgramRegistryError};
+use cairo_lang_sierra_to_casm::{compiler::CompilationError, metadata::MetadataError};
+use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
-    serde::deserialize_program::ReferenceManager,
-    types::{program::Program, relocatable::MaybeRelocatable},
+    air_public_input::PublicInputError,
+    cairo_run::EncodeTraceError,
+    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
     vm::{
-        runners::cairo_runner::{CairoRunner, RunResources},
+        errors::{
+            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+            vm_errors::VirtualMachineError,
+        },
         vm_core::VirtualMachine,
     },
     Felt252,
 };
-use clap::{CommandFactory, Parser, ValueHint};
-use itertools::{chain, Itertools};
-use std::borrow::Cow;
-use std::io::BufWriter;
-use std::io::Write;
-use std::iter::Peekable;
-use std::path::PathBuf;
-use std::slice::Iter;
-use std::{collections::HashMap, io, path::Path};
+use clap::{Parser, ValueHint};
+use itertools::Itertools;
+use std::{
+    io::{self, Write},
+    iter::Peekable,
+    path::PathBuf,
+    slice::Iter,
+};
 use thiserror::Error;
+
+pub mod cairo_run;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -111,7 +64,7 @@ struct Args {
 }
 
 #[derive(Debug, Clone)]
-enum FuncArg {
+pub enum FuncArg {
     Array(Vec<Felt252>),
     Single(Felt252),
 }
@@ -170,7 +123,7 @@ fn validate_layout(value: &str) -> Result<String, String> {
 }
 
 #[derive(Debug, Error)]
-enum Error {
+pub enum Error {
     #[error("Invalid arguments")]
     Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
@@ -254,280 +207,31 @@ impl FileWriter {
 fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let args = Args::try_parse_from(args)?;
 
+    let cairo_run_config = Cairo1RunConfig {
+        proof_mode: args.proof_mode,
+        relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        layout: &args.layout,
+        trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
+        args: &args.args.0,
+        finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+    };
+
     let compiler_config = CompilerConfig {
         replace_ids: true,
         ..CompilerConfig::default()
     };
+
     let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
         .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
-    let metadata_config = Some(Default::default());
-
-    let gas_usage_check = metadata_config.is_some();
-    let metadata = create_metadata(&sierra_program, metadata_config)?;
-    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
-    let type_sizes =
-        get_type_size_map(&sierra_program, &sierra_program_registry).unwrap_or_default();
-    let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, gas_usage_check)?;
-
-    let main_func = find_function(&sierra_program, "::main")?;
-
-    let initial_gas = 9999999999999_usize;
-
-    // Modified entry code to be compatible with custom cairo1 Proof Mode.
-    // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
-    let (entry_code, builtins) = create_entry_code(
-        &sierra_program_registry,
-        &casm_program,
-        &type_sizes,
-        main_func,
-        initial_gas,
-        args.proof_mode,
-        &args.args.0,
-    )?;
-
-    // Get the user program instructions
-    let program_instructions = casm_program.instructions.iter();
-
-    // Fetch return type data
-    let return_type_id = main_func
-        .signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
-
-    // This footer is used by lib funcs
-    let libfunc_footer = create_code_footer();
-
-    let proof_mode_header = if args.proof_mode {
-        println!("Compiling with proof mode and running ...");
-
-        // This information can be useful for the users using the prover.
-        println!("Builtins used: {:?}", builtins);
-
-        // Create proof_mode specific instructions
-        // Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
-        // wich call the firt program instruction and then initiate an infinite loop.
-        // And also appending the return values to the output builtin's memory segment
-
-        // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
-        // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
-        let output_fp_offset: i16 = -(builtins.len() as i16 + 2); // The 2 here represents the return_fp & end segments
-
-        // The pc offset where the original program should start
-        // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
-        // and also 1 for each instruction added to copy each return value into the output segment
-        let program_start_offset: i16 = 4 + return_type_size;
-
-        let mut ctx = casm! {};
-        casm_extend! {ctx,
-            call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
-        };
-        // Append each return value to the output segment
-        for (i, j) in (1..return_type_size + 1).rev().enumerate() {
-            casm_extend! {ctx,
-                // [ap -j] is where each return value is located in memory
-                // [[fp + output_fp_offet] + 0] is the base of the output segment
-                [ap - j] = [[fp + output_fp_offset] + i as i16];
-            };
-        }
-        casm_extend! {ctx,
-            jmp rel 0; // Infinite loop
-        };
-        ctx.instructions
-    } else {
-        casm! {}.instructions
-    };
-
-    // This is the program we are actually running/proving
-    // With (embedded proof mode), cairo1 header and the libfunc footer
-    let instructions = chain!(
-        proof_mode_header.iter(),
-        entry_code.iter(),
-        program_instructions,
-        libfunc_footer.iter(),
-    );
-
-    let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
-
-    let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
-
-    let data: Vec<MaybeRelocatable> = instructions
-        .flat_map(|inst| inst.assemble().encode())
-        .map(|x| Felt252::from(&x))
-        .map(MaybeRelocatable::from)
-        .collect();
-
-    let data_len = data.len();
-
-    let program = if args.proof_mode {
-        Program::new_for_proof(
-            builtins,
-            data,
-            0,
-            // Proof mode is on top
-            // jmp rel 0 is on PC == 2
-            2,
-            program_hints,
-            ReferenceManager {
-                references: Vec::new(),
-            },
-            HashMap::new(),
-            vec![],
-            None,
-        )?
-    } else {
-        Program::new(
-            builtins,
-            data,
-            Some(0),
-            program_hints,
-            ReferenceManager {
-                references: Vec::new(),
-            },
-            HashMap::new(),
-            vec![],
-            None,
-        )?
-    };
-
-    let runner_mode = if args.proof_mode {
-        RunnerMode::ProofModeCairo1
-    } else {
-        RunnerMode::ExecutionMode
-    };
-
-    let mut runner = CairoRunner::new_v2(&program, &args.layout, runner_mode)?;
-    let mut vm = VirtualMachine::new(args.trace_file.is_some() || args.air_public_input.is_some());
-    let end = runner.initialize(&mut vm, args.proof_mode)?;
-
-    additional_initialization(&mut vm, data_len)?;
-
-    // Run it until the end/ infinite loop in proof_mode
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
-    if args.proof_mode {
-        // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
-        // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
-        vm.segments
-            .segment_sizes
-            .insert(2, return_type_size as usize);
-    }
-    runner.end_run(false, false, &mut vm, &mut hint_processor)?;
-
-    // Fetch return type data
-    let return_type_id = main_func
-        .signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
-
-    let mut return_values = vm.get_return_values(return_type_size as usize)?;
-    // Check if this result is a Panic result
-    if return_type_id
-        .debug_name
-        .as_ref()
-        .ok_or_else(|| Error::TypeIdNoDebugName(return_type_id.clone()))?
-        .starts_with("core::panics::PanicResult::")
-    {
-        // Check the failure flag (aka first return value)
-        if return_values.first() != Some(&MaybeRelocatable::from(0)) {
-            // In case of failure, extract the error from the return values (aka last two values)
-            let panic_data_end = return_values
-                .last()
-                .ok_or(Error::FailedToExtractReturnValues)?
-                .get_relocatable()
-                .ok_or(Error::FailedToExtractReturnValues)?;
-            let panic_data_start = return_values
-                .get(return_values.len() - 2)
-                .ok_or(Error::FailedToExtractReturnValues)?
-                .get_relocatable()
-                .ok_or(Error::FailedToExtractReturnValues)?;
-            let panic_data = vm.get_integer_range(
-                panic_data_start,
-                (panic_data_end - panic_data_start).map_err(VirtualMachineError::Math)?,
-            )?;
-            return Err(Error::RunPanic(
-                panic_data.iter().map(|c| *c.as_ref()).collect(),
-            ));
-        } else {
-            if return_values.len() < 3 {
-                return Err(Error::FailedToExtractReturnValues);
-            }
-            return_values = return_values[2..].to_vec()
-        }
-    }
+    let (runner, vm, return_values) =
+        cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
 
     let output_string = if args.print_output {
         Some(serialize_output(&vm, &return_values))
     } else {
         None
     };
-
-    // Set stop pointers for builtins so we can obtain the air public input
-    if args.air_public_input.is_some() || args.cairo_pie_output.is_some() {
-        // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
-        let ret_types_sizes = main_func
-            .signature
-            .ret_types
-            .iter()
-            .map(|id| type_sizes.get(id).cloned().unwrap_or_default());
-        let ret_types_and_sizes = main_func
-            .signature
-            .ret_types
-            .iter()
-            .zip(ret_types_sizes.clone());
-
-        let full_ret_types_size: i16 = ret_types_sizes.sum();
-        let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
-            .map_err(VirtualMachineError::Math)?;
-
-        // Calculate the stack_ptr for each return builtin in the return values
-        let mut builtin_name_to_stack_pointer = HashMap::new();
-        for (id, size) in ret_types_and_sizes {
-            if let Some(ref name) = id.debug_name {
-                let builtin_name = match &*name.to_string() {
-                    "RangeCheck" => RANGE_CHECK_BUILTIN_NAME,
-                    "Poseidon" => POSEIDON_BUILTIN_NAME,
-                    "EcOp" => EC_OP_BUILTIN_NAME,
-                    "Bitwise" => BITWISE_BUILTIN_NAME,
-                    "Pedersen" => HASH_BUILTIN_NAME,
-                    "Output" => OUTPUT_BUILTIN_NAME,
-                    "Ecdsa" => SIGNATURE_BUILTIN_NAME,
-                    _ => {
-                        stack_pointer.offset += size as usize;
-                        continue;
-                    }
-                };
-                builtin_name_to_stack_pointer.insert(builtin_name, stack_pointer);
-            }
-            stack_pointer.offset += size as usize;
-        }
-
-        // Set stop pointer for each builtin
-        vm.builtins_final_stack_from_stack_pointer_dict(
-            &builtin_name_to_stack_pointer,
-            args.proof_mode,
-        )?;
-
-        // Build execution public memory
-        if args.proof_mode {
-            // As the output builtin is not used by the program we need to compute it's stop ptr manually
-            vm.set_output_stop_ptr_offset(return_type_size as usize);
-
-            runner.finalize_segments(&mut vm)?;
-        }
-    }
-
-    runner.relocate(&mut vm, true)?;
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
@@ -573,7 +277,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         let mut trace_writer =
             FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
 
-        cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
+        cairo_vm::cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
     if let Some(memory_path) = args.memory_file {
@@ -581,31 +285,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         let mut memory_writer =
             FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
 
-        cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
+        cairo_vm::cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
     }
 
     Ok(output_string)
-}
-
-fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
-    // Create the builtin cost segment
-    let builtin_cost_segment = vm.add_memory_segment();
-    for token_type in CostTokenType::iter_precost() {
-        vm.insert_value(
-            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize))
-                .map_err(VirtualMachineError::Math)?,
-            Felt252::default(),
-        )?
-    }
-    // Put a pointer to the builtin cost segment at the end of the program (after the
-    // additional `ret` statement).
-    vm.insert_value(
-        (vm.get_pc() + data_len).map_err(VirtualMachineError::Math)?,
-        builtin_cost_segment,
-    )?;
-
-    Ok(())
 }
 
 fn main() -> Result<(), Error> {
@@ -999,7 +683,6 @@ fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> 
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
     use rstest::rstest;
