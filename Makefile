@@ -13,7 +13,7 @@ ifndef PROPTEST_CASES
 endif
 
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
-	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph\
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
