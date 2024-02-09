@@ -189,9 +189,9 @@ cargo-deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph --locked
 	cargo install --version 1.14.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack
+	cargo install --version 0.12.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
