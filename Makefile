@@ -190,7 +190,7 @@ cargo-deps:
 	# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
 	# cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.12.1 wasm-pack
 
