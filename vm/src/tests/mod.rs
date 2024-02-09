@@ -68,7 +68,7 @@ pub(self) fn run_program_with_error(data: &[u8], error: &str) {
     run_program(data, Some("all_cairo"), None, Some(error), None)
 }
 
-pub(self) fn run_program(
+fn run_program(
     data: &[u8],
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
@@ -109,7 +109,7 @@ pub(self) fn run_program(
 #[cfg(feature = "cairo-1-hints")]
 // Runs a contract entrypoint with given arguments and checks its return values
 // Doesn't use a syscall_handler
-pub(self) fn run_cairo_1_entrypoint(
+fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
     args: &[MaybeRelocatable],
@@ -215,7 +215,7 @@ pub(self) fn run_cairo_1_entrypoint(
 #[cfg(feature = "cairo-1-hints")]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
-pub(self) fn run_cairo_1_entrypoint_with_run_resources(
+fn run_cairo_1_entrypoint_with_run_resources(
     contract_class: CasmContractClass,
     entrypoint_offset: usize,
     hint_processor: &mut Cairo1HintProcessor,

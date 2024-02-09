@@ -162,7 +162,7 @@ mod tests {
             vm.segments.add();
         }
 
-        let addresses = vec![
+        let addresses = [
             Relocatable::from((1, 0)),
             Relocatable::from((1, 1)),
             Relocatable::from((1, 2)),
