@@ -76,7 +76,7 @@ Functions:
     * CALL
     * RET
     * NOP
-Doesnt check anything for the last two
+Doesn't check anything for the last two
 * [`run_instruction(instruction)`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L410): compute_operands, opcode_assertion, writes pc, ap and fp to trace, updates accessed_adresses, update_registers, and increases the current_step by one
 * [`step()`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L443) disables skip_next_instruction, executes hints, then clears ids and memory(used by hints), skips if skip_next_instruction is enabled, decode_current_instruction, runs the decoded instruction with run_instruction.
 
@@ -194,7 +194,7 @@ First it will try to obtain dst, op0 and op1 by computing their addresses (`comp
 ## How does [decode_instruction](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/vm_core.py#L371) work?
 </a>
 
-This function calls decode_instruction at comiler/encode.py, where `flags`, and the encoded offsets are obtained from calling decode_instruction_values (this function is defined under the Instruction class) on the encoded instruction (an int). This encoded offsets will then become the instruction's offsets after subtracting a constant value, and all other values of the Instruction will be determined by "reading" `flags`, by checking specific bits (ie: `flags >> OPCODE_CALL_BIT) & 1` will determine if opcode will be set Instruction.Opcode.CALL).
+This function calls decode_instruction at compiler/encode.py, where `flags`, and the encoded offsets are obtained from calling decode_instruction_values (this function is defined under the Instruction class) on the encoded instruction (an int). This encoded offsets will then become the instruction's offsets after subtracting a constant value, and all other values of the Instruction will be determined by "reading" `flags`, by checking specific bits (ie: `flags >> OPCODE_CALL_BIT) & 1` will determine if opcode will be set Instruction.Opcode.CALL).
 Some register updates will also be assigned based on the determined opcode: ap_update will be set to ADD2 if the opcode is CALL (ADD2 won't be assigned by reading `flag`, instead, this will be REGULAR), and the fp_update will be determined solely based on the opcode (without using `flag`). `imm` will be set to None unless op1_addr is IMM.
 
 # What is an Operands?
@@ -285,7 +285,7 @@ These values will then be used by decode_instruction (at compiler/encode).`flag`
 *Left side of flow diagram analysis*
 
 ## Clarifications on memory:
-CairoRunner's memory is the same as vm_memory and segments.memory (where segments is a MemorySegmentManager that contains a reference to memory), this memory will then become the VirtualMachine's run_context's memory, but changes to one wont affect the other. CairoRunner's Memory doesnt change after each step, unless a hint is executed. When hints interact with memory (ie when alloc() creates a new memory segment) the run_context's and the CairoRunner's memory will both be affected equally.
+CairoRunner's memory is the same as vm_memory and segments.memory (where segments is a MemorySegmentManager that contains a reference to memory), this memory will then become the VirtualMachine's run_context's memory, but changes to one won't affect the other. CairoRunner's Memory doesn't change after each step, unless a hint is executed. When hints interact with memory (ie when alloc() creates a new memory segment) the run_context's and the CairoRunner's memory will both be affected equally.
 
 ## [`cairo_run`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_run.py#L219)
 
@@ -304,15 +304,15 @@ Creates a ProgramBase with the data from the json file (the one declared with --
 
 *Overall we could say initialize_segments creates the empty memory segments needed for the program itself, its execution, and each builtin.*
 
-This function sets the `program_base` as the received program base, or creates a new segment for it, and asigns its first address (offset 0).
-Creates a new segment for the execution_base and asigns its first address (offset 0).
+This function sets the `program_base` as the received program base, or creates a new segment for it, and assigns its first address (offset 0).
+Creates a new segment for the execution_base and assigns its first address (offset 0).
 Iterates over the builtin runners and calls their `initialize_segments`, this method differs between each subclass of BuiltinRunner and adds memory segments for the builtin. SimpleBuiltinRunner just creates a memory segment for itself.
 
 The function `add` is the one responsible for creating an empty memory segment. The function `finalize` is only called when the function receives a non-zero size, which is not the case in this initialization.
 
 ## [`initialize_main_entrypoint`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L186) 
 
-Initializes state for running a program from the main() entrypoint. (Starts from label if proof_mode, we wont analyse this case).
+Initializes state for running a program from the main() entrypoint. (Starts from label if proof_mode, we won't analyse this case).
 Creates a stack.
 Iterates over the builtins and appends each builtin's `initial_stack()` (initial stack elements enforced by this builtin) to the stack. For a simple builtin, this stack can be composed of an empty list, or a list with its base (A relocatable value). 
 Creates a new segment for return_fp.
@@ -335,7 +335,7 @@ Loads the program and the stack, by calling `load_data` with the program_base an
 Writes data into the memory at address ptr and returns the first address after the data.
 Directly inserts the data into the memory.
 
-After thse function calls, `initial_fp` and `initial_ap` are set to `execution_base + 2`, and `final_pc` is set to end (the empty memory segment we created before) and returns it. This is then returned by initialize_main_entrypoint.
+After these function calls, `initial_fp` and `initial_ap` are set to `execution_base + 2`, and `final_pc` is set to end (the empty memory segment we created before) and returns it. This is then returned by initialize_main_entrypoint.
 
 ## [`initialize_vm`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L245)
 
@@ -344,7 +344,7 @@ After thse function calls, `initial_fp` and `initial_ap` are set to `execution_b
 Creates a RunContext with the initial ap, pc and fp, memory and prime from the CairoRunner.
 Creates a VirtualMachine, with the hint_locals it receives (these are the program input), the previously created hints, an empty dictionary for static_locals (in the case of cairo-run), and the builtin_runners and program_base from the CairoRunner. 
 Iterates over the buitin_runners and calls `add_validation_rules` and `add_auto_deduction_rules` from each of them (these methods are not defined for SimpleBuiltinRunner)
-Calls `validate_existing_memory()`. This methos calls validated_memory's `validate_existing_memory()`, which iterates over the memory and calls `validate_memory_cell` on each address and value pair. This function then proceeds to iterate over the validated_memory's validation rules and add each validated_address that the rules output to the validated_addresses.
+Calls `validate_existing_memory()`. This method calls validated_memory's `validate_existing_memory()`, which iterates over the memory and calls `validate_memory_cell` on each address and value pair. This function then proceeds to iterate over the validated_memory's validation rules and add each validated_address that the rules output to the validated_addresses.
 
 ## [`run_until_pc`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L284)
 
@@ -356,7 +356,7 @@ Iterates over `step()` until the pc reaches the predefined end.
 *Overall, this function relocates the accessed addresses and the vm's memory, verifies the validated_memory using the auto_deduction rules, freezes the vm's memory, and calculates the size of each memory segment*
 
 Relocates each address (using the`relocate_value` function in memory_dict) in the accessed_addresses. This function will attempt to relocate the value according to the segment's relocation_rules.
-Relocates the vm's memory using `relocate_memory`(this doesnt turn relocatables into ints).
+Relocates the vm's memory using `relocate_memory`(this doesn't turn relocatables into ints).
 Calls the vm's `end_run` function. This function will then call `verify_auto_deductions`, which will make sure that all assigned memory cells are consistent with their auto deduction rules. It achieves this by checking that each address in validated_memory is either non-relocatable or its value is equal to the one that can be obtained via the segment's auto_deduction_rules.
 Freezes memory (so that no more changes can happen).
 Computes the size of each segment (via `compute_effective_sizes()`, which deduces the size of each segment from its usage). **All addresses at this point should be Relocatable**, or else an exception will be raised.
@@ -365,12 +365,12 @@ Computes the size of each segment (via `compute_effective_sizes()`, which deduce
 
 *Overall this function is in charge of relocating every memory address in the vm's memory, trace entry and addresses used by builtins*
 
-First calls `relocate_segments`, which returns a dictionary mapping the segment indexes to to the cummulative sum of each segment size (taking the base as 1 (first address constant)) and stores it as segment_offsets.
+First calls `relocate_segments`, which returns a dictionary mapping the segment indexes to to the cumulative sum of each segment size (taking the base as 1 (first address constant)) and stores it as segment_offsets.
 Then creates an initializer, a map between maybe relocatable values which contains the relocation (using `relocate_value`) of each address and value in memory.
 This initializer is then used to create a MemoryDict, which is stored as the CairoRunner's `relocated_memory`.
 Then the trace is relocated by calling `relocate_trace` on the vm's trace, the segment offsets, and the program's prime. This returns a new trace entry with the relocated fp, pc, and ap of each trace entry.
 Then iterates over the builtin runners, and relocates their internal values (if applicable).
-After this relocation, each address whould be an Int instead of a RelocatableValue.
+After this relocation, each address would be an Int instead of a RelocatableValue.
 
 ## [`print_output`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/cairo_runner.py#L653)
 
@@ -387,7 +387,7 @@ The following is a broad analysis of how hints are processed from the compiled j
 
 ### During initialization phase (before step)
 
-On the compiled json file, there is a hint section that includes each hint's code, accesible scopes (includes main, current function, builtins, and import path if inside an imported function) flow-tracking data, and the reference_ids which would be the variables it can interact with (the ones available on the scope the moment the hint is "called").
+On the compiled json file, there is a hint section that includes each hint's code, accessible scopes (includes main, current function, builtins, and import path if inside an imported function) flow-tracking data, and the reference_ids which would be the variables it can interact with (the ones available on the scope the moment the hint is "called").
 Once we load the json file and create a [Program](https://github.com/starkware-libs/cairo-lang/blob/2abd303e1808612b724bc1412b2b5babd04bb4e7/src/starkware/cairo/lang/compiler/program.py#L83) object, it will have a field called hints, which will be a dictionary containing this same information we saw on the json file.
 When the vm is initialized, and the program’s data is loaded through `load_program`, [`load_hints`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L202) is called, which creates a dictionary that maps an address to a list of compiled hints (there may be more than one hint for an address) this is called hints, and also creates a map from an id (the hint’s id) to a pc (address) and an index (in case there is more than one hint on a particular address), this is called hint_pc_and_index.
 The compiled hints are obtained by using python's [`compile`](https://github.com/starkware-libs/cairo-lang/blob/b614d1867c64f3fb2cf4a4879348cfcf87c3a5a7/src/starkware/cairo/lang/vm/virtual_machine_base.py#L278) function in exec mode using the hint's code.
