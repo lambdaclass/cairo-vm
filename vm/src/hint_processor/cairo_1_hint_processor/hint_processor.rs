@@ -307,7 +307,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let a_val = res_operand_get_val(vm, a)?;
         let b_val = res_operand_get_val(vm, b)?;
-        let mut lengths_and_indices = vec![
+        let mut lengths_and_indices = [
             (a_val, 0),
             (b_val - a_val, 1),
             (Felt252::from(-1) - b_val, 2),
