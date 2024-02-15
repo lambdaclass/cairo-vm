@@ -588,8 +588,11 @@ impl Cairo1HintProcessor {
         let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
         let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
         let key = res_operand_get_val(vm, key)?;
-        // TODO: Fix, change to MaybeRelocatable
-        let value = MaybeRelocatable::Int(res_operand_get_val(vm, value)?);
+        let value = if let ResOperand::Deref(cell) = value {
+            get_mayberelocatable(vm, cell)?
+        } else {
+            MaybeRelocatable::Int(res_operand_get_val(vm, value)?)
+        };
         let dict_manager_exec_scope =
             exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
 
