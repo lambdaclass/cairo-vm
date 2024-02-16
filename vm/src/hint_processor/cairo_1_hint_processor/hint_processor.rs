@@ -4,7 +4,7 @@ use crate::any_box;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
-use crate::types::relocatable::Relocatable;
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::runners::cairo_runner::RunResources;
 use crate::Felt252;
@@ -588,7 +588,11 @@ impl Cairo1HintProcessor {
         let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
         let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
         let key = res_operand_get_val(vm, key)?;
-        let value = res_operand_get_val(vm, value)?;
+        let value = if let ResOperand::Deref(cell) = value {
+            get_mayberelocatable(vm, cell)?
+        } else {
+            MaybeRelocatable::Int(res_operand_get_val(vm, value)?)
+        };
         let dict_manager_exec_scope =
             exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
 
@@ -829,7 +833,11 @@ impl Cairo1HintProcessor {
         let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
         let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
         let key = get_double_deref_val(vm, dict_base, &(dict_offset + Felt252::from(-3)))?;
-        let value = res_operand_get_val(vm, value)?;
+        let value: MaybeRelocatable = if let ResOperand::Deref(cell) = value {
+            get_mayberelocatable(vm, cell)?
+        } else {
+            MaybeRelocatable::Int(res_operand_get_val(vm, value)?)
+        };
         let dict_manager_exec_scope = exec_scopes
             .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")
             .map_err(|_| {
