@@ -55,6 +55,7 @@ pub struct Cairo1RunConfig<'a> {
     pub relocate_mem: bool,
     pub layout: &'a str,
     pub proof_mode: bool,
+    pub add_main_output: bool,
     // Should be true if either air_public_input or cairo_pie_output are needed
     // Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
@@ -68,6 +69,7 @@ impl Default for Cairo1RunConfig<'_> {
             relocate_mem: false,
             layout: "plain",
             proof_mode: false,
+            add_main_output: false,
             finalize_builtins: false,
         }
     }

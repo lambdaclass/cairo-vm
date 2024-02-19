@@ -61,6 +61,9 @@ struct Args {
     args: FuncArgs,
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
+    // Append the returned values of main to to Output Segment
+    #[clap(long = "add_main_output", value_parser)]
+    add_main_output: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -209,6 +212,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
+        add_main_output: args.add_main_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
