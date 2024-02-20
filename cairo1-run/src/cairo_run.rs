@@ -354,7 +354,9 @@ fn create_entry_code(
     let mut array_args_data = vec![];
     let mut ap_offset: i16 = 0;
     for arg in args {
-        let FuncArg::Array(values) = arg else { continue };
+        let FuncArg::Array(values) = arg else {
+            continue;
+        };
         array_args_data.push(ap_offset);
         casm_extend! {ctx,
             %{ memory[ap + 0] = segments.add() %}

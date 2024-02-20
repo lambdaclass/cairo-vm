@@ -54,9 +54,9 @@ Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the
 
 Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
-There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
+Previously, there was a version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which **was used in production**.
 
-This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Once completed, it will replace the older one as the sole Cairo VM.
+This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Now in production, it has replaced the older Python version to become the primary Cairo VM.
 
 ### The Cairo language
 
@@ -72,7 +72,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 These are needed in order to compile and use the project.
 
-- [Rust 1.70.0 or newer](https://www.rust-lang.org/tools/install)
+- [Rust 1.74.1 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
 #### Optional
