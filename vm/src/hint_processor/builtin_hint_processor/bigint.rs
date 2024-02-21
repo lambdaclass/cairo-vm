@@ -105,6 +105,7 @@ mod test {
     use crate::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
+    use crate::utils::test_utils::bigint::*;
     use crate::utils::test_utils::*;
     use crate::vm::vm_core::VirtualMachine;
     use assert_matches::assert_matches;

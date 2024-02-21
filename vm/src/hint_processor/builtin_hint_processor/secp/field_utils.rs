@@ -225,6 +225,7 @@ mod tests {
             exec_scope::ExecutionScopes,
             relocatable::{MaybeRelocatable, Relocatable},
         },
+        utils::test_utils::bigint::*,
         utils::test_utils::*,
         vm::errors::memory_errors::MemoryError,
     };

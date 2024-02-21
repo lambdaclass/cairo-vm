@@ -177,6 +177,7 @@ mod tests {
             hint_processor_definition::HintProcessorLogic,
         },
         types::exec_scope::ExecutionScopes,
+        utils::test_utils::bigint::*,
         utils::test_utils::*,
     };
     use assert_matches::assert_matches;

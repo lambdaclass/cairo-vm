@@ -17,7 +17,7 @@ pub struct ValidationRule(
 );
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+pub struct MemoryCell(MaybeRelocatable, bool);
 
 impl MemoryCell {
     pub fn new(value: MaybeRelocatable) -> Self {
@@ -92,8 +92,8 @@ impl AddressSet {
 }
 
 pub struct Memory {
-    pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
-    pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
+    pub data: Vec<Vec<Option<MemoryCell>>>,
+    pub temp_data: Vec<Vec<Option<MemoryCell>>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,

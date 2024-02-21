@@ -556,6 +556,7 @@ mod tests {
             hint_processor_definition::HintProcessorLogic,
         },
         types::{exec_scope::ExecutionScopes, relocatable::Relocatable},
+        utils::test_utils::bigint::*,
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };

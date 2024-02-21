@@ -192,6 +192,7 @@ mod tests {
     use crate::{any_box, felt_str};
 
     use crate::types::relocatable::Relocatable;
+    use crate::utils::test_utils::bigint::*;
     use crate::utils::test_utils::*;
 
     use crate::vm::vm_core::VirtualMachine;
