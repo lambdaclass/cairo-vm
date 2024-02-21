@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Implement `Display` for `MemorySegmentManager`[#1606](https://github.com/lambdaclass/cairo-vm/pull/1606)
+
 * fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
 
 * chore: bump `cairo-lang-` dependencies to 2.5.3 [#1596](https://github.com/lambdaclass/cairo-vm/pull/1596)
