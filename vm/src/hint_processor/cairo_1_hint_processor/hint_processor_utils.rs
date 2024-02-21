@@ -1,4 +1,5 @@
 use crate::stdlib::prelude::*;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
 use crate::vm::vm_core::VirtualMachine;
@@ -27,6 +28,16 @@ pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252),
         }
     };
     Ok((cell, base_offset))
+}
+
+pub(crate) fn get_mayberelocatable(
+    vm: &VirtualMachine,
+    cell: &CellRef,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    let relocatable = cell_ref_to_relocatable(cell, vm)?;
+    vm.get_maybe(&relocatable).ok_or_else(|| {
+        VirtualMachineError::InvalidMemoryValueTemporaryAddress(Box::new(relocatable))
+    })
 }
 
 /// Fetches the value of `res_operand` from the vm.

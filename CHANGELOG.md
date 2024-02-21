@@ -4,6 +4,10 @@
 
 * feat: Implement `Display` for `MemorySegmentManager`[#1606](https://github.com/lambdaclass/cairo-vm/pull/1606)
 
+* fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
+
+* chore: bump `cairo-lang-` dependencies to 2.5.3 [#1596](https://github.com/lambdaclass/cairo-vm/pull/1596)
+
 * refactor: Refactor `cairo1-run` crate [#1601](https://github.com/lambdaclass/cairo-vm/pull/1601)
   * Add function `cairo_run_program` & struct `Cairo1RunConfig` in `cairo1-run::cairo_run` module.
   * Function `serialize_output` & structs `FuncArg` and `Error` in crate `cairo1-run` are now public.
