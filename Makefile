@@ -19,7 +19,7 @@ endif
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
-	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \
+	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -196,7 +196,7 @@ cargo-deps:
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
+deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -206,7 +206,7 @@ deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
+deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -331,6 +331,7 @@ clean:
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(TEST_PROOF_DIR)/*.cairo
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
@@ -372,3 +373,5 @@ build-cairo-lang: | $(CAIRO_LANG_REPO_DIR)
 hint-accountant: build-cairo-lang
 	cargo r -p hint_accountant
 
+create-proof-programs-symlinks:
+	cd cairo_programs/proof_programs; ln -s ../*.cairo .
