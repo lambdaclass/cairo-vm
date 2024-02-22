@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Bump `starknet-types-core` dependency version to 0.0.9 [#1628](https://github.com/lambdaclass/cairo-vm/pull/1628)
+
 * feat: Implement `Display` for `MemorySegmentManager`[#1606](https://github.com/lambdaclass/cairo-vm/pull/1606)
 
 * fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
