@@ -77,6 +77,8 @@
 
 * feat: output builtin features for bootloader support [#1580](https://github.com/lambdaclass/cairo-vm/pull/1580)
 
+* fix: set up builtins initial stack based on program builtins [#1632](https://github.com/lambdaclass/cairo-vm/pull/1632)
+
 #### [1.0.0-rc1] - 2024-02-23
 
 * Bump `starknet-types-core` dependency version to 0.0.9 [#1628](https://github.com/lambdaclass/cairo-vm/pull/1628)
