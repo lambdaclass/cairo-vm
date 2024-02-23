@@ -10,6 +10,8 @@
 
 * fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
 
+* chore: bump `cairo-lang-` dependencies to 2.5.4 [#1629](https://github.com/lambdaclass/cairo-vm/pull/1629)
+
 * chore: bump `cairo-lang-` dependencies to 2.5.3 [#1596](https://github.com/lambdaclass/cairo-vm/pull/1596)
 
 * refactor: Refactor `cairo1-run` crate [#1601](https://github.com/lambdaclass/cairo-vm/pull/1601)
