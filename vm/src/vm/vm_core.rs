@@ -833,6 +833,9 @@ impl VirtualMachine {
 
     ///Gets the relocatable value corresponding to the Relocatable address
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        dbg!("get_relocatable");
+        // dbg!(self.segments.memory.data.clone().iter().enumerate().collect::<Vec<_>>());
+        println!("{}", &self.segments.memory);
         self.segments.memory.get_relocatable(key)
     }
 
