@@ -15,14 +15,14 @@ MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIR
 deps:
 	git clone https://github.com/starkware-libs/cairo.git \
 	&& cd cairo \
-	&& git checkout v2.5.3 \
+	&& git checkout v2.5.4 \
 	&& cd .. \
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/
 
 run: $(TRACES) $(MEMORY)
 
-test: 
+test:
 	cargo test
 
 clean:
