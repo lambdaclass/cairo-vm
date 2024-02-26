@@ -1,15 +1,74 @@
 use cairo_vm::{
-    types::relocatable::MaybeRelocatable,
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     Felt252,
 };
 use itertools::Itertools;
 use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
+#[derive(Debug)]
 pub(crate) enum Output {
     Felt(Felt252),
-    FeltSpan(Vec<Felt252>),
+    FeltSpan(Vec<Output>),
     FeltDict(HashMap<Felt252, Output>),
+    CannotBeFormatted,
+}
+
+impl Output {
+    pub fn from_memory(vm: &VirtualMachine, relocatable: &Relocatable) -> Self {
+        match vm.get_relocatable(*relocatable) {
+            Ok(relocatable_value) => {
+                let segment_size = vm
+                    .get_segment_size(relocatable_value.segment_index as usize)
+                    .unwrap();
+                let segment_data = vm
+                    .get_continuous_range(relocatable_value, segment_size)
+                    .unwrap();
+
+                // check if the segment data is a valid array of felts
+                if segment_data
+                    .iter()
+                    .all(|v| matches!(v, MaybeRelocatable::Int(_)))
+                {
+                    let span_segment: Vec<Output> = segment_data
+                        .iter()
+                        .map(|v| Output::Felt(v.get_int().unwrap()))
+                        .collect();
+                    Output::FeltSpan(span_segment)
+                } else {
+                    Output::CannotBeFormatted
+                }
+            }
+            Err(MemoryError::UnknownMemoryCell(relocatable_value)) => {
+                // here we assume that the value is a dictionary
+                let mut felt252dict: HashMap<Felt252, Output> = HashMap::new();
+
+                let segment_size = vm
+                    .get_segment_size(relocatable_value.segment_index as usize)
+                    .unwrap();
+                let mut segment_start = relocatable_value.clone();
+                segment_start.offset = 0;
+                let segment_data = vm
+                    .get_continuous_range(*segment_start, segment_size)
+                    .unwrap();
+                dbg!(&segment_data);
+
+                // chunk by tuples of 3 elements
+                segment_data
+                    .iter()
+                    .tuples()
+                    .for_each(|(dict_key, _, value_relocatable)| {
+                        let key = dict_key.get_int().unwrap();
+                        let value_segment = value_relocatable.get_relocatable().unwrap();
+                        let value = Output::from_memory(vm, &value_segment);
+                        dbg!(&value);
+                        felt252dict.insert(key, value);
+                    });
+                Output::FeltDict(felt252dict)
+            }
+            _ => Output::CannotBeFormatted,
+        }
+    }
 }
 
 impl std::fmt::Display for Output {
@@ -18,8 +77,8 @@ impl std::fmt::Display for Output {
             Output::Felt(felt) => write!(f, "{}", felt.to_hex_string()),
             Output::FeltSpan(span) => {
                 write!(f, "[")?;
-                for felt in span {
-                    write!(f, "{}", felt.to_hex_string())?;
+                for elem in span {
+                    write!(f, "{}", elem)?;
                     write!(f, ",")?;
                 }
                 writeln!(f, "]")?;
@@ -35,6 +94,7 @@ impl std::fmt::Display for Output {
                 writeln!(f, "}}")?;
                 Ok(())
             }
+            Output::CannotBeFormatted => write!(f, "Output cannot be formatted"),
         }
     }
 }
@@ -68,8 +128,7 @@ fn serialize_output_inner(
             MaybeRelocatable::RelocatableValue(x) if iter.len() == 2 /* felt array */ => {
                 // Check if the next value is a relocatable of the same index
                 let y = iter.next().unwrap().get_relocatable().unwrap();
-                    // Check if the two relocatable values represent a valid array in memory
-                
+                // Check if the two relocatable values represent a valid array in memory
                 if x.segment_index == y.segment_index && x.offset <= y.offset {
                         // Fetch the y value from the iterator so we don't serialize it twice
                         iter.next();
@@ -85,60 +144,9 @@ fn serialize_output_inner(
                     }
                 },
             MaybeRelocatable::RelocatableValue(x) => {
-                    // dereference the relocatable to get the pointed value.
-                    match vm.get_relocatable(*x) {
-                        Ok(relocatable_value) => {
-                            let segment_size = vm
-                                .get_segment_size(relocatable_value.segment_index as usize)
-                                .unwrap();
-                            let segment_data = vm
-                                .get_continuous_range(relocatable_value, segment_size)
-                                .unwrap();
-
-                            // check if the segment data is a valid array of felts
-                            if segment_data
-                                .iter()
-                                .all(|v| matches!(v, MaybeRelocatable::Int(_)))
-                            {
-                                let span_segment: Vec<Felt252> =
-                                    segment_data.iter().map(|v| v.get_int().unwrap()).collect();
-                                let span = Output::FeltSpan(span_segment);
-                                output_string.push_str(&format!("{}", span));
-                                return;
-                            }
-                        }
-                        Err(MemoryError::UnknownMemoryCell(relocatable_value)) => {
-                            // here we assume that the value is a dictionary
-                            let mut felt252dict: HashMap<Felt252, Output> = HashMap::new();
-
-                            let segment_size = vm
-                                .get_segment_size(relocatable_value.segment_index as usize)
-                                .unwrap();
-                            let mut segment_start = relocatable_value.clone();
-                            segment_start.offset = 0;
-                            let segment_data = vm
-                                .get_continuous_range(*segment_start, segment_size)
-                                .unwrap();
-                            dbg!(&segment_data);
-
-                            // chunk by tuples of 3 elements
-                            segment_data.iter().tuples().for_each(
-                                |(dict_key, _, value_relocatable)| {
-                                    let key = dict_key.get_int().unwrap();
-                                    let value = value_relocatable.get_relocatable().unwrap();
-                                    let value = vm.get_relocatable(value).unwrap();
-                                    dbg!(value);
-                                    felt252dict.insert(key, Output::Felt(Felt252::ZERO));
-                                },
-                            );
-                            let dict = Output::FeltDict(felt252dict);
-                            output_string.push_str(&format!("{}", dict));
-                            return;
-                        }
-                        _ => unreachable!(),
-                    }
-                }
+                let output = Output::from_memory(vm, x);
+                output_string.push_str(format!("{}", output).as_str())
             }
         }
     }
-
+}
