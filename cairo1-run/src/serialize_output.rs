@@ -5,25 +5,37 @@ use cairo_vm::{
 };
 use itertools::Itertools;
 use std::{collections::HashMap, iter::Peekable, slice::Iter};
+use thiserror::Error;
 
 #[derive(Debug)]
 pub(crate) enum Output {
     Felt(Felt252),
     FeltSpan(Vec<Output>),
     FeltDict(HashMap<Felt252, Output>),
-    CannotBeFormatted,
+}
+
+#[derive(Debug, Error)]
+pub struct FormatError;
+
+impl std::fmt::Display for FormatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Format error")
+    }
 }
 
 impl Output {
-    pub fn from_memory(vm: &VirtualMachine, relocatable: &Relocatable) -> Self {
+    pub fn from_memory(
+        vm: &VirtualMachine,
+        relocatable: &Relocatable,
+    ) -> Result<Self, FormatError> {
         match vm.get_relocatable(*relocatable) {
             Ok(relocatable_value) => {
                 let segment_size = vm
                     .get_segment_size(relocatable_value.segment_index as usize)
-                    .unwrap();
+                    .ok_or(FormatError)?;
                 let segment_data = vm
                     .get_continuous_range(relocatable_value, segment_size)
-                    .unwrap();
+                    .map_err(|_| FormatError)?;
 
                 // check if the segment data is a valid array of felts
                 if segment_data
@@ -34,9 +46,9 @@ impl Output {
                         .iter()
                         .map(|v| Output::Felt(v.get_int().unwrap()))
                         .collect();
-                    Output::FeltSpan(span_segment)
+                    Ok(Output::FeltSpan(span_segment))
                 } else {
-                    Output::CannotBeFormatted
+                    Err(FormatError)
                 }
             }
             Err(MemoryError::UnknownMemoryCell(relocatable_value)) => {
@@ -45,28 +57,22 @@ impl Output {
 
                 let segment_size = vm
                     .get_segment_size(relocatable_value.segment_index as usize)
-                    .unwrap();
+                    .ok_or(FormatError)?;
                 let mut segment_start = relocatable_value.clone();
                 segment_start.offset = 0;
                 let segment_data = vm
                     .get_continuous_range(*segment_start, segment_size)
-                    .unwrap();
-                dbg!(&segment_data);
+                    .map_err(|_| FormatError)?;
 
-                // chunk by tuples of 3 elements
-                segment_data
-                    .iter()
-                    .tuples()
-                    .for_each(|(dict_key, _, value_relocatable)| {
-                        let key = dict_key.get_int().unwrap();
-                        let value_segment = value_relocatable.get_relocatable().unwrap();
-                        let value = Output::from_memory(vm, &value_segment);
-                        dbg!(&value);
-                        felt252dict.insert(key, value);
-                    });
-                Output::FeltDict(felt252dict)
+                for (dict_key, _, value_relocatable) in segment_data.iter().tuples() {
+                    let key = dict_key.get_int().ok_or(FormatError)?;
+                    let value_segment = value_relocatable.get_relocatable().ok_or(FormatError)?;
+                    let value = Output::from_memory(vm, &value_segment)?;
+                    felt252dict.insert(key, value);
+                }
+                Ok(Output::FeltDict(felt252dict))
             }
-            _ => Output::CannotBeFormatted,
+            _ => Err(FormatError),
         }
     }
 }
@@ -90,11 +96,11 @@ impl std::fmt::Display for Output {
                 writeln!(f, "{{")?;
                 for key in keys {
                     writeln!(f, "{}: {}", key.to_hex_string(), felt_dict[key])?;
+                    write!(f, ",")?;
                 }
                 writeln!(f, "}}")?;
                 Ok(())
             }
-            Output::CannotBeFormatted => write!(f, "Output cannot be formatted"),
         }
     }
 }
@@ -144,8 +150,11 @@ fn serialize_output_inner(
                     }
                 },
             MaybeRelocatable::RelocatableValue(x) => {
-                let output = Output::from_memory(vm, x);
-                output_string.push_str(format!("{}", output).as_str())
+                match Output::from_memory(vm, x) {
+                    Ok(output_value) => output_string.push_str(format!("{}", output_value).as_str()),
+                    Err(_) => output_string.push_str("The output could not be formatted"),
+                }
+                
             }
         }
     }

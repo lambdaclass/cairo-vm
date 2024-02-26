@@ -630,7 +630,6 @@ fn fetch_return_values(
             if return_values.len() < 3 {
                 return Err(Error::FailedToExtractReturnValues);
             }
-            dbg!(&return_values);
             return_values = return_values[2..].to_vec()
         }
     }
