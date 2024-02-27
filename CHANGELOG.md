@@ -2,9 +2,15 @@
 
 #### Upcoming Changes
 
+#### [1.0.0-rc1] - 2024-02-23
+
+* Bump `starknet-types-core` dependency version to 0.0.9 [#1628](https://github.com/lambdaclass/cairo-vm/pull/1628)
+
 * feat: Implement `Display` for `MemorySegmentManager`[#1606](https://github.com/lambdaclass/cairo-vm/pull/1606)
 
 * fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
+
+* chore: bump `cairo-lang-` dependencies to 2.5.4 [#1629](https://github.com/lambdaclass/cairo-vm/pull/1629)
 
 * chore: bump `cairo-lang-` dependencies to 2.5.3 [#1596](https://github.com/lambdaclass/cairo-vm/pull/1596)
 
@@ -23,6 +29,8 @@
 * feat: Append return values to the output segment when running cairo1-run in proof_mode [#1597](https://github.com/lambdaclass/cairo-vm/pull/1597)
   * Add instructions to the proof_mode header to copy return values to the output segment before initiating the infinite loop
   * Output builtin is now always included when running cairo 1 programs in proof_mode
+
+* feat: deserialize AIR private input [#1589](https://github.com/lambdaclass/cairo-vm/pull/1589)
 
 * feat(BREAKING): Remove unecessary conversion functions between `Felt` & `BigUint`/`BigInt` [#1562](https://github.com/lambdaclass/cairo-vm/pull/1562)
   * Remove the following functions:
