@@ -147,7 +147,7 @@ fn serialize_output_inner(
                 }
             },
             MaybeRelocatable::RelocatableValue(x) if iter.len() > 1 => {
-                let mut segment_start = x.clone();
+                let mut segment_start = *x;
                 segment_start.offset = 0;
                 for elem in iter.into_iter() {
                     let output_value = Output::from_memory(vm, &elem.get_relocatable().unwrap()).unwrap();
