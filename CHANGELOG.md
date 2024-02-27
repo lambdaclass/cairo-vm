@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
+
 * feat: Implement `Display` for `MemorySegmentManager`[#1606](https://github.com/lambdaclass/cairo-vm/pull/1606)
 
 * fix: make Felt252DictEntryUpdate work with MaybeRelocatable instead of only Felt [#1624](https://github.com/lambdaclass/cairo-vm/pull/1624).
