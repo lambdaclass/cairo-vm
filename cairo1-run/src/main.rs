@@ -62,7 +62,7 @@ struct Args {
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
     // Append the returned values of main to to Output Segment
-    #[clap(long = "add_main_output", value_parser)]
+    #[clap(long = "add_main_output", value_parser, conflicts_with = "proof_mode")]
     add_main_output: bool,
 }
 
