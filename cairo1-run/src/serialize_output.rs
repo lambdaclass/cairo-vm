@@ -159,7 +159,6 @@ fn serialize_output_inner(
                     Ok(output_value) => output_string.push_str(format!("{}", output_value).as_str()),
                     Err(_) => output_string.push_str("The output could not be formatted"),
                 }
-                
             }
         }
     }
