@@ -87,7 +87,7 @@ impl std::fmt::Display for Output {
                     write!(f, "{}", elem)?;
                     write!(f, ",")?;
                 }
-                writeln!(f, "]")?;
+                write!(f, "]")?;
                 Ok(())
             }
             Output::FeltDict(felt_dict) => {
@@ -95,8 +95,7 @@ impl std::fmt::Display for Output {
                 keys.sort();
                 writeln!(f, "{{")?;
                 for key in keys {
-                    writeln!(f, "{}: {}", key.to_hex_string(), felt_dict[key])?;
-                    write!(f, ",")?;
+                    writeln!(f, "\t{}: {},", key.to_hex_string(), felt_dict[key])?;
                 }
                 writeln!(f, "}}")?;
                 Ok(())
@@ -131,13 +130,11 @@ fn serialize_output_inner(
                 output_string.push_str(&x.to_string());
                 continue;
             }
-            MaybeRelocatable::RelocatableValue(x) if iter.len() == 2 /* felt array */ => {
+            MaybeRelocatable::RelocatableValue(x) if ((iter.len() + 1) % 2) == 0 /* felt array */ => {
                 // Check if the next value is a relocatable of the same index
                 let y = iter.next().unwrap().get_relocatable().unwrap();
                 // Check if the two relocatable values represent a valid array in memory
                 if x.segment_index == y.segment_index && x.offset <= y.offset {
-                        // Fetch the y value from the iterator so we don't serialize it twice
-                        iter.next();
                         // Fetch array
                         maybe_add_whitespace(output_string);
                         output_string.push('[');
@@ -147,8 +144,16 @@ fn serialize_output_inner(
                         serialize_output_inner(&mut array_iter, output_string, vm);
                         output_string.push(']');
                         continue;
-                    }
-                },
+                }
+            },
+            MaybeRelocatable::RelocatableValue(x) if iter.len() > 1 => {
+                let mut segment_start = x.clone();
+                segment_start.offset = 0;
+                for elem in iter.into_iter() {
+                    let output_value = Output::from_memory(vm, &elem.get_relocatable().unwrap()).unwrap();
+                    output_string.push_str(output_value.to_string().as_str())
+                }
+            }
             MaybeRelocatable::RelocatableValue(x) => {
                 match Output::from_memory(vm, x) {
                     Ok(output_value) => output_string.push_str(format!("{}", output_value).as_str()),

@@ -294,7 +294,7 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(output) => {
             if let Some(output_string) = output {
-                println!("Program Output : {}", output_string);
+                println!("{}", output_string);
             }
             Ok(())
         }
