@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
+
 #### [1.0.0-rc1] - 2024-02-23
 
 * Bump `starknet-types-core` dependency version to 0.0.9 [#1628](https://github.com/lambdaclass/cairo-vm/pull/1628)
