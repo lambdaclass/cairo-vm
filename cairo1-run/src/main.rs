@@ -6,27 +6,24 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
-    vm::{
-        errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
-        },
-        vm_core::VirtualMachine,
+    types::errors::program_errors::ProgramError,
+    vm::errors::{
+        memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+        vm_errors::VirtualMachineError,
     },
     Felt252,
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
+use serialize_output::serialize_output;
 use std::{
     io::{self, Write},
-    iter::Peekable,
     path::PathBuf,
-    slice::Iter,
 };
 use thiserror::Error;
 
 pub mod cairo_run;
+pub mod serialize_output;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -297,7 +294,7 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(output) => {
             if let Some(output_string) = output {
-                println!("Program Output : {}", output_string);
+                println!("{}", output_string);
             }
             Ok(())
         }
@@ -321,48 +318,6 @@ fn main() -> Result<(), Error> {
         }
         Err(err) => Err(err),
     }
-}
-
-pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
-    let mut output_string = String::new();
-    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
-    fn serialize_output_inner(
-        iter: &mut Peekable<Iter<MaybeRelocatable>>,
-        output_string: &mut String,
-        vm: &VirtualMachine,
-    ) {
-        while let Some(val) = iter.next() {
-            if let MaybeRelocatable::RelocatableValue(x) = val {
-                // Check if the next value is a relocatable of the same index
-                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
-                    // Check if the two relocatable values represent a valid array in memory
-                    if x.segment_index == y.segment_index && x.offset <= y.offset {
-                        // Fetch the y value from the iterator so we don't serialize it twice
-                        iter.next();
-                        // Fetch array
-                        maybe_add_whitespace(output_string);
-                        output_string.push('[');
-                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push(']');
-                        continue;
-                    }
-                }
-            }
-            maybe_add_whitespace(output_string);
-            output_string.push_str(&val.to_string());
-        }
-    }
-
-    fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty() && !string.ends_with('[') {
-            string.push(' ');
-        }
-    }
-    output_string
 }
 
 #[cfg(test)]
@@ -561,5 +516,23 @@ mod tests {
     fn test_run_nullable_dict_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res.is_empty());
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_felt_dict(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{\n\t0x10473: [0x8,0x9,0xa,0xb,],\n\t0x10474: [0x1,0x2,0x3,],\n}\n";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_felt_span(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "[0x8,0x9,0xa,0xb,]";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }
