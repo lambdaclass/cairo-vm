@@ -107,7 +107,10 @@ impl std::fmt::Display for Output {
 pub(crate) fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
     let mut output_string = String::new();
     let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
+    let result = serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
+    if result.is_err() {
+        return result.err().unwrap().to_string();
+    }
 
     output_string
 }
