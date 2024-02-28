@@ -122,7 +122,7 @@ fn serialize_output_inner(
     iter: &mut Peekable<Iter<MaybeRelocatable>>,
     output_string: &mut String,
     vm: &VirtualMachine,
-) {
+) -> Result<(), FormatError> {
     while let Some(val) = iter.next() {
         match val {
             MaybeRelocatable::Int(x) => {
@@ -132,16 +132,16 @@ fn serialize_output_inner(
             }
             MaybeRelocatable::RelocatableValue(x) if ((iter.len() + 1) % 2) == 0 /* felt array */ => {
                 // Check if the next value is a relocatable of the same index
-                let y = iter.next().unwrap().get_relocatable().unwrap();
+                let y = iter.next().unwrap().get_relocatable().ok_or(FormatError)?;
                 // Check if the two relocatable values represent a valid array in memory
                 if x.segment_index == y.segment_index && x.offset <= y.offset {
                         // Fetch array
                         maybe_add_whitespace(output_string);
                         output_string.push('[');
-                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
+                        let array = vm.get_continuous_range(*x, y.offset - x.offset).map_err(|_| FormatError)?;
                         let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
                             array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
+                        serialize_output_inner(&mut array_iter, output_string, vm)?;
                         output_string.push(']');
                         continue;
                 }
@@ -150,7 +150,7 @@ fn serialize_output_inner(
                 let mut segment_start = *x;
                 segment_start.offset = 0;
                 for elem in iter.into_iter() {
-                    let output_value = Output::from_memory(vm, &elem.get_relocatable().unwrap()).unwrap();
+                    let output_value = Output::from_memory(vm, &elem.get_relocatable().ok_or(FormatError)?)?;
                     output_string.push_str(output_value.to_string().as_str())
                 }
             }
@@ -162,4 +162,5 @@ fn serialize_output_inner(
             }
         }
     }
+    Ok(())
 }
