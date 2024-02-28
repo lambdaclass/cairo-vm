@@ -223,6 +223,11 @@ pub fn cairo_run_program(
 
             runner.finalize_segments(&mut vm)?;
         }
+
+        if cairo_run_config.add_main_output {
+            // As the output builtin is not used by the program we need to compute it's stop ptr manually
+            vm.set_output_stop_ptr_offset(return_type_size as usize);
+        }
     }
 
     runner.relocate(&mut vm, true)?;
