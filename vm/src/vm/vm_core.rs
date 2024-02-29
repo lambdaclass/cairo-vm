@@ -1085,7 +1085,9 @@ impl VirtualMachine {
         skip_output: bool,
     ) -> Result<(), RunnerError> {
         for builtin in self.builtin_runners.iter_mut() {
-            if matches!(builtin, BuiltinRunner::Output(_)) && skip_output {
+            dbg!(&builtin.name());
+            if matches!(builtin, BuiltinRunner::Output(_)) {
+                // && skip_output {
                 continue;
             }
             builtin.final_stack(
