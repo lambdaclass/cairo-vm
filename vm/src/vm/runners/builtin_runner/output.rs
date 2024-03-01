@@ -114,6 +114,10 @@ impl OutputBuiltinRunner {
             attributes: HashMap::default(),
         })
     }
+
+    pub(crate) fn set_stop_ptr_offset(&mut self, offset: usize) {
+        self.stop_ptr = Some(offset)
+    }
 }
 
 impl Default for OutputBuiltinRunner {
