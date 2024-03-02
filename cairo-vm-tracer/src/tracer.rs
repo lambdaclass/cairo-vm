@@ -8,12 +8,9 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use cairo_vm::{
-    felt::{Felt252, PRIME_STR},
-    serde::deserialize_program::DebugInfo,
-    types::program::Program,
-    vm::trace::trace_entry::TraceEntry,
-};
+use cairo_vm::utils::PRIME_STR;
+use cairo_vm::vm::trace::trace_entry::RelocatedTraceEntry;
+use cairo_vm::{serde::deserialize_program::DebugInfo, types::program::Program, Felt252};
 use include_dir::{include_dir, Dir};
 use num_bigint::BigInt;
 use num_traits::{One, Signed};
@@ -32,7 +29,7 @@ static STATIC_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/static");
 pub async fn run_tracer(
     program: Program,
     memory: Vec<Option<Felt252>>,
-    trace: Vec<TraceEntry>,
+    trace: Vec<RelocatedTraceEntry>,
     program_base: u64,
     debug_info: Option<DebugInfo>,
 ) -> Result<(), TraceDataError> {
@@ -130,7 +127,7 @@ fn field_element_repr(val: &BigInt, prime: &BigInt) -> String {
 #[derive(Serialize)]
 struct DataReponse {
     code: HashMap<String, String>,
-    trace: Vec<TraceEntry>,
+    trace: Vec<RelocatedTraceEntry>,
     memory: HashMap<usize, String>,
     public_memory: Vec<String>,
     memory_accesses: Vec<MemoryAccess>,

@@ -1,17 +1,15 @@
 use std::collections::{BTreeMap, HashMap};
 
+use cairo_vm::vm::trace::trace_entry::RelocatedTraceEntry;
 use cairo_vm::{
-    felt::Felt252,
     serde::deserialize_program::{DebugInfo, InstructionLocation},
     types::{
         instruction::Op1Addr,
         program::Program,
         relocatable::{MaybeRelocatable, Relocatable},
     },
-    vm::{
-        context::run_context::RunContext, decoding::decoder::decode_instruction,
-        trace::trace_entry::TraceEntry,
-    },
+    vm::{context::run_context::RunContext, decoding::decoder::decode_instruction},
+    Felt252,
 };
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
@@ -88,7 +86,7 @@ impl InputCodeFile {
 pub struct TracerData {
     pub(crate) _program: Program,
     pub(crate) memory: Vec<Option<Felt252>>,
-    pub(crate) trace: Vec<TraceEntry>,
+    pub(crate) trace: Vec<RelocatedTraceEntry>,
     pub(crate) _program_base: u64, // TODO: adjust size based on maximum instructions possible
     pub(crate) _debug_info: Option<DebugInfo>,
     pub(crate) memory_accesses: Vec<MemoryAccess>,
@@ -99,7 +97,7 @@ impl TracerData {
     pub fn new(
         program: Program,
         memory: Vec<Option<Felt252>>,
-        trace: Vec<TraceEntry>,
+        trace: Vec<RelocatedTraceEntry>,
         program_base: u64,
         debug_info: Option<DebugInfo>,
     ) -> Result<TracerData, TraceDataError> {

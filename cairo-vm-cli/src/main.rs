@@ -9,7 +9,6 @@ use cairo_vm::serde::deserialize_program::DebugInfo;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
-use clap::{Parser, ValueHint};
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 #[cfg(feature = "with_tracer")]
@@ -18,6 +17,7 @@ use cairo_vm::vm::vm_core::VirtualMachine;
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::tracer::run_tracer;
+use clap::{Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -64,7 +64,7 @@ struct Args {
     cairo_pie_output: Option<String>,
     #[structopt(long = "allow_missing_builtins")]
     allow_missing_builtins: Option<bool>,
-    #[structopt(long = "--tracer")]
+    #[structopt(long = "tracer")]
     #[cfg(feature = "with_tracer")]
     tracer: Option<bool>,
 }
@@ -148,9 +148,10 @@ fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), T
         .get_relocated_instruction_locations(relocation_table.as_ref());
     let debug_info = instruction_locations.map(DebugInfo::new);
 
-    let relocated_trace = vm
-        .get_relocated_trace()
-        .map_err(TraceDataError::FailedToRelocateTrace)?;
+    let relocated_trace = cairo_runner
+        .relocated_trace
+        .clone()
+        .ok_or(TraceDataError::FailedToGetRelocatedTrace)?;
 
     run_tracer(
         cairo_runner.get_program().clone(),

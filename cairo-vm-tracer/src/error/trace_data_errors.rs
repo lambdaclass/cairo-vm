@@ -1,6 +1,4 @@
-use cairo_vm::vm::errors::{
-    memory_errors::MemoryError, trace_errors::TraceError, vm_errors::VirtualMachineError,
-};
+use cairo_vm::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
 use thiserror_no_std::Error;
 
 #[derive(Debug, Error)]
@@ -11,8 +9,8 @@ pub enum TraceDataError {
     InstructionDecodeError(#[from] VirtualMachineError),
     #[error(transparent)]
     FailedToGetRelocationTable(#[from] MemoryError),
-    #[error(transparent)]
-    FailedToRelocateTrace(#[from] TraceError),
+    #[error("Failed to get relocated trace")]
+    FailedToGetRelocatedTrace,
     #[error("Failed to read file {0}")]
     FailedToReadFile(String),
     #[error("Input file is None {0}")]
