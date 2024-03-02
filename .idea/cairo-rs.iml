@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/cairo-vm-cli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/wasm-demo/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/felt/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/hint_accountant/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/vm/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/cairo1-run/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

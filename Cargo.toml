@@ -4,7 +4,8 @@ members = [
     "vm",
     "hint_accountant",
     "examples/wasm-demo",
-    "cairo1-run"
+    "cairo1-run",
+    "cairo-vm-tracer"
 ]
 default-members = [
     "cairo-vm-cli",
@@ -27,6 +28,7 @@ keywords = ["starknet", "cairo", "vm", "wasm", "no_std"]
 
 [workspace.dependencies]
 cairo-vm = { path = "./vm", version = "1.0.0-rc1", default-features = false }
+cairo-vm-tracer = { path = "./cairo-vm-tracer", version = "0.9.1", default-features = false }
 mimalloc = { version = "0.1.37", default-features = false }
 num-bigint = { version = "0.4", default-features = false, features = [
     "serde",
