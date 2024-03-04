@@ -369,6 +369,9 @@ fn create_append_return_values_header(
             [ap - j] = [[fp + output_fp_offset] + i as i16];
         };
     }
+    casm_extend! {ctx,
+        ret;
+    };
     ctx.instructions
 }
 
