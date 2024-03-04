@@ -771,13 +771,14 @@ mod tests {
     #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
     #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
     #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
-    fn check_append_ret_values_to_output_segment(#[case] filename: &str) {
+    fn check_append_ret_values_to_output_segment(#[case] filename: &str, #[values(true, false)] proof_mode: bool) {
         // Compile to sierra
         let sierra_program = compile_to_sierra(filename);
         // Set proof_mode
         let cairo_run_config = Cairo1RunConfig {
-            proof_mode: true,
+            proof_mode,
             layout: "all_cairo",
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
             ..Default::default()
         };
         // Run program
