@@ -355,7 +355,7 @@ fn create_append_return_values_header(
     // The pc offset where the original program should start
     // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
     // and also 1 for each instruction added to copy each return value into the output segment
-    let program_start_offset: i16 = 2 + return_type_size;
+    let program_start_offset: i16 = 3 + return_type_size;
 
     let mut ctx = casm! {};
     casm_extend! {ctx,
@@ -443,7 +443,7 @@ fn create_entry_code(
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
             let mut offset = *offset;
-            if proof_mode {
+            if proof_mode || append_output {
                 // Everything is off by 2 due to the proof mode header
                 offset += 2;
             }
@@ -774,7 +774,10 @@ mod tests {
     #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
     #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
     #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
-    fn check_append_ret_values_to_output_segment(#[case] filename: &str, #[values(true, false)] proof_mode: bool) {
+    fn check_append_ret_values_to_output_segment(
+        #[case] filename: &str,
+        #[values(true, false)] proof_mode: bool,
+    ) {
         // Compile to sierra
         let sierra_program = compile_to_sierra(filename);
         // Set proof_mode
