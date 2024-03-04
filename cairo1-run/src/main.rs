@@ -371,24 +371,27 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
 
                 // Check if the relocatable value represents a dictionary
                 // To do so we can check if the relocatable consists of the last dict_ptr, which should be a pointer to the next empty cell in the dictionary's segment
-                // We can check that the 
+                // We can check that the dict_ptr's offset is consistent with the length of the segment and that the segment is made up of tuples of three elements (key, prev_val, val)
                 if x.offset
                     == vm
                         .get_segment_size(x.segment_index as usize)
                         .unwrap_or_default()
                     && x.offset % 3 == 0
                 {
+                    // Fetch the dictionary's memory
                     let dict_mem = vm
                         .get_continuous_range((x.segment_index, 0).into(), x.offset)
                         .expect("Malformed dictionary memory");
+                    // Serialize the dictionary
                     output_string.push('{');
                     // The dictionary's memory is made up of (key, prev_value, next_value) tuples
                     // The prev value is not relevant to the user so we can skip over it for calrity
                     for (key, _, value) in dict_mem.iter().tuples() {
                         maybe_add_whitespace(output_string);
-                        // Fetch the key wich should always be a Felt value
+                        // Serialize the key wich should always be a Felt value
                         output_string.push_str(&key.to_string());
                         output_string.push(':');
+                        // Serialize the value
                         // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
                         let value_vec = vec![value.clone()];
                         let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
