@@ -383,19 +383,20 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
                     // The prev value is not relevant to the user so we can skip over it for calrity
                     // Check that the dictionary memory is consistent with the above definition
                     if dict_mem.len() % 3 == 0 {
-                        maybe_add_whitespace(output_string);
                         output_string.push('{');
                         for (key, _, value) in dict_mem.iter().tuples() {
+                            maybe_add_whitespace(output_string);
                             // Fetch the key wich should always be a Felt value
                             output_string.push_str(&key.to_string());
-                            output_string.push_str(": ");
+                            output_string.push(':');
                             // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
                             let value_vec = vec![value.clone()];
                             let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
                                 value_vec.iter().peekable();
                             serialize_output_inner(&mut value_iter, output_string, vm);
-                            output_string.push('}');
                         }
+                        output_string.push('}');
+                        continue;
                     }
                 }
             }
@@ -405,7 +406,7 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
     }
 
     fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty() && !string.ends_with('[') {
+        if !string.is_empty() && !string.ends_with('[') && !string.ends_with(':') && !string.ends_with('{') {
             string.push(' ');
         }
     }
@@ -615,7 +616,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_dict(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{\n\t0x10473: [0x8,0x9,0xa,0xb,],\n\t0x10474: [0x1,0x2,0x3,],\n}\n";
+        let expected_output = "{66675:[8 9 10 11] 66676:[1 2 3]}";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 
