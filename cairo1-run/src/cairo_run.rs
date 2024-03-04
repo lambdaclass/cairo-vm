@@ -102,6 +102,7 @@ pub fn cairo_run_program(
         main_func,
         initial_gas,
         cairo_run_config.proof_mode,
+        cairo_run_config.proof_mode || cairo_run_config.append_return_values,
         cairo_run_config.args,
     )?;
 
@@ -346,11 +347,12 @@ fn create_entry_code(
     func: &Function,
     initial_gas: usize,
     proof_mode: bool,
+    append_output: bool,
     args: &[FuncArg],
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) = get_function_builtins(func, proof_mode);
+    let (builtins, builtin_offset) = get_function_builtins(func, append_output);
 
     // Load all vecs to memory.
     // Load all array args content to memory.
@@ -537,7 +539,7 @@ impl cairo_lang_sierra::extensions::NoGenericArgsGenericType for OutputType {
 
 fn get_function_builtins(
     func: &Function,
-    proof_mode: bool,
+    append_output: bool,
 ) -> (
     Vec<BuiltinName>,
     HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
@@ -588,7 +590,7 @@ fn get_function_builtins(
         current_offset += 1;
     }
     // Force an output builtin so that we can write the program output into it's segment
-    if proof_mode {
+    if append_output {
         builtins.push(BuiltinName::output);
         builtin_offset.insert(OutputType::ID, current_offset);
     }
