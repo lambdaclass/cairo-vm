@@ -9,7 +9,7 @@ fn main() -> Felt252Dict<Nullable<Span<felt252>>> {
     let b = array![1, 2, 3];
 
     // Insert it as a `Span`
-    d.insert(66675, nullable_from_box(BoxTrait::new(b.span())));
     d.insert(66675, nullable_from_box(BoxTrait::new(a.span())));
     d.insert(66676, nullable_from_box(BoxTrait::new(b.span())));
+    d
 }
