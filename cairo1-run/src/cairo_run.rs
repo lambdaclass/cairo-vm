@@ -210,17 +210,19 @@ pub fn cairo_run_program(
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
         finalize_builtins(
-            cairo_run_config.proof_mode,
+            cairo_run_config.proof_mode || cairo_run_config.append_return_values,
             &main_func.signature.ret_types,
             &type_sizes,
             &mut vm,
         )?;
 
-        // Build execution public memory
-        if cairo_run_config.proof_mode {
+        if cairo_run_config.proof_mode || cairo_run_config.append_return_values {
             // As the output builtin is not used by the program we need to compute it's stop ptr manually
             vm.set_output_stop_ptr_offset(return_type_size as usize);
+        }
 
+        // Build execution public memory
+        if cairo_run_config.proof_mode {
             runner.finalize_segments(&mut vm)?;
         }
     }
