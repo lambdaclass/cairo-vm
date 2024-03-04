@@ -339,10 +339,8 @@ fn create_proof_mode_header(builtin_count: i16, return_type_size: i16) -> Vec<In
     ctx.instructions
 }
 
-// Create proof_mode specific instructions
-// Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
-// wich call the firt program instruction and then initiate an infinite loop.
-// And also appending the return values to the output builtin's memory segment
+// Create specific instructions to append the return values to the output segment when not running in proof_mode
+// Call the firt program instruction, appends the return values to the output builtin's memory segment and then returns
 fn create_append_return_values_header(
     builtin_count: i16,
     return_type_size: i16,
@@ -352,7 +350,7 @@ fn create_append_return_values_header(
     let output_fp_offset: i16 = -(builtin_count + 2); // The 2 here represents the return_fp & end segments
 
     // The pc offset where the original program should start
-    // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
+    // Without this header it should start at 0, but we add 2 for the call and 1 for the return instruction
     // and also 1 for each instruction added to copy each return value into the output segment
     let program_start_offset: i16 = 3 + return_type_size;
 
