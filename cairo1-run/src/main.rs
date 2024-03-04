@@ -351,6 +351,53 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
                         continue;
                     }
                 }
+
+                // Check if the single relocatable value represents a span
+                // In this case, the reloacatable will lead us to the (start, end) pair in memory
+                // For example, the relocatable value may be 14:0, with the segment 14 containing [13:0 13:4] which is a valid array
+                if let (Ok(x), Ok(y)) = (vm.get_relocatable(*x), vm.get_relocatable(x + 1)) {
+                    if x.segment_index == y.segment_index && y.offset >= x.offset {
+                        // Fetch array
+                        maybe_add_whitespace(output_string);
+                        output_string.push('[');
+                        let array = vm.get_continuous_range(x, y.offset - x.offset).unwrap();
+                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                            array.iter().peekable();
+                        serialize_output_inner(&mut array_iter, output_string, vm);
+                        output_string.push(']');
+                        continue;
+                    }
+                }
+
+                // Check if the relocatable value represents a dictionary
+                // To do so we can check if the relocatable consists with the dictionary's stop_ptr, which should be a pointer to the next empty cell in the dictionary's segment
+                if x.offset
+                    == vm
+                        .get_segment_size(x.segment_index as usize)
+                        .unwrap_or_default()
+                {
+                    let dict_mem = vm
+                        .get_continuous_range((x.segment_index, 0).into(), x.offset)
+                        .expect("Malformed dictionary memory");
+                    // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+                    // The prev value is not relevant to the user so we can skip over it for calrity
+                    // Check that the dictionary memory is consistent with the above definition
+                    if dict_mem.len() % 3 == 0 {
+                        maybe_add_whitespace(output_string);
+                        output_string.push('{');
+                        for (key, _, value) in dict_mem.iter().tuples() {
+                            // Fetch the key wich should always be a Felt value
+                            output_string.push_str(&key.to_string());
+                            output_string.push_str(": ");
+                            // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                            let value_vec = vec![value.clone()];
+                            let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
+                                value_vec.iter().peekable();
+                            serialize_output_inner(&mut value_iter, output_string, vm);
+                            output_string.push('}');
+                        }
+                    }
+                }
             }
             maybe_add_whitespace(output_string);
             output_string.push_str(&val.to_string());
