@@ -624,7 +624,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_span(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "[0x8,0x9,0xa,0xb,]";
+        let expected_output = "[8 9 10 11]";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }
