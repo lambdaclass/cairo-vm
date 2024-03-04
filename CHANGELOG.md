@@ -4,7 +4,7 @@
 
 * feat: Fix output serialization for cairo 1 [#1645](https://github.com/lambdaclass/cairo-vm/pull/1645)
   * Reverts changes added by #1630
-  * Extends the serialization of arrays added by the `print_output` flag to Spans and Dictionaries
+  * Extends the serialization of Arrays added by the `print_output` flag to Spans and Dictionaries
 
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
