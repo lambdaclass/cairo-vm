@@ -211,6 +211,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        ..Default::default()
     };
 
     let compiler_config = CompilerConfig {

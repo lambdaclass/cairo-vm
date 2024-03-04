@@ -124,6 +124,8 @@ pub fn cairo_run_program(
     // Also appends return values to output segment
     let proof_mode_header = if cairo_run_config.proof_mode {
         create_proof_mode_header(builtins.len() as i16, return_type_size)
+    } else if cairo_run_config.append_return_values {
+        create_append_return_values_header(builtins.len() as i16, return_type_size)
     } else {
         casm! {}.instructions
     };
@@ -335,6 +337,38 @@ fn create_proof_mode_header(builtin_count: i16, return_type_size: i16) -> Vec<In
     casm_extend! {ctx,
         jmp rel 0; // Infinite loop
     };
+    ctx.instructions
+}
+
+// Create proof_mode specific instructions
+// Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
+// wich call the firt program instruction and then initiate an infinite loop.
+// And also appending the return values to the output builtin's memory segment
+fn create_append_return_values_header(
+    builtin_count: i16,
+    return_type_size: i16,
+) -> Vec<Instruction> {
+    // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
+    // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
+    let output_fp_offset: i16 = -(builtin_count + 2); // The 2 here represents the return_fp & end segments
+
+    // The pc offset where the original program should start
+    // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
+    // and also 1 for each instruction added to copy each return value into the output segment
+    let program_start_offset: i16 = return_type_size;
+
+    let mut ctx = casm! {};
+    casm_extend! {ctx,
+        call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
+    };
+    // Append each return value to the output segment
+    for (i, j) in (1..return_type_size + 1).rev().enumerate() {
+        casm_extend! {ctx,
+            // [ap -j] is where each return value is located in memory
+            // [[fp + output_fp_offet] + 0] is the base of the output segment
+            [ap - j] = [[fp + output_fp_offset] + i as i16];
+        };
+    }
     ctx.instructions
 }
 
