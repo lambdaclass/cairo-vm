@@ -101,7 +101,6 @@ pub fn cairo_run_program(
         &type_sizes,
         main_func,
         initial_gas,
-        cairo_run_config.proof_mode,
         cairo_run_config.proof_mode || cairo_run_config.append_return_values,
         cairo_run_config.args,
     )?;
@@ -383,7 +382,6 @@ fn create_entry_code(
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
-    proof_mode: bool,
     append_output: bool,
     args: &[FuncArg],
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
@@ -443,7 +441,7 @@ fn create_entry_code(
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
             let mut offset = *offset;
-            if proof_mode || append_output {
+            if append_output {
                 // Everything is off by 2 due to the proof mode header
                 offset += 2;
             }
