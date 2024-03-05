@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PublicMemoryEntry {
     pub address: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
@@ -74,7 +74,7 @@ mod mem_value_serde {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MemorySegmentAddresses {
     pub begin_addr: usize,
     pub stop_ptr: usize,
@@ -99,7 +99,7 @@ pub struct PublicInput<'a> {
     pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     pub public_memory: Vec<PublicMemoryEntry>,
     #[serde(rename = "dynamic_params")]
-    #[serde(skip_deserializing)]
+    #[serde(skip_deserializing)] // This is set to None by default so we can skip it
     layout_params: Option<&'a CairoLayout>,
 }
 
@@ -174,4 +174,46 @@ pub enum PublicInputError {
     VirtualMachine(#[from] VirtualMachineError),
     #[error(transparent)]
     Trace(#[from] TraceError),
+}
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+
+    #[cfg(feature = "std")]
+    #[rstest]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"))]
+    fn serialize_and_deserialize_air_public_input(#[case] program_content: &[u8]) {
+        let config = crate::cairo_run::CairoRunConfig {
+            proof_mode: true,
+            relocate_mem: true,
+            trace_enabled: true,
+            layout: "all_cairo",
+            ..Default::default()
+        };
+        let (runner, vm) = crate::cairo_run::cairo_run(&program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let public_input = runner.get_air_public_input(&vm).unwrap();
+        // We already know serialization works as expected due to the comparison against python VM
+        let serialized_public_input = public_input.serialize_json().unwrap();
+        let deserialized_public_input: PublicInput =
+            serde_json::from_str(&serialized_public_input).unwrap();
+        // Check that the deserialized public input is equal to the one we obtained from the vm first
+        assert_eq!(public_input.layout, deserialized_public_input.layout);
+        assert_eq!(public_input.rc_max, deserialized_public_input.rc_max);
+        assert_eq!(public_input.rc_min, deserialized_public_input.rc_min);
+        assert_eq!(public_input.n_steps, deserialized_public_input.n_steps);
+        assert_eq!(
+            public_input.memory_segments,
+            deserialized_public_input.memory_segments
+        );
+        assert_eq!(
+            public_input.public_memory,
+            deserialized_public_input.public_memory
+        );
+        assert!(
+            public_input.layout_params.is_none()
+                && deserialized_public_input.layout_params.is_none()
+        );
+    }
 }
