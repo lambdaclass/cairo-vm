@@ -57,6 +57,8 @@ pub mod air_public_input;
 pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;
+#[cfg(feature = "std")] // TODO review: I'm not sure of how to specify an std-only module
+pub mod program_hash;
 pub mod serde;
 pub mod types;
 pub mod utils;
