@@ -184,6 +184,12 @@ mod tests {
     #[cfg(feature = "std")]
     #[rstest]
     #[case(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/bitwise_output.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/keccak_builtin.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/poseidon_builtin.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/relocate_temporary_segment_append.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/pedersen_test.json"))]
+    #[case(include_bytes!("../../cairo_programs/proof_programs/ec_op.json"))]
     fn serialize_and_deserialize_air_public_input(#[case] program_content: &[u8]) {
         let config = crate::cairo_run::CairoRunConfig {
             proof_mode: true,
