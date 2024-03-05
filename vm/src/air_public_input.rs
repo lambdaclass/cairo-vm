@@ -1,5 +1,5 @@
 use crate::Felt252;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror_no_std::Error;
 
 use crate::{
@@ -14,18 +14,21 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PublicMemoryEntry {
     pub address: usize,
     #[serde(serialize_with = "mem_value_serde::serialize")]
+    #[serde(deserialize_with = "mem_value_serde::deserialize")]
     pub value: Option<Felt252>,
     pub page: usize,
 }
 
 mod mem_value_serde {
+    use core::fmt;
+
     use super::*;
 
-    use serde::Serializer;
+    use serde::{de, Deserializer, Serializer};
 
     pub(crate) fn serialize<S: Serializer>(
         value: &Option<Felt252>,
@@ -37,9 +40,41 @@ mod mem_value_serde {
             serializer.serialize_none()
         }
     }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+        d: D,
+    ) -> Result<Option<Felt252>, D::Error> {
+        d.deserialize_str(Felt252OptionVisitor)
+    }
+
+    struct Felt252OptionVisitor;
+
+    impl<'de> de::Visitor<'de> for Felt252OptionVisitor {
+        type Value = Option<Felt252>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("Could not deserialize hexadecimal string")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Felt252::from_hex(&value)
+                .map_err(de::Error::custom)
+                .map(|x| Some(x))
+        }
+    }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MemorySegmentAddresses {
     pub begin_addr: usize,
     pub stop_ptr: usize,
@@ -55,7 +90,7 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PublicInput<'a> {
     pub layout: &'a str,
     pub rc_min: isize,
@@ -64,6 +99,7 @@ pub struct PublicInput<'a> {
     pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     pub public_memory: Vec<PublicMemoryEntry>,
     #[serde(rename = "dynamic_params")]
+    #[serde(skip_deserializing)]
     layout_params: Option<&'a CairoLayout>,
 }
 
