@@ -401,6 +401,20 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
                     output_string.push('}');
                     continue;
                 }
+
+                // Finally, if the relocatable is neither the start of an array, a span, or a dictionary, it should be a reference (Such as Box)
+                // In this case we show the referenced value (if it exists)
+                // As this reference can also hold a reference we use the serialize_output_inner function to handle it recursively
+                if let Some(val) = vm.get_maybe(x) {
+                    maybe_add_whitespace(output_string);
+                    let array = vec![val.clone()];
+                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                    array.iter().peekable();
+                    serialize_output_inner(&mut array_iter, output_string, vm);
+                    continue;
+
+                }
+
             }
             maybe_add_whitespace(output_string);
             output_string.push_str(&val.to_string());
@@ -641,6 +655,15 @@ mod tests {
     fn test_run_array_integer_tuple(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         let expected_output = "[1] 1";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_nullable_box_vec(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0:10 1:20 2:30} 3";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }
