@@ -77,7 +77,8 @@ impl BitwiseBuiltinRunner {
         let x_addr = (address - index)?;
         let y_addr = (x_addr + 1_usize)?;
 
-        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr)) else {
+        let (Ok(num_x), Ok(num_y)) = (memory.get_integer(x_addr), memory.get_integer(y_addr))
+        else {
             return Ok(None);
         };
 
@@ -393,7 +394,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -438,7 +439,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
