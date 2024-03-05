@@ -177,6 +177,7 @@ pub enum PublicInputError {
 }
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "std")]
     use rstest::rstest;
 
     use super::*;
