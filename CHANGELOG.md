@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
+
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
 * feat: output builtin features for bootloader support [#1580](https://github.com/lambdaclass/cairo-vm/pull/1580)
