@@ -411,13 +411,10 @@ pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable])
                 if let Some(val) = vm.get_maybe(x) {
                     maybe_add_whitespace(output_string);
                     let array = vec![val.clone()];
-                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                    array.iter().peekable();
+                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> = array.iter().peekable();
                     serialize_output_inner(&mut array_iter, output_string, vm);
                     continue;
-
                 }
-
             }
             maybe_add_whitespace(output_string);
             output_string.push_str(&val.to_string());
