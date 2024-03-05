@@ -296,7 +296,7 @@ impl CairoRunner {
                         instance_def.ratio,
                         included,
                     )
-                    .into(),
+                        .into(),
                 );
             }
         }
@@ -613,10 +613,10 @@ impl CairoRunner {
             self.initial_ap = self.initial_fp;
             return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
                 + self
-                    .program
-                    .shared_program_data
-                    .end
-                    .ok_or(RunnerError::NoProgramEnd)?);
+                .program
+                .shared_program_data
+                .end
+                .ok_or(RunnerError::NoProgramEnd)?);
         }
 
         let return_fp = vm.segments.add();
@@ -690,11 +690,11 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
         #[cfg(not(feature = "extensive_hints"))]
-        let hint_data = self.get_hint_data(references, hint_processor)?;
+            let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
-        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+            let mut hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
-        let mut hint_ranges = self
+            let mut hint_ranges = self
             .program
             .shared_program_data
             .hints_collection
@@ -707,9 +707,9 @@ impl CairoRunner {
                 hint_processor,
                 &mut self.exec_scopes,
                 #[cfg(feature = "extensive_hints")]
-                &mut hint_data,
+                    &mut hint_data,
                 #[cfg(not(feature = "extensive_hints"))]
-                self.program
+                    self.program
                     .shared_program_data
                     .hints_collection
                     .get_hint_range_for_pc(vm.run_context.pc.offset)
@@ -718,7 +718,7 @@ impl CairoRunner {
                     })
                     .unwrap_or(&[]),
                 #[cfg(feature = "extensive_hints")]
-                &mut hint_ranges,
+                    &mut hint_ranges,
                 &self.program.constants,
             )?;
 
@@ -741,18 +741,18 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
         #[cfg(not(feature = "extensive_hints"))]
-        let hint_data = self.get_hint_data(references, hint_processor)?;
+            let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
-        let mut hint_data = self.get_hint_data(references, hint_processor)?;
+            let mut hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
-        let mut hint_ranges = self
+            let mut hint_ranges = self
             .program
             .shared_program_data
             .hints_collection
             .hints_ranges
             .clone();
         #[cfg(not(feature = "extensive_hints"))]
-        let hint_data = &self
+            let hint_data = &self
             .program
             .shared_program_data
             .hints_collection
@@ -771,11 +771,11 @@ impl CairoRunner {
                 hint_processor,
                 &mut self.exec_scopes,
                 #[cfg(feature = "extensive_hints")]
-                &mut hint_data,
+                    &mut hint_data,
                 #[cfg(not(feature = "extensive_hints"))]
-                hint_data,
+                    hint_data,
                 #[cfg(feature = "extensive_hints")]
-                &mut hint_ranges,
+                    &mut hint_ranges,
                 &self.program.constants,
             )?;
         }
@@ -835,7 +835,7 @@ impl CairoRunner {
                     (rc_max - rc_min) as usize,
                 ))),
             )
-            .into());
+                .into());
         }
 
         Ok(())
@@ -884,7 +884,7 @@ impl CairoRunner {
                     diluted_usage_upper_bound,
                 ))),
             )
-            .into());
+                .into());
         }
 
         Ok(())
@@ -915,8 +915,7 @@ impl CairoRunner {
                 match self.check_used_cells(vm) {
                     Ok(_) => break,
                     Err(e) => match e {
-                        VirtualMachineError::Memory(MemoryError::InsufficientAllocatedCells(_)) => {
-                        }
+                        VirtualMachineError::Memory(MemoryError::InsufficientAllocatedCells(_)) => {}
                         e => return Err(e),
                     },
                 }
@@ -1226,7 +1225,7 @@ impl CairoRunner {
                 total_memory_units,
                 instance._public_memory_fraction,
             )
-            .into());
+                .into());
         }
 
         let instruction_memory_units = 4 * vm_current_step_u32;
@@ -1604,6 +1603,7 @@ mod tests {
         vm::trace::trace_entry::TraceEntry,
     };
     use assert_matches::assert_matches;
+    use rstest::rstest;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -1920,7 +1920,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
 
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
@@ -3805,7 +3805,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, "all_cairo", true);
@@ -4859,7 +4859,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/example_program.json"),
             None,
         )
-        .unwrap();
+            .unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -4930,7 +4930,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/bitwise_builtin_test.json"),
             None,
         )
-        .unwrap();
+            .unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -5049,7 +5049,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_function.json"),
             None,
         )
-        .unwrap();
+            .unwrap();
         let mut cairo_runner = cairo_runner!(program);
         let mut vm = vm!(true); //this true expression dictates that the trace is enabled
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -5093,7 +5093,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/assert_le_felt_hint.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5116,7 +5116,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/integration.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5139,7 +5139,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5162,7 +5162,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/integration.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5250,7 +5250,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5269,7 +5269,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5290,7 +5290,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5311,7 +5311,7 @@ mod tests {
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
             Some("main"),
         )
-        .unwrap();
+            .unwrap();
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -5500,7 +5500,7 @@ mod tests {
             },
             &mut BuiltinHintProcessor::new_empty(),
         )
-        .unwrap();
+            .unwrap();
         let air_private_input = runner.get_air_private_input(&vm);
         assert!(air_private_input.0[HASH_BUILTIN_NAME].is_empty());
         assert!(air_private_input.0[RANGE_CHECK_BUILTIN_NAME].is_empty());
@@ -5526,5 +5526,68 @@ mod tests {
                 },
             })]
         );
+    }
+
+    #[test]
+    fn prepare_builtins_initial_stack_no_builtins() {
+        let layout = "small";
+        let proof_mode = false;
+        let trace_enabled = true;
+        let allow_missing_builtins = true;
+
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+
+        let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode).unwrap();
+        let mut vm = VirtualMachine::new(trace_enabled);
+        let _ = cairo_runner
+            .initialize(&mut vm, allow_missing_builtins)
+            .unwrap();
+
+        let initial_stack = cairo_runner.prepare_builtins_initial_stack(&vm);
+        assert_eq!(initial_stack, vec![]);
+    }
+
+    #[rstest]
+    #[case("small", true)]
+    #[case("all_cairo", false)]
+    fn prepare_builtins_initial_stack_missing_builtins(
+        #[case] layout: &str,
+        #[case] allow_missing_builtins: bool,
+    ) {
+        let proof_mode = false;
+        let trace_enabled = true;
+
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/keccak_builtin.json");
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+
+        let mut cairo_runner = CairoRunner::new(&program, layout, proof_mode).unwrap();
+        let mut vm = VirtualMachine::new(trace_enabled);
+        let _ = cairo_runner
+            .initialize(&mut vm, allow_missing_builtins)
+            .unwrap();
+
+        let initial_stack = cairo_runner.prepare_builtins_initial_stack(&vm);
+
+        let keccak_builtin_runner = {
+            let mut keccak = None;
+            for builtin in vm.get_builtin_runners() {
+                if let BuiltinRunner::Keccak(keccak_builtin_runner) = builtin {
+                    keccak = Some(keccak_builtin_runner);
+                };
+            }
+            keccak
+        };
+
+        match keccak_builtin_runner {
+            Some(keccak_builtin_runner) => {
+                assert_eq!(initial_stack, keccak_builtin_runner.initial_stack());
+            }
+            None => {
+                assert_eq!(initial_stack, vec![MaybeRelocatable::from((0, 0))]);
+            }
+        }
     }
 }
