@@ -4,6 +4,11 @@
 
 * feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
 
+* feat: Fix output serialization for cairo 1 [#1645](https://github.com/lambdaclass/cairo-vm/pull/1645)
+  * Reverts changes added by #1630
+  * Extends the serialization of Arrays added by the `print_output` flag to Spans and Dictionaries
+  * Now dereferences references upon serialization
+
 * feat: Add flag to append return values to output segment when not running in proof_mode [#1646](https://github.com/lambdaclass/cairo-vm/pull/1646)
   * Adds the flag `append_return_values` to both the CLI and `Cairo1RunConfig` struct.
   * Enabling flag will add the output builtin and the necessary instructions to append the return values to the output builtin's memory segment.
