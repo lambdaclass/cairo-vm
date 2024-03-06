@@ -22,23 +22,7 @@ env:
   PROPTEST_CASES: 100
 
 jobs:
-
-  # We need to use the same files across all jobs or else hashing will fail
-  upload_proof_programs_symlinks:
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Create proof_programs symlinks
-      run: make create-proof-programs-symlinks
-    - uses: actions/upload-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/*.cairo
-  
   build-programs:
-    needs: upload_proof_programs_symlinks
     strategy:
       matrix:
         # NOTE: we build cairo_bench_programs so clippy can check the benchmarks too
@@ -56,11 +40,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch from cache
       uses: actions/cache@v3
@@ -112,11 +91,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -161,7 +135,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.74.1
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
           components: rustfmt, clippy
     - name: Set up cargo cache
@@ -169,14 +143,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
-
     - name: Format
       run: make check-fmt
-
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -197,7 +165,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.74.1
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -212,11 +180,6 @@ jobs:
         tool: cargo-all-features
     - name: Checkout
       uses: actions/checkout@v3
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -257,18 +220,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.74.1
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
           components: llvm-tools-preview
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -323,7 +281,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.74.1
+      uses: dtolnay/rust-toolchain@1.70.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
@@ -355,11 +313,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Check cache
       uses: actions/cache@v3
@@ -427,11 +380,6 @@ jobs:
         key: cli-bin-rel-${{ github.sha }}
         path: target/release/cairo-vm-cli
         fail-on-cache-miss: true
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -537,6 +485,31 @@ jobs:
         fail_ci_if_error: true
 
 
+  compare-factorial-outputs-all-layouts:
+    name: Compare factorial outputs for all layoutss
+    needs: [ build-programs, build-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Run script
+      run: ./vm/src/tests/compare_factorial_outputs_all_layouts.sh
+
   compare-memory-and-trace:
     strategy:
       matrix:
@@ -547,11 +520,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-
-    - uses: actions/download-artifact@master
-      with:
-        name: proof_programs
-        path: cairo_programs/proof_programs/
 
     - name: Fetch traces for cairo-lang
       uses: actions/cache/restore@v3
