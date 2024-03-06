@@ -113,7 +113,7 @@ impl CairoPie {
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         zip_writer.start_file("version.json", options)?;
         zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
         zip_writer.start_file("metadata.json", options)?;
