@@ -557,7 +557,7 @@ jobs:
         wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:
-    name: Compare factorial outputs for all layoutss
+    name: Compare factorial outputs for all layouts
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
     steps:
