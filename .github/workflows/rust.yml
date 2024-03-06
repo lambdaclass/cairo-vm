@@ -647,7 +647,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: cairo_programs/proof_programs/*.json
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/proof_programs/*.cairo') }}
         fail-on-cache-miss: true
         
     - name: Run script
