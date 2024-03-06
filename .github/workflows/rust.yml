@@ -565,14 +565,12 @@ jobs:
       uses: actions/checkout@v3
     
     - name: Python3 Build
-      if: steps.trace-cache.outputs.cache-hit != 'true'
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
         cache: 'pip'
 
     - name: Install cairo-lang and deps
-      if: steps.trace-cache.outputs.cache-hit != 'true'
       run: pip install -r requirements.txt
 
     - name: Fetch release binary
@@ -586,7 +584,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
     - name: Run script
