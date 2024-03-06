@@ -179,7 +179,7 @@ pub enum PublicInputError {
 mod tests {
     #[cfg(feature = "std")]
     use rstest::rstest;
-
+    #[cfg(feature = "std")]
     use super::*;
 
     #[cfg(feature = "std")]
