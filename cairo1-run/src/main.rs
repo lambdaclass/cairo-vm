@@ -61,6 +61,13 @@ struct Args {
     args: FuncArgs,
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
+    #[clap(
+        long = "append_return_values",
+        // We need to add these air_private_input & air_public_input or else
+        // passing cairo_pie_output + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
+    append_return_values: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -214,6 +221,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        append_return_values: args.append_return_values,
     };
 
     let compiler_config = CompilerConfig {
