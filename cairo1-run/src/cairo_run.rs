@@ -195,6 +195,10 @@ pub fn cairo_run_program(
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    if cairo_run_config.proof_mode {
+        runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
+    }
+
     if cairo_run_config.proof_mode || cairo_run_config.append_return_values {
         // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
         // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
