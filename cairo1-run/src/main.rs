@@ -323,9 +323,9 @@ fn main() -> Result<(), Error> {
     }
 }
 
-// Serializes the return values in a user-friendly format
-// Displays Arrays using brackets ([]) and Dictionaries using ({})
-// Recursively dereferences referenced values (such as Span & Box)
+/// Serializes the return values in a user-friendly format
+/// Displays Arrays using brackets ([]) and Dictionaries using ({})
+/// Recursively dereferences referenced values (such as Span & Box)
 pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
     let mut output_string = String::new();
     let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
