@@ -581,3 +581,29 @@ jobs:
         cairo-compile cairo_programs/array_sum.cairo --no_debug_info --output cairo_programs/array_sum.json
         cd examples/wasm-demo
         wasm-pack build --target=web
+
+  compare-factorial-outputs-all-layouts:
+    name: Compare factorial outputs for all layoutss
+    needs: [ build-programs, build-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Run script
+      run: ./vm/src/tests/compare_factorial_outputs_all_layouts.sh
+
