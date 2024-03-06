@@ -17,13 +17,20 @@ use crate::Felt252;
 pub struct AirPrivateInputSerializable {
     trace_path: String,
     memory_path: String,
-    pedersen: Vec<PrivateInput>,
-    range_check: Vec<PrivateInput>,
-    ecdsa: Vec<PrivateInput>,
-    bitwise: Vec<PrivateInput>,
-    ec_op: Vec<PrivateInput>,
-    keccak: Vec<PrivateInput>,
-    poseidon: Vec<PrivateInput>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pedersen: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    range_check: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ecdsa: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bitwise: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ec_op: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    keccak: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    poseidon: Option<Vec<PrivateInput>>,
 }
 
 // Contains only builtin public inputs, useful for library users
@@ -108,44 +115,34 @@ impl AirPrivateInput {
         AirPrivateInputSerializable {
             trace_path,
             memory_path,
-            pedersen: self.0.get(HASH_BUILTIN_NAME).cloned().unwrap_or_default(),
-            range_check: self
-                .0
-                .get(RANGE_CHECK_BUILTIN_NAME)
-                .cloned()
-                .unwrap_or_default(),
-            ecdsa: self
-                .0
-                .get(SIGNATURE_BUILTIN_NAME)
-                .cloned()
-                .unwrap_or_default(),
-            bitwise: self
-                .0
-                .get(BITWISE_BUILTIN_NAME)
-                .cloned()
-                .unwrap_or_default(),
-            ec_op: self.0.get(EC_OP_BUILTIN_NAME).cloned().unwrap_or_default(),
-            keccak: self.0.get(KECCAK_BUILTIN_NAME).cloned().unwrap_or_default(),
-            poseidon: self
-                .0
-                .get(POSEIDON_BUILTIN_NAME)
-                .cloned()
-                .unwrap_or_default(),
+            pedersen: self.0.get(HASH_BUILTIN_NAME).cloned(),
+            range_check: self.0.get(RANGE_CHECK_BUILTIN_NAME).cloned(),
+            ecdsa: self.0.get(SIGNATURE_BUILTIN_NAME).cloned(),
+            bitwise: self.0.get(BITWISE_BUILTIN_NAME).cloned(),
+            ec_op: self.0.get(EC_OP_BUILTIN_NAME).cloned(),
+            keccak: self.0.get(KECCAK_BUILTIN_NAME).cloned(),
+            poseidon: self.0.get(POSEIDON_BUILTIN_NAME).cloned(),
         }
     }
 }
 
 impl From<AirPrivateInputSerializable> for AirPrivateInput {
     fn from(private_input: AirPrivateInputSerializable) -> Self {
-        Self(HashMap::from([
-            (HASH_BUILTIN_NAME, private_input.pedersen),
-            (RANGE_CHECK_BUILTIN_NAME, private_input.range_check),
-            (SIGNATURE_BUILTIN_NAME, private_input.ecdsa),
-            (BITWISE_BUILTIN_NAME, private_input.bitwise),
-            (EC_OP_BUILTIN_NAME, private_input.ec_op),
-            (KECCAK_BUILTIN_NAME, private_input.keccak),
-            (POSEIDON_BUILTIN_NAME, private_input.poseidon),
-        ]))
+        let mut inputs = HashMap::new();
+        let mut insert_input = |input_name, input| {
+            if let Some(input) = input {
+                inputs.insert(input_name, input);
+            }
+        };
+        insert_input(HASH_BUILTIN_NAME, private_input.pedersen);
+        insert_input(RANGE_CHECK_BUILTIN_NAME, private_input.range_check);
+        insert_input(SIGNATURE_BUILTIN_NAME, private_input.ecdsa);
+        insert_input(BITWISE_BUILTIN_NAME, private_input.bitwise);
+        insert_input(EC_OP_BUILTIN_NAME, private_input.ec_op);
+        insert_input(KECCAK_BUILTIN_NAME, private_input.keccak);
+        insert_input(POSEIDON_BUILTIN_NAME, private_input.poseidon);
+
+        Self(inputs)
     }
 }
 
@@ -174,16 +171,16 @@ mod tests {
         let serializable_private_input = AirPrivateInputSerializable {
             trace_path: "trace.bin".to_string(),
             memory_path: "memory.bin".to_string(),
-            pedersen: vec![PrivateInput::Pair(PrivateInputPair {
+            pedersen: Some(vec![PrivateInput::Pair(PrivateInputPair {
                 index: 0,
                 x: Felt252::from(100),
                 y: Felt252::from(200),
-            })],
-            range_check: vec![PrivateInput::Value(PrivateInputValue {
+            })]),
+            range_check: Some(vec![PrivateInput::Value(PrivateInputValue {
                 index: 10000,
                 value: Felt252::from(8000),
-            })],
-            ecdsa: vec![PrivateInput::Signature(PrivateInputSignature {
+            })]),
+            ecdsa: Some(vec![PrivateInput::Signature(PrivateInputSignature {
                 index: 0,
                 pubkey: Felt252::from(123),
                 msg: Felt252::from(456),
@@ -191,21 +188,21 @@ mod tests {
                     r: Felt252::from(654),
                     w: Felt252::from(321),
                 },
-            })],
-            bitwise: vec![PrivateInput::Pair(PrivateInputPair {
+            })]),
+            bitwise: Some(vec![PrivateInput::Pair(PrivateInputPair {
                 index: 4,
                 x: Felt252::from(7),
                 y: Felt252::from(8),
-            })],
-            ec_op: vec![PrivateInput::EcOp(PrivateInputEcOp {
+            })]),
+            ec_op: Some(vec![PrivateInput::EcOp(PrivateInputEcOp {
                 index: 1,
                 p_x: Felt252::from(10),
                 p_y: Felt252::from(10),
                 m: Felt252::from(100),
                 q_x: Felt252::from(11),
                 q_y: Felt252::from(14),
-            })],
-            keccak: vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+            })]),
+            keccak: Some(vec![PrivateInput::KeccakState(PrivateInputKeccakState {
                 index: 0,
                 input_s0: Felt252::from(0),
                 input_s1: Felt252::from(1),
@@ -215,23 +212,25 @@ mod tests {
                 input_s5: Felt252::from(5),
                 input_s6: Felt252::from(6),
                 input_s7: Felt252::from(7),
-            })],
-            poseidon: vec![PrivateInput::PoseidonState(PrivateInputPoseidonState {
-                index: 42,
-                input_s0: Felt252::from(1),
-                input_s1: Felt252::from(2),
-                input_s2: Felt252::from(3),
-            })],
+            })]),
+            poseidon: Some(vec![PrivateInput::PoseidonState(
+                PrivateInputPoseidonState {
+                    index: 42,
+                    input_s0: Felt252::from(1),
+                    input_s1: Felt252::from(2),
+                    input_s2: Felt252::from(3),
+                },
+            )]),
         };
 
         let private_input = AirPrivateInput::from(serializable_private_input.clone());
 
-        assert_matches!(private_input.0.get(HASH_BUILTIN_NAME), Some(data) if *data == serializable_private_input.pedersen);
-        assert_matches!(private_input.0.get(RANGE_CHECK_BUILTIN_NAME), Some(data) if *data == serializable_private_input.range_check);
-        assert_matches!(private_input.0.get(SIGNATURE_BUILTIN_NAME), Some(data) if *data == serializable_private_input.ecdsa);
-        assert_matches!(private_input.0.get(BITWISE_BUILTIN_NAME), Some(data) if *data == serializable_private_input.bitwise);
-        assert_matches!(private_input.0.get(EC_OP_BUILTIN_NAME), Some(data) if *data == serializable_private_input.ec_op);
-        assert_matches!(private_input.0.get(KECCAK_BUILTIN_NAME), Some(data) if *data == serializable_private_input.keccak);
-        assert_matches!(private_input.0.get(POSEIDON_BUILTIN_NAME), Some(data) if *data == serializable_private_input.poseidon);
+        assert_matches!(private_input.0.get(HASH_BUILTIN_NAME), data if data == serializable_private_input.pedersen.as_ref());
+        assert_matches!(private_input.0.get(RANGE_CHECK_BUILTIN_NAME), data if data == serializable_private_input.range_check.as_ref());
+        assert_matches!(private_input.0.get(SIGNATURE_BUILTIN_NAME), data if data == serializable_private_input.ecdsa.as_ref());
+        assert_matches!(private_input.0.get(BITWISE_BUILTIN_NAME), data if data == serializable_private_input.bitwise.as_ref());
+        assert_matches!(private_input.0.get(EC_OP_BUILTIN_NAME), data if data == serializable_private_input.ec_op.as_ref());
+        assert_matches!(private_input.0.get(KECCAK_BUILTIN_NAME), data if data == serializable_private_input.keccak.as_ref());
+        assert_matches!(private_input.0.get(POSEIDON_BUILTIN_NAME), data if data == serializable_private_input.poseidon.as_ref());
     }
 }
