@@ -332,7 +332,7 @@ mod serde_impl {
         S: Serializer,
     {
         let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
-        const BUILTIN_ORDERED_LIST: &'static [&'static str] = &[
+        const BUILTIN_ORDERED_LIST: &[&str] = &[
             "output",
             "pedersen",
             "range_check",
