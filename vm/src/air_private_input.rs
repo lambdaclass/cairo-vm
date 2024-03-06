@@ -165,6 +165,9 @@ mod tests {
         assert_matches::assert_matches,
     };
 
+    #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+    use crate::alloc::string::ToString;
+
     #[cfg(feature = "std")]
     #[test]
     fn test_from_serializable() {
