@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Show only layout builtins in air private input [#1651](https://github.com/lambdaclass/cairo-vm/pull/1651)
+
 * feat: Fix output serialization for cairo 1 [#1645](https://github.com/lambdaclass/cairo-vm/pull/1645)
   * Reverts changes added by #1630
   * Extends the serialization of Arrays added by the `print_output` flag to Spans and Dictionaries
