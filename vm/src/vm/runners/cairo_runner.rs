@@ -179,6 +179,7 @@ impl CairoRunner {
             "plain" => CairoLayout::plain_instance(),
             "small" => CairoLayout::small_instance(),
             "dex" => CairoLayout::dex_instance(),
+            "recursive" => CairoLayout::recursive_instance(),
             "starknet" => CairoLayout::starknet_instance(),
             "starknet_with_keccak" => CairoLayout::starknet_with_keccak_instance(),
             "recursive_large_output" => CairoLayout::recursive_large_output_instance(),
