@@ -1604,7 +1604,6 @@ mod tests {
         vm::trace::trace_entry::TraceEntry,
     };
     use assert_matches::assert_matches;
-    use rstest::rstest;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -5550,14 +5549,7 @@ mod tests {
         assert_eq!(initial_stack, vec![]);
     }
 
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[rstest]
-    #[case("small", true)]
-    #[case("all_cairo", false)]
-    fn prepare_builtins_initial_stack_missing_builtins(
-        #[case] layout: &str,
-        #[case] allow_missing_builtins: bool,
-    ) {
+    fn prepare_stack_for_program_with_builtin(layout: &str, allow_missing_builtins: bool) {
         let proof_mode = false;
         let trace_enabled = true;
 
@@ -5591,5 +5583,15 @@ mod tests {
                 assert_eq!(initial_stack, vec![MaybeRelocatable::from((0, 0))]);
             }
         }
+    }
+
+    #[test]
+    fn prepare_builtins_initial_stack() {
+        prepare_stack_for_program_with_builtin("all_cairo", false);
+    }
+
+    #[test]
+    fn prepare_builtins_initial_stack_missing_builtins() {
+        prepare_stack_for_program_with_builtin("small", true);
     }
 }
