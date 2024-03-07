@@ -88,6 +88,10 @@ pub fn cairo_run_program(
     cairo_runner
         .run_until_pc(end, &mut vm, hint_executor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+
+    if cairo_run_config.proof_mode {
+        cairo_runner.run_for_steps(1, &mut vm, hint_executor)?;
+    }
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
         false,
