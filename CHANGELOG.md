@@ -4,6 +4,8 @@
 
 * feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
 
+* feat: Sort builtin segment info upon serialization for Cairo PIE [#1654](https://github.com/lambdaclass/cairo-vm/pull/1654)
+
 * feat: Fix output serialization for cairo 1 [#1645](https://github.com/lambdaclass/cairo-vm/pull/1645)
   * Reverts changes added by #1630
   * Extends the serialization of Arrays added by the `print_output` flag to Spans and Dictionaries
