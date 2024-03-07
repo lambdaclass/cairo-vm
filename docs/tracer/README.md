@@ -19,7 +19,7 @@ target/release/cairo-vm-cli <path_to_compiled_cairo_json> --layout <layout> --me
 ```
 
 ### NOTE
-> The `--memory_file` and `--trace_file` arguments are compulsary at the moment as the current code relocates the memory and trace only when these arguments are supplied. However, edits can be made in future versions to relocate if only the `--tracer` option is specified.
+> The `--memory_file` and `--trace_file` arguments are compulsory at the moment as the current code relocates the memory and trace only when these arguments are supplied. However, edits can be made in future versions to relocate if only the `--tracer` option is specified.
 
 
 ## Using the tracer
