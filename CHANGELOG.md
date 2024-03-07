@@ -1,7 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
-* feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memoery registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
+* feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
