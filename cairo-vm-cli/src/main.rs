@@ -66,7 +66,7 @@ struct Args {
     allow_missing_builtins: Option<bool>,
     #[structopt(long = "tracer")]
     #[cfg(feature = "with_tracer")]
-    tracer: Option<bool>,
+    tracer: bool,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -225,7 +225,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     #[cfg(feature = "with_tracer")]
-    if args.tracer.unwrap_or(false) {
+    if args.tracer {
         start_tracer(&cairo_runner, &vm)?;
     }
 
