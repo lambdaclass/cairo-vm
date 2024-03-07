@@ -3,6 +3,7 @@ use starknet_crypto::{pedersen_hash, FieldElement};
 use crate::Felt252;
 
 use crate::serde::deserialize_program::BuiltinName;
+use crate::stdlib::vec::Vec;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_pie::StrippedProgram;
 
@@ -144,10 +145,9 @@ pub fn compute_program_hash_chain(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    #[cfg(feature = "std")]
+    use {crate::types::program::Program, rstest::rstest, std::path::PathBuf};
 
-    use crate::types::program::Program;
-    use rstest::rstest;
     use starknet_crypto::pedersen_hash;
 
     use super::*;
@@ -169,6 +169,7 @@ mod tests {
         assert_eq!(computed_hash, expected_hash);
     }
 
+    #[cfg(feature = "std")]
     #[rstest]
     // Expected hashes generated with `cairo-hash-program`
     #[case::fibonacci(
