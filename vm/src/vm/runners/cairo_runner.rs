@@ -5550,6 +5550,7 @@ mod tests {
         assert_eq!(initial_stack, vec![]);
     }
 
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[rstest]
     #[case("small", true)]
     #[case("all_cairo", false)]
