@@ -52,6 +52,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
+    #[structopt(long = "allow_missing_builtins")]
+    allow_missing_builtins: Option<bool>,
 }
 
 fn validate_layout(value: &str) -> Result<String, String> {
@@ -59,6 +61,7 @@ fn validate_layout(value: &str) -> Result<String, String> {
         "plain"
         | "small"
         | "dex"
+        | "recursive"
         | "starknet"
         | "starknet_with_keccak"
         | "recursive_large_output"
@@ -132,6 +135,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         layout: &args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
+        allow_missing_builtins: args.allow_missing_builtins,
         ..Default::default()
     };
 

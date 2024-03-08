@@ -50,7 +50,9 @@ fn load_program_data(c: &mut Criterion) {
                     VirtualMachine::new(false),
                 )
             },
-            |(mut runner, mut vm)| _ = black_box(runner.initialize(black_box(&mut vm)).unwrap()),
+            |(mut runner, mut vm)| {
+                _ = black_box(runner.initialize(black_box(&mut vm), false).unwrap())
+            },
             BatchSize::SmallInput,
         )
     });
