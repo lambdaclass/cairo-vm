@@ -67,7 +67,7 @@ async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
         memory: tracer_data
             .memory
             .iter()
-            .filter_map(|x| x.as_ref().map(|_| x.clone().unwrap()))
+            .filter_map(|x| x.as_ref().map(|_| (*x).unwrap()))
             .map(|x| {
                 field_element_repr(
                     &x.to_bigint(),

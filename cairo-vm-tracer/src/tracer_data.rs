@@ -210,12 +210,12 @@ pub fn get_instruction_encoding(
     if memory[pc].is_none() {
         return Err(TraceDataError::InstructionIsNone(pc.to_string()));
     }
-    let instruction_encoding = memory[pc].clone().unwrap();
+    let instruction_encoding = memory[pc].unwrap();
     let prime = BigUint::parse_bytes(prime[2..].as_bytes(), 16).unwrap();
 
     let imm_addr = BigUint::from(pc + 1) % prime;
     let imm_addr = usize::try_from(imm_addr.clone())
         .map_err(|_| TraceDataError::FailedToImmAddress(imm_addr.to_string()))?;
-    let optional_imm = memory[imm_addr].clone();
+    let optional_imm = memory[imm_addr];
     Ok((instruction_encoding, optional_imm))
 }
