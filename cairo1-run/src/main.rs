@@ -6,24 +6,27 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    types::errors::program_errors::ProgramError,
-    vm::errors::{
-        memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-        vm_errors::VirtualMachineError,
+    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
+    vm::{
+        errors::{
+            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+            vm_errors::VirtualMachineError,
+        },
+        vm_core::VirtualMachine,
     },
     Felt252,
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
-use serialize_output::serialize_output;
 use std::{
     io::{self, Write},
+    iter::Peekable,
     path::PathBuf,
+    slice::Iter,
 };
 use thiserror::Error;
 
 pub mod cairo_run;
-pub mod serialize_output;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -58,6 +61,13 @@ struct Args {
     args: FuncArgs,
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
+    #[clap(
+        long = "append_return_values",
+        // We need to add these air_private_input & air_public_input or else
+        // passing cairo_pie_output + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
+    append_return_values: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +221,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        append_return_values: args.append_return_values,
     };
 
     let compiler_config = CompilerConfig {
@@ -294,7 +305,7 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(output) => {
             if let Some(output_string) = output {
-                println!("{}", output_string);
+                println!("Program Output : {}", output_string);
             }
             Ok(())
         }
@@ -318,6 +329,116 @@ fn main() -> Result<(), Error> {
         }
         Err(err) => Err(err),
     }
+}
+
+/// Serializes the return values in a user-friendly format
+/// Displays Arrays using brackets ([]) and Dictionaries using ({})
+/// Recursively dereferences referenced values (such as Span & Box)
+pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
+    let mut output_string = String::new();
+    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
+    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
+    fn serialize_output_inner(
+        iter: &mut Peekable<Iter<MaybeRelocatable>>,
+        output_string: &mut String,
+        vm: &VirtualMachine,
+    ) {
+        while let Some(val) = iter.next() {
+            if let MaybeRelocatable::RelocatableValue(x) = val {
+                // Check if the next value is a relocatable of the same index
+                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
+                    // Check if the two relocatable values represent a valid array in memory
+                    if x.segment_index == y.segment_index && x.offset <= y.offset {
+                        // Fetch the y value from the iterator so we don't serialize it twice
+                        iter.next();
+                        // Fetch array
+                        maybe_add_whitespace(output_string);
+                        output_string.push('[');
+                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
+                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                            array.iter().peekable();
+                        serialize_output_inner(&mut array_iter, output_string, vm);
+                        output_string.push(']');
+                        continue;
+                    }
+                }
+
+                // Check if the single relocatable value represents a span
+                // In this case, the reloacatable will point us to the (start, end) pair in memory
+                // For example, the relocatable value may be 14:0, with the segment 14 containing [13:0 13:4] which is a valid array
+                if let (Ok(x), Ok(y)) = (vm.get_relocatable(*x), vm.get_relocatable(x + 1)) {
+                    if x.segment_index == y.segment_index && y.offset >= x.offset {
+                        // Fetch array
+                        maybe_add_whitespace(output_string);
+                        output_string.push('[');
+                        let array = vm.get_continuous_range(x, y.offset - x.offset).unwrap();
+                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
+                            array.iter().peekable();
+                        serialize_output_inner(&mut array_iter, output_string, vm);
+                        output_string.push(']');
+                        continue;
+                    }
+                }
+
+                // Check if the relocatable value represents a dictionary
+                // To do so we can check if the relocatable consists of the last dict_ptr, which should be a pointer to the next empty cell in the dictionary's segment
+                // We can check that the dict_ptr's offset is consistent with the length of the segment and that the segment is made up of tuples of three elements (key, prev_val, val)
+                if x.offset
+                    == vm
+                        .get_segment_size(x.segment_index as usize)
+                        .unwrap_or_default()
+                    && x.offset % 3 == 0
+                {
+                    // Fetch the dictionary's memory
+                    let dict_mem = vm
+                        .get_continuous_range((x.segment_index, 0).into(), x.offset)
+                        .expect("Malformed dictionary memory");
+                    // Serialize the dictionary
+                    output_string.push('{');
+                    // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+                    // The prev value is not relevant to the user so we can skip over it for calrity
+                    for (key, _, value) in dict_mem.iter().tuples() {
+                        maybe_add_whitespace(output_string);
+                        // Serialize the key wich should always be a Felt value
+                        output_string.push_str(&key.to_string());
+                        output_string.push(':');
+                        // Serialize the value
+                        // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                        let value_vec = vec![value.clone()];
+                        let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
+                            value_vec.iter().peekable();
+                        serialize_output_inner(&mut value_iter, output_string, vm);
+                    }
+                    output_string.push('}');
+                    continue;
+                }
+
+                // Finally, if the relocatable is neither the start of an array, a span, or a dictionary, it should be a reference (Such as Box)
+                // In this case we show the referenced value (if it exists)
+                // As this reference can also hold a reference we use the serialize_output_inner function to handle it recursively
+                if let Some(val) = vm.get_maybe(x) {
+                    maybe_add_whitespace(output_string);
+                    let array = vec![val.clone()];
+                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> = array.iter().peekable();
+                    serialize_output_inner(&mut array_iter, output_string, vm);
+                    continue;
+                }
+            }
+            maybe_add_whitespace(output_string);
+            output_string.push_str(&val.to_string());
+        }
+    }
+
+    fn maybe_add_whitespace(string: &mut String) {
+        if !string.is_empty()
+            && !string.ends_with('[')
+            && !string.ends_with(':')
+            && !string.ends_with('{')
+        {
+            string.push(' ');
+        }
+    }
+    output_string
 }
 
 #[cfg(test)]
@@ -523,7 +644,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_dict(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{\n\t0x10473: [0x8,0x9,0xa,0xb,],\n\t0x10474: [0x1,0x2,0x3,],\n}\n";
+        let expected_output = "{66675:[8 9 10 11] 66676:[1 2 3]}";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 
@@ -532,7 +653,25 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_span(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "[0x8,0x9,0xa,0xb,]";
+        let expected_output = "[8 9 10 11]";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_array_integer_tuple(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "[1] 1";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_nullable_box_vec(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0:10 1:20 2:30} 3";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }

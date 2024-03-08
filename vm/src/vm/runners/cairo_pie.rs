@@ -84,6 +84,7 @@ pub struct CairoPieMetadata {
     pub execution_segment: SegmentInfo,
     pub ret_fp_segment: SegmentInfo,
     pub ret_pc_segment: SegmentInfo,
+    #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
     pub builtin_segments: HashMap<String, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
 }
@@ -113,7 +114,7 @@ impl CairoPie {
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Stored);
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         zip_writer.start_file("version.json", options)?;
         zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
         zip_writer.start_file("metadata.json", options)?;
@@ -132,8 +133,9 @@ impl CairoPie {
 mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use num_traits::Num;
+    use serde::ser::SerializeMap;
 
-    use super::{CairoPieMemory, CAIRO_PIE_VERSION};
+    use super::{CairoPieMemory, SegmentInfo, CAIRO_PIE_VERSION};
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -320,6 +322,33 @@ mod serde_impl {
         }
 
         seq_serializer.end()
+    }
+
+    pub fn serialize_builtin_segments<S>(
+        values: &HashMap<String, SegmentInfo>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
+        const BUILTIN_ORDERED_LIST: &[&str] = &[
+            "output",
+            "pedersen",
+            "range_check",
+            "ecdsa",
+            "bitwise",
+            "ec_op",
+            "keccak",
+            "poseidon",
+        ];
+
+        for name in BUILTIN_ORDERED_LIST {
+            if let Some(info) = values.get(*name) {
+                map_serializer.serialize_entry(name, info)?
+            }
+        }
+        map_serializer.end()
     }
 }
 

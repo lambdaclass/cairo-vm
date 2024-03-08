@@ -3,6 +3,21 @@
 #### Upcoming Changes
 * feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
+* feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
+
+* feat: Show only layout builtins in air private input [#1651](https://github.com/lambdaclass/cairo-vm/pull/1651)
+
+* feat: Sort builtin segment info upon serialization for Cairo PIE [#1654](https://github.com/lambdaclass/cairo-vm/pull/1654)
+
+* feat: Fix output serialization for cairo 1 [#1645](https://github.com/lambdaclass/cairo-vm/pull/1645)
+  * Reverts changes added by #1630
+  * Extends the serialization of Arrays added by the `print_output` flag to Spans and Dictionaries
+  * Now dereferences references upon serialization
+
+* feat: Add flag to append return values to output segment when not running in proof_mode [#1646](https://github.com/lambdaclass/cairo-vm/pull/1646)
+  * Adds the flag `append_return_values` to both the CLI and `Cairo1RunConfig` struct.
+  * Enabling flag will add the output builtin and the necessary instructions to append the return values to the output builtin's memory segment.
+
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
 * feat: output builtin features for bootloader support [#1580](https://github.com/lambdaclass/cairo-vm/pull/1580)

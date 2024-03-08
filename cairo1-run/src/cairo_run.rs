@@ -58,6 +58,8 @@ pub struct Cairo1RunConfig<'a> {
     // Should be true if either air_public_input or cairo_pie_output are needed
     // Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
+    // Appends return values to the output segment. This is performed by default when running in proof_mode
+    pub append_return_values: bool,
 }
 
 impl Default for Cairo1RunConfig<'_> {
@@ -69,6 +71,7 @@ impl Default for Cairo1RunConfig<'_> {
             layout: "plain",
             proof_mode: false,
             finalize_builtins: false,
+            append_return_values: false,
         }
     }
 }
@@ -98,7 +101,7 @@ pub fn cairo_run_program(
         &type_sizes,
         main_func,
         initial_gas,
-        cairo_run_config.proof_mode,
+        cairo_run_config.proof_mode || cairo_run_config.append_return_values,
         cairo_run_config.args,
     )?;
 
@@ -120,6 +123,8 @@ pub fn cairo_run_program(
     // Also appends return values to output segment
     let proof_mode_header = if cairo_run_config.proof_mode {
         create_proof_mode_header(builtins.len() as i16, return_type_size)
+    } else if cairo_run_config.append_return_values {
+        create_append_return_values_header(builtins.len() as i16, return_type_size)
     } else {
         casm! {}.instructions
     };
@@ -191,6 +196,10 @@ pub fn cairo_run_program(
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
+        runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
+    }
+
+    if cairo_run_config.proof_mode || cairo_run_config.append_return_values {
         // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
         // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
         vm.segments
@@ -205,17 +214,19 @@ pub fn cairo_run_program(
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
         finalize_builtins(
-            cairo_run_config.proof_mode,
+            cairo_run_config.proof_mode || cairo_run_config.append_return_values,
             &main_func.signature.ret_types,
             &type_sizes,
             &mut vm,
         )?;
 
-        // Build execution public memory
-        if cairo_run_config.proof_mode {
+        if cairo_run_config.proof_mode || cairo_run_config.append_return_values {
             // As the output builtin is not used by the program we need to compute it's stop ptr manually
             vm.set_output_stop_ptr_offset(return_type_size as usize);
+        }
 
+        // Build execution public memory
+        if cairo_run_config.proof_mode {
             runner.finalize_segments(&mut vm)?;
         }
     }
@@ -334,6 +345,39 @@ fn create_proof_mode_header(builtin_count: i16, return_type_size: i16) -> Vec<In
     ctx.instructions
 }
 
+// Create specific instructions to append the return values to the output segment when not running in proof_mode
+// Call the firt program instruction, appends the return values to the output builtin's memory segment and then returns
+fn create_append_return_values_header(
+    builtin_count: i16,
+    return_type_size: i16,
+) -> Vec<Instruction> {
+    // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
+    // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
+    let output_fp_offset: i16 = -(builtin_count + 2); // The 2 here represents the return_fp & end segments
+
+    // The pc offset where the original program should start
+    // Without this header it should start at 0, but we add 2 for the call and 1 for the return instruction
+    // and also 1 for each instruction added to copy each return value into the output segment
+    let program_start_offset: i16 = 3 + return_type_size;
+
+    let mut ctx = casm! {};
+    casm_extend! {ctx,
+        call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
+    };
+    // Append each return value to the output segment
+    for (i, j) in (1..return_type_size + 1).rev().enumerate() {
+        casm_extend! {ctx,
+            // [ap -j] is where each return value is located in memory
+            // [[fp + output_fp_offet] + 0] is the base of the output segment
+            [ap - j] = [[fp + output_fp_offset] + i as i16];
+        };
+    }
+    casm_extend! {ctx,
+        ret;
+    };
+    ctx.instructions
+}
+
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -342,12 +386,12 @@ fn create_entry_code(
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
-    proof_mode: bool,
+    append_output: bool,
     args: &[FuncArg],
 ) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
     let mut ctx = casm! {};
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) = get_function_builtins(func, proof_mode);
+    let (builtins, builtin_offset) = get_function_builtins(func, append_output);
 
     // Load all vecs to memory.
     // Load all array args content to memory.
@@ -401,7 +445,7 @@ fn create_entry_code(
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
             let mut offset = *offset;
-            if proof_mode {
+            if append_output {
                 // Everything is off by 2 due to the proof mode header
                 offset += 2;
             }
@@ -534,7 +578,7 @@ impl cairo_lang_sierra::extensions::NoGenericArgsGenericType for OutputType {
 
 fn get_function_builtins(
     func: &Function,
-    proof_mode: bool,
+    append_output: bool,
 ) -> (
     Vec<BuiltinName>,
     HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
@@ -585,7 +629,7 @@ fn get_function_builtins(
         current_offset += 1;
     }
     // Force an output builtin so that we can write the program output into it's segment
-    if proof_mode {
+    if append_output {
         builtins.push(BuiltinName::output);
         builtin_offset.insert(OutputType::ID, current_offset);
     }
@@ -639,7 +683,7 @@ fn fetch_return_values(
 // Calculates builtins' final_stack setting each stop_ptr
 // Calling this function is a must if either air_public_input or cairo_pie are needed
 fn finalize_builtins(
-    proof_mode: bool,
+    skip_output: bool,
     main_ret_types: &[ConcreteTypeId],
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     vm: &mut VirtualMachine,
@@ -678,7 +722,7 @@ fn finalize_builtins(
     }
 
     // Set stop pointer for each builtin
-    vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, proof_mode)?;
+    vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, skip_output)?;
     Ok(())
 }
 
@@ -732,17 +776,23 @@ mod tests {
     #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
     #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
     #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
-    fn check_append_ret_values_to_output_segment(#[case] filename: &str) {
+    fn check_append_ret_values_to_output_segment(
+        #[case] filename: &str,
+        #[values(true, false)] proof_mode: bool,
+    ) {
         // Compile to sierra
         let sierra_program = compile_to_sierra(filename);
         // Set proof_mode
         let cairo_run_config = Cairo1RunConfig {
-            proof_mode: true,
+            proof_mode,
             layout: "all_cairo",
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
+            finalize_builtins: true,
             ..Default::default()
         };
         // Run program
-        let (_, vm, return_values) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        let (runner, vm, return_values) =
+            cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
         let return_values = if main_hash_panic_result(&sierra_program) {
@@ -762,5 +812,10 @@ mod tests {
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
+
+        // Check that cairo_pie can be outputted when not running in proof_mode
+        if !proof_mode {
+            assert!(runner.get_cairo_pie(&vm).is_ok())
+        }
     }
 }
