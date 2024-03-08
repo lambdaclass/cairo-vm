@@ -1013,7 +1013,6 @@ impl VirtualMachine {
 
         let segment_used_sizes = self.segments.compute_effective_sizes();
         let segment_index = builtin.base();
-        #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
             let formatted_value = match self
                 .segments
