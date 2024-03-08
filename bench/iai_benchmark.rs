@@ -6,10 +6,8 @@ use cairo_vm::{
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
-#[cfg(feature = "with_mimalloc")]
 use mimalloc::MiMalloc;
 
-#[cfg(feature = "with_mimalloc")]
 #[global_allocator]
 static ALLOC: MiMalloc = MiMalloc;
 
