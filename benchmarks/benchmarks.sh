@@ -7,6 +7,7 @@ echo ////////// Compiling cairo-vm //////////
 echo //////////////////////////////////////////////////
 git checkout 0.9.2-jemallocator
 git pull
+make cairo_bench_programs
 cargo clean
 cargo build -p cairo-vm-cli --release
 mv target/release/cairo-vm-cli benchmarks/binaries/cairo-vm
@@ -62,6 +63,6 @@ hyperfine -n "Vanilla" "benchmarks/binaries/cairo-vm $tests_path/$file.json --la
    -n "mimalloc + Lambdaworks" "benchmarks/binaries/cairo-vm-mimalloc-lambdaworks $tests_path/$file.json --layout starknet_with_keccak" \
     -n "jemalloc" "benchmarks/binaries/cairo-vm-jemalloc $tests_path/$file.json --layout starknet_with_keccak" \
      -n "jemalloc + Lambdaworks" "benchmarks/binaries/cairo-vm-jemalloc-lambdaworks $tests_path/$file.json --layout starknet_with_keccak" \
- -r 1 --show-output
+ -w 2 -r 10 --show-output
 done
 
