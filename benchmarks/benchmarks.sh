@@ -6,6 +6,7 @@ echo //////////////////////////////////////////////////
 echo ////////// Compiling cairo-vm //////////
 echo //////////////////////////////////////////////////
 git checkout 0.9.2-jemallocator
+git pull
 cargo clean
 cargo build -p cairo-vm-cli --release
 mv target/release/cairo-vm-cli benchmarks/binaries/cairo-vm
