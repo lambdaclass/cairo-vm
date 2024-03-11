@@ -3839,15 +3839,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn disable_trace() {
-        let mut vm = VirtualMachine::new(true);
-        assert!(vm.trace.is_some());
-        vm.disable_trace();
-        assert!(vm.trace.is_none());
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];

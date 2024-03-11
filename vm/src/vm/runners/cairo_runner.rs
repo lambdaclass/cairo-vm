@@ -4794,32 +4794,6 @@ mod tests {
         assert_eq!(bitwise_builtin.stop_ptr, Some(5));
     }
 
-    /// Test that add_additional_hash_builtin() creates an additional builtin.
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn add_additional_hash_builtin() {
-        let program = program!();
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-
-        let num_builtins = vm.builtin_runners.len();
-        cairo_runner.add_additional_hash_builtin(&mut vm);
-        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
-
-        let builtin = vm
-            .builtin_runners
-            .last()
-            .expect("missing last builtin runner");
-        match builtin {
-            BuiltinRunner::Hash(builtin) => {
-                assert_eq!(builtin.base(), 0);
-                assert_eq!(builtin.ratio(), Some(32));
-                assert!(builtin.included);
-            }
-            _ => unreachable!(),
-        }
-    }
-
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_custom_program_test() {
