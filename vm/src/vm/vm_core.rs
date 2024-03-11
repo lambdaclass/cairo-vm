@@ -942,9 +942,6 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
-    pub fn disable_trace(&mut self) {
-        self.trace = None
-    }
 
     #[cfg(feature = "with_tracer")]
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
