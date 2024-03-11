@@ -446,19 +446,18 @@ impl CairoRunner {
                 .map_err(RunnerError::MemoryInitializationError)?;
 
             // Mark all addresses from the program segment as accessed
-            let base = self
-                .program_base
-                .unwrap_or_else(|| Relocatable::from((0, 0)));
             for i in 0..self.program.shared_program_data.data.len() {
-                vm.segments.memory.mark_as_accessed((base + i)?);
+                vm.segments.memory.mark_as_accessed((prog_base + i)?);
             }
+        } else {
+            return Err(RunnerError::NoProgBase);
         }
         if let Some(exec_base) = self.execution_base {
             vm.segments
                 .load_data(exec_base, &stack)
                 .map_err(RunnerError::MemoryInitializationError)?;
         } else {
-            return Err(RunnerError::NoProgBase);
+            return Err(RunnerError::NoExecBase);
         }
         Ok(())
     }
