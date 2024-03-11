@@ -19,6 +19,15 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static ALLOC: MiMalloc = MiMalloc;
 
+
+
+#[cfg(feature = "with_jemalloc")]
+use jemallocator::Jemalloc;
+
+#[cfg(feature = "with_jemalloc")]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
