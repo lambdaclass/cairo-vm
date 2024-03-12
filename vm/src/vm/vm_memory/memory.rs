@@ -16,28 +16,63 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
-#[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
+pub(crate) struct MemoryCell([u64; 4]);
 
 impl MemoryCell {
+    const META_MASK: u64 = 0xf << 60;
+    const NONE_MASK: u64 = 1 << 63;
+    const ACCESS_MASK: u64 = 1 << 62;
+    const RELOCATABLE_MASK: u64 = 1 << 61;
+
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell(value, false)
+        value.into()
     }
 
     pub fn mark_accessed(&mut self) {
-        self.1 = true
+        self.0[0] |= ACCESS_MASK;
     }
 
     pub fn is_accessed(&self) -> bool {
-        self.1
+        self.0[0] & ACCESS_MASK == ACCESS_MASK
     }
 
-    pub fn get_value(&self) -> &MaybeRelocatable {
-        &self.0
+    pub fn get_value(&self) -> MaybeRelocatable {
+        self.into()
     }
 
+    /*
     pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
         &mut self.0
+    }
+    */
+}
+
+impl From<MaybeRelocatable> for MemoryCell {
+    fn from(value: MaybeRelocatable) -> Self {
+        match value {
+            MaybeRelocatable::Int(x) => Self(x.to_raw()),
+            MaybeRelocatable::RelocatableValue(x) => Self([
+                Self::RELOCATABLE_MASK,
+                x.segment_index.is_negative() as u64,
+                x.segment_index.unsigned_abs() as u64,
+                x.offset as u64,
+            ]),
+        }
+    }
+}
+
+impl From<MemoryCell> for MaybeRelocatable {
+    fn from(cell: MemoryCell) -> Self {
+        let flags = cell.0[0];
+        debug_assert_eq!(flags & NONE_MASK, 0);
+        match (flags & MemoryCell::RELOCATABLE_MASK) {
+            MemoryCell::RELOCATABLE_MASK => Self::from(
+                (1isize - 2 * cell.0[1] as isize) * cell.0[2] as isize,
+                cell.0[3] as usize,
+            ),
+            _ => Self::Int(Felt252::from_raw(&cell.0)),
+        }
     }
 }
 
@@ -45,6 +80,7 @@ pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
+        println!("{}", core::mem::size_of::<MemoryCell>());
         Self(Vec::new())
     }
 
@@ -92,8 +128,8 @@ impl AddressSet {
 }
 
 pub struct Memory {
-    pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
-    pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
+    pub(crate) data: Vec<Vec<MemoryCell>>,
+    pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
@@ -104,8 +140,8 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: Vec::<Vec<Option<MemoryCell>>>::new(),
-            temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
+            data: Vec::new(),
+            temp_data: Vec::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: AddressSet::new(),
             validation_rules: Vec::with_capacity(7),
