@@ -105,12 +105,29 @@ from_num!(i32, i64);
 // TODO: move to upstream?
 impl From<i64> for Felt252 {
     fn from(value: i64) -> Self {
-        let value = if !value.is_negative() {
-            FieldElement::new(UnsignedInteger::from_u64(value as u64))
+        if !value.is_negative() {
+            Self {
+                value: FieldElement::new(UnsignedInteger::from_u64(value as u64)),
+            }
         } else {
             let abs_minus_one = UnsignedInteger::from_u64(-(value + 1) as u64);
-            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
-        };
+            Self::zero()
+                - Self::one()
+                - Self {
+                    value: FieldElement::new(abs_minus_one),
+                }
+        }
+    }
+}
+
+impl From<&BigInt> for Felt252 {
+    fn from(value: &BigInt) -> Self {
+        let val = value.mod_floor(&CAIRO_PRIME_BIGUINT.to_bigint().expect("cannot fail"));
+        let mut limbs = [0; 4];
+        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+            limbs[i] = l;
+        }
+        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
         Self { value }
     }
 }
@@ -118,13 +135,18 @@ impl From<i64> for Felt252 {
 // TODO: move to upstream?
 impl From<i128> for Felt252 {
     fn from(value: i128) -> Self {
-        let value = if !value.is_negative() {
-            FieldElement::new(UnsignedInteger::from_u128(value as u128))
+        if !value.is_negative() {
+            Self {
+                value: FieldElement::new(UnsignedInteger::from_u128(value as u128)),
+            }
         } else {
             let abs_minus_one = UnsignedInteger::from_u128(-(value + 1) as u128);
-            FieldElement::zero() - FieldElement::one() - FieldElement::new(abs_minus_one)
-        };
-        Self { value }
+            Self::zero()
+                - Self::one()
+                - Self {
+                    value: FieldElement::new(abs_minus_one),
+                }
+        }
     }
 }
 
@@ -211,6 +233,17 @@ impl From<Felt252> for BigInt {
 impl Felt252 {
     pub fn new<T: Into<Felt252>>(value: T) -> Self {
         value.into()
+    }
+
+    pub fn from_raw(mut raw: [u64; 4]) -> Self {
+        raw[0] &= 0xfffffffffffffff;
+        Self {
+            value: FieldElement::from_raw(UnsignedInteger::from_limbs(raw)),
+        }
+    }
+
+    pub fn raw(&self) -> [u64; 4] {
+        self.value.to_raw().limbs
     }
 
     pub fn iter_u64_digits(&self) -> impl Iterator<Item = u64> {
@@ -701,37 +734,33 @@ impl<'a> Rem<&'a Felt252> for Felt252 {
 impl Zero for Felt252 {
     fn zero() -> Self {
         Self {
-            value: FieldElement::from_raw(&Stark252PrimeField::ZERO),
+            value: FieldElement::from_raw(Stark252PrimeField::ZERO),
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.value == FieldElement::from_raw(&Stark252PrimeField::ZERO)
+        self.value == FieldElement::from_raw(Stark252PrimeField::ZERO)
     }
 }
 
 impl One for Felt252 {
     fn one() -> Self {
-        let value = FieldElement::from_raw(&Stark252PrimeField::ONE);
+        let value = FieldElement::from_raw(Stark252PrimeField::ONE);
         Self { value }
     }
 
     fn is_one(&self) -> bool {
-        self.value == FieldElement::from_raw(&Stark252PrimeField::ONE)
+        self.value == FieldElement::from_raw(Stark252PrimeField::ONE)
     }
 }
 
 impl Bounded for Felt252 {
     fn min_value() -> Self {
-        Self {
-            value: FieldElement::zero(),
-        }
+        Self::zero()
     }
 
     fn max_value() -> Self {
-        Self {
-            value: FieldElement::zero() - FieldElement::one(),
-        }
+        Self::zero() - Self::one()
     }
 }
 

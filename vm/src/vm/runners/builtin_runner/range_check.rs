@@ -130,8 +130,7 @@ impl RangeCheckBuiltinRunner {
         // Split value into n_parts parts of less than _INNER_RC_BOUND size.
         for value in range_check_segment {
             rc_bounds = value
-                .as_ref()?
-                .get_value()
+                .get_value()?
                 .get_int_ref()?
                 .to_le_digits()
                 // TODO: maybe skip leading zeros
