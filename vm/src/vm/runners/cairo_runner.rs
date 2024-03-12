@@ -436,29 +436,19 @@ impl CairoRunner {
         entrypoint: usize,
         stack: Vec<MaybeRelocatable>,
     ) -> Result<(), RunnerError> {
-        if let Some(prog_base) = self.program_base {
-            let initial_pc = Relocatable {
-                segment_index: prog_base.segment_index,
-                offset: prog_base.offset + entrypoint,
-            };
-            self.initial_pc = Some(initial_pc);
-            vm.load_data(prog_base, &self.program.shared_program_data.data)
-                .map_err(RunnerError::MemoryInitializationError)?;
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_pc = Some((prog_base + entrypoint)?);
+        vm.load_data(prog_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
 
-            // Mark all addresses from the program segment as accessed
-            for i in 0..self.program.shared_program_data.data.len() {
-                vm.segments.memory.mark_as_accessed((prog_base + i)?);
-            }
-        } else {
-            return Err(RunnerError::NoProgBase);
+        // Mark all addresses from the program segment as accessed
+        for i in 0..self.program.shared_program_data.data.len() {
+            vm.segments.memory.mark_as_accessed((prog_base + i)?);
         }
-        if let Some(exec_base) = self.execution_base {
-            vm.segments
-                .load_data(exec_base, &stack)
-                .map_err(RunnerError::MemoryInitializationError)?;
-        } else {
-            return Err(RunnerError::NoExecBase);
-        }
+        vm.segments
+            .load_data(exec_base, &stack)
+            .map_err(RunnerError::MemoryInitializationError)?;
         Ok(())
     }
 
