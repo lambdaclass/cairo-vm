@@ -422,7 +422,11 @@ impl BuiltinRunner {
         for i in 0..n {
             for j in 0..n_input_cells {
                 let offset = cells_per_instance * i + j;
-                if let None | Some(None) = builtin_segment.get(offset) {
+                if builtin_segment
+                    .get(offset)
+                    .filter(|x| x.is_some())
+                    .is_none()
+                {
                     missing_offsets.push(offset)
                 }
             }
@@ -439,7 +443,11 @@ impl BuiltinRunner {
         for i in 0..n {
             for j in n_input_cells..cells_per_instance {
                 let offset = cells_per_instance * i + j;
-                if let None | Some(None) = builtin_segment.get(offset) {
+                if builtin_segment
+                    .get(offset)
+                    .filter(|x| x.is_some())
+                    .is_none()
+                {
                     vm.verify_auto_deductions_for_addr(
                         Relocatable::from((builtin_segment_index as isize, offset)),
                         self,
@@ -587,6 +595,7 @@ mod tests {
         },
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
+        vm::vm_memory::memory::MemoryCell,
     };
     use assert_matches::assert_matches;
 
@@ -1367,7 +1376,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![None, None, None]];
+        vm.segments.memory.data = vec![vec![MemoryCell::NONE, MemoryCell::NONE, MemoryCell::NONE]];
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
