@@ -1,5 +1,7 @@
 <div align="center">
-<img src="./bonaparte.webp" height="150">
+<img src="./docs/images/cairovm.png#gh-light-mode-only" height="150">
+<img src="./docs/images/cairovm_white.png#gh-dark-mode-only" height="150">
+
 
 ### ⚡ Cairo-vm ⚡
 
