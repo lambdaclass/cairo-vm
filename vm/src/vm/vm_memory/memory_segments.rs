@@ -516,9 +516,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MemoryCell::new(mayberelocatable!(11))),
-                Some(MemoryCell::new(mayberelocatable!(12))),
-                Some(MemoryCell::new(mayberelocatable!(1))),
+                MemoryCell::new(mayberelocatable!(11)),
+                MemoryCell::new(mayberelocatable!(12)),
+                MemoryCell::new(mayberelocatable!(1)),
             ]
         );
     }
@@ -543,9 +543,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
+                MemoryCell::new(MaybeRelocatable::from((0, 1))),
+                MemoryCell::new(MaybeRelocatable::from((0, 2))),
+                MemoryCell::new(MaybeRelocatable::from((0, 3))),
             ]
         );
     }
