@@ -66,6 +66,9 @@ pub fn verify_secure_runner(
     if !vm.segments.memory.temp_data.is_empty() {
         for value in vm.segments.memory.data.iter().flatten() {
             // FIXME: handle is_none
+            if value.is_none() {
+                continue;
+            }
             match value.get_value() {
                 MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
