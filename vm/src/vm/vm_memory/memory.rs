@@ -89,7 +89,6 @@ pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
     pub(crate) fn new() -> Self {
-        println!("{}", core::mem::size_of::<MemoryCell>());
         Self(Vec::new())
     }
 
