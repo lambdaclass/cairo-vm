@@ -222,9 +222,12 @@ impl Memory {
             &self.data
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
+        let cell = data.get(i)?.get(j)?;
+        if cell.is_none() {
+            return None;
+        }
         Some(Cow::Owned(
-            self.relocate_value(&data.get(i)?.get(j)?.get_value())
-                .into_owned(),
+            self.relocate_value(&cell.get_value()).into_owned(),
         ))
     }
 
