@@ -13,13 +13,13 @@ ifndef PROPTEST_CASES
 endif
 
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
-	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph\
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
-	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \
+	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -168,7 +168,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.4.2
+CAIRO_2_VERSION = 2.5.4
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
@@ -187,17 +187,16 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
-	# cargo install --version 0.6.1 flamegraph
+	cargo install --version 0.6.1 flamegraph --locked
 	cargo install --version 1.14.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack
+	cargo install --version 0.12.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
+deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -207,7 +206,7 @@ deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
+deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -279,9 +278,8 @@ benchmark-action: cairo_bench_programs
 iai-benchmark-action: cairo_bench_programs
 	cargo bench --bench iai_benchmark
 
-# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
-# flamegraph:
-# 	cargo flamegraph --root --bench criterion_benchmark -- --bench
+flamegraph:
+	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
 compare_benchmarks: cairo_bench_programs
 	cd bench && ./run_benchmarks.sh
@@ -333,6 +331,7 @@ clean:
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(TEST_PROOF_DIR)/*.cairo
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
@@ -374,3 +373,5 @@ build-cairo-lang: | $(CAIRO_LANG_REPO_DIR)
 hint-accountant: build-cairo-lang
 	cargo r -p hint_accountant
 
+create-proof-programs-symlinks:
+	cd cairo_programs/proof_programs; ln -s ../*.cairo .

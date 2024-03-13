@@ -946,6 +946,11 @@ impl VirtualMachine {
         self.trace = None
     }
 
+    #[cfg(feature = "with_tracer")]
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
+        self.segments.relocate_segments()
+    }
+
     #[doc(hidden)]
     pub fn skip_next_instruction_execution(&mut self) {
         self.skip_instruction_execution = true;
@@ -1082,8 +1087,12 @@ impl VirtualMachine {
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,
         builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+        skip_output: bool,
     ) -> Result<(), RunnerError> {
         for builtin in self.builtin_runners.iter_mut() {
+            if matches!(builtin, BuiltinRunner::Output(_)) && skip_output {
+                continue;
+            }
             builtin.final_stack(
                 &self.segments,
                 builtin_name_to_stack_pointer
@@ -1093,6 +1102,13 @@ impl VirtualMachine {
             )?;
         }
         Ok(())
+    }
+
+    #[doc(hidden)]
+    pub fn set_output_stop_ptr_offset(&mut self, offset: usize) {
+        if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
+            builtin.set_stop_ptr_offset(offset)
+        }
     }
 }
 
@@ -4255,7 +4271,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -4280,7 +4296,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -4367,7 +4383,7 @@ mod tests {
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let mut cairo_runner = cairo_runner!(program);
             let end = cairo_runner
-                .initialize(&mut virtual_machine_from_builder)
+                .initialize(&mut virtual_machine_from_builder, false)
                 .unwrap();
 
             assert!(cairo_runner

@@ -138,6 +138,15 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
   - `merge`
   - `wip`
 
+### Labels
+
+We recommend using the corresponding labels for each PR's purpose, the most commonly used labels include:
+
+- `documentation`: Improvements or additions to documentation
+- `tests`: Implementation of tests
+- `pipelines`: Improving CI/CD workflows
+- `enhancement`: Implementation of new features
+- `performance`: Performance-related improvements
 
 ## Attribution
 This guide is based on the **contributing.md**. [Make your own](https://contributing.md/)!
