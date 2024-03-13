@@ -165,10 +165,6 @@ fn get_offset_value_reference(
         apply_ap_tracking_correction(vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
     };
 
-    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
-        return None;
-    }
-
     if *deref {
         vm.get_maybe(&(base_addr + *offset).ok()?)
     } else {
@@ -218,6 +214,32 @@ mod tests {
         assert_matches!(
             get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
             Some(x) if x == mayberelocatable!(1, 2)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_offset_value_reference_apply_ap_tracking_correction_null() {
+        let vm = vm!();
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.offset1 = OffsetValue::Reference(Register::AP, 2_i32, false);
+
+        assert_matches!(
+            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            None
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_offset_value_not_in_memory_segments() {
+        let vm = vm!();
+        let mut hint_ref = HintReference::new(0, 0, false, true);
+        hint_ref.offset1 = OffsetValue::Reference(Register::FP, 2_i32, true);
+
+        assert_matches!(
+            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            None
         );
     }
 
