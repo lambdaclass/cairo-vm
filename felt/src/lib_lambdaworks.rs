@@ -120,6 +120,18 @@ impl From<i64> for Felt252 {
     }
 }
 
+impl From<&BigInt> for Felt252 {
+    fn from(value: &BigInt) -> Self {
+        let val = value.mod_floor(&CAIRO_PRIME_BIGUINT.to_bigint().expect("cannot fail"));
+        let mut limbs = [0; 4];
+        for (i, l) in (0..4).rev().zip(val.iter_u64_digits()) {
+            limbs[i] = l;
+        }
+        let value = FieldElement::new(UnsignedInteger::from_limbs(limbs));
+        Self { value }
+    }
+}
+
 // TODO: move to upstream?
 impl From<i128> for Felt252 {
     fn from(value: i128) -> Self {
