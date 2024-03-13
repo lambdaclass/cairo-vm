@@ -295,7 +295,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_get_constant_from_var_name_without_point() {
-        let ids_data = HashMap::from([
+        let constants = HashMap::from([
             ("value".to_string(), Felt252::from(2)),
             ("ids.MAX_LOW".to_string(), Felt252::from(20)),
         ]);
