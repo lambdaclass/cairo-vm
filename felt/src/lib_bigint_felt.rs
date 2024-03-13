@@ -121,8 +121,9 @@ impl Felt252 {
 
     pub fn from_raw(mut raw: [u64; 4]) -> Self {
         raw[0] &= 0xfffffffffffffff;
+        raw.reverse();
         let slice = unsafe { core::slice::from_raw_parts(raw.as_ptr() as *const u8, 32) };
-        Self::from_bytes_be(slice)
+        Self::from_bytes_le(slice)
     }
 
     pub fn raw(&self) -> [u64; 4] {
