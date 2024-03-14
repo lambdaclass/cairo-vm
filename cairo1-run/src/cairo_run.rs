@@ -26,6 +26,7 @@ use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    math_utils::signed_felt,
     serde::deserialize_program::{
         ApTracking, BuiltinName, FlowTrackingData, HintParams, ReferenceManager,
     },
@@ -841,23 +842,31 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_) => {
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => {
             maybe_add_whitespace(output_string);
             let val = return_values_iter
                 .next()
                 .expect("Missing return value")
                 .get_int()
-                .expect("u32 value is not an integer");
+                .expect("Value is not an integer");
             output_string.push_str(&val.to_string());
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128MulGuarantee(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Value is not an integer");
+            output_string.push_str(&signed_felt(val).to_string());
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
             // As this represents a pointer, we need to extract it's values
