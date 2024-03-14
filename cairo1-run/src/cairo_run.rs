@@ -811,7 +811,27 @@ fn serialize_output_inner<'a>(
             output_string.push(']');
         }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bitwise(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Box Pointer is not Relocatable");
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_) => todo!(),
@@ -845,7 +865,7 @@ fn serialize_output_inner<'a>(
                 .next()
                 .expect("Missing return value")
                 .get_relocatable()
-                .expect("Nullable Pointer sis not Relocatable");
+                .expect("Nullable Pointer is not Relocatable");
             let type_size = type_sizes.type_size(&info.ty);
             let data = vm
                 .get_continuous_range(ptr, type_size)

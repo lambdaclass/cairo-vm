@@ -487,7 +487,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_hello_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1 1234");
+        assert_matches!(run(args), Ok(Some(res)) if res == "1234");
     }
 
     #[rstest]
@@ -666,7 +666,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_nullable_box_vec(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{0:10 1:20 2:30} 3";
+        let expected_output = "{0: 10 1: 20 2: 30} 3";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 
