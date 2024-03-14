@@ -881,7 +881,6 @@ fn serialize_output_inner<'a>(
                     );
                 }
             }
-
             let num_variants = &info.variants.len();
             let casm_variant_idx: usize = return_values_iter
                 .next()
@@ -917,14 +916,15 @@ fn serialize_output_inner<'a>(
                                 .is_some_and(|size| size.is_zero()),
                         "Malformed bool enum"
                     );
+
+                    let boolean_string = match variant_idx {
+                        0 => "false",
+                        _ => "true",
+                    };
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str(boolean_string);
+                    return;
                 }
-                let boolean_string = match variant_idx {
-                    0 => "false",
-                    _ => "true",
-                };
-                maybe_add_whitespace(output_string);
-                output_string.push_str(boolean_string);
-                return;
             }
             // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
 
@@ -1016,7 +1016,14 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
-            serialize_output_inner(return_values_iter, output_string, vm, &info.ty, sierra_program_registry, type_sizes)
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
         }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => todo!(),
