@@ -17,6 +17,7 @@ pub struct ValidationRule(
 );
 
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
+#[repr(align(32))]
 pub(crate) struct MemoryCell([u64; 4]);
 
 impl MemoryCell {
