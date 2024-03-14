@@ -811,7 +811,6 @@ fn serialize_output_inner<'a>(
             }
             output_string.push(']');
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bitwise(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(info) => {
             // As this represents a pointer, we need to extract it's values
             let ptr = return_values_iter
@@ -833,8 +832,12 @@ fn serialize_output_inner<'a>(
                 type_sizes,
             )
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => {
+            unimplemented!("Not supported in the current version")
+        },
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        // Only unsigned integer values implement Into<Bytes31>
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_)
@@ -848,7 +851,6 @@ fn serialize_output_inner<'a>(
                 .expect("Value is not an integer");
             output_string.push_str(&val.to_string());
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128MulGuarantee(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_)
@@ -893,13 +895,11 @@ fn serialize_output_inner<'a>(
                 &mut data_iter,
                 output_string,
                 vm,
-                &info.ty,
+                dbg!(&info.ty),
                 sierra_program_registry,
                 type_sizes,
             )
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::RangeCheck(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uninitialized(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(info) => {
             // First we check if it is a Panic enum, as we already handled panics when fetching return values,
             // we can ignore them and move on to the non-panic variant
@@ -1046,18 +1046,6 @@ fn serialize_output_inner<'a>(
             }
             output_string.push('}');
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcState(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::BuiltinCosts(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Poseidon(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252DictEntry(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_)
-        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => {
-            panic!("Unexpected return value type")
-        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(info) => {
             // Process Dictionary
             let dict_start = return_values_iter
@@ -1104,7 +1092,7 @@ fn serialize_output_inner<'a>(
             }
             output_string.push('}');
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => unimplemented!("Span types get resolved to Array in the current version"),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
             serialize_output_inner(
                 return_values_iter,
@@ -1115,8 +1103,8 @@ fn serialize_output_inner<'a>(
                 type_sizes,
             )
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => unimplemented!("This is a Trait, shouldn't be returned"),
+        _ => panic!("Unexpected return type")
     }
 }
 

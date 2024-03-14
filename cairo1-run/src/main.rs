@@ -696,4 +696,13 @@ mod tests {
         let expected_output = "null";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bytes31_ret(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "123";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
 }
