@@ -64,7 +64,7 @@ impl From<MaybeRelocatable> for MemoryCell {
             MaybeRelocatable::RelocatableValue(x) => Self([
                 Self::RELOCATABLE_MASK,
                 0,
-                u64::from_le_bytes(x.segment_index.to_le_bytes()),
+                u64::from_ne_bytes(x.segment_index.to_ne_bytes()),
                 x.offset as u64,
             ]),
         }
@@ -77,7 +77,7 @@ impl From<MemoryCell> for MaybeRelocatable {
         let flags = cell.0[0];
         match flags & MemoryCell::RELOCATABLE_MASK {
             MemoryCell::RELOCATABLE_MASK => Self::from((
-                isize::from_le_bytes(cell.0[2].to_le_bytes()),
+                isize::from_ne_bytes(cell.0[2].to_ne_bytes()),
                 cell.0[3] as usize,
             )),
             _ => Self::Int(Felt252::from_raw(cell.0)),
