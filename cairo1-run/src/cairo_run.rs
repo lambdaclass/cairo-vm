@@ -44,6 +44,7 @@ use cairo_vm::{
     Felt252,
 };
 use itertools::{chain, Itertools};
+use num_traits::cast::ToPrimitive;
 use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
 use crate::{Error, FuncArg};
@@ -215,7 +216,8 @@ pub fn cairo_run_program(
         &return_values,
         &mut vm,
         return_type_id,
-        &sierra_program_registry
+        &sierra_program_registry,
+        &type_sizes,
     ));
 
     // Set stop pointers for builtins so we can obtain the air public input
@@ -738,6 +740,7 @@ fn serialize_output<'a>(
     vm: &mut VirtualMachine,
     return_type_id: &ConcreteTypeId,
     sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> String {
     let mut output_string = String::new();
     let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
@@ -747,6 +750,7 @@ fn serialize_output<'a>(
         vm,
         return_type_id,
         sierra_program_registry,
+        type_sizes,
     );
     output_string
 }
@@ -757,6 +761,7 @@ fn serialize_output_inner<'a>(
     vm: &mut VirtualMachine,
     return_type_id: &ConcreteTypeId,
     sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) {
     match sierra_program_registry.get_type(return_type_id).unwrap() {
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(_) => todo!(),
@@ -766,12 +771,20 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcState(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::BuiltinCosts(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("u32 value is not an integer");
+            output_string.push_str(&val.to_string());
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128MulGuarantee(_) => todo!(),
@@ -781,11 +794,76 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Nullable Pointer sis not Relocatable");
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::RangeCheck(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uninitialized(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Struct(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(info) => {
+            let num_variants = &info.variants.len();
+            let casm_variant_idx: usize = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Enum tag is not integer")
+                .to_usize()
+                .expect("Invalid enum tag");
+            // Convert casm variant idx to sierra variant idx
+            let variant_idx = num_variants - 1 - (casm_variant_idx >> 1);
+            let variant_type_id = &info.variants[variant_idx];
+            // Space is always allocated for the largest enum member, padding with zeros in front for the smaller variants
+            // We have to remove this variants
+            let mut max_variant_size = 0;
+            for variant in &info.variants {
+                let variant_size = type_sizes.get(variant).unwrap();
+                max_variant_size = std::cmp::max(max_variant_size, *variant_size)
+            }
+            for _ in 0..max_variant_size - type_sizes.get(variant_type_id).unwrap() {
+                assert_eq!(
+                    return_values_iter.next(),
+                    Some(&MaybeRelocatable::from(0)),
+                    "Malformed enum"
+                );
+            }
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                variant_type_id,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Struct(info) => {
+            for member_type_id in &info.members {
+                serialize_output_inner(
+                    return_values_iter,
+                    output_string,
+                    vm,
+                    member_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252Dict(info) => {
             // Process Dictionary
             let dict_ptr = return_values_iter
@@ -803,7 +881,6 @@ fn serialize_output_inner<'a>(
             }
             // Fetch dictionary values type id
             let value_type_id = &info.ty;
-            dbg!(value_type_id);
             // Fetch the dictionary's memory
             let dict_mem = vm
                 .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
@@ -827,6 +904,7 @@ fn serialize_output_inner<'a>(
                     vm,
                     value_type_id,
                     sierra_program_registry,
+                    type_sizes,
                 );
             }
             output_string.push('}');
