@@ -867,7 +867,16 @@ fn serialize_output_inner<'a>(
                 .expect("Value is not an integer");
             output_string.push_str(&signed_felt(val).to_string());
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(info) => {
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
             // As this represents a pointer, we need to extract it's values
             let ptr = return_values_iter
@@ -1037,13 +1046,60 @@ fn serialize_output_inner<'a>(
             }
             output_string.push('}');
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252DictEntry(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Poseidon(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Poseidon(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252DictEntry(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => {
+            panic!("Unexpected return value type")
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(info) => {
+            // Process Dictionary
+            let dict_start = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_start ptr not Relocatable");
+            let dict_end = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_end ptr not Relocatable");
+            let dict_size = (dict_end - dict_start).unwrap();
+            if !(dict_size % 3 == 0) {
+                panic!("Return value is not a valid SquashedFelt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range(dict_start, dict_size)
+                .expect("Malformed squashed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter: Peekable<Iter<MaybeRelocatable>> = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                );
+            }
+            output_string.push('}');
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
             serialize_output_inner(
                 return_values_iter,
