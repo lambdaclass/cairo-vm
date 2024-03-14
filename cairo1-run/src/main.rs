@@ -639,7 +639,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_dict(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{66675:[8 9 10 11] 66676:[1 2 3]}";
+        let expected_output = "{66675: [8 9 10 11] 66676: [1 2 3]}";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 

@@ -779,7 +779,37 @@ fn serialize_output_inner<'a>(
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) {
     match sierra_program_registry.get_type(return_type_id).unwrap() {
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
+            // Fetch array from memory
+            let array_start = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array start_ptr not Relocatable");
+            let array_end = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array end_ptr not Relocatable");
+            let array_size = (array_end - array_start).unwrap();
+            let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
+            let mut array_data_iter = array_data.iter().peekable();
+            let array_elem_id = &info.ty;
+            // Serialize array data
+            maybe_add_whitespace(output_string);
+            output_string.push('[');
+            while array_data_iter.peek().is_some() {
+                serialize_output_inner(
+                    &mut array_data_iter,
+                    output_string,
+                    vm,
+                    array_elem_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+            output_string.push(']');
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bitwise(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => todo!(),
@@ -985,7 +1015,9 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
+            serialize_output_inner(return_values_iter, output_string, vm, &info.ty, sierra_program_registry, type_sizes)
+        }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => todo!(),
     }
