@@ -16,6 +16,25 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
+/// [`MemoryCell`] represents an optimized storage layout for the VM memory.
+/// It's specified to have both size an alignment of 32 bytes to optimize cache access.
+/// Typical cache sizes are 64 bytes, a few cases might be 128 bytes, meaning 32 bytes aligned to
+/// 32 bytes boundaries will never get split into two separate lines, avoiding double stalls and
+/// reducing false sharing and evictions.
+/// The trade off is extra computation for conversion to our "in-flight" `MaybeRelocatable` and
+/// `Felt252` as well as some extra copies. Empirically, this seems to be offset by the improved
+/// locality of the bigger structure for Lambdaworks. There is a big hit from the conversions when
+/// using the `BigUint` implementation, since those force allocations on the heap, but since that's
+/// dropped in later versions anyway it's not a priority. For Lambdaworks the new copies are mostly
+/// to the stack, which is typically already in the cache.
+/// The layout uses the 4 MSB in the first `u64` as flags:
+/// - BIT63: NONE flag, 1 when the cell is actually empty.
+/// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
+/// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
+/// `Felt252`.
+/// `Felt252` values are stored in big-endian order to keep the flag bits free.
+/// `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
+/// and the 4th word storing the offset.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
 #[repr(align(32))]
 pub(crate) struct MemoryCell([u64; 4]);
