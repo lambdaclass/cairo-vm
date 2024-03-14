@@ -43,8 +43,8 @@ use cairo_vm::{
     },
     Felt252,
 };
-use itertools::chain;
-use std::collections::HashMap;
+use itertools::{chain, Itertools};
+use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
 use crate::{Error, FuncArg};
 
@@ -210,6 +210,13 @@ pub fn cairo_run_program(
 
     // Fetch return values
     let return_values = fetch_return_values(return_type_size, return_type_id, &vm)?;
+
+    dbg!(serialize_output(
+        &return_values,
+        &mut vm,
+        return_type_id,
+        &sierra_program_registry
+    ));
 
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
@@ -724,6 +731,127 @@ fn finalize_builtins(
     // Set stop pointer for each builtin
     vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, skip_output)?;
     Ok(())
+}
+
+fn serialize_output<'a>(
+    return_values: &Vec<MaybeRelocatable>,
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+) -> String {
+    let mut output_string = String::new();
+    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
+    serialize_output_inner(
+        &mut return_values_iter,
+        &mut output_string,
+        vm,
+        return_type_id,
+        sierra_program_registry,
+    );
+    output_string
+}
+
+fn serialize_output_inner<'a>(
+    return_values_iter: &mut Peekable<Iter<MaybeRelocatable>>,
+    output_string: &mut String,
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+) {
+    match sierra_program_registry.get_type(return_type_id).unwrap() {
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bitwise(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcState(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BuiltinCosts(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128MulGuarantee(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::RangeCheck(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uninitialized(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Struct(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252Dict(info) => {
+            // Process Dictionary
+            let dict_ptr = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Dict Ptr not Relocatable");
+            if !(dict_ptr.offset
+                == vm
+                    .get_segment_size(dict_ptr.segment_index as usize)
+                    .unwrap_or_default()
+                && dict_ptr.offset % 3 == 0)
+            {
+                panic!("Return value is not a valid Felt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            dbg!(value_type_id);
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
+                .expect("Malformed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter: Peekable<Iter<MaybeRelocatable>> = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                );
+            }
+            output_string.push('}');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252DictEntry(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Poseidon(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SegmentArena(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_) => todo!(),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => todo!(),
+    }
+}
+
+fn maybe_add_whitespace(string: &mut String) {
+    if !string.is_empty()
+        && !string.ends_with('[')
+        && !string.ends_with(':')
+        && !string.ends_with('{')
+    {
+        string.push(' ');
+    }
 }
 
 #[cfg(test)]

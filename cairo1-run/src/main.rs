@@ -235,6 +235,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let (runner, vm, return_values) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
 
+    println!("{}", vm.segments);
+    println!("{:?}", return_values);
+
     let output_string = if args.print_output {
         Some(serialize_output(&vm, &return_values))
     } else {
