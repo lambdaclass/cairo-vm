@@ -669,4 +669,13 @@ mod tests {
         let expected_output = "{0:10 1:20 2:30} 3";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_dict_with_struct(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0: 1 true 1: 1 false 2: 1 true}";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
 }
