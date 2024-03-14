@@ -216,6 +216,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
+        serialize_output: args.print_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
@@ -232,17 +233,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
         .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
-    let (runner, vm, return_values) =
+    let (runner, vm, return_values, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
-
-    println!("{}", vm.segments);
-    println!("{:?}", return_values);
-
-    let output_string = if args.print_output {
-        Some(serialize_output(&vm, &return_values))
-    } else {
-        None
-    };
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
@@ -300,7 +292,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         memory_writer.flush()?;
     }
 
-    Ok(output_string)
+    Ok(serialized_output)
 }
 
 fn main() -> Result<(), Error> {

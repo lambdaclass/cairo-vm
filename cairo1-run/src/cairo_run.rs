@@ -52,6 +52,8 @@ use crate::{Error, FuncArg};
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
     pub args: &'a [FuncArg],
+    // Serializes program output into a user-friendly format
+    pub serialize_output: bool,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: &'a str,
@@ -67,6 +69,7 @@ impl Default for Cairo1RunConfig<'_> {
     fn default() -> Self {
         Self {
             args: Default::default(),
+            serialize_output: false,
             trace_enabled: false,
             relocate_mem: false,
             layout: "plain",
@@ -78,11 +81,19 @@ impl Default for Cairo1RunConfig<'_> {
 }
 
 // Runs a Cairo 1 program
-// Returns the runner & VM after execution + the return values
+// Returns the runner & VM after execution + the return values + the serialized return values (if serialize_output is enabled)
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
-) -> Result<(CairoRunner, VirtualMachine, Vec<MaybeRelocatable>), Error> {
+) -> Result<
+    (
+        CairoRunner,
+        VirtualMachine,
+        Vec<MaybeRelocatable>,
+        Option<String>,
+    ),
+    Error,
+> {
     let metadata = create_metadata(sierra_program, Some(Default::default()))?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
@@ -212,13 +223,17 @@ pub fn cairo_run_program(
     // Fetch return values
     let return_values = fetch_return_values(return_type_size, return_type_id, &vm)?;
 
-    dbg!(serialize_output(
-        &return_values,
-        &mut vm,
-        return_type_id,
-        &sierra_program_registry,
-        &type_sizes,
-    ));
+    let serialized_output = if cairo_run_config.serialize_output {
+        Some(dbg!(serialize_output(
+            &return_values,
+            &mut vm,
+            return_type_id,
+            &sierra_program_registry,
+            &type_sizes,
+        )))
+    } else {
+        None
+    };
 
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
@@ -242,7 +257,7 @@ pub fn cairo_run_program(
 
     runner.relocate(&mut vm, true)?;
 
-    Ok((runner, vm, return_values))
+    Ok((runner, vm, return_values, serialized_output))
 }
 
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
@@ -832,9 +847,23 @@ fn serialize_output_inner<'a>(
 
             // Handle core::bool separately
             if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
-                if user_type.debug_name.as_ref().is_some_and(|n| n == "core::bool") {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n == "core::bool")
+                {
                     // Sanity checks
-                    assert!(*num_variants == 2 && variant_idx < 2 && type_sizes.get(&info.variants[0]).is_some_and(|size| size.is_zero()) && type_sizes.get(&info.variants[1]).is_some_and(|size| size.is_zero()), "Malformed bool enum");
+                    assert!(
+                        *num_variants == 2
+                            && variant_idx < 2
+                            && type_sizes
+                                .get(&info.variants[0])
+                                .is_some_and(|size| size.is_zero())
+                            && type_sizes
+                                .get(&info.variants[1])
+                                .is_some_and(|size| size.is_zero()),
+                        "Malformed bool enum"
+                    );
                 }
                 let boolean_string = match variant_idx {
                     0 => "false",
@@ -842,7 +871,7 @@ fn serialize_output_inner<'a>(
                 };
                 maybe_add_whitespace(output_string);
                 output_string.push_str(boolean_string);
-                return
+                return;
             }
             // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
 
@@ -940,10 +969,7 @@ fn serialize_output_inner<'a>(
 }
 
 fn maybe_add_whitespace(string: &mut String) {
-    if !string.is_empty()
-        && !string.ends_with('[')
-        && !string.ends_with('{')
-    {
+    if !string.is_empty() && !string.ends_with('[') && !string.ends_with('{') {
         string.push(' ');
     }
 }
@@ -1013,7 +1039,7 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (runner, vm, return_values) =
+        let (runner, vm, return_values, _) =
             cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
