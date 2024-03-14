@@ -861,7 +861,11 @@ fn serialize_output_inner<'a>(
                 .to_usize()
                 .expect("Invalid enum tag");
             // Convert casm variant idx to sierra variant idx
-            let variant_idx = num_variants - 1 - (casm_variant_idx >> 1);
+            let variant_idx = if *num_variants > 2 {
+                num_variants - 1 - (casm_variant_idx >> 1)
+            } else {
+                casm_variant_idx
+            };
             let variant_type_id = &info.variants[variant_idx];
 
             // Handle core::bool separately
