@@ -834,11 +834,6 @@ fn serialize_output_inner<'a>(
             )
         }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcState(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_) => todo!(),
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BuiltinCosts(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
@@ -879,11 +874,16 @@ fn serialize_output_inner<'a>(
         }
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
             // As this represents a pointer, we need to extract it's values
-            let ptr = return_values_iter
-                .next()
-                .expect("Missing return value")
-                .get_relocatable()
-                .expect("Nullable Pointer is not Relocatable");
+            let ptr = match return_values_iter.next().expect("Missing return value") {
+                MaybeRelocatable::RelocatableValue(ptr) => *ptr,
+                MaybeRelocatable::Int(felt) if felt.is_zero() => {
+                    // Nullable is Null
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str("null");
+                    return;
+                }
+                _ => panic!("Invalid Nullable"),
+            };
             let type_size = type_sizes.type_size(&info.ty);
             let data = vm
                 .get_continuous_range(ptr, type_size)
@@ -1046,7 +1046,12 @@ fn serialize_output_inner<'a>(
             }
             output_string.push('}');
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_)
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcOp(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcPoint(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::EcState(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::BuiltinCosts(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Pedersen(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Poseidon(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252DictEntry(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::StarkNet(_)
