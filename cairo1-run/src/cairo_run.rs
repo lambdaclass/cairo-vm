@@ -13,11 +13,11 @@ use cairo_lang_sierra::{
         ConcreteType, NamedType,
     },
     ids::ConcreteTypeId,
-    program::{Function, Program as SierraProgram},
+    program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
 use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::gas_info::GasInfo;
+use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
 use cairo_lang_sierra_to_casm::{
     compiler::CairoProgram,
     metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
@@ -44,7 +44,7 @@ use cairo_vm::{
     Felt252,
 };
 use itertools::{chain, Itertools};
-use num_traits::cast::ToPrimitive;
+use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
 use crate::{Error, FuncArg};
@@ -829,6 +829,23 @@ fn serialize_output_inner<'a>(
             // Convert casm variant idx to sierra variant idx
             let variant_idx = num_variants - 1 - (casm_variant_idx >> 1);
             let variant_type_id = &info.variants[variant_idx];
+
+            // Handle core::bool separately
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type.debug_name.as_ref().is_some_and(|n| n == "core::bool") {
+                    // Sanity checks
+                    assert!(*num_variants == 2 && variant_idx < 2 && type_sizes.get(&info.variants[0]).is_some_and(|size| size.is_zero()) && type_sizes.get(&info.variants[1]).is_some_and(|size| size.is_zero()), "Malformed bool enum");
+                }
+                let boolean_string = match variant_idx {
+                    0 => "false",
+                    _ => "true",
+                };
+                maybe_add_whitespace(output_string);
+                output_string.push_str(boolean_string);
+                return
+            }
+            // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
+
             // Space is always allocated for the largest enum member, padding with zeros in front for the smaller variants
             // We have to remove this variants
             let mut max_variant_size = 0;
@@ -925,7 +942,6 @@ fn serialize_output_inner<'a>(
 fn maybe_add_whitespace(string: &mut String) {
     if !string.is_empty()
         && !string.ends_with('[')
-        && !string.ends_with(':')
         && !string.ends_with('{')
     {
         string.push(' ');
