@@ -845,10 +845,10 @@ fn serialize_output_inner<'a>(
                         return_values_iter,
                         output_string,
                         vm,
-                        &info.variants[1],
+                        &info.variants[0],
                         sierra_program_registry,
                         type_sizes,
-                    )
+                    );
                 }
             }
 
