@@ -833,6 +833,25 @@ fn serialize_output_inner<'a>(
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::RangeCheck(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uninitialized(_) => todo!(),
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(info) => {
+            // First we check if it is a Panic enum, as we already handled panics when fetching return values,
+            // we can ignore them and move on to the non-panic variant
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n.starts_with("core::panics::PanicResult"))
+                {
+                    return serialize_output_inner(
+                        return_values_iter,
+                        output_string,
+                        vm,
+                        &info.variants[1],
+                        sierra_program_registry,
+                        type_sizes,
+                    )
+                }
+            }
+
             let num_variants = &info.variants.len();
             let casm_variant_idx: usize = return_values_iter
                 .next()

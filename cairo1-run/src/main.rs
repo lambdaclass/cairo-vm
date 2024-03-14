@@ -233,7 +233,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
         .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
-    let (runner, vm, return_values, serialized_output) =
+    let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
 
     if let Some(file_path) = args.air_public_input {
