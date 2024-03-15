@@ -224,7 +224,6 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
-    use crate::stdlib::collections::HashMap;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
     use crate::vm::vm_core::VirtualMachine;
