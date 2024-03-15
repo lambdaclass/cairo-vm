@@ -104,6 +104,8 @@ pub enum RunnerError {
     InvalidPoint,
     #[error("Page ({0}) is not on the expected segment {1}")]
     PageNotOnSegment(Relocatable, usize),
+    #[error("Expected integer at address {0} to be smaller than 2^{1}. Got: {2}.")]
+    WordExceedsModBuiltinWordBitLen(Relocatable, u32, Felt252),
 }
 
 #[cfg(test)]

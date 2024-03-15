@@ -1,5 +1,14 @@
 use core::array;
+use core::borrow::Borrow;
 
+use crate::stdlib::borrow::Cow;
+
+use crate::types::relocatable::{MaybeRelocatable, Relocatable};
+use crate::vm::errors::memory_errors::MemoryError;
+use crate::vm::errors::runner_errors::RunnerError;
+use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_memory::memory::Memory;
+use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
@@ -44,6 +53,7 @@ impl ModBuiltinRunner {
     pub fn new_mul_mod(instance_def: ModInstanceDef, included: bool) -> Self {
         Self::new(instance_def, included, ModBuiltinType::Mul)
     }
+
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
         let shift = Felt252::TWO.pow(instance_def.word_bit_len);
         let shift_powers = (0..instance_def.n_words).map(|i| shift.pow(i)).collect();
@@ -59,5 +69,43 @@ impl ModBuiltinRunner {
             shift,
             shift_powers,
         }
+    }
+
+    pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
+        self.base = segments.add().segment_index as usize; // segments.add() always returns a positive index
+        self.zero_segment_index = segments.add_zero_segment(self.zero_segment_size)
+    }
+
+    // Reads self.instance_def.n_words from memory, starting at address=addr.
+    // Returns the words and the value if all words are in memory.
+    // Verifies that all words are integers and are bounded by 2**self.instance_def.word_bit_len.
+    fn read_n_words_value(
+        &mut self,
+        memory: &mut Memory,
+        addr: Relocatable,
+    ) -> Result<(Vec<Felt252>, Option<Felt252>), RunnerError> {
+        let mut words = Vec::new();
+        let mut value = Felt252::ZERO;
+        for i in 0..self.instance_def.n_words {
+            let addr_i = (addr + i)?;
+            match memory.get(&addr_i).map(Cow::into_owned) {
+                None => return Ok((vec![], None)),
+                Some(MaybeRelocatable::RelocatableValue(f)) => {
+                    return Err(MemoryError::ExpectedInteger(Box::new(addr_i)).into())
+                }
+                Some(MaybeRelocatable::Int(word)) => {
+                    if word >= self.shift {
+                        return Err(RunnerError::WordExceedsModBuiltinWordBitLen(
+                            addr_i,
+                            self.instance_def.word_bit_len,
+                            word,
+                        ));
+                    }
+                    words.push(word);
+                    value += word * self.shift_powers[i as usize];
+                }
+            }
+        }
+        Ok((words, Some(value)))
     }
 }

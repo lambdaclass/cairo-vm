@@ -127,6 +127,13 @@ impl AddAssign<usize> for Relocatable {
     }
 }
 
+impl Add<u32> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: u32) -> Result<Self, MathError> {
+        self + other as usize
+    }
+}
+
 impl Add<i32> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn add(self, other: i32) -> Result<Self, MathError> {
