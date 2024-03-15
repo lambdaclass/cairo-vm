@@ -6,13 +6,10 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
-    vm::{
-        errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
-        },
-        vm_core::VirtualMachine,
+    types::errors::program_errors::ProgramError,
+    vm::errors::{
+        memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+        vm_errors::VirtualMachineError,
     },
     Felt252,
 };
@@ -20,9 +17,7 @@ use clap::{Parser, ValueHint};
 use itertools::Itertools;
 use std::{
     io::{self, Write},
-    iter::Peekable,
     path::PathBuf,
-    slice::Iter,
 };
 use thiserror::Error;
 
@@ -324,116 +319,6 @@ fn main() -> Result<(), Error> {
         }
         Err(err) => Err(err),
     }
-}
-
-/// Serializes the return values in a user-friendly format
-/// Displays Arrays using brackets ([]) and Dictionaries using ({})
-/// Recursively dereferences referenced values (such as Span & Box)
-pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
-    let mut output_string = String::new();
-    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
-    fn serialize_output_inner(
-        iter: &mut Peekable<Iter<MaybeRelocatable>>,
-        output_string: &mut String,
-        vm: &VirtualMachine,
-    ) {
-        while let Some(val) = iter.next() {
-            if let MaybeRelocatable::RelocatableValue(x) = val {
-                // Check if the next value is a relocatable of the same index
-                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
-                    // Check if the two relocatable values represent a valid array in memory
-                    if x.segment_index == y.segment_index && x.offset <= y.offset {
-                        // Fetch the y value from the iterator so we don't serialize it twice
-                        iter.next();
-                        // Fetch array
-                        maybe_add_whitespace(output_string);
-                        output_string.push('[');
-                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push(']');
-                        continue;
-                    }
-                }
-
-                // Check if the single relocatable value represents a span
-                // In this case, the reloacatable will point us to the (start, end) pair in memory
-                // For example, the relocatable value may be 14:0, with the segment 14 containing [13:0 13:4] which is a valid array
-                if let (Ok(x), Ok(y)) = (vm.get_relocatable(*x), vm.get_relocatable(x + 1)) {
-                    if x.segment_index == y.segment_index && y.offset >= x.offset {
-                        // Fetch array
-                        maybe_add_whitespace(output_string);
-                        output_string.push('[');
-                        let array = vm.get_continuous_range(x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push(']');
-                        continue;
-                    }
-                }
-
-                // Check if the relocatable value represents a dictionary
-                // To do so we can check if the relocatable consists of the last dict_ptr, which should be a pointer to the next empty cell in the dictionary's segment
-                // We can check that the dict_ptr's offset is consistent with the length of the segment and that the segment is made up of tuples of three elements (key, prev_val, val)
-                if x.offset
-                    == vm
-                        .get_segment_size(x.segment_index as usize)
-                        .unwrap_or_default()
-                    && x.offset % 3 == 0
-                {
-                    // Fetch the dictionary's memory
-                    let dict_mem = vm
-                        .get_continuous_range((x.segment_index, 0).into(), x.offset)
-                        .expect("Malformed dictionary memory");
-                    // Serialize the dictionary
-                    output_string.push('{');
-                    // The dictionary's memory is made up of (key, prev_value, next_value) tuples
-                    // The prev value is not relevant to the user so we can skip over it for calrity
-                    for (key, _, value) in dict_mem.iter().tuples() {
-                        maybe_add_whitespace(output_string);
-                        // Serialize the key wich should always be a Felt value
-                        output_string.push_str(&key.to_string());
-                        output_string.push(':');
-                        // Serialize the value
-                        // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                        let value_vec = vec![value.clone()];
-                        let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
-                            value_vec.iter().peekable();
-                        serialize_output_inner(&mut value_iter, output_string, vm);
-                    }
-                    output_string.push('}');
-                    continue;
-                }
-
-                // Finally, if the relocatable is neither the start of an array, a span, or a dictionary, it should be a reference (Such as Box)
-                // In this case we show the referenced value (if it exists)
-                // As this reference can also hold a reference we use the serialize_output_inner function to handle it recursively
-                if let Some(val) = vm.get_maybe(x) {
-                    maybe_add_whitespace(output_string);
-                    let array = vec![val.clone()];
-                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> = array.iter().peekable();
-                    serialize_output_inner(&mut array_iter, output_string, vm);
-                    continue;
-                }
-            }
-            maybe_add_whitespace(output_string);
-            output_string.push_str(&val.to_string());
-        }
-    }
-
-    fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty()
-            && !string.ends_with('[')
-            && !string.ends_with(':')
-            && !string.ends_with('{')
-        {
-            string.push(' ');
-        }
-    }
-    output_string
 }
 
 #[cfg(test)]
