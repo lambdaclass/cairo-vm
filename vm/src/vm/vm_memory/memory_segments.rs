@@ -1,4 +1,8 @@
+use core::cmp::max;
 use core::fmt;
+
+use crate::Felt252;
+use num_traits::Zero;
 
 use crate::stdlib::prelude::*;
 use crate::stdlib::{any::Any, collections::HashMap};
@@ -12,6 +16,8 @@ use crate::{
     },
 };
 
+use super::memory::MemoryCell;
+
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
@@ -19,6 +25,11 @@ pub struct MemorySegmentManager {
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
+    // Segment index of the zero segment index, a memory segment filled with zeroes, used exclusively by builtin runners
+    // This segment will never have index 0 so we use 0 to represent uninitialized value
+    zero_segment_index: usize,
+    // Segment size of the zero segment index
+    zero_segment_size: usize,
 }
 
 impl MemorySegmentManager {
@@ -71,6 +82,8 @@ impl MemorySegmentManager {
             segment_used_sizes: None,
             public_memory_offsets: HashMap::new(),
             memory: Memory::new(),
+            zero_segment_index: 0,
+            zero_segment_size: 0,
         }
     }
 
@@ -262,6 +275,37 @@ impl MemorySegmentManager {
         }
         self.public_memory_offsets
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
+    }
+
+    // TODO: remove allow
+    #[allow(unused)]
+    // Creates the zero segment if it wasn't previously created
+    // Fills the segment with the value 0 until size is reached
+    // Returns the index of the zero segment
+    pub(crate) fn add_zero_segment(&mut self, size: usize) -> usize {
+        if self.zero_segment_index.is_zero() {
+            self.zero_segment_index = self.add().segment_index as usize;
+        }
+        // Fil zero segment with zero values until size is reached
+        for _ in 0..self.zero_segment_size.saturating_sub(size) {
+            // As zero_segment_index is only accessible to the segment manager
+            // we can asume that it is always valid and index direcly into it
+            self.memory.data[self.zero_segment_index]
+                .push(Some(MemoryCell::new(Felt252::ZERO.into())))
+        }
+        self.zero_segment_size = max(self.zero_segment_size, size);
+        self.zero_segment_index
+    }
+
+    // TODO: remove allow
+    #[allow(unused)]
+    // Finalizes the zero segment and clears it's tracking data from the manager
+    pub(crate) fn finalize_zero_segment(&mut self) {
+        if !self.zero_segment_index.is_zero() {
+            self.finalize(Some(self.zero_segment_size), self.zero_segment_index, None);
+            self.zero_segment_index = 0;
+            self.zero_segment_size = 0;
+        }
     }
 }
 

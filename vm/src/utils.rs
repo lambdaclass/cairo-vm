@@ -127,6 +127,7 @@ pub mod test_utils {
                     segment_sizes: HashMap::new(),
                     segment_used_sizes: None,
                     public_memory_offsets: HashMap::new(),
+                    ..Default::default()
                 }
 
             }
