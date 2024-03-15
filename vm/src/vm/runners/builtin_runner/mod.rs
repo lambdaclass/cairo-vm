@@ -9,6 +9,8 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
+#[allow(unused)]
+mod add_mul_mod;
 mod bitwise;
 mod ec_op;
 mod hash;

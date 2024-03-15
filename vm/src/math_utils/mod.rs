@@ -139,6 +139,21 @@ pub fn safe_div_usize(x: usize, y: usize) -> Result<usize, MathError> {
     Ok(q)
 }
 
+/// Performs integer division between x and y; fails if x is not divisible by y.
+pub fn safe_div_u32(x: u32, y: u32) -> Result<u32, MathError> {
+    if y.is_zero() {
+        return Err(MathError::DividedByZero);
+    }
+
+    let (q, r) = x.div_mod_floor(&y);
+
+    if !r.is_zero() {
+        return Err(MathError::SafeDivFailU32(x, y));
+    }
+
+    Ok(q)
+}
+
 ///Returns num_a^-1 mod p
 pub(crate) fn mul_inv(num_a: &BigInt, p: &BigInt) -> BigInt {
     if num_a.is_zero() {

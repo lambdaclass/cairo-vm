@@ -1,3 +1,7 @@
+use core::array;
+
+use crate::Felt252;
+
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
 //The maximum n value that the function fill_memory accepts.
@@ -19,6 +23,11 @@ pub struct ModBuiltinRunner {
     base: usize,
     instance_def: ModInstanceDef,
     included: bool,
+    zero_segment_index: usize,
+    zero_segment_size: usize,
+    // Precomputed powers used for reading and writing values that are represented as n_words words of word_bit_len bits each.
+    shift: Felt252,
+    shift_powers: Vec<Felt252>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,21 +37,27 @@ pub enum ModBuiltinType {
 }
 
 impl ModBuiltinRunner {
-    fn new_add_mod(instance_def: ModInstanceDef, included: bool) -> Self {
-        Self {
-            builtin_type: ModBuiltinType::Add,
-            base: 0,
-            instance_def,
-            included,
-        }
+    pub fn new_add_mod(instance_def: ModInstanceDef, included: bool) -> Self {
+        Self::new(instance_def, included, ModBuiltinType::Add)
     }
 
-    fn new_mul_mod(instance_def: ModInstanceDef, included: bool) -> Self {
+    pub fn new_mul_mod(instance_def: ModInstanceDef, included: bool) -> Self {
+        Self::new(instance_def, included, ModBuiltinType::Mul)
+    }
+    fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
+        let shift = Felt252::TWO.pow(instance_def.word_bit_len);
+        let shift_powers = (0..instance_def.n_words).map(|i| shift.pow(i)).collect();
+        let zero_segment_size =
+            core::cmp::max(instance_def.n_words, instance_def.batch_size * 3) as usize;
         Self {
-            builtin_type: ModBuiltinType::Mul,
+            builtin_type,
             base: 0,
             instance_def,
             included,
+            zero_segment_index: 0,
+            zero_segment_size,
+            shift,
+            shift_powers,
         }
     }
 }
