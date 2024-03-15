@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
+
 * feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
 * feat: Fix error handling in `initialize_state`[#1657](https://github.com/lambdaclass/cairo-vm/pull/1657)
