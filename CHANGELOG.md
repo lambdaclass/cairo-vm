@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat(BREAKING): Use return type info from sierra when serializing return values n cairo1-run crate [#1665](https://github.com/lambdaclass/cairo-vm/pull/1665)
+* feat(BREAKING): Use return type info from sierra when serializing return values in cairo1-run crate [#1665](https://github.com/lambdaclass/cairo-vm/pull/1665)
   * Removed public function `serialize_output`.
   * Add field `serialize_output` to `Cairo1RunConfig`.
   * Function `cairo_run_program` now returns an extra `Option<String>` value with the serialized output if `serialize_output` is enabled in the config.
