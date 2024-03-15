@@ -2,9 +2,15 @@
 
 #### Upcoming Changes
 
+* perf: use a more compact representation for `MemoryCell` [#1669](https://github.com/lambdaclass/cairo-vm/pull/1669)
+    * Required updating `lambdaworks-math` to version 0.5.0 for missing features
+    * Required adding methods `from_raw` and `raw` to `cairo-felt` for efficient conversions
+    * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
+    * BREAKING: legacy `BigUint`-based `cairo-felt` suffers massive slowdowns due to extra copying, these changes are meant to optimize usage with the `lambdaworks` backend instead
+
 #### [0.9.2] - 2024-01-3
 
-* Change ec_op_impl() to use ProjectivePoint [#1534](https://github.com/lambdaclass/cairo-vm/pull/1534)
+* perf: change ec_op_impl() to use ProjectivePoint [#1534](https://github.com/lambdaclass/cairo-vm/pull/1534)
 
 #### [0.9.1] - 2023-11-16
 
