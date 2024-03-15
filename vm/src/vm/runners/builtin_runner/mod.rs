@@ -43,6 +43,8 @@ pub const EC_OP_BUILTIN_NAME: &str = "ec_op_builtin";
 pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
 pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
+pub const ADD_MOD_BUILTIN_NAME: &str = "add_mod_builtin";
+pub const MUL_MOD_BUILTIN_NAME: &str = "mul_mod_builtin";
 
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that

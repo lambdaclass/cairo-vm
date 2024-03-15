@@ -1,7 +1,7 @@
 use core::array;
 use core::borrow::Borrow;
 
-use crate::stdlib::borrow::Cow;
+use crate::stdlib::{borrow::Cow, collections::HashMap};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -71,6 +71,13 @@ impl ModBuiltinRunner {
         }
     }
 
+    pub fn name(&self) -> &str {
+        match self.builtin_type {
+            ModBuiltinType::Mul => super::MUL_MOD_BUILTIN_NAME,
+            ModBuiltinType::Add => super::ADD_MOD_BUILTIN_NAME,
+        }
+    }
+
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = segments.add().segment_index as usize; // segments.add() always returns a positive index
         self.zero_segment_index = segments.add_zero_segment(self.zero_segment_size)
@@ -107,5 +114,43 @@ impl ModBuiltinRunner {
             }
         }
         Ok((words, Some(value)))
+    }
+
+    // Reads the inputs to the builtin (see INPUT_NAMES) from the memory at address=addr.
+    // Returns a dictionary from input name to its value. Asserts that it exists in memory.
+    // Returns also the value of p, not just its words.
+    fn read_inputs(
+        &mut self,
+        memory: &mut Memory,
+        addr: Relocatable,
+    ) -> Result<HashMap<&str, MaybeRelocatable>, RunnerError> {
+        let mut inputs = HashMap::new();
+        // values_ptr
+        inputs.insert(INPUT_NAMES[4], memory.get_relocatable((addr + 4)?)?.into());
+        // offsets_ptr
+        inputs.insert(INPUT_NAMES[5], memory.get_relocatable((addr + 5)?)?.into());
+        // n
+        let n = memory.get_integer((addr + 6)?)?.into_owned();
+        if n < Felt252::ONE {
+            return Err(RunnerError::ModBuiltinNLessThanOne(
+                self.name().to_string(),
+                n,
+            ));
+        }
+        inputs.insert(INPUT_NAMES[6], n.into());
+        // p
+        let (words, value) = self.read_n_words_value(memory, addr)?;
+        let value = value.ok_or_else(|| {
+            RunnerError::ModBuiltinMissingValue(
+                self.name().to_string(),
+                (addr + words.len()).unwrap_or_default(),
+            )
+        })?;
+        inputs.insert("p", value.into());
+        for (i, val) in words.iter().enumerate() {
+            // pi
+            inputs.insert(INPUT_NAMES[i], val.into());
+        }
+        Ok(inputs)
     }
 }

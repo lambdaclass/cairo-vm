@@ -106,6 +106,10 @@ pub enum RunnerError {
     PageNotOnSegment(Relocatable, usize),
     #[error("Expected integer at address {0} to be smaller than 2^{1}. Got: {2}.")]
     WordExceedsModBuiltinWordBitLen(Relocatable, u32, Felt252),
+    #[error("{0} builtin: Expected n >= 1. Got: {1}.")]
+    ModBuiltinNLessThanOne(String, Felt252),
+    #[error("{0} builtin: Missing value at address {1}.")]
+    ModBuiltinMissingValue(String, Relocatable),
 }
 
 #[cfg(test)]
