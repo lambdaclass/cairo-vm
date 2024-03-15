@@ -232,15 +232,8 @@ impl MaybeRelocatable {
     pub fn add_int(&self, other: &Felt252) -> Result<MaybeRelocatable, MathError> {
         match *self {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
-            MaybeRelocatable::RelocatableValue(ref rel) => {
-                let big_offset = other + rel.offset as u64;
-                let new_offset = big_offset.to_usize().ok_or_else(|| {
-                    MathError::RelocatableAddFelt252OffsetExceeded(Box::new((*rel, *other)))
-                })?;
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: new_offset,
-                }))
+            MaybeRelocatable::RelocatableValue(rel) => {
+                Ok(MaybeRelocatable::RelocatableValue((rel + other)?))
             }
         }
     }

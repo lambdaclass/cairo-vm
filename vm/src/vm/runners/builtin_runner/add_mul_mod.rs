@@ -87,7 +87,7 @@ impl ModBuiltinRunner {
     // Returns the words and the value if all words are in memory.
     // Verifies that all words are integers and are bounded by 2**self.instance_def.word_bit_len.
     fn read_n_words_value(
-        &mut self,
+        &self,
         memory: &mut Memory,
         addr: Relocatable,
     ) -> Result<(Vec<Felt252>, Option<Felt252>), RunnerError> {
@@ -147,10 +147,46 @@ impl ModBuiltinRunner {
             )
         })?;
         inputs.insert("p", value.into());
-        for (i, val) in words.iter().enumerate() {
+        for (i, word) in words.iter().enumerate() {
             // pi
-            inputs.insert(INPUT_NAMES[i], val.into());
+            inputs.insert(INPUT_NAMES[i], word.into());
         }
         Ok(inputs)
+    }
+
+    // Reads the memory variables to the builtin (see MEMORY_VAR_NAMES) from the memory given
+    // the inputs (specifically, values_ptr and offsets_ptr).
+    // Returns a dictionary from memory variable name to its value. Asserts if it doesn't exist in
+    // memory. Returns also the values of a, b, and c, not just their words.
+    fn read_memory_vars(
+        &self,
+        memory: &mut Memory,
+        values_ptr: Relocatable,
+        offsets_ptr: Relocatable,
+        index_in_batch: usize,
+    ) -> Result<HashMap<&str, Felt252>, RunnerError> {
+        let mut memory_vars = HashMap::new();
+        // abc
+        for i in 0..3 {
+            let offset = memory
+                .get_integer((offsets_ptr + (i + 3 * index_in_batch))?)?
+                .into_owned();
+            memory_vars.insert(MEMORY_VAR_NAMES[i], offset);
+
+            let value_addr = (values_ptr + &offset)?;
+            let (words, value) = self.read_n_words_value(memory, value_addr)?;
+            let value = value.ok_or_else(|| {
+                RunnerError::ModBuiltinMissingValue(
+                    self.name().to_string(),
+                    (value_addr + words.len()).unwrap_or_default(),
+                )
+            })?;
+            for (j, word) in words.iter().enumerate() {
+                // a0 a1 a2 a3 b0 b1 ... c3
+                memory_vars.insert(MEMORY_VAR_NAMES[3 + i * 4 + j], *word);
+            }
+        }
+
+        Ok(memory_vars)
     }
 }
