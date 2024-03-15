@@ -1103,7 +1103,6 @@ fn serialize_output_inner(
                 type_sizes,
             )
         }
-        cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_) => unimplemented!("This is a Trait, shouldn't be returned"),
         _ => panic!("Unexpected return type")
     }
 }
