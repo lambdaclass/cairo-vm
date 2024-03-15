@@ -225,13 +225,13 @@ pub fn cairo_run_program(
     let return_values = fetch_return_values(return_type_size, return_type_id, &vm)?;
 
     let serialized_output = if cairo_run_config.serialize_output {
-        Some(dbg!(serialize_output(
+        Some(serialize_output(
             &return_values,
             &mut vm,
             return_type_id,
             &sierra_program_registry,
             &type_sizes,
-        )))
+        ))
     } else {
         None
     };
@@ -751,11 +751,11 @@ fn finalize_builtins(
     Ok(())
 }
 
-fn serialize_output<'a>(
-    return_values: &Vec<MaybeRelocatable>,
+fn serialize_output(
+    return_values: &[MaybeRelocatable],
     vm: &mut VirtualMachine,
     return_type_id: &ConcreteTypeId,
-    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> String {
     let mut output_string = String::new();
@@ -771,12 +771,12 @@ fn serialize_output<'a>(
     output_string
 }
 
-fn serialize_output_inner<'a>(
+fn serialize_output_inner(
     return_values_iter: &mut Peekable<Iter<MaybeRelocatable>>,
     output_string: &mut String,
     vm: &mut VirtualMachine,
     return_type_id: &ConcreteTypeId,
-    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) {
     match sierra_program_registry.get_type(return_type_id).unwrap() {
@@ -895,7 +895,7 @@ fn serialize_output_inner<'a>(
                 &mut data_iter,
                 output_string,
                 vm,
-                dbg!(&info.ty),
+                &info.ty,
                 sierra_program_registry,
                 type_sizes,
             )
@@ -1059,7 +1059,7 @@ fn serialize_output_inner<'a>(
                 .get_relocatable()
                 .expect("Squashed dict_end ptr not Relocatable");
             let dict_size = (dict_end - dict_start).unwrap();
-            if !(dict_size % 3 == 0) {
+            if dict_size % 3 != 0 {
                 panic!("Return value is not a valid SquashedFelt252Dict")
             }
             // Fetch dictionary values type id
