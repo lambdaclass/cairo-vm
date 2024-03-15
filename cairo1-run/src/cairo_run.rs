@@ -967,13 +967,13 @@ fn serialize_output_inner(
             // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
 
             // Space is always allocated for the largest enum member, padding with zeros in front for the smaller variants
-            // We have to remove this variants
             let mut max_variant_size = 0;
             for variant in &info.variants {
                 let variant_size = type_sizes.get(variant).unwrap();
                 max_variant_size = std::cmp::max(max_variant_size, *variant_size)
             }
             for _ in 0..max_variant_size - type_sizes.get(variant_type_id).unwrap() {
+                // Remove padding
                 assert_eq!(
                     return_values_iter.next(),
                     Some(&MaybeRelocatable::from(0)),
