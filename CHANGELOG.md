@@ -6,6 +6,7 @@
     * Required updating `lambdaworks-math` to version 0.5.0 for missing features
     * Required adding methods `from_raw` and `raw` to `cairo-felt` for efficient conversions
     * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
+    * BREAKING: legacy `BigUint`-based `cairo-felt` suffers massive slowdowns due to extra copying, these changes are meant to optimize usage with the `lambdaworks` backend instead
 
 #### [0.9.2] - 2024-01-3
 
