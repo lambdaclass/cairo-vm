@@ -18,7 +18,6 @@ use crate::{
 
 use crate::utils::PRIME_STR;
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
-#[cfg(feature = "mod_builtin")]
 use crate::vm::runners::builtin_runner::{ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME};
 use crate::Felt252;
 use crate::{
@@ -57,9 +56,7 @@ pub enum BuiltinName {
     ec_op,
     poseidon,
     segment_arena,
-    #[cfg(feature = "mod_builtin")]
     add_mod,
-    #[cfg(feature = "mod_builtin")]
     mul_mod,
 }
 
@@ -75,9 +72,7 @@ impl BuiltinName {
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
             BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
-            #[cfg(feature = "mod_builtin")]
             BuiltinName::add_mod => ADD_MOD_BUILTIN_NAME,
-            #[cfg(feature = "mod_builtin")]
             BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME,
         }
     }

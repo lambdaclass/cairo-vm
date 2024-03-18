@@ -36,6 +36,7 @@ const ADDITIONAL_MEMORY_UNITS: usize = MEMORY_VAR_NAMES.len();
 pub struct ModBuiltinRunner {
     builtin_type: ModBuiltinType,
     base: usize,
+    stop_ptr: Option<usize>,
     instance_def: ModInstanceDef,
     included: bool,
     zero_segment_index: usize,
@@ -76,6 +77,7 @@ impl ModBuiltinRunner {
         Self {
             builtin_type,
             base: 0,
+            stop_ptr: None,
             instance_def,
             included,
             zero_segment_index: 0,
@@ -115,6 +117,44 @@ impl ModBuiltinRunner {
 
     pub fn cells_per_instance(&self) -> u32 {
         self.instance_def.cells_per_instance()
+    }
+
+    pub fn final_stack(
+        &mut self,
+        segments: &MemorySegmentManager,
+        pointer: Relocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        if self.included {
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            if self.base as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
+                    self.name(),
+                    stop_pointer,
+                    self.base,
+                ))));
+            }
+            let stop_ptr = stop_pointer.offset;
+            // TODO: Uncomment lines
+            // let num_instances = self.get_used_instances(segments)?;
+            // let used = num_instances * self.cells_per_instance as usize;
+            // if stop_ptr != used {
+            //     return Err(RunnerError::InvalidStopPointer(Box::new((
+            //         self.name(),
+            //         Relocatable::from((self.base as isize, used)),
+            //         Relocatable::from((self.base as isize, stop_ptr)),
+            //     ))));
+            // }
+            self.stop_ptr = Some(stop_ptr);
+            Ok(stop_pointer_addr)
+        } else {
+            self.stop_ptr = Some(0);
+            Ok(pointer)
+        }
     }
 
     // Reads self.instance_def.n_words from memory, starting at address=addr.
@@ -374,6 +414,204 @@ impl ModBuiltinRunner {
             _ => Ok(false),
         }
     }
+
+    /// Fills the memory with inputs to the builtin instances based on the inputs to the
+    /// first instance, pads the offsets table to fit the number of operations writen in the
+    /// input to the first instance, and caculates missing values in the values table.
+
+    /// For each builtin, the given tuple is of the form (builtin_ptr, builtin_runner, n),
+    /// where n is the number of operations in the offsets table (i.e., the length of the
+    /// offsets table is 3*n).
+
+    /// The number of operations written to the input of the first instance n' should be at
+    /// least n and a multiple of batch_size. Previous offsets are copied to the end of the
+    /// offsets table to make its length 3n'.
+
+    pub fn fill_memory(
+        memory: &mut Memory,
+        add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
+        mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
+    ) -> Result<(), RunnerError> {
+        if add_mod.is_none() && mul_mod.is_none() {
+            return Err(RunnerError::FillMemoryNoBuiltinSet);
+        }
+        // Check that the instance definitions of the builtins are the same.
+        if let (Some((_, add_mod, _)), Some((_, mul_mod, _))) = (add_mod, mul_mod) {
+            if add_mod.instance_def.n_words != mul_mod.instance_def.n_words
+                || add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len
+            {
+                return Err(RunnerError::ModBuiltinsMismatchedInstanceDef);
+            }
+        }
+        // Fill the inputs to the builtins.
+        let mut add_mod_inputs = HashMap::new();
+        let mut mul_mod_inputs = HashMap::new();
+        let mut add_mod_n = 0;
+        let mut mul_mod_n = 0;
+        // TODO: Remove unwraps once refactored to struct
+        if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
+            add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
+            add_mod.fill_offsets(
+                memory,
+                &add_mod_inputs,
+                add_mod_index,
+                add_mod_inputs[INPUT_NAMES[6]]
+                    .get_int_ref()
+                    .unwrap()
+                    .to_usize()
+                    .unwrap()
+                    - add_mod_index,
+            )?;
+            add_mod_n = add_mod_index;
+        }
+        if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
+            mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
+            mul_mod.fill_offsets(
+                memory,
+                &mul_mod_inputs,
+                mul_mod_index,
+                mul_mod_inputs[INPUT_NAMES[6]]
+                    .get_int_ref()
+                    .unwrap()
+                    .to_usize()
+                    .unwrap()
+                    - mul_mod_index,
+            )?;
+            mul_mod_n = mul_mod_index;
+        }
+
+        //  Get one of the builtin runners - the rest of this function doesn't depend on batch_size.
+        let mod_runner = if let Some((_, add_mod, _)) = add_mod {
+            add_mod
+        } else {
+            mul_mod.unwrap().1
+        };
+        // Fill the values table.
+        let mut add_mod_index = 0;
+        let mut mul_mod_index = 0;
+        while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
+            if add_mod_index < add_mod_n
+                && mod_runner.fill_value(
+                    memory,
+                    &add_mod_inputs,
+                    add_mod_index,
+                    &Operation::Add,
+                    &Operation::Sub,
+                )?
+            {
+                add_mod_index += 1;
+            } else if mul_mod_index < mul_mod_n
+                && mod_runner.fill_value(
+                    memory,
+                    &mul_mod_inputs,
+                    mul_mod_index,
+                    &Operation::Mul,
+                    &Operation::DivMod(mul_mod_inputs["p"].get_int().unwrap()),
+                )?
+            {
+                mul_mod_index += 1;
+            } else {
+                return Err(RunnerError::FillMemoryCoudNotFillTable(
+                    add_mod_index,
+                    mul_mod_index,
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn fill_memory_reload(
+        memory: &mut Memory,
+        add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
+        mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
+    ) -> Result<(), RunnerError> {
+        if add_mod.is_none() && mul_mod.is_none() {
+            return Err(RunnerError::FillMemoryNoBuiltinSet);
+        }
+        // Check that the instance definitions of the builtins are the same.
+        if let (Some((_, add_mod, _)), Some((_, mul_mod, _))) = (add_mod, mul_mod) {
+            if add_mod.instance_def.n_words != mul_mod.instance_def.n_words
+                || add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len
+            {
+                return Err(RunnerError::ModBuiltinsMismatchedInstanceDef);
+            }
+        }
+        // Fill the inputs to the builtins.
+        let mut add_mod_inputs = HashMap::new();
+        let mut mul_mod_inputs = HashMap::new();
+        let mut add_mod_n = 0;
+        let mut mul_mod_n = 0;
+        // TODO: Remove unwraps once refactored to struct
+        if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
+            add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
+            add_mod.fill_offsets(
+                memory,
+                &add_mod_inputs,
+                add_mod_index,
+                add_mod_inputs[INPUT_NAMES[6]]
+                    .get_int_ref()
+                    .unwrap()
+                    .to_usize()
+                    .unwrap()
+                    - add_mod_index,
+            )?;
+            add_mod_n = add_mod_index;
+        }
+        if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
+            mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
+            mul_mod.fill_offsets(
+                memory,
+                &mul_mod_inputs,
+                mul_mod_index,
+                mul_mod_inputs[INPUT_NAMES[6]]
+                    .get_int_ref()
+                    .unwrap()
+                    .to_usize()
+                    .unwrap()
+                    - mul_mod_index,
+            )?;
+            mul_mod_n = mul_mod_index;
+        }
+
+        //  Get one of the builtin runners - the rest of this function doesn't depend on batch_size.
+        let mod_runner = if let Some((_, add_mod, _)) = add_mod {
+            add_mod
+        } else {
+            mul_mod.unwrap().1
+        };
+        // Fill the values table.
+        let mut add_mod_index = 0;
+        let mut mul_mod_index = 0;
+        while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
+            if add_mod_index < add_mod_n
+                && mod_runner.fill_value(
+                    memory,
+                    &add_mod_inputs,
+                    add_mod_index,
+                    &Operation::Add,
+                    &Operation::Sub,
+                )?
+            {
+                add_mod_index += 1;
+            } else if mul_mod_index < mul_mod_n
+                && mod_runner.fill_value(
+                    memory,
+                    &mul_mod_inputs,
+                    mul_mod_index,
+                    &Operation::Mul,
+                    &Operation::DivMod(mul_mod_inputs["p"].get_int().unwrap()),
+                )?
+            {
+                mul_mod_index += 1;
+            } else {
+                return Err(RunnerError::FillMemoryCoudNotFillTable(
+                    add_mod_index,
+                    mul_mod_index,
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 fn apply_op(lhs: Felt252, rhs: Felt252, op: &Operation) -> Result<Felt252, MathError> {
@@ -385,109 +623,4 @@ fn apply_op(lhs: Felt252, rhs: Felt252, op: &Operation) -> Result<Felt252, MathE
             Felt252::from(div_mod(&lhs.to_bigint(), &rhs.to_bigint(), &p.to_bigint())?)
         }
     })
-}
-
-/// Fills the memory with inputs to the builtin instances based on the inputs to the
-/// first instance, pads the offsets table to fit the number of operations writen in the
-/// input to the first instance, and caculates missing values in the values table.
-
-/// For each builtin, the given tuple is of the form (builtin_ptr, builtin_runner, n),
-/// where n is the number of operations in the offsets table (i.e., the length of the
-/// offsets table is 3*n).
-
-/// The number of operations written to the input of the first instance n' should be at
-/// least n and a multiple of batch_size. Previous offsets are copied to the end of the
-/// offsets table to make its length 3n'.
-
-pub fn fill_memory(
-    memory: &mut Memory,
-    add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
-    mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
-) -> Result<(), RunnerError> {
-    if add_mod.is_none() && mul_mod.is_none() {
-        return Err(RunnerError::FillMemoryNoBuiltinSet);
-    }
-    // Check that the instance definitions of the builtins are the same.
-    if let (Some((_, add_mod, _)), Some((_, mul_mod, _))) = (add_mod, mul_mod) {
-        if add_mod.instance_def.n_words != mul_mod.instance_def.n_words
-            || add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len
-        {
-            return Err(RunnerError::ModBuiltinsMismatchedInstanceDef);
-        }
-    }
-    // Fill the inputs to the builtins.
-    let mut add_mod_inputs = HashMap::new();
-    let mut mul_mod_inputs = HashMap::new();
-    let mut add_mod_n = 0;
-    let mut mul_mod_n = 0;
-    // TODO: Remove unwraps once refactored to struct
-    if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
-        add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
-        add_mod.fill_offsets(
-            memory,
-            &add_mod_inputs,
-            add_mod_index,
-            add_mod_inputs[INPUT_NAMES[6]]
-                .get_int_ref()
-                .unwrap()
-                .to_usize()
-                .unwrap()
-                - add_mod_index,
-        )?;
-        add_mod_n = add_mod_index;
-    }
-    if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
-        mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
-        mul_mod.fill_offsets(
-            memory,
-            &mul_mod_inputs,
-            mul_mod_index,
-            mul_mod_inputs[INPUT_NAMES[6]]
-                .get_int_ref()
-                .unwrap()
-                .to_usize()
-                .unwrap()
-                - mul_mod_index,
-        )?;
-        mul_mod_n = mul_mod_index;
-    }
-
-    //  Get one of the builtin runners - the rest of this function doesn't depend on batch_size.
-    let mod_runner = if let Some((_, add_mod, _)) = add_mod {
-        add_mod
-    } else {
-        mul_mod.unwrap().1
-    };
-    // Fill the values table.
-    let mut add_mod_index = 0;
-    let mut mul_mod_index = 0;
-    while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
-        if add_mod_index < add_mod_n
-            && mod_runner.fill_value(
-                memory,
-                &add_mod_inputs,
-                add_mod_index,
-                &Operation::Add,
-                &Operation::Sub,
-            )?
-        {
-            add_mod_index += 1;
-        } else if mul_mod_index < mul_mod_n
-            && mod_runner.fill_value(
-                memory,
-                &mul_mod_inputs,
-                mul_mod_index,
-                &Operation::Mul,
-                &Operation::DivMod(mul_mod_inputs["p"].get_int().unwrap()),
-            )?
-        {
-            mul_mod_index += 1;
-        } else {
-            return Err(RunnerError::FillMemoryCoudNotFillTable(
-                add_mod_index,
-                mul_mod_index,
-            ));
-        }
-    }
-    Ok(())
 }

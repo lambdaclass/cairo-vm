@@ -129,8 +129,9 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.final_stack(segments, stack_pointer)
             }
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(ref mut mod_builtin) => Ok((mod_builtin.base() as isize, 0).into()),
+            BuiltinRunner::Mod(ref mut mod_builtin) => {
+                mod_builtin.final_stack(segments, stack_pointer)
+            }
         }
     }
 

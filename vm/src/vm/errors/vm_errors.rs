@@ -85,6 +85,8 @@ pub enum VirtualMachineError {
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
+    #[error("Expected {0} to be present")]
+    NoModBuiltin(String),
     #[error("Div out of range: 0 < {} <= {}", (*.0).0, (*.0).1)]
     OutOfValidRange(Box<(Felt252, Felt252)>),
     #[error("Failed to compare {} and {}, cant compare a relocatable to an integer value", (*.0).0, (*.0).1)]
