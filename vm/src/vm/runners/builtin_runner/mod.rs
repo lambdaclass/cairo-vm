@@ -21,15 +21,16 @@ mod range_check;
 mod segment_arena;
 mod signature;
 
-pub use self::keccak::KeccakBuiltinRunner;
-pub use self::poseidon::PoseidonBuiltinRunner;
-pub use self::segment_arena::SegmentArenaBuiltinRunner;
+pub use add_mul_mod::ModBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
+pub use keccak::KeccakBuiltinRunner;
 use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
+pub use poseidon::PoseidonBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
+pub use segment_arena::SegmentArenaBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
@@ -65,6 +66,7 @@ pub enum BuiltinRunner {
     Signature(SignatureBuiltinRunner),
     Poseidon(PoseidonBuiltinRunner),
     SegmentArena(SegmentArenaBuiltinRunner),
+    Mod(ModBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -84,6 +86,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.initialize_segments(segments)
             }
+            BuiltinRunner::Mod(ref mut mod_builtin) => mod_builtin.initialize_segments(segments),
         }
     }
 
@@ -98,6 +101,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.initial_stack(),
+            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.initial_stack(),
         }
     }
 
@@ -125,6 +129,8 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.final_stack(segments, stack_pointer)
             }
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(ref mut mod_builtin) => Ok((mod_builtin.base() as isize, 0).into()),
         }
     }
 
@@ -177,6 +183,7 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
             //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.base(),
+            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.base(),
         }
     }
 
@@ -190,6 +197,7 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(keccak) => keccak.ratio(),
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
+            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.ratio(),
         }
     }
 
@@ -206,6 +214,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.add_validation_rule(memory)
             }
+            BuiltinRunner::Mod(_) => {}
         }
     }
 
@@ -230,6 +239,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.deduce_memory_cell(address, memory)
             }
+            BuiltinRunner::Mod(_) => Ok(None),
         }
     }
 
@@ -266,6 +276,8 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_memory_segment_addresses()
             }
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => (0, None),
         }
     }
 
@@ -282,6 +294,8 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_cells(segments)
             }
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => Ok(0),
         }
     }
 
@@ -301,6 +315,8 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_instances(segments)
             }
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => Ok(0),
         }
     }
 
@@ -348,6 +364,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
             BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Mod(mod_builtin) => mod_builtin.cells_per_instance(),
         }
     }
 
@@ -362,6 +379,8 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
             BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
             BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => 0,
         }
     }
 
@@ -375,6 +394,8 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
             BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
             BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => 0,
         }
     }
 
@@ -389,6 +410,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
             BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
+            BuiltinRunner::Mod(b) => b.name(),
         }
     }
 
@@ -516,6 +538,8 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.stop_ptr = Some(stop_ptr)
             }
+            // TODO: Unimplemented
+            BuiltinRunner::Mod(_) => {}
         }
     }
 }
@@ -571,6 +595,12 @@ impl From<PoseidonBuiltinRunner> for BuiltinRunner {
 impl From<SegmentArenaBuiltinRunner> for BuiltinRunner {
     fn from(runner: SegmentArenaBuiltinRunner) -> Self {
         BuiltinRunner::SegmentArena(runner)
+    }
+}
+
+impl From<ModBuiltinRunner> for BuiltinRunner {
+    fn from(runner: ModBuiltinRunner) -> Self {
+        BuiltinRunner::Mod(runner)
     }
 }
 

@@ -54,10 +54,14 @@ use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "mod_builtin")]
+use super::builtin_runner::ModBuiltinRunner;
 use super::{
     builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
+#[cfg(feature = "mod_builtin")]
+use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -259,6 +263,10 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            #[cfg(feature = "mod_builtin")]
+            BuiltinName::add_mod,
+            #[cfg(feature = "mod_builtin")]
+            BuiltinName::mul_mod,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -327,6 +335,20 @@ impl CairoRunner {
             if included || self.is_proof_mode() {
                 builtin_runners
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+        #[cfg(feature = "mod_builtin")]
+        if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::add_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
+            }
+        }
+        #[cfg(feature = "mod_builtin")]
+        if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::mul_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
             }
         }
         if !program_builtins.is_empty() && !allow_missing_builtins {
@@ -400,6 +422,14 @@ impl CairoRunner {
                             .push(SegmentArenaBuiltinRunner::new(true).into())
                     }
                 }
+                #[cfg(feature = "mod_builtin")]
+                BuiltinName::add_mod => vm
+                    .builtin_runners
+                    .push(ModBuiltinRunner::new_add_mod(&ModInstanceDef::default(), true).into()),
+                #[cfg(feature = "mod_builtin")]
+                BuiltinName::mul_mod => vm
+                    .builtin_runners
+                    .push(ModBuiltinRunner::new_mul_mod(&ModInstanceDef::default(), true).into()),
             }
         }
 

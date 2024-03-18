@@ -12,6 +12,7 @@ keywords.workspace = true
 default = ["std", "with_mimalloc"]
 with_mimalloc = ["dep:mimalloc"]
 with_tracer = ["tracer"]
+mod_builtin = []
 std = [
     "serde_json/std",
     "bincode/std",

@@ -60,12 +60,12 @@ pub enum Operation {
 }
 
 impl ModBuiltinRunner {
-    pub fn new_add_mod(instance_def: ModInstanceDef, included: bool) -> Self {
-        Self::new(instance_def, included, ModBuiltinType::Add)
+    pub(crate) fn new_add_mod(instance_def: &ModInstanceDef, included: bool) -> Self {
+        Self::new(instance_def.clone(), included, ModBuiltinType::Add)
     }
 
-    pub fn new_mul_mod(instance_def: ModInstanceDef, included: bool) -> Self {
-        Self::new(instance_def, included, ModBuiltinType::Mul)
+    pub(crate) fn new_mul_mod(instance_def: &ModInstanceDef, included: bool) -> Self {
+        Self::new(instance_def.clone(), included, ModBuiltinType::Mul)
     }
 
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
@@ -85,7 +85,7 @@ impl ModBuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match self.builtin_type {
             ModBuiltinType::Mul => super::MUL_MOD_BUILTIN_NAME,
             ModBuiltinType::Add => super::ADD_MOD_BUILTIN_NAME,
@@ -95,6 +95,26 @@ impl ModBuiltinRunner {
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = segments.add().segment_index as usize; // segments.add() always returns a positive index
         self.zero_segment_index = segments.add_zero_segment(self.zero_segment_size)
+    }
+
+    pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
+        if self.included {
+            vec![MaybeRelocatable::from((self.base as isize, 0))]
+        } else {
+            vec![]
+        }
+    }
+
+    pub fn base(&self) -> usize {
+        self.base
+    }
+
+    pub fn ratio(&self) -> Option<u32> {
+        self.instance_def.ratio
+    }
+
+    pub fn cells_per_instance(&self) -> u32 {
+        self.instance_def.cells_per_instance()
     }
 
     // Reads self.instance_def.n_words from memory, starting at address=addr.
