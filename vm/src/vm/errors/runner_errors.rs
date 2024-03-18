@@ -114,6 +114,12 @@ pub enum RunnerError {
     FillMemoryMaxExceeded(String, usize),
     #[error("{0} builtin: write_n_words value must be 0 after loop")]
     WriteNWordsValueNotZero(String),
+    #[error("add_mod and mul_mod builtins must have the same n_words and word_bit_len.")]
+    ModBuiltinsMismatchedInstanceDef,
+    #[error("At least one of add_mod and mul_mod must be given.")]
+    FillMemoryNoBuiltinSet,
+    #[error("Could not fill the values table, add_mod_index={0}, mul_mod_index={1}")]
+    FillMemoryCoudNotFillTable(usize, usize),
 }
 
 #[cfg(test)]
