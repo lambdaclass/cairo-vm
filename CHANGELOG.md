@@ -20,6 +20,8 @@
   * Adds the flag `append_return_values` to both the CLI and `Cairo1RunConfig` struct.
   * Enabling flag will add the output builtin and the necessary instructions to append the return values to the output builtin's memory segment.
 
+* feat: `cairo1-run` accepts Sierra programs [#1544](https://github.com/lambdaclass/cairo-vm/pull/1544)
+
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
 * feat: output builtin features for bootloader support [#1580](https://github.com/lambdaclass/cairo-vm/pull/1580)
