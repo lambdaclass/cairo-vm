@@ -264,6 +264,14 @@ impl MaybeRelocatable {
         }
     }
 
+    /// Subs a usize from self
+    pub fn sub_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
+        Ok(match *self {
+                MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value - other as u64),
+                MaybeRelocatable::RelocatableValue(rel) => (rel - other)?.into(),
+        })
+    }
+
     /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
     /// Only values of the same type may be substracted.
     /// Relocatable values can only be substracted if they belong to the same segment.

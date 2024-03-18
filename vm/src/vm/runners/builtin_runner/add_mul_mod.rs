@@ -1,6 +1,8 @@
 use core::array;
 use core::borrow::Borrow;
+use num_traits::ToPrimitive;
 
+use crate::math_utils::safe_div_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap};
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -188,5 +190,25 @@ impl ModBuiltinRunner {
         }
 
         Ok(memory_vars)
+    }
+
+    // Fills the inputs to the instances of the builtin given the inputs to the first instance.
+    fn fill_inputs(&self, memory: &mut Memory, builtin_ptr: Relocatable, inputs: &HashMap<&str, MaybeRelocatable>) -> Result<(), RunnerError> {
+        let n = inputs[INPUT_NAMES[6]].get_int().and_then(|f| f.to_usize()).filter(|n| *n <= FILL_MEMORY_MAX).ok_or_else(|| RunnerError::FillMemoryMaxExceeded(self.name().to_string(), FILL_MEMORY_MAX))?;
+        let n_instances = safe_div_usize(n, self.instance_def.batch_size as usize)?;
+        for instance in 1..n_instances {
+            let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
+            // p0, p1, p2, p3
+            for i in 0..self.instance_def.n_words {
+                memory.insert((instance_ptr + i)?, &inputs[INPUT_NAMES[i as usize]])?;
+            }
+            // values_ptr
+            memory.insert((instance_ptr + 4)?, &inputs[INPUT_NAMES[4]])?;
+            // offsets_ptr
+            memory.insert((instance_ptr + 5)?, inputs[INPUT_NAMES[5]].add_usize(3 * instance + self.instance_def.batch_size as usize)?)?;
+            // n
+            memory.insert((instance_ptr + 6)?, inputs[INPUT_NAMES[6]].sub_usize(instance * self.instance_def.batch_size as usize)?)?;
+        }
+        Ok(())
     }
 }
