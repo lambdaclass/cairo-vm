@@ -787,12 +787,15 @@ fn serialize_output_inner(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Array start_ptr not Relocatable");
-            let array_end = return_values_iter
-                .next()
-                .expect("Missing return value")
-                .get_relocatable()
-                .expect("Array end_ptr not Relocatable");
-            let array_size = (array_end - array_start).unwrap();
+            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
+            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
+                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
+                    // Pop the value we just peeked
+                    return_values_iter.next();
+                    (array_start, (array_end - array_start).unwrap())
+                }
+                _ => ((array_start.segment_index, 0).into(), array_start.offset),
+            };
             let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
             let mut array_data_iter = array_data.iter().peekable();
             let array_elem_id = &info.ty;
