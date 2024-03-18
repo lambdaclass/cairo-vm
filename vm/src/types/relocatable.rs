@@ -267,8 +267,8 @@ impl MaybeRelocatable {
     /// Subs a usize from self
     pub fn sub_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
         Ok(match *self {
-                MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value - other as u64),
-                MaybeRelocatable::RelocatableValue(rel) => (rel - other)?.into(),
+            MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value - other as u64),
+            MaybeRelocatable::RelocatableValue(rel) => (rel - other)?.into(),
         })
     }
 

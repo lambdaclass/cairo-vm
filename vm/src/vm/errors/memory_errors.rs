@@ -91,6 +91,8 @@ pub enum MemoryError {
     ExpectedRelocatable(Box<Relocatable>),
     #[error("Unknown memory cell at address {0}")]
     UnknownMemoryCell(Box<Relocatable>),
+    #[error("Unknown memory cell")]
+    UnknownMemoryCellNoInfo,
     // SegmentArenaBuiltin
     #[error("segment_arena_builtin: assert used >= INITIAL_SEGMENT_SIZE")]
     InvalidUsedSizeSegmentArena,

@@ -111,7 +111,7 @@ pub enum RunnerError {
     #[error("{0} builtin: Missing value at address {1}.")]
     ModBuiltinMissingValue(String, Relocatable),
     #[error("{0} builtin: n must be <= {1}")]
-    FillMemoryMaxExceeded(String, usize)
+    FillMemoryMaxExceeded(String, usize),
 }
 
 #[cfg(test)]

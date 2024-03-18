@@ -193,8 +193,19 @@ impl ModBuiltinRunner {
     }
 
     // Fills the inputs to the instances of the builtin given the inputs to the first instance.
-    fn fill_inputs(&self, memory: &mut Memory, builtin_ptr: Relocatable, inputs: &HashMap<&str, MaybeRelocatable>) -> Result<(), RunnerError> {
-        let n = inputs[INPUT_NAMES[6]].get_int().and_then(|f| f.to_usize()).filter(|n| *n <= FILL_MEMORY_MAX).ok_or_else(|| RunnerError::FillMemoryMaxExceeded(self.name().to_string(), FILL_MEMORY_MAX))?;
+    fn fill_inputs(
+        &self,
+        memory: &mut Memory,
+        builtin_ptr: Relocatable,
+        inputs: &HashMap<&str, MaybeRelocatable>,
+    ) -> Result<(), RunnerError> {
+        let n = inputs[INPUT_NAMES[6]]
+            .get_int()
+            .and_then(|f| f.to_usize())
+            .filter(|n| *n <= FILL_MEMORY_MAX)
+            .ok_or_else(|| {
+                RunnerError::FillMemoryMaxExceeded(self.name().to_string(), FILL_MEMORY_MAX)
+            })?;
         let n_instances = safe_div_usize(n, self.instance_def.batch_size as usize)?;
         for instance in 1..n_instances {
             let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
@@ -205,9 +216,50 @@ impl ModBuiltinRunner {
             // values_ptr
             memory.insert((instance_ptr + 4)?, &inputs[INPUT_NAMES[4]])?;
             // offsets_ptr
-            memory.insert((instance_ptr + 5)?, inputs[INPUT_NAMES[5]].add_usize(3 * instance + self.instance_def.batch_size as usize)?)?;
+            memory.insert(
+                (instance_ptr + 5)?,
+                inputs[INPUT_NAMES[5]]
+                    .add_usize(3 * instance + self.instance_def.batch_size as usize)?,
+            )?;
             // n
-            memory.insert((instance_ptr + 6)?, inputs[INPUT_NAMES[6]].sub_usize(instance * self.instance_def.batch_size as usize)?)?;
+            memory.insert(
+                (instance_ptr + 6)?,
+                inputs[INPUT_NAMES[6]]
+                    .sub_usize(instance * self.instance_def.batch_size as usize)?,
+            )?;
+        }
+        Ok(())
+    }
+
+    // Copies the first offsets in the offsets table to its end, n_copies times.
+    fn fill_offsets(
+        &self,
+        memory: &mut Memory,
+        inputs: &HashMap<&str, MaybeRelocatable>,
+        index: usize,
+        n_copies: usize,
+    ) -> Result<(), RunnerError> {
+        // TODO: Consider using a vec instead of a hashmap for this
+        let mut offsets = HashMap::new();
+        // abc
+        for i in 0..3 {
+            // offsets_ptr
+            let offset = memory
+                .get(&(inputs[INPUT_NAMES[5]].add_usize(i))?)
+                .ok_or_else(|| MemoryError::UnknownMemoryCellNoInfo)?
+                .into_owned();
+            offsets.insert(MEMORY_VAR_NAMES[0], offset);
+        }
+        for i in 0..n_copies {
+            for j in 0..3 {
+                memory.insert(
+                    inputs[INPUT_NAMES[5]]
+                        .add_usize(3 * (index + i) + j)?
+                        .get_relocatable()
+                        .ok_or(MemoryError::AddressNotRelocatable)?,
+                    &offsets[MEMORY_VAR_NAMES[i]],
+                )?;
+            }
         }
         Ok(())
     }
