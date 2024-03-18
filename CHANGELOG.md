@@ -63,6 +63,8 @@
 
 * perf: optimize instruction cache allocations by using `VirtualMachine::load_data` [#1441](https://github.com/lambdaclass/cairo-vm/pull/1441)
 
+* feat: simplify `get_offset_value_reference` logic and add unit tests for it [#1662] (https://github.com/lambdaclass/cairo-vm/pull/1662)
+
 * feat: Add `print_output` flag to `cairo-1` crate [#1575] (https://github.com/lambdaclass/cairo-vm/pull/1575)
 
 * bugfixes(BREAKING): Fix memory hole count inconsistencies #[1585] (https://github.com/lambdaclass/cairo-vm/pull/1585)
