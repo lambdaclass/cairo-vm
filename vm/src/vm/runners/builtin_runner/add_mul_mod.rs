@@ -1,6 +1,8 @@
 use core::array;
 use core::borrow::Borrow;
 use num_traits::ToPrimitive;
+use num_traits::Zero;
+use starknet_types_core::felt::NonZeroFelt;
 
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap};
@@ -37,7 +39,7 @@ pub struct ModBuiltinRunner {
     zero_segment_index: usize,
     zero_segment_size: usize,
     // Precomputed powers used for reading and writing values that are represented as n_words words of word_bit_len bits each.
-    shift: Felt252,
+    shift: NonZeroFelt,
     shift_powers: Vec<Felt252>,
 }
 
@@ -68,7 +70,7 @@ impl ModBuiltinRunner {
             included,
             zero_segment_index: 0,
             zero_segment_size,
-            shift,
+            shift: NonZeroFelt::from_felt_unchecked(shift),
             shift_powers,
         }
     }
@@ -103,7 +105,7 @@ impl ModBuiltinRunner {
                     return Err(MemoryError::ExpectedInteger(Box::new(addr_i)).into())
                 }
                 Some(MaybeRelocatable::Int(word)) => {
-                    if word >= self.shift {
+                    if word >= self.shift.into() {
                         return Err(RunnerError::WordExceedsModBuiltinWordBitLen(
                             addr_i,
                             self.instance_def.word_bit_len,
@@ -260,6 +262,27 @@ impl ModBuiltinRunner {
                     &offsets[MEMORY_VAR_NAMES[i]],
                 )?;
             }
+        }
+        Ok(())
+    }
+
+    // Given a value, writes its n_words to memory, starting at address=addr.
+    fn write_n_words_value(
+        &self,
+        memory: &mut Memory,
+        addr: Relocatable,
+        value: Felt252,
+    ) -> Result<(), RunnerError> {
+        let mut value = value;
+        for i in 0..self.instance_def.n_words {
+            let word = value.mod_floor(&self.shift);
+            memory.insert((addr + i)?, word)?;
+            value = value.floor_div(&self.shift)
+        }
+        if !value.is_zero() {
+            return Err(RunnerError::WriteNWordsValueNotZero(
+                self.name().to_string(),
+            ));
         }
         Ok(())
     }

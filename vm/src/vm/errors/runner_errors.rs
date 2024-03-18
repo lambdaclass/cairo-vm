@@ -112,6 +112,8 @@ pub enum RunnerError {
     ModBuiltinMissingValue(String, Relocatable),
     #[error("{0} builtin: n must be <= {1}")]
     FillMemoryMaxExceeded(String, usize),
+    #[error("{0} builtin: write_n_words value must be 0 after loop")]
+    WriteNWordsValueNotZero(String),
 }
 
 #[cfg(test)]
