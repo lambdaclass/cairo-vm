@@ -4,9 +4,11 @@ use num_traits::ToPrimitive;
 use num_traits::Zero;
 use starknet_types_core::felt::NonZeroFelt;
 
+use crate::math_utils::div_mod;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap};
 
+use crate::types::errors::math_errors::MathError;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -47,6 +49,14 @@ pub struct ModBuiltinRunner {
 pub enum ModBuiltinType {
     Mul,
     Add,
+}
+
+#[derive(Debug)]
+pub enum Operation {
+    Mul,
+    Add,
+    Sub,
+    DivMod(Felt252),
 }
 
 impl ModBuiltinRunner {
@@ -286,4 +296,73 @@ impl ModBuiltinRunner {
         }
         Ok(())
     }
+
+    // Fills a value in the values table, if exactly one value is missing.
+    // Returns true on success or if all values are already known.
+    fn fill_value(
+        &self,
+        memory: &mut Memory,
+        inputs: &HashMap<&str, MaybeRelocatable>,
+        index: usize,
+        op: &Operation,
+        inv_op: &Operation,
+    ) -> Result<bool, RunnerError> {
+        // TODO: Remove these unwraps when converting to struct
+        let offsets_ptr = inputs[INPUT_NAMES[5]].get_relocatable().unwrap();
+        let values_ptr = inputs[INPUT_NAMES[4]].get_relocatable().unwrap();
+        let addresses = vec![
+            (values_ptr + memory.get_integer((offsets_ptr + 3 * index)?)?.as_ref())?,
+            (values_ptr
+                + memory
+                    .get_integer((offsets_ptr + (3 * index + 1))?)?
+                    .as_ref())?,
+            (values_ptr
+                + memory
+                    .get_integer((offsets_ptr + (3 * index + 2))?)?
+                    .as_ref())?,
+        ];
+        let mut values = Vec::new();
+        for addr in &addresses {
+            let (_, value) = self.read_n_words_value(memory, *addr)?;
+            values.push(value)
+        }
+        let (a, b, c) = (values[0], values[1], values[2]);
+        // TODO: Remove unwrap  & from_unchecked when changing to struct
+        let p = NonZeroFelt::from_felt_unchecked(*inputs["p"].get_int_ref().unwrap());
+
+        match (a, b, c) {
+            // Deduce c from a and b and write it to memory.
+            (Some(a), Some(b), None) => {
+                let value = apply_op(a, b, &op)?.mod_floor(&p);
+                self.write_n_words_value(memory, addresses[2], value)?;
+                Ok(true)
+            }
+            // Deduce b from a and c and write it to memory.
+            (Some(a), None, Some(c)) => {
+                let value = apply_op(a, c, &inv_op)?.mod_floor(&p);
+                self.write_n_words_value(memory, addresses[1], value)?;
+                Ok(true)
+            }
+            // Deduce a from b and c and write it to memory.
+            (None, Some(b), Some(c)) => {
+                let value = apply_op(c, b, &inv_op)?.mod_floor(&p);
+                self.write_n_words_value(memory, addresses[0], value)?;
+                Ok(true)
+            }
+            // All values are already known.
+            (Some(_), Some(_), Some(_)) => Ok(true),
+            _ => Ok(false),
+        }
+    }
+}
+
+fn apply_op(lhs: Felt252, rhs: Felt252, op: &Operation) -> Result<Felt252, MathError> {
+    Ok(match op {
+        Operation::Mul => lhs * rhs,
+        Operation::Add => lhs + rhs,
+        Operation::Sub => lhs - rhs,
+        Operation::DivMod(p) => {
+            Felt252::from(div_mod(&lhs.to_bigint(), &rhs.to_bigint(), &p.to_bigint())?)
+        }
+    })
 }
