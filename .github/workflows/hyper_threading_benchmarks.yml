@@ -1,6 +1,8 @@
-name: Benchmark PR
+name: Benchmark Hyper Threading
 
-on: [pull_request]
+on:
+  push:
+    branches: [ main ]
 
 jobs:
   benchmark:
@@ -10,6 +12,19 @@ jobs:
       uses: actions/checkout@v2
       with:
         ref: ${{ github.head_ref }}
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install test dependencies
+      run: |
+        pip install -r requirements.txt
+        sudo apt update
+
+    - name: Compile benchmarks progrmas
+      run: make cairo_bench_programs
+
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.74.1
