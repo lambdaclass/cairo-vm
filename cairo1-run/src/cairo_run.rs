@@ -19,7 +19,7 @@ use cairo_lang_sierra::{
 use cairo_lang_sierra_ap_change::calc_ap_changes;
 use cairo_lang_sierra_gas::gas_info::GasInfo;
 use cairo_lang_sierra_to_casm::{
-    compiler::CairoProgram,
+    compiler::{CairoProgram, SierraToCasmConfig},
     metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
@@ -86,8 +86,14 @@ pub fn cairo_run_program(
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
         get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
+
+    let sierra_to_casm_config = SierraToCasmConfig {
+        gas_usage_check: true,
+        max_bytecode_size: 4_089_446,
+    };
+
     let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, true)?;
+        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, sierra_to_casm_config)?;
 
     let main_func = find_function(sierra_program, "::main")?;
 
