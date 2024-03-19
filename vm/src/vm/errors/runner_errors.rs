@@ -120,8 +120,6 @@ pub enum RunnerError {
     FillMemoryNoBuiltinSet,
     #[error("Could not fill the values table, add_mod_index={0}, mul_mod_index={1}")]
     FillMemoryCoudNotFillTable(usize, usize),
-    #[error("{0} builtin: prime cannot be zero")]
-    ModBuiltinPrimeIsZero(String),
 }
 
 #[cfg(test)]
