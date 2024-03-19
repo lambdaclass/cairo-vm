@@ -87,19 +87,6 @@ impl Default for Inputs {
     }
 }
 
-#[derive(Debug)]
-struct MemoryVars {
-    a_offset: usize,
-    b_offset: usize,
-    c_offset: usize,
-    a: Felt252,
-    b: Felt252,
-    c: Felt252,
-    a_values: [Felt252; N_WORDS],
-    b_values: [Felt252; N_WORDS],
-    c_values: [Felt252; N_WORDS],
-}
-
 impl ModBuiltinRunner {
     pub(crate) fn new_add_mod(instance_def: &ModInstanceDef, included: bool) -> Self {
         Self::new(instance_def.clone(), included, ModBuiltinType::Add)
@@ -261,44 +248,33 @@ impl ModBuiltinRunner {
         })
     }
 
-    // Reads the memory variables to the builtin (see MemoryVars) from the memory given
+    // Reads the memory variables to the builtin (see MEMORY_VARS) from the memory given
     // the inputs (specifically, values_ptr and offsets_ptr).
-    // Returns a struct with the memory values. Asserts if it doesn't exist in
-    // memory. Returns also the values of a, b, and c, not just their words.
+    // Computes and returns the values of a, b, and c.
     fn read_memory_vars(
         &self,
         memory: &Memory,
         values_ptr: Relocatable,
         offsets_ptr: Relocatable,
         index_in_batch: usize,
-    ) -> Result<MemoryVars, RunnerError> {
-        let fetch_var_data =
-            |index: usize| -> Result<(usize, Felt252, [Felt252; N_WORDS]), RunnerError> {
-                let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
-                let value_addr = (values_ptr + offset)?;
-                let (words, value) = self.read_n_words_value(memory, value_addr)?;
-                let value = value.ok_or_else(|| {
-                    RunnerError::ModBuiltinMissingValue(
-                        self.name().to_string(),
-                        (value_addr + words.len()).unwrap_or_default(),
-                    )
-                })?;
-                Ok((offset, value, words))
-            };
-        let (a_offset, a, a_values) = fetch_var_data(0)?;
-        let (b_offset, b, b_values) = fetch_var_data(1)?;
-        let (c_offset, c, c_values) = fetch_var_data(2)?;
-        Ok(MemoryVars {
-            a_offset,
-            b_offset,
-            c_offset,
-            a,
-            b,
-            c,
-            a_values,
-            b_values,
-            c_values,
-        })
+    ) -> Result<(Felt252, Felt252, Felt252), RunnerError> {
+        let compute_value = |index: usize| -> Result<Felt252, RunnerError> {
+            let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
+            let value_addr = (values_ptr + offset)?;
+            let (_, value) = self.read_n_words_value(memory, value_addr)?;
+            let value = value.ok_or_else(|| {
+                RunnerError::ModBuiltinMissingValue(
+                    self.name().to_string(),
+                    (value_addr + N_WORDS).unwrap_or_default(),
+                )
+            })?;
+            Ok(value)
+        };
+
+        let a = compute_value(0)?;
+        let b = compute_value(1)?;
+        let c = compute_value(2)?;
+        Ok((a, b, c))
     }
 
     fn fill_inputs(
@@ -563,7 +539,7 @@ impl ModBuiltinRunner {
                 assert!(inputs.n == prev_inputs.n.saturating_sub(self.instance_def.batch_size));
             }
             for index_in_batch in 0..self.instance_def.batch_size {
-                let values = self.read_memory_vars(
+                let (a, b, c) = self.read_memory_vars(
                     &vm.segments.memory,
                     inputs.values_ptr,
                     inputs.offsets_ptr,
@@ -577,8 +553,8 @@ impl ModBuiltinRunner {
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                let a_op_b = apply_op(values.a, values.b, &op)?.mod_floor(&inputs.p);
-                let c = values.c.mod_floor(&inputs.p);
+                let a_op_b = apply_op(a, b, &op)?.mod_floor(&inputs.p);
+                let c = c.mod_floor(&inputs.p);
                 assert!(a_op_b == c);
             }
             prev_inputs = inputs;
