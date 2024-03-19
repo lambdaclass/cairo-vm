@@ -1,6 +1,6 @@
 #!/bin/bash
 
-thread_counts=(1 2 4 5 6 7 8 9 10 11 12 13 14 16 32 )
+thread_counts=(1 2 4 6 8 10 12 16 24 32 )
 binary="target/release/hyper_threading"
 
 

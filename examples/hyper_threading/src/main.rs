@@ -5,13 +5,8 @@ use cairo_vm::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-// #[derive(Debug, Error)]
-// pub enum Error {
-//     #[error("The cairo program execution failed")]
-//     Runner(#[from] CairoRunError),
-// }
 
-// Define a macro to prepend a relative path to the file names
+// Define include_bytes_relative macro to prepend a relative path to the file names
 macro_rules! include_bytes_relative {
     ($fname:expr) => {
         include_bytes!(concat!("../../../cairo_programs/benchmarks/", $fname))
@@ -19,13 +14,9 @@ macro_rules! include_bytes_relative {
 }
 
 fn main() {
-    let _n_cpus = rayon::current_num_threads();
 
     let mut programs = Vec::new();
-    // let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
-    // let program = Program::from_bytes(program.as_slice(), Some("main")).unwrap();
 
-    // dbg!(1);
     let programs_bytes: [Vec<u8>; 18] = [
         include_bytes_relative!("big_factorial.json").to_vec(),
         include_bytes_relative!("big_fibonacci.json").to_vec(),
@@ -47,29 +38,11 @@ fn main() {
         include_bytes_relative!("uint256_integration_benchmark.json").to_vec(),
     ];
 
-    // dbg!(2);
     for bytes in &programs_bytes {
         programs.push(Program::from_bytes(bytes.as_slice(), Some("main")).unwrap())
     }
-    // dbg!(3);
+
     let start_time = std::time::Instant::now();
-
-    // for program in programs {
-    //     let cairo_run_config = CairoRunConfig {
-    //         entrypoint: "main",
-    //         trace_enabled: false,
-    //         relocate_mem: false,
-    //         layout: "all_cairo",
-    //         proof_mode: true,
-    //         secure_run: Some(false),
-    //         ..Default::default()
-    //     };
-    //     let mut hint_executor = BuiltinHintProcessor::new_empty();
-
-    //     // TODO: Add error handling
-    //     let _result = cairo_run_program(&program, &cairo_run_config, &mut hint_executor).expect("Couldn't run program");
-
-    // }
 
     // Parallel execution of the program processing
     programs.into_par_iter().for_each(|program| {
@@ -85,17 +58,12 @@ fn main() {
         let mut hint_executor = BuiltinHintProcessor::new_empty();
 
         // Execute each program in parallel
-        // dbg!(4);
         let _result = cairo_run_program(&program, &cairo_run_config, &mut hint_executor)
             .expect("Couldn't run program");
-        // dbg!(5);
     });
     let elapsed = start_time.elapsed();
-    let x = &programs_bytes.clone().len();
 
-    // dbg!(6);
-    // dbg!(elapsed);
-
-    // TODO: Remove this tracing?
-    tracing::info!(%x, ?elapsed, "Finished");
+    let programs_len: &usize = &programs_bytes.clone().len();
+    
+    tracing::info!(%programs_len, ?elapsed, "Finished");
 }
