@@ -60,23 +60,33 @@ pub enum Operation {
     Mul,
     Add,
     Sub,
-    DivMod(Felt252),
+    DivMod(NonZeroFelt),
 }
 
 const VALUES_PTR_OFFSET: u32 = 4;
 const OFFSETS_PTR_OFFSET: u32 = 5;
 const N_OFFSET: u32 = 6;
 
-// const N_WORDS: usize = 4;
-
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Inputs {
-    // p: NonZeroFelt,
-    p: Felt252,
+    p: NonZeroFelt,
     p_values: [Felt252; N_WORDS],
     values_ptr: Relocatable,
     offsets_ptr: Relocatable,
     n: usize,
+}
+
+// TODO: derive it directly once NonZeroFelt derives Default
+impl Default for Inputs {
+    fn default() -> Self {
+        Self {
+            p: NonZeroFelt::from_felt_unchecked(Felt252::ZERO),
+            p_values: Default::default(),
+            values_ptr: Default::default(),
+            offsets_ptr: Default::default(),
+            n: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -90,7 +100,6 @@ struct MemoryVars {
     a_values: [Felt252; N_WORDS],
     b_values: [Felt252; N_WORDS],
     c_values: [Felt252; N_WORDS],
-    // [Felt252; N_WORDS]
 }
 
 impl ModBuiltinRunner {
@@ -236,12 +245,15 @@ impl ModBuiltinRunner {
             ));
         }
         let (p_values, p) = self.read_n_words_value(memory, addr)?;
-        let p = p.ok_or_else(|| {
-            RunnerError::ModBuiltinMissingValue(
-                self.name().to_string(),
-                (addr + N_WORDS).unwrap_or_default(),
-            )
-        })?;
+        let p = p
+            .ok_or_else(|| {
+                RunnerError::ModBuiltinMissingValue(
+                    self.name().to_string(),
+                    (addr + N_WORDS).unwrap_or_default(),
+                )
+            })?
+            .try_into()
+            .map_err(|_| RunnerError::ModBuiltinPrimeIsZero(self.name().to_string()))?;
         Ok(Inputs {
             p,
             p_values,
@@ -262,18 +274,19 @@ impl ModBuiltinRunner {
         offsets_ptr: Relocatable,
         index_in_batch: usize,
     ) -> Result<MemoryVars, RunnerError> {
-        let fetch_var_data = |index: usize| -> Result<(usize, Felt252, [Felt252; N_WORDS]), RunnerError> {
-            let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
-            let value_addr = (values_ptr + offset)?;
-            let (words, value) = self.read_n_words_value(memory, value_addr)?;
-            let value = value.ok_or_else(|| {
-                RunnerError::ModBuiltinMissingValue(
-                    self.name().to_string(),
-                    (value_addr + words.len()).unwrap_or_default(),
-                )
-            })?;
-            Ok((offset, value, words))
-        };
+        let fetch_var_data =
+            |index: usize| -> Result<(usize, Felt252, [Felt252; N_WORDS]), RunnerError> {
+                let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
+                let value_addr = (values_ptr + offset)?;
+                let (words, value) = self.read_n_words_value(memory, value_addr)?;
+                let value = value.ok_or_else(|| {
+                    RunnerError::ModBuiltinMissingValue(
+                        self.name().to_string(),
+                        (value_addr + words.len()).unwrap_or_default(),
+                    )
+                })?;
+                Ok((offset, value, words))
+            };
         let (a_offset, a, a_values) = fetch_var_data(0)?;
         let (b_offset, b, b_values) = fetch_var_data(1)?;
         let (c_offset, c, c_values) = fetch_var_data(2)?;
@@ -403,24 +416,22 @@ impl ModBuiltinRunner {
             values.push(value)
         }
         let (a, b, c) = (values[0], values[1], values[2]);
-        // TODO: Remove unwrap  & from_unchecked when changing to struct
-        let p = NonZeroFelt::from_felt_unchecked(inputs.p);
         match (a, b, c) {
             // Deduce c from a and b and write it to memory.
             (Some(a), Some(b), None) => {
-                let value = apply_op(a, b, &op)?.mod_floor(&p);
+                let value = apply_op(a, b, &op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[2], value)?;
                 Ok(true)
             }
             // Deduce b from a and c and write it to memory.
             (Some(a), None, Some(c)) => {
-                let value = apply_op(c, a, &inv_op)?.mod_floor(&p);
+                let value = apply_op(c, a, &inv_op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[1], value)?;
                 Ok(true)
             }
             // Deduce a from b and c and write it to memory.
             (None, Some(b), Some(c)) => {
-                let value = apply_op(c, b, &inv_op)?.mod_floor(&p);
+                let value = apply_op(c, b, &inv_op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[0], value)?;
                 Ok(true)
             }
@@ -592,8 +603,10 @@ fn apply_op(lhs: Felt252, rhs: Felt252, op: &Operation) -> Result<Felt252, MathE
         Operation::Mul => lhs * rhs,
         Operation::Add => lhs + rhs,
         Operation::Sub => lhs - rhs,
-        Operation::DivMod(p) => {
-            Felt252::from(div_mod(&lhs.to_bigint(), &rhs.to_bigint(), &p.to_bigint())?)
-        }
+        Operation::DivMod(p) => Felt252::from(div_mod(
+            &lhs.to_bigint(),
+            &rhs.to_bigint(),
+            &Into::<Felt252>::into(p).to_bigint(),
+        )?),
     })
 }
