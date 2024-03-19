@@ -29,7 +29,6 @@ pub fn run_p_mod_circuit(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    println!("Hello");
     // TODO: check batch size == 1 for both builtins
     let add_mod = vm.get_mod_builtin(&BuiltinName::add_mod)?.clone();
     let mul_mod = vm.get_mod_builtin(&BuiltinName::mul_mod)?.clone();
@@ -43,7 +42,6 @@ pub fn run_p_mod_circuit(
         .as_ref()
         .to_usize()
         .unwrap();
-    println!("Hello");
     ModBuiltinRunner::fill_memory(
         &mut vm.segments.memory,
         Some((add_mod_ptr, &add_mod, add_mod_n)),

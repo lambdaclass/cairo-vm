@@ -1,5 +1,6 @@
 use core::array;
 use core::borrow::Borrow;
+use num_integer::div_ceil;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
 use starknet_types_core::felt::NonZeroFelt;
@@ -13,6 +14,7 @@ use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
+use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
@@ -162,7 +164,7 @@ impl ModBuiltinRunner {
     // Verifies that all words are integers and are bounded by 2**self.instance_def.word_bit_len.
     fn read_n_words_value(
         &self,
-        memory: &mut Memory,
+        memory: &Memory,
         addr: Relocatable,
     ) -> Result<(Vec<Felt252>, Option<Felt252>), RunnerError> {
         let mut words = Vec::new();
@@ -195,7 +197,7 @@ impl ModBuiltinRunner {
     // Returns also the value of p, not just its words.
     fn read_inputs(
         &self,
-        memory: &mut Memory,
+        memory: &Memory,
         addr: Relocatable,
     ) -> Result<HashMap<&str, MaybeRelocatable>, RunnerError> {
         let mut inputs = HashMap::new();
@@ -234,7 +236,7 @@ impl ModBuiltinRunner {
     // memory. Returns also the values of a, b, and c, not just their words.
     fn read_memory_vars(
         &self,
-        memory: &mut Memory,
+        memory: &Memory,
         values_ptr: Relocatable,
         offsets_ptr: Relocatable,
         index_in_batch: usize,
@@ -609,6 +611,82 @@ impl ModBuiltinRunner {
                     mul_mod_index,
                 ));
             }
+        }
+        Ok(())
+    }
+
+    // Additional checks added to the standard builtin runner security checks
+    fn run_additional_security_checks(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<(), VirtualMachineError> {
+        let segment_size = vm
+            .get_segment_size(self.base)
+            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
+        let n_instances = div_ceil(segment_size, self.cells_per_instance() as usize);
+        let mut prev_inputs = HashMap::new();
+        // TODO: Use proper error handling instead of asserts
+        for instance in 0..n_instances {
+            let inputs = self.read_inputs(
+                &vm.segments.memory,
+                (self.base as isize, instance * INPUT_CELLS).into(),
+            )?;
+            if !prev_inputs.is_empty()
+                && prev_inputs[INPUT_NAMES[6]] > (self.instance_def.batch_size as usize).into()
+            {
+                for i in 0..self.instance_def.n_words as usize {
+                    assert!(inputs[INPUT_NAMES[i]] == prev_inputs[INPUT_NAMES[i]])
+                }
+                assert!(inputs[INPUT_NAMES[4]] == prev_inputs[INPUT_NAMES[4]]);
+                assert!(
+                    inputs[INPUT_NAMES[5]]
+                        == prev_inputs[INPUT_NAMES[5]]
+                            .add_usize(3 * self.instance_def.batch_size as usize)?
+                );
+                assert!(
+                    inputs[INPUT_NAMES[6]]
+                        == prev_inputs[INPUT_NAMES[6]]
+                            .sub_usize(self.instance_def.batch_size as usize)?
+                );
+            }
+            assert!(inputs["p"].get_int().is_some());
+            for index_in_batch in 0..self.instance_def.batch_size {
+                let values = self.read_memory_vars(
+                    &vm.segments.memory,
+                    inputs[INPUT_NAMES[4]].get_relocatable().unwrap(),
+                    inputs[INPUT_NAMES[5]].get_relocatable().unwrap(),
+                    index_in_batch as usize,
+                )?;
+                let op = match self.builtin_type {
+                    ModBuiltinType::Add => Operation::Add,
+                    ModBuiltinType::Mul => Operation::Mul,
+                };
+                let p = NonZeroFelt::try_from(values["p"]).unwrap();
+                // TODO: Add this error handling:
+                /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
+                //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
+                //             + f"values={values}." */
+                assert!(
+                    apply_op(
+                        values[MEMORY_VAR_NAMES[0]],
+                        values[MEMORY_VAR_NAMES[1]],
+                        &op
+                    )?
+                    .mod_floor(&p)
+                        == values[MEMORY_VAR_NAMES[2]].mod_floor(&p)
+                )
+            }
+            prev_inputs = inputs;
+        }
+        if !prev_inputs.is_empty() {
+            assert!(
+                prev_inputs[INPUT_NAMES[6]]
+                    .get_int_ref()
+                    .unwrap()
+                    .to_usize()
+                    .unwrap()
+                    == self.instance_def.batch_size as usize,
+            )
         }
         Ok(())
     }
