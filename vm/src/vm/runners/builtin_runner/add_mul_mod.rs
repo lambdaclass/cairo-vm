@@ -172,7 +172,7 @@ impl ModBuiltinRunner {
         for i in 0..self.instance_def.n_words {
             let addr_i = (addr + i)?;
             match memory.get(&addr_i).map(Cow::into_owned) {
-                None => return Ok((vec![], None)),
+                None => return Ok((words, None)),
                 Some(MaybeRelocatable::RelocatableValue(f)) => {
                     return Err(MemoryError::ExpectedInteger(Box::new(addr_i)).into())
                 }
@@ -257,6 +257,8 @@ impl ModBuiltinRunner {
                     (value_addr + words.len()).unwrap_or_default(),
                 )
             })?;
+            let abc = ["a", "b", "c"];
+            memory_vars.insert(abc[i], value);
             for (j, word) in words.iter().enumerate() {
                 // a0 a1 a2 a3 b0 b1 ... c3
                 memory_vars.insert(MEMORY_VAR_NAMES[3 + i * 4 + j], *word);
@@ -616,7 +618,7 @@ impl ModBuiltinRunner {
     }
 
     // Additional checks added to the standard builtin runner security checks
-    fn run_additional_security_checks(
+    pub(crate) fn run_additional_security_checks(
         &self,
         vm: &VirtualMachine,
     ) -> Result<(), VirtualMachineError> {
@@ -657,24 +659,24 @@ impl ModBuiltinRunner {
                     inputs[INPUT_NAMES[5]].get_relocatable().unwrap(),
                     index_in_batch as usize,
                 )?;
+                let p = NonZeroFelt::try_from(inputs["p"].get_int_ref().unwrap()).unwrap();
                 let op = match self.builtin_type {
                     ModBuiltinType::Add => Operation::Add,
                     ModBuiltinType::Mul => Operation::Mul,
                 };
-                let p = NonZeroFelt::try_from(values["p"]).unwrap();
                 // TODO: Add this error handling:
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                assert!(
-                    apply_op(
-                        values[MEMORY_VAR_NAMES[0]],
-                        values[MEMORY_VAR_NAMES[1]],
-                        &op
-                    )?
-                    .mod_floor(&p)
-                        == values[MEMORY_VAR_NAMES[2]].mod_floor(&p)
-                )
+                let a_op_b = apply_op(
+                    values["a"],
+                    values["b"],
+                    &op,
+                )?
+                .mod_floor(&p);
+                let c = values["c"].mod_floor(&p);
+                println!("{} op {} == {} == {}",values["a"], values["b"], a_op_b, c);
+                assert!(a_op_b == c);
             }
             prev_inputs = inputs;
         }
