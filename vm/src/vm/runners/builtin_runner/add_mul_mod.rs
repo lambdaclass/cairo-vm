@@ -1,26 +1,8 @@
-use core::array;
-use core::borrow::Borrow;
+use core::{array, borrow::Borrow};
 use num_integer::div_ceil;
-use num_traits::ToPrimitive;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 use starknet_types_core::felt::NonZeroFelt;
-
-use crate::math_utils::div_mod;
-use crate::math_utils::safe_div_usize;
-use crate::stdlib::{borrow::Cow, collections::HashMap};
-
-use crate::types::errors::math_errors::MathError;
-use crate::types::instance_definitions::mod_instance_def::N_WORDS;
-use crate::types::relocatable::{MaybeRelocatable, Relocatable};
-use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
-use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
-use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::Felt252;
-
-use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+use crate::{math_utils::{div_mod, safe_div_usize}, stdlib::{borrow::Cow, collections::HashMap}, types::{errors::math_errors::MathError, instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS}, relocatable::{MaybeRelocatable, Relocatable}}, vm::{errors::{memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError}, vm_core::VirtualMachine, vm_memory::{memory::Memory, memory_segments::MemorySegmentManager}}, Felt252};
 
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;
@@ -34,6 +16,10 @@ const MEMORY_VAR_NAMES: [&str; 15] = [
 
 const INPUT_CELLS: usize = INPUT_NAMES.len();
 const ADDITIONAL_MEMORY_UNITS: usize = MEMORY_VAR_NAMES.len();
+
+const VALUES_PTR_OFFSET: u32 = 4;
+const OFFSETS_PTR_OFFSET: u32 = 5;
+const N_OFFSET: u32 = 6;
 
 #[derive(Debug, Clone)]
 pub struct ModBuiltinRunner {
@@ -62,10 +48,6 @@ pub enum Operation {
     Sub,
     DivMod(NonZeroFelt),
 }
-
-const VALUES_PTR_OFFSET: u32 = 4;
-const OFFSETS_PTR_OFFSET: u32 = 5;
-const N_OFFSET: u32 = 6;
 
 #[derive(Debug)]
 struct Inputs {
@@ -114,7 +96,7 @@ impl ModBuiltinRunner {
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
         let shift = Felt252::TWO.pow(instance_def.word_bit_len);
         let shift_powers = [0; N_WORDS].map(|i| shift.pow(i as u64));
-        let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3) as usize;
+        let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3);
         Self {
             builtin_type,
             base: 0,
@@ -231,8 +213,8 @@ impl ModBuiltinRunner {
         Ok((words, Some(value)))
     }
 
-    // Reads the inputs to the builtin (see INPUT_NAMES) from the memory at address=addr.
-    // Returns a dictionary from input name to its value. Asserts that it exists in memory.
+    // Reads the inputs to the builtin (see Inputs) from the memory at address=addr.
+    // Returns a struct with the inputs. Asserts that it exists in memory.
     // Returns also the value of p, not just its words.
     fn read_inputs(&self, memory: &Memory, addr: Relocatable) -> Result<Inputs, RunnerError> {
         let values_ptr = memory.get_relocatable((addr + VALUES_PTR_OFFSET)?)?;
@@ -263,9 +245,9 @@ impl ModBuiltinRunner {
         })
     }
 
-    // Reads the memory variables to the builtin (see MEMORY_VAR_NAMES) from the memory given
+    // Reads the memory variables to the builtin (see MemoryVars) from the memory given
     // the inputs (specifically, values_ptr and offsets_ptr).
-    // Returns a dictionary from memory variable name to its value. Asserts if it doesn't exist in
+    // Returns a struct with the memory values. Asserts if it doesn't exist in
     // memory. Returns also the values of a, b, and c, not just their words.
     fn read_memory_vars(
         &self,
@@ -344,21 +326,25 @@ impl ModBuiltinRunner {
         index: usize,
         n_copies: usize,
     ) -> Result<(), RunnerError> {
-        // TODO: Consider using a vec instead of a hashmap for this
-        let mut offsets = HashMap::new();
-        // abc
+        if n_copies.is_zero() {
+            return Ok(())
+        }
+        // Fetch offsets
+        let mut offsets = vec![];
         for i in 0..3_usize {
+            let addr = (inputs.offsets_ptr + i)?;
             let offset = memory
                 .get(&((inputs.offsets_ptr + i)?))
-                .ok_or_else(|| MemoryError::UnknownMemoryCellNoInfo)?
+                .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(addr)))?
                 .into_owned();
-            offsets.insert(MEMORY_VAR_NAMES[0], offset);
+            offsets.push(offset);
         }
+        // Copy offsets
         for i in 0..n_copies {
             for j in 0..3 {
                 memory.insert(
                     (inputs.offsets_ptr + (3 * (index + i) + j))?,
-                    &offsets[MEMORY_VAR_NAMES[i]],
+                    &offsets[i],
                 )?;
             }
         }
@@ -578,7 +564,7 @@ impl ModBuiltinRunner {
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                let a_op_b = apply_op(values.a, values.b, &op)?.mod_floor(&p);
+                let a_op_b = apply_op(values.a, values.b, &op)?.mod_floor(&inputs.p);
                 let c = values.c.mod_floor(&inputs.p);
                 assert!(a_op_b == c);
             }
