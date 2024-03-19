@@ -300,6 +300,12 @@ Run only the `iai_benchmark` benchmark suite with cargo:
 cargo bench --bench iai_benchmark
 ```
 
+Benchmark the `cairo-vm` in a hyper-threaded environment with the [`examples/hyper_threading/ crate`](examples/hyper_threading/)
+```bash
+make hyper-threading-benchmarks
+```
+
+
 ## 📜 Changelog
 
 Keeps track of the latest changes [here](CHANGELOG.md).
