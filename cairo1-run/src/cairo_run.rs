@@ -92,8 +92,11 @@ pub fn cairo_run_program(
         max_bytecode_size: 4_089_446,
     };
 
-    let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, sierra_to_casm_config)?;
+    let casm_program = cairo_lang_sierra_to_casm::compiler::compile(
+        sierra_program,
+        &metadata,
+        sierra_to_casm_config,
+    )?;
 
     let main_func = find_function(sierra_program, "::main")?;
 
