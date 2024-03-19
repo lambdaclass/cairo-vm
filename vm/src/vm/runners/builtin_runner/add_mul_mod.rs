@@ -79,6 +79,20 @@ struct Inputs {
     n: usize,
 }
 
+#[derive(Debug)]
+struct MemoryVars {
+    a_offset: usize,
+    b_offset: usize,
+    c_offset: usize,
+    a: Felt252,
+    b: Felt252,
+    c: Felt252,
+    a_values: Vec<Felt252>,
+    b_values: Vec<Felt252>,
+    c_values: Vec<Felt252>,
+    // [Felt252; N_WORDS]
+}
+
 impl ModBuiltinRunner {
     pub(crate) fn new_add_mod(instance_def: &ModInstanceDef, included: bool) -> Self {
         Self::new(instance_def.clone(), included, ModBuiltinType::Add)
@@ -248,16 +262,10 @@ impl ModBuiltinRunner {
         values_ptr: Relocatable,
         offsets_ptr: Relocatable,
         index_in_batch: usize,
-    ) -> Result<HashMap<&str, Felt252>, RunnerError> {
-        let mut memory_vars = HashMap::new();
-        // abc
-        for i in 0..3 {
-            let offset = memory
-                .get_integer((offsets_ptr + (i + 3 * index_in_batch))?)?
-                .into_owned();
-            memory_vars.insert(MEMORY_VAR_NAMES[i], offset);
-
-            let value_addr = (values_ptr + &offset)?;
+    ) -> Result<MemoryVars, RunnerError> {
+        let fetch_var_data = |index: usize| -> Result<(usize, Felt252, Vec<Felt252>), RunnerError> {
+            let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
+            let value_addr = (values_ptr + offset)?;
             let (words, value) = self.read_n_words_value(memory, value_addr)?;
             let value = value.ok_or_else(|| {
                 RunnerError::ModBuiltinMissingValue(
@@ -265,15 +273,22 @@ impl ModBuiltinRunner {
                     (value_addr + words.len()).unwrap_or_default(),
                 )
             })?;
-            let abc = ["a", "b", "c"];
-            memory_vars.insert(abc[i], value);
-            for (j, word) in words.iter().enumerate() {
-                // a0 a1 a2 a3 b0 b1 ... c3
-                memory_vars.insert(MEMORY_VAR_NAMES[3 + i * 4 + j], *word);
-            }
-        }
-
-        Ok(memory_vars)
+            Ok((offset, value, words))
+        };
+        let (a_offset, a, a_values) = fetch_var_data(0)?;
+        let (b_offset, b, b_values) = fetch_var_data(1)?;
+        let (c_offset, c, c_values) = fetch_var_data(2)?;
+        Ok(MemoryVars {
+            a_offset,
+            b_offset,
+            c_offset,
+            a,
+            b,
+            c,
+            a_values,
+            b_values,
+            c_values,
+        })
     }
 
     fn fill_inputs(
@@ -562,8 +577,8 @@ impl ModBuiltinRunner {
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                let a_op_b = apply_op(values["a"], values["b"], &op)?.mod_floor(&p);
-                let c = values["c"].mod_floor(&p);
+                let a_op_b = apply_op(values.a, values.b, &op)?.mod_floor(&p);
+                let c = values.c.mod_floor(&p);
                 assert!(a_op_b == c);
             }
             prev_inputs = inputs;
