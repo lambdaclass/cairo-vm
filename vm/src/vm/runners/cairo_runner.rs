@@ -430,6 +430,8 @@ impl CairoRunner {
                 BuiltinName::mul_mod => vm
                     .builtin_runners
                     .push(ModBuiltinRunner::new_mul_mod(&ModInstanceDef::default(), true).into()),
+                #[cfg(not(feature = "mod_builtin"))]
+                _ => {}
             }
         }
 

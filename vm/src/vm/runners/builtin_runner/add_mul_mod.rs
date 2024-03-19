@@ -62,6 +62,23 @@ pub enum Operation {
     DivMod(Felt252),
 }
 
+const VALUES_PTR_OFFSET: u32 = 4;
+const OFFSETS_PTR_OFFSET: u32 = 5;
+const N_OFFSET: u32 = 6;
+
+// const N_WORDS: usize = 4;
+
+#[derive(Debug, Default)]
+struct Inputs {
+    // p: NonZeroFelt,
+    p: Felt252,
+    //p_values: [Felt252;4],
+    p_values: Vec<Felt252>,
+    values_ptr: Relocatable,
+    offsets_ptr: Relocatable,
+    n: usize,
+}
+
 impl ModBuiltinRunner {
     pub(crate) fn new_add_mod(instance_def: &ModInstanceDef, included: bool) -> Self {
         Self::new(instance_def.clone(), included, ModBuiltinType::Add)
@@ -195,39 +212,30 @@ impl ModBuiltinRunner {
     // Reads the inputs to the builtin (see INPUT_NAMES) from the memory at address=addr.
     // Returns a dictionary from input name to its value. Asserts that it exists in memory.
     // Returns also the value of p, not just its words.
-    fn read_inputs(
-        &self,
-        memory: &Memory,
-        addr: Relocatable,
-    ) -> Result<HashMap<&str, MaybeRelocatable>, RunnerError> {
-        let mut inputs = HashMap::new();
-        // values_ptr
-        inputs.insert(INPUT_NAMES[4], memory.get_relocatable((addr + 4)?)?.into());
-        // offsets_ptr
-        inputs.insert(INPUT_NAMES[5], memory.get_relocatable((addr + 5)?)?.into());
-        // n
-        let n = memory.get_integer((addr + 6)?)?.into_owned();
-        if n < Felt252::ONE {
+    fn read_inputs(&self, memory: &Memory, addr: Relocatable) -> Result<Inputs, RunnerError> {
+        let values_ptr = memory.get_relocatable((addr + VALUES_PTR_OFFSET)?)?;
+        let offsets_ptr = memory.get_relocatable((addr + OFFSETS_PTR_OFFSET)?)?;
+        let n = memory.get_usize((addr + N_OFFSET)?)?;
+        if n < 1 {
             return Err(RunnerError::ModBuiltinNLessThanOne(
                 self.name().to_string(),
                 n,
             ));
         }
-        inputs.insert(INPUT_NAMES[6], n.into());
-        // p
-        let (words, value) = self.read_n_words_value(memory, addr)?;
-        let value = value.ok_or_else(|| {
+        let (p_values, p) = self.read_n_words_value(memory, addr)?;
+        let p = p.ok_or_else(|| {
             RunnerError::ModBuiltinMissingValue(
                 self.name().to_string(),
-                (addr + words.len()).unwrap_or_default(),
+                (addr + p_values.len()).unwrap_or_default(),
             )
         })?;
-        inputs.insert("p", value.into());
-        for (i, word) in words.iter().enumerate() {
-            // pi
-            inputs.insert(INPUT_NAMES[i], word.into());
-        }
-        Ok(inputs)
+        Ok(Inputs {
+            p,
+            p_values,
+            values_ptr,
+            offsets_ptr,
+            n,
+        })
     }
 
     // Reads the memory variables to the builtin (see MEMORY_VAR_NAMES) from the memory given
@@ -268,40 +276,34 @@ impl ModBuiltinRunner {
         Ok(memory_vars)
     }
 
-    // Fills the inputs to the instances of the builtin given the inputs to the first instance.
     fn fill_inputs(
         &self,
         memory: &mut Memory,
         builtin_ptr: Relocatable,
-        inputs: &HashMap<&str, MaybeRelocatable>,
+        inputs: &Inputs,
     ) -> Result<(), RunnerError> {
-        let n = inputs[INPUT_NAMES[6]]
-            .get_int()
-            .and_then(|f| f.to_usize())
-            .filter(|n| *n <= FILL_MEMORY_MAX)
-            .ok_or_else(|| {
-                RunnerError::FillMemoryMaxExceeded(self.name().to_string(), FILL_MEMORY_MAX)
-            })?;
-        let n_instances = safe_div_usize(n, self.instance_def.batch_size as usize)?;
+        if inputs.n > FILL_MEMORY_MAX {
+            return Err(RunnerError::FillMemoryMaxExceeded(
+                self.name().to_string(),
+                FILL_MEMORY_MAX,
+            ));
+        }
+        let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size as usize)?;
         for instance in 1..n_instances {
             let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
-            // p0, p1, p2, p3
-            for i in 0..self.instance_def.n_words {
-                memory.insert((instance_ptr + i)?, &inputs[INPUT_NAMES[i as usize]])?;
+            for i in 0..self.instance_def.n_words as usize {
+                memory.insert((instance_ptr + i)?, &inputs.p_values[i])?;
             }
-            // values_ptr
-            memory.insert((instance_ptr + 4)?, &inputs[INPUT_NAMES[4]])?;
-            // offsets_ptr
+            memory.insert((instance_ptr + VALUES_PTR_OFFSET)?, &inputs.values_ptr)?;
             memory.insert(
-                (instance_ptr + 5)?,
-                inputs[INPUT_NAMES[5]]
-                    .add_usize(3 * instance * self.instance_def.batch_size as usize)?,
+                (instance_ptr + OFFSETS_PTR_OFFSET)?,
+                (inputs.offsets_ptr + (3 * instance * self.instance_def.batch_size as usize))?,
             )?;
-            // n
             memory.insert(
-                (instance_ptr + 6)?,
-                inputs[INPUT_NAMES[6]]
-                    .sub_usize(instance * self.instance_def.batch_size as usize)?,
+                (instance_ptr + N_OFFSET)?,
+                inputs
+                    .n
+                    .saturating_sub(instance * self.instance_def.batch_size as usize),
             )?;
         }
         Ok(())
@@ -311,17 +313,16 @@ impl ModBuiltinRunner {
     fn fill_offsets(
         &self,
         memory: &mut Memory,
-        inputs: &HashMap<&str, MaybeRelocatable>,
+        inputs: &Inputs,
         index: usize,
         n_copies: usize,
     ) -> Result<(), RunnerError> {
         // TODO: Consider using a vec instead of a hashmap for this
         let mut offsets = HashMap::new();
         // abc
-        for i in 0..3 {
-            // offsets_ptr
+        for i in 0..3_usize {
             let offset = memory
-                .get(&(inputs[INPUT_NAMES[5]].add_usize(i))?)
+                .get(&((inputs.offsets_ptr + i)?))
                 .ok_or_else(|| MemoryError::UnknownMemoryCellNoInfo)?
                 .into_owned();
             offsets.insert(MEMORY_VAR_NAMES[0], offset);
@@ -329,10 +330,7 @@ impl ModBuiltinRunner {
         for i in 0..n_copies {
             for j in 0..3 {
                 memory.insert(
-                    inputs[INPUT_NAMES[5]]
-                        .add_usize(3 * (index + i) + j)?
-                        .get_relocatable()
-                        .ok_or(MemoryError::AddressNotRelocatable)?,
+                    (inputs.offsets_ptr + (3 * (index + i) + j))?,
                     &offsets[MEMORY_VAR_NAMES[i]],
                 )?;
             }
@@ -366,23 +364,23 @@ impl ModBuiltinRunner {
     fn fill_value(
         &self,
         memory: &mut Memory,
-        inputs: &HashMap<&str, MaybeRelocatable>,
+        inputs: &Inputs,
         index: usize,
         op: &Operation,
         inv_op: &Operation,
     ) -> Result<bool, RunnerError> {
-        // TODO: Remove these unwraps when converting to struct
-        let offsets_ptr = inputs[INPUT_NAMES[5]].get_relocatable().unwrap();
-        let values_ptr = inputs[INPUT_NAMES[4]].get_relocatable().unwrap();
         let addresses = vec![
-            (values_ptr + memory.get_integer((offsets_ptr + 3 * index)?)?.as_ref())?,
-            (values_ptr
+            (inputs.values_ptr
                 + memory
-                    .get_integer((offsets_ptr + (3 * index + 1))?)?
+                    .get_integer((inputs.offsets_ptr + 3 * index)?)?
                     .as_ref())?,
-            (values_ptr
+            (inputs.values_ptr
                 + memory
-                    .get_integer((offsets_ptr + (3 * index + 2))?)?
+                    .get_integer((inputs.offsets_ptr + (3 * index + 1))?)?
+                    .as_ref())?,
+            (inputs.values_ptr
+                + memory
+                    .get_integer((inputs.offsets_ptr + (3 * index + 2))?)?
                     .as_ref())?,
         ];
         let mut values = Vec::new();
@@ -392,8 +390,7 @@ impl ModBuiltinRunner {
         }
         let (a, b, c) = (values[0], values[1], values[2]);
         // TODO: Remove unwrap  & from_unchecked when changing to struct
-        let p = NonZeroFelt::from_felt_unchecked(*inputs["p"].get_int_ref().unwrap());
-
+        let p = NonZeroFelt::from_felt_unchecked(inputs.p);
         match (a, b, c) {
             // Deduce c from a and b and write it to memory.
             (Some(a), Some(b), None) => {
@@ -448,8 +445,8 @@ impl ModBuiltinRunner {
             }
         }
         // Fill the inputs to the builtins.
-        let mut add_mod_inputs = HashMap::new();
-        let mut mul_mod_inputs = HashMap::new();
+        let mut add_mod_inputs = Inputs::default();
+        let mut mul_mod_inputs = Inputs::default();
         let mut add_mod_n = 0;
         let mut mul_mod_n = 0;
         // TODO: Remove unwraps once refactored to struct
@@ -460,12 +457,7 @@ impl ModBuiltinRunner {
                 memory,
                 &add_mod_inputs,
                 add_mod_index,
-                add_mod_inputs[INPUT_NAMES[6]]
-                    .get_int_ref()
-                    .unwrap()
-                    .to_usize()
-                    .unwrap()
-                    - add_mod_index,
+                add_mod_inputs.n - add_mod_index,
             )?;
             add_mod_n = add_mod_index;
         }
@@ -476,12 +468,7 @@ impl ModBuiltinRunner {
                 memory,
                 &mul_mod_inputs,
                 mul_mod_index,
-                mul_mod_inputs[INPUT_NAMES[6]]
-                    .get_int_ref()
-                    .unwrap()
-                    .to_usize()
-                    .unwrap()
-                    - mul_mod_index,
+                mul_mod_inputs.n - mul_mod_index,
             )?;
             mul_mod_n = mul_mod_index;
         }
@@ -512,7 +499,7 @@ impl ModBuiltinRunner {
                     &mul_mod_inputs,
                     mul_mod_index,
                     &Operation::Mul,
-                    &Operation::DivMod(mul_mod_inputs["p"].get_int().unwrap()),
+                    &Operation::DivMod(mul_mod_inputs.p),
                 )?
             {
                 mul_mod_index += 1;
@@ -535,40 +522,38 @@ impl ModBuiltinRunner {
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
         let n_instances = div_ceil(segment_size, INPUT_CELLS);
-        let mut prev_inputs = HashMap::new();
+        let mut prev_inputs = Inputs::default();
         // TODO: Use proper error handling instead of asserts
         for instance in 0..n_instances {
             let inputs = self.read_inputs(
                 &vm.segments.memory,
                 (self.base as isize, instance * INPUT_CELLS).into(),
             )?;
-            if !prev_inputs.is_empty()
-                && prev_inputs[INPUT_NAMES[6]] > (self.instance_def.batch_size as usize).into()
+            if !instance.is_zero() && prev_inputs.n > (self.instance_def.batch_size as usize).into()
             {
                 for i in 0..self.instance_def.n_words as usize {
-                    assert!(inputs[INPUT_NAMES[i]] == prev_inputs[INPUT_NAMES[i]])
+                    assert!(inputs.p_values[i] == prev_inputs.p_values[i])
                 }
-                assert!(inputs[INPUT_NAMES[4]] == prev_inputs[INPUT_NAMES[4]]);
+                assert!(inputs.values_ptr == prev_inputs.values_ptr);
                 assert!(
-                    inputs[INPUT_NAMES[5]]
-                        == prev_inputs[INPUT_NAMES[5]]
-                            .add_usize(3 * self.instance_def.batch_size as usize)?
+                    inputs.offsets_ptr
+                        == (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size as usize))?
                 );
                 assert!(
-                    inputs[INPUT_NAMES[6]]
-                        == prev_inputs[INPUT_NAMES[6]]
-                            .sub_usize(self.instance_def.batch_size as usize)?
+                    inputs.n
+                        == prev_inputs
+                            .n
+                            .saturating_sub(self.instance_def.batch_size as usize)
                 );
             }
-            assert!(inputs["p"].get_int().is_some());
             for index_in_batch in 0..self.instance_def.batch_size {
                 let values = self.read_memory_vars(
                     &vm.segments.memory,
-                    inputs[INPUT_NAMES[4]].get_relocatable().unwrap(),
-                    inputs[INPUT_NAMES[5]].get_relocatable().unwrap(),
+                    inputs.values_ptr,
+                    inputs.offsets_ptr,
                     index_in_batch as usize,
                 )?;
-                let p = NonZeroFelt::try_from(inputs["p"].get_int_ref().unwrap()).unwrap();
+                let p = NonZeroFelt::try_from(inputs.p).unwrap();
                 let op = match self.builtin_type {
                     ModBuiltinType::Add => Operation::Add,
                     ModBuiltinType::Mul => Operation::Mul,
@@ -583,13 +568,8 @@ impl ModBuiltinRunner {
             }
             prev_inputs = inputs;
         }
-        if !prev_inputs.is_empty() {
-            let prev_inputs_n = prev_inputs[INPUT_NAMES[6]]
-                .get_int_ref()
-                .unwrap()
-                .to_usize()
-                .unwrap();
-            assert!(prev_inputs_n == self.instance_def.batch_size as usize,)
+        if !n_instances.is_zero() {
+            assert!(prev_inputs.n == self.instance_def.batch_size as usize,)
         }
         Ok(())
     }

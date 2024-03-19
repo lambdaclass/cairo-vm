@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
 use crate::{
@@ -282,6 +283,14 @@ impl Memory {
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
             _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
         }
+    }
+
+    /// Gets the value from memory address as a usize.
+    /// Returns an Error if the value at the memory address is missing not a Felt252, or can't be converted to usize.
+    pub fn get_usize(&self, key: Relocatable) -> Result<usize, MemoryError> {
+        let felt = self.get_integer(key)?.into_owned();
+        felt.to_usize()
+            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToUsizeConversion(Box::new(felt))))
     }
 
     /// Gets the value from memory address as a Relocatable value.
