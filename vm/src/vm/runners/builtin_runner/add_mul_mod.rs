@@ -73,8 +73,7 @@ const N_OFFSET: u32 = 6;
 struct Inputs {
     // p: NonZeroFelt,
     p: Felt252,
-    //p_values: [Felt252;4],
-    p_values: Vec<Felt252>,
+    p_values: [Felt252; N_WORDS],
     values_ptr: Relocatable,
     offsets_ptr: Relocatable,
     n: usize,
@@ -88,9 +87,9 @@ struct MemoryVars {
     a: Felt252,
     b: Felt252,
     c: Felt252,
-    a_values: Vec<Felt252>,
-    b_values: Vec<Felt252>,
-    c_values: Vec<Felt252>,
+    a_values: [Felt252; N_WORDS],
+    b_values: [Felt252; N_WORDS],
+    c_values: [Felt252; N_WORDS],
     // [Felt252; N_WORDS]
 }
 
@@ -197,8 +196,8 @@ impl ModBuiltinRunner {
         &self,
         memory: &Memory,
         addr: Relocatable,
-    ) -> Result<(Vec<Felt252>, Option<Felt252>), RunnerError> {
-        let mut words = Vec::new();
+    ) -> Result<([Felt252; N_WORDS], Option<Felt252>), RunnerError> {
+        let mut words = Default::default();
         let mut value = Felt252::ZERO;
         for i in 0..N_WORDS {
             let addr_i = (addr + i)?;
@@ -215,7 +214,7 @@ impl ModBuiltinRunner {
                             word,
                         ));
                     }
-                    words.push(word);
+                    words[i] = word;
                     value += word * self.shift_powers[i as usize];
                 }
             }
@@ -240,7 +239,7 @@ impl ModBuiltinRunner {
         let p = p.ok_or_else(|| {
             RunnerError::ModBuiltinMissingValue(
                 self.name().to_string(),
-                (addr + p_values.len()).unwrap_or_default(),
+                (addr + N_WORDS).unwrap_or_default(),
             )
         })?;
         Ok(Inputs {
@@ -263,7 +262,7 @@ impl ModBuiltinRunner {
         offsets_ptr: Relocatable,
         index_in_batch: usize,
     ) -> Result<MemoryVars, RunnerError> {
-        let fetch_var_data = |index: usize| -> Result<(usize, Felt252, Vec<Felt252>), RunnerError> {
+        let fetch_var_data = |index: usize| -> Result<(usize, Felt252, [Felt252; N_WORDS]), RunnerError> {
             let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
             let value_addr = (values_ptr + offset)?;
             let (words, value) = self.read_n_words_value(memory, value_addr)?;
