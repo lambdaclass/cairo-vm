@@ -2,12 +2,13 @@ use serde::Serialize;
 
 use crate::math_utils::safe_div_u32;
 
+pub(crate) const N_WORDS: usize = 4;
+
 #[derive(Serialize, Debug, PartialEq, Clone)]
 pub(crate) struct ModInstanceDef {
     pub(crate) ratio: Option<u32>,
     pub(crate) word_bit_len: u32,
-    pub(crate) n_words: u32,
-    pub(crate) batch_size: u32,
+    pub(crate) batch_size: usize,
     // Only used by mod, ignored by add
     pub(crate) bits_per_part: u32,
 }
@@ -17,21 +18,20 @@ impl ModInstanceDef {
         ModInstanceDef {
             ratio: Some(1),
             word_bit_len: 3,
-            n_words: 4,
             batch_size: 1,
             bits_per_part: 1,
         }
     }
 
     pub(crate) fn cells_per_instance(&self) -> u32 {
-        self.n_words + 3 + self.batch_size * 3 * (self.n_words + 1)
+        (N_WORDS + 3 + self.batch_size * 3 * (N_WORDS + 1)) as u32
     }
 
     pub(crate) fn range_check_units_per_builtin(&self) -> u32 {
         0
     }
 
-    pub(crate) fn invocation_height(self) -> u32 {
+    pub(crate) fn invocation_height(self) -> usize {
         self.batch_size
     }
 

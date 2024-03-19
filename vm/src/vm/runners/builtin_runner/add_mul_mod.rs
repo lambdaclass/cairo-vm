@@ -10,6 +10,7 @@ use crate::math_utils::safe_div_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap};
 
 use crate::types::errors::math_errors::MathError;
+use crate::types::instance_definitions::mod_instance_def::N_WORDS;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -104,9 +105,8 @@ impl ModBuiltinRunner {
 
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
         let shift = Felt252::TWO.pow(instance_def.word_bit_len);
-        let shift_powers = (0..instance_def.n_words).map(|i| shift.pow(i)).collect();
-        let zero_segment_size =
-            core::cmp::max(instance_def.n_words, instance_def.batch_size * 3) as usize;
+        let shift_powers = (0..N_WORDS).map(|i| shift.pow(i as u64)).collect();
+        let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3) as usize;
         Self {
             builtin_type,
             base: 0,
@@ -190,7 +190,7 @@ impl ModBuiltinRunner {
         }
     }
 
-    // Reads self.instance_def.n_words from memory, starting at address=addr.
+    // Reads N_WORDS from memory, starting at address=addr.
     // Returns the words and the value if all words are in memory.
     // Verifies that all words are integers and are bounded by 2**self.instance_def.word_bit_len.
     fn read_n_words_value(
@@ -200,7 +200,7 @@ impl ModBuiltinRunner {
     ) -> Result<(Vec<Felt252>, Option<Felt252>), RunnerError> {
         let mut words = Vec::new();
         let mut value = Felt252::ZERO;
-        for i in 0..self.instance_def.n_words {
+        for i in 0..N_WORDS {
             let addr_i = (addr + i)?;
             match memory.get(&addr_i).map(Cow::into_owned) {
                 None => return Ok((words, None)),
@@ -306,7 +306,7 @@ impl ModBuiltinRunner {
         let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size as usize)?;
         for instance in 1..n_instances {
             let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
-            for i in 0..self.instance_def.n_words as usize {
+            for i in 0..N_WORDS as usize {
                 memory.insert((instance_ptr + i)?, &inputs.p_values[i])?;
             }
             memory.insert((instance_ptr + VALUES_PTR_OFFSET)?, &inputs.values_ptr)?;
@@ -361,7 +361,7 @@ impl ModBuiltinRunner {
         value: Felt252,
     ) -> Result<(), RunnerError> {
         let mut value = value;
-        for i in 0..self.instance_def.n_words {
+        for i in 0..N_WORDS {
             let word = value.mod_floor(&self.shift);
             memory.insert((addr + i)?, word)?;
             value = value.floor_div(&self.shift)
@@ -453,9 +453,7 @@ impl ModBuiltinRunner {
         }
         // Check that the instance definitions of the builtins are the same.
         if let (Some((_, add_mod, _)), Some((_, mul_mod, _))) = (add_mod, mul_mod) {
-            if add_mod.instance_def.n_words != mul_mod.instance_def.n_words
-                || add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len
-            {
+            if add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len {
                 return Err(RunnerError::ModBuiltinsMismatchedInstanceDef);
             }
         }
@@ -546,7 +544,7 @@ impl ModBuiltinRunner {
             )?;
             if !instance.is_zero() && prev_inputs.n > (self.instance_def.batch_size as usize).into()
             {
-                for i in 0..self.instance_def.n_words as usize {
+                for i in 0..N_WORDS {
                     assert!(inputs.p_values[i] == prev_inputs.p_values[i])
                 }
                 assert!(inputs.values_ptr == prev_inputs.values_ptr);
