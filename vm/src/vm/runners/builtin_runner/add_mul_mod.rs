@@ -1,5 +1,5 @@
 use crate::{
-    math_utils::{div_mod, safe_div_usize},
+    math_utils::{div_mod_unsigned, safe_div_usize},
     stdlib::{borrow::Cow, collections::HashMap},
     types::{
         errors::math_errors::MathError,
@@ -15,8 +15,11 @@ use crate::{
     },
     Felt252,
 };
-use core::{array, borrow::Borrow};
+use core::{array, borrow::Borrow, ops::Shl};
+use num_bigint::BigUint;
 use num_integer::div_ceil;
+use num_integer::Integer;
+use num_traits::One;
 use num_traits::{ToPrimitive, Zero};
 use starknet_types_core::felt::NonZeroFelt;
 
@@ -47,8 +50,8 @@ pub struct ModBuiltinRunner {
     zero_segment_index: usize,
     zero_segment_size: usize,
     // Precomputed powers used for reading and writing values that are represented as n_words words of word_bit_len bits each.
-    shift: NonZeroFelt,
-    shift_powers: [Felt252; N_WORDS],
+    shift: BigUint,
+    shift_powers: [BigUint; N_WORDS],
 }
 
 #[derive(Debug, Clone)]
@@ -62,29 +65,16 @@ pub enum Operation {
     Mul,
     Add,
     Sub,
-    DivMod(NonZeroFelt),
+    DivMod(BigUint),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Inputs {
-    p: NonZeroFelt,
+    p: BigUint,
     p_values: [Felt252; N_WORDS],
     values_ptr: Relocatable,
     offsets_ptr: Relocatable,
     n: usize,
-}
-
-// TODO: derive it directly once NonZeroFelt derives Default
-impl Default for Inputs {
-    fn default() -> Self {
-        Self {
-            p: NonZeroFelt::from_felt_unchecked(Felt252::ZERO),
-            p_values: Default::default(),
-            values_ptr: Default::default(),
-            offsets_ptr: Default::default(),
-            n: Default::default(),
-        }
-    }
 }
 
 impl ModBuiltinRunner {
@@ -97,8 +87,8 @@ impl ModBuiltinRunner {
     }
 
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
-        let shift = Felt252::TWO.pow(instance_def.word_bit_len);
-        let shift_powers = [0; N_WORDS].map(|i| shift.pow(i as u64));
+        let shift = BigUint::one().shl(instance_def.word_bit_len);
+        let shift_powers = [0; N_WORDS].map(|i| shift.pow(i));
         let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3);
         Self {
             builtin_type,
@@ -108,7 +98,7 @@ impl ModBuiltinRunner {
             included,
             zero_segment_index: 0,
             zero_segment_size,
-            shift: NonZeroFelt::from_felt_unchecked(shift),
+            shift,
             shift_powers,
         }
     }
@@ -190,9 +180,9 @@ impl ModBuiltinRunner {
         &self,
         memory: &Memory,
         addr: Relocatable,
-    ) -> Result<([Felt252; N_WORDS], Option<Felt252>), RunnerError> {
+    ) -> Result<([Felt252; N_WORDS], Option<BigUint>), RunnerError> {
         let mut words = Default::default();
-        let mut value = Felt252::ZERO;
+        let mut value = BigUint::zero();
         for i in 0..N_WORDS {
             let addr_i = (addr + i)?;
             match memory.get(&addr_i).map(Cow::into_owned) {
@@ -201,7 +191,8 @@ impl ModBuiltinRunner {
                     return Err(MemoryError::ExpectedInteger(Box::new(addr_i)).into())
                 }
                 Some(MaybeRelocatable::Int(word)) => {
-                    if word >= self.shift.into() {
+                    let biguint_word = word.to_biguint();
+                    if biguint_word >= self.shift {
                         return Err(RunnerError::WordExceedsModBuiltinWordBitLen(
                             addr_i,
                             self.instance_def.word_bit_len,
@@ -209,7 +200,7 @@ impl ModBuiltinRunner {
                         ));
                     }
                     words[i] = word;
-                    value += word * self.shift_powers[i];
+                    value += biguint_word * &self.shift_powers[i];
                 }
             }
         }
@@ -230,15 +221,12 @@ impl ModBuiltinRunner {
             ));
         }
         let (p_values, p) = self.read_n_words_value(memory, addr)?;
-        let p = p
-            .ok_or_else(|| {
-                RunnerError::ModBuiltinMissingValue(
-                    self.name().to_string(),
-                    (addr + N_WORDS).unwrap_or_default(),
-                )
-            })?
-            .try_into()
-            .map_err(|_| RunnerError::ModBuiltinPrimeIsZero(self.name().to_string()))?;
+        let p = p.ok_or_else(|| {
+            RunnerError::ModBuiltinMissingValue(
+                self.name().to_string(),
+                (addr + N_WORDS).unwrap_or_default(),
+            )
+        })?;
         Ok(Inputs {
             p,
             p_values,
@@ -257,8 +245,8 @@ impl ModBuiltinRunner {
         values_ptr: Relocatable,
         offsets_ptr: Relocatable,
         index_in_batch: usize,
-    ) -> Result<(Felt252, Felt252, Felt252), RunnerError> {
-        let compute_value = |index: usize| -> Result<Felt252, RunnerError> {
+    ) -> Result<(BigUint, BigUint, BigUint), RunnerError> {
+        let compute_value = |index: usize| -> Result<BigUint, RunnerError> {
             let offset = memory.get_usize((offsets_ptr + (index + 3 * index_in_batch))?)?;
             let value_addr = (values_ptr + offset)?;
             let (_, value) = self.read_n_words_value(memory, value_addr)?;
@@ -321,20 +309,14 @@ impl ModBuiltinRunner {
         if n_copies.is_zero() {
             return Ok(());
         }
-        // Fetch offsets
-        let mut offsets = vec![];
         for i in 0..3_usize {
             let addr = (offsets_ptr + i)?;
             let offset = memory
                 .get(&((offsets_ptr + i)?))
                 .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(addr)))?
                 .into_owned();
-            offsets.push(offset);
-        }
-        // Copy offsets
-        for i in 0..n_copies {
-            for j in 0..3 {
-                memory.insert((offsets_ptr + (3 * (index + i) + j))?, &offsets[i])?;
+            for copy_i in 0..n_copies {
+                memory.insert((offsets_ptr + (3 * (index + copy_i) + i))?, &offset)?;
             }
         }
         Ok(())
@@ -345,13 +327,13 @@ impl ModBuiltinRunner {
         &self,
         memory: &mut Memory,
         addr: Relocatable,
-        value: Felt252,
+        value: BigUint,
     ) -> Result<(), RunnerError> {
         let mut value = value;
         for i in 0..N_WORDS {
             let word = value.mod_floor(&self.shift);
-            memory.insert((addr + i)?, word)?;
-            value = value.floor_div(&self.shift)
+            memory.insert((addr + i)?, Felt252::from(word))?;
+            value = value.div_floor(&self.shift)
         }
         if !value.is_zero() {
             return Err(RunnerError::WriteNWordsValueNotZero(
@@ -390,7 +372,7 @@ impl ModBuiltinRunner {
             let (_, value) = self.read_n_words_value(memory, *addr)?;
             values.push(value)
         }
-        let (a, b, c) = (values[0], values[1], values[2]);
+        let (a, b, c) = (&values[0], &values[1], &values[2]);
         match (a, b, c) {
             // Deduce c from a and b and write it to memory.
             (Some(a), Some(b), None) => {
@@ -480,6 +462,8 @@ impl ModBuiltinRunner {
         // Fill the values table.
         let mut add_mod_index = 0;
         let mut mul_mod_index = 0;
+        // Create operation here to avoid cloning p in the loop
+        let div_operation = Operation::DivMod(mul_mod_inputs.p.clone());
         while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
             if add_mod_index < add_mod_n
                 && mod_runner.fill_value(
@@ -497,7 +481,7 @@ impl ModBuiltinRunner {
                     &mul_mod_inputs,
                     mul_mod_index,
                     &Operation::Mul,
-                    &Operation::DivMod(mul_mod_inputs.p),
+                    &div_operation,
                 )?
             {
                 mul_mod_index += 1;
@@ -553,7 +537,7 @@ impl ModBuiltinRunner {
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                let a_op_b = apply_op(a, b, &op)?.mod_floor(&inputs.p);
+                let a_op_b = apply_op(&a, &b, &op)?.mod_floor(&inputs.p);
                 let c = c.mod_floor(&inputs.p);
                 assert!(a_op_b == c);
             }
@@ -566,15 +550,11 @@ impl ModBuiltinRunner {
     }
 }
 
-fn apply_op(lhs: Felt252, rhs: Felt252, op: &Operation) -> Result<Felt252, MathError> {
+fn apply_op(lhs: &BigUint, rhs: &BigUint, op: &Operation) -> Result<BigUint, MathError> {
     Ok(match op {
         Operation::Mul => lhs * rhs,
         Operation::Add => lhs + rhs,
         Operation::Sub => lhs - rhs,
-        Operation::DivMod(p) => Felt252::from(div_mod(
-            &lhs.to_bigint(),
-            &rhs.to_bigint(),
-            &Into::<Felt252>::into(p).to_bigint(),
-        )?),
+        Operation::DivMod(ref p) => div_mod_unsigned(lhs, rhs, p)?,
     })
 }
