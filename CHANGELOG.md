@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: Create hyper_threading crate to benchmark the `cairo-vm` in a hyper-threaded environment [#1679](https://github.com/lambdaclass/cairo-vm/pull/1679)
+
 * feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
 * feat: Fix error handling in `initialize_state`[#1657](https://github.com/lambdaclass/cairo-vm/pull/1657)
