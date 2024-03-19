@@ -1,8 +1,24 @@
+use crate::{
+    math_utils::{div_mod, safe_div_usize},
+    stdlib::{borrow::Cow, collections::HashMap},
+    types::{
+        errors::math_errors::MathError,
+        instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
+    vm::{
+        errors::{
+            memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError,
+        },
+        vm_core::VirtualMachine,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
+    },
+    Felt252,
+};
 use core::{array, borrow::Borrow};
 use num_integer::div_ceil;
 use num_traits::{ToPrimitive, Zero};
 use starknet_types_core::felt::NonZeroFelt;
-use crate::{math_utils::{div_mod, safe_div_usize}, stdlib::{borrow::Cow, collections::HashMap}, types::{errors::math_errors::MathError, instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS}, relocatable::{MaybeRelocatable, Relocatable}}, vm::{errors::{memory_errors::MemoryError, runner_errors::RunnerError, vm_errors::VirtualMachineError}, vm_core::VirtualMachine, vm_memory::{memory::Memory, memory_segments::MemorySegmentManager}}, Felt252};
 
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;
@@ -322,19 +338,19 @@ impl ModBuiltinRunner {
     fn fill_offsets(
         &self,
         memory: &mut Memory,
-        inputs: &Inputs,
+        offsets_ptr: Relocatable,
         index: usize,
         n_copies: usize,
     ) -> Result<(), RunnerError> {
         if n_copies.is_zero() {
-            return Ok(())
+            return Ok(());
         }
         // Fetch offsets
         let mut offsets = vec![];
         for i in 0..3_usize {
-            let addr = (inputs.offsets_ptr + i)?;
+            let addr = (offsets_ptr + i)?;
             let offset = memory
-                .get(&((inputs.offsets_ptr + i)?))
+                .get(&((offsets_ptr + i)?))
                 .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(addr)))?
                 .into_owned();
             offsets.push(offset);
@@ -342,10 +358,7 @@ impl ModBuiltinRunner {
         // Copy offsets
         for i in 0..n_copies {
             for j in 0..3 {
-                memory.insert(
-                    (inputs.offsets_ptr + (3 * (index + i) + j))?,
-                    &offsets[i],
-                )?;
+                memory.insert((offsets_ptr + (3 * (index + i) + j))?, &offsets[i])?;
             }
         }
         Ok(())
@@ -464,7 +477,7 @@ impl ModBuiltinRunner {
             add_mod.fill_inputs(memory, add_mod_addr, &add_mod_inputs)?;
             add_mod.fill_offsets(
                 memory,
-                &add_mod_inputs,
+                add_mod_inputs.offsets_ptr,
                 add_mod_index,
                 add_mod_inputs.n - add_mod_index,
             )?;
@@ -475,7 +488,7 @@ impl ModBuiltinRunner {
             mul_mod.fill_inputs(memory, mul_mod_addr, &mul_mod_inputs)?;
             mul_mod.fill_offsets(
                 memory,
-                &mul_mod_inputs,
+                mul_mod_inputs.offsets_ptr,
                 mul_mod_index,
                 mul_mod_inputs.n - mul_mod_index,
             )?;
