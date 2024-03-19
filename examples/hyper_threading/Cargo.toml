@@ -1,0 +1,22 @@
+[package]
+name = "hyper_threading"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+
+
+[dependencies]
+cairo-vm = { workspace = true }
+rayon = "1.9.0"
+tracing = "0.1.40"
+mimalloc = { version = "0.1.37", default-features = false, optional = true }
+
+
+
+[features]
+default = ["with_mimalloc"]
+with_mimalloc = ["cairo-vm/with_mimalloc", "mimalloc"]
+lambdaworks-felt = ["cairo-vm/lambdaworks-felt"]

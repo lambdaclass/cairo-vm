@@ -5,7 +5,8 @@ members = [
     "vm",
     "hint_accountant",
     "examples/wasm-demo",
-    "cairo1-run"
+    "cairo1-run",
+    "examples/hyper_threading"
 ]
 default-members = [
     "cairo-vm-cli",

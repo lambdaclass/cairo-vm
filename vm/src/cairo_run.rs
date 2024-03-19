@@ -245,9 +245,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
 
         let end = cairo_runner.initialize(&mut vm).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_ok());
+        let res = cairo_runner.run_until_pc(end, &mut vm, &mut hint_processor);
+        dbg!(&res);
+        assert!(res.is_ok());
         assert!(cairo_runner.relocate(&mut vm, true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded

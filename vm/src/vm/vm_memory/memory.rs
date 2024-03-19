@@ -16,28 +16,92 @@ pub struct ValidationRule(
     pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
-#[derive(Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
-pub(crate) struct MemoryCell(MaybeRelocatable, bool);
+/// [`MemoryCell`] represents an optimized storage layout for the VM memory.
+/// It's specified to have both size an alignment of 32 bytes to optimize cache access.
+/// Typical cache sizes are 64 bytes, a few cases might be 128 bytes, meaning 32 bytes aligned to
+/// 32 bytes boundaries will never get split into two separate lines, avoiding double stalls and
+/// reducing false sharing and evictions.
+/// The trade off is extra computation for conversion to our "in-flight" `MaybeRelocatable` and
+/// `Felt252` as well as some extra copies. Empirically, this seems to be offset by the improved
+/// locality of the bigger structure for Lambdaworks. There is a big hit from the conversions when
+/// using the `BigUint` implementation, since those force allocations on the heap, but since that's
+/// dropped in later versions anyway it's not a priority. For Lambdaworks the new copies are mostly
+/// to the stack, which is typically already in the cache.
+/// The layout uses the 4 MSB in the first `u64` as flags:
+/// - BIT63: NONE flag, 1 when the cell is actually empty.
+/// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
+/// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
+/// `Felt252`.
+/// `Felt252` values are stored in big-endian order to keep the flag bits free.
+/// `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
+/// and the 4th word storing the offset.
+#[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
+#[repr(align(32))]
+pub(crate) struct MemoryCell([u64; 4]);
 
 impl MemoryCell {
+    //pub const META_MASK: u64 = 0xf << 60;
+    pub const NONE_MASK: u64 = 1 << 63;
+    pub const ACCESS_MASK: u64 = 1 << 62;
+    pub const RELOCATABLE_MASK: u64 = 1 << 61;
+    pub const NONE: Self = Self([Self::NONE_MASK, 0, 0, 0]);
+
+    /*
+    pub fn none() -> Self {
+        Self::NONE
+    }
+    */
+
     pub fn new(value: MaybeRelocatable) -> Self {
-        MemoryCell(value, false)
+        value.into()
+    }
+
+    pub fn is_none(&self) -> bool {
+        self.0[0] & Self::NONE_MASK == Self::NONE_MASK
+    }
+
+    pub fn is_some(&self) -> bool {
+        !self.is_none()
     }
 
     pub fn mark_accessed(&mut self) {
-        self.1 = true
+        self.0[0] |= Self::ACCESS_MASK;
     }
 
     pub fn is_accessed(&self) -> bool {
-        self.1
+        self.0[0] & Self::ACCESS_MASK == Self::ACCESS_MASK
     }
 
-    pub fn get_value(&self) -> &MaybeRelocatable {
-        &self.0
+    pub fn get_value(&self) -> MaybeRelocatable {
+        (*self).into()
     }
+}
 
-    pub fn get_value_mut(&mut self) -> &mut MaybeRelocatable {
-        &mut self.0
+impl From<MaybeRelocatable> for MemoryCell {
+    fn from(value: MaybeRelocatable) -> Self {
+        match value {
+            MaybeRelocatable::Int(x) => Self(x.raw()),
+            MaybeRelocatable::RelocatableValue(x) => Self([
+                Self::RELOCATABLE_MASK,
+                0,
+                u64::from_ne_bytes(x.segment_index.to_ne_bytes()),
+                x.offset as u64,
+            ]),
+        }
+    }
+}
+
+impl From<MemoryCell> for MaybeRelocatable {
+    fn from(cell: MemoryCell) -> Self {
+        debug_assert!(cell.is_some());
+        let flags = cell.0[0];
+        match flags & MemoryCell::RELOCATABLE_MASK {
+            MemoryCell::RELOCATABLE_MASK => Self::from((
+                isize::from_ne_bytes(cell.0[2].to_ne_bytes()),
+                cell.0[3] as usize,
+            )),
+            _ => Self::Int(Felt252::from_raw(cell.0)),
+        }
     }
 }
 
@@ -92,8 +156,8 @@ impl AddressSet {
 }
 
 pub struct Memory {
-    pub(crate) data: Vec<Vec<Option<MemoryCell>>>,
-    pub(crate) temp_data: Vec<Vec<Option<MemoryCell>>>,
+    pub(crate) data: Vec<Vec<MemoryCell>>,
+    pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
@@ -104,8 +168,8 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: Vec::<Vec<Option<MemoryCell>>>::new(),
-            temp_data: Vec::<Vec<Option<MemoryCell>>>::new(),
+            data: Vec::new(),
+            temp_data: Vec::new(),
             relocation_rules: HashMap::new(),
             validated_addresses: AddressSet::new(),
             validation_rules: Vec::with_capacity(7),
@@ -144,14 +208,14 @@ impl Memory {
             segment
                 .try_reserve(new_len.saturating_sub(capacity))
                 .map_err(|_| MemoryError::VecCapacityExceeded)?;
-            segment.resize(new_len, None);
+            segment.resize(new_len, MemoryCell::NONE);
         }
         // At this point there's *something* in there
 
         match segment[value_offset] {
-            None => segment[value_offset] = Some(MemoryCell::new(val)),
-            Some(ref current_cell) => {
-                if current_cell.get_value() != &val {
+            MemoryCell::NONE => segment[value_offset] = MemoryCell::new(val),
+            ref current_cell => {
+                if current_cell.get_value() != val {
                     //Existing memory cannot be changed
                     return Err(MemoryError::InconsistentMemory(Box::new((
                         key,
@@ -177,7 +241,13 @@ impl Memory {
             &self.data
         };
         let (i, j) = from_relocatable_to_indexes(relocatable);
-        Some(self.relocate_value(data.get(i)?.get(j)?.as_ref()?.get_value()))
+        let cell = data.get(i)?.get(j)?;
+        if cell.is_none() {
+            return None;
+        }
+        Some(Cow::Owned(
+            self.relocate_value(&cell.get_value()).into_owned(),
+        ))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
@@ -204,11 +274,19 @@ impl Memory {
         }
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
-            for cell in segment.iter_mut().flatten() {
-                let value = cell.get_value_mut();
+            for cell in segment.iter_mut() {
+                if cell.is_none() {
+                    continue;
+                }
+                let value = cell.get_value();
                 match value {
                     MaybeRelocatable::RelocatableValue(addr) if addr.segment_index < 0 => {
-                        *value = Memory::relocate_address(*addr, &self.relocation_rules);
+                        let mut new_cell =
+                            MemoryCell::new(Memory::relocate_address(addr, &self.relocation_rules));
+                        if cell.is_accessed() {
+                            new_cell.mark_accessed();
+                        }
+                        *cell = new_cell;
                     }
                     _ => {}
                 }
@@ -224,7 +302,7 @@ impl Memory {
                     s.reserve_exact(data_segment.len())
                 }
                 for cell in data_segment {
-                    if let Some(cell) = cell {
+                    if cell.is_some() {
                         // Rely on Memory::insert to catch memory inconsistencies
                         self.insert(addr, cell.get_value())?;
                     }
@@ -489,7 +567,7 @@ impl Memory {
             &mut self.data
         };
         let cell = data.get_mut(i).and_then(|x| x.get_mut(j));
-        if let Some(Some(cell)) = cell {
+        if let Some(cell) = cell {
             cell.mark_accessed()
         }
     }
@@ -502,13 +580,7 @@ impl Memory {
         Some(
             segment
                 .iter()
-                .filter(|x| {
-                    if let Some(cell) = x {
-                        cell.is_accessed()
-                    } else {
-                        false
-                    }
-                })
+                .filter(|x| x.is_some() && x.is_accessed())
                 .count(),
         )
     }
@@ -518,9 +590,9 @@ impl From<&Memory> for CairoPieMemory {
     fn from(mem: &Memory) -> CairoPieMemory {
         let mut pie_memory = Vec::default();
         for (i, segment) in mem.data.iter().enumerate() {
-            for (j, elem) in segment.iter().enumerate() {
-                if let Some(cell) = elem {
-                    pie_memory.push(((i, j), cell.get_value().clone()))
+            for (j, cell) in segment.iter().enumerate() {
+                if cell.is_some() {
+                    pie_memory.push(((i, j), cell.get_value()))
                 }
             }
         }
@@ -532,7 +604,7 @@ impl fmt::Display for Memory {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (i, segment) in self.temp_data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
-                if let Some(cell) = cell {
+                if cell.is_some() {
                     let temp_segment = i + 1;
                     let elem = cell.get_value();
                     writeln!(f, "(-{temp_segment},{j}) : {elem}")?;
@@ -541,7 +613,7 @@ impl fmt::Display for Memory {
         }
         for (i, segment) in self.data.iter().enumerate() {
             for (j, cell) in segment.iter().enumerate() {
-                if let Some(cell) = cell {
+                if cell.is_some() {
                     let elem = cell.get_value();
                     writeln!(f, "({i},{j}) : {elem}")?;
                 }
@@ -640,9 +712,9 @@ mod memory_tests {
     fn get_valuef_from_temp_segment() {
         let mut memory = Memory::new();
         memory.temp_data = vec![vec![
-            None,
-            None,
-            Some(MemoryCell::new(mayberelocatable!(8))),
+            MemoryCell::NONE,
+            MemoryCell::NONE,
+            MemoryCell::new(mayberelocatable!(8)),
         ]];
         assert_eq!(
             memory.get(&mayberelocatable!(-1, 2)).unwrap().as_ref(),
@@ -660,7 +732,7 @@ mod memory_tests {
         memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
-            Some(MemoryCell::new(MaybeRelocatable::from(Felt252::new(8))))
+            MemoryCell::new(MaybeRelocatable::from(Felt252::new(8)))
         );
     }
 
@@ -683,7 +755,10 @@ mod memory_tests {
     fn insert_and_get_from_temp_segment_failed() {
         let key = relocatable!(-1, 1);
         let mut memory = Memory::new();
-        memory.temp_data = vec![vec![None, Some(MemoryCell::new(mayberelocatable!(8)))]];
+        memory.temp_data = vec![vec![
+            MemoryCell::NONE,
+            MemoryCell::new(mayberelocatable!(8)),
+        ]];
         assert_eq!(
             memory.insert(key, &mayberelocatable!(5)),
             Err(MemoryError::InconsistentMemory(Box::new((
@@ -1512,9 +1587,9 @@ mod memory_tests {
     #[test]
     fn mark_address_as_accessed() {
         let mut memory = memory![((0, 0), 0)];
-        assert!(!memory.data[0][0].as_ref().unwrap().is_accessed());
+        assert!(!memory.data[0][0].is_accessed());
         memory.mark_as_accessed(relocatable!(0, 0));
-        assert!(memory.data[0][0].as_ref().unwrap().is_accessed());
+        assert!(memory.data[0][0].is_accessed());
     }
 
     #[test]
@@ -1553,16 +1628,7 @@ mod memory_tests {
     #[test]
     fn memory_cell_get_value() {
         let cell = MemoryCell::new(mayberelocatable!(1));
-        assert_eq!(cell.get_value(), &mayberelocatable!(1));
-    }
-
-    #[test]
-    fn memory_cell_mutate_value() {
-        let mut cell = MemoryCell::new(mayberelocatable!(1));
-        let cell_value = cell.get_value_mut();
-        assert_eq!(cell_value, &mayberelocatable!(1));
-        *cell_value = mayberelocatable!(2);
-        assert_eq!(cell.get_value(), &mayberelocatable!(2));
+        assert_eq!(cell.get_value(), mayberelocatable!(1));
     }
 
     use core::cmp::Ordering::*;
