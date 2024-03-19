@@ -224,7 +224,7 @@ impl ModBuiltinRunner {
                         ));
                     }
                     words[i] = word;
-                    value += word * self.shift_powers[i as usize];
+                    value += word * self.shift_powers[i];
                 }
             }
         }
@@ -315,22 +315,22 @@ impl ModBuiltinRunner {
                 FILL_MEMORY_MAX,
             ));
         }
-        let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size as usize)?;
+        let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size)?;
         for instance in 1..n_instances {
             let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
-            for i in 0..N_WORDS as usize {
+            for i in 0..N_WORDS {
                 memory.insert((instance_ptr + i)?, &inputs.p_values[i])?;
             }
             memory.insert((instance_ptr + VALUES_PTR_OFFSET)?, &inputs.values_ptr)?;
             memory.insert(
                 (instance_ptr + OFFSETS_PTR_OFFSET)?,
-                (inputs.offsets_ptr + (3 * instance * self.instance_def.batch_size as usize))?,
+                (inputs.offsets_ptr + (3 * instance * self.instance_def.batch_size))?,
             )?;
             memory.insert(
                 (instance_ptr + N_OFFSET)?,
                 inputs
                     .n
-                    .saturating_sub(instance * self.instance_def.batch_size as usize),
+                    .saturating_sub(instance * self.instance_def.batch_size),
             )?;
         }
         Ok(())
@@ -419,19 +419,19 @@ impl ModBuiltinRunner {
         match (a, b, c) {
             // Deduce c from a and b and write it to memory.
             (Some(a), Some(b), None) => {
-                let value = apply_op(a, b, &op)?.mod_floor(&inputs.p);
+                let value = apply_op(a, b, op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[2], value)?;
                 Ok(true)
             }
             // Deduce b from a and c and write it to memory.
             (Some(a), None, Some(c)) => {
-                let value = apply_op(c, a, &inv_op)?.mod_floor(&inputs.p);
+                let value = apply_op(c, a, inv_op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[1], value)?;
                 Ok(true)
             }
             // Deduce a from b and c and write it to memory.
             (None, Some(b), Some(c)) => {
-                let value = apply_op(c, b, &inv_op)?.mod_floor(&inputs.p);
+                let value = apply_op(c, b, inv_op)?.mod_floor(&inputs.p);
                 self.write_n_words_value(memory, addresses[0], value)?;
                 Ok(true)
             }
@@ -552,31 +552,24 @@ impl ModBuiltinRunner {
                 &vm.segments.memory,
                 (self.base as isize, instance * INPUT_CELLS).into(),
             )?;
-            if !instance.is_zero() && prev_inputs.n > (self.instance_def.batch_size as usize).into()
-            {
+            if !instance.is_zero() && prev_inputs.n > self.instance_def.batch_size {
                 for i in 0..N_WORDS {
                     assert!(inputs.p_values[i] == prev_inputs.p_values[i])
                 }
                 assert!(inputs.values_ptr == prev_inputs.values_ptr);
                 assert!(
                     inputs.offsets_ptr
-                        == (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size as usize))?
+                        == (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size))?
                 );
-                assert!(
-                    inputs.n
-                        == prev_inputs
-                            .n
-                            .saturating_sub(self.instance_def.batch_size as usize)
-                );
+                assert!(inputs.n == prev_inputs.n.saturating_sub(self.instance_def.batch_size));
             }
             for index_in_batch in 0..self.instance_def.batch_size {
                 let values = self.read_memory_vars(
                     &vm.segments.memory,
                     inputs.values_ptr,
                     inputs.offsets_ptr,
-                    index_in_batch as usize,
+                    index_in_batch,
                 )?;
-                let p = NonZeroFelt::try_from(inputs.p).unwrap();
                 let op = match self.builtin_type {
                     ModBuiltinType::Add => Operation::Add,
                     ModBuiltinType::Mul => Operation::Mul,
@@ -592,7 +585,7 @@ impl ModBuiltinRunner {
             prev_inputs = inputs;
         }
         if !n_instances.is_zero() {
-            assert!(prev_inputs.n == self.instance_def.batch_size as usize,)
+            assert!(prev_inputs.n == self.instance_def.batch_size,)
         }
         Ok(())
     }
