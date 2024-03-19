@@ -16,10 +16,10 @@ impl ModInstanceDef {
     pub(crate) fn default() -> Self {
         ModInstanceDef {
             ratio: Some(1),
-            word_bit_len: 96,
+            word_bit_len: 3,
             n_words: 4,
             batch_size: 1,
-            bits_per_part: 16,
+            bits_per_part: 1,
         }
     }
 

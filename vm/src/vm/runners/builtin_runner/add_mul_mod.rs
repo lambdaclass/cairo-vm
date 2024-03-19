@@ -455,6 +455,7 @@ impl ModBuiltinRunner {
         // TODO: Remove unwraps once refactored to struct
         if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
             add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
+            add_mod.fill_inputs(memory, add_mod_addr, &add_mod_inputs)?;
             add_mod.fill_offsets(
                 memory,
                 &add_mod_inputs,
@@ -470,99 +471,7 @@ impl ModBuiltinRunner {
         }
         if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
             mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
-            mul_mod.fill_offsets(
-                memory,
-                &mul_mod_inputs,
-                mul_mod_index,
-                mul_mod_inputs[INPUT_NAMES[6]]
-                    .get_int_ref()
-                    .unwrap()
-                    .to_usize()
-                    .unwrap()
-                    - mul_mod_index,
-            )?;
-            mul_mod_n = mul_mod_index;
-        }
-
-        //  Get one of the builtin runners - the rest of this function doesn't depend on batch_size.
-        let mod_runner = if let Some((_, add_mod, _)) = add_mod {
-            add_mod
-        } else {
-            mul_mod.unwrap().1
-        };
-        // Fill the values table.
-        let mut add_mod_index = 0;
-        let mut mul_mod_index = 0;
-        while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
-            if add_mod_index < add_mod_n
-                && mod_runner.fill_value(
-                    memory,
-                    &add_mod_inputs,
-                    add_mod_index,
-                    &Operation::Add,
-                    &Operation::Sub,
-                )?
-            {
-                add_mod_index += 1;
-            } else if mul_mod_index < mul_mod_n
-                && mod_runner.fill_value(
-                    memory,
-                    &mul_mod_inputs,
-                    mul_mod_index,
-                    &Operation::Mul,
-                    &Operation::DivMod(mul_mod_inputs["p"].get_int().unwrap()),
-                )?
-            {
-                mul_mod_index += 1;
-            } else {
-                return Err(RunnerError::FillMemoryCoudNotFillTable(
-                    add_mod_index,
-                    mul_mod_index,
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    pub fn fill_memory_reload(
-        memory: &mut Memory,
-        add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
-        mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
-    ) -> Result<(), RunnerError> {
-        if add_mod.is_none() && mul_mod.is_none() {
-            return Err(RunnerError::FillMemoryNoBuiltinSet);
-        }
-        // Check that the instance definitions of the builtins are the same.
-        if let (Some((_, add_mod, _)), Some((_, mul_mod, _))) = (add_mod, mul_mod) {
-            if add_mod.instance_def.n_words != mul_mod.instance_def.n_words
-                || add_mod.instance_def.word_bit_len != mul_mod.instance_def.word_bit_len
-            {
-                return Err(RunnerError::ModBuiltinsMismatchedInstanceDef);
-            }
-        }
-        // Fill the inputs to the builtins.
-        let mut add_mod_inputs = HashMap::new();
-        let mut mul_mod_inputs = HashMap::new();
-        let mut add_mod_n = 0;
-        let mut mul_mod_n = 0;
-        // TODO: Remove unwraps once refactored to struct
-        if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
-            add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
-            add_mod.fill_offsets(
-                memory,
-                &add_mod_inputs,
-                add_mod_index,
-                add_mod_inputs[INPUT_NAMES[6]]
-                    .get_int_ref()
-                    .unwrap()
-                    .to_usize()
-                    .unwrap()
-                    - add_mod_index,
-            )?;
-            add_mod_n = add_mod_index;
-        }
-        if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
-            mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
+            mul_mod.fill_inputs(memory, mul_mod_addr, &mul_mod_inputs)?;
             mul_mod.fill_offsets(
                 memory,
                 &mul_mod_inputs,
@@ -623,9 +532,9 @@ impl ModBuiltinRunner {
         vm: &VirtualMachine,
     ) -> Result<(), VirtualMachineError> {
         let segment_size = vm
-            .get_segment_size(self.base)
+            .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-        let n_instances = div_ceil(segment_size, self.cells_per_instance() as usize);
+        let n_instances = div_ceil(segment_size, INPUT_CELLS);
         let mut prev_inputs = HashMap::new();
         // TODO: Use proper error handling instead of asserts
         for instance in 0..n_instances {
@@ -668,27 +577,19 @@ impl ModBuiltinRunner {
                 /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
                 //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
                 //             + f"values={values}." */
-                let a_op_b = apply_op(
-                    values["a"],
-                    values["b"],
-                    &op,
-                )?
-                .mod_floor(&p);
+                let a_op_b = apply_op(values["a"], values["b"], &op)?.mod_floor(&p);
                 let c = values["c"].mod_floor(&p);
-                println!("{} op {} == {} == {}",values["a"], values["b"], a_op_b, c);
                 assert!(a_op_b == c);
             }
             prev_inputs = inputs;
         }
         if !prev_inputs.is_empty() {
-            assert!(
-                prev_inputs[INPUT_NAMES[6]]
-                    .get_int_ref()
-                    .unwrap()
-                    .to_usize()
-                    .unwrap()
-                    == self.instance_def.batch_size as usize,
-            )
+            let prev_inputs_n = prev_inputs[INPUT_NAMES[6]]
+                .get_int_ref()
+                .unwrap()
+                .to_usize()
+                .unwrap();
+            assert!(prev_inputs_n == self.instance_def.batch_size as usize,)
         }
         Ok(())
     }
