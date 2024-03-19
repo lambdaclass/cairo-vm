@@ -46,7 +46,7 @@ pub struct ModBuiltinRunner {
     zero_segment_size: usize,
     // Precomputed powers used for reading and writing values that are represented as n_words words of word_bit_len bits each.
     shift: NonZeroFelt,
-    shift_powers: Vec<Felt252>,
+    shift_powers: [Felt252; N_WORDS],
 }
 
 #[derive(Debug, Clone)]
@@ -113,7 +113,7 @@ impl ModBuiltinRunner {
 
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
         let shift = Felt252::TWO.pow(instance_def.word_bit_len);
-        let shift_powers = (0..N_WORDS).map(|i| shift.pow(i as u64)).collect();
+        let shift_powers = [0; N_WORDS].map(|i| shift.pow(i as u64));
         let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3) as usize;
         Self {
             builtin_type,
