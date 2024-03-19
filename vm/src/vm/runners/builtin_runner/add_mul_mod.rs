@@ -295,7 +295,7 @@ impl ModBuiltinRunner {
             memory.insert(
                 (instance_ptr + 5)?,
                 inputs[INPUT_NAMES[5]]
-                    .add_usize(3 * instance + self.instance_def.batch_size as usize)?,
+                    .add_usize(3 * instance * self.instance_def.batch_size as usize)?,
             )?;
             // n
             memory.insert(
@@ -403,7 +403,7 @@ impl ModBuiltinRunner {
             }
             // Deduce b from a and c and write it to memory.
             (Some(a), None, Some(c)) => {
-                let value = apply_op(a, c, &inv_op)?.mod_floor(&p);
+                let value = apply_op(c, a, &inv_op)?.mod_floor(&p);
                 self.write_n_words_value(memory, addresses[1], value)?;
                 Ok(true)
             }
