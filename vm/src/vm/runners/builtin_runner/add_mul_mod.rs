@@ -421,33 +421,35 @@ impl ModBuiltinRunner {
             }
         }
         // Fill the inputs to the builtins.
-        let mut add_mod_inputs = Inputs::default();
-        let mut mul_mod_inputs = Inputs::default();
-        let mut add_mod_n = 0;
-        let mut mul_mod_n = 0;
+        let (add_mod_inputs, add_mod_n) =
+            if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
+                let add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
+                add_mod.fill_inputs(memory, add_mod_addr, &add_mod_inputs)?;
+                add_mod.fill_offsets(
+                    memory,
+                    add_mod_inputs.offsets_ptr,
+                    add_mod_index,
+                    add_mod_inputs.n.saturating_sub(add_mod_index),
+                )?;
+                (add_mod_inputs, add_mod_index)
+            } else {
+                Default::default()
+            };
 
-        if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
-            add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
-            add_mod.fill_inputs(memory, add_mod_addr, &add_mod_inputs)?;
-            add_mod.fill_offsets(
-                memory,
-                add_mod_inputs.offsets_ptr,
-                add_mod_index,
-                add_mod_inputs.n.saturating_sub(add_mod_index),
-            )?;
-            add_mod_n = add_mod_index;
-        }
-        if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
-            mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
-            mul_mod.fill_inputs(memory, mul_mod_addr, &mul_mod_inputs)?;
-            mul_mod.fill_offsets(
-                memory,
-                mul_mod_inputs.offsets_ptr,
-                mul_mod_index,
-                mul_mod_inputs.n.saturating_sub(mul_mod_index),
-            )?;
-            mul_mod_n = mul_mod_index;
-        }
+        let (mul_mod_inputs, mul_mod_n) =
+            if let Some((mul_mod_addr, mul_mod, mul_mod_index)) = mul_mod {
+                let mul_mod_inputs = mul_mod.read_inputs(memory, mul_mod_addr)?;
+                mul_mod.fill_inputs(memory, mul_mod_addr, &mul_mod_inputs)?;
+                mul_mod.fill_offsets(
+                    memory,
+                    mul_mod_inputs.offsets_ptr,
+                    mul_mod_index,
+                    mul_mod_inputs.n.saturating_sub(mul_mod_index),
+                )?;
+                (mul_mod_inputs, mul_mod_index)
+            } else {
+                Default::default()
+            };
 
         //  Get one of the builtin runners - the rest of this function doesn't depend on batch_size.
         let mod_runner = if let Some((_, add_mod, _)) = add_mod {
