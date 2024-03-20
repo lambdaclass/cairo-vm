@@ -429,7 +429,7 @@ impl ModBuiltinRunner {
         let mut mul_mod_inputs = Inputs::default();
         let mut add_mod_n = 0;
         let mut mul_mod_n = 0;
-        // TODO: Remove unwraps once refactored to struct
+
         if let Some((add_mod_addr, add_mod, add_mod_index)) = add_mod {
             add_mod_inputs = add_mod.read_inputs(memory, add_mod_addr)?;
             add_mod.fill_inputs(memory, add_mod_addr, &add_mod_inputs)?;

@@ -1,13 +1,9 @@
+use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
-use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::collections::HashMap;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
-use crate::{
-    hint_processor::hint_processor_definition::HintReference,
-    vm::runners::builtin_runner::ModBuiltinRunner,
-};
 use num_traits::ToPrimitive;
 
 use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
@@ -30,8 +26,6 @@ pub fn run_p_mod_circuit(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // TODO: check batch size == 1 for both builtins
-    let add_mod = vm.get_mod_builtin(&BuiltinName::add_mod)?.clone();
-    let mul_mod = vm.get_mod_builtin(&BuiltinName::mul_mod)?.clone();
     let add_mod_ptr = get_ptr_from_var_name("add_mod_ptr", vm, ids_data, ap_tracking)?;
     let mul_mod_ptr = get_ptr_from_var_name("mul_mod_ptr", vm, ids_data, ap_tracking)?;
     let add_mod_n = get_integer_from_var_name("add_mod_n", vm, ids_data, ap_tracking)?
@@ -42,10 +36,9 @@ pub fn run_p_mod_circuit(
         .as_ref()
         .to_usize()
         .unwrap();
-    ModBuiltinRunner::fill_memory(
-        &mut vm.segments.memory,
-        Some((add_mod_ptr, &add_mod, add_mod_n)),
-        Some((mul_mod_ptr, &mul_mod, mul_mod_n)),
+    vm.mod_builtin_fill_memory(
+        Some((add_mod_ptr, add_mod_n)),
+        Some((mul_mod_ptr, mul_mod_n)),
     )
     .map_err(|e| HintError::Internal(VirtualMachineError::RunnerError(e)))
 }

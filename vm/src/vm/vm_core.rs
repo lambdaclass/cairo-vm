@@ -33,7 +33,9 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::{ModBuiltinRunner, OUTPUT_BUILTIN_NAME};
+use super::runners::builtin_runner::{
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -1125,6 +1127,58 @@ impl VirtualMachine {
         if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
             builtin.set_stop_ptr_offset(offset)
         }
+    }
+
+    /// Fetches add_mod & mul_mod builtins according to the optional arguments and executes `fill_memory`
+    /// Returns an error if either of this optional parameters is true but the corresponding builtin is not present
+    // This method is needed as running `fill_memory` direclty from outside the vm struct would require cloning the builtin runners to avoid double borrowing
+    pub fn mod_builtin_fill_memory(
+        &mut self,
+        add_mod_ptr_n: Option<(Relocatable, usize)>,
+        mul_mod_ptr_n: Option<(Relocatable, usize)>,
+    ) -> Result<(), VirtualMachineError> {
+        let add_mod = if let Some((ptr, n)) = add_mod_ptr_n {
+            let mut add_mod = None;
+            for b in self.builtin_runners.iter() {
+                match b {
+                    BuiltinRunner::Mod(b) if b.name() == ADD_MOD_BUILTIN_NAME => {
+                        add_mod = Some((ptr, b, n))
+                    }
+                    _ => {}
+                }
+            }
+            if add_mod.is_none() {
+                return Err(VirtualMachineError::NoModBuiltin(
+                    ADD_MOD_BUILTIN_NAME.to_string(),
+                ));
+            }
+            add_mod
+        } else {
+            None
+        };
+
+        let mul_mod = if let Some((ptr, n)) = mul_mod_ptr_n {
+            let mut mul_mod = None;
+            for b in self.builtin_runners.iter() {
+                match b {
+                    BuiltinRunner::Mod(b) if b.name() == MUL_MOD_BUILTIN_NAME => {
+                        mul_mod = Some((ptr, b, n))
+                    }
+                    _ => {}
+                }
+            }
+            if mul_mod.is_none() {
+                return Err(VirtualMachineError::NoModBuiltin(
+                    MUL_MOD_BUILTIN_NAME.to_string(),
+                ));
+            }
+            mul_mod
+        } else {
+            None
+        };
+
+        ModBuiltinRunner::fill_memory(&mut self.segments.memory, add_mod, mul_mod)
+            .map_err(VirtualMachineError::RunnerError)
     }
 }
 
