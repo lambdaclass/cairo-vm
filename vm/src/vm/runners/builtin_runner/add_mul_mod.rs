@@ -551,14 +551,13 @@ impl ModBuiltinRunner {
                     ModBuiltinType::Mul => Operation::Mul,
                 };
                 let a_op_b = apply_op(&a, &b, &op)?.mod_floor(&inputs.p);
-                dbg!(&a_op_b);
                 if a_op_b != c.mod_floor(&inputs.p) {
                     // Build error string
-                    let error_string = format!("Expected a {} b == c (mod p). Got: instance={}, batch={}, inputs={:?}, values: {{a={}, b={}, c={}}}.",
+                    let error_string = format!("Expected a {} b == c (mod p). Got: instance={}, batch={}, p={}, a={}, b={}, c={}.",
                     op,
                     instance,
                     index_in_batch,
-                    inputs,
+                    inputs.p,
                     a,
                     b,
                     c
