@@ -105,7 +105,7 @@ impl ModBuiltinRunner {
 
     fn new(instance_def: ModInstanceDef, included: bool, builtin_type: ModBuiltinType) -> Self {
         let shift = BigUint::one().shl(instance_def.word_bit_len);
-        let shift_powers = [0; N_WORDS].map(|i| shift.pow(i));
+        let shift_powers = core::array::from_fn(|i| shift.pow(i as u32));
         let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3);
         Self {
             builtin_type,
