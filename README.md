@@ -22,7 +22,6 @@ A faster and safer implementation of the Cairo VM in Rust
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
-- [⚠️ Disclaimer](#️-disclaimer)
 - [📖 About](#-about)
   - [The Cairo language](#the-cairo-language)
 - [🌅 Getting Started](#-getting-started)
@@ -53,10 +52,6 @@ A faster and safer implementation of the Cairo VM in Rust
     - [STARKs](#starks)
 - [⚖️ License](#️-license)
 
-## ⚠️ Disclaimer
-
-🚧 `cairo-vm` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
-Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
