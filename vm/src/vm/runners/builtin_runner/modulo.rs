@@ -1,6 +1,6 @@
 use crate::{
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::{borrow::Cow, collections::HashMap},
+    stdlib::borrow::Cow,
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
@@ -15,19 +15,12 @@ use crate::{
     },
     Felt252,
 };
-use core::{
-    array,
-    borrow::Borrow,
-    default,
-    fmt::{Display, Pointer},
-    ops::Shl,
-};
+use core::{fmt::Display, ops::Shl};
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
 use num_traits::One;
-use num_traits::{ToPrimitive, Zero};
-use starknet_types_core::felt::NonZeroFelt;
+use num_traits::Zero;
 
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;

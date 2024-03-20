@@ -8,9 +8,7 @@ use crate::{
 };
 use num_traits::ToPrimitive;
 
-use super::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
-};
+use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
 /* Implements Hint:
 %{
     from starkware.cairo.lang.builtins.modulo.mod_builtin_runner import ModBuiltinRunner
@@ -51,7 +49,11 @@ pub fn run_p_mod_circuit_with_large_batch_size(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    let batch_size = get_constant_from_var_name("BATCH_SIZE", constants)?;
+    const LARGE_BATCH_SIZE_PATH: &str =
+        "starkware.cairo.common.modulo.run_mod_p_circuit_with_large_batch_size.BATCH_SIZE";
+    let batch_size = constants
+        .get(LARGE_BATCH_SIZE_PATH)
+        .ok_or_else(|| HintError::MissingConstant(Box::new(LARGE_BATCH_SIZE_PATH)))?;
     run_p_mod_circuit_inner(
         vm,
         ids_data,

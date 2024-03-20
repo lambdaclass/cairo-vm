@@ -9,23 +9,23 @@ use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
-#[allow(unused)]
-mod add_mul_mod;
 mod bitwise;
 mod ec_op;
 mod hash;
 mod keccak;
+#[allow(unused)]
+mod modulo;
 mod output;
 mod poseidon;
 mod range_check;
 mod segment_arena;
 mod signature;
 
-pub use add_mul_mod::ModBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 pub use keccak::KeccakBuiltinRunner;
+pub use modulo::ModBuiltinRunner;
 use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
 pub use poseidon::PoseidonBuiltinRunner;
