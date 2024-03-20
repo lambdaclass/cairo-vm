@@ -15,7 +15,13 @@ use crate::{
     },
     Felt252,
 };
-use core::{array, borrow::Borrow, default, ops::Shl};
+use core::{
+    array,
+    borrow::Borrow,
+    default,
+    fmt::{Display, Pointer},
+    ops::Shl,
+};
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
@@ -66,6 +72,17 @@ pub enum Operation {
     Add,
     Sub,
     DivMod(BigUint),
+}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Operation::Mul => "*".fmt(f),
+            Operation::Add => "+".fmt(f),
+            Operation::Sub => "-".fmt(f),
+            Operation::DivMod(_) => "/".fmt(f),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -394,6 +411,9 @@ impl ModBuiltinRunner {
         }
     }
 
+    /// NOTE: It is advisable to use VirtualMachine::mod_builtin_fill_memory instead of this method directly
+    /// when implementing hints to avoid cloning the runners
+
     /// Fills the memory with inputs to the builtin instances based on the inputs to the
     /// first instance, pads the offsets table to fit the number of operations writen in the
     /// input to the first instance, and caculates missing values in the values table.
@@ -405,7 +425,6 @@ impl ModBuiltinRunner {
     /// The number of operations written to the input of the first instance n' should be at
     /// least n and a multiple of batch_size. Previous offsets are copied to the end of the
     /// offsets table to make its length 3n'.
-
     pub fn fill_memory(
         memory: &mut Memory,
         add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
@@ -531,13 +550,25 @@ impl ModBuiltinRunner {
                     ModBuiltinType::Add => Operation::Add,
                     ModBuiltinType::Mul => Operation::Mul,
                 };
-                // TODO: Add this error handling:
-                /* f"{self.name} builtin: Expected a {op} b == c (mod p). Got: "
-                //             + f"instance={instance}, batch={index_in_batch}, inputs={inputs}, "
-                //             + f"values={values}." */
                 let a_op_b = apply_op(&a, &b, &op)?.mod_floor(&inputs.p);
-                let c = c.mod_floor(&inputs.p);
-                assert!(a_op_b == c);
+                dbg!(&a_op_b);
+                if a_op_b != c.mod_floor(&inputs.p) {
+                    // Build error string
+                    let error_string = format!("Expected a {} b == c (mod p). Got: instance={}, batch={}, inputs={:?}, values: {{a={}, b={}, c={}}}.",
+                    op,
+                    instance,
+                    index_in_batch,
+                    inputs,
+                    a,
+                    b,
+                    c
+                );
+                    return Err(RunnerError::ModBuiltinSecurityCheck(
+                        self.name().to_string(),
+                        error_string,
+                    )
+                    .into());
+                }
             }
             prev_inputs = inputs;
         }

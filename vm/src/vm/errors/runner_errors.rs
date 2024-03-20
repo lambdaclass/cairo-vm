@@ -106,13 +106,13 @@ pub enum RunnerError {
     PageNotOnSegment(Relocatable, usize),
     #[error("Expected integer at address {0} to be smaller than 2^{1}. Got: {2}.")]
     WordExceedsModBuiltinWordBitLen(Relocatable, u32, Felt252),
-    #[error("{0} builtin: Expected n >= 1. Got: {1}.")]
+    #[error("{0}: Expected n >= 1. Got: {1}.")]
     ModBuiltinNLessThanOne(String, usize),
-    #[error("{0} builtin: Missing value at address {1}.")]
+    #[error("{0}: Missing value at address {1}.")]
     ModBuiltinMissingValue(String, Relocatable),
-    #[error("{0} builtin: n must be <= {1}")]
+    #[error("{0}: n must be <= {1}")]
     FillMemoryMaxExceeded(String, usize),
-    #[error("{0} builtin: write_n_words value must be 0 after loop")]
+    #[error("{0}: write_n_words value must be 0 after loop")]
     WriteNWordsValueNotZero(String),
     #[error("add_mod and mul_mod builtins must have the same n_words and word_bit_len.")]
     ModBuiltinsMismatchedInstanceDef,
@@ -120,6 +120,8 @@ pub enum RunnerError {
     FillMemoryNoBuiltinSet,
     #[error("Could not fill the values table, add_mod_index={0}, mul_mod_index={1}")]
     FillMemoryCoudNotFillTable(usize, usize),
+    #[error("{0}: {1}")]
+    ModBuiltinSecurityCheck(String, String),
 }
 
 #[cfg(test)]

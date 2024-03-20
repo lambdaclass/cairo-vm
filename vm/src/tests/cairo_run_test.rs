@@ -1065,6 +1065,16 @@ fn cairo_run_print_dict_array() {
 #[test]
 #[cfg(feature = "mod_builtin")]
 fn cairo_run_mod_builtin() {
-    let program_data = include_bytes!("../../../cairo_programs/mod_builtin.json");
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin.json");
     run_program_simple(program_data);
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_failure() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_failure.json");
+    let error_msg = "unexpected verify multiplicity fail: positions length != 0";
+    run_program_with_error(program_data.as_slice(), error_msg)
 }
