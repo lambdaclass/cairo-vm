@@ -5,7 +5,6 @@ use cairo_vm::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-
 // Define include_bytes_relative macro to prepend a relative path to the file names
 macro_rules! include_bytes_relative {
     ($fname:expr) => {
@@ -14,7 +13,6 @@ macro_rules! include_bytes_relative {
 }
 
 fn main() {
-
     let mut programs = Vec::new();
 
     let programs_bytes: [Vec<u8>; 18] = [
@@ -64,6 +62,6 @@ fn main() {
     let elapsed = start_time.elapsed();
 
     let programs_len: &usize = &programs_bytes.clone().len();
-    
+
     tracing::info!(%programs_len, ?elapsed, "Finished");
 }
