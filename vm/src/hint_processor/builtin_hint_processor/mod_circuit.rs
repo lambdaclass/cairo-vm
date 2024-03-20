@@ -37,7 +37,7 @@ pub fn run_p_mod_circuit(
     vm.mod_builtin_fill_memory(
         Some((add_mod_ptr, add_mod_n)),
         Some((mul_mod_ptr, mul_mod_n)),
-        Some(1)
+        Some(1),
     )
     .map_err(HintError::Internal)
 }

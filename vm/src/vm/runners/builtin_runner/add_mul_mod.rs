@@ -15,7 +15,7 @@ use crate::{
     },
     Felt252,
 };
-use core::{array, borrow::Borrow, ops::Shl};
+use core::{array, borrow::Borrow, default, ops::Shl};
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
@@ -357,23 +357,15 @@ impl ModBuiltinRunner {
         op: &Operation,
         inv_op: &Operation,
     ) -> Result<bool, RunnerError> {
-        let addresses = vec![
-            (inputs.values_ptr
-                + memory
-                    .get_integer((inputs.offsets_ptr + 3 * index)?)?
-                    .as_ref())?,
-            (inputs.values_ptr
-                + memory
-                    .get_integer((inputs.offsets_ptr + (3 * index + 1))?)?
-                    .as_ref())?,
-            (inputs.values_ptr
-                + memory
-                    .get_integer((inputs.offsets_ptr + (3 * index + 2))?)?
-                    .as_ref())?,
-        ];
+        let mut addresses = Vec::new();
         let mut values = Vec::new();
-        for addr in &addresses {
-            let (_, value) = self.read_n_words_value(memory, *addr)?;
+        for i in 0..3 {
+            let addr = (inputs.values_ptr
+                + memory
+                    .get_integer((inputs.offsets_ptr + (3 * index + i))?)?
+                    .as_ref())?;
+            addresses.push(addr);
+            let (_, value) = self.read_n_words_value(memory, addr)?;
             values.push(value)
         }
         let (a, b, c) = (&values[0], &values[1], &values[2]);

@@ -1139,56 +1139,41 @@ impl VirtualMachine {
         mul_mod_ptr_n: Option<(Relocatable, usize)>,
         batch_size: Option<usize>,
     ) -> Result<(), VirtualMachineError> {
-        let add_mod = if let Some((ptr, n)) = add_mod_ptr_n {
-            let add_mod = self
-                .builtin_runners
-                .iter()
-                .find_map(|b| match b {
-                    BuiltinRunner::Mod(b) if b.name() == ADD_MOD_BUILTIN_NAME => Some(b),
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    VirtualMachineError::NoModBuiltin(ADD_MOD_BUILTIN_NAME.to_string())
-                })?;
-            if let Some(batch_size) = batch_size {
-                if add_mod.batch_size() != batch_size {
-                    return Err(VirtualMachineError::ModBuiltinBatchSize(
-                        add_mod.name().to_string(),
-                        batch_size,
-                    ));
+        let fetch_builtin_params = |mod_params: Option<(Relocatable, usize)>,
+                                    mod_name: &'static str|
+         -> Result<
+            Option<(Relocatable, &ModBuiltinRunner, usize)>,
+            VirtualMachineError,
+        > {
+            if let Some((ptr, n)) = mod_params {
+                let mod_builtin = self
+                    .builtin_runners
+                    .iter()
+                    .find_map(|b| match b {
+                        BuiltinRunner::Mod(b) if b.name() == mod_name => Some(b),
+                        _ => None,
+                    })
+                    .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name.to_string()))?;
+                if let Some(batch_size) = batch_size {
+                    if mod_builtin.batch_size() != batch_size {
+                        return Err(VirtualMachineError::ModBuiltinBatchSize(
+                            mod_builtin.name().to_string(),
+                            batch_size,
+                        ));
+                    }
                 }
+                Ok(Some((ptr, mod_builtin, n)))
+            } else {
+                Ok(None)
             }
-            Some((ptr, add_mod, n))
-        } else {
-            None
         };
 
-        let mul_mod = if let Some((ptr, n)) = mul_mod_ptr_n {
-            let mul_mod = self
-                .builtin_runners
-                .iter()
-                .find_map(|b| match b {
-                    BuiltinRunner::Mod(b) if b.name() == MUL_MOD_BUILTIN_NAME => Some(b),
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    VirtualMachineError::NoModBuiltin(MUL_MOD_BUILTIN_NAME.to_string())
-                })?;
-            if let Some(batch_size) = batch_size {
-                if mul_mod.batch_size() != batch_size {
-                    return Err(VirtualMachineError::ModBuiltinBatchSize(
-                        mul_mod.name().to_string(),
-                        batch_size,
-                    ));
-                }
-            }
-            Some((ptr, mul_mod, n))
-        } else {
-            None
-        };
-
-        ModBuiltinRunner::fill_memory(&mut self.segments.memory, add_mod, mul_mod)
-            .map_err(VirtualMachineError::RunnerError)
+        ModBuiltinRunner::fill_memory(
+            &mut self.segments.memory,
+            fetch_builtin_params(add_mod_ptr_n, ADD_MOD_BUILTIN_NAME)?,
+            fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
+        )
+        .map_err(VirtualMachineError::RunnerError)
     }
 }
 
