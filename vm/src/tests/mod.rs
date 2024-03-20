@@ -75,6 +75,8 @@ fn run_program(
         layout: layout.unwrap_or("all_cairo"),
         relocate_mem: true,
         trace_enabled: true,
+        #[cfg(feature = "mod_builtin")]
+        secure_run: Some(false),
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);

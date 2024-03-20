@@ -1061,3 +1061,10 @@ fn cairo_run_print_dict_array() {
         include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
     run_program_simple(program_data);
 }
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin() {
+    let program_data = include_bytes!("../../../cairo_programs/mod_builtin.json");
+    run_program_simple(program_data);
+}
