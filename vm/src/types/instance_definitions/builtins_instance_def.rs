@@ -173,9 +173,9 @@ impl BuiltinsInstanceDef {
             keccak: None,
             poseidon: None,
             #[cfg(feature = "mod_builtin")]
-            add_mod: None,
+            add_mod: Some(ModInstanceDef::new(Some(1), 8)),
             #[cfg(feature = "mod_builtin")]
-            mul_mod: None,
+            mul_mod: Some(ModInstanceDef::new(Some(1), 8)),
         }
     }
 
