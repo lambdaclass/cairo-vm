@@ -135,6 +135,10 @@ impl ModBuiltinRunner {
         self.instance_def.cells_per_instance()
     }
 
+    pub fn batch_size(&self) -> usize {
+        self.instance_def.batch_size
+    }
+
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,

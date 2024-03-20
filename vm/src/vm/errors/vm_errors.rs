@@ -131,6 +131,8 @@ pub enum VirtualMachineError {
     FailedToWriteOutput,
     #[error("Failed to find index {0} in the vm's relocation table")]
     RelocationNotFound(usize),
+    #[error("{0} batch size is not {1}")]
+    ModBuiltinBatchSize(String, usize),
 }
 
 #[cfg(test)]

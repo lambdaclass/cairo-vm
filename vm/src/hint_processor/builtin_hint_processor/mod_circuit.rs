@@ -24,7 +24,6 @@ pub fn run_p_mod_circuit(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    // TODO: check batch size == 1 for both builtins
     let add_mod_ptr = get_ptr_from_var_name("add_mod_ptr", vm, ids_data, ap_tracking)?;
     let mul_mod_ptr = get_ptr_from_var_name("mul_mod_ptr", vm, ids_data, ap_tracking)?;
     let add_mod_n = get_integer_from_var_name("add_mod_n", vm, ids_data, ap_tracking)?
@@ -38,6 +37,7 @@ pub fn run_p_mod_circuit(
     vm.mod_builtin_fill_memory(
         Some((add_mod_ptr, add_mod_n)),
         Some((mul_mod_ptr, mul_mod_n)),
+        Some(1)
     )
     .map_err(HintError::Internal)
 }
