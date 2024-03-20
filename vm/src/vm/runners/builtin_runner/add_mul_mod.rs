@@ -433,7 +433,7 @@ impl ModBuiltinRunner {
                 memory,
                 add_mod_inputs.offsets_ptr,
                 add_mod_index,
-                add_mod_inputs.n - add_mod_index,
+                add_mod_inputs.n.saturating_sub(add_mod_index),
             )?;
             add_mod_n = add_mod_index;
         }
@@ -444,7 +444,7 @@ impl ModBuiltinRunner {
                 memory,
                 mul_mod_inputs.offsets_ptr,
                 mul_mod_index,
-                mul_mod_inputs.n - mul_mod_index,
+                mul_mod_inputs.n.saturating_sub(mul_mod_index),
             )?;
             mul_mod_n = mul_mod_index;
         }
