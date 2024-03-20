@@ -1080,10 +1080,19 @@ fn cairo_run_mod_builtin_failure() {
 }
 
 #[test]
-#[cfg(feature = "mod_builtin_large_batch_size")]
+#[cfg(feature = "mod_builtin")]
 fn cairo_run_mod_builtin_large_batch_size() {
     let program_data = include_bytes!(
         "../../../cairo_programs/mod_builtin_feature/mod_builtin_large_batch_size.json"
     );
     run_program(program_data, Some("all_solidity"), None, None);
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_large_batch_size_failure() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_large_batch_size_failure.json");
+    let error_msg = "mul_mod_builtin: Expected a * b == c (mod p). Got: instance=0, batch=2, p=9, a=2, b=2, c=2.";
+    run_program(program_data.as_slice(), Some("all_solidity"), None, Some(error_msg))
 }
