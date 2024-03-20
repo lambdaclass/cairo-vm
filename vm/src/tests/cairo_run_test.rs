@@ -1075,6 +1075,6 @@ fn cairo_run_mod_builtin() {
 fn cairo_run_mod_builtin_failure() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_failure.json");
-    let error_msg = "unexpected verify multiplicity fail: positions length != 0";
+    let error_msg = "mul_mod_builtin: Expected a * b == c (mod p). Got: instance=2, batch=0, p=9, a=2, b=2, c=2.";
     run_program_with_error(program_data.as_slice(), error_msg)
 }
