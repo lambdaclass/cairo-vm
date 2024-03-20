@@ -553,15 +553,8 @@ impl ModBuiltinRunner {
                 let a_op_b = apply_op(&a, &b, &op)?.mod_floor(&inputs.p);
                 if a_op_b != c.mod_floor(&inputs.p) {
                     // Build error string
-                    let error_string = format!("Expected a {} b == c (mod p). Got: instance={}, batch={}, p={}, a={}, b={}, c={}.",
-                    op,
-                    instance,
-                    index_in_batch,
-                    inputs.p,
-                    a,
-                    b,
-                    c
-                );
+                    let p = inputs.p;
+                    let error_string = format!("Expected a {op} b == c (mod p). Got: instance={instance}, batch={index_in_batch}, p={p}, a={a}, b={b}, c={c}.");
                     return Err(RunnerError::ModBuiltinSecurityCheck(
                         self.name().to_string(),
                         error_string,
