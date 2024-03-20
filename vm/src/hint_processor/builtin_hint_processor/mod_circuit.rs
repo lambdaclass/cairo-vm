@@ -2,7 +2,6 @@ use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::serde::deserialize_program::ApTracking;
 use crate::stdlib::collections::HashMap;
 use crate::vm::errors::hint_errors::HintError;
-use crate::vm::errors::vm_errors::VirtualMachineError;
 use crate::vm::vm_core::VirtualMachine;
 use num_traits::ToPrimitive;
 
@@ -40,5 +39,5 @@ pub fn run_p_mod_circuit(
         Some((add_mod_ptr, add_mod_n)),
         Some((mul_mod_ptr, mul_mod_n)),
     )
-    .map_err(|e| HintError::Internal(VirtualMachineError::RunnerError(e)))
+    .map_err(HintError::Internal)
 }

@@ -104,11 +104,11 @@ pub fn cairo_run_program(
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm)?;
     }
-    #[cfg(features = "mod_builtin")]
+    #[cfg(feature = "mod_builtin")]
     vm.get_mod_builtin(&crate::serde::deserialize_program::BuiltinName::add_mod)?
         .run_additional_security_checks(&vm)
         .unwrap();
-    #[cfg(features = "mod_builtin")]
+    #[cfg(feature = "mod_builtin")]
     vm.get_mod_builtin(&crate::serde::deserialize_program::BuiltinName::mul_mod)?
         .run_additional_security_checks(&vm)
         .unwrap();
