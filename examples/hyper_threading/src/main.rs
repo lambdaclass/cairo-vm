@@ -9,7 +9,7 @@ use std::path::Path;
 // Define build_filename macro to prepend a relative path to the file names
 macro_rules! build_filename {
     ($fname:expr) => {
-        format!("../../../cairo_programs/benchmarks/{}", $fname)
+        format!("cairo_programs/benchmarks/{}", $fname)
     };
 }
 
