@@ -43,7 +43,7 @@ const N_OFFSET: u32 = 6;
 pub struct ModBuiltinRunner {
     builtin_type: ModBuiltinType,
     base: usize,
-    stop_ptr: Option<usize>,
+    pub(crate) stop_ptr: Option<usize>,
     instance_def: ModInstanceDef,
     pub(crate) included: bool,
     zero_segment_index: usize,
@@ -147,10 +147,6 @@ impl ModBuiltinRunner {
 
     pub fn batch_size(&self) -> usize {
         self.instance_def.batch_size
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {

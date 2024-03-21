@@ -105,10 +105,6 @@ impl RangeCheckBuiltinRunner {
         memory.add_validation_rule(self.base, rule);
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base)
@@ -406,14 +402,6 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

@@ -158,10 +158,6 @@ impl SignatureBuiltinRunner {
         self.ratio
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base)
@@ -360,14 +356,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(
             &EcdsaInstanceDef::default(),
@@ -449,14 +437,6 @@ mod tests {
     fn test_base() {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
         assert_eq!(builtin.base(), 0);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_get_memory_segment_addresses() {
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]

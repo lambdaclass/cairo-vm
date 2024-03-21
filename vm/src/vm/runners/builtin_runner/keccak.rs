@@ -126,10 +126,6 @@ impl KeccakBuiltinRunner {
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base())
@@ -388,14 +384,6 @@ mod tests {
         vm.current_step = 160;
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
     }
 
     #[test]

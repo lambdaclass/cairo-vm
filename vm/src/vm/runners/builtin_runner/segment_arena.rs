@@ -67,10 +67,6 @@ impl SegmentArenaBuiltinRunner {
         self.get_used_cells(segments)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base.segment_index as usize, self.stop_ptr)
-    }
-
     pub fn base(&self) -> usize {
         self.base.segment_index as usize
     }
@@ -271,14 +267,6 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = SegmentArenaBuiltinRunner::new(true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

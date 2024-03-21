@@ -117,10 +117,6 @@ impl BitwiseBuiltinRunner {
         ))))
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base)
@@ -453,14 +449,6 @@ mod tests {
         let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

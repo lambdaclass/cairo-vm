@@ -120,10 +120,6 @@ impl HashBuiltinRunner {
         Ok(None)
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base())
@@ -438,14 +434,6 @@ mod tests {
         builtin.verified_addresses = RefCell::new(vec![false, false, false, false, false, true]);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = HashBuiltinRunner::new(Some(256), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
     }
 
     #[test]

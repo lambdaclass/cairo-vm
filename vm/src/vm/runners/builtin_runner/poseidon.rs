@@ -110,10 +110,6 @@ impl PoseidonBuiltinRunner {
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base())

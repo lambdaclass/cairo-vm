@@ -254,22 +254,7 @@ impl BuiltinRunner {
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
-            BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
-            BuiltinRunner::Hash(ref hash) => hash.get_memory_segment_addresses(),
-            BuiltinRunner::Output(ref output) => output.get_memory_segment_addresses(),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.get_memory_segment_addresses()
-            }
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
-            BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
-            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_memory_segment_addresses(),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.get_memory_segment_addresses()
-            }
-            BuiltinRunner::Mod(ref modulo) => modulo.get_memory_segment_addresses(),
-        }
+        (self.base(), self.stop_ptr())
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -530,6 +515,21 @@ impl BuiltinRunner {
             }
             // TODO: Unimplemented
             BuiltinRunner::Mod(_) => {}
+        }
+    }
+
+    pub(crate) fn stop_ptr(&self) -> Option<usize> {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.stop_ptr,
+            BuiltinRunner::EcOp(ref ec) => ec.stop_ptr,
+            BuiltinRunner::Hash(ref hash) => hash.stop_ptr,
+            BuiltinRunner::Output(ref output) => output.stop_ptr,
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.stop_ptr,
+            BuiltinRunner::Keccak(ref keccak) => keccak.stop_ptr,
+            BuiltinRunner::Signature(ref signature) => signature.stop_ptr,
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.stop_ptr,
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.stop_ptr,
+            BuiltinRunner::Mod(ref modulo) => modulo.stop_ptr,
         }
     }
 }
