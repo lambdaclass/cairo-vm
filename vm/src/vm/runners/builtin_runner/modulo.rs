@@ -334,14 +334,14 @@ impl ModBuiltinRunner {
         for instance in 1..n_instances {
             let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
             for i in 0..N_WORDS {
-                memory.insert((instance_ptr + i)?, &inputs.p_values[i])?;
+                memory.insert_as_accessed((instance_ptr + i)?, &inputs.p_values[i])?;
             }
-            memory.insert((instance_ptr + VALUES_PTR_OFFSET)?, &inputs.values_ptr)?;
-            memory.insert(
+            memory.insert_as_accessed((instance_ptr + VALUES_PTR_OFFSET)?, &inputs.values_ptr)?;
+            memory.insert_as_accessed(
                 (instance_ptr + OFFSETS_PTR_OFFSET)?,
                 (inputs.offsets_ptr + (3 * instance * self.instance_def.batch_size))?,
             )?;
-            memory.insert(
+            memory.insert_as_accessed(
                 (instance_ptr + N_OFFSET)?,
                 inputs
                     .n
@@ -369,7 +369,7 @@ impl ModBuiltinRunner {
                 .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(addr)))?
                 .into_owned();
             for copy_i in 0..n_copies {
-                memory.insert((offsets_ptr + (3 * (index + copy_i) + i))?, &offset)?;
+                memory.insert_as_accessed((offsets_ptr + (3 * (index + copy_i) + i))?, &offset)?;
             }
         }
         Ok(())
@@ -385,7 +385,7 @@ impl ModBuiltinRunner {
         let mut value = value;
         for i in 0..N_WORDS {
             let word = value.mod_floor(&self.shift);
-            memory.insert((addr + i)?, Felt252::from(word))?;
+            memory.insert_as_accessed((addr + i)?, Felt252::from(word))?;
             value = value.div_floor(&self.shift)
         }
         if !value.is_zero() {

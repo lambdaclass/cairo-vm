@@ -525,6 +525,21 @@ impl Memory {
                 .count(),
         )
     }
+
+    // Inserts a value into memory & inmediately marks it as accessed if insertion was succesful
+    // Used by ModBuiltinRunner, as it accesses memory outside of it's segment when operating
+    pub(crate) fn insert_as_accessed<V>(
+        &mut self,
+        key: Relocatable,
+        val: V,
+    ) -> Result<(), MemoryError>
+    where
+        MaybeRelocatable: From<V>,
+    {
+        self.insert(key, val)?;
+        self.mark_as_accessed(key);
+        Ok(())
+    }
 }
 
 impl From<&Memory> for CairoPieMemory {
