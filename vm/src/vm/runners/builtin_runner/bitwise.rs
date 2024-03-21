@@ -186,7 +186,7 @@ mod tests {
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
     use crate::vm::errors::memory_errors::MemoryError;
-    use crate::vm::runners::builtin_runner::BuiltinRunner;
+    use crate::vm::runners::builtin_runner::{BuiltinRunner, BITWISE_BUILTIN_NAME};
     use crate::vm::vm_core::VirtualMachine;
     use crate::Felt252;
     use crate::{
@@ -219,7 +219,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -243,7 +244,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 
@@ -271,7 +273,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), false).into();
 
         let mut vm = vm!();
 
@@ -295,7 +298,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner =
+            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true).into();
 
         let mut vm = vm!();
 

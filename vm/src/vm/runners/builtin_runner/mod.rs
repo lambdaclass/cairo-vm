@@ -111,7 +111,7 @@ impl BuiltinRunner {
         pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
         if let BuiltinRunner::Output(output) = self {
-            return output.final_stack(segments, pointer)
+            return output.final_stack(segments, pointer);
         }
         if self.included() {
             let stop_pointer_addr =
@@ -211,7 +211,7 @@ impl BuiltinRunner {
         }
     }
 
-    /// Returns if the builtin is included in the program builtins 
+    /// Returns if the builtin is included in the program builtins
     fn included(&self) -> bool {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.included,
