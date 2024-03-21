@@ -12,7 +12,7 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::memory_errors::MemoryError,
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -154,14 +154,6 @@ impl SignatureBuiltinRunner {
         memory.add_validation_rule(self.base, rule);
     }
 
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
     pub fn ratio(&self) -> Option<u32> {
         self.ratio
     }
@@ -242,7 +234,10 @@ mod tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
-            errors::memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+            errors::{
+                memory_errors::{InsufficientAllocatedCellsError, MemoryError},
+                runner_errors::RunnerError,
+            },
             runners::builtin_runner::{BuiltinRunner, SIGNATURE_BUILTIN_NAME},
             vm_core::VirtualMachine,
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
@@ -436,7 +431,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let builtin: BuiltinRunner =
+            SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into();
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -461,15 +457,6 @@ mod tests {
         let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
 
         assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn deduce_memory_cell() {
-        let memory = Memory::new();
-        let builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
-        assert_eq!(result, Ok(None));
     }
 
     #[test]

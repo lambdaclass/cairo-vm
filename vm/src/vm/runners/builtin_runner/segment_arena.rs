@@ -1,6 +1,4 @@
 use crate::vm::errors::memory_errors::MemoryError;
-use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_memory::memory::Memory;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::vm_memory::memory_segments::MemorySegmentManager,
@@ -73,16 +71,6 @@ impl SegmentArenaBuiltinRunner {
         (self.base.segment_index as usize, self.stop_ptr)
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
     pub fn base(&self) -> usize {
         self.base.segment_index as usize
     }
@@ -104,6 +92,7 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::errors::runner_errors::RunnerError;
     use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
@@ -368,14 +357,6 @@ mod tests {
             builtin.deduce_memory_cell(pointer, &vm.segments.memory),
             Ok(None)
         );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_add_validation_rule() {
-        let builtin = SegmentArenaBuiltinRunner::new(true);
-        let mut vm = vm!();
-        builtin.add_validation_rule(&mut vm.segments.memory);
     }
 
     #[test]

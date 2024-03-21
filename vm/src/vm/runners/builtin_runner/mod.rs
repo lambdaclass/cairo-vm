@@ -86,7 +86,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.initialize_segments(segments)
             }
-            BuiltinRunner::Mod(ref mut mod_builtin) => mod_builtin.initialize_segments(segments),
+            BuiltinRunner::Mod(ref mut modulo) => modulo.initialize_segments(segments),
         }
     }
 
@@ -101,7 +101,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.initial_stack(),
-            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.initial_stack(),
+            BuiltinRunner::Mod(ref modulo) => modulo.initial_stack(),
         }
     }
 
@@ -194,7 +194,7 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.included,
             //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.included,
-            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.included,
+            BuiltinRunner::Mod(ref modulo) => modulo.included,
         }
     }
 
@@ -211,7 +211,7 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
             //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.base(),
-            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.base(),
+            BuiltinRunner::Mod(ref modulo) => modulo.base(),
         }
     }
 
@@ -225,24 +225,16 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(keccak) => keccak.ratio(),
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
-            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.ratio(),
+            BuiltinRunner::Mod(ref modulo) => modulo.ratio(),
         }
     }
 
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
-            BuiltinRunner::EcOp(ref ec) => ec.add_validation_rule(memory),
-            BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
-            BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
-            BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.add_validation_rule(memory),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.add_validation_rule(memory)
-            }
-            BuiltinRunner::Mod(_) => {}
+            _ => {}
         }
     }
 
@@ -255,19 +247,9 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
             BuiltinRunner::EcOp(ref ec) => ec.deduce_memory_cell(address, memory),
             BuiltinRunner::Hash(ref hash) => hash.deduce_memory_cell(address, memory),
-            BuiltinRunner::Output(ref output) => output.deduce_memory_cell(address, memory),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.deduce_memory_cell(address, memory)
-            }
             BuiltinRunner::Keccak(ref keccak) => keccak.deduce_memory_cell(address, memory),
-            BuiltinRunner::Signature(ref signature) => {
-                signature.deduce_memory_cell(address, memory)
-            }
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.deduce_memory_cell(address, memory),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.deduce_memory_cell(address, memory)
-            }
-            BuiltinRunner::Mod(_) => Ok(None),
+            _ => Ok(None),
         }
     }
 
@@ -286,8 +268,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_memory_segment_addresses()
             }
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => (0, None),
+            BuiltinRunner::Mod(ref modulo) => modulo.get_memory_segment_addresses(),
         }
     }
 

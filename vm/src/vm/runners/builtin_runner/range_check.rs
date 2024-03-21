@@ -13,7 +13,7 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::memory_errors::MemoryError,
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -105,14 +105,6 @@ impl RangeCheckBuiltinRunner {
         memory.add_validation_rule(self.base, rule);
     }
 
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
         (self.base, self.stop_ptr)
     }
@@ -175,6 +167,7 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
+    use crate::vm::errors::runner_errors::RunnerError;
     use crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{

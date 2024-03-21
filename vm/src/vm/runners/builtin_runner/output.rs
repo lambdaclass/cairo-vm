@@ -6,7 +6,6 @@ use crate::vm::runners::cairo_pie::{
     Attributes, BuiltinAdditionalData, OutputBuiltinAdditionalData, Pages, PublicMemoryPage,
 };
 use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 
 use super::OUTPUT_BUILTIN_NAME;
@@ -60,16 +59,6 @@ impl OutputBuiltinRunner {
 
     pub fn base(&self) -> usize {
         self.base
-    }
-
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
     }
 
     pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
@@ -460,7 +449,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_add_validation_rule() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         let mut vm = vm!();
 
         vm.segments = segments![

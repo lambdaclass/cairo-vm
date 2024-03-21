@@ -61,8 +61,6 @@ impl BitwiseBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
     pub fn deduce_memory_cell(
         &self,
         address: Relocatable,
