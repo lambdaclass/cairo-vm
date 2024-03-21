@@ -187,45 +187,6 @@ impl ModBuiltinRunner {
         }
     }
 
-    // TODO: Check if we can mark this when calling fill_memory instead
-    // Marks memory used by the builtin outside of it's segment as accessed. Used when checking for memory holes
-    pub(crate) fn mark_accessed_memory(
-        &self,
-        segments: &mut MemorySegmentManager,
-    ) -> Result<(), MemoryError> {
-        let segment_size = segments
-            .get_segment_size(self.base)
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-        let n_instances = div_ceil(segment_size, INPUT_CELLS);
-        for instance in 0..n_instances {
-            let offsets_ptr = segments.memory.get_relocatable(
-                (
-                    self.base as isize,
-                    instance * INPUT_CELLS + OFFSETS_PTR_OFFSET as usize,
-                )
-                    .into(),
-            )?;
-            let values_ptr = segments.memory.get_relocatable(
-                (
-                    self.base as isize,
-                    instance * INPUT_CELLS + VALUES_PTR_OFFSET as usize,
-                )
-                    .into(),
-            )?;
-            for i in 0..3 * self.instance_def.batch_size {
-                let offset_addr = (offsets_ptr + i)?;
-                segments.memory.mark_as_accessed(offsets_ptr);
-                let offset = segments.memory.get_usize(offset_addr)?;
-                for j in 0..N_WORDS {
-                    segments
-                        .memory
-                        .mark_as_accessed((values_ptr + (offset + j))?);
-                }
-            }
-        }
-        Ok(())
-    }
-
     // Reads N_WORDS from memory, starting at address=addr.
     // Returns the words and the value if all words are in memory.
     // Verifies that all words are integers and are bounded by 2**self.instance_def.word_bit_len.
