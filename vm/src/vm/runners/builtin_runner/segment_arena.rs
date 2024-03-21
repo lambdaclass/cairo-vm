@@ -1,4 +1,3 @@
-use crate::stdlib::boxed::Box;
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
@@ -10,8 +9,6 @@ use crate::{
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-use super::SEGMENT_ARENA_BUILTIN_NAME;
-
 const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
 const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
@@ -19,7 +16,7 @@ const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
 #[derive(Debug, Clone)]
 pub struct SegmentArenaBuiltinRunner {
     base: Relocatable,
-    included: bool,
+    pub(crate) included: bool,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells_per_instance: u32,
     pub(crate) stop_ptr: Option<usize>,
@@ -65,41 +62,6 @@ impl SegmentArenaBuiltinRunner {
         }
     }
 
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(SEGMENT_ARENA_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(SEGMENT_ARENA_BUILTIN_NAME)))?;
-            if self.base.segment_index != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    SEGMENT_ARENA_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base.segment_index as usize,
-                ))));
-            }
-            let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
-            if stop_pointer != (self.base + used)? {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    SEGMENT_ARENA_BUILTIN_NAME,
-                    (self.base + used)?,
-                    stop_pointer,
-                ))));
-            }
-            self.stop_ptr = Some(stop_pointer.offset);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(self.base.offset);
-            Ok(pointer)
-        }
-    }
-
     pub fn get_used_instances(
         &self,
         segments: &MemorySegmentManager,
@@ -142,6 +104,7 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
     use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
     #[cfg(target_arch = "wasm32")]
@@ -186,7 +149,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+        let mut builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 
@@ -213,7 +176,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_valid() {
-        let mut builtin = SegmentArenaBuiltinRunner::new(false);
+        let mut builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(false).into();
 
         let mut vm = vm!();
 
@@ -261,7 +224,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = SegmentArenaBuiltinRunner::new(true);
+        let mut builtin: BuiltinRunner = SegmentArenaBuiltinRunner::new(true).into();
 
         let mut vm = vm!();
 

@@ -105,35 +105,75 @@ impl BuiltinRunner {
         }
     }
 
-    ///Returns the builtin's final stack
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        stack_pointer: Relocatable,
+        pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        match self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
-            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
-            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
-            BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
-            BuiltinRunner::RangeCheck(ref mut range_check) => {
-                range_check.final_stack(segments, stack_pointer)
+        if let BuiltinRunner::Output(output) = self {
+            return output.final_stack(segments, pointer)
+        }
+        if self.included() {
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            if self.base() as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
+                    self.name(),
+                    stop_pointer,
+                    self.base(),
+                ))));
             }
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
-            BuiltinRunner::Signature(ref mut signature) => {
-                signature.final_stack(segments, stack_pointer)
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance() as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(Box::new((
+                    self.name(),
+                    Relocatable::from((self.base() as isize, used)),
+                    Relocatable::from((self.base() as isize, stop_ptr)),
+                ))));
             }
-            BuiltinRunner::Poseidon(ref mut poseidon) => {
-                poseidon.final_stack(segments, stack_pointer)
-            }
-            BuiltinRunner::SegmentArena(ref mut segment_arena) => {
-                segment_arena.final_stack(segments, stack_pointer)
-            }
-            BuiltinRunner::Mod(ref mut mod_builtin) => {
-                mod_builtin.final_stack(segments, stack_pointer)
-            }
+            self.set_stop_ptr(stop_ptr);
+            Ok(stop_pointer_addr)
+        } else {
+            self.set_stop_ptr(0);
+            Ok(pointer)
         }
     }
+
+    // ///Returns the builtin's final stack
+    // pub fn final_stack(
+    //     &mut self,
+    //     segments: &MemorySegmentManager,
+    //     stack_pointer: Relocatable,
+    // ) -> Result<Relocatable, RunnerError> {
+    //     match self {
+    //         BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
+    //         BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
+    //         BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
+    //         BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
+    //         BuiltinRunner::RangeCheck(ref mut range_check) => {
+    //             range_check.final_stack(segments, stack_pointer)
+    //         }
+    //         BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
+    //         BuiltinRunner::Signature(ref mut signature) => {
+    //             signature.final_stack(segments, stack_pointer)
+    //         }
+    //         BuiltinRunner::Poseidon(ref mut poseidon) => {
+    //             poseidon.final_stack(segments, stack_pointer)
+    //         }
+    //         BuiltinRunner::SegmentArena(ref mut segment_arena) => {
+    //             segment_arena.final_stack(segments, stack_pointer)
+    //         }
+    //         BuiltinRunner::Mod(ref mut mod_builtin) => {
+    //             mod_builtin.final_stack(segments, stack_pointer)
+    //         }
+    //     }
+    // }
 
     ///Returns the builtin's allocated memory units
     pub fn get_allocated_memory_units(
@@ -168,6 +208,23 @@ impl BuiltinRunner {
                     }
                 }
             }
+        }
+    }
+
+    /// Returns if the builtin is included in the program builtins 
+    fn included(&self) -> bool {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.included,
+            BuiltinRunner::EcOp(ref ec) => ec.included,
+            BuiltinRunner::Hash(ref hash) => hash.included,
+            BuiltinRunner::Output(ref output) => output.included,
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.included,
+            BuiltinRunner::Keccak(ref keccak) => keccak.included,
+            BuiltinRunner::Signature(ref signature) => signature.included,
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.included,
+            //Warning, returns only the segment index, base offset will be 3
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.included,
+            BuiltinRunner::Mod(ref mod_builtin) => mod_builtin.included,
         }
     }
 
@@ -507,7 +564,6 @@ impl BuiltinRunner {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),

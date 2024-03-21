@@ -45,7 +45,7 @@ pub struct ModBuiltinRunner {
     base: usize,
     stop_ptr: Option<usize>,
     instance_def: ModInstanceDef,
-    included: bool,
+    pub(crate) included: bool,
     zero_segment_index: usize,
     zero_segment_size: usize,
     // Precomputed powers used for reading and writing values that are represented as n_words words of word_bit_len bits each.
@@ -149,42 +149,14 @@ impl ModBuiltinRunner {
         self.instance_def.batch_size
     }
 
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    self.name(),
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            // TODO: Uncomment lines
-            // let num_instances = self.get_used_instances(segments)?;
-            // let used = num_instances * self.cells_per_instance as usize;
-            // if stop_ptr != used {
-            //     return Err(RunnerError::InvalidStopPointer(Box::new((
-            //         self.name(),
-            //         Relocatable::from((self.base as isize, used)),
-            //         Relocatable::from((self.base as isize, stop_ptr)),
-            //     ))));
-            // }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
+    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
+        (self.base, self.stop_ptr)
+    }
+
+    pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
+        segments
+            .get_segment_used_size(self.base)
+            .ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
     // Reads N_WORDS from memory, starting at address=addr.
