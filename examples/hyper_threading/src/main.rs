@@ -39,7 +39,7 @@ fn main() {
 
     let n_programs = &program_filenames.len();
 
-    for filename in program_filenames{
+    for filename in program_filenames {
         programs.push(Program::from_file(Path::new(&filename), Some("main")).unwrap())
     }
 
