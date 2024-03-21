@@ -1121,6 +1121,7 @@ impl CairoRunner {
                     .finalize(Some(size), builtin_runner.base(), None)
             }
         }
+        vm.segments.finalize_zero_segment();
         self.segments_finalized = true;
         Ok(())
     }

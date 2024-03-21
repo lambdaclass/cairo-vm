@@ -302,8 +302,6 @@ impl MemorySegmentManager {
         self.zero_segment_index
     }
 
-    // TODO: remove allow
-    #[allow(unused)]
     // Finalizes the zero segment and clears it's tracking data from the manager
     pub(crate) fn finalize_zero_segment(&mut self) {
         if !self.zero_segment_index.is_zero() {
