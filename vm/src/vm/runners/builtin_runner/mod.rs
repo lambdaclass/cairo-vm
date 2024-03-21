@@ -145,36 +145,6 @@ impl BuiltinRunner {
         }
     }
 
-    // ///Returns the builtin's final stack
-    // pub fn final_stack(
-    //     &mut self,
-    //     segments: &MemorySegmentManager,
-    //     stack_pointer: Relocatable,
-    // ) -> Result<Relocatable, RunnerError> {
-    //     match self {
-    //         BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
-    //         BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
-    //         BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
-    //         BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
-    //         BuiltinRunner::RangeCheck(ref mut range_check) => {
-    //             range_check.final_stack(segments, stack_pointer)
-    //         }
-    //         BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
-    //         BuiltinRunner::Signature(ref mut signature) => {
-    //             signature.final_stack(segments, stack_pointer)
-    //         }
-    //         BuiltinRunner::Poseidon(ref mut poseidon) => {
-    //             poseidon.final_stack(segments, stack_pointer)
-    //         }
-    //         BuiltinRunner::SegmentArena(ref mut segment_arena) => {
-    //             segment_arena.final_stack(segments, stack_pointer)
-    //         }
-    //         BuiltinRunner::Mod(ref mut mod_builtin) => {
-    //             mod_builtin.final_stack(segments, stack_pointer)
-    //         }
-    //     }
-    // }
-
     ///Returns the builtin's allocated memory units
     pub fn get_allocated_memory_units(
         &self,
