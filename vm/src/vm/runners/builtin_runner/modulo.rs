@@ -515,7 +515,6 @@ impl ModBuiltinRunner {
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
         let n_instances = div_ceil(segment_size, INPUT_CELLS);
         let mut prev_inputs = Inputs::default();
-        // TODO: Use proper error handling instead of asserts
         for instance in 0..n_instances {
             let inputs = self.read_inputs(
                 &vm.segments.memory,
@@ -523,14 +522,25 @@ impl ModBuiltinRunner {
             )?;
             if !instance.is_zero() && prev_inputs.n > self.instance_def.batch_size {
                 for i in 0..N_WORDS {
-                    assert!(inputs.p_values[i] == prev_inputs.p_values[i])
+                    if inputs.p_values[i] != prev_inputs.p_values[i] {
+                        return Err(RunnerError::ModBuiltinSecurityCheck(self.name().to_string(), format!("inputs.p_values[i] != prev_inputs.p_values[i]. Got: i={}, inputs.p_values[i]={}, prev_inputs.p_values[i]={}",
+                    i, inputs.p_values[i], prev_inputs.p_values[i])).into());
+                    }
                 }
-                assert!(inputs.values_ptr == prev_inputs.values_ptr);
-                assert!(
-                    inputs.offsets_ptr
-                        == (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size))?
-                );
-                assert!(inputs.n == prev_inputs.n.saturating_sub(self.instance_def.batch_size));
+                if inputs.values_ptr != prev_inputs.values_ptr {
+                    return Err(RunnerError::ModBuiltinSecurityCheck(self.name().to_string(), format!("inputs.values_ptr != prev_inputs.values_ptr. Got: inputs.values_ptr={}, prev_inputs.values_ptr={}",
+                inputs.values_ptr, prev_inputs.values_ptr)).into());
+                }
+                if inputs.offsets_ptr
+                    != (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size))?
+                {
+                    return Err(RunnerError::ModBuiltinSecurityCheck(self.name().to_string(), format!("inputs.offsets_ptr != prev_inputs.offsets_ptr + 3 * batch_size. Got: inputs.offsets_ptr={}, prev_inputs.offsets_ptr={}, batch_size={}",
+                inputs.values_ptr, prev_inputs.values_ptr, self.instance_def.batch_size)).into());
+                }
+                if inputs.n != prev_inputs.n.saturating_sub(self.instance_def.batch_size) {
+                    return Err(RunnerError::ModBuiltinSecurityCheck(self.name().to_string(), format!("inputs.n != prev_inputs.n - batch_size. Got: inputs.n={}, prev_inputs.n={}, batch_size={}",
+                inputs.n, prev_inputs.n, self.instance_def.batch_size)).into());
+                }
             }
             for index_in_batch in 0..self.instance_def.batch_size {
                 let (a, b, c) = self.read_memory_vars(
@@ -557,8 +567,15 @@ impl ModBuiltinRunner {
             }
             prev_inputs = inputs;
         }
-        if !n_instances.is_zero() {
-            assert!(prev_inputs.n == self.instance_def.batch_size,)
+        if !n_instances.is_zero() && prev_inputs.n != self.instance_def.batch_size {
+            return Err(RunnerError::ModBuiltinSecurityCheck(
+                self.name().to_string(),
+                format!(
+                    "prev_inputs.n != batch_size Got: prev_inputs.n={}, batch_size={}",
+                    prev_inputs.n, self.instance_def.batch_size
+                ),
+            )
+            .into());
         }
         Ok(())
     }
