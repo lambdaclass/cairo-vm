@@ -366,8 +366,8 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
             BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
             BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => 0,
+            // TODO: Placeholder till we see layout data
+            BuiltinRunner::Mod(_) => 1,
         }
     }
 
@@ -509,7 +509,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.stop_ptr = Some(stop_ptr)
             }
-            BuiltinRunner::Mod(modulo) => modulo.stop_ptr = Some(stop_ptr)
+            BuiltinRunner::Mod(modulo) => modulo.stop_ptr = Some(stop_ptr),
         }
     }
 
