@@ -5,39 +5,39 @@ use cairo_vm::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-// Define include_bytes_relative macro to prepend a relative path to the file names
+// Define build_path macro to prepend a relative path to the file names
 macro_rules! include_bytes_relative {
     ($fname:expr) => {
-        include_bytes!(concat!("../../../cairo_programs/benchmarks/", $fname))
+        build_path!(Path::new(format!("../../../cairo_programs/benchmarks/{}", $fname)))
     };
 }
 
 fn main() {
     let mut programs = Vec::new();
 
-    let programs_bytes: [Vec<u8>; 18] = [
-        include_bytes_relative!("big_factorial.json").to_vec(),
-        include_bytes_relative!("big_fibonacci.json").to_vec(),
-        include_bytes_relative!("blake2s_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("compare_arrays_200000.json").to_vec(),
-        include_bytes_relative!("dict_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("field_arithmetic_get_square_benchmark.json").to_vec(),
-        include_bytes_relative!("integration_builtins.json").to_vec(),
-        include_bytes_relative!("keccak_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("linear_search.json").to_vec(),
-        include_bytes_relative!("math_cmp_and_pow_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("math_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("memory_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("operations_with_data_structures_benchmarks.json").to_vec(),
-        include_bytes_relative!("pedersen.json").to_vec(),
-        include_bytes_relative!("poseidon_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("secp_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("set_integration_benchmark.json").to_vec(),
-        include_bytes_relative!("uint256_integration_benchmark.json").to_vec(),
+    let program_paths: [Path; 18] = [
+        build_path!("big_factorial.json").to_vec(),
+        build_path!("big_fibonacci.json").to_vec(),
+        build_path!("blake2s_integration_benchmark.json").to_vec(),
+        build_path!("compare_arrays_200000.json").to_vec(),
+        build_path!("dict_integration_benchmark.json").to_vec(),
+        build_path!("field_arithmetic_get_square_benchmark.json").to_vec(),
+        build_path!("integration_builtins.json").to_vec(),
+        build_path!("keccak_integration_benchmark.json").to_vec(),
+        build_path!("linear_search.json").to_vec(),
+        build_path!("math_cmp_and_pow_integration_benchmark.json").to_vec(),
+        build_path!("math_integration_benchmark.json").to_vec(),
+        build_path!("memory_integration_benchmark.json").to_vec(),
+        build_path!("operations_with_data_structures_benchmarks.json").to_vec(),
+        build_path!("pedersen.json").to_vec(),
+        build_path!("poseidon_integration_benchmark.json").to_vec(),
+        build_path!("secp_integration_benchmark.json").to_vec(),
+        build_path!("set_integration_benchmark.json").to_vec(),
+        build_path!("uint256_integration_benchmark.json").to_vec(),
     ];
 
-    for bytes in &programs_bytes {
-        programs.push(Program::from_bytes(bytes.as_slice(), Some("main")).unwrap())
+    for path in &programs_paths {
+        programs.push(Program::from_file(path, Some("main")).unwrap())
     }
 
     let start_time = std::time::Instant::now();
