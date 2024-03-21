@@ -145,6 +145,10 @@ impl ModBuiltinRunner {
         self.instance_def.cells_per_instance()
     }
 
+    pub fn n_input_cells(&self) -> u32 {
+        INPUT_CELLS as u32
+    }
+
     pub fn batch_size(&self) -> usize {
         self.instance_def.batch_size
     }
@@ -153,6 +157,14 @@ impl ModBuiltinRunner {
         segments
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)
+    }
+
+    pub fn get_used_instances(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<usize, MemoryError> {
+        let used_cells = self.get_used_cells(segments)?;
+        Ok(div_ceil(used_cells, self.cells_per_instance() as usize))
     }
 
     // Reads N_WORDS from memory, starting at address=addr.

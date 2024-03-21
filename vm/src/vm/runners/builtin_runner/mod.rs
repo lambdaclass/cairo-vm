@@ -192,7 +192,6 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(ref keccak) => keccak.included,
             BuiltinRunner::Signature(ref signature) => signature.included,
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.included,
-            //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.included,
             BuiltinRunner::Mod(ref modulo) => modulo.included,
         }
@@ -270,8 +269,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_cells(segments)
             }
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => Ok(0),
+            BuiltinRunner::Mod(ref modulo) => modulo.get_used_cells(segments),
         }
     }
 
@@ -291,8 +289,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_instances(segments)
             }
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => Ok(0),
+            BuiltinRunner::Mod(modulo) => modulo.get_used_instances(segments),
         }
     }
 
@@ -355,8 +352,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
             BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
             BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => 0,
+            BuiltinRunner::Mod(builtin) => builtin.n_input_cells(),
         }
     }
 
@@ -513,8 +509,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.stop_ptr = Some(stop_ptr)
             }
-            // TODO: Unimplemented
-            BuiltinRunner::Mod(_) => {}
+            BuiltinRunner::Mod(modulo) => modulo.stop_ptr = Some(stop_ptr)
         }
     }
 
