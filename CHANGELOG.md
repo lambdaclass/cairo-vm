@@ -4,9 +4,19 @@
 
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
 
+* feat(BREAKING): Use return type info from sierra when serializing return values in cairo1-run crate [#1665](https://github.com/lambdaclass/cairo-vm/pull/1665)
+  * Removed public function `serialize_output`.
+  * Add field `serialize_output` to `Cairo1RunConfig`.
+  * Function `cairo_run_program` now returns an extra `Option<String>` value with the serialized output if `serialize_output` is enabled in the config.
+  * Output serialization improved as it now uses the sierra program data to identify return value's types.
+
+* feat: Create hyper_threading crate to benchmark the `cairo-vm` in a hyper-threaded environment [#1679](https://github.com/lambdaclass/cairo-vm/pull/1679)
+
 * feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
 
-* feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
+* feat: Fix error handling in `initialize_state`[#1657](https://github.com/lambdaclass/cairo-vm/pull/1657)
+
+* feat: Make air public inputs deserializable [#1657](https://github.com/lambdaclass/cairo-vm/pull/1648)
 
 * feat: Show only layout builtins in air private input [#1651](https://github.com/lambdaclass/cairo-vm/pull/1651)
 

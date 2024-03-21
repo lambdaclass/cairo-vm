@@ -13,11 +13,11 @@ use cairo_lang_sierra::{
         ConcreteType, NamedType,
     },
     ids::ConcreteTypeId,
-    program::{Function, Program as SierraProgram},
+    program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
 use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::gas_info::GasInfo;
+use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
 use cairo_lang_sierra_to_casm::{
     compiler::CairoProgram,
     metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
@@ -26,6 +26,7 @@ use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    math_utils::signed_felt,
     serde::deserialize_program::{
         ApTracking, BuiltinName, FlowTrackingData, HintParams, ReferenceManager,
     },
@@ -43,14 +44,17 @@ use cairo_vm::{
     },
     Felt252,
 };
-use itertools::chain;
-use std::collections::HashMap;
+use itertools::{chain, Itertools};
+use num_traits::{cast::ToPrimitive, Zero};
+use std::{collections::HashMap, iter::Peekable, slice::Iter};
 
 use crate::{Error, FuncArg};
 
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
     pub args: &'a [FuncArg],
+    // Serializes program output into a user-friendly format
+    pub serialize_output: bool,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: &'a str,
@@ -66,6 +70,7 @@ impl Default for Cairo1RunConfig<'_> {
     fn default() -> Self {
         Self {
             args: Default::default(),
+            serialize_output: false,
             trace_enabled: false,
             relocate_mem: false,
             layout: "plain",
@@ -77,11 +82,19 @@ impl Default for Cairo1RunConfig<'_> {
 }
 
 // Runs a Cairo 1 program
-// Returns the runner & VM after execution + the return values
+// Returns the runner & VM after execution + the return values + the serialized return values (if serialize_output is enabled)
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
-) -> Result<(CairoRunner, VirtualMachine, Vec<MaybeRelocatable>), Error> {
+) -> Result<
+    (
+        CairoRunner,
+        VirtualMachine,
+        Vec<MaybeRelocatable>,
+        Option<String>,
+    ),
+    Error,
+> {
     let metadata = create_metadata(sierra_program, Some(Default::default()))?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
@@ -211,6 +224,18 @@ pub fn cairo_run_program(
     // Fetch return values
     let return_values = fetch_return_values(return_type_size, return_type_id, &vm)?;
 
+    let serialized_output = if cairo_run_config.serialize_output {
+        Some(serialize_output(
+            &return_values,
+            &mut vm,
+            return_type_id,
+            &sierra_program_registry,
+            &type_sizes,
+        ))
+    } else {
+        None
+    };
+
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
         finalize_builtins(
@@ -233,7 +258,7 @@ pub fn cairo_run_program(
 
     runner.relocate(&mut vm, true)?;
 
-    Ok((runner, vm, return_values))
+    Ok((runner, vm, return_values, serialized_output))
 }
 
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
@@ -726,6 +751,371 @@ fn finalize_builtins(
     Ok(())
 }
 
+fn serialize_output(
+    return_values: &[MaybeRelocatable],
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> String {
+    let mut output_string = String::new();
+    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
+    serialize_output_inner(
+        &mut return_values_iter,
+        &mut output_string,
+        vm,
+        return_type_id,
+        sierra_program_registry,
+        type_sizes,
+    );
+    output_string
+}
+
+fn serialize_output_inner(
+    return_values_iter: &mut Peekable<Iter<MaybeRelocatable>>,
+    output_string: &mut String,
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) {
+    match sierra_program_registry.get_type(return_type_id).unwrap() {
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
+            // Fetch array from memory
+            let array_start = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array start_ptr not Relocatable");
+            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
+            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
+                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
+                    // Pop the value we just peeked
+                    return_values_iter.next();
+                    (array_start, (array_end - array_start).unwrap())
+                }
+                _ => ((array_start.segment_index, 0).into(), array_start.offset),
+            };
+            let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
+            let mut array_data_iter = array_data.iter().peekable();
+            let array_elem_id = &info.ty;
+            // Serialize array data
+            maybe_add_whitespace(output_string);
+            output_string.push('[');
+            while array_data_iter.peek().is_some() {
+                serialize_output_inner(
+                    &mut array_data_iter,
+                    output_string,
+                    vm,
+                    array_elem_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+            output_string.push(']');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Box Pointer is not Relocatable");
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => {
+            unimplemented!("Not supported in the current version")
+        },
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        // Only unsigned integer values implement Into<Bytes31>
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Value is not an integer");
+            output_string.push_str(&val.to_string());
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Value is not an integer");
+            output_string.push_str(&signed_felt(val).to_string());
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(info) => {
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = match return_values_iter.next().expect("Missing return value") {
+                MaybeRelocatable::RelocatableValue(ptr) => *ptr,
+                MaybeRelocatable::Int(felt) if felt.is_zero() => {
+                    // Nullable is Null
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str("null");
+                    return;
+                }
+                _ => panic!("Invalid Nullable"),
+            };
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(info) => {
+            // First we check if it is a Panic enum, as we already handled panics when fetching return values,
+            // we can ignore them and move on to the non-panic variant
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n.starts_with("core::panics::PanicResult"))
+                {
+                    return serialize_output_inner(
+                        return_values_iter,
+                        output_string,
+                        vm,
+                        &info.variants[0],
+                        sierra_program_registry,
+                        type_sizes,
+                    );
+                }
+            }
+            let num_variants = &info.variants.len();
+            let casm_variant_idx: usize = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Enum tag is not integer")
+                .to_usize()
+                .expect("Invalid enum tag");
+            // Convert casm variant idx to sierra variant idx
+            let variant_idx = if *num_variants > 2 {
+                num_variants - 1 - (casm_variant_idx >> 1)
+            } else {
+                casm_variant_idx
+            };
+            let variant_type_id = &info.variants[variant_idx];
+
+            // Handle core::bool separately
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n == "core::bool")
+                {
+                    // Sanity checks
+                    assert!(
+                        *num_variants == 2
+                            && variant_idx < 2
+                            && type_sizes
+                                .get(&info.variants[0])
+                                .is_some_and(|size| size.is_zero())
+                            && type_sizes
+                                .get(&info.variants[1])
+                                .is_some_and(|size| size.is_zero()),
+                        "Malformed bool enum"
+                    );
+
+                    let boolean_string = match variant_idx {
+                        0 => "false",
+                        _ => "true",
+                    };
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str(boolean_string);
+                    return;
+                }
+            }
+            // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
+
+            // Space is always allocated for the largest enum member, padding with zeros in front for the smaller variants
+            let mut max_variant_size = 0;
+            for variant in &info.variants {
+                let variant_size = type_sizes.get(variant).unwrap();
+                max_variant_size = std::cmp::max(max_variant_size, *variant_size)
+            }
+            for _ in 0..max_variant_size - type_sizes.get(variant_type_id).unwrap() {
+                // Remove padding
+                assert_eq!(
+                    return_values_iter.next(),
+                    Some(&MaybeRelocatable::from(0)),
+                    "Malformed enum"
+                );
+            }
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                variant_type_id,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Struct(info) => {
+            for member_type_id in &info.members {
+                serialize_output_inner(
+                    return_values_iter,
+                    output_string,
+                    vm,
+                    member_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252Dict(info) => {
+            // Process Dictionary
+            let dict_ptr = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Dict Ptr not Relocatable");
+            if !(dict_ptr.offset
+                == vm
+                    .get_segment_size(dict_ptr.segment_index as usize)
+                    .unwrap_or_default()
+                && dict_ptr.offset % 3 == 0)
+            {
+                panic!("Return value is not a valid Felt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
+                .expect("Malformed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter: Peekable<Iter<MaybeRelocatable>> = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                );
+            }
+            output_string.push('}');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(info) => {
+            // Process Dictionary
+            let dict_start = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_start ptr not Relocatable");
+            let dict_end = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_end ptr not Relocatable");
+            let dict_size = (dict_end - dict_start).unwrap();
+            if dict_size % 3 != 0 {
+                panic!("Return value is not a valid SquashedFelt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range(dict_start, dict_size)
+                .expect("Malformed squashed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter: Peekable<Iter<MaybeRelocatable>> = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                );
+            }
+            output_string.push('}');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => unimplemented!("Span types get resolved to Array in the current version"),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        _ => panic!("Unexpected return type")
+    }
+}
+
+fn maybe_add_whitespace(string: &mut String) {
+    if !string.is_empty() && !string.ends_with('[') && !string.ends_with('{') {
+        string.push(' ');
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -791,7 +1181,7 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (runner, vm, return_values) =
+        let (runner, vm, return_values, _) =
             cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
