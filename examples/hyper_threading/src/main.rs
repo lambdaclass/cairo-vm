@@ -4,40 +4,43 @@ use cairo_vm::{
     types::program::Program,
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use std::path::Path;
 
-// Define build_path macro to prepend a relative path to the file names
-macro_rules! include_bytes_relative {
+// Define build_filename macro to prepend a relative path to the file names
+macro_rules! build_filename {
     ($fname:expr) => {
-        build_path!(Path::new(format!("../../../cairo_programs/benchmarks/{}", $fname)))
+        format!("../../../cairo_programs/benchmarks/{}", $fname)
     };
 }
 
 fn main() {
     let mut programs = Vec::new();
 
-    let program_paths: [Path; 18] = [
-        build_path!("big_factorial.json").to_vec(),
-        build_path!("big_fibonacci.json").to_vec(),
-        build_path!("blake2s_integration_benchmark.json").to_vec(),
-        build_path!("compare_arrays_200000.json").to_vec(),
-        build_path!("dict_integration_benchmark.json").to_vec(),
-        build_path!("field_arithmetic_get_square_benchmark.json").to_vec(),
-        build_path!("integration_builtins.json").to_vec(),
-        build_path!("keccak_integration_benchmark.json").to_vec(),
-        build_path!("linear_search.json").to_vec(),
-        build_path!("math_cmp_and_pow_integration_benchmark.json").to_vec(),
-        build_path!("math_integration_benchmark.json").to_vec(),
-        build_path!("memory_integration_benchmark.json").to_vec(),
-        build_path!("operations_with_data_structures_benchmarks.json").to_vec(),
-        build_path!("pedersen.json").to_vec(),
-        build_path!("poseidon_integration_benchmark.json").to_vec(),
-        build_path!("secp_integration_benchmark.json").to_vec(),
-        build_path!("set_integration_benchmark.json").to_vec(),
-        build_path!("uint256_integration_benchmark.json").to_vec(),
+    let program_filenames: [String; 18] = [
+        build_filename!("big_factorial.json"),
+        build_filename!("big_fibonacci.json"),
+        build_filename!("blake2s_integration_benchmark.json"),
+        build_filename!("compare_arrays_200000.json"),
+        build_filename!("dict_integration_benchmark.json"),
+        build_filename!("field_arithmetic_get_square_benchmark.json"),
+        build_filename!("integration_builtins.json"),
+        build_filename!("keccak_integration_benchmark.json"),
+        build_filename!("linear_search.json"),
+        build_filename!("math_cmp_and_pow_integration_benchmark.json"),
+        build_filename!("math_integration_benchmark.json"),
+        build_filename!("memory_integration_benchmark.json"),
+        build_filename!("operations_with_data_structures_benchmarks.json"),
+        build_filename!("pedersen.json"),
+        build_filename!("poseidon_integration_benchmark.json"),
+        build_filename!("secp_integration_benchmark.json"),
+        build_filename!("set_integration_benchmark.json"),
+        build_filename!("uint256_integration_benchmark.json"),
     ];
 
-    for path in &programs_paths {
-        programs.push(Program::from_file(path, Some("main")).unwrap())
+    let n_programs = &program_filenames.len();
+
+    for filename in program_filenames{
+        programs.push(Program::from_file(Path::new(&filename), Some("main")).unwrap())
     }
 
     let start_time = std::time::Instant::now();
@@ -61,7 +64,5 @@ fn main() {
     });
     let elapsed = start_time.elapsed();
 
-    let programs_len: &usize = &programs_bytes.clone().len();
-
-    tracing::info!(%programs_len, ?elapsed, "Finished");
+    tracing::info!(%n_programs, ?elapsed, "Finished");
 }
