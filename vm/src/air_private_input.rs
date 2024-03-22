@@ -122,10 +122,10 @@ pub struct ModInput {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInputInstance {
     pub index: usize,
-    pub p_0: Felt252,
-    pub p_1: Felt252,
-    pub p_2: Felt252,
-    pub p_3: Felt252,
+    pub p0: Felt252,
+    pub p1: Felt252,
+    pub p2: Felt252,
+    pub p3: Felt252,
     pub values_ptr: Relocatable,
     pub offsets_ptr: Relocatable,
     pub n: usize,
@@ -135,20 +135,20 @@ pub struct ModInputInstance {
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInputMemoryVars {
     pub a_offset: usize,
-    pub a_0: Felt252,
-    pub a_1: Felt252,
-    pub a_2: Felt252,
-    pub a_3: Felt252,
+    pub a0: Felt252,
+    pub a1: Felt252,
+    pub a2: Felt252,
+    pub a3: Felt252,
     pub b_offset: usize,
-    pub b_0: Felt252,
-    pub b_1: Felt252,
-    pub b_2: Felt252,
-    pub b_3: Felt252,
+    pub b0: Felt252,
+    pub b1: Felt252,
+    pub b2: Felt252,
+    pub b3: Felt252,
     pub c_offset: usize,
-    pub c_0: Felt252,
-    pub c_1: Felt252,
-    pub c_2: Felt252,
-    pub c_3: Felt252,
+    pub c0: Felt252,
+    pub c1: Felt252,
+    pub c2: Felt252,
+    pub c3: Felt252,
 }
 
 impl AirPrivateInput {
