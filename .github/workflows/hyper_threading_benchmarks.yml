@@ -13,25 +13,44 @@ jobs:
       with:
         ref: ${{ github.head_ref }}
 
-    - name: Python3 Build
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    - name: Install test dependencies
+
+    - name: Install Dependencies
       run: |
         pip install -r requirements.txt
         sudo apt update
+        sudo apt-get install -y hyperfine
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.74.1
       with:
-          components: rustfmt, clippy
+        components: rustfmt, clippy
+
+    - name: Compile PR Version
+      run: |
+        make cairo_bench_programs
+        cargo build --release -p hyper_threading
+        cp target/release/hyper_threading ./hyper_threading_pr
+
+    - name: Checkout Main Branch
+      uses: actions/checkout@v2
+      with:
+        ref: 'main'
+
+    - name: Compile Main Version
+      run: |
+        make cairo_bench_programs
+        cargo build --release -p hyper_threading
+        cp target/release/hyper_threading ./hyper_threading_main
 
     - name: Run Benchmarks
       run: |
-        chmod +x examples/hyper_threading/hyper-threading-workflow.sh
+        chmod +x hyper-threading-workflow.sh
         echo "Benchmarking PR..."
-        bash examples/hyper_threading/hyper-threading-workflow.sh > results_pr.txt
+        ./hyper-threading-workflow.sh > results_pr.txt
 
     - name: Compare Results
       run: |
@@ -39,8 +58,7 @@ jobs:
         cat results_pr.txt
 
     - name: Upload Results
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: benchmark-results
-        path: |
-          results_pr.txt
+        path: results_pr.txt

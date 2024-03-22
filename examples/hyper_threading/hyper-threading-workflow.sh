@@ -3,19 +3,6 @@
 ## see directory
 pwd
 
-### Compile hyper_threading_pr
-make cairo_bench_programs
-cargo build --release -p hyper_threading
-cp target/release/hyper_threading ./hyper_threading_pr
-
-
-### Compile hyper_threading_pr
-git checkout main
-make cairo_bench_programs
-cargo build --release -p hyper_threading
-cp target/release/hyper_threading ./hyper_threading_main
-
-
 # Define una lista con los valores deseados para RAYON_NUM_THREADS
 thread_counts=(1 2 4 6 8 16 32)
 
