@@ -54,13 +54,11 @@ use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "mod_builtin")]
 use super::builtin_runner::ModBuiltinRunner;
 use super::{
     builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
-#[cfg(feature = "mod_builtin")]
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -263,9 +261,7 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
-            #[cfg(feature = "mod_builtin")]
             BuiltinName::add_mod,
-            #[cfg(feature = "mod_builtin")]
             BuiltinName::mul_mod,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
@@ -337,14 +333,12 @@ impl CairoRunner {
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
-        #[cfg(feature = "mod_builtin")]
         if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
             let included = program_builtins.remove(&BuiltinName::add_mod);
             if included || self.is_proof_mode() {
                 builtin_runners.push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
             }
         }
-        #[cfg(feature = "mod_builtin")]
         if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
             let included = program_builtins.remove(&BuiltinName::mul_mod);
             if included || self.is_proof_mode() {

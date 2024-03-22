@@ -13,7 +13,6 @@ mod bitwise;
 mod ec_op;
 mod hash;
 mod keccak;
-#[allow(unused)]
 mod modulo;
 mod output;
 mod poseidon;

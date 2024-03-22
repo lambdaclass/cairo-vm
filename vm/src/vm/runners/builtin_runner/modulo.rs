@@ -1,14 +1,11 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::{
-        borrow::Cow,
-        collections::{BTreeMap, HashMap},
-    },
+    stdlib::{borrow::Cow, collections::BTreeMap},
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
-        relocatable::{relocate_address, MaybeRelocatable, Relocatable},
+        relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{
@@ -19,7 +16,7 @@ use crate::{
     },
     Felt252,
 };
-use core::{fmt::Display, hash::Hash, ops::Shl};
+use core::{fmt::Display, ops::Shl};
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
@@ -29,15 +26,7 @@ use num_traits::Zero;
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;
 
-const INPUT_NAMES: [&str; 7] = ["p0", "p1", "p2", "p3", "values_ptr", "offsets_ptr", "n"];
-
-const MEMORY_VAR_NAMES: [&str; 15] = [
-    "a_offset", "b_offset", "c_offset", "a0", "a1", "a2", "a3", "b0", "b1", "b2", "b3", "c0", "c1",
-    "c2", "c3",
-];
-
-const INPUT_CELLS: usize = INPUT_NAMES.len();
-const ADDITIONAL_MEMORY_UNITS: usize = MEMORY_VAR_NAMES.len();
+const INPUT_CELLS: usize = 7;
 
 const VALUES_PTR_OFFSET: u32 = 4;
 const OFFSETS_PTR_OFFSET: u32 = 5;
@@ -264,7 +253,7 @@ impl ModBuiltinRunner {
                 batch,
             });
         }
-        let mut relocated_zero_segment = 0;
+
         vec![PrivateInput::Mod(ModInput {
             instances,
             zero_value_address: segments
@@ -289,7 +278,7 @@ impl ModBuiltinRunner {
             let addr_i = (addr + i)?;
             match memory.get(&addr_i).map(Cow::into_owned) {
                 None => return Ok((words, None)),
-                Some(MaybeRelocatable::RelocatableValue(f)) => {
+                Some(MaybeRelocatable::RelocatableValue(_)) => {
                     return Err(MemoryError::ExpectedInteger(Box::new(addr_i)).into())
                 }
                 Some(MaybeRelocatable::Int(word)) => {
