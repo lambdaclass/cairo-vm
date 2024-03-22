@@ -1462,10 +1462,7 @@ impl CairoRunner {
     pub fn get_air_private_input(&self, vm: &VirtualMachine) -> AirPrivateInput {
         let mut private_inputs = HashMap::new();
         for builtin in vm.builtin_runners.iter() {
-            private_inputs.insert(
-                builtin.name(),
-                builtin.air_private_input(&vm.segments.memory),
-            );
+            private_inputs.insert(builtin.name(), builtin.air_private_input(&vm.segments));
         }
         AirPrivateInput(private_inputs)
     }

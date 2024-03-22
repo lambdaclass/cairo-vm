@@ -1,6 +1,6 @@
 use crate::{
     stdlib::{
-        collections::HashMap,
+        collections::{BTreeMap, HashMap},
         prelude::{String, Vec},
     },
     types::relocatable::Relocatable,
@@ -116,7 +116,7 @@ pub struct SignatureInput {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInput {
     pub instances: Vec<ModInputInstance>,
-    pub zero_value_address: Relocatable,
+    pub zero_value_address: usize,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -129,7 +129,7 @@ pub struct ModInputInstance {
     pub values_ptr: Relocatable,
     pub offsets_ptr: Relocatable,
     pub n: usize,
-    pub batch: HashMap<usize, ModInputMemoryVars>,
+    pub batch: BTreeMap<usize, ModInputMemoryVars>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]

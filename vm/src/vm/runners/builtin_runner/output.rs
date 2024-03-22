@@ -468,8 +468,8 @@ mod tests {
     fn get_air_private_input() {
         let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
-        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
-        assert!(builtin.air_private_input(&memory).is_empty());
+        let segments = segments![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        assert!(builtin.air_private_input(&segments).is_empty());
     }
 
     #[test]

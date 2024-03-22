@@ -486,16 +486,16 @@ impl BuiltinRunner {
     }
 
     // Returns information about the builtin that should be added to the AIR private input.
-    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+    pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
         match self {
-            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Mod(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Hash(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Signature(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Mod(builtin) => builtin.air_private_input(&segments),
             _ => vec![],
         }
     }

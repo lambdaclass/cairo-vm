@@ -626,7 +626,7 @@ mod tests {
         let builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
 
-        let memory = memory![
+        let segments = segments![
             ((0, 0), 0),
             ((0, 1), 1),
             ((0, 2), 2),
@@ -637,7 +637,7 @@ mod tests {
             ((0, 7), 7)
         ];
         assert_eq!(
-            builtin.air_private_input(&memory),
+            builtin.air_private_input(&segments),
             (vec![PrivateInput::KeccakState(PrivateInputKeccakState {
                 index: 0,
                 input_s0: 0.into(),

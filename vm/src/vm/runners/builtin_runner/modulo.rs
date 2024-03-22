@@ -1,11 +1,14 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::{borrow::Cow, collections::HashMap},
+    stdlib::{
+        borrow::Cow,
+        collections::{BTreeMap, HashMap},
+    },
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
-        relocatable::{MaybeRelocatable, Relocatable},
+        relocatable::{relocate_address, MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{
@@ -168,17 +171,16 @@ impl ModBuiltinRunner {
         Ok(div_ceil(used_cells, self.cells_per_instance() as usize))
     }
 
-    pub(crate) fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+    pub(crate) fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
         let segment_index = self.base as isize;
-        let segment_size = memory
-            .data
-            .get(self.base)
-            .map(|s| s.len())
+        let segment_size = segments
+            .get_segment_used_size(self.base)
             .unwrap_or_default();
         let mut instances = Vec::<ModInputInstance>::new();
         for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
             let instance_addr_offset = instance * INPUT_CELLS;
-            let values_ptr = memory
+            let values_ptr = segments
+                .memory
                 .get_relocatable(
                     (
                         segment_index,
@@ -187,7 +189,8 @@ impl ModBuiltinRunner {
                         .into(),
                 )
                 .unwrap_or_default();
-            let offsets_ptr = memory
+            let offsets_ptr = segments
+                .memory
                 .get_relocatable(
                     (
                         segment_index,
@@ -196,26 +199,30 @@ impl ModBuiltinRunner {
                         .into(),
                 )
                 .unwrap_or_default();
-            let n = memory
+            let n = segments
+                .memory
                 .get_usize((segment_index, instance_addr_offset + N_OFFSET as usize).into())
                 .unwrap_or_default();
             let mut p_values: [Felt252; N_WORDS] = Default::default();
             for i in 0..N_WORDS {
-                p_values[i] = memory
+                p_values[i] = segments
+                    .memory
                     .get_integer((segment_index, instance_addr_offset + i).into())
                     .unwrap_or_default()
                     .into_owned()
             }
-            let mut batch = HashMap::<usize, ModInputMemoryVars>::new();
+            let mut batch = BTreeMap::<usize, ModInputMemoryVars>::new();
             let fetch_offset_and_words = |var_index: usize,
                                           index_in_batch: usize|
              -> (usize, [Felt252; N_WORDS]) {
-                let offset = memory
+                let offset = segments
+                    .memory
                     .get_usize((offsets_ptr + (3 * index_in_batch + var_index)).unwrap_or_default())
                     .unwrap_or_default();
                 let mut words: [Felt252; N_WORDS] = Default::default();
                 for i in 0..N_WORDS {
-                    words[i] = memory
+                    words[i] = segments
+                        .memory
                         .get_integer((values_ptr + (offset + i)).unwrap_or_default())
                         .unwrap_or_default()
                         .into_owned();
@@ -259,9 +266,14 @@ impl ModBuiltinRunner {
                 batch,
             });
         }
+        let mut relocated_zero_segment = 0;
         vec![PrivateInput::Mod(ModInput {
             instances,
-            zero_value_address: (self.zero_segment_index as isize, 0).into(),
+            zero_value_address: segments
+                .relocate_segments()
+                .ok()
+                .and_then(|t| t.get(self.zero_segment_index).cloned())
+                .unwrap_or_default(),
         })]
     }
 
