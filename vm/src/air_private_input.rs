@@ -12,8 +12,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::types::instance_definitions::mod_instance_def::N_WORDS as MOD_BUILTIN_N_WORDS;
-
 use crate::Felt252;
 
 // Serializable format, matches the file output of the python implementation
@@ -122,23 +120,35 @@ pub struct ModInput {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ModInputMemoryVars {
-    pub a_offset: usize,
-    pub b_offset: usize,
-    pub c_offset: usize,
-    pub a_values: [Felt252; MOD_BUILTIN_N_WORDS],
-    pub b_values: [Felt252; MOD_BUILTIN_N_WORDS],
-    pub c_values: [Felt252; MOD_BUILTIN_N_WORDS],
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInputInstance {
     pub index: usize,
-    pub p_values: [Felt252; MOD_BUILTIN_N_WORDS],
+    pub p_0: Felt252,
+    pub p_1: Felt252,
+    pub p_2: Felt252,
+    pub p_3: Felt252,
     pub values_ptr: Relocatable,
     pub offsets_ptr: Relocatable,
     pub n: usize,
     pub batch: HashMap<usize, ModInputMemoryVars>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct ModInputMemoryVars {
+    pub a_offset: usize,
+    pub a_0: Felt252,
+    pub a_1: Felt252,
+    pub a_2: Felt252,
+    pub a_3: Felt252,
+    pub b_offset: usize,
+    pub b_0: Felt252,
+    pub b_1: Felt252,
+    pub b_2: Felt252,
+    pub b_3: Felt252,
+    pub c_offset: usize,
+    pub c_0: Felt252,
+    pub c_1: Felt252,
+    pub c_2: Felt252,
+    pub c_3: Felt252,
 }
 
 impl AirPrivateInput {
@@ -196,18 +206,6 @@ impl AirPrivateInputSerializable {
         serde_json::to_string_pretty(&self)
     }
 }
-
-// use serde::ser::SerializeMap;
-// pub fn serialize_mod_input<S>(
-//     values: &ModInput,
-//     serializer: S,
-// ) -> Result<S::Ok, S::Error>
-// where
-//     S: Serializer,
-// {
-//     let mut map_serializer = serializer.serialize_map(None)?;
-//     map_serializer.end()
-// }
 
 #[cfg(test)]
 mod tests {

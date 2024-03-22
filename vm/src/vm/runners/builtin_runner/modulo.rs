@@ -16,7 +16,7 @@ use crate::{
     },
     Felt252,
 };
-use core::{fmt::Display, ops::Shl};
+use core::{fmt::Display, hash::Hash, ops::Shl};
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
@@ -232,15 +232,27 @@ impl ModBuiltinRunner {
                         a_offset,
                         b_offset,
                         c_offset,
-                        a_values,
-                        b_values,
-                        c_values,
+                        a_0: a_values[0],
+                        a_1: a_values[1],
+                        a_2: a_values[2],
+                        a_3: a_values[3],
+                        b_0: b_values[0],
+                        b_1: b_values[1],
+                        b_2: b_values[2],
+                        b_3: b_values[3],
+                        c_0: c_values[0],
+                        c_1: c_values[1],
+                        c_2: c_values[2],
+                        c_3: c_values[3],
                     },
                 );
             }
             instances.push(ModInputInstance {
                 index: instance,
-                p_values,
+                p_0: p_values[0],
+                p_1: p_values[1],
+                p_2: p_values[2],
+                p_3: p_values[3],
                 values_ptr,
                 offsets_ptr,
                 n,
