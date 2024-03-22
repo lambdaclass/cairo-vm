@@ -22,44 +22,21 @@ jobs:
         pip install -r requirements.txt
         sudo apt update
 
-    - name: Compile benchmarks progrmas
-      run: make cairo_bench_programs
-
-    
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.74.1
       with:
           components: rustfmt, clippy
 
-    - name: Build PR Binary
-      run: |
-        cargo build -p hyper_threading --release
-        mv target/release/hyper_threading target/release/hyper_threading_pr
-
-    - name: Checkout main Branch
-      uses: actions/checkout@v2
-      with:
-        ref: 'main'
-    
-    - name: Build main Binary
-      run: |
-        cargo build -p hyper_threading --release
-        mv target/release/hyper_threading target/release/hyper_threading_main
-
     - name: Run Benchmarks
       run: |
-        chmod +x hyper-threading.sh
+        chmod +x examples/hyper_threading/hyper-threading-workflow.sh
         echo "Benchmarking PR..."
-        ./hyper-threading.sh target/release/hyper_threading_pr > results_pr.txt
-        echo "Benchmarking main..."
-        ./hyper-threading.sh target/release/hyper_threading_main > results_main.txt
+        sh examples/hyper_threading/hyper-threading-workflow.sh > results_pr.txt
 
     - name: Compare Results
       run: |
         echo "PR Results:"
         cat results_pr.txt
-        echo "Main Results:"
-        cat results_main.txt
 
     - name: Upload Results
       uses: actions/upload-artifact@master
@@ -67,4 +44,3 @@ jobs:
         name: benchmark-results
         path: |
           results_pr.txt
-          results_main.txt
