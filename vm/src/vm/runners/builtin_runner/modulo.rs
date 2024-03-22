@@ -1,7 +1,5 @@
 use crate::{
-    air_private_input::{
-        ModInput, ModInputInputs, ModInputInstance, ModInputMemoryVars, PrivateInput,
-    },
+    air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
     stdlib::{borrow::Cow, collections::HashMap},
     types::{
@@ -177,7 +175,7 @@ impl ModBuiltinRunner {
             .get(self.base)
             .map(|s| s.len())
             .unwrap_or_default();
-        let mut instances = HashMap::<usize, ModInputInstance>::new();
+        let mut instances = Vec::<ModInputInstance>::new();
         for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
             let instance_addr_offset = instance * INPUT_CELLS;
             let values_ptr = memory
@@ -208,12 +206,6 @@ impl ModBuiltinRunner {
                     .unwrap_or_default()
                     .into_owned()
             }
-            let inputs = ModInputInputs {
-                p_values,
-                values_ptr,
-                offsets_ptr,
-                n,
-            };
             let mut batch = HashMap::<usize, ModInputMemoryVars>::new();
             let fetch_offset_and_words = |var_index: usize,
                                           index_in_batch: usize|
@@ -246,7 +238,14 @@ impl ModBuiltinRunner {
                     },
                 );
             }
-            instances.insert(instance, ModInputInstance { inputs, batch });
+            instances.push(ModInputInstance {
+                index: instance,
+                p_values,
+                values_ptr,
+                offsets_ptr,
+                n,
+                batch,
+            });
         }
         vec![PrivateInput::Mod(ModInput {
             instances,

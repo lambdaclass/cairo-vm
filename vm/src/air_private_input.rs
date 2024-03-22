@@ -117,15 +117,8 @@ pub struct SignatureInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInput {
-    pub instances: HashMap<usize, ModInputInstance>,
+    pub instances: Vec<ModInputInstance>,
     pub zero_value_address: Relocatable,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ModInputInstance {
-    pub inputs: ModInputInputs,
-    // Map<index_in_batch, memory_vars>
-    pub batch: HashMap<usize, ModInputMemoryVars>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -139,11 +132,13 @@ pub struct ModInputMemoryVars {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ModInputInputs {
+pub struct ModInputInstance {
+    pub index: usize,
     pub p_values: [Felt252; MOD_BUILTIN_N_WORDS],
     pub values_ptr: Relocatable,
     pub offsets_ptr: Relocatable,
     pub n: usize,
+    pub batch: HashMap<usize, ModInputMemoryVars>,
 }
 
 impl AirPrivateInput {
@@ -201,6 +196,18 @@ impl AirPrivateInputSerializable {
         serde_json::to_string_pretty(&self)
     }
 }
+
+// use serde::ser::SerializeMap;
+// pub fn serialize_mod_input<S>(
+//     values: &ModInput,
+//     serializer: S,
+// ) -> Result<S::Ok, S::Error>
+// where
+//     S: Serializer,
+// {
+//     let mut map_serializer = serializer.serialize_map(None)?;
+//     map_serializer.end()
+// }
 
 #[cfg(test)]
 mod tests {
