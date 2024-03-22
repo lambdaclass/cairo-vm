@@ -142,7 +142,7 @@ impl ModBuiltinRunner {
     }
 
     pub fn cells_per_instance(&self) -> u32 {
-        self.instance_def.cells_per_instance()
+        INPUT_CELLS as u32
     }
 
     pub fn n_input_cells(&self) -> u32 {
