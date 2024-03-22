@@ -1,6 +1,9 @@
 use crate::{
+    air_private_input::{
+        ModInput, ModInputInputs, ModInputInstance, ModInputMemoryVars, PrivateInput,
+    },
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::borrow::Cow,
+    stdlib::{borrow::Cow, collections::HashMap},
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
@@ -165,6 +168,90 @@ impl ModBuiltinRunner {
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
         Ok(div_ceil(used_cells, self.cells_per_instance() as usize))
+    }
+
+    pub(crate) fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let segment_index = self.base as isize;
+        let segment_size = memory
+            .data
+            .get(self.base)
+            .map(|s| s.len())
+            .unwrap_or_default();
+        let mut instances = HashMap::<usize, ModInputInstance>::new();
+        for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
+            let instance_addr_offset = instance * INPUT_CELLS;
+            let values_ptr = memory
+                .get_relocatable(
+                    (
+                        segment_index,
+                        instance_addr_offset + VALUES_PTR_OFFSET as usize,
+                    )
+                        .into(),
+                )
+                .unwrap_or_default();
+            let offsets_ptr = memory
+                .get_relocatable(
+                    (
+                        segment_index,
+                        instance_addr_offset + OFFSETS_PTR_OFFSET as usize,
+                    )
+                        .into(),
+                )
+                .unwrap_or_default();
+            let n = memory
+                .get_usize((segment_index, instance_addr_offset + N_OFFSET as usize).into())
+                .unwrap_or_default();
+            let mut p_values: [Felt252; N_WORDS] = Default::default();
+            for i in 0..N_WORDS {
+                p_values[i] = memory
+                    .get_integer((segment_index, instance_addr_offset + i).into())
+                    .unwrap_or_default()
+                    .into_owned()
+            }
+            let inputs = ModInputInputs {
+                p_values,
+                values_ptr,
+                offsets_ptr,
+                n,
+            };
+            let mut batch = HashMap::<usize, ModInputMemoryVars>::new();
+            let fetch_offset_and_words = |var_index: usize,
+                                          index_in_batch: usize|
+             -> (usize, [Felt252; N_WORDS]) {
+                let offset = memory
+                    .get_usize((offsets_ptr + (3 * index_in_batch + var_index)).unwrap_or_default())
+                    .unwrap_or_default();
+                let mut words: [Felt252; N_WORDS] = Default::default();
+                for i in 0..N_WORDS {
+                    words[i] = memory
+                        .get_integer((values_ptr + (offset + i)).unwrap_or_default())
+                        .unwrap_or_default()
+                        .into_owned();
+                }
+                (offset, words)
+            };
+            for index_in_batch in 0..self.batch_size() {
+                let (a_offset, a_values) = fetch_offset_and_words(0, index_in_batch);
+                let (b_offset, b_values) = fetch_offset_and_words(1, index_in_batch);
+                let (c_offset, c_values) = fetch_offset_and_words(2, index_in_batch);
+                batch.insert(
+                    index_in_batch,
+                    ModInputMemoryVars {
+                        a_offset,
+                        b_offset,
+                        c_offset,
+                        a_values,
+                        b_values,
+                        c_values,
+                    },
+                );
+            }
+            instances.insert(instance, ModInputInstance { inputs, batch });
+        }
+        vec![PrivateInput::Mod(ModInput {
+            instances,
+            zero_value_address: (self.zero_segment_index as isize, 0).into(),
+        })]
     }
 
     // Reads N_WORDS from memory, starting at address=addr.

@@ -3,12 +3,16 @@ use crate::{
         collections::HashMap,
         prelude::{String, Vec},
     },
+    types::relocatable::Relocatable,
     vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+        ADD_MOD_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
+        KECCAK_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+        SIGNATURE_BUILTIN_NAME,
     },
 };
 use serde::{Deserialize, Serialize};
+
+use crate::types::instance_definitions::mod_instance_def::N_WORDS as MOD_BUILTIN_N_WORDS;
 
 use crate::Felt252;
 
@@ -31,6 +35,10 @@ pub struct AirPrivateInputSerializable {
     keccak: Option<Vec<PrivateInput>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     poseidon: Option<Vec<PrivateInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    add_mod: Option<PrivateInput>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mul_mod: Option<PrivateInput>,
 }
 
 // Contains only builtin public inputs, useful for library users
@@ -46,7 +54,7 @@ pub enum PrivateInput {
     PoseidonState(PrivateInputPoseidonState),
     KeccakState(PrivateInputKeccakState),
     Signature(PrivateInputSignature),
-    Mod(PrivateInputMod),
+    Mod(ModInput),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -107,11 +115,35 @@ pub struct SignatureInput {
     pub w: Felt252,
 }
 
-// # The structure of the values in the returned dictionary is of the form:
-// # {keys = INPUT_NAMES, "batch": {index_in_batch: {keys = MEMORY_VAR_NAMES}}}.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct PrivateInputMod {
-    pub batch: usize,
+pub struct ModInput {
+    pub instances: HashMap<usize, ModInputInstance>,
+    pub zero_value_address: Relocatable,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ModInputInstance {
+    pub inputs: ModInputInputs,
+    // Map<index_in_batch, memory_vars>
+    pub batch: HashMap<usize, ModInputMemoryVars>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ModInputMemoryVars {
+    pub a_offset: usize,
+    pub b_offset: usize,
+    pub c_offset: usize,
+    pub a_values: [Felt252; MOD_BUILTIN_N_WORDS],
+    pub b_values: [Felt252; MOD_BUILTIN_N_WORDS],
+    pub c_values: [Felt252; MOD_BUILTIN_N_WORDS],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ModInputInputs {
+    pub p_values: [Felt252; MOD_BUILTIN_N_WORDS],
+    pub values_ptr: Relocatable,
+    pub offsets_ptr: Relocatable,
+    pub n: usize,
 }
 
 impl AirPrivateInput {
@@ -130,6 +162,16 @@ impl AirPrivateInput {
             ec_op: self.0.get(EC_OP_BUILTIN_NAME).cloned(),
             keccak: self.0.get(KECCAK_BUILTIN_NAME).cloned(),
             poseidon: self.0.get(POSEIDON_BUILTIN_NAME).cloned(),
+            add_mod: self
+                .0
+                .get(ADD_MOD_BUILTIN_NAME)
+                .and_then(|pi| pi.first())
+                .cloned(),
+            mul_mod: self
+                .0
+                .get(MUL_MOD_BUILTIN_NAME)
+                .and_then(|pi| pi.first())
+                .cloned(),
         }
     }
 }
@@ -232,6 +274,8 @@ mod tests {
                     input_s2: Felt252::from(3),
                 },
             )]),
+            add_mod: None,
+            mul_mod: None,
         };
 
         let private_input = AirPrivateInput::from(serializable_private_input.clone());
