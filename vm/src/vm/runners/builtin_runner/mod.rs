@@ -390,6 +390,9 @@ impl BuiltinRunner {
         if let BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) = self {
             return Ok(());
         }
+        if let BuiltinRunner::Mod(modulo) = self {
+            modulo.run_additional_security_checks(vm)?;
+        }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
         let builtin_segment_index = self.base();
