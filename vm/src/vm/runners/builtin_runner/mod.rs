@@ -495,7 +495,7 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(&segments.memory),
             BuiltinRunner::Signature(builtin) => builtin.air_private_input(&segments.memory),
             BuiltinRunner::Keccak(builtin) => builtin.air_private_input(&segments.memory),
-            BuiltinRunner::Mod(builtin) => builtin.air_private_input(&segments),
+            BuiltinRunner::Mod(builtin) => builtin.air_private_input(segments),
             _ => vec![],
         }
     }

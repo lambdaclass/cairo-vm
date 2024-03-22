@@ -203,14 +203,13 @@ impl ModBuiltinRunner {
                 .memory
                 .get_usize((segment_index, instance_addr_offset + N_OFFSET as usize).into())
                 .unwrap_or_default();
-            let mut p_values: [Felt252; N_WORDS] = Default::default();
-            for i in 0..N_WORDS {
-                p_values[i] = segments
+            let p_values: [Felt252; N_WORDS] = core::array::from_fn(|i| {
+                segments
                     .memory
                     .get_integer((segment_index, instance_addr_offset + i).into())
                     .unwrap_or_default()
                     .into_owned()
-            }
+            });
             let mut batch = BTreeMap::<usize, ModInputMemoryVars>::new();
             let fetch_offset_and_words = |var_index: usize,
                                           index_in_batch: usize|
@@ -219,14 +218,13 @@ impl ModBuiltinRunner {
                     .memory
                     .get_usize((offsets_ptr + (3 * index_in_batch + var_index)).unwrap_or_default())
                     .unwrap_or_default();
-                let mut words: [Felt252; N_WORDS] = Default::default();
-                for i in 0..N_WORDS {
-                    words[i] = segments
+                let words: [Felt252; N_WORDS] = core::array::from_fn(|i| {
+                    segments
                         .memory
                         .get_integer((values_ptr + (offset + i)).unwrap_or_default())
                         .unwrap_or_default()
-                        .into_owned();
-                }
+                        .into_owned()
+                });
                 (offset, words)
             };
             for index_in_batch in 0..self.batch_size() {
