@@ -46,6 +46,7 @@ pub enum PrivateInput {
     PoseidonState(PrivateInputPoseidonState),
     KeccakState(PrivateInputKeccakState),
     Signature(PrivateInputSignature),
+    Mod(PrivateInputMod),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -104,6 +105,13 @@ pub struct PrivateInputSignature {
 pub struct SignatureInput {
     pub r: Felt252,
     pub w: Felt252,
+}
+
+// # The structure of the values in the returned dictionary is of the form:
+// # {keys = INPUT_NAMES, "batch": {index_in_batch: {keys = MEMORY_VAR_NAMES}}}.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PrivateInputMod {
+    pub batch: usize,
 }
 
 impl AirPrivateInput {
