@@ -1107,7 +1107,10 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn set_output_stop_ptr_offset(&mut self, offset: usize) {
         if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
-            builtin.set_stop_ptr_offset(offset)
+            builtin.set_stop_ptr_offset(offset);
+            if let Some(segment_used_sizes) = &mut self.segments.segment_used_sizes {
+                segment_used_sizes[builtin.base()] = offset;
+            }
         }
     }
 }
