@@ -416,16 +416,12 @@ impl CairoRunner {
                             .push(SegmentArenaBuiltinRunner::new(true).into())
                     }
                 }
-                #[cfg(feature = "mod_builtin")]
                 BuiltinName::add_mod => vm
                     .builtin_runners
                     .push(ModBuiltinRunner::new_add_mod(&ModInstanceDef::default(), true).into()),
-                #[cfg(feature = "mod_builtin")]
                 BuiltinName::mul_mod => vm
                     .builtin_runners
                     .push(ModBuiltinRunner::new_mul_mod(&ModInstanceDef::default(), true).into()),
-                #[cfg(not(feature = "mod_builtin"))]
-                _ => {}
             }
         }
 
