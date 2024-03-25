@@ -17,6 +17,7 @@ endif
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
+	hyper-threading-benchmarks \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
 	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
@@ -379,3 +380,7 @@ hint-accountant: build-cairo-lang
 
 create-proof-programs-symlinks:
 	cd cairo_programs/proof_programs; ln -s ../*.cairo .
+
+hyper-threading-benchmarks: cairo_bench_programs
+	cargo build -p hyper_threading --release && \
+	sh examples/hyper_threading/hyper-threading.sh
