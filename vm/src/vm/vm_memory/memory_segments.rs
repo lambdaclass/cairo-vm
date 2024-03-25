@@ -282,8 +282,6 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
-    // TODO: remove allow
-    #[allow(unused)]
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
