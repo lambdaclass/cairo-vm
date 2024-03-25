@@ -5,7 +5,7 @@ use crate::{
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
-        relocatable::{MaybeRelocatable, Relocatable},
+        relocatable::{relocate_address, MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{
@@ -165,6 +165,7 @@ impl ModBuiltinRunner {
         let segment_size = segments
             .get_segment_used_size(self.base)
             .unwrap_or_default();
+        let relocation_table = segments.relocate_segments().unwrap_or_default();
         let mut instances = Vec::<ModInputInstance>::new();
         for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
             let instance_addr_offset = instance * INPUT_CELLS;
@@ -247,8 +248,8 @@ impl ModBuiltinRunner {
                 p1: p_values[1],
                 p2: p_values[2],
                 p3: p_values[3],
-                values_ptr,
-                offsets_ptr,
+                values_ptr: relocate_address(values_ptr, &relocation_table).unwrap_or_default(),
+                offsets_ptr: relocate_address(offsets_ptr, &relocation_table).unwrap_or_default(),
                 n,
                 batch,
             });
@@ -256,10 +257,9 @@ impl ModBuiltinRunner {
 
         vec![PrivateInput::Mod(ModInput {
             instances,
-            zero_value_address: segments
-                .relocate_segments()
-                .ok()
-                .and_then(|t| t.get(self.zero_segment_index).cloned())
+            zero_value_address: relocation_table
+                .get(self.zero_segment_index)
+                .cloned()
                 .unwrap_or_default(),
         })]
     }

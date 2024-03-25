@@ -3,7 +3,6 @@ use crate::{
         collections::{BTreeMap, HashMap},
         prelude::{String, Vec},
     },
-    types::relocatable::Relocatable,
     vm::runners::builtin_runner::{
         ADD_MOD_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
         KECCAK_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
@@ -126,8 +125,8 @@ pub struct ModInputInstance {
     pub p1: Felt252,
     pub p2: Felt252,
     pub p3: Felt252,
-    pub values_ptr: Relocatable,
-    pub offsets_ptr: Relocatable,
+    pub values_ptr: usize,
+    pub offsets_ptr: usize,
     pub n: usize,
     pub batch: BTreeMap<usize, ModInputMemoryVars>,
 }
