@@ -249,7 +249,7 @@ mod tests {
         assert!(builtins.bitwise.is_some());
         assert!(builtins.ec_op.is_none());
         assert!(builtins.keccak.is_none());
-        assert!(builtins.poseidon.is_none());
+        assert!(builtins.poseidon.is_some());
     }
 
     #[test]

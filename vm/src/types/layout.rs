@@ -287,7 +287,7 @@ mod tests {
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
         );
-        assert_eq!(layout._n_trace_colums, 13);
+        assert_eq!(layout._n_trace_colums, 12);
         assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
