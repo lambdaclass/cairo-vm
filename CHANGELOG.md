@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* perf: use a more compact representation for `MemoryCell` [#1672](https://github.com/lambdaclass/cairo-vm/pull/1672)
+    * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
+
 * feat(BREAKING): Use return type info from sierra when serializing return values in cairo1-run crate [#1665](https://github.com/lambdaclass/cairo-vm/pull/1665)
   * Removed public function `serialize_output`.
   * Add field `serialize_output` to `Cairo1RunConfig`.
