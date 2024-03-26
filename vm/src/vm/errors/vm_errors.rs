@@ -86,7 +86,7 @@ pub enum VirtualMachineError {
     #[error("Expected ecdsa builtin to be present")]
     NoSignatureBuiltin,
     #[error("Expected {0} to be present")]
-    NoModBuiltin(String),
+    NoModBuiltin(&'static str),
     #[error("Div out of range: 0 < {} <= {}", (*.0).0, (*.0).1)]
     OutOfValidRange(Box<(Felt252, Felt252)>),
     #[error("Failed to compare {} and {}, cant compare a relocatable to an integer value", (*.0).0, (*.0).1)]
@@ -132,7 +132,7 @@ pub enum VirtualMachineError {
     #[error("Failed to find index {0} in the vm's relocation table")]
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
-    ModBuiltinBatchSize(Box<(String, usize)>),
+    ModBuiltinBatchSize(Box<(&'static str, usize)>),
 }
 
 #[cfg(test)]

@@ -107,13 +107,13 @@ pub enum RunnerError {
     #[error("Expected integer at address {} to be smaller than 2^{}. Got: {}.", (*.0).0, (*.0).1, (*.0).2)]
     WordExceedsModBuiltinWordBitLen(Box<(Relocatable, u32, Felt252)>),
     #[error("{}: Expected n >= 1. Got: {}.", (*.0).0, (*.0).1)]
-    ModBuiltinNLessThanOne(Box<(String, usize)>),
+    ModBuiltinNLessThanOne(Box<(&'static str, usize)>),
     #[error("{}: Missing value at address {}.", (*.0).0, (*.0).1)]
-    ModBuiltinMissingValue(Box<(String, Relocatable)>),
+    ModBuiltinMissingValue(Box<(&'static str, Relocatable)>),
     #[error("{}: n must be <= {}", (*.0).0, (*.0).1)]
-    FillMemoryMaxExceeded(Box<(String, usize)>),
+    FillMemoryMaxExceeded(Box<(&'static str, usize)>),
     #[error("{0}: write_n_words value must be 0 after loop")]
-    WriteNWordsValueNotZero(String),
+    WriteNWordsValueNotZero(&'static str),
     #[error("add_mod and mul_mod builtins must have the same n_words and word_bit_len.")]
     ModBuiltinsMismatchedInstanceDef,
     #[error("At least one of add_mod and mul_mod must be given.")]
@@ -121,7 +121,7 @@ pub enum RunnerError {
     #[error("Could not fill the values table, add_mod_index={0}, mul_mod_index={1}")]
     FillMemoryCoudNotFillTable(usize, usize),
     #[error("{}: {}", (*.0).0, (*.0).1)]
-    ModBuiltinSecurityCheck(Box<(String, String)>),
+    ModBuiltinSecurityCheck(Box<(&'static str, String)>),
 }
 
 #[cfg(test)]

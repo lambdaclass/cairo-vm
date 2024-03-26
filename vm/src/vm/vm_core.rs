@@ -1141,11 +1141,11 @@ impl VirtualMachine {
                         BuiltinRunner::Mod(b) if b.name() == mod_name => Some(b),
                         _ => None,
                     })
-                    .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name.to_string()))?;
+                    .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name))?;
                 if let Some(batch_size) = batch_size {
                     if mod_builtin.batch_size() != batch_size {
                         return Err(VirtualMachineError::ModBuiltinBatchSize(Box::new((
-                            mod_builtin.name().to_string(),
+                            mod_builtin.name(),
                             batch_size,
                         ))));
                     }

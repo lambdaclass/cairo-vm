@@ -4,7 +4,7 @@ use crate::{
     stdlib::{
         borrow::Cow,
         collections::BTreeMap,
-        prelude::{Box, ToString, Vec},
+        prelude::{Box, Vec},
     },
     types::{
         errors::math_errors::MathError,
@@ -311,14 +311,14 @@ impl ModBuiltinRunner {
         let n = memory.get_usize((addr + N_OFFSET)?)?;
         if n < 1 {
             return Err(RunnerError::ModBuiltinNLessThanOne(Box::new((
-                self.name().to_string(),
+                self.name(),
                 n,
             ))));
         }
         let (p_values, p) = self.read_n_words_value(memory, addr)?;
         let p = p.ok_or_else(|| {
             RunnerError::ModBuiltinMissingValue(Box::new((
-                self.name().to_string(),
+                self.name(),
                 (addr + N_WORDS).unwrap_or_default(),
             )))
         })?;
@@ -347,7 +347,7 @@ impl ModBuiltinRunner {
             let (_, value) = self.read_n_words_value(memory, value_addr)?;
             let value = value.ok_or_else(|| {
                 RunnerError::ModBuiltinMissingValue(Box::new((
-                    self.name().to_string(),
+                    self.name(),
                     (value_addr + N_WORDS).unwrap_or_default(),
                 )))
             })?;
@@ -368,7 +368,7 @@ impl ModBuiltinRunner {
     ) -> Result<(), RunnerError> {
         if inputs.n > FILL_MEMORY_MAX {
             return Err(RunnerError::FillMemoryMaxExceeded(Box::new((
-                self.name().to_string(),
+                self.name(),
                 FILL_MEMORY_MAX,
             ))));
         }
@@ -431,9 +431,7 @@ impl ModBuiltinRunner {
             value = value.div_floor(&self.shift)
         }
         if !value.is_zero() {
-            return Err(RunnerError::WriteNWordsValueNotZero(
-                self.name().to_string(),
-            ));
+            return Err(RunnerError::WriteNWordsValueNotZero(self.name()));
         }
         Ok(())
     }
@@ -604,22 +602,22 @@ impl ModBuiltinRunner {
             if !instance.is_zero() && prev_inputs.n > self.instance_def.batch_size {
                 for i in 0..N_WORDS {
                     if inputs.p_values[i] != prev_inputs.p_values[i] {
-                        return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name().to_string(), format!("inputs.p_values[i] != prev_inputs.p_values[i]. Got: i={}, inputs.p_values[i]={}, prev_inputs.p_values[i]={}",
+                        return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.p_values[i] != prev_inputs.p_values[i]. Got: i={}, inputs.p_values[i]={}, prev_inputs.p_values[i]={}",
                     i, inputs.p_values[i], prev_inputs.p_values[i])))).into());
                     }
                 }
                 if inputs.values_ptr != prev_inputs.values_ptr {
-                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name().to_string(), format!("inputs.values_ptr != prev_inputs.values_ptr. Got: inputs.values_ptr={}, prev_inputs.values_ptr={}",
+                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.values_ptr != prev_inputs.values_ptr. Got: inputs.values_ptr={}, prev_inputs.values_ptr={}",
                 inputs.values_ptr, prev_inputs.values_ptr)))).into());
                 }
                 if inputs.offsets_ptr
                     != (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size))?
                 {
-                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name().to_string(), format!("inputs.offsets_ptr != prev_inputs.offsets_ptr + 3 * batch_size. Got: inputs.offsets_ptr={}, prev_inputs.offsets_ptr={}, batch_size={}",
+                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.offsets_ptr != prev_inputs.offsets_ptr + 3 * batch_size. Got: inputs.offsets_ptr={}, prev_inputs.offsets_ptr={}, batch_size={}",
                 inputs.values_ptr, prev_inputs.values_ptr, self.instance_def.batch_size)))).into());
                 }
                 if inputs.n != prev_inputs.n.saturating_sub(self.instance_def.batch_size) {
-                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name().to_string(), format!("inputs.n != prev_inputs.n - batch_size. Got: inputs.n={}, prev_inputs.n={}, batch_size={}",
+                    return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.n != prev_inputs.n - batch_size. Got: inputs.n={}, prev_inputs.n={}, batch_size={}",
                 inputs.n, prev_inputs.n, self.instance_def.batch_size)))).into());
                 }
             }
@@ -640,7 +638,7 @@ impl ModBuiltinRunner {
                     let p = inputs.p;
                     let error_string = format!("Expected a {op} b == c (mod p). Got: instance={instance}, batch={index_in_batch}, p={p}, a={a}, b={b}, c={c}.");
                     return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((
-                        self.name().to_string(),
+                        self.name(),
                         error_string,
                     )))
                     .into());
@@ -650,7 +648,7 @@ impl ModBuiltinRunner {
         }
         if !n_instances.is_zero() && prev_inputs.n != self.instance_def.batch_size {
             return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((
-                self.name().to_string(),
+                self.name(),
                 format!(
                     "prev_inputs.n != batch_size Got: prev_inputs.n={}, batch_size={}",
                     prev_inputs.n, self.instance_def.batch_size
