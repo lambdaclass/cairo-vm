@@ -1,8 +1,10 @@
 %builtins range_check add_mod mul_mod
-from starkware.cairo.common.cairo_builtins import ModBuiltin, UInt384
+// TODO: Import directly from common library one released
+from cairo_programs.mod_builtin_feature.common.modulo import ModBuiltin, UInt384, run_mod_p_circuit_with_large_batch_size
+// from starkware.common.cairo_builtins import ModBuiltin, UInt384
+// from starkware.cairo.common.modulo import run_mod_p_circuit_with_large_batch_size
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.common.alloc import alloc
-from starkware.cairo.common.modulo import run_mod_p_circuit_with_large_batch_size
 
 func run_circuit{range_check_ptr, add_mod_ptr: ModBuiltin*, mul_mod_ptr: ModBuiltin*}() {
     alloc_locals;
