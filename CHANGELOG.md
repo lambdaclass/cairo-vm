@@ -2,6 +2,25 @@
 
 #### Upcoming Changes
 
+* feat(BREAKING): Add mod builtin [#1673](https://github.com/lambdaclass/cairo-vm/pull/1673)
+
+  Main Changes:
+  * Add the new `ModBuiltinRunner`, implementing the builtins `add_mod` & `mul_mod`
+  * Add temporary feature `mod_builtin` which adds `add_mod` & `mul_mod` to the `all_cairo` & `all_solidity` layouts so that the new builtins may be used in them. This feature will be removed when these builtins are properly added to the correct layouts
+  * Add method `VirtualMachine::fill_memory` in order to perform the new builtin's main logic from within hints
+  * Add hints to run arithmetic circuits using `add_mod` and/or `mul_mod` builtins
+
+  Other Changes:
+  * BREAKING: BuiltinRunner method signature change from
+  `air_private_input(&self, memory: &Memory) -> Vec<PrivateInput>` to `pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput>`
+  * Add `MayleRelocatable::sub_usize`
+  * Implement `Add<u32> for Relocatable`
+  * Add `Memory::get_usize`
+  * BREAKING: Clean up unused/duplicated code from builtins module:
+    * Remove unused method `get_memory_segment_addresses` from all builtin runners & the enum
+    * Remove empty implementations of `deduce_memory_cell` & `add_validation_rules` from all builtin runners
+    * Remove duplicated implementation of `final_stack` from all builtin runners except output and move it to the enum implementation
+
 * feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
 
 * feat: Bump cairo_lang to 0.13.1 in testing env [#1687](https://github.com/lambdaclass/cairo-vm/pull/1687)
