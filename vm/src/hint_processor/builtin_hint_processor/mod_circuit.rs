@@ -7,7 +7,7 @@ use crate::{
     Felt252,
 };
 #[cfg(not(feature = "mod_builtin"))]
-use crate::{types::errors::math_errors::MathError, stdlib::prelude::Box};
+use crate::{stdlib::prelude::Box, types::errors::math_errors::MathError};
 use num_traits::ToPrimitive;
 
 use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
