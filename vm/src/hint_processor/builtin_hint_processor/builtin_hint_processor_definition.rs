@@ -57,7 +57,7 @@ use crate::{
             math_utils::*,
             memcpy_hint_utils::{add_segment, enter_scope, exit_scope, memcpy_enter_scope},
             memset_utils::{memset_enter_scope, memset_step_loop},
-            poseidon_utils::{n_greater_than_10, n_greater_than_2},
+            poseidon_utils::{elements_over_x, n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
@@ -730,6 +730,12 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             }
             hint_code::NONDET_N_GREATER_THAN_2 => {
                 n_greater_than_2(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::NONDET_ELEMENTS_OVER_TEN => {
+                elements_over_x(vm, &hint_data.ids_data, &hint_data.ap_tracking, 10)
+            }
+            hint_code::NONDET_ELEMENTS_OVER_TWO => {
+                elements_over_x(vm, &hint_data.ids_data, &hint_data.ap_tracking, 2)
             }
             hint_code::RANDOM_EC_POINT => {
                 random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
