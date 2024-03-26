@@ -1,5 +1,4 @@
 use crate::math_utils::signed_felt;
-use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
@@ -946,20 +945,6 @@ impl VirtualMachine {
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
 
-    pub fn get_mod_builtin(
-        &self,
-        name: &BuiltinName,
-    ) -> Result<&ModBuiltinRunner, VirtualMachineError> {
-        for builtin in self.get_builtin_runners() {
-            if let BuiltinRunner::Mod(mod_builtin) = builtin {
-                if mod_builtin.name() == name.name() {
-                    return Ok(mod_builtin);
-                }
-            };
-        }
-
-        Err(VirtualMachineError::NoModBuiltin(name.name().to_string()))
-    }
     pub fn disable_trace(&mut self) {
         self.trace = None
     }
