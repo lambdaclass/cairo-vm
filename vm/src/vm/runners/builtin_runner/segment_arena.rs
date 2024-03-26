@@ -6,6 +6,7 @@ use crate::{
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+use num_integer::div_ceil;
 
 const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
@@ -64,7 +65,10 @@ impl SegmentArenaBuiltinRunner {
         &self,
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
-        self.get_used_cells(segments)
+        Ok(div_ceil(
+            self.get_used_cells(segments)?,
+            self.cells_per_instance as usize,
+        ))
     }
 
     pub fn base(&self) -> usize {
