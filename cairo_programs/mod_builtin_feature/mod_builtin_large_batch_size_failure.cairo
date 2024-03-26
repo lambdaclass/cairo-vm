@@ -1,3 +1,4 @@
+%builtins range_check add_mod mul_mod
 // TODO: Import directly from common library one released
 from cairo_programs.mod_builtin_feature.common.modulo import ModBuiltin, UInt384, run_mod_p_circuit_with_large_batch_size
 // from starkware.common.cairo_builtins import ModBuiltin, UInt384
