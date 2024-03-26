@@ -5,7 +5,7 @@ use crate::{
 };
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use num_integer::div_ceil;
 
 const ARENA_BUILTIN_SIZE: u32 = 3;
