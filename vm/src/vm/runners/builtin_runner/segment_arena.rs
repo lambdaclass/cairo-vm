@@ -326,8 +326,8 @@ mod tests {
         let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![6]);
-
-        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(3));
+        // (SIZE(6) - INITIAL_SIZE(3)) / CELLS_PER_INSTANCE(3)
+        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(1));
     }
 
     #[test]
