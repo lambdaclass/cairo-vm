@@ -1,3 +1,4 @@
+use crate::stdlib::prelude::{Box, String};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,

@@ -1,7 +1,11 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::{borrow::Cow, collections::BTreeMap},
+    stdlib::{
+        borrow::Cow,
+        collections::BTreeMap,
+        prelude::{Box, ToString, Vec},
+    },
     types::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
