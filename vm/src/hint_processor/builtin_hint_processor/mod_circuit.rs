@@ -1,12 +1,13 @@
-use crate::stdlib::prelude::{Box, String};
+use crate::stdlib::prelude::String;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     stdlib::collections::HashMap,
-    types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
     Felt252,
 };
+#[cfg(not(feature = "mod_builtin"))]
+use crate::{types::errors::math_errors::MathError, stdlib::prelude::Box};
 use num_traits::ToPrimitive;
 
 use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
@@ -44,12 +45,14 @@ pub fn run_p_mod_circuit(
         )
     %}
 */
+#[allow(unused_variables)]
 pub fn run_p_mod_circuit_with_large_batch_size(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    #[cfg(not(feature = "mod_builtin"))]
     const LARGE_BATCH_SIZE_PATH: &str =
         "starkware.cairo.common.modulo.run_mod_p_circuit_with_large_batch_size.BATCH_SIZE";
     #[cfg(not(feature = "mod_builtin"))]
