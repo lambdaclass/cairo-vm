@@ -1144,10 +1144,10 @@ impl VirtualMachine {
                     .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name.to_string()))?;
                 if let Some(batch_size) = batch_size {
                     if mod_builtin.batch_size() != batch_size {
-                        return Err(VirtualMachineError::ModBuiltinBatchSize(
+                        return Err(VirtualMachineError::ModBuiltinBatchSize(Box::new((
                             mod_builtin.name().to_string(),
                             batch_size,
-                        ));
+                        ))));
                     }
                 }
                 Ok(Some((ptr, mod_builtin, n)))
