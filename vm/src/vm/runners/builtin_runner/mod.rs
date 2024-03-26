@@ -104,6 +104,7 @@ impl BuiltinRunner {
         }
     }
 
+    ///Returns the builtin's final stack
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
