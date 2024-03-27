@@ -73,7 +73,7 @@ jobs:
     - name: Download script
       uses: actions/download-artifact@master
       with:
-        path: ./examples/hyper_threading/hyper-threading-workflow.sh
+        path: ./examples/hyper_threading/
 
     - name: Run Benchmarks
       run: ./examples/hyper_threading/hyper-threading-workflow.sh > results_pr.txt
