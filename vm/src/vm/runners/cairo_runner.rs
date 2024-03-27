@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+use crate::vm::runners::cairo_pie::{BuiltinAdditionalData, CAIRO_PIE_VERSION};
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
@@ -1392,8 +1393,11 @@ impl CairoRunner {
                 .builtin_runners
                 .iter()
                 .map(|b| (b.name().to_string(), b.get_additional_data()))
-                .collect(),
-            version: CairoPieVersion { cairo_pie: () },
+                .collect::<HashMap<String, BuiltinAdditionalData>>()
+                .into(),
+            version: CairoPieVersion {
+                cairo_pie: CAIRO_PIE_VERSION.to_string(),
+            },
         })
     }
 
