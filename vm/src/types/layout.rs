@@ -63,7 +63,6 @@ impl CairoLayout {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("recursive"),
@@ -120,7 +119,6 @@ impl CairoLayout {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn all_cairo_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("all_cairo"),

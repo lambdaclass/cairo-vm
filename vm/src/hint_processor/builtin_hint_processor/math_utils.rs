@@ -453,7 +453,6 @@ pub fn sqrt(
         )));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
-    #[allow(deprecated)]
     insert_value_from_var_name(
         "root",
         Felt252::from(&isqrt(&mod_value.to_biguint())?),
