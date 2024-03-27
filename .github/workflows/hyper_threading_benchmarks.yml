@@ -39,7 +39,7 @@ jobs:
     - name: Upload PR Binary
       uses: actions/upload-artifact@master
       with:
-        name: hyper_threading_pr
+        name: hyper_threading_pr_binary
         path: ./hyper_threading_pr
 
     - name: Upload Workflow Script
@@ -63,7 +63,7 @@ jobs:
     - name: Upload Main Binary
       uses: actions/upload-artifact@master
       with:
-        name: hyper_threading_main
+        name: hyper_threading_main_binary
         path: ./hyper_threading_main
 
     - name: Download Binaries and Script
