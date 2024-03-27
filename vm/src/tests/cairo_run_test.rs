@@ -1109,7 +1109,7 @@ fn cairo_run_mod_builtin_large_batch_size_failure() {
 fn cairo_run_mod_builtin_proof() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/proof/mod_builtin.json");
-    run_program(program_data, true, Some("all_solidity"), None, None);
+    run_program(program_data, true, Some("all_cairo"), None, None);
 }
 
 #[test]
