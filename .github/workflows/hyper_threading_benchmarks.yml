@@ -41,7 +41,7 @@ jobs:
         ref: 'main'
 
     - name: Make Script Executable
-      run: chmod +x ./examples/hyper_threading/hyper-threading-workflow.sh
+      run: source /examples/hyper_threading/hyper-threading-workflow.sh
 
     - name: Compile Main Version
       run: |
