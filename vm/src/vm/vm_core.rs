@@ -1218,7 +1218,6 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -4309,11 +4308,10 @@ mod tests {
                 ap: 18,
                 fp: 0,
             })
-            .segments(MemorySegmentManager {
-                segment_sizes: HashMap::new(),
-                segment_used_sizes: Some(vec![1]),
-                public_memory_offsets: HashMap::new(),
-                memory: Memory::new(),
+            .segments({
+                let mut segments = MemorySegmentManager::new();
+                segments.segment_used_sizes = Some(vec![1]);
+                segments
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {

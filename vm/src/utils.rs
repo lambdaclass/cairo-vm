@@ -121,14 +121,9 @@ pub mod test_utils {
     macro_rules! segments {
         ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
-                let memory = memory!($( (($si, $off), $val) ),*);
-                $crate::vm::vm_memory::memory_segments::MemorySegmentManager {
-                    memory,
-                    segment_sizes: HashMap::new(),
-                    segment_used_sizes: None,
-                    public_memory_offsets: HashMap::new(),
-                }
-
+                let mut segments = $crate::vm::vm_memory::memory_segments::MemorySegmentManager::new();
+                segments.memory = memory!($( (($si, $off), $val) ),*);
+                segments
             }
 
         };

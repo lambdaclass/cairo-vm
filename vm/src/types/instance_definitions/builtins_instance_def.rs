@@ -100,13 +100,13 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive_large_output() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(128), 1)),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(Some(8))),
             ec_op: None,
             keccak: None,
-            poseidon: None,
+            poseidon: Some(PoseidonInstanceDef::new(Some(8))),
         }
     }
 
@@ -249,7 +249,7 @@ mod tests {
         assert!(builtins.bitwise.is_some());
         assert!(builtins.ec_op.is_none());
         assert!(builtins.keccak.is_none());
-        assert!(builtins.poseidon.is_none());
+        assert!(builtins.poseidon.is_some());
     }
 
     #[test]
