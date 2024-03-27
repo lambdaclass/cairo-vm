@@ -839,7 +839,7 @@ mod tests {
                         p3: Felt252::ZERO,
                         values_ptr: 30575,
                         offsets_ptr: 30619,
-                        n: 2,
+                        n: 1,
                         batch: BTreeMap::from([(
                             0,
                             ModInputMemoryVars {
@@ -855,7 +855,7 @@ mod tests {
                                 b3: Felt252::ZERO,
                                 c_offset: 24,
                                 c0: Felt252::TWO,
-                                c1: Felt252::ONE,
+                                c1: Felt252::ZERO,
                                 c2: Felt252::ZERO,
                                 c3: Felt252::ZERO
                             }
