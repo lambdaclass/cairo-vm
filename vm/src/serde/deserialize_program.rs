@@ -247,7 +247,6 @@ pub struct HintLocation {
     pub n_prefix_newlines: u32,
 }
 
-#[cfg(feature = "std")]
 pub(crate) fn biguint_from_number(n: Number) -> Option<BigUint> {
     BigUint::parse_bytes(n.to_string().as_bytes(), 10)
 }
@@ -268,7 +267,6 @@ pub(crate) fn felt_from_number(n: Number) -> Option<Felt252> {
     }
 }
 
-#[cfg(feature = "std")]
 pub(crate) fn deserialize_biguint_from_number<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
 where
     D: Deserializer<'de>,
