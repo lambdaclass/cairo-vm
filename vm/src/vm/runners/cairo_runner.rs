@@ -535,7 +535,7 @@ impl CairoRunner {
             if let Some(builtin_runner) = vm_builtin_map.get(builtin_name.name()) {
                 stack.append(&mut builtin_runner.initial_stack());
             } else {
-                stack.push(MaybeRelocatable::from((0, 0)));
+                stack.push(MaybeRelocatable::from(0));
             }
         }
 
@@ -5580,7 +5580,7 @@ mod tests {
                 assert_eq!(initial_stack, keccak_builtin_runner.initial_stack());
             }
             None => {
-                assert_eq!(initial_stack, vec![MaybeRelocatable::from((0, 0))]);
+                assert_eq!(initial_stack, vec![MaybeRelocatable::from(0)]);
             }
         }
     }
