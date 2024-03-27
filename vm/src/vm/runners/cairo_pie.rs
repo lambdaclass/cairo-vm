@@ -1,11 +1,9 @@
 use num_bigint::BigUint;
 #[cfg(feature = "std")]
 use {
-    crate::serde::deserialize_program::deserialize_biguint_from_number,
     crate::types::errors::cairo_pie_error::{CairoPieError, DeserializeMemoryError},
-    crate::utils::CAIRO_PRIME,
     num_integer::Integer,
-    serde::de::{DeserializeOwned, Deserializer},
+    serde::de::DeserializeOwned,
     std::fs::File,
     std::io::Write,
     std::io::{Read, Seek},
@@ -15,7 +13,9 @@ use {
 };
 
 use super::cairo_runner::ExecutionResources;
+use crate::serde::deserialize_program::deserialize_biguint_from_number;
 use crate::stdlib::prelude::{String, Vec};
+use crate::utils::CAIRO_PRIME;
 use crate::vm::runners::builtin_runner::{
     HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
@@ -25,7 +25,7 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 pub const CAIRO_PIE_VERSION: &str = "1.1";
 
@@ -278,7 +278,6 @@ impl CairoPie {
     }
 }
 
-#[cfg(feature = "std")]
 pub(crate) fn deserialize_cairo_prime<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
 where
     D: Deserializer<'de>,
@@ -313,15 +312,12 @@ pub struct CairoPieMetadata {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     #[serde(serialize_with = "serde_impl::serialize_program_data")]
-    #[cfg_attr(
-        feature = "std",
-        serde(deserialize_with = "serde_impl::de::deserialize_array_of_felts")
-    )]
+    #[serde(deserialize_with = "serde_impl::de::deserialize_array_of_felts")]
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
     pub main: usize,
     #[serde(serialize_with = "serde_impl::serialize_prime")]
-    #[cfg_attr(feature = "std", serde(deserialize_with = "deserialize_cairo_prime"))]
+    #[serde(deserialize_with = "deserialize_cairo_prime")]
     pub prime: BigUint,
 }
 
@@ -354,11 +350,11 @@ impl CairoPie {
 
 mod serde_impl {
     use crate::stdlib::collections::HashMap;
+    use crate::stdlib::fmt;
     use num_traits::Num;
     use serde::ser::SerializeMap;
 
     use super::{CairoPieMemory, SegmentInfo};
-    use crate::stdlib::fmt;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -522,9 +518,10 @@ mod serde_impl {
         Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
     }
 
-    #[cfg(feature = "std")]
     pub mod de {
         use crate::serde::deserialize_program::felt_from_number;
+        use crate::stdlib::fmt;
+        use crate::stdlib::vec::Vec;
         use crate::vm::runners::cairo_pie::MaybeRelocatable;
         use serde_json::Number;
 
@@ -533,7 +530,7 @@ mod serde_impl {
         impl<'de> serde::de::Visitor<'de> for MaybeRelocatableNumberVisitor {
             type Value = Vec<MaybeRelocatable>;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("Could not deserialize array of hexadecimal")
             }
 
