@@ -282,8 +282,6 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
-    // TODO: remove allow
-    #[allow(unused)]
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
@@ -302,8 +300,6 @@ impl MemorySegmentManager {
         self.zero_segment_index
     }
 
-    // TODO: remove allow
-    #[allow(unused)]
     // Finalizes the zero segment and clears it's tracking data from the manager
     pub(crate) fn finalize_zero_segment(&mut self) {
         if !self.zero_segment_index.is_zero() {

@@ -48,24 +48,25 @@ mod skip_instruction_test;
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
 fn run_program_simple(data: &[u8]) {
-    run_program(data, Some("all_cairo"), None, None)
+    run_program(data, false, Some("all_cairo"), None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
 fn run_program_small(data: &[u8]) {
-    run_program(data, Some("small"), None, None)
+    run_program(data, false, Some("small"), None, None)
 }
 
 fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, Some("all_cairo"), Some(trace), None)
+    run_program(data, false, Some("all_cairo"), Some(trace), None)
 }
 
 fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, Some("all_cairo"), None, Some(error))
+    run_program(data, false, Some("all_cairo"), None, Some(error))
 }
 
 fn run_program(
     data: &[u8],
+    proof_mode: bool,
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
@@ -75,6 +76,7 @@ fn run_program(
         layout: layout.unwrap_or("all_cairo"),
         relocate_mem: true,
         trace_enabled: true,
+        proof_mode,
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
