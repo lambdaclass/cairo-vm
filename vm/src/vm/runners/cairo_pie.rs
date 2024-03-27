@@ -86,7 +86,7 @@ pub enum BuiltinAdditionalData {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
-pub struct AdditionalData {
+pub struct CairoPieAdditionalData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_builtin: Option<OutputBuiltinAdditionalData>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -97,7 +97,7 @@ pub struct AdditionalData {
     pub range_check_builtin: Option<()>,
 }
 
-impl AdditionalData {
+impl CairoPieAdditionalData {
     pub fn is_empty(&self) -> bool {
         self.output_builtin.is_none()
             && self.pedersen_builtin.is_none()
@@ -106,7 +106,7 @@ impl AdditionalData {
     }
 }
 
-impl From<HashMap<String, BuiltinAdditionalData>> for AdditionalData {
+impl From<HashMap<String, BuiltinAdditionalData>> for CairoPieAdditionalData {
     fn from(mut value: HashMap<String, BuiltinAdditionalData>) -> Self {
         let output_builtin_data = match value.remove(OUTPUT_BUILTIN_NAME) {
             Some(BuiltinAdditionalData::Output(output_data)) => Some(output_data),
@@ -135,7 +135,7 @@ pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    pub additional_data: AdditionalData,
+    pub additional_data: CairoPieAdditionalData,
     pub version: CairoPieVersion,
 }
 
@@ -236,7 +236,7 @@ impl CairoPie {
         let metadata: CairoPieMetadata = Self::parse_zip_file(zip.by_name("metadata.json")?)?;
         let execution_resources: ExecutionResources =
             Self::parse_zip_file(zip.by_name("execution_resources.json")?)?;
-        let additional_data: AdditionalData =
+        let additional_data: CairoPieAdditionalData =
             Self::parse_zip_file(zip.by_name("additional_data.json")?)?;
         let version: CairoPieVersion = Self::parse_zip_file(zip.by_name("version.json")?)?;
 
@@ -874,7 +874,7 @@ mod test {
 
         assert_eq!(
             cairo_pie.additional_data,
-            AdditionalData {
+            CairoPieAdditionalData {
                 output_builtin: Some(OutputBuiltinAdditionalData {
                     pages: Default::default(),
                     attributes: Default::default(),
@@ -914,7 +914,7 @@ mod test {
         let data = include_bytes!(
             "../../../../cairo_programs/manually_compiled/pie_additional_data_test.json"
         );
-        let additional_data: AdditionalData = serde_json::from_slice(data).unwrap();
+        let additional_data: CairoPieAdditionalData = serde_json::from_slice(data).unwrap();
         let output_data = additional_data.output_builtin.unwrap();
         assert_eq!(
             output_data.pages,
