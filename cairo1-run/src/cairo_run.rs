@@ -245,7 +245,12 @@ pub fn cairo_run_program(
                 false,
             )?;
         } else {
-            finalize_builtins(&main_func.signature.ret_types, &type_sizes, &mut vm, builtin_count)?;
+            finalize_builtins(
+                &main_func.signature.ret_types,
+                &type_sizes,
+                &mut vm,
+                builtin_count,
+            )?;
         }
 
         // Build execution public memory
@@ -647,7 +652,10 @@ fn fetch_return_values(
         let output_builtin_base = (output_builtin_end + (-return_type_size as i32)).unwrap();
         vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
     } else {
-        vm.get_continuous_range((vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(), return_type_size as usize)?
+        vm.get_continuous_range(
+            (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
+            return_type_size as usize,
+        )?
     };
     // Check if this result is a Panic result
     if return_type_id
@@ -702,8 +710,9 @@ fn finalize_builtins(
     let ret_types_and_sizes = main_ret_types.iter().zip(ret_types_sizes.clone());
 
     let full_ret_types_size: i16 = ret_types_sizes.sum();
-    let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize + builtin_count as usize).saturating_sub(1))
-        .map_err(VirtualMachineError::Math)?;
+    let mut stack_pointer = (vm.get_ap()
+        - (full_ret_types_size as usize + builtin_count as usize).saturating_sub(1))
+    .map_err(VirtualMachineError::Math)?;
 
     // Calculate the stack_ptr for each return builtin in the return values
     let mut builtin_name_to_stack_pointer = HashMap::new();
