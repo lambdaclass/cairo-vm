@@ -81,6 +81,8 @@ pub enum VirtualMachineError {
     InconsistentAutoDeduction(Box<(&'static str, MaybeRelocatable, Option<MaybeRelocatable>)>),
     #[error("Invalid hint encoding at pc: {0}")]
     InvalidHintEncoding(Box<MaybeRelocatable>),
+    #[error("Expected output builtin to be present")]
+    NoOutputBuiltin,
     #[error("Expected range_check builtin to be present")]
     NoRangeCheckBuiltin,
     #[error("Expected ecdsa builtin to be present")]
