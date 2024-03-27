@@ -973,7 +973,6 @@ dependencies = [
  "clap",
  "itertools 0.11.0",
  "mimalloc",
- "num-traits 0.2.18",
  "rstest",
  "thiserror",
 ]
