@@ -1,8 +1,5 @@
 #!/bin/bash
 
-## see directory
-pwd
-
 # Define una lista con los valores deseados para RAYON_NUM_THREADS
 thread_counts=(1 2 4 6 8 16 32)
 
