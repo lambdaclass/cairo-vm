@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add a method to retrieve the output builtin from the VM [#1690](https://github.com/lambdaclass/cairo-vm/pull/1690)
+
 * feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
 
 * feat: Bump cairo_lang to 0.13.1 in testing env [#1687](https://github.com/lambdaclass/cairo-vm/pull/1687)
