@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-use crate::vm::runners::cairo_pie::{AdditionalData, SignatureBuiltinAdditionalData};
+use crate::vm::runners::cairo_pie::{CairoPieAdditionalData, SignatureBuiltinAdditionalData};
 #[cfg(all(not(feature = "std"), feature = "alloc"))]
 use alloc::{
     string::{String, ToString},
@@ -91,7 +91,7 @@ fn pedersen_test() {
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    let expected_additional_data = AdditionalData {
+    let expected_additional_data = CairoPieAdditionalData {
         output_builtin: Some(OutputBuiltinAdditionalData {
             pages: HashMap::new(),
             attributes: HashMap::new(),
@@ -160,7 +160,7 @@ fn common_signature() {
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    let expected_additional_data = AdditionalData {
+    let expected_additional_data = CairoPieAdditionalData {
         ecdsa_builtin: Some(SignatureBuiltinAdditionalData(HashMap::from([(
             Relocatable::from((2, 0)),
             (
