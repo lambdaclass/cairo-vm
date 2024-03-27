@@ -1,0 +1,91 @@
+name: Benchmark Hyper Threading
+
+on:
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+        sudo apt update
+        sudo apt-get install -y hyperfine
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.74.1
+      with:
+        components: rustfmt, clippy
+
+    - name: Compile PR Version
+      run: |
+        make cairo_bench_programs
+        cargo build --release -p hyper_threading
+        cp target/release/hyper_threading ./hyper_threading_pr
+        cp ./examples/hyper_threading/hyper-threading-workflow.sh ./hyper-threading-workflow.sh
+    
+    - name: Upload PR Binary
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_pr_binary
+        path: ./hyper_threading_pr
+
+    - name: Upload Workflow Script
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_workflow_script
+        path: ./hyper-threading-workflow.sh
+
+
+    - name: Checkout Main Branch
+      uses: actions/checkout@v2
+      with:
+        ref: 'main'
+
+    - name: Compile Main Version
+      run: |
+        make cairo_bench_programs
+        cargo build --release -p hyper_threading
+        cp target/release/hyper_threading ./hyper_threading_main
+
+    - name: Upload Main Binary
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_main_binary
+        path: ./hyper_threading_main
+
+    - name: Download Binaries and Script
+      uses: actions/download-artifact@master
+      with:
+        path: ./
+
+    - name: Download script
+      uses: actions/download-artifact@master
+      with:
+        path: ./examples/hyper_threading/
+
+    - name: Run Benchmarks
+      run: source ./examples/hyper_threading/hyper_threading_workflow_script/hyper-threading-workflow.sh > results_pr.txt
+
+    - name: Compare Results
+      run: |
+        echo "PR Results:"
+        cat results_pr.txt
+
+    - name: Upload Results
+      uses: actions/upload-artifact@v2
+      with:
+        name: benchmark-results
+        path: results_pr.txt
