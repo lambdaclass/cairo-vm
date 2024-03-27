@@ -1,9 +1,11 @@
 use num_bigint::BigUint;
 #[cfg(feature = "std")]
 use {
+    crate::serde::deserialize_program::deserialize_biguint_from_number,
     crate::types::errors::cairo_pie_error::{CairoPieError, DeserializeMemoryError},
+    crate::utils::CAIRO_PRIME,
     num_integer::Integer,
-    serde::de::DeserializeOwned,
+    serde::de::{DeserializeOwned, Deserializer},
     std::fs::File,
     std::io::Write,
     std::io::{Read, Seek},
@@ -13,9 +15,7 @@ use {
 };
 
 use super::cairo_runner::ExecutionResources;
-use crate::serde::deserialize_program::deserialize_biguint_from_number;
 use crate::stdlib::prelude::{String, Vec};
-use crate::utils::CAIRO_PRIME;
 use crate::vm::runners::builtin_runner::{
     HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
@@ -25,7 +25,7 @@ use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub const CAIRO_PIE_VERSION: &str = "1.1";
 
@@ -288,7 +288,7 @@ where
             if n == *CAIRO_PRIME {
                 Ok(n)
             } else {
-                Err(de::Error::custom(format!(
+                Err(serde::de::Error::custom(format!(
                     "Cairo PIE prime ({}) does not match Cairo prime ({})",
                     n, *CAIRO_PRIME
                 )))
@@ -298,8 +298,7 @@ where
     }
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Deserialize))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieMetadata {
     pub program: StrippedProgram,
     pub program_segment: SegmentInfo,
@@ -311,8 +310,7 @@ pub struct CairoPieMetadata {
     pub extra_segments: Vec<SegmentInfo>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Deserialize))]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
     #[serde(serialize_with = "serde_impl::serialize_program_data")]
     #[cfg_attr(
@@ -360,6 +358,7 @@ mod serde_impl {
     use serde::ser::SerializeMap;
 
     use super::{CairoPieMemory, SegmentInfo};
+    use crate::stdlib::fmt;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -373,8 +372,6 @@ mod serde_impl {
         Deserialize, Deserializer, Serialize, Serializer,
     };
     use serde_json::Number;
-    use std::fmt;
-    use std::fmt::Formatter;
 
     use crate::vm::runners::cairo_pie::SignatureBuiltinAdditionalData;
 
@@ -526,11 +523,11 @@ mod serde_impl {
     }
 
     #[cfg(feature = "std")]
-
     pub mod de {
         use crate::serde::deserialize_program::felt_from_number;
         use crate::vm::runners::cairo_pie::MaybeRelocatable;
         use serde_json::Number;
+
         pub(crate) struct MaybeRelocatableNumberVisitor;
 
         impl<'de> serde::de::Visitor<'de> for MaybeRelocatableNumberVisitor {
@@ -633,7 +630,7 @@ mod serde_impl {
     impl<'de> Visitor<'de> for SignatureBuiltinAdditionalDataVisitor {
         type Value = SignatureBuiltinAdditionalData;
 
-        fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             write!(
                 formatter,
                 "a Vec<(Relocatable, (Felt252, Felt252))> or a HashMap<Relocatable, (Felt252, Felt252)>"
