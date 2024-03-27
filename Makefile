@@ -387,7 +387,6 @@ hint-accountant: build-cairo-lang
 
 create-proof-programs-symlinks:
 	cd cairo_programs/proof_programs; ln -s ../*.cairo .
-	cd cairo_programs/mod_builtin_feature/proof; ln -s ../*.cairo .
 
 hyper-threading-benchmarks: cairo_bench_programs
 	cargo build -p hyper_threading --release && \
