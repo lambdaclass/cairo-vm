@@ -764,7 +764,7 @@ mod tests {
                         ),])
                     }
                 ],
-                zero_value_address: 6539
+                zero_value_address: 23403
             })
         );
         assert_eq!(
