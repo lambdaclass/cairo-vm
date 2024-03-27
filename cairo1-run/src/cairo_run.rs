@@ -211,7 +211,8 @@ pub fn cairo_run_program(
         return_type_size,
         return_type_id,
         &vm,
-        skip_output.then_some(builtin_count),
+        builtin_count,
+        skip_output,
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
@@ -244,7 +245,7 @@ pub fn cairo_run_program(
                 false,
             )?;
         } else {
-            finalize_builtins(&main_func.signature.ret_types, &type_sizes, &mut vm)?;
+            finalize_builtins(&main_func.signature.ret_types, &type_sizes, &mut vm, builtin_count)?;
         }
 
         // Build execution public memory
@@ -543,7 +544,7 @@ fn create_entry_code(
             };
         }
     }
-    let mut ret_builtin_offset = return_type_size;
+    let mut ret_builtin_offset = return_type_size - 1;
     for (builtin, location) in builtins.iter().zip(builtin_locations) {
         if builtin == &BuiltinName::output && copy_to_output_builtin {
             casm_extend!(ctx, [ap + 0] = [fp + location] + return_type_size, ap++;);
@@ -636,16 +637,17 @@ fn fetch_return_values(
     return_type_size: i16,
     return_type_id: &ConcreteTypeId,
     vm: &VirtualMachine,
-    builtin_count: Option<i16>,
+    builtin_count: i16,
+    fetch_from_output: bool,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
-    let mut return_values = if let Some(builtin_count) = builtin_count {
+    let mut return_values = if fetch_from_output {
         let output_builtin_end = vm
             .get_relocatable((vm.get_ap() + (-builtin_count as i32)).unwrap())
             .unwrap();
         let output_builtin_base = (output_builtin_end + (-return_type_size as i32)).unwrap();
         vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
     } else {
-        vm.get_return_values(return_type_size as usize)?
+        vm.get_continuous_range((vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(), return_type_size as usize)?
     };
     // Check if this result is a Panic result
     if return_type_id
@@ -690,6 +692,7 @@ fn finalize_builtins(
     main_ret_types: &[ConcreteTypeId],
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     vm: &mut VirtualMachine,
+    builtin_count: i16,
 ) -> Result<(), Error> {
     // Set stop pointers for builtins so we can obtain the air public input
     // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
@@ -699,7 +702,7 @@ fn finalize_builtins(
     let ret_types_and_sizes = main_ret_types.iter().zip(ret_types_sizes.clone());
 
     let full_ret_types_size: i16 = ret_types_sizes.sum();
-    let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
+    let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize + builtin_count as usize).saturating_sub(1))
         .map_err(VirtualMachineError::Math)?;
 
     // Calculate the stack_ptr for each return builtin in the return values
