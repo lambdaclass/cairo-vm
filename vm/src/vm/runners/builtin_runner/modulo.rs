@@ -668,3 +668,202 @@ fn apply_op(lhs: &BigUint, rhs: &BigUint, op: &Operation) -> Result<BigUint, Mat
         Operation::DivMod(ref p) => div_mod_unsigned(lhs, rhs, p)?,
     })
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    #[cfg(feature = "mod_builtin")]
+    fn test_air_private_input_small_batch_size() {
+        use super::*;
+        use crate::{
+            air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
+            cairo_run::{cairo_run, CairoRunConfig},
+            hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            vm::runners::builtin_runner::{ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME},
+            Felt252,
+        };
+
+        let program_data = include_bytes!(
+            "../../../../../cairo_programs/mod_builtin_feature/proof/mod_builtin.json"
+        );
+        let (runner, vm) = cairo_run(
+            program_data,
+            &CairoRunConfig {
+                proof_mode: true,
+                trace_enabled: true,
+                layout: "all_cairo",
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let air_private_input = runner.get_air_private_input(&vm);
+        assert_eq!(
+            air_private_input.0.get(ADD_MOD_BUILTIN_NAME).unwrap()[0],
+            PrivateInput::Mod(ModInput {
+                instances: vec![
+                    ModInputInstance {
+                        index: 0,
+                        p0: Felt252::ONE,
+                        p1: Felt252::ONE,
+                        p2: Felt252::ZERO,
+                        p3: Felt252::ZERO,
+                        values_ptr: 30575,
+                        offsets_ptr: 30607,
+                        n: 2,
+                        batch: BTreeMap::from([(
+                            0,
+                            ModInputMemoryVars {
+                                a_offset: 0,
+                                a0: Felt252::ONE,
+                                a1: Felt252::ZERO,
+                                a2: Felt252::ZERO,
+                                a3: Felt252::ZERO,
+                                b_offset: 12,
+                                b0: Felt252::ZERO,
+                                b1: Felt252::ZERO,
+                                b2: Felt252::ZERO,
+                                b3: Felt252::ZERO,
+                                c_offset: 4,
+                                c0: Felt252::TWO,
+                                c1: Felt252::ONE,
+                                c2: Felt252::ZERO,
+                                c3: Felt252::ZERO
+                            }
+                        ),])
+                    },
+                    ModInputInstance {
+                        index: 1,
+                        p0: Felt252::ONE,
+                        p1: Felt252::ONE,
+                        p2: Felt252::ZERO,
+                        p3: Felt252::ZERO,
+                        values_ptr: 30575,
+                        offsets_ptr: 30610,
+                        n: 1,
+                        batch: BTreeMap::from([(
+                            0,
+                            ModInputMemoryVars {
+                                a_offset: 16,
+                                a0: Felt252::ZERO,
+                                a1: Felt252::ZERO,
+                                a2: Felt252::ZERO,
+                                a3: Felt252::ZERO,
+                                b_offset: 20,
+                                b0: Felt252::TWO,
+                                b1: Felt252::ZERO,
+                                b2: Felt252::ZERO,
+                                b3: Felt252::ZERO,
+                                c_offset: 24,
+                                c0: Felt252::TWO,
+                                c1: Felt252::ZERO,
+                                c2: Felt252::ZERO,
+                                c3: Felt252::ZERO
+                            }
+                        ),])
+                    }
+                ],
+                zero_value_address: 6539
+            })
+        );
+        assert_eq!(
+            air_private_input.0.get(MUL_MOD_BUILTIN_NAME).unwrap()[0],
+            PrivateInput::Mod(ModInput {
+                instances: vec![
+                    ModInputInstance {
+                        index: 0,
+                        p0: Felt252::ONE,
+                        p1: Felt252::ONE,
+                        p2: Felt252::ZERO,
+                        p3: Felt252::ZERO,
+                        values_ptr: 30575,
+                        offsets_ptr: 30613,
+                        n: 3,
+                        batch: BTreeMap::from([(
+                            0,
+                            ModInputMemoryVars {
+                                a_offset: 12,
+                                a0: Felt252::ZERO,
+                                a1: Felt252::ZERO,
+                                a2: Felt252::ZERO,
+                                a3: Felt252::ZERO,
+                                b_offset: 8,
+                                b0: Felt252::TWO,
+                                b1: Felt252::ZERO,
+                                b2: Felt252::ZERO,
+                                b3: Felt252::ZERO,
+                                c_offset: 16,
+                                c0: Felt252::ZERO,
+                                c1: Felt252::ZERO,
+                                c2: Felt252::ZERO,
+                                c3: Felt252::ZERO
+                            }
+                        ),])
+                    },
+                    ModInputInstance {
+                        index: 1,
+                        p0: Felt252::ONE,
+                        p1: Felt252::ONE,
+                        p2: Felt252::ZERO,
+                        p3: Felt252::ZERO,
+                        values_ptr: 30575,
+                        offsets_ptr: 30616,
+                        n: 2,
+                        batch: BTreeMap::from([(
+                            0,
+                            ModInputMemoryVars {
+                                a_offset: 0,
+                                a0: Felt252::ONE,
+                                a1: Felt252::ZERO,
+                                a2: Felt252::ZERO,
+                                a3: Felt252::ZERO,
+                                b_offset: 8,
+                                b0: Felt252::TWO,
+                                b1: Felt252::ZERO,
+                                b2: Felt252::ZERO,
+                                b3: Felt252::ZERO,
+                                c_offset: 20,
+                                c0: Felt252::TWO,
+                                c1: Felt252::ZERO,
+                                c2: Felt252::ZERO,
+                                c3: Felt252::ZERO
+                            }
+                        ),])
+                    },
+                    ModInputInstance {
+                        index: 2,
+                        p0: Felt252::ONE,
+                        p1: Felt252::ONE,
+                        p2: Felt252::ZERO,
+                        p3: Felt252::ZERO,
+                        values_ptr: 30575,
+                        offsets_ptr: 30619,
+                        n: 2,
+                        batch: BTreeMap::from([(
+                            0,
+                            ModInputMemoryVars {
+                                a_offset: 8,
+                                a0: Felt252::TWO,
+                                a1: Felt252::ZERO,
+                                a2: Felt252::ZERO,
+                                a3: Felt252::ZERO,
+                                b_offset: 28,
+                                b0: Felt252::ONE,
+                                b1: Felt252::ZERO,
+                                b2: Felt252::ZERO,
+                                b3: Felt252::ZERO,
+                                c_offset: 24,
+                                c0: Felt252::TWO,
+                                c1: Felt252::ONE,
+                                c2: Felt252::ZERO,
+                                c3: Felt252::ZERO
+                            }
+                        ),])
+                    }
+                ],
+                zero_value_address: 23403
+            })
+        )
+    }
+}
