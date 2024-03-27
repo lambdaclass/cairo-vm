@@ -34,20 +34,41 @@ jobs:
         make cairo_bench_programs
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ./hyper_threading_pr
+    
+    - name: Upload PR Binary
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_pr_binary
+        path: ./hyper_threading_pr
+
+    - name: Upload Workflow Script
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_workflow_script
+        path: ./examples/hyper_threading/hyper-threading-workflow.sh
+
 
     - name: Checkout Main Branch
       uses: actions/checkout@v2
       with:
         ref: 'main'
 
-    - name: Make Script Executable
-      run: chmod +x ./examples/hyper_threading/hyper-threading-workflow.sh
-
     - name: Compile Main Version
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ./hyper_threading_main
+
+    - name: Upload Main Binary
+      uses: actions/upload-artifact@master
+      with:
+        name: hyper_threading_main_binary
+        path: ./hyper_threading_main
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@master
+      with:
+        path: ./
 
     - name: Run Benchmarks
       run: ./examples/hyper_threading/hyper-threading-workflow.sh > results_pr.txt
