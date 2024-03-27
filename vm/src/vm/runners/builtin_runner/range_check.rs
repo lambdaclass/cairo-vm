@@ -214,7 +214,6 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
-    use crate::stdlib::collections::HashMap;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
