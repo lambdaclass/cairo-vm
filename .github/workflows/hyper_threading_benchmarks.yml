@@ -65,10 +65,15 @@ jobs:
         name: hyper_threading_main_binary
         path: ./hyper_threading_main
 
-    - name: Download Artifacts
+    - name: Download Binaries
       uses: actions/download-artifact@master
       with:
         path: ./
+
+    - name: Download script
+      uses: actions/download-artifact@master
+      with:
+        path: ./examples/hyper_threading/hyper-threading-workflow.sh
 
     - name: Run Benchmarks
       run: ./examples/hyper_threading/hyper-threading-workflow.sh > results_pr.txt
