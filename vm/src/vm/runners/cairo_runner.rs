@@ -3253,15 +3253,12 @@ mod tests {
     }
 
     /// Test that `get_output()` works when the `output` builtin is not the first one.
-    // TODO review: this test swaps builtins, but builtins should appear in the order
-    //              specified in the program (i.e. ordered).
-    #[ignore = "this test does not seem to make sense"]
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_output_unordered_builtins() {
         //Initialization Phase
         let program = program!(
-            builtins = vec![BuiltinName::output, BuiltinName::bitwise],
+            builtins = vec![BuiltinName::bitwise, BuiltinName::output],
             data = vec_data!(
                 (4612671182993129469_i64),
                 (5198983563776393216_i64),
@@ -3291,13 +3288,8 @@ mod tests {
         let mut vm = vm!();
 
         cairo_runner
-            .initialize_builtins(&mut vm, false)
+            .initialize_function_runner(&mut vm)
             .expect("Couldn't initialize builtins.");
-
-        // Swap the first and second builtins (first should be `output`).
-        vm.builtin_runners.swap(0, 1);
-
-        cairo_runner.initialize_segments(&mut vm, None);
 
         let end = cairo_runner
             .initialize_main_entrypoint(&mut vm)
