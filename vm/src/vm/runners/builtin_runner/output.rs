@@ -129,6 +129,10 @@ impl OutputBuiltinRunner {
         }
     }
 
+    pub fn add_attribute(&mut self, name: String, value: Vec<usize>) {
+        self.attributes.insert(name, value);
+    }
+
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
             pages: self.pages.clone(),
@@ -609,6 +613,18 @@ mod tests {
         assert!(
             matches!(result, Err(RunnerError::PageNotOnSegment(relocatable, base)) if relocatable == page_start && base == builtin.base())
         )
+    }
+
+    #[test]
+    pub fn add_attribute() {
+        let mut builtin = OutputBuiltinRunner::new(true);
+        assert!(builtin.attributes.is_empty());
+
+        let name = "gps_fact_topology".to_string();
+        let values = vec![0, 12, 30];
+        builtin.add_attribute(name.clone(), values.clone());
+
+        assert_eq!(builtin.attributes, HashMap::from([(name, values)]));
     }
 
     #[test]
