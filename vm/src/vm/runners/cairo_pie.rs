@@ -355,6 +355,7 @@ mod serde_impl {
     use serde::ser::SerializeMap;
 
     use super::{CairoPieMemory, SegmentInfo};
+    use crate::serde::deserialize_program::deserialize_felt_from_number;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -638,11 +639,21 @@ mod serde_impl {
         where
             A: SeqAccess<'de>,
         {
+            #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+            use crate::alloc::string::ToString;
+
             let mut map = HashMap::with_capacity(seq.size_hint().unwrap_or(0));
 
             // While there are entries remaining in the input, add them
             // into our map.
-            while let Some((key, value)) = seq.next_element()? {
+            while let Ok(Some((key, value))) = seq.next_element::<(Relocatable, (Number, Number))>()
+            {
+                let value = (
+                    deserialize_felt_from_number(value.0)
+                        .map_err(|e| serde::de::Error::custom(e.to_string()))?,
+                    deserialize_felt_from_number(value.1)
+                        .map_err(|e| serde::de::Error::custom(e.to_string()))?,
+                );
                 map.insert(key, value);
             }
 
@@ -665,14 +676,11 @@ mod serde_impl {
         }
     }
 
-    // This is the trait that informs Serde how to deserialize MyMap.
     impl<'de> Deserialize<'de> for SignatureBuiltinAdditionalData {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
             D: Deserializer<'de>,
         {
-            // Instantiate our Visitor and ask the Deserializer to drive
-            // it over the input data, resulting in an instance of MyMap.
             deserializer.deserialize_any(SignatureBuiltinAdditionalDataVisitor {})
         }
     }
@@ -939,11 +947,32 @@ mod test {
                 Relocatable::from((3, 17)),
             ]
         );
-        // TODO: add a test case with signature data
         let expected_signature_additional_data = Some(SignatureBuiltinAdditionalData::default());
         assert_eq!(
             additional_data.ecdsa_builtin,
             expected_signature_additional_data
+        );
+    }
+
+    #[test]
+    fn test_deserialize_additional_data_ecdsa() {
+        let data = "{
+            \"ecdsa_builtin\":
+            [[[5, 0], [625070211340594690620549257532797332489846607417522674727141362983617109726, 2854887372279318791295645790480917936345337522861267452401815075500547611558]],
+            [[5, 2], [3168229188920295555790924024825924366941271696087530487889965948098530645565, 1731740364317410813765625724335059696352261992689423427855532934386364516611]]]
+        }".as_bytes();
+
+        let additional_data: CairoPieAdditionalData = serde_json::from_slice(data).unwrap();
+
+        let expected_signature_additional_data =
+            SignatureBuiltinAdditionalData(HashMap::from([
+                (Relocatable::from((5, 0)), (Felt252::from_dec_str("625070211340594690620549257532797332489846607417522674727141362983617109726").unwrap(), Felt252::from_dec_str("2854887372279318791295645790480917936345337522861267452401815075500547611558").unwrap())),
+                (Relocatable::from((5, 2)), (Felt252::from_dec_str("3168229188920295555790924024825924366941271696087530487889965948098530645565").unwrap(), Felt252::from_dec_str("1731740364317410813765625724335059696352261992689423427855532934386364516611").unwrap())),
+            ]));
+
+        assert_eq!(
+            additional_data.ecdsa_builtin,
+            Some(expected_signature_additional_data)
         );
     }
 }
