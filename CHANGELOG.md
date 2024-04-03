@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Bump `starknet-types-core` version + Use the lib's pedersen hash [#1692](https://github.com/lambdaclass/cairo-vm/pull/1692)
+
 * feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
 
 * feat: Bump cairo_lang to 0.13.1 in testing env [#1687](https://github.com/lambdaclass/cairo-vm/pull/1687)
