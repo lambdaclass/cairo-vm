@@ -1,6 +1,5 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
-use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::pedersen_instance_def::{
     CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
 };
@@ -10,9 +9,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::Felt252;
 use num_integer::{div_ceil, Integer};
-use starknet_crypto::{pedersen_hash, FieldElement};
+use starknet_types_core::hash::StarkHash;
 
 use super::HASH_BUILTIN_NAME;
 
@@ -104,21 +102,8 @@ impl HashBuiltinRunner {
                     .resize(address.offset + 1, false);
             }
             self.verified_addresses.borrow_mut()[address.offset] = true;
-
-            //Convert MaybeRelocatable to FieldElement
-            let a_be_bytes = num_a.to_bytes_be();
-            let b_be_bytes = num_b.to_bytes_be();
-            let (y, x) = match (
-                FieldElement::from_bytes_be(&a_be_bytes),
-                FieldElement::from_bytes_be(&b_be_bytes),
-            ) {
-                (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
-                _ => return Err(MathError::ByteConversionError.into()),
-            };
             //Compute pedersen Hash
-            let fe_result = pedersen_hash(&x, &y);
-            //Convert result from FieldElement to MaybeRelocatable
-            let result = Felt252::from_bytes_be(&fe_result.to_bytes_be());
+            let result = starknet_types_core::hash::Pedersen::hash(num_a, num_b);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
