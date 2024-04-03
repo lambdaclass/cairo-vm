@@ -4,6 +4,8 @@
 
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
 
+* feat: output builtin add_attribute method [#1691](https://github.com/lambdaclass/cairo-vm/pull/1691)
+
 * feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
 
 * feat: Bump cairo_lang to 0.13.1 in testing env [#1687](https://github.com/lambdaclass/cairo-vm/pull/1687)
