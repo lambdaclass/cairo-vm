@@ -103,7 +103,7 @@ impl HashBuiltinRunner {
             }
             self.verified_addresses.borrow_mut()[address.offset] = true;
             //Compute pedersen Hash
-            let result = starknet_types_core::hash::Pedersen::hash(num_a, num_b);
+            let result = starknet_types_core::hash::Pedersen::hash(num_b, num_a);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
