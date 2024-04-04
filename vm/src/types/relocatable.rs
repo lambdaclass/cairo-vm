@@ -348,7 +348,7 @@ impl MaybeRelocatable {
     }
 }
 
-impl<'a> Add<usize> for &'a Relocatable {
+impl Add<usize> for &Relocatable {
     type Output = Relocatable;
 
     fn add(self, other: usize) -> Self::Output {
