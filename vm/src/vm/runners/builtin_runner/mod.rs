@@ -35,6 +35,7 @@ use super::cairo_pie::BuiltinAdditionalData;
 pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
 pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
 pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
+pub const RANGE_CHECK_96_BUILTIN_NAME: &str = "range_check_96_builtin";
 pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa_builtin";
 pub const BITWISE_BUILTIN_NAME: &str = "bitwise_builtin";
 pub const EC_OP_BUILTIN_NAME: &str = "ec_op_builtin";
@@ -315,7 +316,7 @@ impl BuiltinRunner {
         match self {
             BuiltinRunner::RangeCheck(range_check) => {
                 let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
-                Ok(used_cells * range_check.n_parts as usize)
+                Ok(used_cells * range_check.n_parts() as usize)
             }
             _ => Ok(0),
         }
@@ -379,7 +380,7 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
             BuiltinRunner::EcOp(_) => EC_OP_BUILTIN_NAME,
             BuiltinRunner::Hash(_) => HASH_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck(_) => RANGE_CHECK_BUILTIN_NAME,
+            BuiltinRunner::RangeCheck(b) => b.name(),
             BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
             BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,

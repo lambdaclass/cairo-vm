@@ -925,7 +925,9 @@ impl VirtualMachine {
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
         for builtin in &self.builtin_runners {
             if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
-                return Ok(range_check_builtin);
+                if matches!(range_check_builtin.name(), RANGE_CHECK_BUILTIN_NAME) {
+                    return Ok(range_check_builtin);
+                }
             };
         }
         Err(VirtualMachineError::NoRangeCheckBuiltin)

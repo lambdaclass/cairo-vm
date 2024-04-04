@@ -23,7 +23,7 @@ use crate::{
 
 use num_traits::Zero;
 
-use super::RANGE_CHECK_BUILTIN_NAME;
+use super::{RANGE_CHECK_96_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
 
 // NOTE: the current implementation is based on the bound 0x10000
 const _INNER_RC_BOUND: u64 = 1u64 << INNER_RC_BOUND_SHIFT;
@@ -31,18 +31,25 @@ const INNER_RC_BOUND_SHIFT: u64 = 16;
 const INNER_RC_BOUND_MASK: u64 = u16::MAX as u64;
 
 // TODO: use constant instead of receiving as false parameter
-const N_PARTS: u64 = 8;
+const N_PARTS_STANDARD: u64 = 8;
+const N_PARTS_96: u64 = 6;
+
+#[derive(Debug, Clone)]
+enum RangeCheckType {
+    Standard, // n_parts = 6
+    NinetySix, // n_parts = 8
+}
 
 #[derive(Debug, Clone)]
 pub struct RangeCheckBuiltinRunner {
     ratio: Option<u32>,
     base: usize,
+    range_check_type: RangeCheckType,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
     pub _bound: Option<Felt252>,
     pub(crate) included: bool,
-    pub(crate) n_parts: u32,
     pub(crate) instances_per_component: u32,
 }
 
@@ -58,12 +65,12 @@ impl RangeCheckBuiltinRunner {
         RangeCheckBuiltinRunner {
             ratio,
             base: 0,
+            range_check_type: if n_parts == N_PARTS_96 as u32 {RangeCheckType::NinetySix} else {RangeCheckType::Standard},
             stop_ptr: None,
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
             _bound,
             included,
-            n_parts,
             instances_per_component: 1,
         }
     }
@@ -88,8 +95,22 @@ impl RangeCheckBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, memory: &mut Memory) {
-        let rule: ValidationRule = ValidationRule(Box::new(
+    pub const fn n_parts(&self) -> u64 {
+        match self.range_check_type {
+            RangeCheckType::Standard => N_PARTS_STANDARD,
+            RangeCheckType::NinetySix => N_PARTS_96,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self.range_check_type {
+            RangeCheckType::Standard => RANGE_CHECK_BUILTIN_NAME,
+            RangeCheckType::NinetySix => RANGE_CHECK_96_BUILTIN_NAME,
+        }
+    }
+
+    fn build_rule<const N_PARTS: u64>() -> ValidationRule {
+        ValidationRule(Box::new(
             |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let num = memory
                     .get_integer(address)
@@ -99,11 +120,18 @@ impl RangeCheckBuiltinRunner {
                 } else {
                     Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
                         num.into_owned(),
-                        Felt252::TWO.pow((N_PARTS * INNER_RC_BOUND_SHIFT) as u128),
+                        Felt252::TWO.pow((N_PARTS_STANDARD * INNER_RC_BOUND_SHIFT) as u128),
                     ))))
                 }
             },
-        ));
+        ))
+    }
+
+    pub fn add_validation_rule(&self, memory: &mut Memory) {
+        let rule = match self.range_check_type {
+            RangeCheckType::Standard => RangeCheckBuiltinRunner::build_rule::<N_PARTS_STANDARD>(),
+            RangeCheckType::NinetySix => RangeCheckBuiltinRunner::build_rule::<N_PARTS_96>(),
+        };
         memory.add_validation_rule(self.base, rule);
     }
 
@@ -144,7 +172,7 @@ impl RangeCheckBuiltinRunner {
                         .rev()
                         .map(move |i| ((digit >> (i * INNER_RC_BOUND_SHIFT)) & INNER_RC_BOUND_MASK))
                 })
-                .take(self.n_parts as usize)
+                .take(self.n_parts() as usize)
                 .fold(rc_bounds, |mm, x| {
                     (min(mm.0, x as usize), max(mm.1, x as usize))
                 });

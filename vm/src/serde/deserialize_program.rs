@@ -13,7 +13,7 @@ use crate::{
         prelude::*,
         sync::Arc,
     },
-    utils::CAIRO_PRIME,
+    utils::CAIRO_PRIME, vm::runners::builtin_runner::RANGE_CHECK_96_BUILTIN_NAME,
 };
 
 use crate::utils::PRIME_STR;
@@ -55,6 +55,7 @@ pub enum BuiltinName {
     ec_op,
     poseidon,
     segment_arena,
+    range_check96,
 }
 
 impl BuiltinName {
@@ -69,6 +70,7 @@ impl BuiltinName {
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
             BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
+            BuiltinName::range_check96 => RANGE_CHECK_96_BUILTIN_NAME,
         }
     }
 }
