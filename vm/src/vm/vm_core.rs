@@ -19,7 +19,9 @@ use crate::{
             exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
             vm_errors::VirtualMachineError,
         },
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
+        runners::builtin_runner::{
+            BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
+        },
         trace::trace_entry::TraceEntry,
         vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -943,6 +945,18 @@ impl VirtualMachine {
         }
 
         Err(VirtualMachineError::NoSignatureBuiltin)
+    }
+
+    pub fn get_output_builtin_mut(
+        &mut self,
+    ) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
+        for builtin in self.get_builtin_runners_as_mut() {
+            if let BuiltinRunner::Output(output_builtin) = builtin {
+                return Ok(output_builtin);
+            };
+        }
+
+        Err(VirtualMachineError::NoOutputBuiltin)
     }
 
     #[cfg(feature = "with_tracer")]
@@ -3886,6 +3900,30 @@ mod tests {
 
         assert_eq!(builtins[0].name(), HASH_BUILTIN_NAME);
         assert_eq!(builtins[1].name(), BITWISE_BUILTIN_NAME);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_get_output_builtin_mut() {
+        let mut vm = vm!();
+
+        assert_matches!(
+            vm.get_output_builtin_mut(),
+            Err(VirtualMachineError::NoOutputBuiltin)
+        );
+
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners.push(output_builtin.clone().into());
+
+        let vm_output_builtin = vm
+            .get_output_builtin_mut()
+            .expect("Output builtin should be returned");
+
+        assert_eq!(vm_output_builtin.base(), output_builtin.base());
+        assert_eq!(vm_output_builtin.pages, output_builtin.pages);
+        assert_eq!(vm_output_builtin.attributes, output_builtin.attributes);
+        assert_eq!(vm_output_builtin.stop_ptr, output_builtin.stop_ptr);
+        assert_eq!(vm_output_builtin.included, output_builtin.included);
     }
 
     #[test]
