@@ -436,30 +436,19 @@ impl CairoRunner {
         entrypoint: usize,
         stack: Vec<MaybeRelocatable>,
     ) -> Result<(), RunnerError> {
-        if let Some(prog_base) = self.program_base {
-            let initial_pc = Relocatable {
-                segment_index: prog_base.segment_index,
-                offset: prog_base.offset + entrypoint,
-            };
-            self.initial_pc = Some(initial_pc);
-            vm.load_data(prog_base, &self.program.shared_program_data.data)
-                .map_err(RunnerError::MemoryInitializationError)?;
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_pc = Some((prog_base + entrypoint)?);
+        vm.load_data(prog_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
 
-            // Mark all addresses from the program segment as accessed
-            let base = self
-                .program_base
-                .unwrap_or_else(|| Relocatable::from((0, 0)));
-            for i in 0..self.program.shared_program_data.data.len() {
-                vm.segments.memory.mark_as_accessed((base + i)?);
-            }
+        // Mark all addresses from the program segment as accessed
+        for i in 0..self.program.shared_program_data.data.len() {
+            vm.segments.memory.mark_as_accessed((prog_base + i)?);
         }
-        if let Some(exec_base) = self.execution_base {
-            vm.segments
-                .load_data(exec_base, &stack)
-                .map_err(RunnerError::MemoryInitializationError)?;
-        } else {
-            return Err(RunnerError::NoProgBase);
-        }
+        vm.segments
+            .load_data(exec_base, &stack)
+            .map_err(RunnerError::MemoryInitializationError)?;
         Ok(())
     }
 
@@ -1265,22 +1254,6 @@ impl CairoRunner {
                 .extend(begin..end);
         }
         Ok(())
-    }
-
-    //NOTE: No longer needed in 0.11
-    /// Add (or replace if already present) a custom hash builtin. Returns a Relocatable
-    /// with the new builtin base as the segment index.
-    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) -> Relocatable {
-        // Create, initialize and insert the new custom hash runner.
-        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(32), true).into();
-        builtin.initialize_segments(&mut vm.segments);
-        let segment_index = builtin.base() as isize;
-        vm.builtin_runners.push(builtin);
-
-        Relocatable {
-            segment_index,
-            offset: 0,
-        }
     }
 
     // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
@@ -4808,32 +4781,6 @@ mod tests {
             _ => unreachable!(),
         };
         assert_eq!(bitwise_builtin.stop_ptr, Some(5));
-    }
-
-    /// Test that add_additional_hash_builtin() creates an additional builtin.
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn add_additional_hash_builtin() {
-        let program = program!();
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-
-        let num_builtins = vm.builtin_runners.len();
-        cairo_runner.add_additional_hash_builtin(&mut vm);
-        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
-
-        let builtin = vm
-            .builtin_runners
-            .last()
-            .expect("missing last builtin runner");
-        match builtin {
-            BuiltinRunner::Hash(builtin) => {
-                assert_eq!(builtin.base(), 0);
-                assert_eq!(builtin.ratio(), Some(32));
-                assert!(builtin.included);
-            }
-            _ => unreachable!(),
-        }
     }
 
     #[test]
