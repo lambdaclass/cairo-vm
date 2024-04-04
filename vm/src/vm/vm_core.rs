@@ -943,7 +943,9 @@ impl VirtualMachine {
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
 
-    pub fn get_output_builtin_mut(&mut self) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
+    pub fn get_output_builtin_mut(
+        &mut self,
+    ) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
         for builtin in self.get_builtin_runners_as_mut() {
             if let BuiltinRunner::Output(output_builtin) = builtin {
                 return Ok(output_builtin);
