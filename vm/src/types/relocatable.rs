@@ -120,6 +120,17 @@ impl Add<usize> for Relocatable {
     }
 }
 
+impl Add<usize> for &Relocatable {
+    type Output = Relocatable;
+
+    fn add(self, other: usize) -> Self::Output {
+        Relocatable {
+            segment_index: self.segment_index,
+            offset: self.offset + other,
+        }
+    }
+}
+
 /// Warning: may panic if self.offset + rhs exceeds usize::MAX
 impl AddAssign<usize> for Relocatable {
     fn add_assign(&mut self, rhs: usize) {
@@ -344,17 +355,6 @@ impl MaybeRelocatable {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Some(*rel),
             MaybeRelocatable::Int(_) => None,
-        }
-    }
-}
-
-impl Add<usize> for &Relocatable {
-    type Output = Relocatable;
-
-    fn add(self, other: usize) -> Self::Output {
-        Relocatable {
-            segment_index: self.segment_index,
-            offset: self.offset + other,
         }
     }
 }
