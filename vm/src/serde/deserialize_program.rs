@@ -13,7 +13,8 @@ use crate::{
         prelude::*,
         sync::Arc,
     },
-    utils::CAIRO_PRIME, vm::runners::builtin_runner::RANGE_CHECK_96_BUILTIN_NAME,
+    utils::CAIRO_PRIME,
+    vm::runners::builtin_runner::RANGE_CHECK_96_BUILTIN_NAME,
 };
 
 use crate::utils::PRIME_STR;

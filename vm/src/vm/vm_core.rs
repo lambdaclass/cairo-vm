@@ -32,7 +32,7 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
+use super::runners::builtin_runner::{OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -925,7 +925,7 @@ impl VirtualMachine {
     pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
         for builtin in &self.builtin_runners {
             if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
-                if matches!(range_check_builtin.name(), RANGE_CHECK_BUILTIN_NAME) {
+                if range_check_builtin.name() == RANGE_CHECK_BUILTIN_NAME {
                     return Ok(range_check_builtin);
                 }
             };

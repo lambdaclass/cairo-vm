@@ -21,23 +21,26 @@ use crate::{
     },
 };
 
-use num_traits::Zero;
+use lazy_static::lazy_static;
 
 use super::{RANGE_CHECK_96_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
 
-// NOTE: the current implementation is based on the bound 0x10000
-const _INNER_RC_BOUND: u64 = 1u64 << INNER_RC_BOUND_SHIFT;
 const INNER_RC_BOUND_SHIFT: u64 = 16;
 const INNER_RC_BOUND_MASK: u64 = u16::MAX as u64;
 
-// TODO: use constant instead of receiving as false parameter
 const N_PARTS_STANDARD: u64 = 8;
 const N_PARTS_96: u64 = 6;
 
+lazy_static! {
+    pub static ref BOUND_STANDARD: Felt252 =
+        Felt252::TWO.pow(INNER_RC_BOUND_SHIFT * N_PARTS_STANDARD);
+    pub static ref BOUND_96: Felt252 = Felt252::TWO.pow(INNER_RC_BOUND_SHIFT * N_PARTS_96);
+}
+
 #[derive(Debug, Clone)]
 enum RangeCheckType {
-    Standard, // n_parts = 6
-    NinetySix, // n_parts = 8
+    Standard,  // range_check, n_parts = 8
+    NinetySix, // range_check96, n_parts = 6
 }
 
 #[derive(Debug, Clone)]
@@ -48,28 +51,23 @@ pub struct RangeCheckBuiltinRunner {
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    pub _bound: Option<Felt252>,
     pub(crate) included: bool,
     pub(crate) instances_per_component: u32,
 }
 
 impl RangeCheckBuiltinRunner {
     pub fn new(ratio: Option<u32>, n_parts: u32, included: bool) -> RangeCheckBuiltinRunner {
-        let bound = Felt252::TWO.pow(16 * n_parts as u128);
-        let _bound = if n_parts != 0 && bound.is_zero() {
-            None
-        } else {
-            Some(bound)
-        };
-
         RangeCheckBuiltinRunner {
             ratio,
             base: 0,
-            range_check_type: if n_parts == N_PARTS_96 as u32 {RangeCheckType::NinetySix} else {RangeCheckType::Standard},
+            range_check_type: if n_parts == N_PARTS_96 as u32 {
+                RangeCheckType::NinetySix
+            } else {
+                RangeCheckType::Standard
+            },
             stop_ptr: None,
             cells_per_instance: CELLS_PER_RANGE_CHECK,
             n_input_cells: CELLS_PER_RANGE_CHECK,
-            _bound,
             included,
             instances_per_component: 1,
         }
@@ -102,10 +100,17 @@ impl RangeCheckBuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match self.range_check_type {
             RangeCheckType::Standard => RANGE_CHECK_BUILTIN_NAME,
             RangeCheckType::NinetySix => RANGE_CHECK_96_BUILTIN_NAME,
+        }
+    }
+
+    pub fn bound(&self) -> &'static Felt252 {
+        match self.range_check_type {
+            RangeCheckType::Standard => &BOUND_STANDARD,
+            RangeCheckType::NinetySix => &BOUND_96,
         }
     }
 

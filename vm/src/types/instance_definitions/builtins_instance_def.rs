@@ -16,6 +16,7 @@ pub(crate) struct BuiltinsInstanceDef {
     pub(crate) ec_op: Option<EcOpInstanceDef>,
     pub(crate) keccak: Option<KeccakInstanceDef>,
     pub(crate) poseidon: Option<PoseidonInstanceDef>,
+    pub(crate) range_check96: Option<RangeCheckInstanceDef>,
 }
 
 impl BuiltinsInstanceDef {
@@ -29,6 +30,7 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 
@@ -42,6 +44,7 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 
@@ -55,6 +58,7 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 
@@ -68,6 +72,7 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 
@@ -81,6 +86,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: None,
             poseidon: Some(PoseidonInstanceDef::default()),
+            range_check96: None,
         }
     }
 
@@ -94,6 +100,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::default()),
+            range_check96: None,
         }
     }
 
@@ -107,6 +114,7 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: Some(PoseidonInstanceDef::new(Some(8))),
+            range_check96: None,
         }
     }
 
@@ -120,6 +128,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
+            range_check96: Some(RangeCheckInstanceDef::new(Some(8), 6)),
         }
     }
 
@@ -133,6 +142,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::default()),
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 
@@ -146,6 +156,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(None)),
             keccak: None,
             poseidon: None,
+            range_check96: None,
         }
     }
 }

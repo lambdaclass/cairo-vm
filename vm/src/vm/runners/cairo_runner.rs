@@ -259,6 +259,7 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::range_check96,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -327,6 +328,20 @@ impl CairoRunner {
             if included || self.is_proof_mode() {
                 builtin_runners
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check96.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check96);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(
+                    RangeCheckBuiltinRunner::new(
+                        instance_def.ratio,
+                        instance_def.n_parts,
+                        included,
+                    )
+                    .into(),
+                );
             }
         }
         if !program_builtins.is_empty() && !allow_missing_builtins {
@@ -400,6 +415,9 @@ impl CairoRunner {
                             .push(SegmentArenaBuiltinRunner::new(true).into())
                     }
                 }
+                BuiltinName::range_check96 => vm
+                    .builtin_runners
+                    .push(RangeCheckBuiltinRunner::new(Some(1), 6, true).into()),
             }
         }
 

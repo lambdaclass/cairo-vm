@@ -45,13 +45,9 @@ pub fn is_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let range_check_builtin = vm.get_range_check_builtin()?;
+    let range_check_bound = vm.get_range_check_builtin()?.bound();
     //Main logic (assert a is not negative and within the expected range)
-    let value = match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() >= bound => Felt252::ONE,
-        _ => Felt252::ZERO,
-    };
-    insert_value_into_ap(vm, value)
+    insert_value_into_ap(vm, Felt252::from(a.as_ref() >= range_check_bound))
 }
 
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
@@ -62,15 +58,9 @@ pub fn is_nn_out_of_range(
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();
-    let range_check_builtin = vm.get_range_check_builtin()?;
+    let range_check_bound = vm.get_range_check_builtin()?.bound();
     //Main logic (assert a is not negative and within the expected range)
-    //let value = if (-a - 1usize).mod_floor(vm.get_prime()) < range_check_builtin._bound {
-    let value = match &range_check_builtin._bound {
-        Some(bound) if Felt252::ZERO - (a + 1u64) < *bound => Felt252::ZERO,
-        None => Felt252::ZERO,
-        _ => Felt252::ONE,
-    };
-    insert_value_into_ap(vm, value)
+    insert_value_into_ap(vm, Felt252::from(-(a + 1) >= *range_check_bound))
 }
 /* Implements hint:from starkware.cairo.common.math_utils import assert_integer
 %{
@@ -184,9 +174,9 @@ pub fn assert_le_felt_v_0_8(
             b.clone().into_owned(),
         ))));
     }
-    let bound = vm.get_range_check_builtin()?._bound.unwrap_or_default();
+    let bound = vm.get_range_check_builtin()?.bound();
     let small_inputs =
-        Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < bound) as u8);
+        Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < *bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
@@ -299,11 +289,10 @@ pub fn assert_nn(
     let range_check_builtin = vm.get_range_check_builtin()?;
     // assert 0 <= ids.a % PRIME < range_check_builtin.bound
     // as prime > 0, a % prime will always be > 0
-    match &range_check_builtin._bound {
-        Some(bound) if a.as_ref() >= bound => {
-            Err(HintError::AssertNNValueOutOfRange(Box::new(a.into_owned())))
-        }
-        _ => Ok(()),
+    if a.as_ref() >= range_check_builtin.bound() {
+        Err(HintError::AssertNNValueOutOfRange(Box::new(a.into_owned())))
+    } else {
+        Ok(())
     }
 }
 
@@ -381,14 +370,11 @@ pub fn is_positive(
     // Avoid using abs so we don't allocate a new BigInt
     let (sign, abs_value) = value_as_int.into_parts();
     //Main logic (assert a is positive)
-    match &range_check_builtin._bound {
-        Some(bound) if abs_value > bound.to_biguint() => {
-            return Err(HintError::ValueOutsideValidRange(Box::new(
-                value.into_owned(),
-            )))
-        }
-        _ => {}
-    };
+    if abs_value >= range_check_builtin.bound().to_biguint() {
+        return Err(HintError::ValueOutsideValidRange(Box::new(
+            value.into_owned(),
+        )));
+    }
 
     let result = Felt252::from((sign == Sign::Plus) as u8);
     insert_value_from_var_name("is_positive", result, vm, ids_data, ap_tracking)
@@ -474,7 +460,7 @@ pub fn signed_div_rem(
     let bound = get_integer_from_var_name("bound", vm, ids_data, ap_tracking)?;
     let builtin = vm.get_range_check_builtin()?;
 
-    let builtin_bound = &builtin._bound.unwrap_or(Felt252::MAX);
+    let builtin_bound = builtin.bound();
     if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
         return Err(HintError::OutOfValidRange(Box::new((
             div.into_owned(),
@@ -528,25 +514,14 @@ pub fn unsigned_div_rem(
 ) -> Result<(), HintError> {
     let div = get_integer_from_var_name("div", vm, ids_data, ap_tracking)?;
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    let builtin = vm.get_range_check_builtin()?;
+    let builtin_bound = vm.get_range_check_builtin()?.bound();
 
     // Main logic
-    match &builtin._bound {
-        Some(builtin_bound)
-            if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? =>
-        {
-            return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
-                *builtin_bound,
-            ))));
-        }
-        None if div.is_zero() => {
-            return Err(HintError::OutOfValidRange(Box::new((
-                div.into_owned(),
-                Felt252::ZERO - Felt252::ONE,
-            ))));
-        }
-        _ => {}
+    if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
+        return Err(HintError::OutOfValidRange(Box::new((
+            div.into_owned(),
+            *builtin_bound,
+        ))));
     }
 
     let (q, r) = value.div_rem(&(*div).try_into().map_err(|_| MathError::DividedByZero)?);
@@ -1830,9 +1805,9 @@ mod tests {
         //Initialize fp
         vm.run_context.fp = 6;
         //Insert ids into memory
-        let bound = vm.get_range_check_builtin().unwrap()._bound;
+        let bound = vm.get_range_check_builtin().unwrap().bound();
         vm.segments = segments![((1, 3), (5)), ((1, 4), 10)];
-        vm.insert_value((1, 5).into(), bound.unwrap()).unwrap();
+        vm.insert_value((1, 5).into(), bound).unwrap();
         //Create ids
         let ids_data = ids_data!["r", "biased_q", "range_check_ptr", "div", "value", "bound"];
         //Execute the hint
@@ -1840,7 +1815,7 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::OutOfValidRange(bx))
-            if *bx == (bound.unwrap(), builtin_bound.field_div(&Felt252::TWO.try_into().unwrap()))
+            if *bx == (*bound, builtin_bound.field_div(&Felt252::TWO.try_into().unwrap()))
         )
     }
 
