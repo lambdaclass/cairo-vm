@@ -134,23 +134,21 @@ impl<'a> PublicInput<'a> {
         let trace_first = trace.first().ok_or(PublicInputError::EmptyTrace)?;
         let trace_last = trace.last().ok_or(PublicInputError::EmptyTrace)?;
 
+        let mut memory_segments = memory_segment_addresses
+            .into_iter()
+            .map(|(n, s)| (n, s.into()))
+            .collect::<HashMap<_, MemorySegmentAddresses>>();
+
+        memory_segments.insert("program", (trace_first.pc, trace_last.pc).into());
+        memory_segments.insert("execution", (trace_first.ap, trace_last.ap).into());
+
         Ok(PublicInput {
             layout,
             layout_params: dyn_layout_params,
             rc_min,
             rc_max,
             n_steps: trace.len(),
-            memory_segments: {
-                let mut memory_segment_addresses = memory_segment_addresses
-                    .into_iter()
-                    .map(|(n, s)| (n, s.into()))
-                    .collect::<HashMap<_, MemorySegmentAddresses>>();
-
-                memory_segment_addresses.insert("program", (trace_first.pc, trace_last.pc).into());
-                memory_segment_addresses
-                    .insert("execution", (trace_first.ap, trace_last.ap).into());
-                memory_segment_addresses
-            },
+            memory_segments,
             public_memory,
         })
     }
