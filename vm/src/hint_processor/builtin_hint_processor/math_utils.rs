@@ -176,7 +176,7 @@ pub fn assert_le_felt_v_0_8(
     }
     let bound = vm.get_range_check_builtin()?.bound();
     let small_inputs =
-        Felt252::from((a.as_ref() < &bound && b.as_ref() - a.as_ref() < *bound) as u8);
+        Felt252::from((a.as_ref() < bound && b.as_ref() - a.as_ref() < *bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
