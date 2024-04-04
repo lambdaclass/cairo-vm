@@ -80,7 +80,7 @@ impl BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
-            range_check: Some(RangeCheckInstanceDef::new(Some(16), 8)),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16))),
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
@@ -94,7 +94,7 @@ impl BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
-            range_check: Some(RangeCheckInstanceDef::new(Some(16), 8)),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16))),
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
@@ -128,7 +128,7 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
-            range_check96: Some(RangeCheckInstanceDef::new(Some(8), 6)),
+            range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
         }
     }
 
@@ -150,7 +150,7 @@ impl BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
             pedersen: Some(PedersenInstanceDef::new(None, 4)),
-            range_check: Some(RangeCheckInstanceDef::new(None, 8)),
+            range_check: Some(RangeCheckInstanceDef::new(None)),
             ecdsa: Some(EcdsaInstanceDef::new(None)),
             bitwise: Some(BitwiseInstanceDef::new(None)),
             ec_op: Some(EcOpInstanceDef::new(None)),

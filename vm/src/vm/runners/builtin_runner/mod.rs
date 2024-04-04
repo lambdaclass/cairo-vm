@@ -656,7 +656,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
+        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
     }
@@ -704,7 +704,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
+        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
     }
@@ -760,7 +760,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new(Some(10), 10, true);
+        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
         let builtin: BuiltinRunner = range_check.into();
         assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
     }
@@ -930,7 +930,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_range_check_with_items() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(10), 12, true));
+        let builtin =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(10), true));
 
         let mut vm = vm!();
 
@@ -1017,7 +1018,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+        let builtin =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         let mut vm = vm!();
         vm.current_step = 8;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
@@ -1069,7 +1071,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+        let builtin =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 4)));
     }
@@ -1160,7 +1163,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_range_check() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+        let builtin =
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -1185,7 +1189,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.get_memory_segment_addresses(), (0, None),);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             (0, None),
@@ -1321,7 +1325,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let range_check_builtin = RangeCheckBuiltinRunner::new_standard(Some(8), true);
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
@@ -1346,7 +1350,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_missing_memory_cells() {
         let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         let mut vm = vm!();
 
         vm.segments.memory = memory![((0, 1), 1)];
@@ -1362,7 +1366,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_empty() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let range_check_builtin = RangeCheckBuiltinRunner::new_standard(Some(8), true);
 
         let builtin: BuiltinRunner = range_check_builtin.into();
 
@@ -1560,7 +1564,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_range_check() {
-        let builtin_runner: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(8), 8, true).into();
+        let builtin_runner: BuiltinRunner =
+            RangeCheckBuiltinRunner::new_standard(Some(8), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1582,7 +1587,7 @@ mod tests {
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
         let keccak_builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -1637,7 +1642,7 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![4]);
 
         let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, true));
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
         assert_eq!(range_check_builtin.get_used_instances(&vm.segments), Ok(4));
     }
 
@@ -1652,7 +1657,7 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,
@@ -1680,7 +1685,7 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(8), 8, false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), false)),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,

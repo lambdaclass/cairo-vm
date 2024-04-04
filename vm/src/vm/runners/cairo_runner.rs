@@ -285,12 +285,7 @@ impl CairoRunner {
             let included = program_builtins.remove(&BuiltinName::range_check);
             if included || self.is_proof_mode() {
                 builtin_runners.push(
-                    RangeCheckBuiltinRunner::new(
-                        instance_def.ratio,
-                        instance_def.n_parts,
-                        included,
-                    )
-                    .into(),
+                    RangeCheckBuiltinRunner::new_standard(instance_def.ratio, included).into(),
                 );
             }
         }
@@ -334,14 +329,8 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.range_check96.as_ref() {
             let included = program_builtins.remove(&BuiltinName::range_check96);
             if included || self.is_proof_mode() {
-                builtin_runners.push(
-                    RangeCheckBuiltinRunner::new(
-                        instance_def.ratio,
-                        instance_def.n_parts,
-                        included,
-                    )
-                    .into(),
-                );
+                builtin_runners
+                    .push(RangeCheckBuiltinRunner::new_96(instance_def.ratio, included).into());
             }
         }
         if !program_builtins.is_empty() && !allow_missing_builtins {
@@ -389,7 +378,7 @@ impl CairoRunner {
                     .push(HashBuiltinRunner::new(Some(32), true).into()),
                 BuiltinName::range_check => vm
                     .builtin_runners
-                    .push(RangeCheckBuiltinRunner::new(Some(1), 8, true).into()),
+                    .push(RangeCheckBuiltinRunner::new_standard(Some(1), true).into()),
                 BuiltinName::output => vm
                     .builtin_runners
                     .push(OutputBuiltinRunner::new(true).into()),
@@ -417,7 +406,7 @@ impl CairoRunner {
                 }
                 BuiltinName::range_check96 => vm
                     .builtin_runners
-                    .push(RangeCheckBuiltinRunner::new(Some(1), 6, true).into()),
+                    .push(RangeCheckBuiltinRunner::new_96(Some(1), true).into()),
             }
         }
 
@@ -4093,7 +4082,7 @@ mod tests {
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(12), 5, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new_standard(Some(12), true).into()];
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
@@ -4147,7 +4136,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new_standard(Some(8), true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -4214,7 +4203,7 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new_standard(Some(8), true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
