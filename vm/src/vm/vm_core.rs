@@ -942,9 +942,6 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
-    pub fn disable_trace(&mut self) {
-        self.trace = None
-    }
 
     #[cfg(feature = "with_tracer")]
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
@@ -3840,15 +3837,6 @@ mod tests {
 
         assert_eq!(builtins[0].name(), HASH_BUILTIN_NAME);
         assert_eq!(builtins[1].name(), BITWISE_BUILTIN_NAME);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn disable_trace() {
-        let mut vm = VirtualMachine::new(true);
-        assert!(vm.trace.is_some());
-        vm.disable_trace();
-        assert!(vm.trace.is_none());
     }
 
     #[test]
