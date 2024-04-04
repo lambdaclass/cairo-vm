@@ -942,8 +942,10 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
-    pub fn disable_trace(&mut self) {
-        self.trace = None
+
+    #[cfg(feature = "with_tracer")]
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
+        self.segments.relocate_segments()
     }
 
     #[doc(hidden)]
@@ -1102,7 +1104,10 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn set_output_stop_ptr_offset(&mut self, offset: usize) {
         if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
-            builtin.set_stop_ptr_offset(offset)
+            builtin.set_stop_ptr_offset(offset);
+            if let Some(segment_used_sizes) = &mut self.segments.segment_used_sizes {
+                segment_used_sizes[builtin.base()] = offset;
+            }
         }
     }
 }
@@ -1213,7 +1218,6 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -3837,15 +3841,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn disable_trace() {
-        let mut vm = VirtualMachine::new(true);
-        assert!(vm.trace.is_some());
-        vm.disable_trace();
-        assert!(vm.trace.is_none());
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_for_continuous_memory() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
@@ -4313,11 +4308,10 @@ mod tests {
                 ap: 18,
                 fp: 0,
             })
-            .segments(MemorySegmentManager {
-                segment_sizes: HashMap::new(),
-                segment_used_sizes: Some(vec![1]),
-                public_memory_offsets: HashMap::new(),
-                memory: Memory::new(),
+            .segments({
+                let mut segments = MemorySegmentManager::new();
+                segments.segment_used_sizes = Some(vec![1]);
+                segments
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {

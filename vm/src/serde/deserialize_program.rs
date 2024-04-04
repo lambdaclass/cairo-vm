@@ -205,6 +205,17 @@ pub struct DebugInfo {
     pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
+impl DebugInfo {
+    pub fn new(instruction_locations: HashMap<usize, InstructionLocation>) -> Self {
+        Self {
+            instruction_locations,
+        }
+    }
+    pub fn get_instruction_locations(&self) -> HashMap<usize, InstructionLocation> {
+        self.instruction_locations.clone()
+    }
+}
+
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
@@ -216,6 +227,17 @@ pub struct InstructionLocation {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
+}
+
+impl InputFile {
+    #[cfg(feature = "std")]
+    pub fn get_content(&self) -> Result<String, String> {
+        let content = std::fs::read_to_string(self.filename.clone());
+        if let Ok(content) = content {
+            return Ok(content);
+        }
+        Err(format!("Failed to read file {}", self.filename.clone()))
+    }
 }
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]

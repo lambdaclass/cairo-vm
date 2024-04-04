@@ -1421,3 +1421,8 @@ data = __dict_manager.get_dict(ids.dict_ptr)
 print(
     {k: v if isinstance(v, int) else [memory[v + i] for i in range(ids.pointer_size)] for k, v in data.items()}
 )"#;
+
+pub const NONDET_ELEMENTS_OVER_TEN: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 10)";
+pub const NONDET_ELEMENTS_OVER_TWO: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 2)";
