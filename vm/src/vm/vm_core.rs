@@ -943,7 +943,7 @@ impl VirtualMachine {
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
 
-    pub fn get_output_builtin(&mut self) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
+    pub fn get_output_builtin_mut(&mut self) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
         for builtin in self.get_builtin_runners_as_mut() {
             if let BuiltinRunner::Output(output_builtin) = builtin {
                 return Ok(output_builtin);
@@ -3851,11 +3851,11 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_get_output_builtin() {
+    fn test_get_output_builtin_mut() {
         let mut vm = vm!();
 
         assert_matches!(
-            vm.get_output_builtin(),
+            vm.get_output_builtin_mut(),
             Err(VirtualMachineError::NoOutputBuiltin)
         );
 
@@ -3863,7 +3863,7 @@ mod tests {
         vm.builtin_runners.push(output_builtin.clone().into());
 
         let vm_output_builtin = vm
-            .get_output_builtin()
+            .get_output_builtin_mut()
             .expect("Output builtin should be returned");
 
         assert_eq!(vm_output_builtin.base(), output_builtin.base());
