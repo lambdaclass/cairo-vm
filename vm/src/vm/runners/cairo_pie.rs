@@ -69,7 +69,7 @@ pub struct OutputBuiltinAdditionalData {
     pub attributes: Attributes,
 }
 
-#[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SignatureBuiltinAdditionalData(pub HashMap<Relocatable, (Felt252, Felt252)>);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -90,8 +90,10 @@ pub struct CairoPieAdditionalData {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output_builtin: Option<OutputBuiltinAdditionalData>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serde_impl::serialize_optional_hash_additional_data")]
     pub pedersen_builtin: Option<Vec<Relocatable>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serde_impl::serialize_optional_signature_additional_data")]
     pub ecdsa_builtin: Option<SignatureBuiltinAdditionalData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub range_check_builtin: Option<()>,
@@ -364,7 +366,7 @@ mod serde_impl {
     };
     use num_bigint::BigUint;
     use serde::{
-        de::{MapAccess, SeqAccess, Visitor},
+        de::{SeqAccess, Visitor},
         ser::SerializeSeq,
         Deserialize, Deserializer, Serialize, Serializer,
     };
@@ -580,6 +582,19 @@ mod serde_impl {
         seq_serializer.end()
     }
 
+    pub fn serialize_optional_signature_additional_data<S>(
+        data: &Option<SignatureBuiltinAdditionalData>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match data {
+            Some(data) => serialize_signature_additional_data(data, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
     pub fn serialize_hash_additional_data<S>(
         values: &[Relocatable],
         serializer: S,
@@ -594,6 +609,19 @@ mod serde_impl {
         }
 
         seq_serializer.end()
+    }
+
+    pub fn serialize_optional_hash_additional_data<S>(
+        data: &Option<Vec<Relocatable>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match data {
+            Some(data) => serialize_hash_additional_data(data, serializer),
+            None => serializer.serialize_none(),
+        }
     }
 
     pub fn serialize_builtin_segments<S>(
@@ -654,21 +682,6 @@ mod serde_impl {
                     deserialize_felt_from_number(value.1)
                         .map_err(|e| serde::de::Error::custom(e.to_string()))?,
                 );
-                map.insert(key, value);
-            }
-
-            Ok(SignatureBuiltinAdditionalData(map))
-        }
-
-        fn visit_map<A>(self, mut access: A) -> Result<Self::Value, A::Error>
-        where
-            A: MapAccess<'de>,
-        {
-            let mut map = HashMap::with_capacity(access.size_hint().unwrap_or(0));
-
-            // While there are entries remaining in the input, add them
-            // into our map.
-            while let Some((key, value)) = access.next_entry()? {
                 map.insert(key, value);
             }
 
@@ -893,6 +906,15 @@ mod test {
         assert_eq!(cairo_pie.version.cairo_pie, CAIRO_PIE_VERSION);
     }
 
+    #[test]
+    fn test_cairo_pie_memory_is_empty() {
+        let mut memory = CairoPieMemory::new();
+        assert!(memory.is_empty());
+
+        memory.0.push(((0, 0), MaybeRelocatable::Int(Felt252::ONE)));
+        assert!(!memory.is_empty());
+    }
+
     #[cfg(feature = "std")]
     #[test]
     fn test_cairo_pie_from_file() {
@@ -974,5 +996,19 @@ mod test {
             additional_data.ecdsa_builtin,
             Some(expected_signature_additional_data)
         );
+    }
+
+    #[test]
+    fn test_serialize_additional_data_ecdsa() {
+        let additional_data = CairoPieAdditionalData {
+            ecdsa_builtin: Some(SignatureBuiltinAdditionalData(HashMap::from([(
+                Relocatable::from((4, 0)),
+                (Felt252::from(2000), Felt252::from(3000)),
+            )]))),
+            ..Default::default()
+        };
+
+        let s = serde_json::to_string(&additional_data).unwrap();
+        assert_eq!(s, "{\"ecdsa_builtin\":[[[4,0],[2000,3000]]]}")
     }
 }
