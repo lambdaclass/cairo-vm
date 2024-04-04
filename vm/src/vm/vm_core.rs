@@ -32,7 +32,9 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::{OutputBuiltinRunner, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME};
+use super::runners::builtin_runner::{
+    OutputBuiltinRunner, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
