@@ -176,7 +176,7 @@ pub fn squash_dict_inner_used_accesses_assert(
 
     if n_used_accesses.as_ref() != &Felt252::from(access_indices_at_key.len()) {
         return Err(HintError::NumUsedAccessesAssertFail(Box::new((
-            n_used_accesses.into_owned(),
+            n_used_accesses,
             access_indices_at_key.len(),
             key,
         ))));
@@ -260,14 +260,13 @@ pub fn squash_dict(
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
             return Err(HintError::SquashDictMaxSizeExceeded(Box::new((
-                max_size,
-                n_accesses.into_owned(),
+                max_size, n_accesses,
             ))));
         };
     };
     let n_accesses_usize = n_accesses
         .to_usize()
-        .ok_or_else(|| HintError::NAccessesTooBig(Box::new(n_accesses.into_owned())))?;
+        .ok_or_else(|| HintError::NAccessesTooBig(Box::new(n_accesses)))?;
     //A map from key to the list of indices accessing it.
     let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
     for i in 0..n_accesses_usize {
