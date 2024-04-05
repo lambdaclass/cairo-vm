@@ -10,6 +10,8 @@
     * Remove field `_bound`, replacing it with public method `bound`.
     * Add public methods `name` & `n_parts`.
 
+* feat: Reorganized builtins to be in the top of stack at the end of a run (Cairo1).
+
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
 
 * feat: output builtin add_attribute method [#1691](https://github.com/lambdaclass/cairo-vm/pull/1691)
