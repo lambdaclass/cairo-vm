@@ -5,7 +5,8 @@
 * feat(BREAKING): Add range_check96 builtin[#1698](https://github.com/lambdaclass/cairo-vm/pull/1698)
   * Add the new `range_check96` builtin to the `all_cairo` layout.
   * `RangeCheckBuiltinRunner` changes:
-    * Method `new` is now private, `new_standard` & `new_96` were added to replace its functionality, these methods no longer allow the caller to set a value for `n_parts` and instead rely on constants based on the range_check variant.
+    * Remove field `n_parts`, replacing it with const generic `N_PARTS`.
+    * Remome `n_parts` argument form method `new`.
     * Remove field `_bound`, replacing it with public method `bound`.
     * Add public methods `name` & `n_parts`.
 

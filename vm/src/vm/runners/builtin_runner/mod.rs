@@ -21,6 +21,7 @@ mod signature;
 
 pub use self::keccak::KeccakBuiltinRunner;
 pub use self::poseidon::PoseidonBuiltinRunner;
+pub(crate) use self::range_check::{RC_N_PARTS_96, RC_N_PARTS_STANDARD};
 pub use self::segment_arena::SegmentArenaBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
@@ -57,7 +58,8 @@ pub enum BuiltinRunner {
     EcOp(EcOpBuiltinRunner),
     Hash(HashBuiltinRunner),
     Output(OutputBuiltinRunner),
-    RangeCheck(RangeCheckBuiltinRunner),
+    RangeCheck(RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>),
+    RangeCheck96(RangeCheckBuiltinRunner<RC_N_PARTS_96>),
     Keccak(KeccakBuiltinRunner),
     Signature(SignatureBuiltinRunner),
     Poseidon(PoseidonBuiltinRunner),
@@ -73,6 +75,9 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.initialize_segments(segments),
             BuiltinRunner::Output(ref mut output) => output.initialize_segments(segments),
             BuiltinRunner::RangeCheck(ref mut range_check) => {
+                range_check.initialize_segments(segments)
+            }
+            BuiltinRunner::RangeCheck96(ref mut range_check) => {
                 range_check.initialize_segments(segments)
             }
             BuiltinRunner::Keccak(ref mut keccak) => keccak.initialize_segments(segments),
@@ -91,6 +96,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.initial_stack(),
             BuiltinRunner::Output(ref output) => output.initial_stack(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.initial_stack(),
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.initial_stack(),
             BuiltinRunner::Keccak(ref keccak) => keccak.initial_stack(),
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
@@ -110,6 +116,9 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
             BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
             BuiltinRunner::RangeCheck(ref mut range_check) => {
+                range_check.final_stack(segments, stack_pointer)
+            }
+            BuiltinRunner::RangeCheck96(ref mut range_check) => {
                 range_check.final_stack(segments, stack_pointer)
             }
             BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
@@ -169,6 +178,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.base(),
             BuiltinRunner::Output(ref output) => output.base(),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.base(),
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.base(),
             BuiltinRunner::Keccak(ref keccak) => keccak.base(),
             BuiltinRunner::Signature(ref signature) => signature.base(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
@@ -184,6 +194,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(hash) => hash.ratio(),
             BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => None,
             BuiltinRunner::RangeCheck(range_check) => range_check.ratio(),
+            BuiltinRunner::RangeCheck96(range_check) => range_check.ratio(),
             BuiltinRunner::Keccak(keccak) => keccak.ratio(),
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
@@ -197,6 +208,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
             BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.add_validation_rule(memory),
             BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.add_validation_rule(memory),
@@ -217,6 +229,9 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.deduce_memory_cell(address, memory),
             BuiltinRunner::Output(ref output) => output.deduce_memory_cell(address, memory),
             BuiltinRunner::RangeCheck(ref range_check) => {
+                range_check.deduce_memory_cell(address, memory)
+            }
+            BuiltinRunner::RangeCheck96(ref range_check) => {
                 range_check.deduce_memory_cell(address, memory)
             }
             BuiltinRunner::Keccak(ref keccak) => keccak.deduce_memory_cell(address, memory),
@@ -257,6 +272,9 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(ref range_check) => {
                 range_check.get_memory_segment_addresses()
             }
+            BuiltinRunner::RangeCheck96(ref range_check) => {
+                range_check.get_memory_segment_addresses()
+            }
             BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
             BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_memory_segment_addresses(),
@@ -273,6 +291,7 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_cells(segments),
             BuiltinRunner::Output(ref output) => output.get_used_cells(segments),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_cells(segments),
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.get_used_cells(segments),
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_cells(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_cells(segments),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_cells(segments),
@@ -292,6 +311,9 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref hash) => hash.get_used_instances(segments),
             BuiltinRunner::Output(ref output) => output.get_used_instances(segments),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_used_instances(segments),
+            BuiltinRunner::RangeCheck96(ref range_check) => {
+                range_check.get_used_instances(segments)
+            }
             BuiltinRunner::Keccak(ref keccak) => keccak.get_used_instances(segments),
             BuiltinRunner::Signature(ref signature) => signature.get_used_instances(segments),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_used_instances(segments),
@@ -304,6 +326,9 @@ impl BuiltinRunner {
     pub fn get_range_check_usage(&self, memory: &Memory) -> Option<(usize, usize)> {
         match self {
             BuiltinRunner::RangeCheck(ref range_check) => range_check.get_range_check_usage(memory),
+            BuiltinRunner::RangeCheck96(ref range_check) => {
+                range_check.get_range_check_usage(memory)
+            }
             _ => None,
         }
     }
@@ -315,6 +340,10 @@ impl BuiltinRunner {
     ) -> Result<usize, MemoryError> {
         match self {
             BuiltinRunner::RangeCheck(range_check) => {
+                let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
+                Ok(used_cells * range_check.n_parts() as usize)
+            }
+            BuiltinRunner::RangeCheck96(range_check) => {
                 let (used_cells, _) = self.get_used_cells_and_allocated_size(vm)?;
                 Ok(used_cells * range_check.n_parts() as usize)
             }
@@ -340,6 +369,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Hash(builtin) => builtin.cells_per_instance,
             BuiltinRunner::RangeCheck(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::RangeCheck96(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
@@ -354,6 +384,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(builtin) => builtin.n_input_cells,
             BuiltinRunner::Hash(builtin) => builtin.n_input_cells,
             BuiltinRunner::RangeCheck(builtin) => builtin.n_input_cells,
+            BuiltinRunner::RangeCheck96(builtin) => builtin.n_input_cells,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
@@ -368,6 +399,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(builtin) => builtin.instances_per_component,
             BuiltinRunner::Hash(builtin) => builtin.instances_per_component,
             BuiltinRunner::RangeCheck(builtin) => builtin.instances_per_component,
+            BuiltinRunner::RangeCheck96(builtin) => builtin.instances_per_component,
             BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => 1,
             BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
             BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
@@ -380,7 +412,8 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
             BuiltinRunner::EcOp(_) => EC_OP_BUILTIN_NAME,
             BuiltinRunner::Hash(_) => HASH_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck(b) => b.name(),
+            BuiltinRunner::RangeCheck(_) => RANGE_CHECK_BUILTIN_NAME,
+            BuiltinRunner::RangeCheck96(_) => RANGE_CHECK_96_BUILTIN_NAME,
             BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
             BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
@@ -489,6 +522,7 @@ impl BuiltinRunner {
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         match self {
             BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::RangeCheck96(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
             BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
@@ -507,6 +541,9 @@ impl BuiltinRunner {
             BuiltinRunner::Hash(ref mut hash) => hash.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Output(ref mut output) => output.stop_ptr = Some(stop_ptr),
             BuiltinRunner::RangeCheck(ref mut range_check) => range_check.stop_ptr = Some(stop_ptr),
+            BuiltinRunner::RangeCheck96(ref mut range_check) => {
+                range_check.stop_ptr = Some(stop_ptr)
+            }
             BuiltinRunner::Keccak(ref mut keccak) => keccak.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Signature(ref mut signature) => signature.stop_ptr = Some(stop_ptr),
             BuiltinRunner::Poseidon(ref mut poseidon) => poseidon.stop_ptr = Some(stop_ptr),
@@ -547,9 +584,15 @@ impl From<OutputBuiltinRunner> for BuiltinRunner {
     }
 }
 
-impl From<RangeCheckBuiltinRunner> for BuiltinRunner {
-    fn from(runner: RangeCheckBuiltinRunner) -> Self {
+impl From<RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>> for BuiltinRunner {
+    fn from(runner: RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>) -> Self {
         BuiltinRunner::RangeCheck(runner)
+    }
+}
+
+impl From<RangeCheckBuiltinRunner<RC_N_PARTS_96>> for BuiltinRunner {
+    fn from(runner: RangeCheckBuiltinRunner<RC_N_PARTS_96>) -> Self {
+        BuiltinRunner::RangeCheck96(runner)
     }
 }
 
@@ -656,7 +699,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
+        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
     }
@@ -704,7 +747,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
+        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
         let builtin: BuiltinRunner = range_check.clone().into();
         assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
     }
@@ -760,7 +803,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_range_check() {
-        let range_check = RangeCheckBuiltinRunner::new_standard(Some(10), true);
+        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
         let builtin: BuiltinRunner = range_check.into();
         assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
     }
@@ -930,8 +973,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_range_check_with_items() {
-        let builtin =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(10), true));
+        let builtin = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true),
+        );
 
         let mut vm = vm!();
 
@@ -1018,8 +1062,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_range_check() {
-        let builtin =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let builtin = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         let mut vm = vm!();
         vm.current_step = 8;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
@@ -1071,8 +1116,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_range_check() {
-        let builtin =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let builtin = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), Some((0, 4)));
     }
@@ -1163,8 +1209,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_range_check() {
-        let builtin =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let builtin = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -1188,8 +1235,9 @@ mod tests {
         assert_eq!(hash_builtin.get_memory_segment_addresses(), (0, None),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.get_memory_segment_addresses(), (0, None),);
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let range_check_builtin: BuiltinRunner = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         assert_eq!(
             range_check_builtin.get_memory_segment_addresses(),
             (0, None),
@@ -1325,7 +1373,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_missing_memory_cells_with_offsets() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new_standard(Some(8), true);
+        let range_check_builtin =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let builtin: BuiltinRunner = range_check_builtin.into();
         let mut vm = vm!();
 
@@ -1349,8 +1398,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_missing_memory_cells() {
-        let builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let builtin: BuiltinRunner = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<
+            RC_N_PARTS_STANDARD,
+        >::new(Some(8), true));
         let mut vm = vm!();
 
         vm.segments.memory = memory![((0, 1), 1)];
@@ -1366,7 +1416,8 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_range_check_empty() {
-        let range_check_builtin = RangeCheckBuiltinRunner::new_standard(Some(8), true);
+        let range_check_builtin =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
 
         let builtin: BuiltinRunner = range_check_builtin.into();
 
@@ -1565,7 +1616,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_range_check() {
         let builtin_runner: BuiltinRunner =
-            RangeCheckBuiltinRunner::new_standard(Some(8), true).into();
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1586,8 +1637,9 @@ mod tests {
         assert_eq!(hash_builtin.ratio(), (Some(8)),);
         let output_builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         assert_eq!(output_builtin.ratio(), None,);
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let range_check_builtin: BuiltinRunner = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
         let keccak_builtin: BuiltinRunner =
             KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
@@ -1641,8 +1693,9 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let range_check_builtin: BuiltinRunner =
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), true));
+        let range_check_builtin: BuiltinRunner = BuiltinRunner::RangeCheck(
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
+        );
         assert_eq!(range_check_builtin.get_used_instances(&vm.segments), Ok(4));
     }
 
@@ -1657,7 +1710,10 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
+                Some(8),
+                false,
+            )),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,
@@ -1685,7 +1741,10 @@ mod tests {
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
-            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new_standard(Some(8), false)),
+            BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
+                Some(8),
+                false,
+            )),
             BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
                 &KeccakInstanceDef::default(),
                 false,
