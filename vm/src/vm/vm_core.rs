@@ -32,7 +32,7 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
+use super::runners::builtin_runner::{OutputBuiltinRunner, OUTPUT_BUILTIN_NAME};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -942,8 +942,17 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
-    pub fn disable_trace(&mut self) {
-        self.trace = None
+
+    pub fn get_output_builtin_mut(
+        &mut self,
+    ) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
+        for builtin in self.get_builtin_runners_as_mut() {
+            if let BuiltinRunner::Output(output_builtin) = builtin {
+                return Ok(output_builtin);
+            };
+        }
+
+        Err(VirtualMachineError::NoOutputBuiltin)
     }
 
     #[cfg(feature = "with_tracer")]
@@ -1018,7 +1027,6 @@ impl VirtualMachine {
 
         let segment_used_sizes = self.segments.compute_effective_sizes();
         let segment_index = builtin.base();
-        #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
             let formatted_value = match self
                 .segments
@@ -3844,11 +3852,26 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn disable_trace() {
-        let mut vm = VirtualMachine::new(true);
-        assert!(vm.trace.is_some());
-        vm.disable_trace();
-        assert!(vm.trace.is_none());
+    fn test_get_output_builtin_mut() {
+        let mut vm = vm!();
+
+        assert_matches!(
+            vm.get_output_builtin_mut(),
+            Err(VirtualMachineError::NoOutputBuiltin)
+        );
+
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners.push(output_builtin.clone().into());
+
+        let vm_output_builtin = vm
+            .get_output_builtin_mut()
+            .expect("Output builtin should be returned");
+
+        assert_eq!(vm_output_builtin.base(), output_builtin.base());
+        assert_eq!(vm_output_builtin.pages, output_builtin.pages);
+        assert_eq!(vm_output_builtin.attributes, output_builtin.attributes);
+        assert_eq!(vm_output_builtin.stop_ptr, output_builtin.stop_ptr);
+        assert_eq!(vm_output_builtin.included, output_builtin.included);
     }
 
     #[test]
