@@ -33,20 +33,21 @@ jobs:
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
-        cp target/release/hyper_threading ./hyper_threading_pr
-        cp ./examples/hyper_threading/hyper-threading-workflow.sh ./hyper-threading-workflow.sh
+        mkdir -p ${{ github.workspace }}/artifacts
+        cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_pr
+        cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
     
     - name: Upload PR Binary
       uses: actions/upload-artifact@master
       with:
         name: hyper_threading_pr_binary
-        path: ./hyper_threading_pr
+        path: ${{ github.workspace }}/artifacts/hyper_threading_pr
 
     - name: Upload Workflow Script
       uses: actions/upload-artifact@master
       with:
         name: hyper_threading_workflow_script
-        path: ./hyper-threading-workflow.sh
+        path: ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
 
 
     - name: Checkout Main Branch
@@ -58,26 +59,24 @@ jobs:
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
-        cp target/release/hyper_threading ./hyper_threading_main
+        mkdir -p ${{ github.workspace }}/artifacts
+        cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_main
 
     - name: Upload Main Binary
       uses: actions/upload-artifact@master
       with:
         name: hyper_threading_main_binary
-        path: ./hyper_threading_main
+        path: ${{ github.workspace }}/artifacts/hyper_threading_main
 
     - name: Download Binaries and Script
       uses: actions/download-artifact@master
       with:
-        path: ./
-
-    - name: Download script
-      uses: actions/download-artifact@master
-      with:
-        path: ./examples/hyper_threading/
+        path: ${{ github.workspace }}/artifacts/
+    - name: Display structure of downloaded files
+      run: ls -R ${{ github.workspace }}/artifacts/
 
     - name: Run Benchmarks
-      run: source ./hyper-threading-workflow.sh --show-output
+      run: source ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh --show-output
 
     - name: Compare Results
       run: |
