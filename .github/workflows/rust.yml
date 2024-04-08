@@ -227,7 +227,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key:all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
@@ -261,8 +261,10 @@ jobs:
       with:
         tool: cargo-all-features
 
-    - name: Checkout
-      uses: actions/checkout@v3
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -292,6 +294,11 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
