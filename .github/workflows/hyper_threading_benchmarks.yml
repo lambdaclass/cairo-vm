@@ -35,56 +35,62 @@ jobs:
         cargo build --release -p hyper_threading
         mkdir -p ${{ github.workspace }}/artifacts
         cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_pr
-        cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
-    
+        cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/artifacts/
+
     - name: Upload PR Binary
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: hyper_threading_pr_binary
         path: ${{ github.workspace }}/artifacts/hyper_threading_pr
 
     - name: Upload Workflow Script
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: hyper_threading_workflow_script
         path: ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
-
 
     - name: Checkout Main Branch
       uses: actions/checkout@v2
       with:
         ref: 'main'
+      # Ensure to fetch the history for main branch and PR comparison, if needed
+      with:
+        fetch-depth: 0
 
     - name: Compile Main Version
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
-        mkdir -p ${{ github.workspace }}/artifacts
+        mkdir -p ${{ github.workspace }}/artifacts # This might be redundant due to previous mkdir
         cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_main
 
     - name: Upload Main Binary
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v2
       with:
         name: hyper_threading_main_binary
         path: ${{ github.workspace }}/artifacts/hyper_threading_main
 
-    - name: Download Binaries and Script
-      uses: actions/download-artifact@master
+    # Ensure all artifacts are downloaded in one step to prevent path issues
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v2
       with:
         path: ${{ github.workspace }}/artifacts/
+
     - name: Display structure of downloaded files
       run: ls -R ${{ github.workspace }}/artifacts/
 
     - name: Run Benchmarks
-      run: source ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh --show-output
+      run: |
+        chmod +x ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
+        ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh --show-output
 
     - name: Compare Results
       run: |
         echo "PR Results:"
-        cat results_pr.txt
+        cat ${{ github.workspace }}/artifacts/results_pr.txt
 
     - name: Upload Results
       uses: actions/upload-artifact@v2
       with:
         name: benchmark-results
-        path: results_pr.txt
+        path: ${{ github.workspace }}/artifacts/results_pr.txt
