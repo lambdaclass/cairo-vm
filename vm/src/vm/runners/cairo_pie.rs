@@ -106,6 +106,24 @@ impl CairoPieAdditionalData {
             && self.ecdsa_builtin.is_none()
             && self.range_check_builtin.is_none()
     }
+
+    /// Translates the additional data struct to a hashmap following the same format
+    /// as cairo-lang.
+    ///
+    /// For compatibility with the cairo-lang / Python VM format, null values are added
+    /// for each builtin used by the program and not already set in the struct.
+    pub fn to_map_compat_cairo_lang(
+        &self,
+        program_builtins: &[BuiltinName],
+    ) -> HashMap<String, BuiltinAdditionalData> {
+        let mut map: HashMap<String, BuiltinAdditionalData> = self.into();
+        for builtin in program_builtins {
+            map.entry(builtin.name().to_string())
+                .or_insert(BuiltinAdditionalData::None);
+        }
+
+        map
+    }
 }
 
 impl From<HashMap<String, BuiltinAdditionalData>> for CairoPieAdditionalData {
@@ -129,6 +147,33 @@ impl From<HashMap<String, BuiltinAdditionalData>> for CairoPieAdditionalData {
             pedersen_builtin: pedersen_builtin_data,
             range_check_builtin: None,
         }
+    }
+}
+
+impl Into<HashMap<String, BuiltinAdditionalData>> for &CairoPieAdditionalData {
+    fn into(self) -> HashMap<String, BuiltinAdditionalData> {
+        let mut map = HashMap::new();
+
+        if let Some(output_builtin) = &self.output_builtin {
+            map.insert(
+                OUTPUT_BUILTIN_NAME.to_string(),
+                BuiltinAdditionalData::Output(output_builtin.clone()),
+            );
+        }
+        if let Some(ecdsa_builtin) = &self.ecdsa_builtin {
+            map.insert(
+                SIGNATURE_BUILTIN_NAME.to_string(),
+                BuiltinAdditionalData::Signature(ecdsa_builtin.clone()),
+            );
+        }
+        if let Some(pedersen_builtin) = &self.pedersen_builtin {
+            map.insert(
+                HASH_BUILTIN_NAME.to_string(),
+                BuiltinAdditionalData::Hash(pedersen_builtin.clone()),
+            );
+        }
+
+        map
     }
 }
 
@@ -342,7 +387,12 @@ impl CairoPie {
         zip_writer.start_file("memory.bin", options)?;
         zip_writer.write_all(&self.memory.to_bytes())?;
         zip_writer.start_file("additional_data.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        // Additional data requires formatting to preserve 100% compatibility
+        // with cairo-lang.
+        let additional_data_map = self
+            .additional_data
+            .to_map_compat_cairo_lang(&self.metadata.program.builtins);
+        zip_writer.write_all(serde_json::to_string(&additional_data_map)?.as_bytes())?;
         zip_writer.start_file("execution_resources.json", options)?;
         zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
         zip_writer.finish()?;
