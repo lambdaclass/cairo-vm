@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* bugfix(BREAKING): Handle off2 immediate case in `get_integer_from_reference`[#1701](https://github.com/lambdaclass/cairo-vm/pull/1701)
+  * `get_integer_from_reference` & `get_integer_from_var_name` output changed from `Result<Cow<'a, Felt252>, HintError>` to `Result<Felt252, HintError>`
+
 * feat: Reorganized builtins to be in the top of stack at the end of a run (Cairo1).
 
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
