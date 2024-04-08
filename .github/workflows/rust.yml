@@ -261,7 +261,8 @@ jobs:
       with:
         tool: cargo-all-features
 
-    - uses: actions/download-artifact@master
+    - name: Download proof programs symlinks
+      uses: actions/download-artifact@master
       with:
         name: proof_programs
         path: cairo_programs/proof_programs/
@@ -295,7 +296,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - uses: actions/download-artifact@master
+    - name: Download proof programs symlinks
+      uses: actions/download-artifact@master
       with:
         name: proof_programs
         path: cairo_programs/proof_programs/
