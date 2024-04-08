@@ -261,6 +261,9 @@ jobs:
       with:
         tool: cargo-all-features
 
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
       with:
