@@ -4,7 +4,7 @@
 thread_counts=(1 2 4 6 8 16 32)
 
 # Define una lista con los nombres de los binarios
-binaries=("hyper_threading_main" "hyper_threading_pr")
+binaries=("hyper_threading_main_binary/hyper_threading_main" "hyper_threading_pr_binary/hyper_threading_pr")
 
 # Itera sobre la lista de thread_counts
 for threads in "${thread_counts[@]}"; do
