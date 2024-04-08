@@ -179,7 +179,6 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::collections::HashMap;
 
     use crate::{
         relocatable,

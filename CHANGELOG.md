@@ -2,7 +2,31 @@
 
 #### Upcoming Changes
 
-* feat: Make air public inputs deserializable [#1648](https://github.com/lambdaclass/cairo-vm/pull/1648)
+* feat: Reorganized builtins to be in the top of stack at the end of a run (Cairo1).
+
+* BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
+
+* feat: output builtin add_attribute method [#1691](https://github.com/lambdaclass/cairo-vm/pull/1691)
+ 
+* feat: add a method to retrieve the output builtin from the VM [#1690](https://github.com/lambdaclass/cairo-vm/pull/1690)
+
+* feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
+
+* feat: Bump cairo_lang to 0.13.1 in testing env [#1687](https://github.com/lambdaclass/cairo-vm/pull/1687)
+
+* feat(BREAKING): Use return type info from sierra when serializing return values in cairo1-run crate [#1665](https://github.com/lambdaclass/cairo-vm/pull/1665)
+  * Removed public function `serialize_output`.
+  * Add field `serialize_output` to `Cairo1RunConfig`.
+  * Function `cairo_run_program` now returns an extra `Option<String>` value with the serialized output if `serialize_output` is enabled in the config.
+  * Output serialization improved as it now uses the sierra program data to identify return value's types.
+
+* feat: Create hyper_threading crate to benchmark the `cairo-vm` in a hyper-threaded environment [#1679](https://github.com/lambdaclass/cairo-vm/pull/1679)
+
+* feat: add a `--tracer` option which hosts a web server that shows the line by line execution of cairo code along with memory registers [#1265](https://github.com/lambdaclass/cairo-vm/pull/1265)
+
+* feat: Fix error handling in `initialize_state`[#1657](https://github.com/lambdaclass/cairo-vm/pull/1657)
+
+* feat: Make air public inputs deserializable [#1657](https://github.com/lambdaclass/cairo-vm/pull/1648)
 
 * feat: Show only layout builtins in air private input [#1651](https://github.com/lambdaclass/cairo-vm/pull/1651)
 
@@ -16,6 +40,8 @@
 * feat: Add flag to append return values to output segment when not running in proof_mode [#1646](https://github.com/lambdaclass/cairo-vm/pull/1646)
   * Adds the flag `append_return_values` to both the CLI and `Cairo1RunConfig` struct.
   * Enabling flag will add the output builtin and the necessary instructions to append the return values to the output builtin's memory segment.
+
+* feat: Compute program hash chain [#1647](https://github.com/lambdaclass/cairo-vm/pull/1647)
 
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 

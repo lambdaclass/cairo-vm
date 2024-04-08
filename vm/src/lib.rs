@@ -56,6 +56,7 @@ pub mod air_public_input;
 pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;
+pub mod program_hash;
 pub mod serde;
 pub mod types;
 pub mod utils;

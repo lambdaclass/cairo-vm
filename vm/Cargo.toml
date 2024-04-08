@@ -10,6 +10,8 @@ keywords.workspace = true
 
 [features]
 default = ["std"]
+with_tracer = ["tracer"]
+
 std = [
     "serde_json/std",
     "bincode/std",
@@ -26,6 +28,7 @@ cairo-1-hints = [
     "dep:ark-ff",
     "dep:ark-std",
 ]
+tracer = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [
