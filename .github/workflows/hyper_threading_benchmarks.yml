@@ -77,7 +77,7 @@ jobs:
         path: ./examples/hyper_threading/
 
     - name: Run Benchmarks
-      run: source ./examples/hyper_threading/hyper_threading_workflow_script/hyper-threading-workflow.sh > results_pr.txt
+      run: source ./examples/hyper_threading/hyper_threading_workflow_script/hyper-threading-workflow.sh --show-output
 
     - name: Compare Results
       run: |
