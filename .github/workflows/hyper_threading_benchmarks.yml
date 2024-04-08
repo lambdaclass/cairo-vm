@@ -38,13 +38,13 @@ jobs:
         cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
     
     - name: Upload PR Binary
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_pr_binary
         path: ${{ github.workspace }}/artifacts/hyper_threading_pr
 
     - name: Upload Workflow Script
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_workflow_script
         path: ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
@@ -63,13 +63,13 @@ jobs:
         cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_main
 
     - name: Upload Main Binary
-      uses: actions/upload-artifact@master
+      uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_main_binary
         path: ${{ github.workspace }}/artifacts/hyper_threading_main
 
     - name: Download Binaries and Script
-      uses: actions/download-artifact@master
+      uses: actions/download-artifact@v4
       with:
         path: ${{ github.workspace }}/artifacts/
 
@@ -80,7 +80,8 @@ jobs:
     - name: Run Benchmarks
       run: |
         ls -R ${{ github.workspace }}/artifacts/
-        source ${{ github.workspace }}/artifacts/hyper-threading-workflow --show-output
+        chmod +x ${{ github.workspace }}/artifacts/hyper_threading_workflow_script/hyper-threading-workflow.sh
+        ${{ github.workspace }}/artifacts/hyper_threading_workflow_script/hyper-threading-workflow.sh
 
     - name: Compare Results
       run: |
@@ -88,7 +89,7 @@ jobs:
         cat results_pr.txt
 
     - name: Upload Results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
         path: results_pr.txt
