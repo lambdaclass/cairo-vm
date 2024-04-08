@@ -76,7 +76,7 @@ jobs:
       run: ls -R ${{ github.workspace }}/artifacts/
 
     - name: Run Benchmarks
-      run: source ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh --show-output
+      run: source ${{ github.workspace }}/artifacts/hyper-threading-workflow --show-output
 
     - name: Compare Results
       run: |
