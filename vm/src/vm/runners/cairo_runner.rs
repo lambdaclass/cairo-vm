@@ -416,12 +416,14 @@ impl CairoRunner {
                             .push(SegmentArenaBuiltinRunner::new(true).into())
                     }
                 }
-                BuiltinName::add_mod => vm
-                    .builtin_runners
-                    .push(ModBuiltinRunner::new_add_mod(&ModInstanceDef::default(), true).into()),
-                BuiltinName::mul_mod => vm
-                    .builtin_runners
-                    .push(ModBuiltinRunner::new_mul_mod(&ModInstanceDef::default(), true).into()),
+                BuiltinName::add_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
+                BuiltinName::mul_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
             }
         }
 

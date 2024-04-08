@@ -10,18 +10,10 @@ pub(crate) struct ModInstanceDef {
 }
 
 impl ModInstanceDef {
-    pub(crate) fn default() -> Self {
-        ModInstanceDef {
-            ratio: Some(32), //TODO: Ask what this should be
-            word_bit_len: 3,
-            batch_size: 1,
-        }
-    }
-
-    pub(crate) fn new(ratio: Option<u32>, batch_size: usize) -> Self {
+    pub(crate) fn new(ratio: Option<u32>, batch_size: usize, word_bit_len: u32) -> Self {
         ModInstanceDef {
             ratio,
-            word_bit_len: 3,
+            word_bit_len,
             batch_size,
         }
     }

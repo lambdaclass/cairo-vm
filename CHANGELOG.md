@@ -6,7 +6,7 @@
 
   Main Changes:
   * Add the new `ModBuiltinRunner`, implementing the builtins `add_mod` & `mul_mod`
-  * Add temporary feature `mod_builtin` which adds `add_mod` & `mul_mod` to the `all_cairo` & `all_solidity` layouts so that the new builtins may be used in them. This feature will be removed once these builtins are properly added to the correct layouts
+  * Adds `add_mod` & `mul_mod` to the `all_cairo` & `dynamic` layouts under the `mod_builtin` feature flag. This will be added to the main code in a future update.
   * Add method `VirtualMachine::fill_memory` in order to perform the new builtin's main logic from within hints
   * Add hints to run arithmetic circuits using `add_mod` and/or `mul_mod` builtins
 

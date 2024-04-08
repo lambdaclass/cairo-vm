@@ -658,6 +658,18 @@ impl ModBuiltinRunner {
         }
         Ok(())
     }
+
+    #[cfg(test)]
+    #[cfg(feature = "mod_builtin")]
+    // Testing method used to test programs that use parameters which are not included in any layout
+    // For example, programs with large batch size
+    pub(crate) fn override_layout_params(&mut self, batch_size: usize, word_bit_len: u32) {
+        self.instance_def.batch_size = batch_size;
+        self.instance_def.word_bit_len = word_bit_len;
+        self.shift = BigUint::one().shl(word_bit_len);
+        self.shift_powers = core::array::from_fn(|i| self.shift.pow(i as u32));
+        self.zero_segment_size = core::cmp::max(N_WORDS, batch_size * 3);
+    }
 }
 
 fn apply_op(lhs: &BigUint, rhs: &BigUint, op: &Operation) -> Result<BigUint, MathError> {
@@ -678,26 +690,44 @@ mod tests {
         use super::*;
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
-            cairo_run::{cairo_run, CairoRunConfig},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-            vm::runners::builtin_runner::{ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME},
+            utils::test_utils::Program,
+            vm::runners::{
+                builtin_runner::{BuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME},
+                cairo_runner::CairoRunner,
+            },
             Felt252,
         };
 
         let program_data = include_bytes!(
             "../../../../../cairo_programs/mod_builtin_feature/proof/mod_builtin.json"
         );
-        let (runner, vm) = cairo_run(
-            program_data,
-            &CairoRunConfig {
-                proof_mode: true,
-                trace_enabled: true,
-                layout: "all_cairo",
-                ..Default::default()
-            },
-            &mut BuiltinHintProcessor::new_empty(),
-        )
-        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let program = Program::from_bytes(program_data, Some("main")).unwrap();
+        let mut runner = CairoRunner::new(&program, "all_cairo", true).unwrap();
+
+        let mut vm = VirtualMachine::new(false);
+        let end = runner.initialize(&mut vm, false).unwrap();
+        // Modify add_mod & mul_mod params
+        for runner in vm.get_builtin_runners_as_mut() {
+            if let BuiltinRunner::Mod(runner) = runner {
+                runner.override_layout_params(1, 3)
+            }
+        }
+
+        runner
+            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .unwrap();
+        runner
+            .run_for_steps(1, &mut vm, &mut hint_processor)
+            .unwrap();
+        runner
+            .end_run(false, false, &mut vm, &mut hint_processor)
+            .unwrap();
+        runner.read_return_values(&mut vm).unwrap();
+        runner.finalize_segments(&mut vm).unwrap();
+
         let air_private_input = runner.get_air_private_input(&vm);
         assert_eq!(
             air_private_input.0.get(ADD_MOD_BUILTIN_NAME).unwrap()[0],
