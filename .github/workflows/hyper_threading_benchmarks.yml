@@ -72,11 +72,15 @@ jobs:
       uses: actions/download-artifact@master
       with:
         path: ${{ github.workspace }}/artifacts/
+
+
     - name: Display structure of downloaded files
       run: ls -R ${{ github.workspace }}/artifacts/
 
     - name: Run Benchmarks
-      run: source ${{ github.workspace }}/artifacts/hyper-threading-workflow --show-output
+      run: |
+        ls -R ${{ github.workspace }}/artifacts/
+        source ${{ github.workspace }}/artifacts/hyper-threading-workflow --show-output
 
     - name: Compare Results
       run: |
