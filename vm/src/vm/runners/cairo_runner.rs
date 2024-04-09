@@ -1110,7 +1110,7 @@ impl CairoRunner {
                 .get_used_cells_and_allocated_size(vm)
                 .map_err(RunnerError::FinalizeSegements)?;
             if let BuiltinRunner::Output(output_builtin) = builtin_runner {
-                let public_memory = output_builtin.get_public_memory()?;
+                let public_memory = output_builtin.get_public_memory(&vm.segments)?;
                 vm.segments
                     .finalize(Some(size), builtin_runner.base(), Some(&public_memory))
             } else {

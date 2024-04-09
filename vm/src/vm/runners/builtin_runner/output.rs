@@ -164,10 +164,8 @@ impl OutputBuiltinRunner {
         Ok(())
     }
 
-    pub fn get_public_memory(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
-        let size = self
-            .stop_ptr
-            .ok_or(RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+    pub fn get_public_memory(&self, segments: &MemorySegmentManager) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let size = self.get_used_cells(segments)?;
 
         let mut public_memory: Vec<(usize, usize)> = (0..size).map(|i| (i, 0)).collect();
         for (page_id, page) in self.pages.iter() {
@@ -590,9 +588,18 @@ mod tests {
             )
             .unwrap();
 
-        builtin.stop_ptr = Some(7);
+        // This is so we get size = 7
+        let segments = segments![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((0, 5), 0),
+            ((0, 6), 0),
+        ];
 
-        let public_memory = builtin.get_public_memory().unwrap();
+        let public_memory = builtin.get_public_memory(&segments).unwrap();
         assert_eq!(
             public_memory,
             vec![(0, 0), (1, 0), (2, 1), (3, 1), (4, 2), (5, 2), (6, 2)]
