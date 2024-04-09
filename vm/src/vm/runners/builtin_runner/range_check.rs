@@ -13,7 +13,7 @@ use crate::{
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
-        errors::{memory_errors::MemoryError, runner_errors::RunnerError},
+        errors::memory_errors::MemoryError,
         vm_memory::{
             memory::{Memory, ValidationRule},
             memory_segments::MemorySegmentManager,
@@ -22,8 +22,6 @@ use crate::{
 };
 
 use num_traits::Zero;
-
-use super::RANGE_CHECK_BUILTIN_NAME;
 
 // NOTE: the current implementation is based on the bound 0x10000
 const _INNER_RC_BOUND: u64 = 1u64 << INNER_RC_BOUND_SHIFT;
@@ -107,18 +105,6 @@ impl RangeCheckBuiltinRunner {
         memory.add_validation_rule(self.base, rule);
     }
 
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base)
@@ -159,43 +145,6 @@ impl RangeCheckBuiltinRunner {
         self.get_used_cells(segments)
     }
 
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(RANGE_CHECK_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(RANGE_CHECK_BUILTIN_NAME)))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    RANGE_CHECK_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as usize;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    RANGE_CHECK_BUILTIN_NAME,
-                    Relocatable::from((self.base as isize, used)),
-                    Relocatable::from((self.base as isize, stop_ptr)),
-                ))));
-            }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
-    }
-
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
@@ -214,6 +163,8 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
+    use crate::vm::errors::runner_errors::RunnerError;
+    use crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -242,7 +193,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(10), 12, true);
+        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(10), 12, true).into();
 
         let mut vm = vm!();
 
@@ -266,7 +217,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(10), 12, true);
+        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(10), 12, true).into();
 
         let mut vm = vm!();
 
@@ -294,7 +245,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(10), 12, false);
+        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(10), 12, false).into();
 
         let mut vm = vm!();
 
@@ -318,7 +269,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(10), 12, true);
+        let mut builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(Some(10), 12, true).into();
 
         let mut vm = vm!();
 
@@ -455,54 +406,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(256), 8, true));
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(256), 8, true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin = BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::new(Some(256), 8, true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_base() {
         let builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
         assert_eq!(builtin.base(), 0);
@@ -608,9 +511,9 @@ mod tests {
     fn get_air_private_input() {
         let builtin: BuiltinRunner = RangeCheckBuiltinRunner::new(None, 4, true).into();
 
-        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2)];
+        let segments = segments![((0, 0), 0), ((0, 1), 1), ((0, 2), 2)];
         assert_eq!(
-            builtin.air_private_input(&memory),
+            builtin.air_private_input(&segments),
             (vec![
                 PrivateInput::Value(PrivateInputValue {
                     index: 0,

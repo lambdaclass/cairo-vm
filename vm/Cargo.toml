@@ -27,6 +27,7 @@ cairo-1-hints = [
     "dep:ark-std",
 ]
 tracer = []
+mod_builtin = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = [

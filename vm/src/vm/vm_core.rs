@@ -19,7 +19,9 @@ use crate::{
             exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
             vm_errors::VirtualMachineError,
         },
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
+        runners::builtin_runner::{
+            BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
+        },
         trace::trace_entry::TraceEntry,
         vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -32,7 +34,9 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::{OutputBuiltinRunner, OUTPUT_BUILTIN_NAME};
+use super::runners::builtin_runner::{
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -1120,6 +1124,53 @@ impl VirtualMachine {
                 segment_used_sizes[builtin.base()] = offset;
             }
         }
+    }
+
+    /// Fetches add_mod & mul_mod builtins according to the optional arguments and executes `fill_memory`
+    /// Returns an error if either of this optional parameters is true but the corresponding builtin is not present
+    /// Verifies that both builtin's (if present) batch sizes match the batch_size arg if set
+    // This method is needed as running `fill_memory` direclty from outside the vm struct would require cloning the builtin runners to avoid double borrowing
+    pub fn mod_builtin_fill_memory(
+        &mut self,
+        add_mod_ptr_n: Option<(Relocatable, usize)>,
+        mul_mod_ptr_n: Option<(Relocatable, usize)>,
+        batch_size: Option<usize>,
+    ) -> Result<(), VirtualMachineError> {
+        let fetch_builtin_params = |mod_params: Option<(Relocatable, usize)>,
+                                    mod_name: &'static str|
+         -> Result<
+            Option<(Relocatable, &ModBuiltinRunner, usize)>,
+            VirtualMachineError,
+        > {
+            if let Some((ptr, n)) = mod_params {
+                let mod_builtin = self
+                    .builtin_runners
+                    .iter()
+                    .find_map(|b| match b {
+                        BuiltinRunner::Mod(b) if b.name() == mod_name => Some(b),
+                        _ => None,
+                    })
+                    .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name))?;
+                if let Some(batch_size) = batch_size {
+                    if mod_builtin.batch_size() != batch_size {
+                        return Err(VirtualMachineError::ModBuiltinBatchSize(Box::new((
+                            mod_builtin.name(),
+                            batch_size,
+                        ))));
+                    }
+                }
+                Ok(Some((ptr, mod_builtin, n)))
+            } else {
+                Ok(None)
+            }
+        };
+
+        ModBuiltinRunner::fill_memory(
+            &mut self.segments.memory,
+            fetch_builtin_params(add_mod_ptr_n, ADD_MOD_BUILTIN_NAME)?,
+            fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
+        )
+        .map_err(VirtualMachineError::RunnerError)
     }
 }
 
