@@ -1439,7 +1439,7 @@ impl CairoRunner {
             layout_name,
             dyn_layout,
             &vm.get_public_memory_addresses()?,
-            vm.get_memory_segment_addresses()?,
+            self.get_memory_segment_addresses(vm)?,
             self.relocated_trace
                 .as_ref()
                 .ok_or(PublicInputError::EmptyTrace)?,
@@ -1454,6 +1454,41 @@ impl CairoRunner {
             private_inputs.insert(builtin.name(), builtin.air_private_input(&vm.segments));
         }
         AirPrivateInput(private_inputs)
+    }
+
+    pub fn get_memory_segment_addresses(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
+        let relocation_table = vm
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
+            let (index, stop_ptr_offset) = segment;
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((*base, base + stop_ptr_offset))
+        };
+
+        vm.builtin_runners
+            .iter()
+            .map(|builtin| -> Result<_, VirtualMachineError> {
+                let (base, stop_ptr) = builtin.get_memory_segment_addresses();
+                let stop_ptr = if self.program.builtins.contains(&builtin.identifier()) {
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?
+                } else {
+                    stop_ptr.unwrap_or_default()
+                };
+
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate((base, stop_ptr))?,
+                ))
+            })
+            .collect()
     }
 }
 

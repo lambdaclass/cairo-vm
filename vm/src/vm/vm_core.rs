@@ -1062,40 +1062,6 @@ impl VirtualMachine {
         }
     }
 
-    pub fn get_memory_segment_addresses(
-        &self,
-    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
-        let relocation_table = self
-            .relocation_table
-            .as_ref()
-            .ok_or(MemoryError::UnrelocatedMemory)?;
-
-        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
-            let (index, stop_ptr_offset) = segment;
-            let base = relocation_table
-                .get(index)
-                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
-            Ok((*base, base + stop_ptr_offset))
-        };
-
-        self.builtin_runners
-            .iter()
-            .map(|builtin| -> Result<_, VirtualMachineError> {
-                let addresses =
-                    if let (base, Some(stop_ptr)) = builtin.get_memory_segment_addresses() {
-                        (base, stop_ptr)
-                    } else {
-                        return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
-                    };
-
-                Ok((
-                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
-                    relocate(addresses)?,
-                ))
-            })
-            .collect()
-    }
-
     #[doc(hidden)]
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,

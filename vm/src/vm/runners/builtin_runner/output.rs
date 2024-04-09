@@ -164,7 +164,10 @@ impl OutputBuiltinRunner {
         Ok(())
     }
 
-    pub fn get_public_memory(&self, segments: &MemorySegmentManager) -> Result<Vec<(usize, usize)>, RunnerError> {
+    pub fn get_public_memory(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<Vec<(usize, usize)>, RunnerError> {
         let size = self.get_used_cells(segments)?;
 
         let mut public_memory: Vec<(usize, usize)> = (0..size).map(|i| (i, 0)).collect();

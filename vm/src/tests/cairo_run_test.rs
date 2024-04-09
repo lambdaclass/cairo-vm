@@ -1068,14 +1068,18 @@ fn cairo_run_print_dict_array() {
 
 #[test]
 fn run_program_allow_missing_builtins() {
-    let program_data =
-        include_bytes!("../../../cairo_programs/pedersen_extra_builtins.json");
+    let program_data = include_bytes!("../../../cairo_programs/pedersen_extra_builtins.json");
     let config = CairoRunConfig {
         allow_missing_builtins: Some(true),
         layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
-    assert!(crate::cairo_run::cairo_run(program_data, &config, &mut BuiltinHintProcessor::new_empty()).is_ok())
+    assert!(crate::cairo_run::cairo_run(
+        program_data,
+        &config,
+        &mut BuiltinHintProcessor::new_empty()
+    )
+    .is_ok())
 }
 
 #[test]
@@ -1088,7 +1092,12 @@ fn run_program_allow_missing_builtins_proof() {
         layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
-    assert!(crate::cairo_run::cairo_run(program_data, &config, &mut BuiltinHintProcessor::new_empty()).is_ok())
+    assert!(crate::cairo_run::cairo_run(
+        program_data,
+        &config,
+        &mut BuiltinHintProcessor::new_empty()
+    )
+    .is_ok())
 }
 
 #[test]
