@@ -1176,7 +1176,6 @@ fn run_program_with_custom_mod_builtin_params(
     let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
     if let Some(error) = security_error {
         assert!(security_res.is_err());
-        dbg!(&security_res.as_ref().err().as_ref().unwrap().to_string());
         assert!(security_res.err().unwrap().to_string().contains(error));
         return;
     }
