@@ -1,5 +1,4 @@
 use crate::math_utils::signed_felt;
-use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
