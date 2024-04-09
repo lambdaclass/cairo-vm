@@ -959,7 +959,7 @@ impl VirtualMachine {
         Err(VirtualMachineError::NoOutputBuiltin)
     }
 
-    #[cfg(feature = "with_tracer")]
+    #[cfg(feature = "tracer")]
     pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
         self.segments.relocate_segments()
     }
