@@ -13,22 +13,24 @@ mod bitwise;
 mod ec_op;
 mod hash;
 mod keccak;
+mod modulo;
 mod output;
 mod poseidon;
 mod range_check;
 mod segment_arena;
 mod signature;
 
-pub use self::keccak::KeccakBuiltinRunner;
-pub use self::poseidon::PoseidonBuiltinRunner;
 pub(crate) use self::range_check::{RC_N_PARTS_96, RC_N_PARTS_STANDARD};
-pub use self::segment_arena::SegmentArenaBuiltinRunner;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
+pub use keccak::KeccakBuiltinRunner;
+pub use modulo::ModBuiltinRunner;
 use num_integer::div_floor;
 pub use output::OutputBuiltinRunner;
+pub use poseidon::PoseidonBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
+pub use segment_arena::SegmentArenaBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
@@ -43,6 +45,8 @@ pub const EC_OP_BUILTIN_NAME: &str = "ec_op_builtin";
 pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
 pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
+pub const ADD_MOD_BUILTIN_NAME: &str = "add_mod_builtin";
+pub const MUL_MOD_BUILTIN_NAME: &str = "mul_mod_builtin";
 
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -64,6 +68,7 @@ pub enum BuiltinRunner {
     Signature(SignatureBuiltinRunner),
     Poseidon(PoseidonBuiltinRunner),
     SegmentArena(SegmentArenaBuiltinRunner),
+    Mod(ModBuiltinRunner),
 }
 
 impl BuiltinRunner {
@@ -86,6 +91,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.initialize_segments(segments)
             }
+            BuiltinRunner::Mod(ref mut modulo) => modulo.initialize_segments(segments),
         }
     }
 
@@ -101,6 +107,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => signature.initial_stack(),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.initial_stack(),
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.initial_stack(),
+            BuiltinRunner::Mod(ref modulo) => modulo.initial_stack(),
         }
     }
 
@@ -108,29 +115,40 @@ impl BuiltinRunner {
     pub fn final_stack(
         &mut self,
         segments: &MemorySegmentManager,
-        stack_pointer: Relocatable,
+        pointer: Relocatable,
     ) -> Result<Relocatable, RunnerError> {
-        match self {
-            BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.final_stack(segments, stack_pointer),
-            BuiltinRunner::EcOp(ref mut ec) => ec.final_stack(segments, stack_pointer),
-            BuiltinRunner::Hash(ref mut hash) => hash.final_stack(segments, stack_pointer),
-            BuiltinRunner::Output(ref mut output) => output.final_stack(segments, stack_pointer),
-            BuiltinRunner::RangeCheck(ref mut range_check) => {
-                range_check.final_stack(segments, stack_pointer)
+        if let BuiltinRunner::Output(output) = self {
+            return output.final_stack(segments, pointer);
+        }
+        if self.included() {
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            if self.base() as isize != stop_pointer.segment_index {
+                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
+                    self.name(),
+                    stop_pointer,
+                    self.base(),
+                ))));
             }
-            BuiltinRunner::RangeCheck96(ref mut range_check) => {
-                range_check.final_stack(segments, stack_pointer)
+            let stop_ptr = stop_pointer.offset;
+            let num_instances = self.get_used_instances(segments)?;
+            let used = num_instances * self.cells_per_instance() as usize;
+            if stop_ptr != used {
+                return Err(RunnerError::InvalidStopPointer(Box::new((
+                    self.name(),
+                    Relocatable::from((self.base() as isize, used)),
+                    Relocatable::from((self.base() as isize, stop_ptr)),
+                ))));
             }
-            BuiltinRunner::Keccak(ref mut keccak) => keccak.final_stack(segments, stack_pointer),
-            BuiltinRunner::Signature(ref mut signature) => {
-                signature.final_stack(segments, stack_pointer)
-            }
-            BuiltinRunner::Poseidon(ref mut poseidon) => {
-                poseidon.final_stack(segments, stack_pointer)
-            }
-            BuiltinRunner::SegmentArena(ref mut segment_arena) => {
-                segment_arena.final_stack(segments, stack_pointer)
-            }
+            self.set_stop_ptr(stop_ptr);
+            Ok(stop_pointer_addr)
+        } else {
+            self.set_stop_ptr(0);
+            Ok(pointer)
         }
     }
 
@@ -170,6 +188,23 @@ impl BuiltinRunner {
         }
     }
 
+    /// Returns if the builtin is included in the program builtins
+    fn included(&self) -> bool {
+        match *self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.included,
+            BuiltinRunner::EcOp(ref ec) => ec.included,
+            BuiltinRunner::Hash(ref hash) => hash.included,
+            BuiltinRunner::Output(ref output) => output.included,
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.included,
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.included,
+            BuiltinRunner::Keccak(ref keccak) => keccak.included,
+            BuiltinRunner::Signature(ref signature) => signature.included,
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.included,
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.included,
+            BuiltinRunner::Mod(ref modulo) => modulo.included,
+        }
+    }
+
     ///Returns the builtin's base
     pub fn base(&self) -> usize {
         match *self {
@@ -184,6 +219,7 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.base(),
             //Warning, returns only the segment index, base offset will be 3
             BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.base(),
+            BuiltinRunner::Mod(ref modulo) => modulo.base(),
         }
     }
 
@@ -198,23 +234,17 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(keccak) => keccak.ratio(),
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
+            BuiltinRunner::Mod(ref modulo) => modulo.ratio(),
         }
     }
 
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         match *self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.add_validation_rule(memory),
-            BuiltinRunner::EcOp(ref ec) => ec.add_validation_rule(memory),
-            BuiltinRunner::Hash(ref hash) => hash.add_validation_rule(memory),
-            BuiltinRunner::Output(ref output) => output.add_validation_rule(memory),
             BuiltinRunner::RangeCheck(ref range_check) => range_check.add_validation_rule(memory),
             BuiltinRunner::RangeCheck96(ref range_check) => range_check.add_validation_rule(memory),
-            BuiltinRunner::Keccak(ref keccak) => keccak.add_validation_rule(memory),
             BuiltinRunner::Signature(ref signature) => signature.add_validation_rule(memory),
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.add_validation_rule(memory),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.add_validation_rule(memory)
-            }
+            _ => {}
         }
     }
 
@@ -227,61 +257,14 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.deduce_memory_cell(address, memory),
             BuiltinRunner::EcOp(ref ec) => ec.deduce_memory_cell(address, memory),
             BuiltinRunner::Hash(ref hash) => hash.deduce_memory_cell(address, memory),
-            BuiltinRunner::Output(ref output) => output.deduce_memory_cell(address, memory),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.deduce_memory_cell(address, memory)
-            }
-            BuiltinRunner::RangeCheck96(ref range_check) => {
-                range_check.deduce_memory_cell(address, memory)
-            }
             BuiltinRunner::Keccak(ref keccak) => keccak.deduce_memory_cell(address, memory),
-            BuiltinRunner::Signature(ref signature) => {
-                signature.deduce_memory_cell(address, memory)
-            }
             BuiltinRunner::Poseidon(ref poseidon) => poseidon.deduce_memory_cell(address, memory),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.deduce_memory_cell(address, memory)
-            }
+            _ => Ok(None),
         }
-    }
-
-    pub fn get_memory_accesses(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<Vec<Relocatable>, MemoryError> {
-        if let BuiltinRunner::SegmentArena(_) = self {
-            return Ok(vec![]);
-        }
-        let base = self.base();
-        let segment_size = vm
-            .segments
-            .get_segment_size(base)
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        Ok((0..segment_size)
-            .map(|i| (base as isize, i).into())
-            .collect())
     }
 
     pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        match self {
-            BuiltinRunner::Bitwise(ref bitwise) => bitwise.get_memory_segment_addresses(),
-            BuiltinRunner::EcOp(ref ec) => ec.get_memory_segment_addresses(),
-            BuiltinRunner::Hash(ref hash) => hash.get_memory_segment_addresses(),
-            BuiltinRunner::Output(ref output) => output.get_memory_segment_addresses(),
-            BuiltinRunner::RangeCheck(ref range_check) => {
-                range_check.get_memory_segment_addresses()
-            }
-            BuiltinRunner::RangeCheck96(ref range_check) => {
-                range_check.get_memory_segment_addresses()
-            }
-            BuiltinRunner::Keccak(ref keccak) => keccak.get_memory_segment_addresses(),
-            BuiltinRunner::Signature(ref signature) => signature.get_memory_segment_addresses(),
-            BuiltinRunner::Poseidon(ref poseidon) => poseidon.get_memory_segment_addresses(),
-            BuiltinRunner::SegmentArena(ref segment_arena) => {
-                segment_arena.get_memory_segment_addresses()
-            }
-        }
+        (self.base(), self.stop_ptr())
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -298,6 +281,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_cells(segments)
             }
+            BuiltinRunner::Mod(ref modulo) => modulo.get_used_cells(segments),
         }
     }
 
@@ -320,6 +304,7 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref segment_arena) => {
                 segment_arena.get_used_instances(segments)
             }
+            BuiltinRunner::Mod(modulo) => modulo.get_used_instances(segments),
         }
     }
 
@@ -375,6 +360,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
             BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Mod(mod_builtin) => mod_builtin.cells_per_instance(),
         }
     }
 
@@ -390,6 +376,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
             BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
             BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
+            BuiltinRunner::Mod(builtin) => builtin.n_input_cells(),
         }
     }
 
@@ -404,6 +391,8 @@ impl BuiltinRunner {
             BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
             BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
             BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
+            // TODO: Placeholder till we see layout data
+            BuiltinRunner::Mod(_) => 1,
         }
     }
 
@@ -419,12 +408,16 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
             BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
+            BuiltinRunner::Mod(b) => b.name(),
         }
     }
 
     pub fn run_security_checks(&self, vm: &VirtualMachine) -> Result<(), VirtualMachineError> {
         if let BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) = self {
             return Ok(());
+        }
+        if let BuiltinRunner::Mod(modulo) = self {
+            modulo.run_additional_security_checks(vm)?;
         }
         let cells_per_instance = self.cells_per_instance() as usize;
         let n_input_cells = self.n_input_cells() as usize;
@@ -519,21 +512,21 @@ impl BuiltinRunner {
     }
 
     // Returns information about the builtin that should be added to the AIR private input.
-    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+    pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
         match self {
-            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::RangeCheck96(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Hash(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Signature(builtin) => builtin.air_private_input(memory),
-            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(memory),
+            BuiltinRunner::RangeCheck(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::RangeCheck96(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Bitwise(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Hash(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::EcOp(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Poseidon(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Signature(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Keccak(builtin) => builtin.air_private_input(&segments.memory),
+            BuiltinRunner::Mod(builtin) => builtin.air_private_input(segments),
             _ => vec![],
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn set_stop_ptr(&mut self, stop_ptr: usize) {
         match self {
             BuiltinRunner::Bitwise(ref mut bitwise) => bitwise.stop_ptr = Some(stop_ptr),
@@ -550,6 +543,23 @@ impl BuiltinRunner {
             BuiltinRunner::SegmentArena(ref mut segment_arena) => {
                 segment_arena.stop_ptr = Some(stop_ptr)
             }
+            BuiltinRunner::Mod(modulo) => modulo.stop_ptr = Some(stop_ptr),
+        }
+    }
+
+    pub(crate) fn stop_ptr(&self) -> Option<usize> {
+        match self {
+            BuiltinRunner::Bitwise(ref bitwise) => bitwise.stop_ptr,
+            BuiltinRunner::EcOp(ref ec) => ec.stop_ptr,
+            BuiltinRunner::Hash(ref hash) => hash.stop_ptr,
+            BuiltinRunner::Output(ref output) => output.stop_ptr,
+            BuiltinRunner::RangeCheck(ref range_check) => range_check.stop_ptr,
+            BuiltinRunner::RangeCheck96(ref range_check) => range_check.stop_ptr,
+            BuiltinRunner::Keccak(ref keccak) => keccak.stop_ptr,
+            BuiltinRunner::Signature(ref signature) => signature.stop_ptr,
+            BuiltinRunner::Poseidon(ref poseidon) => poseidon.stop_ptr,
+            BuiltinRunner::SegmentArena(ref segment_arena) => segment_arena.stop_ptr,
+            BuiltinRunner::Mod(ref modulo) => modulo.stop_ptr,
         }
     }
 }
@@ -614,6 +624,12 @@ impl From<SegmentArenaBuiltinRunner> for BuiltinRunner {
     }
 }
 
+impl From<ModBuiltinRunner> for BuiltinRunner {
+    fn from(runner: ModBuiltinRunner) -> Self {
+        BuiltinRunner::Mod(runner)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -636,49 +652,6 @@ mod tests {
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
-    }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]

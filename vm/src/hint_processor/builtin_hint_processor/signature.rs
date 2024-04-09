@@ -20,10 +20,8 @@ pub fn verify_ecdsa_signature(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let signature_r =
-        get_integer_from_var_name("signature_r", vm, ids_data, ap_tracking)?.into_owned();
-    let signature_s =
-        get_integer_from_var_name("signature_s", vm, ids_data, ap_tracking)?.into_owned();
+    let signature_r = get_integer_from_var_name("signature_r", vm, ids_data, ap_tracking)?;
+    let signature_s = get_integer_from_var_name("signature_s", vm, ids_data, ap_tracking)?;
     let ecdsa_ptr = get_ptr_from_var_name("ecdsa_ptr", vm, ids_data, ap_tracking)?;
     let ecdsa_builtin = &mut vm.get_signature_builtin()?;
     if ecdsa_ptr.segment_index != ecdsa_builtin.base() as isize {

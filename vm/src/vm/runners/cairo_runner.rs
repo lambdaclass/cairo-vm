@@ -54,12 +54,14 @@ use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
+use super::builtin_runner::ModBuiltinRunner;
 use super::{
     builtin_runner::{
         KeccakBuiltinRunner, PoseidonBuiltinRunner, RC_N_PARTS_96, RC_N_PARTS_STANDARD,
     },
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
+use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -262,6 +264,8 @@ impl CairoRunner {
             BuiltinName::keccak,
             BuiltinName::poseidon,
             BuiltinName::range_check96,
+            BuiltinName::add_mod,
+            BuiltinName::mul_mod,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -341,6 +345,18 @@ impl CairoRunner {
                 );
             }
         }
+        if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::add_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
+            }
+        }
+        if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::mul_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
+            }
+        }
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
@@ -415,6 +431,14 @@ impl CairoRunner {
                 BuiltinName::range_check96 => vm
                     .builtin_runners
                     .push(RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(Some(1), true).into()),
+                BuiltinName::add_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
+                BuiltinName::mul_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
             }
         }
 
@@ -1104,6 +1128,7 @@ impl CairoRunner {
                     .finalize(Some(size), builtin_runner.base(), None)
             }
         }
+        vm.segments.finalize_zero_segment();
         self.segments_finalized = true;
         Ok(())
     }
@@ -1428,10 +1453,7 @@ impl CairoRunner {
     pub fn get_air_private_input(&self, vm: &VirtualMachine) -> AirPrivateInput {
         let mut private_inputs = HashMap::new();
         for builtin in vm.builtin_runners.iter() {
-            private_inputs.insert(
-                builtin.name(),
-                builtin.air_private_input(&vm.segments.memory),
-            );
+            private_inputs.insert(builtin.name(), builtin.air_private_input(&vm.segments));
         }
         AirPrivateInput(private_inputs)
     }

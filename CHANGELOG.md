@@ -10,6 +10,28 @@
     * Remove field `_bound`, replacing it with public method `bound`.
     * Add public methods `name` & `n_parts`.
 
+* feat(BREAKING): Add mod builtin [#1673](https://github.com/lambdaclass/cairo-vm/pull/1673)
+
+  Main Changes:
+  * Add the new `ModBuiltinRunner`, implementing the builtins `add_mod` & `mul_mod`
+  * Adds `add_mod` & `mul_mod` to the `all_cairo` & `dynamic` layouts under the `mod_builtin` feature flag. This will be added to the main code in a future update.
+  * Add method `VirtualMachine::fill_memory` in order to perform the new builtin's main logic from within hints
+  * Add hints to run arithmetic circuits using `add_mod` and/or `mul_mod` builtins
+
+  Other Changes:
+  * BREAKING: BuiltinRunner method signature change from
+  `air_private_input(&self, memory: &Memory) -> Vec<PrivateInput>` to `pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput>`
+  * Add `MayleRelocatable::sub_usize`
+  * Implement `Add<u32> for Relocatable`
+  * Add `Memory::get_usize`
+  * BREAKING: Clean up unused/duplicated code from builtins module:
+    * Remove unused method `get_memory_segment_addresses` from all builtin runners & the enum
+    * Remove empty implementations of `deduce_memory_cell` & `add_validation_rules` from all builtin runners
+    * Remove duplicated implementation of `final_stack` from all builtin runners except output and move it to the enum implementation
+
+* bugfix(BREAKING): Handle off2 immediate case in `get_integer_from_reference`[#1701](https://github.com/lambdaclass/cairo-vm/pull/1701)
+  * `get_integer_from_reference` & `get_integer_from_var_name` output changed from `Result<Cow<'a, Felt252>, HintError>` to `Result<Felt252, HintError>`
+
 * feat: Reorganized builtins to be in the top of stack at the end of a run (Cairo1).
 
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
@@ -48,6 +70,8 @@
 * feat: Add flag to append return values to output segment when not running in proof_mode [#1646](https://github.com/lambdaclass/cairo-vm/pull/1646)
   * Adds the flag `append_return_values` to both the CLI and `Cairo1RunConfig` struct.
   * Enabling flag will add the output builtin and the necessary instructions to append the return values to the output builtin's memory segment.
+
+* feat: Compute program hash chain [#1647](https://github.com/lambdaclass/cairo-vm/pull/1647)
 
 * feat: Add cairo1-run output pretty-printing for felts, arrays/spans and dicts [#1630](https://github.com/lambdaclass/cairo-vm/pull/1630)
 
