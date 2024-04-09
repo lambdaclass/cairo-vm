@@ -1,4 +1,5 @@
 use crate::math_utils::signed_felt;
+use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
@@ -1171,6 +1172,13 @@ impl VirtualMachine {
             fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
         )
         .map_err(VirtualMachineError::RunnerError)
+    }
+
+    pub(crate) fn get_builtin_id_map(&self) -> HashMap<BuiltinName, &BuiltinRunner> {
+        self.builtin_runners
+            .iter()
+            .map(|b| (b.identifier(), b))
+            .collect()
     }
 }
 

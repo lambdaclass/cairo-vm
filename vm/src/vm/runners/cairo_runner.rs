@@ -511,8 +511,13 @@ impl CairoRunner {
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
 
-        for builtin_runner in vm.builtin_runners.iter() {
-            stack.append(&mut builtin_runner.initial_stack());
+        let builtin_runners = vm.get_builtin_id_map();
+        for builtin_id in &self.program.builtins {
+            if let Some(builtin_runner) = builtin_runners.get(builtin_id) {
+                stack.append(&mut builtin_runner.initial_stack());
+            } else {
+                stack.push(Felt252::ZERO.into())
+            }
         }
 
         if self.is_proof_mode() {
@@ -1258,10 +1263,16 @@ impl CairoRunner {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut pointer = vm.get_ap();
-        for builtin_runner in vm.builtin_runners.iter_mut().rev() {
-            if self.program.builtins.contains(&builtin_runner.identifier()) {
+        for builtin_id in self.program.builtins.iter().rev() {
+            if let Some(builtin_runner) = vm
+                .builtin_runners
+                .iter_mut()
+                .find(|b| b.identifier() == *builtin_id)
+            {
                 let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
                 pointer = new_pointer;
+            } else {
+                pointer.offset = pointer.offset.saturating_sub(1);
             }
         }
         if self.segments_finalized {
