@@ -1258,7 +1258,11 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn read_return_values(
+        &mut self,
+        vm: &mut VirtualMachine,
+        allow_missing_builtins: bool,
+    ) -> Result<(), RunnerError> {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
@@ -1272,6 +1276,12 @@ impl CairoRunner {
                 let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
                 pointer = new_pointer;
             } else {
+                if !allow_missing_builtins {
+                    return Err(RunnerError::MissingBuiltin(builtin_id.name()));
+                }
+                if !vm.get_integer(pointer)?.is_zero() {
+                    return Err(RunnerError::MissingBuiltinStopPtrNotZero(builtin_id.name()));
+                }
                 pointer.offset = pointer.offset.saturating_sub(1);
             }
         }
@@ -4702,7 +4712,7 @@ mod tests {
         let mut vm = vm!();
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4724,7 +4734,7 @@ mod tests {
         cairo_runner.run_ended = false;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
@@ -4743,7 +4753,7 @@ mod tests {
         cairo_runner.segments_finalized = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
@@ -4771,7 +4781,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4802,7 +4812,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4840,13 +4850,13 @@ mod tests {
         // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
         vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
         };
         assert_eq!(output_builtin.stop_ptr, Some(0));
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let bitwise_builtin = match &vm.builtin_runners[1] {
             BuiltinRunner::Bitwise(runner) => runner,
             _ => unreachable!(),
