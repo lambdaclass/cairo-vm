@@ -739,8 +739,8 @@ mod tests {
                         p1: Felt252::ONE,
                         p2: Felt252::ZERO,
                         p3: Felt252::ZERO,
-                        values_ptr: 18927,
-                        offsets_ptr: 18959,
+                        values_ptr: 23023
+                        offsets_ptr: 23055
                         n: 2,
                         batch: BTreeMap::from([(
                             0,
@@ -769,8 +769,8 @@ mod tests {
                         p1: Felt252::ONE,
                         p2: Felt252::ZERO,
                         p3: Felt252::ZERO,
-                        values_ptr: 18927,
-                        offsets_ptr: 18962,
+                        values_ptr: 23023,
+                        offsets_ptr: 23058,
                         n: 1,
                         batch: BTreeMap::from([(
                             0,
@@ -794,7 +794,7 @@ mod tests {
                         ),])
                     }
                 ],
-                zero_value_address: 18027
+                zero_value_address: 22123
             })
         );
         assert_eq!(
@@ -807,8 +807,8 @@ mod tests {
                         p1: Felt252::ONE,
                         p2: Felt252::ZERO,
                         p3: Felt252::ZERO,
-                        values_ptr: 18927,
-                        offsets_ptr: 18965,
+                        values_ptr: 23023,
+                        offsets_ptr: 23061,
                         n: 3,
                         batch: BTreeMap::from([(
                             0,
@@ -837,8 +837,8 @@ mod tests {
                         p1: Felt252::ONE,
                         p2: Felt252::ZERO,
                         p3: Felt252::ZERO,
-                        values_ptr: 18927,
-                        offsets_ptr: 18968,
+                        values_ptr: 23023,
+                        offsets_ptr: 23064,
                         n: 2,
                         batch: BTreeMap::from([(
                             0,
@@ -867,8 +867,8 @@ mod tests {
                         p1: Felt252::ONE,
                         p2: Felt252::ZERO,
                         p3: Felt252::ZERO,
-                        values_ptr: 18927,
-                        offsets_ptr: 18971,
+                        values_ptr: 23023,
+                        offsets_ptr: 23067,
                         n: 1,
                         batch: BTreeMap::from([(
                             0,
