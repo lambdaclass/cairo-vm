@@ -1,5 +1,6 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
+use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
@@ -383,6 +384,21 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
             BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
             BuiltinRunner::Mod(b) => b.name(),
+        }
+    }
+
+    pub fn identifier(&self) -> BuiltinName {
+        match self {
+            BuiltinRunner::Bitwise(_) => BuiltinName::bitwise,
+            BuiltinRunner::EcOp(_) => BuiltinName::ec_op,
+            BuiltinRunner::Hash(_) => BuiltinName::pedersen,
+            BuiltinRunner::RangeCheck(_) => BuiltinName::range_check,
+            BuiltinRunner::Output(_) => BuiltinName::output,
+            BuiltinRunner::Keccak(_) => BuiltinName::keccak,
+            BuiltinRunner::Signature(_) => BuiltinName::ecdsa,
+            BuiltinRunner::Poseidon(_) => BuiltinName::poseidon,
+            BuiltinRunner::SegmentArena(_) => BuiltinName::segment_arena,
+            BuiltinRunner::Mod(b) => b.identifier(),
         }
     }
 

@@ -1259,8 +1259,10 @@ impl CairoRunner {
         }
         let mut pointer = vm.get_ap();
         for builtin_runner in vm.builtin_runners.iter_mut().rev() {
-            let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
-            pointer = new_pointer;
+            if self.program.builtins.contains(&builtin_runner.identifier()) {
+                let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
+                pointer = new_pointer;
+            }
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
