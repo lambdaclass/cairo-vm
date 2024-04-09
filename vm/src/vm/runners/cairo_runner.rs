@@ -510,17 +510,18 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
-
-        let builtin_runners = vm
-            .builtin_runners
-            .iter()
-            .map(|b| (b.identifier(), b))
-            .collect::<HashMap<_, _>>();
-        for builtin_id in &self.program.builtins {
-            if let Some(builtin_runner) = builtin_runners.get(builtin_id) {
-                stack.append(&mut builtin_runner.initial_stack());
-            } else {
-                stack.push(Felt252::ZERO.into())
+        {
+            let builtin_runners = vm
+                .builtin_runners
+                .iter()
+                .map(|b| (b.identifier(), b))
+                .collect::<HashMap<_, _>>();
+            for builtin_id in &self.program.builtins {
+                if let Some(builtin_runner) = builtin_runners.get(builtin_id) {
+                    stack.append(&mut builtin_runner.initial_stack());
+                } else {
+                    stack.push(Felt252::ZERO.into())
+                }
             }
         }
 
