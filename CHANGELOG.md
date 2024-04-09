@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix(BREAKING) Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
+* fix(BREAKING): Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
   * `initialize_main_entrypoint` now iterates over the program builtins when builtins the stack & inserts 0 for any missing builtin
   * `read_return_values` now only computes the final stack of the builtins in the program
   * BREAKING: `read_return_values` now takes a boolean argument `allow_missing_builtins`
