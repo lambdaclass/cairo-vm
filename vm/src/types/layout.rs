@@ -63,7 +63,6 @@ impl CairoLayout {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("recursive"),
@@ -115,12 +114,11 @@ impl CairoLayout {
             _public_memory_fraction: 8,
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
-            _n_trace_colums: 13,
+            _n_trace_colums: 12,
             _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn all_cairo_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("all_cairo"),
@@ -287,7 +285,7 @@ mod tests {
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
         );
-        assert_eq!(layout._n_trace_colums, 13);
+        assert_eq!(layout._n_trace_colums, 12);
         assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 

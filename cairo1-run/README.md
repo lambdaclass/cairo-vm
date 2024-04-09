@@ -66,3 +66,5 @@ The cairo1-run cli supports the following optional arguments:
 * `--air_private_input <AIR_PRIVATE_INPUT>`: Receives the name of a file and outputs the AIR private inputs into it. Can only be used if proof_mode, trace_file & memory_file are also enabled.
 
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
+
+* `--append_return_values`: Adds extra instructions to the program in order to append the return values to the output builtin's segment. This is the default behaviour for proof_mode.
