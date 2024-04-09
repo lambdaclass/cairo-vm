@@ -138,14 +138,8 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
-            #[cfg(feature = "mod_builtin")]
             add_mod: Some(ModInstanceDef::new(Some(128), 1, 96)),
-            #[cfg(feature = "mod_builtin")]
             mul_mod: Some(ModInstanceDef::new(Some(256), 1, 96)),
-            #[cfg(not(feature = "mod_builtin"))]
-            add_mod: None,
-            #[cfg(not(feature = "mod_builtin"))]
-            mul_mod: None,
         }
     }
 
@@ -174,14 +168,8 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(None)),
             keccak: None,
             poseidon: None,
-            #[cfg(feature = "mod_builtin")]
             add_mod: Some(ModInstanceDef::new(None, 1, 96)),
-            #[cfg(feature = "mod_builtin")]
             mul_mod: Some(ModInstanceDef::new(None, 1, 96)),
-            #[cfg(not(feature = "mod_builtin"))]
-            add_mod: None,
-            #[cfg(not(feature = "mod_builtin"))]
-            mul_mod: None,
         }
     }
 }
