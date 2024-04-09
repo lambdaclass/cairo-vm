@@ -1212,7 +1212,7 @@ fn run_program_with_custom_mod_builtin_params(
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm).unwrap();
     }
-    if !cairo_run_config.proof_mode{
+    if !cairo_run_config.proof_mode {
         let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
         if let Some(error) = security_error {
             assert!(security_res.is_err());
