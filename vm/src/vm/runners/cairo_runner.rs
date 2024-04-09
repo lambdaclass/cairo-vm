@@ -1279,10 +1279,11 @@ impl CairoRunner {
                 if !allow_missing_builtins {
                     return Err(RunnerError::MissingBuiltin(builtin_id.name()));
                 }
+                pointer.offset = pointer.offset.saturating_sub(1);
+
                 if !vm.get_integer(pointer)?.is_zero() {
                     return Err(RunnerError::MissingBuiltinStopPtrNotZero(builtin_id.name()));
                 }
-                pointer.offset = pointer.offset.saturating_sub(1);
             }
         }
         if self.segments_finalized {
