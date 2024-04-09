@@ -1208,7 +1208,7 @@ fn run_program_with_custom_mod_builtin_params(
         .unwrap();
 
     vm.verify_auto_deductions().unwrap();
-    cairo_runner.read_return_values(&mut vm).unwrap();
+    cairo_runner.read_return_values(&mut vm, false).unwrap();
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm).unwrap();
     }

@@ -733,7 +733,7 @@ mod tests {
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
             .unwrap();
-        runner.read_return_values(&mut vm).unwrap();
+        runner.read_return_values(&mut vm, false).unwrap();
         runner.finalize_segments(&mut vm).unwrap();
 
         let air_private_input = runner.get_air_private_input(&vm);
