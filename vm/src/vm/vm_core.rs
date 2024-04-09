@@ -35,8 +35,8 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{
-    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME,
-    OUTPUT_BUILTIN_NAME, RC_N_PARTS_STANDARD,
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+    RC_N_PARTS_STANDARD,
 };
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;

@@ -169,8 +169,7 @@ pub fn assert_le_felt_v_0_8(
         return Err(HintError::NonLeFelt252(Box::new((*a, *b))));
     }
     let bound = vm.get_range_check_builtin()?.bound();
-    let small_inputs =
-        Felt252::from((a < bound && b - a < *bound) as u8);
+    let small_inputs = Felt252::from((a < bound && b - a < *bound) as u8);
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
@@ -365,9 +364,7 @@ pub fn is_positive(
     let (sign, abs_value) = value_as_int.into_parts();
     //Main logic (assert a is positive)
     if abs_value >= range_check_builtin.bound().to_biguint() {
-        return Err(HintError::ValueOutsideValidRange(Box::new(
-            value,
-        )));
+        return Err(HintError::ValueOutsideValidRange(Box::new(value)));
     }
 
     let result = Felt252::from((sign == Sign::Plus) as u8);
@@ -506,10 +503,7 @@ pub fn unsigned_div_rem(
 
     // Main logic
     if div.is_zero() || div.as_ref() > &div_prime_by_bound(*builtin_bound)? {
-        return Err(HintError::OutOfValidRange(Box::new((
-            div,
-            *builtin_bound,
-        ))));
+        return Err(HintError::OutOfValidRange(Box::new((div, *builtin_bound))));
     }
 
     let (q, r) = value.div_rem(&(div).try_into().map_err(|_| MathError::DividedByZero)?);
