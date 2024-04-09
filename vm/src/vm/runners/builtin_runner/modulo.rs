@@ -660,6 +660,7 @@ impl ModBuiltinRunner {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "mod_builtin")]
     // Testing method used to test programs that use parameters which are not included in any layout
     // For example, programs with large batch size
     pub(crate) fn override_layout_params(&mut self, batch_size: usize, word_bit_len: u32) {
@@ -684,6 +685,7 @@ fn apply_op(lhs: &BigUint, rhs: &BigUint, op: &Operation) -> Result<BigUint, Mat
 mod tests {
 
     #[test]
+    #[cfg(feature = "mod_builtin")]
     fn test_air_private_input_small_batch_size() {
         use super::*;
         use crate::{
