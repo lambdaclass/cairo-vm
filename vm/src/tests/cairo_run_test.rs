@@ -2,8 +2,13 @@ use crate::tests::*;
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
-    vm::{runners::builtin_runner::BuiltinRunner, security::verify_secure_runner},
+    vm::{
+        runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
+        security::verify_secure_runner,
+        vm_core::VirtualMachine,
+    },
 };
+
 use num_traits::Zero;
 
 #[test]
