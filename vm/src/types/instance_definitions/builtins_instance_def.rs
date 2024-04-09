@@ -1,9 +1,11 @@
+use super::mod_instance_def::ModInstanceDef;
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
     ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
     pedersen_instance_def::PedersenInstanceDef, poseidon_instance_def::PoseidonInstanceDef,
     range_check_instance_def::RangeCheckInstanceDef,
 };
+
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -16,6 +18,8 @@ pub(crate) struct BuiltinsInstanceDef {
     pub(crate) ec_op: Option<EcOpInstanceDef>,
     pub(crate) keccak: Option<KeccakInstanceDef>,
     pub(crate) poseidon: Option<PoseidonInstanceDef>,
+    pub(crate) add_mod: Option<ModInstanceDef>,
+    pub(crate) mul_mod: Option<ModInstanceDef>,
 }
 
 impl BuiltinsInstanceDef {
@@ -29,6 +33,8 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -42,6 +48,8 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -55,6 +63,8 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -68,6 +78,8 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -81,6 +93,8 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: None,
             poseidon: Some(PoseidonInstanceDef::default()),
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -94,6 +108,8 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::default()),
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -107,6 +123,8 @@ impl BuiltinsInstanceDef {
             ec_op: None,
             keccak: None,
             poseidon: Some(PoseidonInstanceDef::new(Some(8))),
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -120,6 +138,14 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
             keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
+            #[cfg(feature = "mod_builtin")]
+            add_mod: Some(ModInstanceDef::new(Some(128), 1, 96)),
+            #[cfg(feature = "mod_builtin")]
+            mul_mod: Some(ModInstanceDef::new(Some(256), 1, 96)),
+            #[cfg(not(feature = "mod_builtin"))]
+            add_mod: None,
+            #[cfg(not(feature = "mod_builtin"))]
+            mul_mod: None,
         }
     }
 
@@ -133,6 +159,8 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::default()),
             keccak: None,
             poseidon: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 
@@ -146,6 +174,14 @@ impl BuiltinsInstanceDef {
             ec_op: Some(EcOpInstanceDef::new(None)),
             keccak: None,
             poseidon: None,
+            #[cfg(feature = "mod_builtin")]
+            add_mod: Some(ModInstanceDef::new(None, 1, 96)),
+            #[cfg(feature = "mod_builtin")]
+            mul_mod: Some(ModInstanceDef::new(None, 1, 96)),
+            #[cfg(not(feature = "mod_builtin"))]
+            add_mod: None,
+            #[cfg(not(feature = "mod_builtin"))]
+            mul_mod: None,
         }
     }
 }

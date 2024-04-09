@@ -496,7 +496,11 @@ fn create_entry_code(
                 BuiltinName::ec_op => EcOpType::ID,
                 BuiltinName::poseidon => PoseidonType::ID,
                 BuiltinName::segment_arena => SegmentArenaType::ID,
-                BuiltinName::keccak | BuiltinName::ecdsa | BuiltinName::output => return fp_loc,
+                BuiltinName::keccak
+                | BuiltinName::ecdsa
+                | BuiltinName::output
+                | BuiltinName::add_mod
+                | BuiltinName::mul_mod => return fp_loc,
             };
             signature
                 .ret_types
