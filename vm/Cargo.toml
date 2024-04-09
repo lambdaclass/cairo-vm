@@ -10,8 +10,6 @@ keywords.workspace = true
 
 [features]
 default = ["std"]
-with_tracer = ["tracer"]
-
 std = [
     "serde_json/std",
     "bincode/std",
