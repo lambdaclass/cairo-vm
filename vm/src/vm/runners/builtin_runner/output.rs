@@ -591,16 +591,8 @@ mod tests {
             )
             .unwrap();
 
-        // This is so we get size = 7
-        let segments = segments![
-            ((0, 0), 0),
-            ((0, 1), 0),
-            ((0, 2), 0),
-            ((0, 3), 0),
-            ((0, 4), 0),
-            ((0, 5), 0),
-            ((0, 6), 0),
-        ];
+        let mut segments = MemorySegmentManager::new();
+        segments.segment_used_sizes = Some(vec![7]);
 
         let public_memory = builtin.get_public_memory(&segments).unwrap();
         assert_eq!(

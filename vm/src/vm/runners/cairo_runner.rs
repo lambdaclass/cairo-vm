@@ -3301,6 +3301,7 @@ mod tests {
 
         // Swap the first and second builtins (first should be `output`).
         vm.builtin_runners.swap(0, 1);
+        cairo_runner.program.builtins.swap(0, 1);
 
         cairo_runner.initialize_segments(&mut vm, None);
 
