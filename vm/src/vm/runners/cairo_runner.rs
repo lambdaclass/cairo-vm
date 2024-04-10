@@ -22,7 +22,6 @@ use crate::{
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
-        instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         layout::CairoLayout,
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
@@ -300,7 +299,8 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ecdsa);
             if included || self.is_proof_mode() {
-                builtin_runners.push(SignatureBuiltinRunner::new(instance_def, included).into());
+                builtin_runners
+                    .push(SignatureBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
@@ -404,9 +404,9 @@ impl CairoRunner {
                 BuiltinName::output => vm
                     .builtin_runners
                     .push(OutputBuiltinRunner::new(true).into()),
-                BuiltinName::ecdsa => vm.builtin_runners.push(
-                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
-                ),
+                BuiltinName::ecdsa => vm
+                    .builtin_runners
+                    .push(SignatureBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::bitwise => vm
                     .builtin_runners
                     .push(BitwiseBuiltinRunner::new(Some(1), true).into()),

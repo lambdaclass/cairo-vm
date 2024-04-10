@@ -1290,7 +1290,6 @@ mod tests {
         },
         relocatable,
         types::{
-            instance_definitions::ec_op_instance_def::EcOpInstanceDef,
             instruction::{Op1Addr, Register},
             relocatable::Relocatable,
         },

@@ -636,15 +636,11 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
-    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
     use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::{
-        types::instance_definitions::ec_op_instance_def::EcOpInstanceDef, utils::test_utils::*,
-        vm::vm_core::VirtualMachine,
-    };
+    use crate::{utils::test_utils::*, vm::vm_core::VirtualMachine};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
@@ -685,7 +681,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
         assert_eq!(signature.n_input_cells, builtin.n_input_cells())
     }
@@ -733,7 +729,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
         assert_eq!(signature.cells_per_instance, builtin.cells_per_instance())
     }
@@ -789,7 +785,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.into();
         assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
     }
@@ -1646,10 +1642,7 @@ mod tests {
                 &KeccakInstanceDef::default(),
                 false,
             )),
-            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-                &EcdsaInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
         ];
         let vm = vm!();
 
@@ -1674,10 +1667,7 @@ mod tests {
                 &KeccakInstanceDef::default(),
                 false,
             )),
-            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-                &EcdsaInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
             BuiltinRunner::Poseidon(PoseidonBuiltinRunner::new(Some(32), false)),
             BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(false)),
         ];

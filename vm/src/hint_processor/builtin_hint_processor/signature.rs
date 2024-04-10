@@ -67,8 +67,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
-        vm.builtin_runners =
-            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
+        vm.builtin_runners = vec![SignatureBuiltinRunner::new(Some(512), true).into()];
         vm.segments = segments![
             ((1, 0), (0, 0)),
             (
@@ -94,8 +93,7 @@ mod tests {
     #[test]
     fn verify_ecdsa_signature_invalid_ecdsa_ptr() {
         let mut vm = vm!();
-        vm.builtin_runners =
-            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
+        vm.builtin_runners = vec![SignatureBuiltinRunner::new(Some(512), true).into()];
         vm.segments = segments![
             ((1, 0), (3, 0)),
             (
@@ -121,8 +119,7 @@ mod tests {
     #[test]
     fn verify_ecdsa_signature_invalid_input_cell() {
         let mut vm = vm!();
-        vm.builtin_runners =
-            vec![SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true).into()];
+        vm.builtin_runners = vec![SignatureBuiltinRunner::new(Some(512), true).into()];
         vm.segments = segments![
             ((1, 0), (0, 3)),
             (
