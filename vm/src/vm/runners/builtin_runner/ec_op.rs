@@ -2,7 +2,7 @@ use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
 use crate::stdlib::{borrow::Cow, prelude::*};
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
-    EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
+    CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP, SCALAR_HEIGHT,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -19,7 +19,6 @@ pub struct EcOpBuiltinRunner {
     pub base: usize,
     pub(crate) cells_per_instance: u32,
     pub(crate) n_input_cells: u32,
-    ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     pub(crate) instances_per_component: u32,
@@ -27,13 +26,12 @@ pub struct EcOpBuiltinRunner {
 }
 
 impl EcOpBuiltinRunner {
-    pub(crate) fn new(instance_def: &EcOpInstanceDef, included: bool) -> Self {
+    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
         EcOpBuiltinRunner {
             base: 0,
-            ratio: instance_def.ratio,
+            ratio,
             n_input_cells: INPUT_CELLS_PER_EC_OP,
             cells_per_instance: CELLS_PER_EC_OP,
-            ec_op_builtin: instance_def.clone(),
             stop_ptr: None,
             included,
             instances_per_component: 1,
@@ -174,7 +172,7 @@ impl EcOpBuiltinRunner {
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
             input_cells[4],
-            self.ec_op_builtin.scalar_height,
+            SCALAR_HEIGHT,
         )?;
         self.cache.borrow_mut().insert(x_addr, result.0);
         self.cache.borrow_mut().insert(
@@ -274,7 +272,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let builtin = EcOpBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -285,8 +283,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -310,8 +307,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -339,8 +335,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false).into();
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), false).into();
 
         let mut vm = vm!();
 
@@ -364,8 +359,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -389,8 +383,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -435,8 +428,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -655,7 +647,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -701,7 +693,7 @@ mod tests {
             )
         ];
 
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -747,7 +739,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -788,7 +780,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
@@ -801,8 +793,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let vm = vm!();
 
         assert_eq!(
@@ -814,8 +805,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -825,8 +815,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -836,15 +825,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 
@@ -902,8 +890,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_air_private_input() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
 
         let segments = segments![
             ((0, 0), 0),

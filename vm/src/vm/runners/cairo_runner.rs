@@ -22,9 +22,7 @@ use crate::{
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
-        instance_definitions::{
-            ec_op_instance_def::EcOpInstanceDef, ecdsa_instance_def::EcdsaInstanceDef,
-        },
+        instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         layout::CairoLayout,
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
@@ -317,7 +315,7 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ec_op);
             if included || self.is_proof_mode() {
-                builtin_runners.push(EcOpBuiltinRunner::new(instance_def, included).into());
+                builtin_runners.push(EcOpBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
@@ -414,7 +412,7 @@ impl CairoRunner {
                     .push(BitwiseBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::ec_op => vm
                     .builtin_runners
-                    .push(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into()),
+                    .push(EcOpBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::keccak => vm.builtin_runners.push(
                     KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(1), vec![200; 8]), true)
                         .into(),

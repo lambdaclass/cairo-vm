@@ -677,7 +677,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
         assert_eq!(ec_op.n_input_cells, builtin.n_input_cells())
     }
@@ -725,7 +725,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
         assert_eq!(ec_op.cells_per_instance, builtin.cells_per_instance())
     }
@@ -781,7 +781,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.into();
         assert_eq!(EC_OP_BUILTIN_NAME, builtin.name())
     }
@@ -849,10 +849,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_ec_op_with_items() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            &EcOpInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
 
@@ -1058,8 +1055,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_ec_op() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.current_step = 256;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
@@ -1106,8 +1102,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_ec_op() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -1150,10 +1145,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            &EcOpInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(10), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -1185,8 +1177,7 @@ mod tests {
     fn get_memory_segment_addresses_test() {
         let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.get_memory_segment_addresses(), (0, None),);
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.get_memory_segment_addresses(), (0, None),);
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.get_memory_segment_addresses(), (0, None),);
@@ -1401,7 +1392,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_empty() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1415,7 +1406,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_1_element() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1433,7 +1424,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_3_elements() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1452,8 +1443,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_missing_memory_cells_with_offsets() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
         vm.segments.memory = memory![
             ((0, 1), (0, 1)),
@@ -1475,7 +1465,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_gap() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1521,8 +1511,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_ec_op() {
-        let builtin_runner: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let builtin_runner: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1575,8 +1564,7 @@ mod tests {
     fn get_ratio_tests() {
         let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.ratio(), (Some(256)),);
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.ratio(), (Some(256)),);
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.ratio(), (Some(8)),);
@@ -1607,8 +1595,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
@@ -1648,7 +1635,7 @@ mod tests {
     fn runners_final_stack() {
         let mut builtins = vec![
             BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
@@ -1676,7 +1663,7 @@ mod tests {
     fn runners_set_stop_ptr() {
         let builtins = vec![
             BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(

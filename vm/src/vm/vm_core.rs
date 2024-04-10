@@ -3491,7 +3491,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
 
         vm.segments = segments![
@@ -3560,7 +3560,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3608,7 +3608,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());

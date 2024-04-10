@@ -1,8 +1,7 @@
 use crate::stdlib::prelude::*;
 
 use super::instance_definitions::{
-    builtins_instance_def::BuiltinsInstanceDef,
-    diluted_pool_instance_def::DilutedPoolInstanceDef,
+    builtins_instance_def::BuiltinsInstanceDef, diluted_pool_instance_def::DilutedPoolInstanceDef,
 };
 
 use serde::Serialize;
