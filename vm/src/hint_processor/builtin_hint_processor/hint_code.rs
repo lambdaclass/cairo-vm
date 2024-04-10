@@ -1421,3 +1421,12 @@ data = __dict_manager.get_dict(ids.dict_ptr)
 print(
     {k: v if isinstance(v, int) else [memory[v + i] for i in range(ids.pointer_size)] for k, v in data.items()}
 )"#;
+
+pub const RUN_P_CIRCUIT: &str = "from starkware.cairo.lang.builtins.modulo.mod_builtin_runner import ModBuiltinRunner\nassert builtin_runners[\"add_mod_builtin\"].instance_def.batch_size == 1\nassert builtin_runners[\"mul_mod_builtin\"].instance_def.batch_size == 1\n\nModBuiltinRunner.fill_memory(\n    memory=memory,\n    add_mod=(ids.add_mod_ptr.address_, builtin_runners[\"add_mod_builtin\"], ids.add_mod_n),\n    mul_mod=(ids.mul_mod_ptr.address_, builtin_runners[\"mul_mod_builtin\"], ids.mul_mod_n),\n)";
+
+pub const RUN_P_CIRCUIT_WITH_LARGE_BATCH_SIZE: &str = "from starkware.cairo.lang.builtins.modulo.mod_builtin_runner import ModBuiltinRunner\nassert builtin_runners[\"add_mod_builtin\"].instance_def.batch_size == ids.BATCH_SIZE\nassert builtin_runners[\"mul_mod_builtin\"].instance_def.batch_size == ids.BATCH_SIZE\n\nModBuiltinRunner.fill_memory(\n    memory=memory,\n    add_mod=(ids.add_mod_ptr.address_, builtin_runners[\"add_mod_builtin\"], ids.add_mod_n),\n    mul_mod=(ids.mul_mod_ptr.address_, builtin_runners[\"mul_mod_builtin\"], ids.mul_mod_n),\n)";
+
+pub const NONDET_ELEMENTS_OVER_TEN: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 10)";
+pub const NONDET_ELEMENTS_OVER_TWO: &str =
+    "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 2)";
