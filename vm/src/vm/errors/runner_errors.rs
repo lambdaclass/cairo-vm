@@ -122,6 +122,10 @@ pub enum RunnerError {
     FillMemoryCoudNotFillTable(usize, usize),
     #[error("{}: {}", (*.0).0, (*.0).1)]
     ModBuiltinSecurityCheck(Box<(&'static str, String)>),
+    #[error("{0} is missing")]
+    MissingBuiltin(&'static str),
+    #[error("The stop pointer of the missing builtin {0} must be 0")]
+    MissingBuiltinStopPtrNotZero(&'static str),
 }
 
 #[cfg(test)]
