@@ -499,6 +499,7 @@ fn create_entry_code(
                 BuiltinName::keccak
                 | BuiltinName::ecdsa
                 | BuiltinName::output
+                | BuiltinName::range_check96
                 | BuiltinName::add_mod
                 | BuiltinName::mul_mod => return fp_loc,
             };
