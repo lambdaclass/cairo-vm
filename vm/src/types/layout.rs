@@ -171,7 +171,6 @@ mod tests {
         assert_eq!(layout._memory_units_per_step, 8);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 8);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -187,7 +186,6 @@ mod tests {
         assert_eq!(layout._memory_units_per_step, 8);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 25);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -203,7 +201,6 @@ mod tests {
         assert_eq!(layout._memory_units_per_step, 8);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 22);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -221,7 +218,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 10);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -239,7 +235,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::new(2, 4, 16))
         );
         assert_eq!(layout._n_trace_colums, 10);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -257,7 +252,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 15);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -275,7 +269,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 12);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -293,7 +286,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 11);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -311,7 +303,6 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 27);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 
     #[test]
@@ -329,6 +320,5 @@ mod tests {
             Some(DilutedPoolInstanceDef::default())
         );
         assert_eq!(layout._n_trace_colums, 73);
-        assert_eq!(layout._cpu_instance_def, CpuInstanceDef::default());
     }
 }
