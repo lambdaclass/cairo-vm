@@ -220,7 +220,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::relocatable;
-    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use num_traits::Zero;
 

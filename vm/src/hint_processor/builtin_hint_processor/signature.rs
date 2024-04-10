@@ -52,9 +52,6 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::{
-            exec_scope::ExecutionScopes, instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
-        },
         utils::test_utils::*,
         vm::runners::builtin_runner::SignatureBuiltinRunner,
     };

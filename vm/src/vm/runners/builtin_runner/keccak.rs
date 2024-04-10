@@ -494,7 +494,7 @@ mod tests {
     fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 0), (1, 2))];
 
-        let mut builtin = KeccakBuiltinRunner::new(Some(2048), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
 
@@ -512,7 +512,7 @@ mod tests {
     fn deduce_memory_cell_missing_input_cells() {
         let memory = memory![((0, 1), (1, 2))];
 
-        let mut builtin = KeccakBuiltinRunner::new(Some(2048), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
 
@@ -556,7 +556,7 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        memory.insert((0, 16).into(), Felt252::MAX);
+        memory.insert((0, 16).into(), Felt252::MAX).unwrap();
 
         let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
