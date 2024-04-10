@@ -247,8 +247,7 @@ pub fn squash_dict(
     let ptr_diff = get_integer_from_var_name("ptr_diff", vm, ids_data, ap_tracking)?;
     let n_accesses = get_integer_from_var_name("n_accesses", vm, ids_data, ap_tracking)?;
     //Get range_check_builtin
-    let range_check_builtin = vm.get_range_check_builtin()?;
-    let range_check_bound = range_check_builtin._bound;
+    let range_check_bound = *vm.get_range_check_builtin()?.bound();
     //Main Logic
     let ptr_diff = ptr_diff
         .to_usize()
@@ -284,7 +283,7 @@ pub fn squash_dict(
     keys.sort();
     keys.reverse();
     //Are the keys used bigger than the range_check bound.
-    let big_keys = if keys[0] >= range_check_bound.unwrap() {
+    let big_keys = if keys[0] >= range_check_bound {
         Felt252::ONE
     } else {
         Felt252::ZERO

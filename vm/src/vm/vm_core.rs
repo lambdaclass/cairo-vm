@@ -36,6 +36,7 @@ use num_traits::{ToPrimitive, Zero};
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{
     ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+    RC_N_PARTS_STANDARD,
 };
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
@@ -926,7 +927,9 @@ impl VirtualMachine {
         self.segments.memory.get_integer_range(addr, size)
     }
 
-    pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+    pub fn get_range_check_builtin(
+        &self,
+    ) -> Result<&RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>, VirtualMachineError> {
         for builtin in &self.builtin_runners {
             if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
                 return Ok(range_check_builtin);

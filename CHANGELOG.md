@@ -10,6 +10,14 @@
   * BREAKING: `OutputBuiltinRunner::get_public_memory` now takes a reference to `MemorySegmentManager`
   * BREAKING: method `VirtualMachine::get_memory_segment_addresses` moved to `CairoRunner::get_memory_segment_addresses`
 
+* feat(BREAKING): Add range_check96 builtin[#1698](https://github.com/lambdaclass/cairo-vm/pull/1698)
+  * Add the new `range_check96` builtin to the `all_cairo` layout.
+  * `RangeCheckBuiltinRunner` changes:
+    * Remove field `n_parts`, replacing it with const generic `N_PARTS`.
+    * Remome `n_parts` argument form method `new`.
+    * Remove field `_bound`, replacing it with public method `bound`.
+    * Add public methods `name` & `n_parts`.
+
 * feat(BREAKING): Add mod builtin [#1673](https://github.com/lambdaclass/cairo-vm/pull/1673)
 
   Main Changes:
