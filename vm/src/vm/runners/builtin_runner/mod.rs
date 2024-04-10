@@ -642,10 +642,7 @@ mod tests {
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{
-        types::instance_definitions::{
-            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-        },
-        utils::test_utils::*,
+        types::instance_definitions::ec_op_instance_def::EcOpInstanceDef, utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
@@ -656,7 +653,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
         assert_eq!(bitwise.n_input_cells, builtin.n_input_cells())
     }
@@ -704,7 +701,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
         assert_eq!(bitwise.cells_per_instance, builtin.cells_per_instance())
     }
@@ -760,7 +757,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.into();
         assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
     }
@@ -808,10 +805,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_bitwise_with_items() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
 
@@ -1055,10 +1049,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.current_step = 256;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -1124,10 +1115,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -1135,10 +1123,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
     }
 
@@ -1198,8 +1183,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses_test() {
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.get_memory_segment_addresses(), (0, None),);
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
@@ -1229,10 +1213,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_empty_memory() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let vm = vm!();
         // Unused builtin shouldn't fail security checks
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
@@ -1241,10 +1222,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_empty_offsets() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.memory.data = vec![vec![]];
@@ -1255,10 +1233,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_bitwise_missing_memory_cells_with_offsets() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.segments.memory = memory![
             ((0, 1), (0, 1)),
@@ -1278,7 +1253,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_bitwise_missing_memory_cells() {
-        let mut bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
 
         bitwise_builtin.cells_per_instance = 2;
         bitwise_builtin.n_input_cells = 5;
@@ -1404,8 +1379,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_validate_auto_deductions() {
-        let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
 
         let mut vm = vm!();
         vm.segments
@@ -1534,8 +1508,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_bitwise() {
-        let builtin_runner: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let builtin_runner: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1600,8 +1573,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ratio_tests() {
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.ratio(), (Some(256)),);
         let ec_op_builtin: BuiltinRunner =
             EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
@@ -1625,8 +1597,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
@@ -1676,10 +1647,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn runners_final_stack() {
         let mut builtins = vec![
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-                &BitwiseInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
@@ -1707,10 +1675,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn runners_set_stop_ptr() {
         let builtins = vec![
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-                &BitwiseInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
