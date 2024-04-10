@@ -1,6 +1,9 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
+use crate::types::instance_definitions::keccak_instance_def::{
+    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -356,7 +359,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(builtin) => builtin.cells_per_instance,
             BuiltinRunner::RangeCheck96(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Output(_) => 0,
-            BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Keccak(_) => CELLS_PER_KECCAK,
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
             BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
@@ -372,7 +375,7 @@ impl BuiltinRunner {
             BuiltinRunner::RangeCheck(builtin) => builtin.n_input_cells,
             BuiltinRunner::RangeCheck96(builtin) => builtin.n_input_cells,
             BuiltinRunner::Output(_) => 0,
-            BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Keccak(_) => INPUT_CELLS_PER_KECCAK,
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
             BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
             BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
@@ -636,7 +639,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
-    use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -740,14 +742,6 @@ mod tests {
         let output = OutputBuiltinRunner::new(true);
         let builtin: BuiltinRunner = output.into();
         assert_eq!(0, builtin.cells_per_instance())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_cells_per_instance_keccak() {
-        let keccak = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let builtin: BuiltinRunner = keccak.clone().into();
-        assert_eq!(keccak.cells_per_instance, builtin.cells_per_instance())
     }
 
     #[test]
@@ -979,10 +973,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_keccak_with_items() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
         vm.current_step = 160;
@@ -991,10 +982,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak_min_steps_not_reached() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
         vm.current_step = 10;
@@ -1060,10 +1048,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_keccak() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         let mut vm = vm!();
         vm.current_step = 32768;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
@@ -1121,20 +1106,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_keccak_zero_case() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_keccak_non_zero_case() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         assert_eq!(builtin.get_used_diluted_check_units(0, 8), 32768);
     }
 
@@ -1570,8 +1549,7 @@ mod tests {
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
         );
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
-        let keccak_builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let keccak_builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
     }
 
@@ -1638,10 +1616,7 @@ mod tests {
                 Some(8),
                 false,
             )),
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-                &KeccakInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), false)),
             BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
         ];
         let vm = vm!();
@@ -1663,10 +1638,7 @@ mod tests {
                 Some(8),
                 false,
             )),
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-                &KeccakInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), false)),
             BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
             BuiltinRunner::Poseidon(PoseidonBuiltinRunner::new(Some(32), false)),
             BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(false)),

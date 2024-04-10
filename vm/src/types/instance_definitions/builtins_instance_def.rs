@@ -112,7 +112,7 @@ impl BuiltinsInstanceDef {
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
-            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            keccak: Some(KeccakInstanceDef::new(Some(2048))),
             poseidon: Some(PoseidonInstanceDef::default()),
             range_check96: None,
             add_mod: None,
@@ -144,7 +144,7 @@ impl BuiltinsInstanceDef {
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(16))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
-            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            keccak: Some(KeccakInstanceDef::new(Some(2048))),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
             range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
             #[cfg(feature = "mod_builtin")]

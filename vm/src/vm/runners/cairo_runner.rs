@@ -7,7 +7,6 @@ use crate::{
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -322,7 +321,7 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
             let included = program_builtins.remove(&BuiltinName::keccak);
             if included || self.is_proof_mode() {
-                builtin_runners.push(KeccakBuiltinRunner::new(instance_def, included).into());
+                builtin_runners.push(KeccakBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
@@ -413,10 +412,9 @@ impl CairoRunner {
                 BuiltinName::ec_op => vm
                     .builtin_runners
                     .push(EcOpBuiltinRunner::new(Some(1), true).into()),
-                BuiltinName::keccak => vm.builtin_runners.push(
-                    KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(1), vec![200; 8]), true)
-                        .into(),
-                ),
+                BuiltinName::keccak => vm
+                    .builtin_runners
+                    .push(KeccakBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::poseidon => vm
                     .builtin_runners
                     .push(PoseidonBuiltinRunner::new(Some(1), true).into()),
