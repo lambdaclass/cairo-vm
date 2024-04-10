@@ -2,34 +2,20 @@ use serde::Serialize;
 
 pub(crate) const CELLS_PER_BITWISE: u32 = 5;
 pub(crate) const INPUT_CELLS_PER_BITWISE: u32 = 2;
+pub(crate) const TOTAL_N_BITS: u32 = 251;
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub(crate) struct BitwiseInstanceDef {
     pub(crate) ratio: Option<u32>,
-    pub(crate) total_n_bits: u32,
 }
 
 impl BitwiseInstanceDef {
     pub(crate) fn default() -> Self {
-        BitwiseInstanceDef {
-            ratio: Some(256),
-            total_n_bits: 251,
-        }
+        BitwiseInstanceDef { ratio: Some(256) }
     }
 
     pub(crate) fn new(ratio: Option<u32>) -> Self {
-        BitwiseInstanceDef {
-            ratio,
-            total_n_bits: 251,
-        }
-    }
-
-    pub(crate) fn _cells_per_builtin(&self) -> u32 {
-        CELLS_PER_BITWISE
-    }
-
-    pub(crate) fn _range_check_units_per_builtin(&self) -> u32 {
-        0
+        BitwiseInstanceDef { ratio }
     }
 }
 

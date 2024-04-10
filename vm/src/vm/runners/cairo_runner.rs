@@ -23,8 +23,7 @@ use crate::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
         instance_definitions::{
-            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-            ecdsa_instance_def::EcdsaInstanceDef,
+            ec_op_instance_def::EcOpInstanceDef, ecdsa_instance_def::EcdsaInstanceDef,
         },
         layout::CairoLayout,
         program::Program,
@@ -310,7 +309,8 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = program_builtins.remove(&BuiltinName::bitwise);
             if included || self.is_proof_mode() {
-                builtin_runners.push(BitwiseBuiltinRunner::new(instance_def, included).into());
+                builtin_runners
+                    .push(BitwiseBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
@@ -409,9 +409,9 @@ impl CairoRunner {
                 BuiltinName::ecdsa => vm.builtin_runners.push(
                     SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
                 ),
-                BuiltinName::bitwise => vm.builtin_runners.push(
-                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(1)), true).into(),
-                ),
+                BuiltinName::bitwise => vm
+                    .builtin_runners
+                    .push(BitwiseBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::ec_op => vm
                     .builtin_runners
                     .push(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into()),
