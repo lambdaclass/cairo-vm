@@ -124,15 +124,11 @@ pub fn cairo_run_program(
     )?;
 
     // Fetch return type data
-    let return_type_id = main_func
-        .signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+
+    let return_type_id = main_func.signature.ret_types.last();
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
 
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
@@ -479,14 +475,10 @@ fn create_entry_code(
 
     let before_final_call = ctx.current_code_offset;
 
-    let return_type_id = signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let return_type_id = signature.ret_types.last();
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
     let builtin_count: i16 = builtins.len().into_or_panic();
     let builtin_locations: Vec<i16> = builtins
         .iter()
@@ -649,7 +641,7 @@ fn get_function_builtins(
 
 fn fetch_return_values(
     return_type_size: i16,
-    return_type_id: &ConcreteTypeId,
+    return_type_id: Option<&ConcreteTypeId>,
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
@@ -668,10 +660,12 @@ fn fetch_return_values(
     };
     // Check if this result is a Panic result
     if return_type_id
-        .debug_name
-        .as_ref()
-        .ok_or_else(|| Error::TypeIdNoDebugName(return_type_id.clone()))?
-        .starts_with("core::panics::PanicResult::")
+        .and_then(|id| {
+            id.debug_name
+                .as_ref()
+                .map(|name| name.starts_with("core::panics::PanicResult::"))
+        })
+        .unwrap_or_default()
     {
         // Check the failure flag (aka first return value)
         if return_values.first() != Some(&MaybeRelocatable::from(0)) {
@@ -753,11 +747,16 @@ fn finalize_builtins(
 fn serialize_output(
     return_values: &[MaybeRelocatable],
     vm: &mut VirtualMachine,
-    return_type_id: &ConcreteTypeId,
+    return_type_id: Option<&ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> String {
     let mut output_string = String::new();
+    let return_type_id = if let Some(id) = return_type_id {
+        id
+    } else {
+        return output_string;
+    };
     let mut return_values_iter = return_values.iter().peekable();
     serialize_output_inner(
         &mut return_values_iter,
