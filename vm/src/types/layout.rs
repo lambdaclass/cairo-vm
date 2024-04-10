@@ -1,7 +1,7 @@
 use crate::stdlib::prelude::*;
 
 use super::instance_definitions::{
-    builtins_instance_def::BuiltinsInstanceDef, cpu_instance_def::CpuInstanceDef,
+    builtins_instance_def::BuiltinsInstanceDef,
     diluted_pool_instance_def::DilutedPoolInstanceDef,
 };
 
@@ -17,7 +17,6 @@ pub struct CairoLayout {
     pub(crate) _memory_units_per_step: u32,
     pub(crate) diluted_pool_instance_def: Option<DilutedPoolInstanceDef>,
     pub(crate) _n_trace_colums: u32,
-    pub(crate) _cpu_instance_def: CpuInstanceDef,
 }
 
 impl CairoLayout {
@@ -31,7 +30,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: None,
             _n_trace_colums: 8,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -45,7 +43,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: None,
             _n_trace_colums: 25,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -59,7 +56,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: None,
             _n_trace_colums: 22,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -73,7 +69,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 10,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -87,7 +82,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
             _n_trace_colums: 10,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -101,7 +95,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 15,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -115,7 +108,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 12,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -129,7 +121,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 11,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -143,7 +134,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 27,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 
@@ -157,7 +147,6 @@ impl CairoLayout {
             _memory_units_per_step: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 73,
-            _cpu_instance_def: CpuInstanceDef::default(),
         }
     }
 }
