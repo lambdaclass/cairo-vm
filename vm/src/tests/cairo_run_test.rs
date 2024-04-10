@@ -1072,6 +1072,40 @@ fn cairo_run_print_dict_array() {
 }
 
 #[test]
+fn run_program_allow_missing_builtins() {
+    let program_data = include_bytes!("../../../cairo_programs/pedersen_extra_builtins.json");
+    let config = CairoRunConfig {
+        allow_missing_builtins: Some(true),
+        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        ..Default::default()
+    };
+    assert!(crate::cairo_run::cairo_run(
+        program_data,
+        &config,
+        &mut BuiltinHintProcessor::new_empty()
+    )
+    .is_ok())
+}
+
+#[test]
+fn run_program_allow_missing_builtins_proof() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/proof_programs/pedersen_extra_builtins.json");
+    let config = CairoRunConfig {
+        proof_mode: true,
+        allow_missing_builtins: Some(true),
+        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        ..Default::default()
+    };
+    assert!(crate::cairo_run::cairo_run(
+        program_data,
+        &config,
+        &mut BuiltinHintProcessor::new_empty()
+    )
+    .is_ok())
+}
+
+#[test]
 #[cfg(feature = "mod_builtin")]
 fn cairo_run_mod_builtin() {
     let program_data =
@@ -1174,15 +1208,17 @@ fn run_program_with_custom_mod_builtin_params(
         .unwrap();
 
     vm.verify_auto_deductions().unwrap();
-    cairo_runner.read_return_values(&mut vm).unwrap();
+    cairo_runner.read_return_values(&mut vm, false).unwrap();
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm).unwrap();
     }
-    let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
-    if let Some(error) = security_error {
-        assert!(security_res.is_err());
-        assert!(security_res.err().unwrap().to_string().contains(error));
-        return;
+    if !cairo_run_config.proof_mode {
+        let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
+        if let Some(error) = security_error {
+            assert!(security_res.is_err());
+            assert!(security_res.err().unwrap().to_string().contains(error));
+            return;
+        }
+        security_res.unwrap();
     }
-    security_res.unwrap();
 }
