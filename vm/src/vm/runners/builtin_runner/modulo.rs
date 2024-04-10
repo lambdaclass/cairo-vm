@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
+    serde::deserialize_program::BuiltinName,
     stdlib::{
         borrow::Cow,
         collections::BTreeMap,
@@ -114,6 +115,13 @@ impl ModBuiltinRunner {
         match self.builtin_type {
             ModBuiltinType::Mul => super::MUL_MOD_BUILTIN_NAME,
             ModBuiltinType::Add => super::ADD_MOD_BUILTIN_NAME,
+        }
+    }
+
+    pub fn identifier(&self) -> BuiltinName {
+        match self.builtin_type {
+            ModBuiltinType::Mul => BuiltinName::mul_mod,
+            ModBuiltinType::Add => BuiltinName::add_mod,
         }
     }
 
@@ -725,7 +733,7 @@ mod tests {
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
             .unwrap();
-        runner.read_return_values(&mut vm).unwrap();
+        runner.read_return_values(&mut vm, false).unwrap();
         runner.finalize_segments(&mut vm).unwrap();
 
         let air_private_input = runner.get_air_private_input(&vm);
