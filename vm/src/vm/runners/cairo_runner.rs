@@ -1574,7 +1574,6 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::{Identifier, ReferenceManager},
-        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::trace::trace_entry::TraceEntry,
     };
@@ -3724,8 +3723,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.current_step = 8192;
-        vm.builtin_runners =
-            vec![BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into()];
+        vm.builtin_runners = vec![BitwiseBuiltinRunner::new(Some(256), true).into()];
         assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
@@ -4793,7 +4791,7 @@ mod tests {
         cairo_runner.segments_finalized = false;
         let mut vm = vm!();
         let output_builtin = OutputBuiltinRunner::new(true);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(output_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
         cairo_runner.initialize_segments(&mut vm, None);
