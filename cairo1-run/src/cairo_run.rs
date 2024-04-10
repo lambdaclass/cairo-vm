@@ -199,7 +199,7 @@ pub fn cairo_run_program(
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
 
-    // additional_initialization(&mut vm, data_len)?;
+    additional_initialization(&mut vm, data_len)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
