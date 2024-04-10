@@ -419,6 +419,7 @@ impl BuiltinRunner {
             BuiltinRunner::EcOp(_) => BuiltinName::ec_op,
             BuiltinRunner::Hash(_) => BuiltinName::pedersen,
             BuiltinRunner::RangeCheck(_) => BuiltinName::range_check,
+            BuiltinRunner::RangeCheck96(_) => BuiltinName::range_check96,
             BuiltinRunner::Output(_) => BuiltinName::output,
             BuiltinRunner::Keccak(_) => BuiltinName::keccak,
             BuiltinRunner::Signature(_) => BuiltinName::ecdsa,
