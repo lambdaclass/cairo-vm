@@ -1,5 +1,6 @@
 use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
+use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
 use crate::{
@@ -284,6 +285,14 @@ impl Memory {
         }
     }
 
+    /// Gets the value from memory address as a usize.
+    /// Returns an Error if the value at the memory address is missing not a Felt252, or can't be converted to usize.
+    pub fn get_usize(&self, key: Relocatable) -> Result<usize, MemoryError> {
+        let felt = self.get_integer(key)?.into_owned();
+        felt.to_usize()
+            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToUsizeConversion(Box::new(felt))))
+    }
+
     /// Gets the value from memory address as a Relocatable value.
     /// Returns an Error if the value at the memory address is missing or not a Relocatable.
     pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
@@ -516,6 +525,21 @@ impl Memory {
                 .count(),
         )
     }
+
+    // Inserts a value into memory & inmediately marks it as accessed if insertion was succesful
+    // Used by ModBuiltinRunner, as it accesses memory outside of it's segment when operating
+    pub(crate) fn insert_as_accessed<V>(
+        &mut self,
+        key: Relocatable,
+        val: V,
+    ) -> Result<(), MemoryError>
+    where
+        MaybeRelocatable: From<V>,
+    {
+        self.insert(key, val)?;
+        self.mark_as_accessed(key);
+        Ok(())
+    }
 }
 
 impl From<&Memory> for CairoPieMemory {
@@ -608,7 +632,9 @@ mod memory_tests {
         types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
-            runners::builtin_runner::{RangeCheckBuiltinRunner, SignatureBuiltinRunner},
+            runners::builtin_runner::{
+                RangeCheckBuiltinRunner, SignatureBuiltinRunner, RC_N_PARTS_STANDARD,
+            },
             vm_memory::memory_segments::MemorySegmentManager,
         },
     };
@@ -779,7 +805,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_within_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         builtin.add_validation_rule(&mut segments.memory);
@@ -804,7 +830,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_outside_bounds() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let mut segments = MemorySegmentManager::new();
         segments.add();
         builtin.initialize_segments(&mut segments);
@@ -895,7 +921,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_relocatable_value() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         segments.memory = memory![((0, 0), (0, 4))];
@@ -912,7 +938,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_range_check_out_of_bounds_diff_segment() {
-        let mut builtin = RangeCheckBuiltinRunner::new(Some(8), 8, true);
+        let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let mut segments = MemorySegmentManager::new();
         segments.memory = Memory::new();
         segments.add();

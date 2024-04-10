@@ -5,6 +5,7 @@ use super::{
         ec_recover_sub_a_b,
     },
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
+    mod_circuit::{run_p_mod_circuit, run_p_mod_circuit_with_large_batch_size},
     secp::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
@@ -822,6 +823,17 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             }
             hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
             hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::RUN_P_CIRCUIT => {
+                run_p_mod_circuit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::RUN_P_CIRCUIT_WITH_LARGE_BATCH_SIZE => {
+                run_p_mod_circuit_with_large_batch_size(
+                    vm,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                    constants,
+                )
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             #[cfg(feature = "print")]

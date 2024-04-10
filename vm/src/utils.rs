@@ -236,8 +236,11 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![
-                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::new(Some(8), 8, true)
-                    .into(),
+                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
+                    Some(8),
+                    true,
+                )
+                .into(),
             ];
             vm
         }};
