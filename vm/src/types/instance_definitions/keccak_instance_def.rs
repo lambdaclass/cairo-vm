@@ -3,7 +3,7 @@ use serde::Serialize;
 
 pub(crate) const INPUT_CELLS_PER_KECCAK: u32 = 8;
 pub(crate) const CELLS_PER_KECCAK: u32 = 16;
-pub(crate) const INSTANCE_PER_COMPONENT: u32 = 16;
+pub(crate) const KECCAK_INSTANCES_PER_COMPONENT: u32 = 16;
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub(crate) struct KeccakInstanceDef {

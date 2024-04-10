@@ -21,7 +21,6 @@ pub struct EcOpBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
@@ -34,7 +33,6 @@ impl EcOpBuiltinRunner {
             cells_per_instance: CELLS_PER_EC_OP,
             stop_ptr: None,
             included,
-            instances_per_component: 1,
             cache: RefCell::new(HashMap::new()),
         }
     }

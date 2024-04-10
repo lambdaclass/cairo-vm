@@ -6,6 +6,8 @@ use super::{
     range_check_instance_def::RangeCheckInstanceDef,
 };
 
+pub(crate) const BUILTIN_INSTANCES_PER_COMPONENT: u32 = 1;
+
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]

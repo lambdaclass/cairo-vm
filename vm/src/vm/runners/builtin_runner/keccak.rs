@@ -2,7 +2,7 @@ use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::instance_definitions::keccak_instance_def::{
-    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK, INSTANCE_PER_COMPONENT,
+    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -28,7 +28,6 @@ pub struct KeccakBuiltinRunner {
     pub base: usize,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
@@ -39,7 +38,6 @@ impl KeccakBuiltinRunner {
             ratio,
             stop_ptr: None,
             included,
-            instances_per_component: INSTANCE_PER_COMPONENT,
             cache: RefCell::new(HashMap::new()),
         }
     }

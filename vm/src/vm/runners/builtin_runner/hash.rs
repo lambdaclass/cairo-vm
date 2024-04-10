@@ -22,7 +22,6 @@ pub struct HashBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
     // 1 at position 'n' means offset 'n' relative to base pointer
@@ -40,7 +39,6 @@ impl HashBuiltinRunner {
             stop_ptr: None,
             verified_addresses: RefCell::new(Vec::new()),
             included,
-            instances_per_component: 1,
         }
     }
 

@@ -1,9 +1,11 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
+use crate::types::instance_definitions::builtins_instance_def::BUILTIN_INSTANCES_PER_COMPONENT;
 use crate::types::instance_definitions::keccak_instance_def::{
-    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
+    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK, KECCAK_INSTANCES_PER_COMPONENT,
 };
+use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -356,8 +358,7 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(builtin) => builtin.cells_per_instance,
             BuiltinRunner::EcOp(builtin) => builtin.cells_per_instance,
             BuiltinRunner::Hash(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::RangeCheck(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(_) => CELLS_PER_KECCAK,
             BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
@@ -372,8 +373,7 @@ impl BuiltinRunner {
             BuiltinRunner::Bitwise(builtin) => builtin.n_input_cells,
             BuiltinRunner::EcOp(builtin) => builtin.n_input_cells,
             BuiltinRunner::Hash(builtin) => builtin.n_input_cells,
-            BuiltinRunner::RangeCheck(builtin) => builtin.n_input_cells,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.n_input_cells,
+            BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(_) => INPUT_CELLS_PER_KECCAK,
             BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
@@ -385,17 +385,8 @@ impl BuiltinRunner {
 
     fn instances_per_component(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.instances_per_component,
-            BuiltinRunner::EcOp(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Hash(builtin) => builtin.instances_per_component,
-            BuiltinRunner::RangeCheck(builtin) => builtin.instances_per_component,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => 1,
-            BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
-            // TODO: Placeholder till we see layout data
-            BuiltinRunner::Mod(_) => 1,
+            BuiltinRunner::Keccak(_) => KECCAK_INSTANCES_PER_COMPONENT,
+            _ => BUILTIN_INSTANCES_PER_COMPONENT,
         }
     }
 
@@ -666,14 +657,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_n_input_cells_range_check() {
-        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
-        let builtin: BuiltinRunner = range_check.clone().into();
-        assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
@@ -710,14 +693,6 @@ mod tests {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
         assert_eq!(hash.cells_per_instance, builtin.cells_per_instance())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_cells_per_instance_range_check() {
-        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
-        let builtin: BuiltinRunner = range_check.clone().into();
-        assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
     }
 
     #[test]

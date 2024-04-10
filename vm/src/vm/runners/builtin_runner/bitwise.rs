@@ -23,7 +23,6 @@ pub struct BitwiseBuiltinRunner {
     pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
 }
 
 impl BitwiseBuiltinRunner {
@@ -35,7 +34,6 @@ impl BitwiseBuiltinRunner {
             n_input_cells: INPUT_CELLS_PER_BITWISE,
             stop_ptr: None,
             included,
-            instances_per_component: 1,
         }
     }
 
