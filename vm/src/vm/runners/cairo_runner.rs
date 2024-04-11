@@ -1196,7 +1196,7 @@ impl CairoRunner {
         // four are used for the instruction.
         let total_memory_units = MEMORY_UNITS_PER_STEP * vm_current_step_u32;
         let (public_memory_units, rem) =
-            div_rem(total_memory_units, instance._public_memory_fraction);
+            div_rem(total_memory_units, instance.public_memory_fraction);
         if rem != 0 {
             return Err(MathError::SafeDivFailU32(
                 total_memory_units,

@@ -14,7 +14,7 @@ pub struct CairoLayout {
     pub(crate) _cpu_component_step: u32,
     pub(crate) rc_units: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
-    pub(crate) _public_memory_fraction: u32,
+    pub(crate) public_memory_fraction: u32,
     pub(crate) diluted_pool_instance_def: Option<DilutedPoolInstanceDef>,
     pub(crate) _n_trace_colums: u32,
 }
@@ -26,7 +26,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::plain(),
-            _public_memory_fraction: 4,
+            public_memory_fraction: 4,
             diluted_pool_instance_def: None,
             _n_trace_colums: 8,
         }
@@ -38,7 +38,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::small(),
-            _public_memory_fraction: 4,
+            public_memory_fraction: 4,
             diluted_pool_instance_def: None,
             _n_trace_colums: 25,
         }
@@ -50,7 +50,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::dex(),
-            _public_memory_fraction: 4,
+            public_memory_fraction: 4,
             diluted_pool_instance_def: None,
             _n_trace_colums: 22,
         }
@@ -62,7 +62,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 10,
         }
@@ -74,7 +74,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
             _n_trace_colums: 10,
         }
@@ -86,7 +86,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 15,
         }
@@ -98,7 +98,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 12,
         }
@@ -110,7 +110,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::all_cairo(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 11,
         }
@@ -122,7 +122,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 8,
             builtins: BuiltinsInstanceDef::all_solidity(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 27,
         }
@@ -134,7 +134,7 @@ impl CairoLayout {
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::dynamic(),
-            _public_memory_fraction: 8,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
             _n_trace_colums: 73,
         }
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 4);
+        assert_eq!(layout.public_memory_fraction, 4);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 8);
     }
@@ -171,7 +171,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 4);
+        assert_eq!(layout.public_memory_fraction, 4);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 25);
     }
@@ -185,7 +185,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 4);
+        assert_eq!(layout.public_memory_fraction, 4);
         assert_eq!(layout.diluted_pool_instance_def, None);
         assert_eq!(layout._n_trace_colums, 22);
     }
@@ -198,7 +198,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
@@ -214,7 +214,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::new(2, 4, 16))
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
@@ -246,7 +246,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
@@ -262,7 +262,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
@@ -278,7 +278,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 8);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout._public_memory_fraction, 8);
+        assert_eq!(layout.public_memory_fraction, 8);
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef::default())
