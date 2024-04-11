@@ -135,7 +135,7 @@ impl From<Reference> for HintReference {
         HintReference {
             offset1: reference.value_address.offset1.clone(),
             offset2: reference.value_address.offset2.clone(),
-            dereference: reference.value_address.dereference,
+            dereference: reference.value_address.outer_dereference,
             // only store `ap` tracking data if the reference is referred to it
             ap_tracking_data: match (
                 &reference.value_address.offset1,

@@ -392,7 +392,8 @@ mod tests {
                 ValueAddress {
                     offset2: OffsetValue::Value(2),
                     offset1: OffsetValue::Reference(Register::FP, -1_i32, true),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -412,7 +413,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 2_i32, false),
                     offset2: OffsetValue::Value(0),
-                    dereference: false,
+                    outer_dereference: false,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -431,7 +433,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Value(825323),
                     offset2: OffsetValue::Value(0),
-                    dereference: false,
+                    outer_dereference: false,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -451,7 +454,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, false),
                     offset2: OffsetValue::Value(-1),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -471,7 +475,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Value(1),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "__main__.felt".to_string(),
                 }
             ))
@@ -491,7 +496,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Immediate(Felt252::ONE),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -511,7 +517,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
                     offset2: OffsetValue::Value(1),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -531,7 +538,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Reference(Register::FP, 1_i32, true),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "__main__.felt".to_string(),
                 }
             ))
@@ -551,7 +559,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
                     offset2: OffsetValue::Reference(Register::FP, 1_i32, true),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "__main__.felt".to_string(),
                 }
             ))
@@ -571,7 +580,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Immediate(Felt252::from(825323_i32)),
                     offset2: OffsetValue::Immediate(Felt252::ZERO),
-                    dereference: false,
+                    outer_dereference: false,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -591,7 +601,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Value(1),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint".to_string(),
                 }
             ))
@@ -611,7 +622,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Value(1),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "starkware.cairo.common.cairo_secp.ec.EcPoint*".to_string(),
                 }
             ))
@@ -631,7 +643,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
                     offset2: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -649,9 +662,10 @@ mod tests {
             Ok((
                 "",
                 ValueAddress {
-                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    offset2: OffsetValue::Reference(Register::AP, 0_i32, true),
-                    dereference: true,
+                    offset1: OffsetValue::Reference(Register::FP, -3_i32, true),
+                    offset2: OffsetValue::Value(5),
+                    outer_dereference: true,
+                    inner_dereference: true,
                     value_type: "felt".to_string(),
                 }
             ))
@@ -671,7 +685,8 @@ mod tests {
                 ValueAddress {
                     offset1: OffsetValue::Reference(Register::AP, 1_i32, true),
                     offset2: OffsetValue::Reference(Register::AP, 2_i32, true),
-                    dereference: true,
+                    outer_dereference: true,
+                    inner_dereference: false,
                     value_type: "felt".to_string(),
                 }
             ))

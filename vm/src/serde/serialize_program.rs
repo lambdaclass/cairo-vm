@@ -195,7 +195,8 @@ impl From<&Program> for ProgramSerializer {
                 value_address: ValueAddress {
                     offset1: r.offset1,
                     offset2: r.offset2,
-                    dereference: r.dereference,
+                    outer_dereference: r.dereference,
+                    inner_dereference: false, // TODO FIX
                     value_type: r.cairo_type.unwrap_or_default(),
                 },
                 ap_tracking_data: r.ap_tracking_data.unwrap_or_default(),
