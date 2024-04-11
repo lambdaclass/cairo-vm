@@ -54,10 +54,14 @@ use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
+use super::builtin_runner::ModBuiltinRunner;
 use super::{
-    builtin_runner::{KeccakBuiltinRunner, PoseidonBuiltinRunner},
+    builtin_runner::{
+        KeccakBuiltinRunner, PoseidonBuiltinRunner, RC_N_PARTS_96, RC_N_PARTS_STANDARD,
+    },
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
+use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -259,6 +263,9 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::range_check96,
+            BuiltinName::add_mod,
+            BuiltinName::mul_mod,
         ];
         if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
@@ -284,9 +291,8 @@ impl CairoRunner {
             let included = program_builtins.remove(&BuiltinName::range_check);
             if included || self.is_proof_mode() {
                 builtin_runners.push(
-                    RangeCheckBuiltinRunner::new(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
                         instance_def.ratio,
-                        instance_def.n_parts,
                         included,
                     )
                     .into(),
@@ -327,6 +333,28 @@ impl CairoRunner {
             if included || self.is_proof_mode() {
                 builtin_runners
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check96.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check96);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(instance_def.ratio, included)
+                        .into(),
+                );
+            }
+        }
+        if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::add_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
+            }
+        }
+        if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::mul_mod);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
             }
         }
         if !program_builtins.is_empty() && !allow_missing_builtins {
@@ -372,9 +400,9 @@ impl CairoRunner {
                 BuiltinName::pedersen => vm
                     .builtin_runners
                     .push(HashBuiltinRunner::new(Some(32), true).into()),
-                BuiltinName::range_check => vm
-                    .builtin_runners
-                    .push(RangeCheckBuiltinRunner::new(Some(1), 8, true).into()),
+                BuiltinName::range_check => vm.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(1), true).into(),
+                ),
                 BuiltinName::output => vm
                     .builtin_runners
                     .push(OutputBuiltinRunner::new(true).into()),
@@ -400,6 +428,17 @@ impl CairoRunner {
                             .push(SegmentArenaBuiltinRunner::new(true).into())
                     }
                 }
+                BuiltinName::range_check96 => vm
+                    .builtin_runners
+                    .push(RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(Some(1), true).into()),
+                BuiltinName::add_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
+                BuiltinName::mul_mod => vm.builtin_runners.push(
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true)
+                        .into(),
+                ),
             }
         }
 
@@ -436,30 +475,19 @@ impl CairoRunner {
         entrypoint: usize,
         stack: Vec<MaybeRelocatable>,
     ) -> Result<(), RunnerError> {
-        if let Some(prog_base) = self.program_base {
-            let initial_pc = Relocatable {
-                segment_index: prog_base.segment_index,
-                offset: prog_base.offset + entrypoint,
-            };
-            self.initial_pc = Some(initial_pc);
-            vm.load_data(prog_base, &self.program.shared_program_data.data)
-                .map_err(RunnerError::MemoryInitializationError)?;
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_pc = Some((prog_base + entrypoint)?);
+        vm.load_data(prog_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
 
-            // Mark all addresses from the program segment as accessed
-            let base = self
-                .program_base
-                .unwrap_or_else(|| Relocatable::from((0, 0)));
-            for i in 0..self.program.shared_program_data.data.len() {
-                vm.segments.memory.mark_as_accessed((base + i)?);
-            }
+        // Mark all addresses from the program segment as accessed
+        for i in 0..self.program.shared_program_data.data.len() {
+            vm.segments.memory.mark_as_accessed((prog_base + i)?);
         }
-        if let Some(exec_base) = self.execution_base {
-            vm.segments
-                .load_data(exec_base, &stack)
-                .map_err(RunnerError::MemoryInitializationError)?;
-        } else {
-            return Err(RunnerError::NoProgBase);
-        }
+        vm.segments
+            .load_data(exec_base, &stack)
+            .map_err(RunnerError::MemoryInitializationError)?;
         Ok(())
     }
 
@@ -497,9 +525,19 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
-
-        for builtin_runner in vm.builtin_runners.iter() {
-            stack.append(&mut builtin_runner.initial_stack());
+        {
+            let builtin_runners = vm
+                .builtin_runners
+                .iter()
+                .map(|b| (b.identifier(), b))
+                .collect::<HashMap<_, _>>();
+            for builtin_id in &self.program.builtins {
+                if let Some(builtin_runner) = builtin_runners.get(builtin_id) {
+                    stack.append(&mut builtin_runner.initial_stack());
+                } else {
+                    stack.push(Felt252::ZERO.into())
+                }
+            }
         }
 
         if self.is_proof_mode() {
@@ -1092,7 +1130,7 @@ impl CairoRunner {
                 .get_used_cells_and_allocated_size(vm)
                 .map_err(RunnerError::FinalizeSegements)?;
             if let BuiltinRunner::Output(output_builtin) = builtin_runner {
-                let public_memory = output_builtin.get_public_memory()?;
+                let public_memory = output_builtin.get_public_memory(&vm.segments)?;
                 vm.segments
                     .finalize(Some(size), builtin_runner.base(), Some(&public_memory))
             } else {
@@ -1100,6 +1138,7 @@ impl CairoRunner {
                     .finalize(Some(size), builtin_runner.base(), None)
             }
         }
+        vm.segments.finalize_zero_segment();
         self.segments_finalized = true;
         Ok(())
     }
@@ -1239,14 +1278,33 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn read_return_values(
+        &mut self,
+        vm: &mut VirtualMachine,
+        allow_missing_builtins: bool,
+    ) -> Result<(), RunnerError> {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut pointer = vm.get_ap();
-        for builtin_runner in vm.builtin_runners.iter_mut().rev() {
-            let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
-            pointer = new_pointer;
+        for builtin_id in self.program.builtins.iter().rev() {
+            if let Some(builtin_runner) = vm
+                .builtin_runners
+                .iter_mut()
+                .find(|b| b.identifier() == *builtin_id)
+            {
+                let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
+                pointer = new_pointer;
+            } else {
+                if !allow_missing_builtins {
+                    return Err(RunnerError::MissingBuiltin(builtin_id.name()));
+                }
+                pointer.offset = pointer.offset.saturating_sub(1);
+
+                if !vm.get_integer(pointer)?.is_zero() {
+                    return Err(RunnerError::MissingBuiltinStopPtrNotZero(builtin_id.name()));
+                }
+            }
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
@@ -1265,22 +1323,6 @@ impl CairoRunner {
                 .extend(begin..end);
         }
         Ok(())
-    }
-
-    //NOTE: No longer needed in 0.11
-    /// Add (or replace if already present) a custom hash builtin. Returns a Relocatable
-    /// with the new builtin base as the segment index.
-    pub fn add_additional_hash_builtin(&self, vm: &mut VirtualMachine) -> Relocatable {
-        // Create, initialize and insert the new custom hash runner.
-        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(32), true).into();
-        builtin.initialize_segments(&mut vm.segments);
-        let segment_index = builtin.base() as isize;
-        vm.builtin_runners.push(builtin);
-
-        Relocatable {
-            segment_index,
-            offset: 0,
-        }
     }
 
     // Iterates over the program builtins in reverse, calling BuiltinRunner::final_stack on each of them and returns the final pointer
@@ -1428,7 +1470,7 @@ impl CairoRunner {
             layout_name,
             dyn_layout,
             &vm.get_public_memory_addresses()?,
-            vm.get_memory_segment_addresses()?,
+            self.get_memory_segment_addresses(vm)?,
             self.relocated_trace
                 .as_ref()
                 .ok_or(PublicInputError::EmptyTrace)?,
@@ -1440,12 +1482,44 @@ impl CairoRunner {
     pub fn get_air_private_input(&self, vm: &VirtualMachine) -> AirPrivateInput {
         let mut private_inputs = HashMap::new();
         for builtin in vm.builtin_runners.iter() {
-            private_inputs.insert(
-                builtin.name(),
-                builtin.air_private_input(&vm.segments.memory),
-            );
+            private_inputs.insert(builtin.name(), builtin.air_private_input(&vm.segments));
         }
         AirPrivateInput(private_inputs)
+    }
+
+    pub fn get_memory_segment_addresses(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
+        let relocation_table = vm
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
+            let (index, stop_ptr_offset) = segment;
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((*base, base + stop_ptr_offset))
+        };
+
+        vm.builtin_runners
+            .iter()
+            .map(|builtin| -> Result<_, VirtualMachineError> {
+                let (base, stop_ptr) = builtin.get_memory_segment_addresses();
+                let stop_ptr = if self.program.builtins.contains(&builtin.identifier()) {
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?
+                } else {
+                    stop_ptr.unwrap_or_default()
+                };
+
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate((base, stop_ptr))?,
+                ))
+            })
+            .collect()
     }
 }
 
@@ -3258,6 +3332,7 @@ mod tests {
 
         // Swap the first and second builtins (first should be `output`).
         vm.builtin_runners.swap(0, 1);
+        cairo_runner.program.builtins.swap(0, 1);
 
         cairo_runner.initialize_segments(&mut vm, None);
 
@@ -4102,7 +4177,8 @@ mod tests {
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(12), 5, true).into()];
+        vm.builtin_runners =
+            vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(12), true).into()];
 
         assert_matches!(
             cairo_runner.get_perm_range_check_limits(&vm),
@@ -4156,7 +4232,8 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+        vm.builtin_runners =
+            vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -4223,7 +4300,8 @@ mod tests {
 
         let cairo_runner = cairo_runner!(program);
         let mut vm = vm!();
-        vm.builtin_runners = vec![RangeCheckBuiltinRunner::new(Some(8), 8, true).into()];
+        vm.builtin_runners =
+            vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
         vm.segments.memory.data = vec![vec![Some(MemoryCell::new(mayberelocatable!(
             0x80FF_8000_0530u64
         )))]];
@@ -4658,7 +4736,7 @@ mod tests {
         let mut vm = vm!();
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4680,7 +4758,7 @@ mod tests {
         cairo_runner.run_ended = false;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
@@ -4699,7 +4777,7 @@ mod tests {
         cairo_runner.segments_finalized = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
@@ -4727,7 +4805,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4758,7 +4836,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4796,44 +4874,18 @@ mod tests {
         // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
         vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
         };
         assert_eq!(output_builtin.stop_ptr, Some(0));
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let bitwise_builtin = match &vm.builtin_runners[1] {
             BuiltinRunner::Bitwise(runner) => runner,
             _ => unreachable!(),
         };
         assert_eq!(bitwise_builtin.stop_ptr, Some(5));
-    }
-
-    /// Test that add_additional_hash_builtin() creates an additional builtin.
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn add_additional_hash_builtin() {
-        let program = program!();
-        let cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-
-        let num_builtins = vm.builtin_runners.len();
-        cairo_runner.add_additional_hash_builtin(&mut vm);
-        assert_eq!(vm.builtin_runners.len(), num_builtins + 1);
-
-        let builtin = vm
-            .builtin_runners
-            .last()
-            .expect("missing last builtin runner");
-        match builtin {
-            BuiltinRunner::Hash(builtin) => {
-                assert_eq!(builtin.base(), 0);
-                assert_eq!(builtin.ratio(), Some(32));
-                assert!(builtin.included);
-            }
-            _ => unreachable!(),
-        }
     }
 
     #[test]

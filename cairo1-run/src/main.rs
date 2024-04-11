@@ -6,13 +6,10 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    types::{errors::program_errors::ProgramError, relocatable::MaybeRelocatable},
-    vm::{
-        errors::{
-            memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
-            vm_errors::VirtualMachineError,
-        },
-        vm_core::VirtualMachine,
+    types::errors::program_errors::ProgramError,
+    vm::errors::{
+        memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
+        vm_errors::VirtualMachineError,
     },
     Felt252,
 };
@@ -20,9 +17,7 @@ use clap::{Parser, ValueHint};
 use itertools::Itertools;
 use std::{
     io::{self, Write},
-    iter::Peekable,
     path::PathBuf,
-    slice::Iter,
 };
 use thiserror::Error;
 
@@ -216,6 +211,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
+        serialize_output: args.print_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
@@ -232,14 +228,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
         .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
-    let (runner, vm, return_values) =
+    let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
-
-    let output_string = if args.print_output {
-        Some(serialize_output(&vm, &return_values))
-    } else {
-        None
-    };
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
@@ -297,7 +287,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         memory_writer.flush()?;
     }
 
-    Ok(output_string)
+    Ok(serialized_output)
 }
 
 fn main() -> Result<(), Error> {
@@ -329,116 +319,6 @@ fn main() -> Result<(), Error> {
         }
         Err(err) => Err(err),
     }
-}
-
-/// Serializes the return values in a user-friendly format
-/// Displays Arrays using brackets ([]) and Dictionaries using ({})
-/// Recursively dereferences referenced values (such as Span & Box)
-pub fn serialize_output(vm: &VirtualMachine, return_values: &[MaybeRelocatable]) -> String {
-    let mut output_string = String::new();
-    let mut return_values_iter: Peekable<Iter<MaybeRelocatable>> = return_values.iter().peekable();
-    serialize_output_inner(&mut return_values_iter, &mut output_string, vm);
-    fn serialize_output_inner(
-        iter: &mut Peekable<Iter<MaybeRelocatable>>,
-        output_string: &mut String,
-        vm: &VirtualMachine,
-    ) {
-        while let Some(val) = iter.next() {
-            if let MaybeRelocatable::RelocatableValue(x) = val {
-                // Check if the next value is a relocatable of the same index
-                if let Some(MaybeRelocatable::RelocatableValue(y)) = iter.peek() {
-                    // Check if the two relocatable values represent a valid array in memory
-                    if x.segment_index == y.segment_index && x.offset <= y.offset {
-                        // Fetch the y value from the iterator so we don't serialize it twice
-                        iter.next();
-                        // Fetch array
-                        maybe_add_whitespace(output_string);
-                        output_string.push('[');
-                        let array = vm.get_continuous_range(*x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push(']');
-                        continue;
-                    }
-                }
-
-                // Check if the single relocatable value represents a span
-                // In this case, the reloacatable will point us to the (start, end) pair in memory
-                // For example, the relocatable value may be 14:0, with the segment 14 containing [13:0 13:4] which is a valid array
-                if let (Ok(x), Ok(y)) = (vm.get_relocatable(*x), vm.get_relocatable(x + 1)) {
-                    if x.segment_index == y.segment_index && y.offset >= x.offset {
-                        // Fetch array
-                        maybe_add_whitespace(output_string);
-                        output_string.push('[');
-                        let array = vm.get_continuous_range(x, y.offset - x.offset).unwrap();
-                        let mut array_iter: Peekable<Iter<MaybeRelocatable>> =
-                            array.iter().peekable();
-                        serialize_output_inner(&mut array_iter, output_string, vm);
-                        output_string.push(']');
-                        continue;
-                    }
-                }
-
-                // Check if the relocatable value represents a dictionary
-                // To do so we can check if the relocatable consists of the last dict_ptr, which should be a pointer to the next empty cell in the dictionary's segment
-                // We can check that the dict_ptr's offset is consistent with the length of the segment and that the segment is made up of tuples of three elements (key, prev_val, val)
-                if x.offset
-                    == vm
-                        .get_segment_size(x.segment_index as usize)
-                        .unwrap_or_default()
-                    && x.offset % 3 == 0
-                {
-                    // Fetch the dictionary's memory
-                    let dict_mem = vm
-                        .get_continuous_range((x.segment_index, 0).into(), x.offset)
-                        .expect("Malformed dictionary memory");
-                    // Serialize the dictionary
-                    output_string.push('{');
-                    // The dictionary's memory is made up of (key, prev_value, next_value) tuples
-                    // The prev value is not relevant to the user so we can skip over it for calrity
-                    for (key, _, value) in dict_mem.iter().tuples() {
-                        maybe_add_whitespace(output_string);
-                        // Serialize the key wich should always be a Felt value
-                        output_string.push_str(&key.to_string());
-                        output_string.push(':');
-                        // Serialize the value
-                        // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                        let value_vec = vec![value.clone()];
-                        let mut value_iter: Peekable<Iter<MaybeRelocatable>> =
-                            value_vec.iter().peekable();
-                        serialize_output_inner(&mut value_iter, output_string, vm);
-                    }
-                    output_string.push('}');
-                    continue;
-                }
-
-                // Finally, if the relocatable is neither the start of an array, a span, or a dictionary, it should be a reference (Such as Box)
-                // In this case we show the referenced value (if it exists)
-                // As this reference can also hold a reference we use the serialize_output_inner function to handle it recursively
-                if let Some(val) = vm.get_maybe(x) {
-                    maybe_add_whitespace(output_string);
-                    let array = vec![val.clone()];
-                    let mut array_iter: Peekable<Iter<MaybeRelocatable>> = array.iter().peekable();
-                    serialize_output_inner(&mut array_iter, output_string, vm);
-                    continue;
-                }
-            }
-            maybe_add_whitespace(output_string);
-            output_string.push_str(&val.to_string());
-        }
-    }
-
-    fn maybe_add_whitespace(string: &mut String) {
-        if !string.is_empty()
-            && !string.ends_with('[')
-            && !string.ends_with(':')
-            && !string.ends_with('{')
-        {
-            string.push(' ');
-        }
-    }
-    output_string
 }
 
 #[cfg(test)]
@@ -492,7 +372,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_hello_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1 1234");
+        assert_matches!(run(args), Ok(Some(res)) if res == "1234");
     }
 
     #[rstest]
@@ -556,7 +436,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_simple_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1");
+        assert_matches!(run(args), Ok(Some(res)) if res == "true");
     }
 
     #[rstest]
@@ -644,7 +524,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_dict(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{66675:[8 9 10 11] 66676:[1 2 3]}";
+        let expected_output = "{66675: [8 9 10 11] 66676: [1 2 3]}";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 
@@ -671,7 +551,52 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_nullable_box_vec(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{0:10 1:20 2:30} 3";
+        let expected_output = "{0: 10 1: 20 2: 30} 3";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_dict_with_struct(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0: 1 true 1: 1 false 2: 1 true}";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_felt_dict_squash(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{66675: [4 5 6] 66676: [1 2 3]}";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_null_ret(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "null";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bytes31_ret(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "123";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_tensor_new(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "[1 2] [1 false 1 true]";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }

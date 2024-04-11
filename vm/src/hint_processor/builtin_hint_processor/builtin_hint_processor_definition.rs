@@ -5,6 +5,7 @@ use super::{
         ec_recover_sub_a_b,
     },
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
+    mod_circuit::{run_p_mod_circuit, run_p_mod_circuit_with_large_batch_size},
     secp::{
         ec_utils::{
             compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
@@ -57,7 +58,7 @@ use crate::{
             math_utils::*,
             memcpy_hint_utils::{add_segment, enter_scope, exit_scope, memcpy_enter_scope},
             memset_utils::{memset_enter_scope, memset_step_loop},
-            poseidon_utils::{n_greater_than_10, n_greater_than_2},
+            poseidon_utils::{elements_over_x, n_greater_than_10, n_greater_than_2},
             pow_utils::pow,
             secp::{
                 bigint_utils::{bigint_to_uint256, hi_max_bitlen, nondet_bigint3},
@@ -731,6 +732,12 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::NONDET_N_GREATER_THAN_2 => {
                 n_greater_than_2(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::NONDET_ELEMENTS_OVER_TEN => {
+                elements_over_x(vm, &hint_data.ids_data, &hint_data.ap_tracking, 10)
+            }
+            hint_code::NONDET_ELEMENTS_OVER_TWO => {
+                elements_over_x(vm, &hint_data.ids_data, &hint_data.ap_tracking, 2)
+            }
             hint_code::RANDOM_EC_POINT => {
                 random_ec_point_hint(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -816,6 +823,17 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             }
             hint_code::EC_RECOVER_PRODUCT_DIV_M => ec_recover_product_div_m(exec_scopes),
             hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
+            hint_code::RUN_P_CIRCUIT => {
+                run_p_mod_circuit(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::RUN_P_CIRCUIT_WITH_LARGE_BATCH_SIZE => {
+                run_p_mod_circuit_with_large_batch_size(
+                    vm,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                    constants,
+                )
+            }
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
             #[cfg(feature = "print")]
