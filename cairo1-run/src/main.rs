@@ -1,5 +1,7 @@
 use bincode::enc::write::Writer;
-use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
+use cairo_lang_compiler::{
+    compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
+};
 use cairo_lang_sierra::{ids::ConcreteTypeId, program_registry::ProgramRegistryError};
 use cairo_lang_sierra_to_casm::{compiler::CompilationError, metadata::MetadataError};
 use cairo_run::Cairo1RunConfig;
@@ -225,8 +227,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         ..CompilerConfig::default()
     };
 
-    let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
-        .map_err(|err| Error::SierraCompilation(err.to_string()))?;
+    let mut db = RootDatabase::builder()
+        .detect_corelib()
+        .skip_auto_withdraw_gas()
+        .build()
+        .unwrap();
+    let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
+    let sierra_program = compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
 
     let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;

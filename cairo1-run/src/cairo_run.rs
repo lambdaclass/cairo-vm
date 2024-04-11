@@ -22,7 +22,10 @@ use cairo_lang_sierra_ap_change::calc_ap_changes;
 use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
 use cairo_lang_sierra_to_casm::{
     compiler::{CairoProgram, SierraToCasmConfig},
-    metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
+    metadata::{
+        calc_metadata, calc_metadata_ap_change_only, Metadata, MetadataComputationConfig,
+        MetadataError,
+    },
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
@@ -97,7 +100,8 @@ pub fn cairo_run_program(
     ),
     Error,
 > {
-    let metadata = create_metadata(sierra_program, Some(Default::default()))?;
+    let metadata = calc_metadata_ap_change_only(sierra_program)
+        .map_err(|_| VirtualMachineError::Unexpected)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
         get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
