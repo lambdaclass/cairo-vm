@@ -1200,7 +1200,7 @@ impl CairoRunner {
         if rem != 0 {
             return Err(MathError::SafeDivFailU32(
                 total_memory_units,
-                instance._public_memory_fraction,
+                instance.public_memory_fraction,
             )
             .into());
         }

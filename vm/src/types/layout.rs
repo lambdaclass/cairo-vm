@@ -11,7 +11,6 @@ use serde::Serialize;
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
     pub(crate) _name: String,
-    pub(crate) _cpu_component_step: u32,
     pub(crate) rc_units: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
     pub(crate) public_memory_fraction: u32,
@@ -23,7 +22,6 @@ impl CairoLayout {
     pub(crate) fn plain_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("plain"),
-            _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::plain(),
             public_memory_fraction: 4,
@@ -35,7 +33,6 @@ impl CairoLayout {
     pub(crate) fn small_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("small"),
-            _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::small(),
             public_memory_fraction: 4,
@@ -47,7 +44,6 @@ impl CairoLayout {
     pub(crate) fn dex_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("dex"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::dex(),
             public_memory_fraction: 4,
@@ -59,7 +55,6 @@ impl CairoLayout {
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("recursive"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive(),
             public_memory_fraction: 8,
@@ -71,7 +66,6 @@ impl CairoLayout {
     pub(crate) fn starknet_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("starknet"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet(),
             public_memory_fraction: 8,
@@ -83,7 +77,6 @@ impl CairoLayout {
     pub(crate) fn starknet_with_keccak_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("starknet_with_keccak"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
             public_memory_fraction: 8,
@@ -95,7 +88,6 @@ impl CairoLayout {
     pub(crate) fn recursive_large_output_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("recursive_large_output"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
             public_memory_fraction: 8,
@@ -107,7 +99,6 @@ impl CairoLayout {
     pub(crate) fn all_cairo_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("all_cairo"),
-            _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::all_cairo(),
             public_memory_fraction: 8,
@@ -119,7 +110,6 @@ impl CairoLayout {
     pub(crate) fn all_solidity_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("all_solidity"),
-            _cpu_component_step: 1,
             rc_units: 8,
             builtins: BuiltinsInstanceDef::all_solidity(),
             public_memory_fraction: 8,
@@ -131,7 +121,6 @@ impl CairoLayout {
     pub(crate) fn dynamic_instance() -> CairoLayout {
         CairoLayout {
             _name: String::from("dynamic"),
-            _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::dynamic(),
             public_memory_fraction: 8,
