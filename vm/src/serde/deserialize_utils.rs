@@ -144,12 +144,16 @@ fn no_inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
 }
 
 pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
-    let (rem_input, (dereference, second_arg, fst_offset, snd_offset)) = tuple((
-        outer_brackets,
-        take_cast_first_arg,
-        opt(alt((inner_dereference, no_inner_dereference))),
-        opt(alt((inner_dereference, no_inner_dereference))),
-    ))(input)?;
+    dbg!(&input);
+    let (rem_input, (outer_dereference, second_arg, inner_dereference, fst_offset, snd_offset)) =
+        tuple((
+            outer_brackets,
+            take_cast_first_arg,
+            outer_brackets,
+            opt(alt((inner_dereference, no_inner_dereference))),
+            opt(alt((inner_dereference, no_inner_dereference))),
+        ))(input)
+        .unwrap();
 
     let (indirection_level, (_, struct_)) =
         tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
@@ -185,7 +189,8 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
     let value_address = ValueAddress {
         offset1,
         offset2,
-        dereference,
+        outer_dereference,
+        inner_dereference,
         value_type: type_,
     };
 
@@ -617,6 +622,26 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_to_felt_with_doble_reference() {
         let value = "[cast([ap] + [ap], felt)]";
+        let parsed = parse_value(value);
+
+        assert_eq!(
+            parsed,
+            Ok((
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    offset2: OffsetValue::Reference(Register::AP, 0_i32, true),
+                    dereference: true,
+                    value_type: "felt".to_string(),
+                }
+            ))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn parse_value_to_felt_with_triple_dereference() {
+        let value = "[cast([[fp + (-3)] + 5], felt*)]";
         let parsed = parse_value(value);
 
         assert_eq!(
