@@ -17,8 +17,6 @@ use starknet_types_core::curve::ProjectivePoint;
 pub struct EcOpBuiltinRunner {
     ratio: Option<u32>,
     pub base: usize,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
@@ -29,8 +27,6 @@ impl EcOpBuiltinRunner {
         EcOpBuiltinRunner {
             base: 0,
             ratio,
-            n_input_cells: INPUT_CELLS_PER_EC_OP,
-            cells_per_instance: CELLS_PER_EC_OP,
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
@@ -111,9 +107,7 @@ impl EcOpBuiltinRunner {
         let beta_high: Felt252 = Felt252::from(0x6f21413efbe40de150e596d72f7a8c5_u128);
         let beta: Felt252 = (beta_high * (Felt252::ONE + Felt252::from(u128::MAX))) + beta_low;
 
-        let index = address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize));
+        let index = address.offset.mod_floor(&(CELLS_PER_EC_OP as usize));
         //Index should be an output cell
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
@@ -128,8 +122,8 @@ impl EcOpBuiltinRunner {
 
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt252>::with_capacity(self.n_input_cells as usize);
-        for i in 0..self.n_input_cells as usize {
+        let mut input_cells = Vec::<&Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
+        for i in 0..INPUT_CELLS_PER_EC_OP as usize {
             match memory.get(&(instance + i)?) {
                 None => return Ok(None),
                 Some(addr) => {
@@ -178,7 +172,7 @@ impl EcOpBuiltinRunner {
                 .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(x_addr))))?,
             result.1,
         );
-        match index - self.n_input_cells as usize {
+        match index - INPUT_CELLS_PER_EC_OP as usize {
             0 => Ok(Some(MaybeRelocatable::Int(result.0))),
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
@@ -196,7 +190,7 @@ impl EcOpBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_EC_OP as usize))
     }
 
     pub fn format_ec_op_error(

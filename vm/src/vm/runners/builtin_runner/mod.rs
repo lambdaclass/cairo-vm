@@ -1,9 +1,23 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::prelude::*;
+use crate::types::instance_definitions::bitwise_instance_def::{
+    CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+};
 use crate::types::instance_definitions::builtins_instance_def::BUILTIN_INSTANCES_PER_COMPONENT;
+use crate::types::instance_definitions::ec_op_instance_def::{
+    CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
+};
+use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
 use crate::types::instance_definitions::keccak_instance_def::{
     CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK, KECCAK_INSTANCES_PER_COMPONENT,
+};
+use crate::types::instance_definitions::mod_instance_def::CELLS_PER_MOD;
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
+use crate::types::instance_definitions::poseidon_instance_def::{
+    CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
 use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -26,6 +40,7 @@ mod segment_arena;
 mod signature;
 
 pub(crate) use self::range_check::{RC_N_PARTS_96, RC_N_PARTS_STANDARD};
+use self::segment_arena::ARENA_BUILTIN_SIZE;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -355,31 +370,31 @@ impl BuiltinRunner {
 
     fn cells_per_instance(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::EcOp(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Hash(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Bitwise(_) => CELLS_PER_BITWISE,
+            BuiltinRunner::EcOp(_) => CELLS_PER_EC_OP,
+            BuiltinRunner::Hash(_) => CELLS_PER_HASH,
             BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(_) => CELLS_PER_KECCAK,
-            BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Mod(mod_builtin) => mod_builtin.cells_per_instance(),
+            BuiltinRunner::Signature(_) => CELLS_PER_SIGNATURE,
+            BuiltinRunner::Poseidon(_) => CELLS_PER_POSEIDON,
+            BuiltinRunner::SegmentArena(_) => ARENA_BUILTIN_SIZE,
+            BuiltinRunner::Mod(_) => CELLS_PER_MOD,
         }
     }
 
     fn n_input_cells(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.n_input_cells,
-            BuiltinRunner::EcOp(builtin) => builtin.n_input_cells,
-            BuiltinRunner::Hash(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Bitwise(_) => INPUT_CELLS_PER_BITWISE,
+            BuiltinRunner::EcOp(_) => INPUT_CELLS_PER_EC_OP,
+            BuiltinRunner::Hash(_) => INPUT_CELLS_PER_HASH,
             BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
             BuiltinRunner::Keccak(_) => INPUT_CELLS_PER_KECCAK,
-            BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
-            BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
-            BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
-            BuiltinRunner::Mod(builtin) => builtin.n_input_cells(),
+            BuiltinRunner::Signature(_) => CELLS_PER_SIGNATURE,
+            BuiltinRunner::Poseidon(_) => INPUT_CELLS_PER_POSEIDON,
+            BuiltinRunner::SegmentArena(_) => ARENA_BUILTIN_SIZE,
+            BuiltinRunner::Mod(_) => CELLS_PER_MOD,
         }
     }
 
@@ -644,7 +659,7 @@ mod tests {
     fn get_n_input_cells_bitwise() {
         let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
-        assert_eq!(bitwise.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_BITWISE, builtin.n_input_cells())
     }
 
     #[test]
@@ -652,7 +667,7 @@ mod tests {
     fn get_n_input_cells_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
-        assert_eq!(hash.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_HASH, builtin.n_input_cells())
     }
 
     #[test]
@@ -660,7 +675,7 @@ mod tests {
     fn get_n_input_cells_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
-        assert_eq!(ec_op.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_EC_OP, builtin.n_input_cells())
     }
 
     #[test]
@@ -668,7 +683,7 @@ mod tests {
     fn get_n_input_cells_ecdsa() {
         let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
-        assert_eq!(signature.n_input_cells, builtin.n_input_cells())
+        assert_eq!(CELLS_PER_SIGNATURE, builtin.n_input_cells())
     }
 
     #[test]
@@ -684,7 +699,7 @@ mod tests {
     fn get_cells_per_instance_bitwise() {
         let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
-        assert_eq!(bitwise.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_BITWISE, builtin.cells_per_instance())
     }
 
     #[test]
@@ -692,7 +707,7 @@ mod tests {
     fn get_cells_per_instance_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
-        assert_eq!(hash.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_HASH, builtin.cells_per_instance())
     }
 
     #[test]
@@ -700,7 +715,7 @@ mod tests {
     fn get_cells_per_instance_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
-        assert_eq!(ec_op.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_EC_OP, builtin.cells_per_instance())
     }
 
     #[test]
@@ -708,7 +723,7 @@ mod tests {
     fn get_cells_per_instance_ecdsa() {
         let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
-        assert_eq!(signature.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_SIGNATURE, builtin.cells_per_instance())
     }
 
     #[test]
@@ -1194,10 +1209,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_bitwise_missing_memory_cells() {
-        let mut bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
-
-        bitwise_builtin.cells_per_instance = 2;
-        bitwise_builtin.n_input_cells = 5;
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = bitwise_builtin.into();
 

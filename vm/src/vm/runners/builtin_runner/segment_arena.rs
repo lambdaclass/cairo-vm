@@ -8,7 +8,7 @@ use crate::{
 use alloc::vec::Vec;
 use num_integer::div_ceil;
 
-const ARENA_BUILTIN_SIZE: u32 = 3;
+pub(crate) const ARENA_BUILTIN_SIZE: u32 = 3;
 // The size of the builtin segment at the time of its creation.
 const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
 
@@ -16,8 +16,6 @@ const INITIAL_SEGMENT_SIZE: usize = ARENA_BUILTIN_SIZE as usize;
 pub struct SegmentArenaBuiltinRunner {
     base: Relocatable,
     pub(crate) included: bool,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells_per_instance: u32,
     pub(crate) stop_ptr: Option<usize>,
 }
 
@@ -26,8 +24,6 @@ impl SegmentArenaBuiltinRunner {
         SegmentArenaBuiltinRunner {
             base: Relocatable::from((0, 0)),
             included,
-            cells_per_instance: ARENA_BUILTIN_SIZE,
-            n_input_cells_per_instance: ARENA_BUILTIN_SIZE,
             stop_ptr: None,
         }
     }
@@ -67,7 +63,7 @@ impl SegmentArenaBuiltinRunner {
     ) -> Result<usize, MemoryError> {
         Ok(div_ceil(
             self.get_used_cells(segments)?,
-            self.cells_per_instance as usize,
+            ARENA_BUILTIN_SIZE as usize,
         ))
     }
 

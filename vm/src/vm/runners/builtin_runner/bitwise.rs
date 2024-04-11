@@ -3,9 +3,7 @@ use crate::stdlib::{boxed::Box, vec::Vec};
 use crate::Felt252;
 use crate::{
     types::{
-        instance_definitions::bitwise_instance_def::{
-            CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE, TOTAL_N_BITS,
-        },
+        instance_definitions::bitwise_instance_def::{CELLS_PER_BITWISE, TOTAL_N_BITS},
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -19,8 +17,6 @@ use num_integer::div_ceil;
 pub struct BitwiseBuiltinRunner {
     ratio: Option<u32>,
     pub base: usize,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
 }
@@ -29,9 +25,7 @@ impl BitwiseBuiltinRunner {
     pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
         BitwiseBuiltinRunner {
             base: 0,
-            ratio: ratio,
-            cells_per_instance: CELLS_PER_BITWISE,
-            n_input_cells: INPUT_CELLS_PER_BITWISE,
+            ratio,
             stop_ptr: None,
             included,
         }
@@ -62,7 +56,7 @@ impl BitwiseBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address.offset % self.cells_per_instance as usize;
+        let index = address.offset % CELLS_PER_BITWISE as usize;
         if index <= 1 {
             return Ok(None);
         }
@@ -142,7 +136,7 @@ impl BitwiseBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_BITWISE as usize))
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {

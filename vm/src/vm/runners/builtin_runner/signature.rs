@@ -35,10 +35,7 @@ pub struct SignatureBuiltinRunner {
     pub(crate) included: bool,
     ratio: Option<u32>,
     base: usize,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
-    pub(crate) instances_per_component: u32,
     signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
@@ -48,10 +45,7 @@ impl SignatureBuiltinRunner {
             base: 0,
             included,
             ratio,
-            cells_per_instance: 2,
-            n_input_cells: 2,
             stop_ptr: None,
-            instances_per_component: 1,
             signatures: Rc::new(RefCell::new(HashMap::new())),
         }
     }
@@ -99,7 +93,7 @@ impl SignatureBuiltinRunner {
         self.base
     }
     pub fn add_validation_rule(&self, memory: &mut Memory) {
-        let cells_per_instance = self.cells_per_instance;
+        let cells_per_instance = CELLS_PER_SIGNATURE;
         let signatures = Rc::clone(&self.signatures);
         let rule: ValidationRule = ValidationRule(Box::new(
             move |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
@@ -164,7 +158,7 @@ impl SignatureBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_SIGNATURE as usize))
     }
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
