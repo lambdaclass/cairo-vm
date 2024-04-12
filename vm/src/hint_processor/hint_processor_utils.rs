@@ -57,15 +57,14 @@ pub fn get_ptr_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, HintError> {
-    let mut var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
     if hint_reference.outer_dereference {
-        var_addr = vm
-            .get_relocatable(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
+        vm.get_relocatable(var_addr)
+            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
+    } else {
+        Ok(var_addr)
     }
-
-    Ok(var_addr)
 }
 
 ///Returns the value given by a reference as [MaybeRelocatable]
@@ -397,8 +396,8 @@ mod tests {
         vm.segments = segments![
             ((1, 2), (0, 0)), // [fp + 2] -> [(1, 0) + 2] -> [(1, 2)] -> (0, 0)
             ((0, 2), (0, 5)), // [[fp + 2] + 2] -> [(0, 0) + 2] -> [(0, 2)] -> (0, 5)
-            ((0, 5), 3) // [[[fp + 2] + 2]] -> [(0, 5)] -> 3
-            ];
+            ((0, 5), 3)       // [[[fp + 2] + 2]] -> [(0, 5)] -> 3
+        ];
         let hint_ref = HintReference {
             offset1: OffsetValue::Reference(Register::FP, 2, true),
             offset2: OffsetValue::Value(2),
