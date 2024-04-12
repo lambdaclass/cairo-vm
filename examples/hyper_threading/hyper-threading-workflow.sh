@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define a list of RAYON_NUM_THREADS
-thread_counts=(1 2 4 6 8 16 )
+thread_counts=(2 4)
 
 # Define binary names
 binaries=("hyper_threading_main" "hyper_threading_pr")
@@ -26,3 +26,9 @@ for threads in "${thread_counts[@]}"; do
     eval $cmd >> result.md
     echo "\n \n \n " >> result.md
 done
+
+{
+  echo '```'
+  cat result.md
+  echo '```'
+} > temp_result.md && mv temp_result.md result.md
