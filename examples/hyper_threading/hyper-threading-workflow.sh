@@ -6,6 +6,9 @@ thread_counts=(1 2 4 6 8 16 )
 # Define binary names
 binaries=("hyper_threading_main" "hyper_threading_pr")
 
+echo "**Hyper Thereading Benchmark results**" >> result.md
+echo "\n \n \n " >> result.md
+
 # Iter over thread_counts
 for threads in "${thread_counts[@]}"; do
     # Initialize hyperfine command
@@ -18,8 +21,8 @@ for threads in "${thread_counts[@]}"; do
     
     # Execute 
     echo "Running benchmark for ${threads} threads"
-    echo Hyper Thereading Benchmark results >> result.md
-    echo "///////// \n ///////// \n \n "
-    echo $cmd >> result.md \n
+    echo "\n \n \n " >> result.md
+    echo $cmd >> result.md 
     eval $cmd >> result.md
+    echo "\n \n \n " >> result.md
 done
