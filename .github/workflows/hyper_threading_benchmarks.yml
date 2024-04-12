@@ -88,9 +88,10 @@ jobs:
 
     - name: Run Benchmarks
       run: |
-        ls ${{ github.workspace }}/
         cd ${{ github.workspace }}
         ls
+        chmod +x ./hyper_threading_main
+        chmod +x ./hyper_threading_pr
         chmod +x hyper-threading-workflow.sh
         ./hyper-threading-workflow.sh
 
