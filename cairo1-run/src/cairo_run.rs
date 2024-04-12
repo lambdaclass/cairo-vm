@@ -18,14 +18,10 @@ use cairo_lang_sierra::{
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
-use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
+use cairo_lang_sierra_gas::objects::CostInfoProvider;
 use cairo_lang_sierra_to_casm::{
     compiler::{CairoProgram, SierraToCasmConfig},
-    metadata::{
-        calc_metadata, calc_metadata_ap_change_only, Metadata, MetadataComputationConfig,
-        MetadataError,
-    },
+    metadata::calc_metadata_ap_change_only,
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
