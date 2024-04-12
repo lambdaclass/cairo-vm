@@ -40,7 +40,7 @@ pub fn get_integer_from_reference(
     } else {
         let mut var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
             .ok_or(HintError::UnknownIdentifierInternal)?;
-        if hint_reference.inner_dereference {
+        if hint_reference.outer_dereference {
             var_addr = vm.get_relocatable(var_addr)?;
         }
         vm.get_integer(var_addr)
