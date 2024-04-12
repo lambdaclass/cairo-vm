@@ -89,8 +89,10 @@ jobs:
     - name: Run Benchmarks
       run: |
         ls ${{ github.workspace }}/
-        chmod +x ${{ github.workspace }}/hyper-threading-workflow.sh
-        sh ${{ github.workspace }}/hyper-threading-workflow.sh
+        cd ${{ github.workspace }}
+        ls
+        chmod +x hyper-threading-workflow.sh
+        ./hyper-threading-workflow.sh
 
     - name: Compare Results
       run: |
