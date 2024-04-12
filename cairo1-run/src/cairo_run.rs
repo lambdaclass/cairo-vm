@@ -587,28 +587,6 @@ fn get_info<'a>(
         .map(|ctc| ctc.info())
 }
 
-/// Creates the metadata required for a Sierra program lowering to casm.
-fn create_metadata(
-    sierra_program: &cairo_lang_sierra::program::Program,
-    metadata_config: Option<MetadataComputationConfig>,
-) -> Result<Metadata, VirtualMachineError> {
-    if let Some(metadata_config) = metadata_config {
-        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
-            MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
-            MetadataError::CostError(_) => VirtualMachineError::Unexpected,
-        })
-    } else {
-        Ok(Metadata {
-            ap_change_info: calc_ap_changes(sierra_program, |_, _| 0)
-                .map_err(|_| VirtualMachineError::Unexpected)?,
-            gas_info: GasInfo {
-                variable_values: Default::default(),
-                function_costs: Default::default(),
-            },
-        })
-    }
-}
-
 fn get_function_builtins(
     params: &[cairo_lang_sierra::ids::ConcreteTypeId],
     append_output: bool,
