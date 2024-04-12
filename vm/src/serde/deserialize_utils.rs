@@ -52,7 +52,14 @@ fn outer_brackets(input: &str) -> IResult<&str, bool> {
     ))(input)
     .map(|(rem_input, res_opt)| {
         if let Some(res) = res_opt {
-            (res, true)
+            if !rem_input.is_empty() {
+                // This means that the parser mistook an offset value's inner dereference for a reference's inner dereference
+                // For example: [fp + 2] + 2 being parsed as "fp + 2" with "+2" as remaining output
+                // In this case we discard this parsing step
+                (input, false)
+            } else {
+                (res, true)
+            }
         } else {
             (rem_input, false)
         }
