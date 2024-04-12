@@ -100,7 +100,7 @@ pub fn cairo_run_program(
     )?;
 
     vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(&mut vm)?;
+    cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm)?;
     }
@@ -135,6 +135,10 @@ pub fn cairo_run_fuzzed_program(
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
 
+    let allow_missing_builtins = cairo_run_config
+        .allow_missing_builtins
+        .unwrap_or(cairo_run_config.proof_mode);
+
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
@@ -143,12 +147,7 @@ pub fn cairo_run_fuzzed_program(
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
-    let _end = cairo_runner.initialize(
-        &mut vm,
-        cairo_run_config
-            .allow_missing_builtins
-            .unwrap_or(cairo_run_config.proof_mode),
-    )?;
+    let _end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
 
     let res = match cairo_runner.run_until_steps(steps_limit, &mut vm, hint_executor) {
         Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
@@ -160,7 +159,7 @@ pub fn cairo_run_fuzzed_program(
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
     vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(&mut vm)?;
+    cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments(&mut vm)?;
     }
