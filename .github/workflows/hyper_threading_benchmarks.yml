@@ -68,9 +68,22 @@ jobs:
         name: hyper_threading_main_binary
         path: ${{ github.workspace }}/artifacts/hyper_threading_main
 
-    - name: Download Binaries and Script
+    - name: Download hyper_threading_pr_binary
       uses: actions/download-artifact@v4
       with:
+        name: hyper_threading_pr_binary
+        path: ${{ github.workspace }}/artifacts/
+
+    - name: Download hyper_threading_workflow_script
+      uses: actions/download-artifact@v4
+      with:
+        name: hyper_threading_workflow_script
+        path: ${{ github.workspace }}/artifacts/
+
+    - name: Download hyper_threading_main_binary
+      uses: actions/download-artifact@v4
+      with:
+        name: hyper_threading_pr_binary
         path: ${{ github.workspace }}/artifacts/
 
 
@@ -80,8 +93,8 @@ jobs:
     - name: Run Benchmarks
       run: |
         ls -R ${{ github.workspace }}/artifacts/
-        chmod +x ${{ github.workspace }}/artifacts/hyper_threading_workflow_script/hyper-threading-workflow.sh
-        ${{ github.workspace }}/artifacts/hyper_threading_workflow_script/hyper-threading-workflow.sh
+        chmod +x ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
+        sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
 
     - name: Compare Results
       run: |
