@@ -18,6 +18,8 @@ for threads in "${thread_counts[@]}"; do
     
     # Execute 
     echo "Running benchmark for ${threads} threads"
-    echo $cmd >> result.txt
-    eval $cmd >> result.txt
+    echo Hyper Thereading Benchmark results >> result.md
+    echo "///////// \n ///////// \n \n "
+    echo $cmd >> result.md \n
+    eval $cmd >> result.md
 done

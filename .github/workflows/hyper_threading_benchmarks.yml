@@ -96,10 +96,27 @@ jobs:
 
     - name: Compare Results
       run: |
-        cat results.txt
+        cat result.md
 
-    - name: Upload Results
-      uses: actions/upload-artifact@v4
+    - name: Find comment
+      uses: peter-evans/find-comment@v2
+      id: fc
       with:
-        name: benchmark-results
-        path: results_pr.txt
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Hyper Thereading Benchmark results
+
+    - name: Create comment
+      if: steps.fc.outputs.comment-id == ''
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body-path: result.md
+
+    - name: Update comment
+      if: steps.fc.outputs.comment-id != ''
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        body-path: result.md
+        edit-mode: replace
