@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define a list of RAYON_NUM_THREADS
-thread_counts=(2 4)
+thread_counts=(1 2 4 6 8 16 )
 
 # Define binary names
 binaries=("hyper_threading_main" "hyper_threading_pr")
