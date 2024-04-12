@@ -38,11 +38,8 @@ pub fn get_integer_from_reference(
     let mut val = if let OffsetValue::Immediate(f) = &hint_reference.offset1 {
         *f
     } else {
-        let mut var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+        let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
             .ok_or(HintError::UnknownIdentifierInternal)?;
-        if hint_reference.inner_dereference {
-            var_addr = vm.get_relocatable(var_addr)?;
-        }
         vm.get_integer(var_addr)
             .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
             .into_owned()
@@ -62,12 +59,9 @@ pub fn get_ptr_from_reference(
 ) -> Result<Relocatable, HintError> {
     let mut var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    if hint_reference.inner_dereference {
-        var_addr = vm.get_relocatable(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
-    } 
     if hint_reference.outer_dereference {
-        var_addr = vm.get_relocatable(var_addr)
+        var_addr = vm
+            .get_relocatable(var_addr)
             .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
     }
 
@@ -85,11 +79,8 @@ pub fn get_maybe_relocatable_from_reference(
         return Some(MaybeRelocatable::from(num));
     }
     //Then calculate address
-    let mut var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    if hint_reference.outer_dereference && hint_reference.inner_dereference {
-        var_addr = vm.get_relocatable(var_addr).ok()?;
-    }
-    if hint_reference.inner_dereference | hint_reference.outer_dereference {
+    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+    if hint_reference.outer_dereference {
         vm.get_maybe(&var_addr)
     } else {
         Some(MaybeRelocatable::from(var_addr))
@@ -104,7 +95,7 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
-    let offset1 =
+    let mut offset1 =
         if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
             get_offset_value_reference(
                 vm,
@@ -128,11 +119,15 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
+            offset1 += value.get_int_ref()?.to_usize()?
         }
-        OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
-        _ => Some(offset1),
+        OffsetValue::Value(value) => offset1 = (offset1 + *value).ok()?,
+        _ => {}
     }
+    if hint_reference.inner_dereference {
+        offset1 = vm.get_relocatable(offset1).ok()?
+    }
+    Some(offset1)
 }
 
 fn apply_ap_tracking_correction(
