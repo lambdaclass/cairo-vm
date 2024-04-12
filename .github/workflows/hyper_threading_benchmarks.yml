@@ -89,7 +89,6 @@ jobs:
     - name: Run Benchmarks
       run: |
         cd ${{ github.workspace }}
-        ls
         chmod +x ./hyper_threading_main
         chmod +x ./hyper_threading_pr
         chmod +x hyper-threading-workflow.sh
@@ -97,8 +96,7 @@ jobs:
 
     - name: Compare Results
       run: |
-        echo "PR Results:"
-        cat results_pr.txt
+        cat results.txt
 
     - name: Upload Results
       uses: actions/upload-artifact@v4

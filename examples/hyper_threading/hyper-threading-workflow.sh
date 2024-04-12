@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define a list of RAYON_NUM_THREADS
-thread_counts=(1 2 4 6 8 16 32)
+thread_counts=(2 4)
 
 # Define binary names
 binaries=("hyper_threading_main" "hyper_threading_pr")
@@ -9,7 +9,7 @@ binaries=("hyper_threading_main" "hyper_threading_pr")
 # Iter over thread_counts
 for threads in "${thread_counts[@]}"; do
     # Initialize hyperfine command
-    cmd="hyperfine"
+    cmd="hyperfine -r 1"
     
     # Add each binary to the command with the current threads value
     for binary in "${binaries[@]}"; do
@@ -18,6 +18,6 @@ for threads in "${thread_counts[@]}"; do
     
     # Execute 
     echo "Running benchmark for ${threads} threads"
-    echo $cmd
-    eval $cmd
+    echo $cmd >> result.txt
+    eval $cmd >> result.txt
 done
