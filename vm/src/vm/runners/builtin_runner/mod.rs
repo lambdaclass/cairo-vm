@@ -1215,9 +1215,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory = memory![
-            ((0, 4), (0, 5))
-        ];
+        vm.segments.memory = memory![((0, 4), (0, 5))];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
