@@ -9,7 +9,7 @@ binaries=("hyper_threading_main" "hyper_threading_pr")
 # Iter over thread_counts
 for threads in "${thread_counts[@]}"; do
     # Initialize hyperfine command
-    cmd="hyperfine -r 1"
+    cmd="hyperfine -r 2"
     
     # Add each binary to the command with the current threads value
     for binary in "${binaries[@]}"; do
