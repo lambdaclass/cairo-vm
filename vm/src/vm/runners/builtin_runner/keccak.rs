@@ -494,7 +494,7 @@ mod tests {
 
         let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
 
         assert_eq!(
             result,
