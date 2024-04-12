@@ -79,7 +79,7 @@ jobs:
     - name: Download hyper_threading_main_binary
       uses: actions/download-artifact@v4
       with:
-        name: hyper_threading_pr_binary
+        name: hyper_threading_main_binary
         path: ${{ github.workspace }}/
 
 
