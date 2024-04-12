@@ -85,12 +85,9 @@ jobs:
         path: ${{ github.workspace }}/
 
 
-    - name: Display structure of downloaded files
-      run: ls -R ${{ github.workspace }}/
-
     - name: Run Benchmarks
       run: |
-        ls -R ${{ github.workspace }}/
+        ls ${{ github.workspace }}/
         chmod +x ${{ github.workspace }}/hyper-threading-workflow.sh
         sh ${{ github.workspace }}/hyper-threading-workflow.sh
 
