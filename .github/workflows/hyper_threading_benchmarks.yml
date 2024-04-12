@@ -31,7 +31,6 @@ jobs:
 
     - name: Compile PR Version
       run: |
-        make cairo_bench_programs
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_pr
         cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/hyper-threading-workflow.sh
@@ -56,7 +55,6 @@ jobs:
 
     - name: Compile Main Version
       run: |
-        make cairo_bench_programs
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_main
 
@@ -84,6 +82,9 @@ jobs:
         name: hyper_threading_pr_binary
         path: ${{ github.workspace }}/
 
+
+    - name: Compile programs 
+      run: make cairo_bench_programs
 
     - name: Run Benchmarks
       run: |
