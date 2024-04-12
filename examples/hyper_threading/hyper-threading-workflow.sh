@@ -17,6 +17,7 @@ for threads in "${thread_counts[@]}"; do
     done
     
     # Ejecuta el comando hyperfine construido
+    cmd+=" --show-output"
     echo "Ejecutando benchmark para ${threads} threads"
     echo $cmd
     eval $cmd
