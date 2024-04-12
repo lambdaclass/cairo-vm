@@ -151,7 +151,6 @@ fn no_inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
 }
 
 pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
-    dbg!(&input);
     let (rem_input, (outer_dereference, second_arg, inner_dereference, fst_offset, snd_offset)) =
         tuple((
             outer_brackets,
@@ -159,8 +158,7 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
             outer_brackets,
             opt(alt((inner_dereference, no_inner_dereference))),
             opt(alt((inner_dereference, no_inner_dereference))),
-        ))(input)
-        .unwrap();
+        ))(input)?;
 
     let (indirection_level, (_, struct_)) =
         tuple((tag(", "), take_till(|c: char| c == '*')))(second_arg)?;
