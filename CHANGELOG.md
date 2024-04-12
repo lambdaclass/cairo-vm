@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
+
 * feat(BREAKING): Add range_check96 builtin[#1698](https://github.com/lambdaclass/cairo-vm/pull/1698)
   * Add the new `range_check96` builtin to the `all_cairo` layout.
   * `RangeCheckBuiltinRunner` changes:
