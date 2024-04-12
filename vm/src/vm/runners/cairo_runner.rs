@@ -358,7 +358,7 @@ impl CairoRunner {
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
-                self.layout._name.clone(),
+                self.layout.name.clone(),
             ))));
         }
 
@@ -1427,7 +1427,7 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
-        let layout_name = self.get_layout()._name.as_str();
+        let layout_name = self.get_layout().name.as_str();
         let dyn_layout = match layout_name {
             "dynamic" => Some(self.get_layout()),
             _ => None,

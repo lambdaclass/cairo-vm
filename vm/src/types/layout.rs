@@ -10,7 +10,7 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
-    pub(crate) _name: String,
+    pub(crate) name: String,
     pub(crate) rc_units: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
     pub(crate) public_memory_fraction: u32,
@@ -20,7 +20,7 @@ pub struct CairoLayout {
 impl CairoLayout {
     pub(crate) fn plain_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("plain"),
+            name: String::from("plain"),
             rc_units: 16,
             builtins: BuiltinsInstanceDef::plain(),
             public_memory_fraction: 4,
@@ -30,7 +30,7 @@ impl CairoLayout {
 
     pub(crate) fn small_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("small"),
+            name: String::from("small"),
             rc_units: 16,
             builtins: BuiltinsInstanceDef::small(),
             public_memory_fraction: 4,
@@ -40,7 +40,7 @@ impl CairoLayout {
 
     pub(crate) fn dex_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("dex"),
+            name: String::from("dex"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::dex(),
             public_memory_fraction: 4,
@@ -50,7 +50,7 @@ impl CairoLayout {
 
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("recursive"),
+            name: String::from("recursive"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive(),
             public_memory_fraction: 8,
@@ -60,7 +60,7 @@ impl CairoLayout {
 
     pub(crate) fn starknet_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("starknet"),
+            name: String::from("starknet"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet(),
             public_memory_fraction: 8,
@@ -70,7 +70,7 @@ impl CairoLayout {
 
     pub(crate) fn starknet_with_keccak_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("starknet_with_keccak"),
+            name: String::from("starknet_with_keccak"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
             public_memory_fraction: 8,
@@ -80,7 +80,7 @@ impl CairoLayout {
 
     pub(crate) fn recursive_large_output_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("recursive_large_output"),
+            name: String::from("recursive_large_output"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
             public_memory_fraction: 8,
@@ -90,7 +90,7 @@ impl CairoLayout {
 
     pub(crate) fn all_cairo_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("all_cairo"),
+            name: String::from("all_cairo"),
             rc_units: 4,
             builtins: BuiltinsInstanceDef::all_cairo(),
             public_memory_fraction: 8,
@@ -100,7 +100,7 @@ impl CairoLayout {
 
     pub(crate) fn all_solidity_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("all_solidity"),
+            name: String::from("all_solidity"),
             rc_units: 8,
             builtins: BuiltinsInstanceDef::all_solidity(),
             public_memory_fraction: 8,
@@ -110,7 +110,7 @@ impl CairoLayout {
 
     pub(crate) fn dynamic_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("dynamic"),
+            name: String::from("dynamic"),
             rc_units: 16,
             builtins: BuiltinsInstanceDef::dynamic(),
             public_memory_fraction: 8,
@@ -131,7 +131,7 @@ mod tests {
     fn get_plain_instance() {
         let layout = CairoLayout::plain_instance();
         let builtins = BuiltinsInstanceDef::plain();
-        assert_eq!(&layout._name, "plain");
+        assert_eq!(&layout.name, "plain");
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 4);
@@ -143,7 +143,7 @@ mod tests {
     fn get_small_instance() {
         let layout = CairoLayout::small_instance();
         let builtins = BuiltinsInstanceDef::small();
-        assert_eq!(&layout._name, "small");
+        assert_eq!(&layout.name, "small");
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 4);
@@ -155,7 +155,7 @@ mod tests {
     fn get_dex_instance() {
         let layout = CairoLayout::dex_instance();
         let builtins = BuiltinsInstanceDef::dex();
-        assert_eq!(&layout._name, "dex");
+        assert_eq!(&layout.name, "dex");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 4);
@@ -166,7 +166,7 @@ mod tests {
     fn get_recursive_instance() {
         let layout = CairoLayout::recursive_instance();
         let builtins = BuiltinsInstanceDef::recursive();
-        assert_eq!(&layout._name, "recursive");
+        assert_eq!(&layout.name, "recursive");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -180,7 +180,7 @@ mod tests {
     fn get_starknet_instance() {
         let layout = CairoLayout::starknet_instance();
         let builtins = BuiltinsInstanceDef::starknet();
-        assert_eq!(&layout._name, "starknet");
+        assert_eq!(&layout.name, "starknet");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -194,7 +194,7 @@ mod tests {
     fn get_starknet_with_keccak_instance() {
         let layout = CairoLayout::starknet_with_keccak_instance();
         let builtins = BuiltinsInstanceDef::starknet_with_keccak();
-        assert_eq!(&layout._name, "starknet_with_keccak");
+        assert_eq!(&layout.name, "starknet_with_keccak");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -208,7 +208,7 @@ mod tests {
     fn get_recursive_large_output_instance() {
         let layout = CairoLayout::recursive_large_output_instance();
         let builtins = BuiltinsInstanceDef::recursive_large_output();
-        assert_eq!(&layout._name, "recursive_large_output");
+        assert_eq!(&layout.name, "recursive_large_output");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -222,7 +222,7 @@ mod tests {
     fn get_all_cairo_instance() {
         let layout = CairoLayout::all_cairo_instance();
         let builtins = BuiltinsInstanceDef::all_cairo();
-        assert_eq!(&layout._name, "all_cairo");
+        assert_eq!(&layout.name, "all_cairo");
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -236,7 +236,7 @@ mod tests {
     fn get_all_solidity_instance() {
         let layout = CairoLayout::all_solidity_instance();
         let builtins = BuiltinsInstanceDef::all_solidity();
-        assert_eq!(&layout._name, "all_solidity");
+        assert_eq!(&layout.name, "all_solidity");
         assert_eq!(layout.rc_units, 8);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
@@ -250,7 +250,7 @@ mod tests {
     fn get_dynamic_instance() {
         let layout = CairoLayout::dynamic_instance();
         let builtins = BuiltinsInstanceDef::dynamic();
-        assert_eq!(&layout._name, "dynamic");
+        assert_eq!(&layout.name, "dynamic");
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
