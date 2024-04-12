@@ -33,21 +33,20 @@ jobs:
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
-        mkdir -p ${{ github.workspace }}/artifacts
-        cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_pr
-        cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
+        cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_pr
+        cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/hyper-threading-workflow.sh
     
     - name: Upload PR Binary
       uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_pr_binary
-        path: ${{ github.workspace }}/artifacts/hyper_threading_pr
+        path: ${{ github.workspace }}/hyper_threading_pr
 
     - name: Upload Workflow Script
       uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_workflow_script
-        path: ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
+        path: ${{ github.workspace }}/hyper-threading-workflow.sh
 
 
     - name: Checkout Main Branch
@@ -59,42 +58,41 @@ jobs:
       run: |
         make cairo_bench_programs
         cargo build --release -p hyper_threading
-        mkdir -p ${{ github.workspace }}/artifacts
-        cp target/release/hyper_threading ${{ github.workspace }}/artifacts/hyper_threading_main
+        cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_main
 
     - name: Upload Main Binary
       uses: actions/upload-artifact@v4
       with:
         name: hyper_threading_main_binary
-        path: ${{ github.workspace }}/artifacts/hyper_threading_main
+        path: ${{ github.workspace }}/hyper_threading_main
 
     - name: Download hyper_threading_pr_binary
       uses: actions/download-artifact@v4
       with:
         name: hyper_threading_pr_binary
-        path: ${{ github.workspace }}/artifacts/
+        path: ${{ github.workspace }}/
 
     - name: Download hyper_threading_workflow_script
       uses: actions/download-artifact@v4
       with:
         name: hyper_threading_workflow_script
-        path: ${{ github.workspace }}/artifacts/
+        path: ${{ github.workspace }}/
 
     - name: Download hyper_threading_main_binary
       uses: actions/download-artifact@v4
       with:
         name: hyper_threading_pr_binary
-        path: ${{ github.workspace }}/artifacts/
+        path: ${{ github.workspace }}/
 
 
     - name: Display structure of downloaded files
-      run: ls -R ${{ github.workspace }}/artifacts/
+      run: ls -R ${{ github.workspace }}/
 
     - name: Run Benchmarks
       run: |
-        ls -R ${{ github.workspace }}/artifacts/
-        chmod +x ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
-        sh ${{ github.workspace }}/artifacts/hyper-threading-workflow.sh
+        ls -R ${{ github.workspace }}/
+        chmod +x ${{ github.workspace }}/hyper-threading-workflow.sh
+        sh ${{ github.workspace }}/hyper-threading-workflow.sh
 
     - name: Compare Results
       run: |
