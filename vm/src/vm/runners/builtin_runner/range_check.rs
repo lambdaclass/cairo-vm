@@ -8,10 +8,7 @@ use crate::{
 
 use crate::Felt252;
 use crate::{
-    types::{
-        instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK,
-        relocatable::{MaybeRelocatable, Relocatable},
-    },
+    types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::memory_errors::MemoryError,
         vm_memory::{
@@ -42,10 +39,7 @@ pub struct RangeCheckBuiltinRunner<const N_PARTS: u64> {
     ratio: Option<u32>,
     base: usize,
     pub(crate) stop_ptr: Option<usize>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
 }
 
 impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
@@ -54,10 +48,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
             ratio,
             base: 0,
             stop_ptr: None,
-            cells_per_instance: CELLS_PER_RANGE_CHECK,
-            n_input_cells: CELLS_PER_RANGE_CHECK,
             included,
-            instances_per_component: 1,
         }
     }
 
