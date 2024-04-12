@@ -2,6 +2,8 @@ use core::felt252;
 use array::ArrayTrait;
 use array::SpanTrait;
 use core::pedersen::pedersen;
+use core::hash::HashStateTrait;
+use core::poseidon::{hades_permutation, HashState};
 
 fn main() -> felt252 {
     let mut data: Array<felt252> = ArrayTrait::new();
