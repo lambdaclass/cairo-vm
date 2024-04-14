@@ -9,3 +9,4 @@ pub mod mod_instance_def;
 pub mod pedersen_instance_def;
 pub mod poseidon_instance_def;
 pub mod range_check_instance_def;
+pub mod segment_arena_instance_def;

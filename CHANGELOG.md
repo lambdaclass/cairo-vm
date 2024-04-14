@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: Actually using SegmentArena builtin on cairo1-run.
 
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
 

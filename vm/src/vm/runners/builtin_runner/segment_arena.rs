@@ -46,7 +46,7 @@ impl SegmentArenaBuiltinRunner {
         if used < INITIAL_SEGMENT_SIZE {
             return Err(MemoryError::InvalidUsedSizeSegmentArena);
         }
-        Ok(used - INITIAL_SEGMENT_SIZE)
+        Ok(used)
     }
 
     pub fn initial_stack(&self) -> Vec<MaybeRelocatable> {
@@ -119,7 +119,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![3]);
 
-        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(0));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -130,7 +130,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![3]);
 
-        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(0));
+        assert_eq!(builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
     #[test]
@@ -154,7 +154,7 @@ mod tests {
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
                 SEGMENT_ARENA_BUILTIN_NAME,
-                relocatable!(0, 3),
+                relocatable!(0, 6),
                 relocatable!(0, 0)
             ))))
         );
@@ -243,10 +243,7 @@ mod tests {
 
         vm.segments.segment_used_sizes = Some(vec![3]);
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
-            Ok((0_usize, 0))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((3, 3)));
     }
 
     #[test]
@@ -303,7 +300,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(1));
+        assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
     }
 
     #[test]
@@ -324,8 +321,8 @@ mod tests {
         let builtin = BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(true));
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![6]);
-        // (SIZE(6) - INITIAL_SIZE(3)) / CELLS_PER_INSTANCE(3)
-        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(1));
+        // SIZE(6) / CELLS_PER_INSTANCE(3)
+        assert_eq!(builtin.get_used_instances(&memory_segment_manager), Ok(2));
     }
 
     #[test]

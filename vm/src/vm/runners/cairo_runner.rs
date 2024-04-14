@@ -259,6 +259,7 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::segment_arena,
             BuiltinName::range_check96,
             BuiltinName::add_mod,
             BuiltinName::mul_mod,
@@ -331,6 +332,13 @@ impl CairoRunner {
             if included || self.is_proof_mode() {
                 builtin_runners
                     .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if self.layout.builtins.segment_arena.is_some() {
+            let included = program_builtins.remove(&BuiltinName::segment_arena);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(SegmentArenaBuiltinRunner::new(included).into());
             }
         }
 
