@@ -6,7 +6,7 @@ use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
-use cairo_vm::serde::deserialize_program::LayoutName;
+use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
@@ -158,7 +158,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
-        layout: &args.layout,
+        layout: args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,

@@ -1,4 +1,4 @@
-use crate::serde::deserialize_program::LayoutName;
+use crate::types::layout_name::LayoutName;
 
 use super::instance_definitions::{
     builtins_instance_def::BuiltinsInstanceDef, cpu_instance_def::CpuInstanceDef,
