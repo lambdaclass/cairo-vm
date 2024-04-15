@@ -1,8 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
-use crate::types::instance_definitions::pedersen_instance_def::{
-    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
-};
+use crate::types::instance_definitions::pedersen_instance_def::CELLS_PER_HASH;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -16,11 +14,8 @@ use starknet_types_core::hash::StarkHash;
 pub struct HashBuiltinRunner {
     pub base: usize,
     ratio: Option<u32>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
     // 1 at position 'n' means offset 'n' relative to base pointer
@@ -33,12 +28,9 @@ impl HashBuiltinRunner {
         HashBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: CELLS_PER_HASH,
-            n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: RefCell::new(Vec::new()),
             included,
-            instances_per_component: 1,
         }
     }
 
@@ -67,10 +59,7 @@ impl HashBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize))
-            != 2
+        if address.offset.mod_floor(&(CELLS_PER_HASH as usize)) != 2
             || *self
                 .verified_addresses
                 .borrow()
@@ -116,7 +105,7 @@ impl HashBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_HASH as usize))
     }
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {

@@ -6,11 +6,13 @@ pub(crate) struct RangeCheckInstanceDef {
     pub(crate) ratio: Option<u32>,
 }
 
-impl RangeCheckInstanceDef {
-    pub(crate) fn default() -> Self {
+impl Default for RangeCheckInstanceDef {
+    fn default() -> Self {
         RangeCheckInstanceDef { ratio: Some(8) }
     }
+}
 
+impl RangeCheckInstanceDef {
     pub(crate) fn new(ratio: Option<u32>) -> Self {
         RangeCheckInstanceDef { ratio }
     }

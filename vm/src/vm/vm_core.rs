@@ -1256,9 +1256,6 @@ mod tests {
         },
         relocatable,
         types::{
-            instance_definitions::{
-                bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-            },
             instruction::{Op1Addr, Register},
             relocatable::Relocatable,
         },
@@ -3380,7 +3377,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
@@ -3418,7 +3415,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
 
@@ -3459,7 +3456,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
 
         vm.segments = segments![
@@ -3528,7 +3525,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3576,7 +3573,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3647,7 +3644,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3670,7 +3667,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_for_addr_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let builtin: BuiltinRunner = builtin.into();
         let mut vm = vm!();
@@ -3860,7 +3857,7 @@ mod tests {
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(Some(8), true);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(hash_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
 

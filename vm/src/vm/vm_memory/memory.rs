@@ -629,7 +629,6 @@ mod memory_tests {
     use super::*;
     use crate::{
         felt_hex, relocatable,
-        types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef,
         utils::test_utils::*,
         vm::{
             runners::builtin_runner::{
@@ -855,7 +854,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_invalid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
         let mut segments = MemorySegmentManager::new();
         builtin.initialize_segments(&mut segments);
         segments.memory = memory![
@@ -885,7 +884,7 @@ mod memory_tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn validate_existing_memory_for_valid_signature() {
-        let mut builtin = SignatureBuiltinRunner::new(&EcdsaInstanceDef::default(), true);
+        let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
 
         let signature_r =
             felt_hex!("0x411494b501a98abd8262b0da1351e17899a0c4ef23dd2f96fec5ba847310b20");
