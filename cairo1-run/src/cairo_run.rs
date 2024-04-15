@@ -71,19 +71,25 @@ impl From<Vec<Felt252>> for FuncArg {
     }
 }
 
+/// Configuration parameters for a cairo run
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
+    /// Input arguments for the `main` function in the cairo progran
     pub args: &'a [FuncArg],
-    // Serializes program output into a user-friendly format
+    /// Serialize program output into a user-friendly format
     pub serialize_output: bool,
+    /// Compute cairo trace during execution
     pub trace_enabled: bool,
+    /// Relocate cairo memory at the end of the run
     pub relocate_mem: bool,
+    /// Cairo layout chosen for the run
     pub layout: &'a str,
+    /// Run in proof_mode
     pub proof_mode: bool,
-    // Should be true if either air_public_input or cairo_pie_output are needed
-    // Sets builtins stop_ptr by calling `final_stack` on each builtin
+    /// Should be true if either air_public_input or cairo_pie_output are needed
+    /// Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
-    // Appends return values to the output segment. This is performed by default when running in proof_mode
+    /// Appends return values to the output segment. This is performed by default when running in proof_mode
     pub append_return_values: bool,
 }
 
