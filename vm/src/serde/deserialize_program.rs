@@ -14,10 +14,12 @@ use crate::{
         sync::Arc,
     },
     utils::CAIRO_PRIME,
+    vm::runners::builtin_runner::RANGE_CHECK_96_BUILTIN_NAME,
 };
 
 use crate::utils::PRIME_STR;
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
+use crate::vm::runners::builtin_runner::{ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME};
 use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
@@ -55,6 +57,9 @@ pub enum BuiltinName {
     ec_op,
     poseidon,
     segment_arena,
+    range_check96,
+    add_mod,
+    mul_mod,
 }
 
 impl BuiltinName {
@@ -69,6 +74,9 @@ impl BuiltinName {
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
             BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
+            BuiltinName::range_check96 => RANGE_CHECK_96_BUILTIN_NAME,
+            BuiltinName::add_mod => ADD_MOD_BUILTIN_NAME,
+            BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME,
         }
     }
 }
