@@ -51,6 +51,8 @@ use itertools::{chain, Itertools};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
+/// Representation of a cairo argument
+/// Can consist of a single Felt or an array of Felts
 #[derive(Debug, Clone)]
 pub enum FuncArg {
     Array(Vec<Felt252>),
