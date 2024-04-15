@@ -297,7 +297,6 @@ mod tests {
             },
             hint_processor_definition::{HintProcessorLogic, HintReference},
         },
-        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };

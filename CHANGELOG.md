@@ -4,6 +4,43 @@
 
 * feat: `cairo1-run` accepts Sierra programs [#1544](https://github.com/lambdaclass/cairo-vm/pull/1544)
 
+* refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
+
+* fix(BREAKING): Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
+  * `initialize_main_entrypoint` now iterates over the program builtins when building the stack & inserts 0 for any missing builtin
+  * `read_return_values` now only computes the final stack of the builtins in the program
+  * BREAKING: `read_return_values` now takes a boolean argument `allow_missing_builtins`
+  * Added method `BuiltinRunner::identifier` to get the `BuiltinName` of each builtin
+  * BREAKING: `OutputBuiltinRunner::get_public_memory` now takes a reference to `MemorySegmentManager`
+  * BREAKING: method `VirtualMachine::get_memory_segment_addresses` moved to `CairoRunner::get_memory_segment_addresses`
+
+* feat(BREAKING): Add range_check96 builtin[#1698](https://github.com/lambdaclass/cairo-vm/pull/1698)
+  * Add the new `range_check96` builtin to the `all_cairo` layout.
+  * `RangeCheckBuiltinRunner` changes:
+    * Remove field `n_parts`, replacing it with const generic `N_PARTS`.
+    * Remome `n_parts` argument form method `new`.
+    * Remove field `_bound`, replacing it with public method `bound`.
+    * Add public methods `name` & `n_parts`.
+
+* feat(BREAKING): Add mod builtin [#1673](https://github.com/lambdaclass/cairo-vm/pull/1673)
+
+  Main Changes:
+  * Add the new `ModBuiltinRunner`, implementing the builtins `add_mod` & `mul_mod`
+  * Adds `add_mod` & `mul_mod` to the `all_cairo` & `dynamic` layouts under the `mod_builtin` feature flag. This will be added to the main code in a future update.
+  * Add method `VirtualMachine::fill_memory` in order to perform the new builtin's main logic from within hints
+  * Add hints to run arithmetic circuits using `add_mod` and/or `mul_mod` builtins
+
+  Other Changes:
+  * BREAKING: BuiltinRunner method signature change from
+  `air_private_input(&self, memory: &Memory) -> Vec<PrivateInput>` to `pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput>`
+  * Add `MayleRelocatable::sub_usize`
+  * Implement `Add<u32> for Relocatable`
+  * Add `Memory::get_usize`
+  * BREAKING: Clean up unused/duplicated code from builtins module:
+    * Remove unused method `get_memory_segment_addresses` from all builtin runners & the enum
+    * Remove empty implementations of `deduce_memory_cell` & `add_validation_rules` from all builtin runners
+    * Remove duplicated implementation of `final_stack` from all builtin runners except output and move it to the enum implementation
+
 * bugfix(BREAKING): Handle off2 immediate case in `get_integer_from_reference`[#1701](https://github.com/lambdaclass/cairo-vm/pull/1701)
   * `get_integer_from_reference` & `get_integer_from_var_name` output changed from `Result<Cow<'a, Felt252>, HintError>` to `Result<Felt252, HintError>`
 

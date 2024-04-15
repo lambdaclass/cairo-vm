@@ -114,6 +114,7 @@ fn validate_layout(value: &str) -> Result<String, String> {
         "plain"
         | "small"
         | "dex"
+        | "recursive"
         | "starknet"
         | "starknet_with_keccak"
         | "recursive_large_output"

@@ -236,8 +236,11 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![
-                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::new(Some(8), 8, true)
-                    .into(),
+                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
+                    Some(8),
+                    true,
+                )
+                .into(),
             ];
             vm
         }};
@@ -437,7 +440,7 @@ pub mod test_utils {
 
     macro_rules! exec_scopes_ref {
         () => {
-            &mut ExecutionScopes::new()
+            &mut crate::types::exec_scope::ExecutionScopes::new()
         };
     }
     pub(crate) use exec_scopes_ref;
