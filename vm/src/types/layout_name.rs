@@ -1,9 +1,12 @@
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{self, Arbitrary};
+#[cfg(all(feature = "clap", feature = "std"))]
+use clap::ValueEnum;
 use core::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
 
 // This enum is used to deserialize program layouts into &str and catch non-valid names
+#[cfg_attr(all(feature = "clap", feature = "std"), derive(ValueEnum))]
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]

@@ -18,7 +18,7 @@ use cairo_vm::vm::vm_core::VirtualMachine;
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::tracer::run_tracer;
-use clap::{ArgEnum, Parser, ValueHint};
+use clap::{Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -43,7 +43,7 @@ struct Args {
     entrypoint: String,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", arg_enum)]
+    #[clap(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
     #[structopt(long = "proof_mode")]
     proof_mode: bool,
@@ -394,29 +394,5 @@ mod tests {
     #[test]
     fn test_main() {
         main().unwrap();
-    }
-
-    #[test]
-    fn test_valid_layouts() {
-        let valid_layouts = vec![
-            "plain",
-            "small",
-            "dex",
-            "starknet",
-            "starknet_with_keccak",
-            "recursive_large_output",
-            "all_cairo",
-            "all_solidity",
-        ];
-
-        for layout in valid_layouts {
-            assert_eq!(validate_layout(layout), Ok(layout.to_string()));
-        }
-    }
-
-    #[test]
-    fn test_invalid_layout() {
-        let invalid_layout = "invalid layout name";
-        assert!(validate_layout(invalid_layout).is_err());
     }
 }

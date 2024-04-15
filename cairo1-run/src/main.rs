@@ -6,15 +6,13 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    serde::deserialize_program::LayoutName,
-    types::errors::program_errors::ProgramError,
+    types::{errors::program_errors::ProgramError, layout_name::LayoutName},
     vm::errors::{
         memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
         vm_errors::VirtualMachineError,
-    },
-    Felt252,
+    }, Felt252,
 };
-use clap::{Parser, ValueEnum, ValueHint};
+use clap::{Parser, ValueHint};
 use itertools::Itertools;
 use std::{
     io::{self, Write},
