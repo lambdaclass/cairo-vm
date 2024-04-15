@@ -1,3 +1,4 @@
+use crate::error::Error;
 use cairo_lang_casm::{
     casm, casm_extend, hints::Hint, inline::CasmContext, instructions::Instruction,
 };
@@ -50,7 +51,23 @@ use itertools::{chain, Itertools};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
-use crate::{Error, FuncArg};
+#[derive(Debug, Clone)]
+pub enum FuncArg {
+    Array(Vec<Felt252>),
+    Single(Felt252),
+}
+
+impl From<Felt252> for FuncArg {
+    fn from(value: Felt252) -> Self {
+        Self::Single(value)
+    }
+}
+
+impl From<Vec<Felt252>> for FuncArg {
+    fn from(value: Vec<Felt252>) -> Self {
+        Self::Array(value)
+    }
+}
 
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
