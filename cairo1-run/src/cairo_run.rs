@@ -6,7 +6,7 @@ use cairo_lang_sierra::{
         bitwise::BitwiseType,
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
-        gas::{CostTokenType, GasBuiltinType},
+        gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
         range_check::RangeCheckType,
@@ -152,8 +152,6 @@ pub fn cairo_run_program(
         .map(MaybeRelocatable::from)
         .collect();
 
-    let data_len = data.len();
-
     let program = if cairo_run_config.proof_mode {
         Program::new_for_proof(
             builtins.clone(),
@@ -194,8 +192,6 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-
-    additional_initialization(&mut vm, data_len)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
@@ -262,26 +258,6 @@ pub fn cairo_run_program(
     runner.relocate(&mut vm, true)?;
 
     Ok((runner, vm, return_values, serialized_output))
-}
-
-fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
-    // Create the builtin cost segment
-    let builtin_cost_segment = vm.add_memory_segment();
-    for token_type in CostTokenType::iter_precost() {
-        vm.insert_value(
-            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize))
-                .map_err(VirtualMachineError::Math)?,
-            Felt252::default(),
-        )?
-    }
-    // Put a pointer to the builtin cost segment at the end of the program (after the
-    // additional `ret` statement).
-    vm.insert_value(
-        (vm.get_pc() + data_len).map_err(VirtualMachineError::Math)?,
-        builtin_cost_segment,
-    )?;
-
-    Ok(())
 }
 
 #[allow(clippy::type_complexity)]
