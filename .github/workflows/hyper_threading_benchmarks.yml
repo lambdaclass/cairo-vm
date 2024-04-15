@@ -59,12 +59,6 @@ jobs:
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_main
 
-    - name: Upload Main Binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: hyper_threading_main_binary
-        path: ${{ github.workspace }}/hyper_threading_main
-
     - name: Download hyper_threading_pr_binary
       uses: actions/download-artifact@v4
       with:
@@ -76,13 +70,6 @@ jobs:
       with:
         name: hyper_threading_workflow_script
         path: ${{ github.workspace }}/
-
-    - name: Download hyper_threading_main_binary
-      uses: actions/download-artifact@v4
-      with:
-        name: hyper_threading_main_binary
-        path: ${{ github.workspace }}/
-
 
     - name: Compile programs 
       run: make cairo_bench_programs
