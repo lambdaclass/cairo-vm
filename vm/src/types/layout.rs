@@ -1,4 +1,4 @@
-use crate::stdlib::prelude::*;
+use crate::serde::deserialize_program::LayoutName;
 
 use super::instance_definitions::{
     builtins_instance_def::BuiltinsInstanceDef, cpu_instance_def::CpuInstanceDef,
@@ -9,7 +9,7 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
-    pub(crate) _name: String,
+    pub(crate) name: LayoutName,
     pub(crate) _cpu_component_step: u32,
     pub(crate) rc_units: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
@@ -23,7 +23,7 @@ pub struct CairoLayout {
 impl CairoLayout {
     pub(crate) fn plain_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("plain"),
+            name: LayoutName::plain,
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::plain(),
@@ -37,7 +37,7 @@ impl CairoLayout {
 
     pub(crate) fn small_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("small"),
+            name: LayoutName::small,
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::small(),
@@ -51,7 +51,7 @@ impl CairoLayout {
 
     pub(crate) fn dex_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("dex"),
+            name: LayoutName::dex,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::dex(),
@@ -65,7 +65,7 @@ impl CairoLayout {
 
     pub(crate) fn recursive_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("recursive"),
+            name: LayoutName::recursive,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive(),
@@ -79,7 +79,7 @@ impl CairoLayout {
 
     pub(crate) fn starknet_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("starknet"),
+            name: LayoutName::starknet,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet(),
@@ -93,7 +93,7 @@ impl CairoLayout {
 
     pub(crate) fn starknet_with_keccak_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("starknet_with_keccak"),
+            name: LayoutName::starknet_with_keccak,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
@@ -107,7 +107,7 @@ impl CairoLayout {
 
     pub(crate) fn recursive_large_output_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("recursive_large_output"),
+            name: LayoutName::recursive_large_output,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
@@ -121,7 +121,7 @@ impl CairoLayout {
 
     pub(crate) fn all_cairo_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("all_cairo"),
+            name: LayoutName::all_cairo,
             _cpu_component_step: 1,
             rc_units: 4,
             builtins: BuiltinsInstanceDef::all_cairo(),
@@ -135,7 +135,7 @@ impl CairoLayout {
 
     pub(crate) fn all_solidity_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("all_solidity"),
+            name: LayoutName::all_solidity,
             _cpu_component_step: 1,
             rc_units: 8,
             builtins: BuiltinsInstanceDef::all_solidity(),
@@ -149,7 +149,7 @@ impl CairoLayout {
 
     pub(crate) fn dynamic_instance() -> CairoLayout {
         CairoLayout {
-            _name: String::from("dynamic"),
+            name: LayoutName::dynamic,
             _cpu_component_step: 1,
             rc_units: 16,
             builtins: BuiltinsInstanceDef::dynamic(),
@@ -174,7 +174,7 @@ mod tests {
     fn get_plain_instance() {
         let layout = CairoLayout::plain_instance();
         let builtins = BuiltinsInstanceDef::plain();
-        assert_eq!(&layout._name, "plain");
+        assert_eq!(layout.name, LayoutName::plain);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
@@ -190,7 +190,7 @@ mod tests {
     fn get_small_instance() {
         let layout = CairoLayout::small_instance();
         let builtins = BuiltinsInstanceDef::small();
-        assert_eq!(&layout._name, "small");
+        assert_eq!(layout.name, LayoutName::small);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);
@@ -206,7 +206,7 @@ mod tests {
     fn get_dex_instance() {
         let layout = CairoLayout::dex_instance();
         let builtins = BuiltinsInstanceDef::dex();
-        assert_eq!(&layout._name, "dex");
+        assert_eq!(layout.name, LayoutName::dex);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -221,7 +221,7 @@ mod tests {
     fn get_recursive_instance() {
         let layout = CairoLayout::recursive_instance();
         let builtins = BuiltinsInstanceDef::recursive();
-        assert_eq!(&layout._name, "recursive");
+        assert_eq!(layout.name, LayoutName::recursive);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -239,7 +239,7 @@ mod tests {
     fn get_starknet_instance() {
         let layout = CairoLayout::starknet_instance();
         let builtins = BuiltinsInstanceDef::starknet();
-        assert_eq!(&layout._name, "starknet");
+        assert_eq!(layout.name, LayoutName::starknet);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -257,7 +257,7 @@ mod tests {
     fn get_starknet_with_keccak_instance() {
         let layout = CairoLayout::starknet_with_keccak_instance();
         let builtins = BuiltinsInstanceDef::starknet_with_keccak();
-        assert_eq!(&layout._name, "starknet_with_keccak");
+        assert_eq!(layout.name, LayoutName::starknet_with_keccak);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -275,7 +275,7 @@ mod tests {
     fn get_recursive_large_output_instance() {
         let layout = CairoLayout::recursive_large_output_instance();
         let builtins = BuiltinsInstanceDef::recursive_large_output();
-        assert_eq!(&layout._name, "recursive_large_output");
+        assert_eq!(layout.name, LayoutName::recursive_large_output);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -293,7 +293,7 @@ mod tests {
     fn get_all_cairo_instance() {
         let layout = CairoLayout::all_cairo_instance();
         let builtins = BuiltinsInstanceDef::all_cairo();
-        assert_eq!(&layout._name, "all_cairo");
+        assert_eq!(layout.name, LayoutName::all_cairo);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
@@ -311,7 +311,7 @@ mod tests {
     fn get_all_solidity_instance() {
         let layout = CairoLayout::all_solidity_instance();
         let builtins = BuiltinsInstanceDef::all_solidity();
-        assert_eq!(&layout._name, "all_solidity");
+        assert_eq!(layout.name, LayoutName::all_solidity);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 8);
         assert_eq!(layout.builtins, builtins);
@@ -329,7 +329,7 @@ mod tests {
     fn get_dynamic_instance() {
         let layout = CairoLayout::dynamic_instance();
         let builtins = BuiltinsInstanceDef::dynamic();
-        assert_eq!(&layout._name, "dynamic");
+        assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout._cpu_component_step, 1);
         assert_eq!(layout.rc_units, 16);
         assert_eq!(layout.builtins, builtins);

@@ -6,6 +6,7 @@ use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
+use cairo_vm::serde::deserialize_program::LayoutName;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
@@ -17,7 +18,7 @@ use cairo_vm::vm::vm_core::VirtualMachine;
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::tracer::run_tracer;
-use clap::{Parser, ValueHint};
+use clap::{ArgEnum, Parser, ValueHint};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -42,8 +43,8 @@ struct Args {
     entrypoint: String,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
-    layout: String,
+    #[clap(long = "layout", default_value = "plain", arg_enum)]
+    layout: LayoutName,
     #[structopt(long = "proof_mode")]
     proof_mode: bool,
     #[structopt(long = "secure_run")]
@@ -67,22 +68,6 @@ struct Args {
     #[structopt(long = "tracer")]
     #[cfg(feature = "with_tracer")]
     tracer: bool,
-}
-
-fn validate_layout(value: &str) -> Result<String, String> {
-    match value {
-        "plain"
-        | "small"
-        | "dex"
-        | "recursive"
-        | "starknet"
-        | "starknet_with_keccak"
-        | "recursive_large_output"
-        | "all_cairo"
-        | "all_solidity"
-        | "dynamic" => Ok(value.to_string()),
-        _ => Err(format!("{value} is not a valid layout")),
-    }
 }
 
 #[derive(Debug, Error)]

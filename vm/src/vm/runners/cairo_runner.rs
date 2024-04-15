@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
+    serde::deserialize_program::LayoutName,
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -360,7 +361,7 @@ impl CairoRunner {
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
-                self.layout._name.clone(),
+                self.layout.name.to_string(),
             ))));
         }
 
@@ -1459,15 +1460,14 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
-        let layout_name = self.get_layout()._name.as_str();
-        let dyn_layout = match layout_name {
-            "dynamic" => Some(self.get_layout()),
+        let dyn_layout = match self.layout.name {
+            LayoutName::dynamic => Some(self.get_layout()),
             _ => None,
         };
 
         PublicInput::new(
             &self.relocated_memory,
-            layout_name,
+            self.layout.name.to_str(),
             dyn_layout,
             &vm.get_public_memory_addresses()?,
             self.get_memory_segment_addresses(vm)?,
