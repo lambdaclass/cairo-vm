@@ -7,6 +7,8 @@
   * Replace `HintReference` boolean field `dereference` with boolean fields `outer_dereference` & `inner_dereference`
   * Reference parsing now handles the case of dereferences inside the cast. Aka references of type `cast([A + B], type)` such as `cast([[fp + 2] + 2], felt)`.
 
+* refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
+
 * fix(BREAKING): Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
   * `initialize_main_entrypoint` now iterates over the program builtins when building the stack & inserts 0 for any missing builtin
   * `read_return_values` now only computes the final stack of the builtins in the program

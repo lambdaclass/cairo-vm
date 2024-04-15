@@ -301,7 +301,6 @@ mod tests {
             hint_processor_definition::HintProcessorLogic,
         },
         relocatable,
-        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
         vm::errors::memory_errors::MemoryError,
     };
