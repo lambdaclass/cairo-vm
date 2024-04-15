@@ -356,7 +356,7 @@ impl CairoRunner {
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
-                self.layout.name.to_string(),
+                self.layout.name,
             ))));
         }
 
@@ -4529,7 +4529,7 @@ mod tests {
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name()]),
-                String::from(LayoutName::plain)
+                LayoutName::plain
             ))))
         );
     }
@@ -4544,7 +4544,7 @@ mod tests {
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::output.name(), HASH_BUILTIN_NAME]),
-                String::from(LayoutName::plain)
+                LayoutName::plain
             ))))
         );
     }
@@ -4554,12 +4554,12 @@ mod tests {
     fn initialize_segments_incorrect_layout_small_two_builtins() {
         let program = program![BuiltinName::output, BuiltinName::bitwise];
         let mut vm = vm!();
-        let cairo_runner = cairo_runner!(program, "small");
+        let cairo_runner = cairo_runner!(program, LayoutName::small);
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
                 HashSet::from([BuiltinName::bitwise.name()]),
-                String::from("small")
+                LayoutName::small,
             ))))
         );
     }

@@ -5,7 +5,7 @@ use clap::ValueEnum;
 use core::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
 
-// This enum is used to deserialize program layouts into &str and catch non-valid names
+/// Enum representing the name of a Cairo Layout
 #[cfg_attr(all(feature = "clap", feature = "std"), derive(ValueEnum))]
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]

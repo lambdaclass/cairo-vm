@@ -260,7 +260,7 @@ fn serialize_cairo_pie() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "small",
+            layout: LayoutName::small,
             ..Default::default()
         },
         &mut hint_processor,
