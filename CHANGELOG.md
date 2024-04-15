@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: Add `lib.rs` to cairo1-run[#1714](https://github.com/lambdaclass/cairo-vm/pull/1714)
+
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
 
 * fix(BREAKING): Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
