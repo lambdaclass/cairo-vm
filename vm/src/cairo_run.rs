@@ -16,7 +16,7 @@ use bincode::enc::write::Writer;
 use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
-use arbitrary::{self, Arbitrary, Unstructured};
+use arbitrary::{self, Arbitrary};
 
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
@@ -24,28 +24,12 @@ pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
-    #[cfg_attr(feature = "arbitrary", arbitrary(with = arbitrary_layout))]
+    #[cfg_attr(feature = "arbitrary", arbitrary(with = crate::types::layout_name::arbitrary_layout))]
     pub layout: LayoutName,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
     pub disable_trace_padding: bool,
     pub allow_missing_builtins: Option<bool>,
-}
-
-#[cfg(feature = "arbitrary")]
-fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<LayoutName> {
-    let layouts = [
-        LayoutName::plain,
-        LayoutName::small,
-        LayoutName::dex,
-        LayoutName::starknet,
-        LayoutName::starknet_with_keccak,
-        LayoutName::recursive_large_output,
-        LayoutName::all_cairo,
-        LayoutName::all_solidity,
-        LayoutName::dynamic,
-    ];
-    Ok(*u.choose(&layouts)?)
 }
 
 impl<'a> Default for CairoRunConfig<'a> {

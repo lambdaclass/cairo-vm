@@ -1,5 +1,5 @@
 #[cfg(all(feature = "arbitrary", feature = "std"))]
-use arbitrary::{self, Arbitrary};
+use arbitrary::{self, Arbitrary, Unstructured};
 #[cfg(all(feature = "clap", feature = "std"))]
 use clap::{builder::PossibleValue, ValueEnum};
 use core::fmt::{self, Display};
@@ -65,4 +65,20 @@ impl ValueEnum for LayoutName {
     fn to_possible_value(&self) -> Option<PossibleValue> {
         Some(PossibleValue::new(self.to_str()))
     }
+}
+
+#[cfg(all(feature = "arbitrary", feature = "std"))]
+pub fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<LayoutName> {
+    let layouts = [
+        LayoutName::plain,
+        LayoutName::small,
+        LayoutName::dex,
+        LayoutName::starknet,
+        LayoutName::starknet_with_keccak,
+        LayoutName::recursive_large_output,
+        LayoutName::all_cairo,
+        LayoutName::all_solidity,
+        LayoutName::dynamic,
+    ];
+    Ok(*u.choose(&layouts)?)
 }
