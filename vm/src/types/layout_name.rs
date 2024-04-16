@@ -41,18 +41,7 @@ impl LayoutName {
 
 impl Display for LayoutName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LayoutName::plain => "plain".fmt(f),
-            LayoutName::small => "small".fmt(f),
-            LayoutName::dex => "dex".fmt(f),
-            LayoutName::recursive => "recursive".fmt(f),
-            LayoutName::starknet => "starknet".fmt(f),
-            LayoutName::starknet_with_keccak => "starknet_with_keccak".fmt(f),
-            LayoutName::recursive_large_output => "recursive_large_output".fmt(f),
-            LayoutName::all_solidity => "all_solidity".fmt(f),
-            LayoutName::all_cairo => "all_cairo".fmt(f),
-            LayoutName::dynamic => "all_cairo".fmt(f),
-        }
+        self.to_str().fmt(f)
     }
 }
 
@@ -74,17 +63,6 @@ impl ValueEnum for LayoutName {
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
-        Some(match self {
-            LayoutName::plain => PossibleValue::new("plain"),
-            LayoutName::small => PossibleValue::new("small"),
-            LayoutName::dex => PossibleValue::new("dex"),
-            LayoutName::recursive => PossibleValue::new("recursive"),
-            LayoutName::starknet => PossibleValue::new("starknet"),
-            LayoutName::starknet_with_keccak => PossibleValue::new("starknet_with_keccak"),
-            LayoutName::recursive_large_output => PossibleValue::new("recursive_large_output"),
-            LayoutName::all_solidity => PossibleValue::new("all_solidity"),
-            LayoutName::all_cairo => PossibleValue::new("all_cairo"),
-            LayoutName::dynamic => PossibleValue::new("all_cairo"),
-        })
+        Some(PossibleValue::new(self.to_str()))
     }
 }
