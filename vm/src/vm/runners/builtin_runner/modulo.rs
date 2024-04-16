@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
+    serde::deserialize_program::BuiltinName,
     stdlib::{
         borrow::Cow,
         collections::BTreeMap,
@@ -8,7 +9,7 @@ use crate::{
     },
     types::{
         errors::math_errors::MathError,
-        instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
+        instance_definitions::mod_instance_def::{ModInstanceDef, CELLS_PER_MOD, N_WORDS},
         relocatable::{relocate_address, MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -29,8 +30,6 @@ use num_traits::Zero;
 
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;
-
-const INPUT_CELLS: usize = 7;
 
 const VALUES_PTR_OFFSET: u32 = 4;
 const OFFSETS_PTR_OFFSET: u32 = 5;
@@ -117,6 +116,13 @@ impl ModBuiltinRunner {
         }
     }
 
+    pub fn identifier(&self) -> BuiltinName {
+        match self.builtin_type {
+            ModBuiltinType::Mul => BuiltinName::mul_mod,
+            ModBuiltinType::Add => BuiltinName::add_mod,
+        }
+    }
+
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
         self.base = segments.add().segment_index as usize; // segments.add() always returns a positive index
         self.zero_segment_index = segments.add_zero_segment(self.zero_segment_size)
@@ -138,14 +144,6 @@ impl ModBuiltinRunner {
         self.instance_def.ratio
     }
 
-    pub fn cells_per_instance(&self) -> u32 {
-        INPUT_CELLS as u32
-    }
-
-    pub fn n_input_cells(&self) -> u32 {
-        INPUT_CELLS as u32
-    }
-
     pub fn batch_size(&self) -> usize {
         self.instance_def.batch_size
     }
@@ -161,7 +159,7 @@ impl ModBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance() as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_MOD as usize))
     }
 
     pub(crate) fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
@@ -171,8 +169,11 @@ impl ModBuiltinRunner {
             .unwrap_or_default();
         let relocation_table = segments.relocate_segments().unwrap_or_default();
         let mut instances = Vec::<ModInputInstance>::new();
-        for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
-            let instance_addr_offset = instance * INPUT_CELLS;
+        for instance in 0..segment_size
+            .checked_div(CELLS_PER_MOD as usize)
+            .unwrap_or_default()
+        {
+            let instance_addr_offset = instance * CELLS_PER_MOD as usize;
             let values_ptr = segments
                 .memory
                 .get_relocatable(
@@ -374,7 +375,7 @@ impl ModBuiltinRunner {
         }
         let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size)?;
         for instance in 1..n_instances {
-            let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
+            let instance_ptr = (builtin_ptr + instance * CELLS_PER_MOD as usize)?;
             for i in 0..N_WORDS {
                 memory.insert_as_accessed((instance_ptr + i)?, &inputs.p_values[i])?;
             }
@@ -592,12 +593,12 @@ impl ModBuiltinRunner {
         let segment_size = vm
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-        let n_instances = div_ceil(segment_size, INPUT_CELLS);
+        let n_instances = div_ceil(segment_size, CELLS_PER_MOD as usize);
         let mut prev_inputs = Inputs::default();
         for instance in 0..n_instances {
             let inputs = self.read_inputs(
                 &vm.segments.memory,
-                (self.base as isize, instance * INPUT_CELLS).into(),
+                (self.base as isize, instance * CELLS_PER_MOD as usize).into(),
             )?;
             if !instance.is_zero() && prev_inputs.n > self.instance_def.batch_size {
                 for i in 0..N_WORDS {
@@ -725,7 +726,7 @@ mod tests {
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
             .unwrap();
-        runner.read_return_values(&mut vm).unwrap();
+        runner.read_return_values(&mut vm, false).unwrap();
         runner.finalize_segments(&mut vm).unwrap();
 
         let air_private_input = runner.get_air_private_input(&vm);

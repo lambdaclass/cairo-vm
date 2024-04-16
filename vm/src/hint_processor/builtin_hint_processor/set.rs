@@ -66,7 +66,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
+        types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };

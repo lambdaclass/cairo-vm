@@ -2,6 +2,8 @@ use serde::Serialize;
 
 pub(crate) const N_WORDS: usize = 4;
 
+pub(crate) const CELLS_PER_MOD: u32 = 7;
+
 #[derive(Serialize, Debug, PartialEq, Clone)]
 pub(crate) struct ModInstanceDef {
     pub(crate) ratio: Option<u32>,

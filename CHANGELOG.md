@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
+
+* feat: missing EC hints for Starknet OS 0.13.1 [#1706](https://github.com/lambdaclass/cairo-vm/pull/1706)
+
+* fix(BREAKING): Use program builtins in `initialize_main_entrypoint` & `read_return_values`[#1703](https://github.com/lambdaclass/cairo-vm/pull/1703)
+  * `initialize_main_entrypoint` now iterates over the program builtins when building the stack & inserts 0 for any missing builtin
+  * `read_return_values` now only computes the final stack of the builtins in the program
+  * BREAKING: `read_return_values` now takes a boolean argument `allow_missing_builtins`
+  * Added method `BuiltinRunner::identifier` to get the `BuiltinName` of each builtin
+  * BREAKING: `OutputBuiltinRunner::get_public_memory` now takes a reference to `MemorySegmentManager`
+  * BREAKING: method `VirtualMachine::get_memory_segment_addresses` moved to `CairoRunner::get_memory_segment_addresses`
+
 * feat(BREAKING): Add range_check96 builtin[#1698](https://github.com/lambdaclass/cairo-vm/pull/1698)
   * Add the new `range_check96` builtin to the `all_cairo` layout.
   * `RangeCheckBuiltinRunner` changes:

@@ -1,6 +1,26 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
+use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::prelude::*;
+use crate::types::instance_definitions::bitwise_instance_def::{
+    CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
+};
+use crate::types::instance_definitions::builtins_instance_def::BUILTIN_INSTANCES_PER_COMPONENT;
+use crate::types::instance_definitions::ec_op_instance_def::{
+    CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
+};
+use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
+use crate::types::instance_definitions::keccak_instance_def::{
+    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK, KECCAK_INSTANCES_PER_COMPONENT,
+};
+use crate::types::instance_definitions::mod_instance_def::CELLS_PER_MOD;
+use crate::types::instance_definitions::pedersen_instance_def::{
+    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
+};
+use crate::types::instance_definitions::poseidon_instance_def::{
+    CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
+};
+use crate::types::instance_definitions::range_check_instance_def::CELLS_PER_RANGE_CHECK;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::{self, InsufficientAllocatedCellsError, MemoryError};
 use crate::vm::errors::runner_errors::RunnerError;
@@ -21,6 +41,7 @@ mod segment_arena;
 mod signature;
 
 pub(crate) use self::range_check::{RC_N_PARTS_96, RC_N_PARTS_STANDARD};
+use self::segment_arena::ARENA_BUILTIN_SIZE;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
@@ -350,49 +371,38 @@ impl BuiltinRunner {
 
     fn cells_per_instance(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::EcOp(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Hash(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::RangeCheck(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.cells_per_instance,
+            BuiltinRunner::Bitwise(_) => CELLS_PER_BITWISE,
+            BuiltinRunner::EcOp(_) => CELLS_PER_EC_OP,
+            BuiltinRunner::Hash(_) => CELLS_PER_HASH,
+            BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
-            BuiltinRunner::Keccak(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Signature(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Poseidon(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::SegmentArena(builtin) => builtin.cells_per_instance,
-            BuiltinRunner::Mod(mod_builtin) => mod_builtin.cells_per_instance(),
+            BuiltinRunner::Keccak(_) => CELLS_PER_KECCAK,
+            BuiltinRunner::Signature(_) => CELLS_PER_SIGNATURE,
+            BuiltinRunner::Poseidon(_) => CELLS_PER_POSEIDON,
+            BuiltinRunner::SegmentArena(_) => ARENA_BUILTIN_SIZE,
+            BuiltinRunner::Mod(_) => CELLS_PER_MOD,
         }
     }
 
     fn n_input_cells(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.n_input_cells,
-            BuiltinRunner::EcOp(builtin) => builtin.n_input_cells,
-            BuiltinRunner::Hash(builtin) => builtin.n_input_cells,
-            BuiltinRunner::RangeCheck(builtin) => builtin.n_input_cells,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.n_input_cells,
+            BuiltinRunner::Bitwise(_) => INPUT_CELLS_PER_BITWISE,
+            BuiltinRunner::EcOp(_) => INPUT_CELLS_PER_EC_OP,
+            BuiltinRunner::Hash(_) => INPUT_CELLS_PER_HASH,
+            BuiltinRunner::RangeCheck(_) | BuiltinRunner::RangeCheck96(_) => CELLS_PER_RANGE_CHECK,
             BuiltinRunner::Output(_) => 0,
-            BuiltinRunner::Keccak(builtin) => builtin.n_input_cells,
-            BuiltinRunner::Signature(builtin) => builtin.n_input_cells,
-            BuiltinRunner::Poseidon(builtin) => builtin.n_input_cells,
-            BuiltinRunner::SegmentArena(builtin) => builtin.n_input_cells_per_instance,
-            BuiltinRunner::Mod(builtin) => builtin.n_input_cells(),
+            BuiltinRunner::Keccak(_) => INPUT_CELLS_PER_KECCAK,
+            BuiltinRunner::Signature(_) => CELLS_PER_SIGNATURE,
+            BuiltinRunner::Poseidon(_) => INPUT_CELLS_PER_POSEIDON,
+            BuiltinRunner::SegmentArena(_) => ARENA_BUILTIN_SIZE,
+            BuiltinRunner::Mod(_) => CELLS_PER_MOD,
         }
     }
 
     fn instances_per_component(&self) -> u32 {
         match self {
-            BuiltinRunner::Bitwise(builtin) => builtin.instances_per_component,
-            BuiltinRunner::EcOp(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Hash(builtin) => builtin.instances_per_component,
-            BuiltinRunner::RangeCheck(builtin) => builtin.instances_per_component,
-            BuiltinRunner::RangeCheck96(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => 1,
-            BuiltinRunner::Keccak(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Signature(builtin) => builtin.instances_per_component,
-            BuiltinRunner::Poseidon(builtin) => builtin.instances_per_component,
-            // TODO: Placeholder till we see layout data
-            BuiltinRunner::Mod(_) => 1,
+            BuiltinRunner::Keccak(_) => KECCAK_INSTANCES_PER_COMPONENT,
+            _ => BUILTIN_INSTANCES_PER_COMPONENT,
         }
     }
 
@@ -409,6 +419,22 @@ impl BuiltinRunner {
             BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
             BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
             BuiltinRunner::Mod(b) => b.name(),
+        }
+    }
+
+    pub fn identifier(&self) -> BuiltinName {
+        match self {
+            BuiltinRunner::Bitwise(_) => BuiltinName::bitwise,
+            BuiltinRunner::EcOp(_) => BuiltinName::ec_op,
+            BuiltinRunner::Hash(_) => BuiltinName::pedersen,
+            BuiltinRunner::RangeCheck(_) => BuiltinName::range_check,
+            BuiltinRunner::RangeCheck96(_) => BuiltinName::range_check96,
+            BuiltinRunner::Output(_) => BuiltinName::output,
+            BuiltinRunner::Keccak(_) => BuiltinName::keccak,
+            BuiltinRunner::Signature(_) => BuiltinName::ecdsa,
+            BuiltinRunner::Poseidon(_) => BuiltinName::poseidon,
+            BuiltinRunner::SegmentArena(_) => BuiltinName::segment_arena,
+            BuiltinRunner::Mod(b) => b.identifier(),
         }
     }
 
@@ -636,18 +662,10 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::serde::deserialize_program::BuiltinName;
-    use crate::types::instance_definitions::ecdsa_instance_def::EcdsaInstanceDef;
-    use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
-    use crate::{
-        types::instance_definitions::{
-            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-        },
-        utils::test_utils::*,
-        vm::vm_core::VirtualMachine,
-    };
+    use crate::{utils::test_utils::*, vm::vm_core::VirtualMachine};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
@@ -656,9 +674,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
-        assert_eq!(bitwise.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_BITWISE, builtin.n_input_cells())
     }
 
     #[test]
@@ -666,31 +684,23 @@ mod tests {
     fn get_n_input_cells_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
-        assert_eq!(hash.n_input_cells, builtin.n_input_cells())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_n_input_cells_range_check() {
-        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
-        let builtin: BuiltinRunner = range_check.clone().into();
-        assert_eq!(range_check.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_HASH, builtin.n_input_cells())
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
-        assert_eq!(ec_op.n_input_cells, builtin.n_input_cells())
+        assert_eq!(INPUT_CELLS_PER_EC_OP, builtin.n_input_cells())
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_n_input_cells_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
-        assert_eq!(signature.n_input_cells, builtin.n_input_cells())
+        assert_eq!(CELLS_PER_SIGNATURE, builtin.n_input_cells())
     }
 
     #[test]
@@ -704,9 +714,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.clone().into();
-        assert_eq!(bitwise.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_BITWISE, builtin.cells_per_instance())
     }
 
     #[test]
@@ -714,31 +724,23 @@ mod tests {
     fn get_cells_per_instance_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.clone().into();
-        assert_eq!(hash.cells_per_instance, builtin.cells_per_instance())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_cells_per_instance_range_check() {
-        let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
-        let builtin: BuiltinRunner = range_check.clone().into();
-        assert_eq!(range_check.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_HASH, builtin.cells_per_instance())
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.clone().into();
-        assert_eq!(ec_op.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_EC_OP, builtin.cells_per_instance())
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_cells_per_instance_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.clone().into();
-        assert_eq!(signature.cells_per_instance, builtin.cells_per_instance())
+        assert_eq!(CELLS_PER_SIGNATURE, builtin.cells_per_instance())
     }
 
     #[test]
@@ -751,16 +753,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_cells_per_instance_keccak() {
-        let keccak = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let builtin: BuiltinRunner = keccak.clone().into();
-        assert_eq!(keccak.cells_per_instance, builtin.cells_per_instance())
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_bitwise() {
-        let bitwise = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(10)), true);
+        let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.into();
         assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
     }
@@ -784,7 +778,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_ec_op() {
-        let ec_op = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.into();
         assert_eq!(EC_OP_BUILTIN_NAME, builtin.name())
     }
@@ -792,7 +786,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_name_ecdsa() {
-        let signature = SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(10)), true);
+        let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.into();
         assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
     }
@@ -808,10 +802,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_bitwise_with_items() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
 
@@ -855,10 +846,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_ec_op_with_items() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            &EcOpInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
 
@@ -992,10 +980,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_keccak_with_items() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
         vm.current_step = 160;
@@ -1004,10 +989,7 @@ mod tests {
 
     #[test]
     fn get_allocated_memory_units_keccak_min_steps_not_reached() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::new(Some(10), vec![200; 8]),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(10), true));
 
         let mut vm = vm!();
         vm.current_step = 10;
@@ -1055,10 +1037,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.current_step = 256;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -1067,8 +1046,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_ec_op() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.current_step = 256;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
@@ -1077,10 +1055,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_keccak() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         let mut vm = vm!();
         vm.current_step = 32768;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
@@ -1115,8 +1090,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_ec_op() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -1124,10 +1098,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
         assert_eq!(builtin.get_range_check_usage(&memory), None);
     }
@@ -1135,40 +1106,28 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_bitwise() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 1255);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_keccak_zero_case() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_keccak_non_zero_case() {
-        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-            &KeccakInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), true));
         assert_eq!(builtin.get_used_diluted_check_units(0, 8), 32768);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_ec_op() {
-        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(
-            &EcOpInstanceDef::new(Some(10)),
-            true,
-        ));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(10), true));
         assert_eq!(builtin.get_used_diluted_check_units(270, 7), 0);
     }
 
@@ -1198,11 +1157,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_segment_addresses_test() {
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.get_memory_segment_addresses(), (0, None),);
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.get_memory_segment_addresses(), (0, None),);
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.get_memory_segment_addresses(), (0, None),);
@@ -1229,10 +1186,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_empty_memory() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let vm = vm!();
         // Unused builtin shouldn't fail security checks
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
@@ -1241,10 +1195,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_empty_offsets() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.memory.data = vec![vec![]];
@@ -1255,10 +1206,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_bitwise_missing_memory_cells_with_offsets() {
-        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-            &BitwiseInstanceDef::default(),
-            true,
-        ));
+        let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
         vm.segments.memory = memory![
             ((0, 1), (0, 1)),
@@ -1278,22 +1226,13 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_bitwise_missing_memory_cells() {
-        let mut bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
-
-        bitwise_builtin.cells_per_instance = 2;
-        bitwise_builtin.n_input_cells = 5;
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = bitwise_builtin.into();
 
         let mut vm = vm!();
 
-        vm.segments.memory = memory![
-            ((0, 0), (0, 1)),
-            ((0, 1), (0, 2)),
-            ((0, 2), (0, 3)),
-            ((0, 3), (0, 4)),
-            ((0, 4), (0, 5))
-        ];
+        vm.segments.memory = memory![((0, 4), (0, 5))];
 
         assert_matches!(
             builtin.run_security_checks(&vm),
@@ -1404,8 +1343,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_checks_validate_auto_deductions() {
-        let builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
 
         let mut vm = vm!();
         vm.segments
@@ -1427,7 +1365,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_empty() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1441,7 +1379,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_1_element() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1459,7 +1397,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_3_elements() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1478,8 +1416,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_missing_memory_cells_with_offsets() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
         vm.segments.memory = memory![
             ((0, 1), (0, 1)),
@@ -1501,7 +1438,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_security_ec_op_check_memory_gap() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let builtin: BuiltinRunner = ec_op_builtin.into();
 
@@ -1534,8 +1471,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_bitwise() {
-        let builtin_runner: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let builtin_runner: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1548,8 +1484,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units_ec_op() {
-        let builtin_runner: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let builtin_runner: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         let mut vm = vm!();
 
         vm.current_step = 8;
@@ -1600,11 +1535,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ratio_tests() {
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.ratio(), (Some(256)),);
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.ratio(), (Some(256)),);
         let hash_builtin: BuiltinRunner = HashBuiltinRunner::new(Some(8), true).into();
         assert_eq!(hash_builtin.ratio(), (Some(8)),);
@@ -1614,8 +1547,7 @@ mod tests {
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
         );
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
-        let keccak_builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let keccak_builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
     }
 
@@ -1625,8 +1557,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let bitwise_builtin: BuiltinRunner =
-            BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into();
+        let bitwise_builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(256), true).into();
         assert_eq!(bitwise_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
@@ -1636,8 +1567,7 @@ mod tests {
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![4]);
 
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.get_used_instances(&vm.segments), Ok(1));
     }
 
@@ -1676,25 +1606,16 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn runners_final_stack() {
         let mut builtins = vec![
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-                &BitwiseInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
                 Some(8),
                 false,
             )),
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-                &KeccakInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-                &EcdsaInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), false)),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
         ];
         let vm = vm!();
 
@@ -1707,25 +1628,16 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn runners_set_stop_ptr() {
         let builtins = vec![
-            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(
-                &BitwiseInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false)),
+            BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), false)),
+            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), false)),
             BuiltinRunner::Hash(HashBuiltinRunner::new(Some(1), false)),
             BuiltinRunner::Output(OutputBuiltinRunner::new(false)),
             BuiltinRunner::RangeCheck(RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
                 Some(8),
                 false,
             )),
-            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(
-                &KeccakInstanceDef::default(),
-                false,
-            )),
-            BuiltinRunner::Signature(SignatureBuiltinRunner::new(
-                &EcdsaInstanceDef::default(),
-                false,
-            )),
+            BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(2048), false)),
+            BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), false)),
             BuiltinRunner::Poseidon(PoseidonBuiltinRunner::new(Some(32), false)),
             BuiltinRunner::SegmentArena(SegmentArenaBuiltinRunner::new(false)),
         ];

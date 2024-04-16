@@ -7,7 +7,7 @@ use crate::{
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::instance_definitions::keccak_instance_def::KeccakInstanceDef,
+    types::layout::MEMORY_UNITS_PER_STEP,
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -22,10 +22,6 @@ use crate::{
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
-        instance_definitions::{
-            bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-            ecdsa_instance_def::EcdsaInstanceDef,
-        },
         layout::CairoLayout,
         program::Program,
         relocatable::{relocate_address, relocate_value, MaybeRelocatable, Relocatable},
@@ -303,28 +299,30 @@ impl CairoRunner {
         if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ecdsa);
             if included || self.is_proof_mode() {
-                builtin_runners.push(SignatureBuiltinRunner::new(instance_def, included).into());
+                builtin_runners
+                    .push(SignatureBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
             let included = program_builtins.remove(&BuiltinName::bitwise);
             if included || self.is_proof_mode() {
-                builtin_runners.push(BitwiseBuiltinRunner::new(instance_def, included).into());
+                builtin_runners
+                    .push(BitwiseBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
             let included = program_builtins.remove(&BuiltinName::ec_op);
             if included || self.is_proof_mode() {
-                builtin_runners.push(EcOpBuiltinRunner::new(instance_def, included).into());
+                builtin_runners.push(EcOpBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
         if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
             let included = program_builtins.remove(&BuiltinName::keccak);
             if included || self.is_proof_mode() {
-                builtin_runners.push(KeccakBuiltinRunner::new(instance_def, included).into());
+                builtin_runners.push(KeccakBuiltinRunner::new(instance_def.ratio, included).into());
             }
         }
 
@@ -360,7 +358,7 @@ impl CairoRunner {
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| n.name()).collect(),
-                self.layout._name.clone(),
+                self.layout.name.clone(),
             ))));
         }
 
@@ -406,19 +404,18 @@ impl CairoRunner {
                 BuiltinName::output => vm
                     .builtin_runners
                     .push(OutputBuiltinRunner::new(true).into()),
-                BuiltinName::ecdsa => vm.builtin_runners.push(
-                    SignatureBuiltinRunner::new(&EcdsaInstanceDef::new(Some(1)), true).into(),
-                ),
-                BuiltinName::bitwise => vm.builtin_runners.push(
-                    BitwiseBuiltinRunner::new(&BitwiseInstanceDef::new(Some(1)), true).into(),
-                ),
+                BuiltinName::ecdsa => vm
+                    .builtin_runners
+                    .push(SignatureBuiltinRunner::new(Some(1), true).into()),
+                BuiltinName::bitwise => vm
+                    .builtin_runners
+                    .push(BitwiseBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::ec_op => vm
                     .builtin_runners
-                    .push(EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(1)), true).into()),
-                BuiltinName::keccak => vm.builtin_runners.push(
-                    KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(1), vec![200; 8]), true)
-                        .into(),
-                ),
+                    .push(EcOpBuiltinRunner::new(Some(1), true).into()),
+                BuiltinName::keccak => vm
+                    .builtin_runners
+                    .push(KeccakBuiltinRunner::new(Some(1), true).into()),
                 BuiltinName::poseidon => vm
                     .builtin_runners
                     .push(PoseidonBuiltinRunner::new(Some(1), true).into()),
@@ -525,9 +522,19 @@ impl CairoRunner {
         vm: &mut VirtualMachine,
     ) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
-
-        for builtin_runner in vm.builtin_runners.iter() {
-            stack.append(&mut builtin_runner.initial_stack());
+        {
+            let builtin_runners = vm
+                .builtin_runners
+                .iter()
+                .map(|b| (b.identifier(), b))
+                .collect::<HashMap<_, _>>();
+            for builtin_id in &self.program.builtins {
+                if let Some(builtin_runner) = builtin_runners.get(builtin_id) {
+                    stack.append(&mut builtin_runner.initial_stack());
+                } else {
+                    stack.push(Felt252::ZERO.into())
+                }
+            }
         }
 
         if self.is_proof_mode() {
@@ -1120,7 +1127,7 @@ impl CairoRunner {
                 .get_used_cells_and_allocated_size(vm)
                 .map_err(RunnerError::FinalizeSegements)?;
             if let BuiltinRunner::Output(output_builtin) = builtin_runner {
-                let public_memory = output_builtin.get_public_memory()?;
+                let public_memory = output_builtin.get_public_memory(&vm.segments)?;
                 vm.segments
                     .finalize(Some(size), builtin_runner.base(), Some(&public_memory))
             } else {
@@ -1197,13 +1204,13 @@ impl CairoRunner {
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
-        let total_memory_units = instance._memory_units_per_step * vm_current_step_u32;
+        let total_memory_units = MEMORY_UNITS_PER_STEP * vm_current_step_u32;
         let (public_memory_units, rem) =
-            div_rem(total_memory_units, instance._public_memory_fraction);
+            div_rem(total_memory_units, instance.public_memory_fraction);
         if rem != 0 {
             return Err(MathError::SafeDivFailU32(
                 total_memory_units,
-                instance._public_memory_fraction,
+                instance.public_memory_fraction,
             )
             .into());
         }
@@ -1268,14 +1275,33 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, vm: &mut VirtualMachine) -> Result<(), RunnerError> {
+    pub fn read_return_values(
+        &mut self,
+        vm: &mut VirtualMachine,
+        allow_missing_builtins: bool,
+    ) -> Result<(), RunnerError> {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
         let mut pointer = vm.get_ap();
-        for builtin_runner in vm.builtin_runners.iter_mut().rev() {
-            let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
-            pointer = new_pointer;
+        for builtin_id in self.program.builtins.iter().rev() {
+            if let Some(builtin_runner) = vm
+                .builtin_runners
+                .iter_mut()
+                .find(|b| b.identifier() == *builtin_id)
+            {
+                let new_pointer = builtin_runner.final_stack(&vm.segments, pointer)?;
+                pointer = new_pointer;
+            } else {
+                if !allow_missing_builtins {
+                    return Err(RunnerError::MissingBuiltin(builtin_id.name()));
+                }
+                pointer.offset = pointer.offset.saturating_sub(1);
+
+                if !vm.get_integer(pointer)?.is_zero() {
+                    return Err(RunnerError::MissingBuiltinStopPtrNotZero(builtin_id.name()));
+                }
+            }
         }
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
@@ -1430,7 +1456,7 @@ impl CairoRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
-        let layout_name = self.get_layout()._name.as_str();
+        let layout_name = self.get_layout().name.as_str();
         let dyn_layout = match layout_name {
             "dynamic" => Some(self.get_layout()),
             _ => None,
@@ -1441,7 +1467,7 @@ impl CairoRunner {
             layout_name,
             dyn_layout,
             &vm.get_public_memory_addresses()?,
-            vm.get_memory_segment_addresses()?,
+            self.get_memory_segment_addresses(vm)?,
             self.relocated_trace
                 .as_ref()
                 .ok_or(PublicInputError::EmptyTrace)?,
@@ -1456,6 +1482,41 @@ impl CairoRunner {
             private_inputs.insert(builtin.name(), builtin.air_private_input(&vm.segments));
         }
         AirPrivateInput(private_inputs)
+    }
+
+    pub fn get_memory_segment_addresses(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
+        let relocation_table = vm
+            .relocation_table
+            .as_ref()
+            .ok_or(MemoryError::UnrelocatedMemory)?;
+
+        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
+            let (index, stop_ptr_offset) = segment;
+            let base = relocation_table
+                .get(index)
+                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
+            Ok((*base, base + stop_ptr_offset))
+        };
+
+        vm.builtin_runners
+            .iter()
+            .map(|builtin| -> Result<_, VirtualMachineError> {
+                let (base, stop_ptr) = builtin.get_memory_segment_addresses();
+                let stop_ptr = if self.program.builtins.contains(&builtin.identifier()) {
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?
+                } else {
+                    stop_ptr.unwrap_or_default()
+                };
+
+                Ok((
+                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
+                    relocate((base, stop_ptr))?,
+                ))
+            })
+            .collect()
     }
 }
 
@@ -1574,7 +1635,6 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,
         serde::deserialize_program::{Identifier, ReferenceManager},
-        types::instance_definitions::bitwise_instance_def::BitwiseInstanceDef,
         utils::test_utils::*,
         vm::trace::trace_entry::TraceEntry,
     };
@@ -3268,6 +3328,7 @@ mod tests {
 
         // Swap the first and second builtins (first should be `output`).
         vm.builtin_runners.swap(0, 1);
+        cairo_runner.program.builtins.swap(0, 1);
 
         cairo_runner.initialize_segments(&mut vm, None);
 
@@ -3724,8 +3785,7 @@ mod tests {
         let mut vm = vm!();
 
         vm.current_step = 8192;
-        vm.builtin_runners =
-            vec![BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true).into()];
+        vm.builtin_runners = vec![BitwiseBuiltinRunner::new(Some(256), true).into()];
         assert_matches!(cairo_runner.check_diluted_check_usage(&vm), Ok(()));
     }
 
@@ -4671,7 +4731,7 @@ mod tests {
         let mut vm = vm!();
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4693,7 +4753,7 @@ mod tests {
         cairo_runner.run_ended = false;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
@@ -4712,7 +4772,7 @@ mod tests {
         cairo_runner.segments_finalized = true;
         let mut vm = vm!();
         assert_eq!(
-            cairo_runner.read_return_values(&mut vm),
+            cairo_runner.read_return_values(&mut vm, false),
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
@@ -4740,7 +4800,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4771,7 +4831,7 @@ mod tests {
         vm.set_ap(1);
         vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4793,7 +4853,7 @@ mod tests {
         cairo_runner.segments_finalized = false;
         let mut vm = vm!();
         let output_builtin = OutputBuiltinRunner::new(true);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(output_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
         cairo_runner.initialize_segments(&mut vm, None);
@@ -4809,13 +4869,13 @@ mod tests {
         // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
         vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let output_builtin = match &vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
         };
         assert_eq!(output_builtin.stop_ptr, Some(0));
-        assert_eq!(cairo_runner.read_return_values(&mut vm), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(&mut vm, false), Ok(()));
         let bitwise_builtin = match &vm.builtin_runners[1] {
             BuiltinRunner::Bitwise(runner) => runner,
             _ => unreachable!(),
