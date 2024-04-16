@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* refactor(BREAKING): Use an enum to represent layout name[#1715](https://github.com/lambdaclass/cairo-vm/pull/1715)
+  * Add enum `LayoutName` to represent cairo layout names.
+  * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
+  * `CairoLayout` field `name` type changed from `String` to `LayoutName`.
+
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
 
 * feat: missing EC hints for Starknet OS 0.13.1 [#1706](https://github.com/lambdaclass/cairo-vm/pull/1706)
