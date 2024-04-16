@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* feat: `cairo1-run` accepts Sierra programs [#1544](https://github.com/lambdaclass/cairo-vm/pull/1544)
+* feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
+
+* Bump `starknet-types-core` version + Use the lib's pedersen hash [#1692](https://github.com/lambdaclass/cairo-vm/pull/1692)
 
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
 
