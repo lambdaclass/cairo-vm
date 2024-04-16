@@ -1,11 +1,13 @@
 use super::cairo_runner::ExecutionResources;
 use crate::stdlib::prelude::{String, Vec};
+use crate::vm::errors::cairo_pie_errors::CairoPieValidationError;
 use crate::{
     serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
+use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "std")]
 use {
@@ -85,7 +87,7 @@ pub struct CairoPieMetadata {
     pub ret_fp_segment: SegmentInfo,
     pub ret_pc_segment: SegmentInfo,
     #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
-    pub builtin_segments: HashMap<String, SegmentInfo>,
+    pub builtin_segments: HashMap<BuiltinName, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
 }
 
@@ -128,9 +130,61 @@ impl CairoPie {
         zip_writer.finish()?;
         Ok(())
     }
+
+}
+
+impl CairoPieMetadata {
+    pub fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
+        if self.program.main > self.program.data.len() {
+            return Err(CairoPieValidationError::InvalidMainAddress)
+        }
+        if self.program.data.len() != self.program_segment.size {
+            return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch)
+        }
+        if self.builtin_segments.len() != self.program.builtins.len() || !self.program.builtins.iter().all(|b| self.builtin_segments.contains_key(b)) {
+            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch)
+        }
+        if !self.ret_fp_segment.size.is_zero() {
+            return Err(CairoPieValidationError::InvalidRetFpSegmentSize)
+        }
+        if !self.ret_pc_segment.size.is_zero() {
+            return Err(CairoPieValidationError::InvalidRetPcSegmentSize)
+        }
+        self.validate_segment_order()
+    }
+
+    fn validate_segment_order(&self) -> Result<(), CairoPieValidationError> {
+        if !self.program_segment.index.is_zero() {
+            return Err(CairoPieValidationError::InvalidProgramSegmentIndex)
+        }
+        if !self.execution_segment.index.is_one() {
+            return Err(CairoPieValidationError::InvalidExecutionSegmentIndex)
+        }
+        for (i, builtin_name) in self.program.builtins.iter().enumerate() {
+            // We can safely index as run_validity_checks already ensures that the keys match
+            if self.builtin_segments[builtin_name].index != 2 + i as isize {
+                return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(builtin_name.name()))
+            }
+        }
+        let n_builtins = self.program.builtins.len() as isize;
+        if self.ret_fp_segment.index != n_builtins + 2 {
+            return Err(CairoPieValidationError::InvalidRetFpSegmentIndex)
+        }
+        if self.ret_pc_segment.index != n_builtins + 3 {
+            return Err(CairoPieValidationError::InvalidRetPcSegmentIndex)
+        }
+        for (i, segment) in self.extra_segments.iter().enumerate() {
+            if segment.index != 4 + n_builtins + i as isize {
+                return Err(CairoPieValidationError::InvalidExtraSegmentIndex)
+            }
+        }
+
+        Ok(())
+    }
 }
 
 mod serde_impl {
+    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use num_traits::Num;
     use serde::ser::SerializeMap;
@@ -323,26 +377,26 @@ mod serde_impl {
     }
 
     pub fn serialize_builtin_segments<S>(
-        values: &HashMap<String, SegmentInfo>,
+        values: &HashMap<BuiltinName, SegmentInfo>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
-        const BUILTIN_ORDERED_LIST: &[&str] = &[
-            "output",
-            "pedersen",
-            "range_check",
-            "ecdsa",
-            "bitwise",
-            "ec_op",
-            "keccak",
-            "poseidon",
+        const BUILTIN_ORDERED_LIST: &[BuiltinName] = &[
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
         ];
 
         for name in BUILTIN_ORDERED_LIST {
-            if let Some(info) = values.get(*name) {
+            if let Some(info) = values.get(name) {
                 map_serializer.serialize_entry(name, info)?
             }
         }

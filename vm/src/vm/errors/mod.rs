@@ -6,3 +6,4 @@ pub mod runner_errors;
 pub mod trace_errors;
 pub mod vm_errors;
 pub mod vm_exception;
+pub mod cairo_pie_errors;
