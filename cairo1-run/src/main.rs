@@ -10,7 +10,8 @@ use cairo_vm::{
     vm::errors::{
         memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
         vm_errors::VirtualMachineError,
-    }, Felt252,
+    },
+    Felt252,
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
