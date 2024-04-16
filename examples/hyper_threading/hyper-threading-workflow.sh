@@ -7,7 +7,7 @@ thread_counts=(1 2 4 6 8 16 )
 binaries=("hyper_threading_main" "hyper_threading_pr")
 
 echo -e "**Hyper Thereading Benchmark results**" >> result.md
-printf "\n\n\n" >> result.md
+printf "\n\n" >> result.md
 
 # Iter over thread_counts
 for threads in "${thread_counts[@]}"; do
@@ -21,10 +21,10 @@ for threads in "${thread_counts[@]}"; do
     
     # Execute 
     echo "Running benchmark for ${threads} threads"
-    printf "\n\n\n" >> result.md
+    printf "\n\n" >> result.md
     echo -e $cmd >> result.md 
     eval $cmd >> result.md
-    printf "\n\n\n" >> result.md
+    printf "\n\n" >> result.md
 done
 
 {
