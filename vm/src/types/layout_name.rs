@@ -1,12 +1,11 @@
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{self, Arbitrary};
 #[cfg(all(feature = "clap", feature = "std"))]
-use clap::ValueEnum;
+use clap::{builder::PossibleValue, ValueEnum};
 use core::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
 
 /// Enum representing the name of a Cairo Layout
-#[cfg_attr(all(feature = "clap", feature = "std"), derive(ValueEnum))]
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
@@ -54,5 +53,38 @@ impl Display for LayoutName {
             LayoutName::all_cairo => "all_cairo".fmt(f),
             LayoutName::dynamic => "all_cairo".fmt(f),
         }
+    }
+}
+
+#[cfg(all(feature = "clap", feature = "std"))]
+impl ValueEnum for LayoutName {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            Self::plain,
+            Self::small,
+            Self::dex,
+            Self::recursive,
+            Self::starknet,
+            Self::starknet_with_keccak,
+            Self::recursive_large_output,
+            Self::all_solidity,
+            Self::all_cairo,
+            Self::dynamic,
+        ]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            LayoutName::plain => PossibleValue::new("plain"),
+            LayoutName::small => PossibleValue::new("small"),
+            LayoutName::dex => PossibleValue::new("dex"),
+            LayoutName::recursive => PossibleValue::new("recursive"),
+            LayoutName::starknet => PossibleValue::new("starknet"),
+            LayoutName::starknet_with_keccak => PossibleValue::new("starknet_with_keccak"),
+            LayoutName::recursive_large_output => PossibleValue::new("recursive_large_output"),
+            LayoutName::all_solidity => PossibleValue::new("all_solidity"),
+            LayoutName::all_cairo => PossibleValue::new("all_cairo"),
+            LayoutName::dynamic => PossibleValue::new("all_cairo"),
+        })
     }
 }
