@@ -24,7 +24,6 @@ pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
-    #[cfg_attr(feature = "arbitrary", arbitrary(with = crate::types::layout_name::arbitrary_layout))]
     pub layout: LayoutName,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
