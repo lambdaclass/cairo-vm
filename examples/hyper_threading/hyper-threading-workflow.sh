@@ -23,7 +23,7 @@ for threads in "${thread_counts[@]}"; do
     echo "Running benchmark for ${threads} threads"
     printf "\n\n\n" >> result.md
     echo -e $cmd >> result.md 
-    eval -e $cmd >> result.md
+    eval $cmd >> result.md
     printf "\n\n\n" >> result.md
 done
 
