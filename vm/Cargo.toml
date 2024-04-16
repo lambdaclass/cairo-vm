@@ -81,8 +81,8 @@ ark-std = { workspace = true, optional = true }
 arbitrary = { workspace = true, features = ["derive"], optional = true }
 
 # Used to derive clap traits for CLIs
-
 clap = { version = "4.3.10", features = ["derive"], optional = true}
+
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
