@@ -68,7 +68,7 @@ impl ValueEnum for LayoutName {
 }
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
-pub fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<LayoutName> {
+pub fn arbitrary_layout(u: &mut Unstructured) -> arbitrary::Result<LayoutName> {
     let layouts = [
         LayoutName::plain,
         LayoutName::small,

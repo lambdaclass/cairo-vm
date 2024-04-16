@@ -119,6 +119,9 @@ use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_n
 
 #[cfg(feature = "print")]
 use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{
+    SECP256R1_ALPHA, SECP256R1_P,
+};
 
 use super::blake2s_utils::example_blake2s_compress;
 
@@ -532,6 +535,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &SECP_P,
                 &ALPHA,
             ),
+            hint_code::EC_DOUBLE_SLOPE_V4 => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+                &SECP256R1_P,
+                &SECP256R1_ALPHA,
+            ),
             hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
                 vm,
                 exec_scopes,
@@ -559,13 +571,23 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 "point1",
                 &SECP_P_V2,
             ),
-            hint_code::COMPUTE_SLOPE_SECP256R1 => compute_slope(
+            hint_code::COMPUTE_SLOPE_SECP256R1_V1 => compute_slope(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point0",
                 "point1",
+                "SECP_P",
+            ),
+            hint_code::COMPUTE_SLOPE_SECP256R1_V2 => compute_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point0",
+                "point1",
+                "SECP256R1_P",
             ),
             hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
             hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assing_secp_p(
