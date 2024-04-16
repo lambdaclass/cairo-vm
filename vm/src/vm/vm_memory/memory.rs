@@ -193,7 +193,7 @@ impl Memory {
 
         // Adjust the segment index to begin at zero, as per the struct field's
         match relocation_rules.get(&(-(segment_idx + 1) as usize)) {
-            Some(x) => (x + addr.offset).into(),
+            Some(x) => (*x + addr.offset).unwrap_or_default().into(),
             None => addr.into(),
         }
     }
@@ -594,7 +594,7 @@ impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
         // Adjust the segment index to begin at zero, as per the struct field's
         // comment.
         match self.relocation_rules.get(&(-(segment_idx + 1) as usize)) {
-            Some(x) => x + addr.offset,
+            Some(x) => (*x + addr.offset).unwrap_or_default(),
             None => addr,
         }
     }
