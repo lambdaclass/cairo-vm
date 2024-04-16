@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, boxed::Box};
+use crate::stdlib::boxed::Box;
 
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
@@ -29,22 +29,26 @@ pub fn insert_value_from_reference(
 
 ///Returns the Integer value stored in the given ids variable
 /// Returns an internal error, users should map it into a more informative type
-pub fn get_integer_from_reference<'a>(
-    vm: &'a VirtualMachine,
-    hint_reference: &'a HintReference,
+pub fn get_integer_from_reference(
+    vm: &VirtualMachine,
+    hint_reference: &HintReference,
     ap_tracking: &ApTracking,
-) -> Result<Cow<'a, Felt252>, HintError> {
-    // if the reference register is none, this means it is an immediate value and we
-    // should return that value.
-
-    if let (OffsetValue::Immediate(int_1), _) = (&hint_reference.offset1, &hint_reference.offset2) {
-        return Ok(Cow::Borrowed(int_1));
+) -> Result<Felt252, HintError> {
+    // Compute the initial value
+    let mut val = if let OffsetValue::Immediate(f) = &hint_reference.offset1 {
+        *f
+    } else {
+        let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+            .ok_or(HintError::UnknownIdentifierInternal)?;
+        vm.get_integer(var_addr)
+            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
+            .into_owned()
+    };
+    // If offset2 is an immediate, we need to add it's value to the initial value
+    if let OffsetValue::Immediate(f) = &hint_reference.offset2 {
+        val += f;
     }
-
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
-        .ok_or(HintError::UnknownIdentifierInternal)?;
-    vm.get_integer(var_addr)
-        .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
+    Ok(val)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -117,7 +121,7 @@ pub fn compute_addr_from_reference(
             Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
         }
         OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
-        _ => None,
+        _ => Some(offset1),
     }
 }
 
@@ -179,7 +183,6 @@ fn get_offset_value_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::collections::HashMap;
 
     use crate::{
         relocatable,
@@ -201,9 +204,28 @@ mod tests {
 
         assert_eq!(
             get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
-                .expect("Unexpected get integer fail")
-                .into_owned(),
+                .expect("Unexpected get integer fail"),
             Felt252::from(2)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_integer_from_reference_with_immediate_off2() {
+        let mut vm = vm!();
+        vm.segments = segments![((1, 0), 1)];
+        let hint_ref = HintReference {
+            offset1: OffsetValue::Reference(Register::FP, 0, false),
+            offset2: OffsetValue::Immediate(Felt252::TWO),
+            dereference: false,
+            ap_tracking_data: Default::default(),
+            cairo_type: None,
+        };
+
+        assert_eq!(
+            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
+                .expect("Unexpected get integer fail"),
+            Felt252::THREE
         );
     }
 

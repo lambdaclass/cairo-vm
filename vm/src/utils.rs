@@ -1,9 +1,7 @@
+use crate::stdlib::prelude::*;
 use crate::types::relocatable::Relocatable;
-use crate::{stdlib::prelude::*, types::errors::math_errors::MathError};
-use core::ops::Neg;
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, BigUint, Sign, ToBigInt};
-use num_integer::Integer;
+use num_bigint::BigUint;
 use num_traits::Num;
 
 pub const PRIME_STR: &str = "0x800000000000011000000000000000000000000000000000000000000000001";
@@ -48,36 +46,6 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
         )
     } else {
         (relocatable.segment_index as usize, relocatable.offset)
-    }
-}
-
-pub fn felt_to_biguint(felt: crate::Felt252) -> BigUint {
-    let big_digits = felt
-        .to_le_digits()
-        .into_iter()
-        .flat_map(|limb| [limb as u32, (limb >> 32) as u32])
-        .collect();
-    BigUint::new(big_digits)
-}
-
-pub fn felt_to_bigint(felt: crate::Felt252) -> BigInt {
-    felt_to_biguint(felt).to_bigint().unwrap()
-}
-
-pub fn biguint_to_felt(biguint: &BigUint) -> Result<crate::Felt252, MathError> {
-    // TODO This funtions should return a Felt252 instead of a Result
-    Ok(crate::Felt252::from_bytes_le_slice(&biguint.to_bytes_le()))
-}
-
-pub fn bigint_to_felt(bigint: &BigInt) -> Result<crate::Felt252, MathError> {
-    let (sign, bytes) = bigint
-        .mod_floor(&CAIRO_PRIME.to_bigint().unwrap())
-        .to_bytes_le();
-    let felt = crate::Felt252::from_bytes_le_slice(&bytes);
-    if sign == Sign::Minus {
-        Ok(felt.neg())
-    } else {
-        Ok(felt)
     }
 }
 
@@ -153,14 +121,9 @@ pub mod test_utils {
     macro_rules! segments {
         ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
-                let memory = memory!($( (($si, $off), $val) ),*);
-                $crate::vm::vm_memory::memory_segments::MemorySegmentManager {
-                    memory,
-                    segment_sizes: HashMap::new(),
-                    segment_used_sizes: None,
-                    public_memory_offsets: HashMap::new(),
-                }
-
+                let mut segments = $crate::vm::vm_memory::memory_segments::MemorySegmentManager::new();
+                segments.memory = memory!($( (($si, $off), $val) ),*);
+                segments
             }
 
         };
@@ -273,8 +236,11 @@ pub mod test_utils {
         () => {{
             let mut vm = VirtualMachine::new(false);
             vm.builtin_runners = vec![
-                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::new(Some(8), 8, true)
-                    .into(),
+                $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
+                    Some(8),
+                    true,
+                )
+                .into(),
             ];
             vm
         }};
@@ -474,7 +440,7 @@ pub mod test_utils {
 
     macro_rules! exec_scopes_ref {
         () => {
-            &mut ExecutionScopes::new()
+            &mut crate::types::exec_scope::ExecutionScopes::new()
         };
     }
     pub(crate) use exec_scopes_ref;

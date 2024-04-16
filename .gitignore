@@ -10,6 +10,7 @@
 **/*.memory
 **/*.air_public_input
 **/*.air_private_input
+**/*.pie.zip
 **/*.swp
 bench/results
 .python-version
@@ -22,5 +23,6 @@ cairo-vm-pypy-env/*
 cairo1-run/corelib/
 cairo-vm-cli/air_input.pub
 ensure-no_std/Cargo.lock
+cairo_programs/proof_programs/*.cairo
 
 !vm/src/tests/cairo_pie_test_output.json

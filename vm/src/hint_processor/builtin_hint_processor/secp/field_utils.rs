@@ -1,4 +1,3 @@
-use crate::utils::bigint_to_felt;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -42,7 +41,7 @@ pub fn verify_zero(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", bigint_to_felt(&q)?, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::from(&q), vm, ids_data, ap_tracking)
 }
 
 /*
@@ -68,7 +67,7 @@ pub fn verify_zero_with_external_const(
         return Err(HintError::SecpVerifyZero(Box::new(val)));
     }
 
-    insert_value_from_var_name("q", bigint_to_felt(&q)?, vm, ids_data, ap_tracking)
+    insert_value_from_var_name("q", Felt252::from(&q), vm, ids_data, ap_tracking)
 }
 
 /*

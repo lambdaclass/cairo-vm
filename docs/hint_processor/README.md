@@ -24,11 +24,10 @@ The purpose of this method is to organize the data related to hints in the way i
 ### `execute_hint`
 
 This method is called at the start of each VM step when there is a hint to execute.
-It receives the dynamic structure created by `compile_hint` along with the program constants and a set of proxies containing a limited access to the VM's Internals:
+It receives the dynamic structure created by `compile_hint` along with the program constants and a some of the VM's Internals:
 
-* `exec_scopes_proxy` is the hint's gateway to interact with the execution_scopes in the VM and share data between hints without inserting them into the cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables of specific types. This proxy only allows modifying the current scope, which is the last available scope before the hint's execution (Note that calling enter_scope and exit_scope won't change the current scope for the duration of the hint´s execution)
-* `vm_proxy` is the hint's gateway to the internal values of the VM, it provides mutable references to the memory segment manager and the run context, and immutable references to the builtin runners and the program's prime, it also contains a memory proxy:
-* `MemoryProxy`: It grants a more limited access to the VM's memory, providing the necessary methods to modify it in a controlled manner.
+* `exec_scopes` Allows sharing data between hints without inserting them into the cairo execution. It provides methods to create and remove scopes and to modify the current scope, along with several helper methods to allow inserting and retrieving variables. It only allows modifying the current scope, which is the last available scope before the hint's execution (Note that calling enter_scope and exit_scope won't change the current scope for the duration of the hint´s execution)
+* `vm` a mutable reference to the `VirtualMachine`, interaction with it is limited to its public fields and methods allowing to mutate it in a controlled manner
 
 The purpose of this method is to carry out the execution of the hint, given the data from `compile_hint`
 
@@ -92,15 +91,15 @@ impl HintProcessor for MyHintProcessor {
 
     fn execute_hint(
         &mut self,
-        vm_proxy: &mut VMProxy,
-        exec_scopes_proxy: &mut ExecutionScopesProxy,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
     ) -> Result<(), VirtualMachineError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(VirtualMachineError::WrongHintData)?;
         match &*hint_data.code {
-            SPLIT_FELT => split_felt(vm_proxy, &hint_data.ids_data, &hint_data.ap_tracking),
+            SPLIT_FELT => split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             _ => Err(VirtualMachineError::UnknownHint(code.to_string())),
         }
 }
@@ -133,14 +132,14 @@ fn get_ids_data(
 This is the hint's implementation using the provided data and helpers:
 ```rust
 pub fn split_felt(
-    vm_proxy: &mut VMProxy,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), VirtualMachineError> {
-    let value = get_integer_from_reference(vm_proxy, ids_data.get("value")?, ap_tracking)?;
+    let value = get_integer_from_reference(vm, ids_data.get("value")?, ap_tracking)?;
     let low: BigInt = value & ((bigint!(1).shl(128_u8)) - bigint!(1));
     let high: BigInt = value.shr(128_u8);
-    insert_value_from_reference(high, vm_proxy, ids_data.get("high")?, ap_tracking)?;
-    insert_value_from_reference(low, vm_proxy, ids_data.get("low")?, ap_tracking)
+    insert_value_from_reference(high, vm, ids_data.get("high")?, ap_tracking)?;
+    insert_value_from_reference(low, vm, ids_data.get("low")?, ap_tracking)
 }
 ```

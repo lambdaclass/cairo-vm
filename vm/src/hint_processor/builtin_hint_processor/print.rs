@@ -12,7 +12,6 @@ use crate::stdlib::collections::HashMap;
 
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::relocatable::MaybeRelocatable;
-use crate::utils::felt_to_bigint;
 use crate::vm::errors::hint_errors::HintError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
@@ -34,7 +33,7 @@ fn print_name(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let name = get_integer_from_var_name("name", vm, ids_data, ap_tracking)?;
-    let name = String::from_utf8(felt_to_bigint(*name.as_ref()).to_signed_bytes_be())
+    let name = String::from_utf8(name.as_ref().to_bigint().to_signed_bytes_be())
         .map_err(|err| HintError::CustomHint(err.to_string().into_boxed_str()))?;
     println!("{name}");
     Ok(())

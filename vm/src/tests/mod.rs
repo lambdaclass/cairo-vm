@@ -47,25 +47,26 @@ mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
-pub(self) fn run_program_simple(data: &[u8]) {
-    run_program(data, Some("all_cairo"), None, None)
+fn run_program_simple(data: &[u8]) {
+    run_program(data, false, Some("all_cairo"), None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
-pub(self) fn run_program_small(data: &[u8]) {
-    run_program(data, Some("small"), None, None)
+fn run_program_small(data: &[u8]) {
+    run_program(data, false, Some("small"), None, None)
 }
 
-pub(self) fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, Some("all_cairo"), Some(trace), None)
+fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
+    run_program(data, false, Some("all_cairo"), Some(trace), None)
 }
 
-pub(self) fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, Some("all_cairo"), None, Some(error))
+fn run_program_with_error(data: &[u8], error: &str) {
+    run_program(data, false, Some("all_cairo"), None, Some(error))
 }
 
-pub(self) fn run_program(
+fn run_program(
     data: &[u8],
+    proof_mode: bool,
     layout: Option<&str>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
@@ -75,6 +76,7 @@ pub(self) fn run_program(
         layout: layout.unwrap_or("all_cairo"),
         relocate_mem: true,
         trace_enabled: true,
+        proof_mode,
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
@@ -101,7 +103,7 @@ pub(self) fn run_program(
 #[cfg(feature = "cairo-1-hints")]
 // Runs a contract entrypoint with given arguments and checks its return values
 // Doesn't use a syscall_handler
-pub(self) fn run_cairo_1_entrypoint(
+fn run_cairo_1_entrypoint(
     program_content: &[u8],
     entrypoint_offset: usize,
     args: &[MaybeRelocatable],
@@ -207,7 +209,7 @@ pub(self) fn run_cairo_1_entrypoint(
 #[cfg(feature = "cairo-1-hints")]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
-pub(self) fn run_cairo_1_entrypoint_with_run_resources(
+fn run_cairo_1_entrypoint_with_run_resources(
     contract_class: CasmContractClass,
     entrypoint_offset: usize,
     hint_processor: &mut Cairo1HintProcessor,

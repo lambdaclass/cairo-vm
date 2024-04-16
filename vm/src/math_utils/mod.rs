@@ -6,7 +6,7 @@ use core::cmp::min;
 
 use crate::stdlib::{boxed::Box, ops::Shr, prelude::Vec};
 use crate::types::errors::math_errors::MathError;
-use crate::utils::{felt_to_biguint, CAIRO_PRIME};
+use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
@@ -58,7 +58,7 @@ pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
 /// ```
 
 pub fn signed_felt(felt: Felt252) -> BigInt {
-    let biguint = felt_to_biguint(felt);
+    let biguint = felt.to_biguint();
     if biguint > *SIGNED_FELT_MAX {
         BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &biguint)
     } else {
@@ -194,6 +194,20 @@ pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> Result<BigInt, MathError> 
         ))));
     }
     Ok((n * a).mod_floor(p))
+}
+
+pub(crate) fn div_mod_unsigned(
+    n: &BigUint,
+    m: &BigUint,
+    p: &BigUint,
+) -> Result<BigUint, MathError> {
+    // BigUint to BigInt conversion cannot fail & div_mod will always return a positive value if all values are positive so we can safely unwrap here
+    div_mod(
+        &n.to_bigint().unwrap(),
+        &m.to_bigint().unwrap(),
+        &p.to_bigint().unwrap(),
+    )
+    .map(|i| i.to_biguint().unwrap())
 }
 
 pub fn ec_add(

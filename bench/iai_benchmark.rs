@@ -6,10 +6,8 @@ use cairo_vm::{
     vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
 };
 
-#[cfg(feature = "with_mimalloc")]
 use mimalloc::MiMalloc;
 
-#[cfg(feature = "with_mimalloc")]
 #[global_allocator]
 static ALLOC: MiMalloc = MiMalloc;
 
@@ -51,7 +49,7 @@ fn build_runner_helper() -> (CairoRunner, VirtualMachine) {
 #[inline(never)]
 fn load_program_data() {
     let (mut runner, mut vm) = build_runner_helper();
-    _ = black_box(runner.initialize(black_box(&mut vm)).unwrap());
+    _ = black_box(runner.initialize(black_box(&mut vm), false).unwrap());
 }
 
 main!(

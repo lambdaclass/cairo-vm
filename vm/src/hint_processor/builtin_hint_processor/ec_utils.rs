@@ -1,5 +1,5 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
-use crate::utils::{bigint_to_felt, biguint_to_felt, felt_to_biguint, CAIRO_PRIME};
+use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -62,7 +62,7 @@ pub fn random_ec_point_hint(
 ) -> Result<(), HintError> {
     let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
     let q = EcPoint::from_var_name("q", vm, ids_data, ap_tracking)?;
-    let m = get_integer_from_var_name("m", vm, ids_data, ap_tracking)?;
+    let m = Cow::Owned(get_integer_from_var_name("m", vm, ids_data, ap_tracking)?);
     let bytes: Vec<u8> = [p.x, p.y, m, q.x, q.y]
         .iter()
         .flat_map(|x| x.to_bytes_be())
@@ -109,7 +109,7 @@ pub fn chained_ec_op_random_ec_point_hint(
 ) -> Result<(), HintError> {
     let n_elms = get_integer_from_var_name("len", vm, ids_data, ap_tracking)?;
     if n_elms.is_zero() || n_elms.to_usize().is_none() {
-        return Err(HintError::InvalidLenValue(Box::new(n_elms.into_owned())));
+        return Err(HintError::InvalidLenValue(Box::new(n_elms)));
     }
     let n_elms = n_elms.to_usize().unwrap();
     let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
@@ -141,13 +141,13 @@ pub fn recover_y_hint(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?.into_owned();
+    let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;
     vm.insert_value(p_addr, p_x)?;
-    let p_y = biguint_to_felt(
-        &recover_y(&felt_to_biguint(p_x))
+    let p_y = Felt252::from(
+        &recover_y(&p_x.to_biguint())
             .ok_or_else(|| HintError::RecoverYPointNotOnCurve(Box::new(p_x)))?,
-    )?;
+    );
     vm.insert_value((p_addr + 1)?, p_y)?;
     Ok(())
 }
@@ -174,8 +174,8 @@ fn random_ec_point_seeded(seed_bytes: Vec<u8>) -> Result<(Felt252, Felt252), Hin
         if let Some(y) = y {
             // Conversion from BigUint to BigInt doesnt fail
             return Ok((
-                biguint_to_felt(&x)?,
-                bigint_to_felt(&(y.to_bigint().unwrap() * y_coef))?,
+                Felt252::from(&x),
+                Felt252::from(&(y.to_bigint().unwrap() * y_coef)),
             ));
         }
     }
@@ -188,7 +188,7 @@ lazy_static! {
         10
     )
     .unwrap();
-    static ref FELT_MAX_HALVED: BigUint = felt_to_biguint(Felt252::MAX) / 2_u32;
+    static ref FELT_MAX_HALVED: BigUint = Felt252::MAX.to_biguint() / 2_u32;
 }
 
 // Recovers the corresponding y coordinate on the elliptic curve
@@ -198,7 +198,7 @@ lazy_static! {
 fn recover_y(x: &BigUint) -> Option<BigUint> {
     let y_squared: BigUint = x.modpow(&BigUint::from(3_u32), &CAIRO_PRIME) + ALPHA * x + &*BETA;
     if is_quad_residue(&y_squared) {
-        Some(felt_to_biguint(biguint_to_felt(&y_squared).ok()?.sqrt()?))
+        Some(Felt252::from(&y_squared).sqrt()?.to_biguint())
     } else {
         None
     }
@@ -220,7 +220,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::relocatable;
-    use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
     use num_traits::Zero;
 

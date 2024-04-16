@@ -10,7 +10,7 @@ pub mod trace_entry {
     ///A trace entry for every instruction that was executed.
     ///Holds the register values before the instruction was executed.
     ///Register values for ap & fp are represented as their offsets, as their indexes will always be 1
-    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize, Clone)]
     pub struct TraceEntry {
         pub pc: Relocatable,
         pub ap: usize,

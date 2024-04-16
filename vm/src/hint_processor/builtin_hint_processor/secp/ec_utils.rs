@@ -1,4 +1,3 @@
-use crate::utils::{biguint_to_felt, felt_to_biguint};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -199,6 +198,7 @@ pub fn compute_slope_and_assing_secp_p(
         ap_tracking,
         point0_alias,
         point1_alias,
+        "SECP_P",
     )
 }
 
@@ -209,13 +209,14 @@ pub fn compute_slope(
     ap_tracking: &ApTracking,
     point0_alias: &str,
     point1_alias: &str,
+    secp_p_name: &str,
 ) -> Result<(), HintError> {
     //ids.point0
     let point0 = EcPoint::from_var_name(point0_alias, vm, ids_data, ap_tracking)?;
     //ids.point1
     let point1 = EcPoint::from_var_name(point1_alias, vm, ids_data, ap_tracking)?;
 
-    let secp_p: BigInt = exec_scopes.get("SECP_P")?;
+    let secp_p: BigInt = exec_scopes.get(secp_p_name)?;
 
     let value = line_slope(
         &(point0.x.pack86(), point0.y.pack86()),
@@ -503,7 +504,7 @@ pub fn n_pair_bits(
         return Err(HintError::NPairBitsTooLowM);
     }
 
-    let (scalar_v, scalar_u) = (felt_to_biguint(*scalar_v), felt_to_biguint(*scalar_u));
+    let (scalar_v, scalar_u) = (scalar_v.to_biguint(), scalar_u.to_biguint());
 
     // Each step, fetches the bits in mth position for v and u,
     // and appends them to the accumulator. i.e:
@@ -512,7 +513,7 @@ pub fn n_pair_bits(
     //  1010101__ -> 101010110
     let get_bit =
         |x: &BigUint, i| m.checked_sub(i).map(|i| x.bit(i.into())).unwrap_or(false) as u32;
-    let res: Felt252 = biguint_to_felt(
+    let res = Felt252::from(
         &(0..number_of_pairs)
             .map(|i| {
                 // This code is definitely verbose, but it's the only way I found to avoid a `panic`
@@ -527,7 +528,7 @@ pub fn n_pair_bits(
                 acc += x;
                 acc
             }),
-    )?;
+    );
     /*
         ids.quad_bit = (
             8 * ((ids.scalar_v >> ids.m) & 1)
