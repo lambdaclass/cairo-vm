@@ -1457,15 +1457,10 @@ impl CairoRunner {
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
         let layout_name = self.get_layout().name.as_str();
-        let dyn_layout = match layout_name {
-            "dynamic" => Some(self.get_layout()),
-            _ => None,
-        };
 
         PublicInput::new(
             &self.relocated_memory,
             layout_name,
-            dyn_layout,
             &vm.get_public_memory_addresses()?,
             self.get_memory_segment_addresses(vm)?,
             self.relocated_trace
