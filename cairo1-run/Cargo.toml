@@ -10,6 +10,7 @@ keywords.workspace = true
 
 [dependencies]
 cairo-vm = {workspace = true, features = ["std", "cairo-1-hints"]}
+serde_json = { workspace = true }
 
 cairo-lang-sierra-type-size = { version = "2.5.4", default-features = false }
 cairo-lang-sierra-ap-change = { version = "2.5.4", default-features = false }

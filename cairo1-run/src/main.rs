@@ -223,7 +223,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     // Try to parse the file as a sierra program
     let file = std::fs::read_to_string(&args.filename)?;
-    let sierra_program = match cairo_lang_sierra::ProgramParser::new().parse(&file) {
+    let sierra_program = match serde_json::from_str(&file) {
         Ok(program) => program,
         Err(_) => {
             // If it fails, try to compile it as a cairo program
