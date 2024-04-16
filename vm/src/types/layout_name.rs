@@ -23,7 +23,7 @@ pub enum LayoutName {
 }
 
 impl LayoutName {
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(self) -> &'static str {
         match self {
             LayoutName::plain => "plain",
             LayoutName::small => "small",
