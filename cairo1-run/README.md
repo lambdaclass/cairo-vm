@@ -80,6 +80,3 @@ Example:
 ```bash
   cargo run path-to-project/target/project_name.sierra.json 
 ```
-
-
-
