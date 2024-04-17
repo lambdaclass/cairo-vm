@@ -182,6 +182,14 @@ impl RunnerMode {
             RunnerMode::ProofModeCanonical | RunnerMode::ProofModeCairo1
         )
     }
+
+    /// Returns whether the runner mode is for Cairo 1 programs
+    pub fn is_cairo1(&self) -> bool {
+        matches!(
+            self,
+            RunnerMode::ExecutionModeCairo1 | RunnerMode::ProofModeCairo1
+        )
+    }
 }
 
 impl CairoRunner {
@@ -331,6 +339,13 @@ impl CairoRunner {
             let included = program_builtins.remove(&BuiltinName::ec_op);
             if included || self.is_proof_mode() {
                 builtin_runners.push(EcOpBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if self.runner_mode.is_cairo1() {
+            let included = program_builtins.remove(&BuiltinName::segment_arena);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(SegmentArenaBuiltinRunner::new(included).into());
             }
         }
 

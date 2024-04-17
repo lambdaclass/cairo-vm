@@ -380,29 +380,9 @@ fn create_entry_code(
         ap_offset += (1 + values.len()) as i16;
     }
     let mut array_args_data_iter = array_args_data.iter();
-    let after_arrays_data_offset = ap_offset;
     let mut arg_iter = config.args.iter().enumerate();
     let mut param_index = 0;
     let mut expected_arguments_size = 0;
-    if signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
-    }) {
-        casm_extend! {ctx,
-            // SegmentArena segment.
-            %{ memory[ap + 0] = segments.add() %}
-            // Infos segment.
-            %{ memory[ap + 1] = segments.add() %}
-            ap += 2;
-            [ap + 0] = 0, ap++;
-            // Write Infos segment, n_constructed (0), and n_destructed (0) to the segment.
-            [ap - 2] = [[ap - 3]];
-            [ap - 1] = [[ap - 3] + 1];
-            [ap - 1] = [[ap - 3] + 2];
-        }
-        ap_offset += 3;
-    }
 
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
@@ -419,10 +399,6 @@ fn create_entry_code(
             ap_offset += 1;
         } else if generic_ty == &GasBuiltinType::ID {
             casm_extend!(ctx, [ap + 0] = initial_gas, ap++;);
-            ap_offset += 1;
-        } else if generic_ty == &SegmentArenaType::ID {
-            let offset = -ap_offset + after_arrays_data_offset;
-            casm_extend!(ctx, [ap + 0] = [ap + offset] + 3, ap++;);
             ap_offset += 1;
         } else {
             let ty_size = type_sizes[ty];
