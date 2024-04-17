@@ -188,7 +188,6 @@ mod serde_impl {
         seq_serializer.end()
     }
 
-    #[allow(clippy::format_collect)]
     pub fn serialize_memory<S>(
         values: &[((usize, usize), MaybeRelocatable)],
         serializer: S,
@@ -226,12 +225,11 @@ mod serde_impl {
             };
         }
 
-        serializer.serialize_str(
-            res.iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>()
-                .as_str(),
-        )
+        let string = res
+            .iter()
+            .fold(String::new(), |string, b| string + &format!("{:02x}", b));
+
+        serializer.serialize_str(&string)
     }
 
     impl CairoPieMemory {
