@@ -59,7 +59,7 @@ pub fn get_ptr_from_reference(
 ) -> Result<Relocatable, HintError> {
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    if hint_reference.dereference {
+    if hint_reference.outer_dereference {
         vm.get_relocatable(var_addr)
             .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
     } else {
@@ -79,7 +79,7 @@ pub fn get_maybe_relocatable_from_reference(
     }
     //Then calculate address
     let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    if hint_reference.dereference {
+    if hint_reference.outer_dereference {
         vm.get_maybe(&var_addr)
     } else {
         Some(MaybeRelocatable::from(var_addr))
@@ -94,7 +94,7 @@ pub fn compute_addr_from_reference(
     //ApTracking of the Hint itself
     hint_ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
-    let offset1 =
+    let mut offset1 =
         if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
             get_offset_value_reference(
                 vm,
@@ -118,11 +118,15 @@ pub fn compute_addr_from_reference(
                 &hint_reference.offset2,
             )?;
 
-            Some((offset1 + value.get_int_ref()?.to_usize()?).ok()?)
+            offset1 += value.get_int_ref()?.to_usize()?
         }
-        OffsetValue::Value(value) => Some((offset1 + *value).ok()?),
-        _ => Some(offset1),
+        OffsetValue::Value(value) => offset1 = (offset1 + *value).ok()?,
+        _ => {}
     }
+    if hint_reference.inner_dereference {
+        offset1 = vm.get_relocatable(offset1).ok()?
+    }
+    Some(offset1)
 }
 
 fn apply_ap_tracking_correction(
@@ -217,7 +221,8 @@ mod tests {
         let hint_ref = HintReference {
             offset1: OffsetValue::Reference(Register::FP, 0, false),
             offset2: OffsetValue::Immediate(Felt252::TWO),
-            dereference: false,
+            outer_dereference: false,
+            inner_dereference: false,
             ap_tracking_data: Default::default(),
             cairo_type: None,
         };
@@ -380,6 +385,32 @@ mod tests {
         assert_matches!(
             get_maybe_relocatable_from_reference(&vm, &hint_ref, &ApTracking::new()),
             None
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_integer_from_reference_with_triple_deref() {
+        // Reference: [cast([[fp + 2)] + 2], felt*)]
+        let mut vm = vm!();
+        vm.segments = segments![
+            ((1, 2), (0, 0)), // [fp + 2] -> [(1, 0) + 2] -> [(1, 2)] -> (0, 0)
+            ((0, 2), (0, 5)), // [[fp + 2] + 2] -> [(0, 0) + 2] -> [(0, 2)] -> (0, 5)
+            ((0, 5), 3)       // [[[fp + 2] + 2]] -> [(0, 5)] -> 3
+        ];
+        let hint_ref = HintReference {
+            offset1: OffsetValue::Reference(Register::FP, 2, true),
+            offset2: OffsetValue::Value(2),
+            outer_dereference: true,
+            inner_dereference: true,
+            ap_tracking_data: Default::default(),
+            cairo_type: None,
+        };
+
+        assert_eq!(
+            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
+                .expect("Unexpected get integer fail"),
+            Felt252::THREE
         );
     }
 }

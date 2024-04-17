@@ -19,12 +19,9 @@ use super::POSEIDON_BUILTIN_NAME;
 pub struct PoseidonBuiltinRunner {
     pub base: usize,
     ratio: Option<u32>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
-    pub(crate) instances_per_component: u32,
 }
 
 impl PoseidonBuiltinRunner {
@@ -32,12 +29,9 @@ impl PoseidonBuiltinRunner {
         PoseidonBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: CELLS_PER_POSEIDON,
-            n_input_cells: INPUT_CELLS_PER_POSEIDON,
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
-            instances_per_component: 1,
         }
     }
 
@@ -68,19 +62,19 @@ impl PoseidonBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address.offset % self.cells_per_instance as usize;
-        if index < self.n_input_cells as usize {
+        let index = address.offset % CELLS_PER_POSEIDON as usize;
+        if index < INPUT_CELLS_PER_POSEIDON as usize {
             return Ok(None);
         }
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
         let first_input_addr = (address - index)?;
-        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
+        let first_output_addr = (first_input_addr + INPUT_CELLS_PER_POSEIDON as usize)?;
 
         let mut input_felts = vec![];
 
-        for i in 0..self.n_input_cells as usize {
+        for i in 0..INPUT_CELLS_PER_POSEIDON as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
@@ -121,7 +115,7 @@ impl PoseidonBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_POSEIDON as usize))
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {

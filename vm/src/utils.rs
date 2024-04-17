@@ -440,7 +440,7 @@ pub mod test_utils {
 
     macro_rules! exec_scopes_ref {
         () => {
-            &mut ExecutionScopes::new()
+            &mut crate::types::exec_scope::ExecutionScopes::new()
         };
     }
     pub(crate) use exec_scopes_ref;
