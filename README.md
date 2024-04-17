@@ -23,34 +23,37 @@ A faster and safer implementation of the Cairo VM in Rust
 
 ## Table of Contents
 
-- [Disclaimer](#%EF%B8%8F-disclaimer)
-- [About](#-about)
+- [Table of Contents](#table-of-contents)
+- [📖 About](#-about)
   - [The Cairo language](#the-cairo-language)
-- [Getting Started](#-getting-started)
+- [🌅 Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
-- [Usage](#-usage)
+    - [Required](#required)
+    - [Optional](#optional)
+    - [Installation script](#installation-script)
+- [🚀 Usage](#-usage)
   - [Adding cairo-vm as a dependency](#adding-cairo-vm-as-a-dependency)
-  - [Running cairo-vm from the CLI](#running-cairo-vm-from-cli)
+  - [Running cairo-vm from CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
   - [Testing](#testing)
-- [Benchmarks](#-benchmarks)
-- [Changelog](#-changelog)
-- [Contributing](#-contributing)
-- [Related Projects](#-related-projects)
-- [Documentation](#-documentation)
+  - [Tracer](#tracer)
+- [📊 Benchmarks](#-benchmarks)
+- [📜 Changelog](#-changelog)
+- [🛠 Contributing](#-contributing)
+- [🌞 Related Projects](#-related-projects)
+- [📚 Documentation](#-documentation)
   - [Cairo](#cairo)
   - [Original Cairo VM Internals](#original-cairo-vm-internals)
   - [Compilers and Interpreters](#compilers-and-interpreters)
   - [StarkNet](#starknet)
-  - [Computational Integrity and Zero-Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
-- [License](#%EF%B8%8F-license)
+  - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
+    - [Basics](#basics)
+    - [ZK SNARKs](#zk-snarks)
+    - [STARKs](#starks)
+- [⚖️ License](#️-license)
 
-## ⚠️ Disclaimer
-
-🚧 `cairo-vm` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
-Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
@@ -262,6 +265,10 @@ Now that you have the dependencies necessary to run the test suite you can run:
 make test
 ```
 
+### Tracer
+
+Cairo-vm offers a tracer which gives you a visualization of how your memory and registers change line after line as the VM executes the code. You can read more about it [here](./docs/tracer/README.md)
+
 ## 📊 Benchmarks
 
 Running a [Cairo program](./cairo_programs/benchmarks/big_fibonacci.cairo) that gets the 1.5 millionth Fibonacci number we got the following benchmarks:
@@ -289,6 +296,12 @@ Run only the `iai_benchmark` benchmark suite with cargo:
 ```bash
 cargo bench --bench iai_benchmark
 ```
+
+Benchmark the `cairo-vm` in a hyper-threaded environment with the [`examples/hyper_threading/ crate`](examples/hyper_threading/)
+```bash
+make hyper-threading-benchmarks
+```
+
 
 ## 📜 Changelog
 

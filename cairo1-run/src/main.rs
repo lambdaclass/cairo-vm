@@ -15,7 +15,6 @@ use cairo_vm::{
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
-use serialize_output::serialize_output;
 use std::{
     io::{self, Write},
     path::PathBuf,
@@ -23,7 +22,6 @@ use std::{
 use thiserror::Error;
 
 pub mod cairo_run;
-pub mod serialize_output;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -58,6 +56,13 @@ struct Args {
     args: FuncArgs,
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
+    #[clap(
+        long = "append_return_values",
+        // We need to add these air_private_input & air_public_input or else
+        // passing cairo_pie_output + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
+    append_return_values: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -109,6 +114,7 @@ fn validate_layout(value: &str) -> Result<String, String> {
         "plain"
         | "small"
         | "dex"
+        | "recursive"
         | "starknet"
         | "starknet_with_keccak"
         | "recursive_large_output"
@@ -206,11 +212,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
 
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
+        serialize_output: args.print_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
         layout: &args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        append_return_values: args.append_return_values,
     };
 
     let compiler_config = CompilerConfig {
@@ -221,14 +229,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
         .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
-    let (runner, vm, return_values) =
+    let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
-
-    let output_string = if args.print_output {
-        Some(serialize_output(&vm, &return_values))
-    } else {
-        None
-    };
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
@@ -286,7 +288,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         memory_writer.flush()?;
     }
 
-    Ok(output_string)
+    Ok(serialized_output)
 }
 
 fn main() -> Result<(), Error> {
@@ -294,7 +296,7 @@ fn main() -> Result<(), Error> {
         Err(Error::Cli(err)) => err.exit(),
         Ok(output) => {
             if let Some(output_string) = output {
-                println!("{}", output_string);
+                println!("Program Output : {}", output_string);
             }
             Ok(())
         }
@@ -371,7 +373,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/hello.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_hello_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1 1234");
+        assert_matches!(run(args), Ok(Some(res)) if res == "1234");
     }
 
     #[rstest]
@@ -435,7 +437,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/simple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_simple_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1");
+        assert_matches!(run(args), Ok(Some(res)) if res == "true");
     }
 
     #[rstest]
@@ -523,7 +525,7 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_dict(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "{\n\t0x10473: [0x8,0x9,0xa,0xb,],\n\t0x10474: [0x1,0x2,0x3,],\n}\n";
+        let expected_output = "{66675: [8 9 10 11] 66676: [1 2 3]}";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 
@@ -532,7 +534,70 @@ mod tests {
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
     fn test_run_felt_span(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
-        let expected_output = "[0x8,0x9,0xa,0xb,]";
+        let expected_output = "[8 9 10 11]";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_array_integer_tuple(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "[1] 1";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_nullable_box_vec(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0: 10 1: 20 2: 30} 3";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_dict_with_struct(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{0: 1 true 1: 1 false 2: 1 true}";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_felt_dict_squash(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "{66675: [4 5 6] 66676: [1 2 3]}";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_null_ret(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "null";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bytes31_ret(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "123";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_tensor_new(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "[1 2] [1 false 1 true]";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
 }

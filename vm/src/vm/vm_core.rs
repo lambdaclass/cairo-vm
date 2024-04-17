@@ -19,7 +19,9 @@ use crate::{
             exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
             vm_errors::VirtualMachineError,
         },
-        runners::builtin_runner::{BuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner},
+        runners::builtin_runner::{
+            BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
+        },
         trace::trace_entry::TraceEntry,
         vm_memory::memory_segments::MemorySegmentManager,
     },
@@ -32,7 +34,10 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::OUTPUT_BUILTIN_NAME;
+use super::runners::builtin_runner::{
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+    RC_N_PARTS_STANDARD,
+};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -922,7 +927,9 @@ impl VirtualMachine {
         self.segments.memory.get_integer_range(addr, size)
     }
 
-    pub fn get_range_check_builtin(&self) -> Result<&RangeCheckBuiltinRunner, VirtualMachineError> {
+    pub fn get_range_check_builtin(
+        &self,
+    ) -> Result<&RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>, VirtualMachineError> {
         for builtin in &self.builtin_runners {
             if let BuiltinRunner::RangeCheck(range_check_builtin) = builtin {
                 return Ok(range_check_builtin);
@@ -942,8 +949,22 @@ impl VirtualMachine {
 
         Err(VirtualMachineError::NoSignatureBuiltin)
     }
-    pub fn disable_trace(&mut self) {
-        self.trace = None
+
+    pub fn get_output_builtin_mut(
+        &mut self,
+    ) -> Result<&mut OutputBuiltinRunner, VirtualMachineError> {
+        for builtin in self.get_builtin_runners_as_mut() {
+            if let BuiltinRunner::Output(output_builtin) = builtin {
+                return Ok(output_builtin);
+            };
+        }
+
+        Err(VirtualMachineError::NoOutputBuiltin)
+    }
+
+    #[cfg(feature = "tracer")]
+    pub fn relocate_segments(&self) -> Result<Vec<usize>, MemoryError> {
+        self.segments.relocate_segments()
     }
 
     #[doc(hidden)]
@@ -1013,7 +1034,6 @@ impl VirtualMachine {
 
         let segment_used_sizes = self.segments.compute_effective_sizes();
         let segment_index = builtin.base();
-        #[allow(deprecated)]
         for i in 0..segment_used_sizes[segment_index] {
             let formatted_value = match self
                 .segments
@@ -1044,40 +1064,6 @@ impl VirtualMachine {
         }
     }
 
-    pub fn get_memory_segment_addresses(
-        &self,
-    ) -> Result<HashMap<&'static str, (usize, usize)>, VirtualMachineError> {
-        let relocation_table = self
-            .relocation_table
-            .as_ref()
-            .ok_or(MemoryError::UnrelocatedMemory)?;
-
-        let relocate = |segment: (usize, usize)| -> Result<(usize, usize), VirtualMachineError> {
-            let (index, stop_ptr_offset) = segment;
-            let base = relocation_table
-                .get(index)
-                .ok_or(VirtualMachineError::RelocationNotFound(index))?;
-            Ok((*base, base + stop_ptr_offset))
-        };
-
-        self.builtin_runners
-            .iter()
-            .map(|builtin| -> Result<_, VirtualMachineError> {
-                let addresses =
-                    if let (base, Some(stop_ptr)) = builtin.get_memory_segment_addresses() {
-                        (base, stop_ptr)
-                    } else {
-                        return Err(RunnerError::NoStopPointer(Box::new(builtin.name())).into());
-                    };
-
-                Ok((
-                    builtin.name().strip_suffix("_builtin").unwrap_or_default(),
-                    relocate(addresses)?,
-                ))
-            })
-            .collect()
-    }
-
     #[doc(hidden)]
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,
@@ -1102,8 +1088,58 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn set_output_stop_ptr_offset(&mut self, offset: usize) {
         if let Some(BuiltinRunner::Output(builtin)) = self.builtin_runners.first_mut() {
-            builtin.set_stop_ptr_offset(offset)
+            builtin.set_stop_ptr_offset(offset);
+            if let Some(segment_used_sizes) = &mut self.segments.segment_used_sizes {
+                segment_used_sizes[builtin.base()] = offset;
+            }
         }
+    }
+
+    /// Fetches add_mod & mul_mod builtins according to the optional arguments and executes `fill_memory`
+    /// Returns an error if either of this optional parameters is true but the corresponding builtin is not present
+    /// Verifies that both builtin's (if present) batch sizes match the batch_size arg if set
+    // This method is needed as running `fill_memory` direclty from outside the vm struct would require cloning the builtin runners to avoid double borrowing
+    pub fn mod_builtin_fill_memory(
+        &mut self,
+        add_mod_ptr_n: Option<(Relocatable, usize)>,
+        mul_mod_ptr_n: Option<(Relocatable, usize)>,
+        batch_size: Option<usize>,
+    ) -> Result<(), VirtualMachineError> {
+        let fetch_builtin_params = |mod_params: Option<(Relocatable, usize)>,
+                                    mod_name: &'static str|
+         -> Result<
+            Option<(Relocatable, &ModBuiltinRunner, usize)>,
+            VirtualMachineError,
+        > {
+            if let Some((ptr, n)) = mod_params {
+                let mod_builtin = self
+                    .builtin_runners
+                    .iter()
+                    .find_map(|b| match b {
+                        BuiltinRunner::Mod(b) if b.name() == mod_name => Some(b),
+                        _ => None,
+                    })
+                    .ok_or_else(|| VirtualMachineError::NoModBuiltin(mod_name))?;
+                if let Some(batch_size) = batch_size {
+                    if mod_builtin.batch_size() != batch_size {
+                        return Err(VirtualMachineError::ModBuiltinBatchSize(Box::new((
+                            mod_builtin.name(),
+                            batch_size,
+                        ))));
+                    }
+                }
+                Ok(Some((ptr, mod_builtin, n)))
+            } else {
+                Ok(None)
+            }
+        };
+
+        ModBuiltinRunner::fill_memory(
+            &mut self.segments.memory,
+            fetch_builtin_params(add_mod_ptr_n, ADD_MOD_BUILTIN_NAME)?,
+            fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
+        )
+        .map_err(VirtualMachineError::RunnerError)
     }
 }
 
@@ -1213,7 +1249,6 @@ mod tests {
     use crate::vm::runners::builtin_runner::{
         BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
     };
-    use crate::vm::vm_memory::memory::Memory;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -1221,9 +1256,6 @@ mod tests {
         },
         relocatable,
         types::{
-            instance_definitions::{
-                bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-            },
             instruction::{Op1Addr, Register},
             relocatable::Relocatable,
         },
@@ -3345,7 +3377,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
@@ -3383,7 +3415,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
 
@@ -3424,7 +3456,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
 
         vm.segments = segments![
@@ -3493,7 +3525,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3541,7 +3573,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3612,7 +3644,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3635,7 +3667,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_for_addr_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let builtin: BuiltinRunner = builtin.into();
         let mut vm = vm!();
@@ -3825,7 +3857,7 @@ mod tests {
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(Some(8), true);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(hash_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
 
@@ -3837,11 +3869,26 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn disable_trace() {
-        let mut vm = VirtualMachine::new(true);
-        assert!(vm.trace.is_some());
-        vm.disable_trace();
-        assert!(vm.trace.is_none());
+    fn test_get_output_builtin_mut() {
+        let mut vm = vm!();
+
+        assert_matches!(
+            vm.get_output_builtin_mut(),
+            Err(VirtualMachineError::NoOutputBuiltin)
+        );
+
+        let output_builtin = OutputBuiltinRunner::new(true);
+        vm.builtin_runners.push(output_builtin.clone().into());
+
+        let vm_output_builtin = vm
+            .get_output_builtin_mut()
+            .expect("Output builtin should be returned");
+
+        assert_eq!(vm_output_builtin.base(), output_builtin.base());
+        assert_eq!(vm_output_builtin.pages, output_builtin.pages);
+        assert_eq!(vm_output_builtin.attributes, output_builtin.attributes);
+        assert_eq!(vm_output_builtin.stop_ptr, output_builtin.stop_ptr);
+        assert_eq!(vm_output_builtin.included, output_builtin.included);
     }
 
     #[test]
@@ -4313,11 +4360,10 @@ mod tests {
                 ap: 18,
                 fp: 0,
             })
-            .segments(MemorySegmentManager {
-                segment_sizes: HashMap::new(),
-                segment_used_sizes: Some(vec![1]),
-                public_memory_offsets: HashMap::new(),
-                memory: Memory::new(),
+            .segments({
+                let mut segments = MemorySegmentManager::new();
+                segments.segment_used_sizes = Some(vec![1]);
+                segments
             })
             .skip_instruction_execution(true)
             .trace(Some(vec![TraceEntry {

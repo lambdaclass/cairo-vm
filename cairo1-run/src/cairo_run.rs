@@ -1,4 +1,6 @@
-use cairo_lang_casm::{casm, casm_extend, hints::Hint, instructions::Instruction};
+use cairo_lang_casm::{
+    casm, casm_extend, hints::Hint, inline::CasmContext, instructions::Instruction,
+};
 use cairo_lang_sierra::{
     extensions::{
         bitwise::BitwiseType,
@@ -13,19 +15,20 @@ use cairo_lang_sierra::{
         ConcreteType, NamedType,
     },
     ids::ConcreteTypeId,
-    program::{Function, Program as SierraProgram},
+    program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
 use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::gas_info::GasInfo;
+use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
 use cairo_lang_sierra_to_casm::{
     compiler::CairoProgram,
     metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
+use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
+    math_utils::signed_felt,
     serde::deserialize_program::{
         ApTracking, BuiltinName, FlowTrackingData, HintParams, ReferenceManager,
     },
@@ -43,14 +46,17 @@ use cairo_vm::{
     },
     Felt252,
 };
-use itertools::chain;
-use std::collections::HashMap;
+use itertools::{chain, Itertools};
+use num_traits::{cast::ToPrimitive, Zero};
+use std::{collections::HashMap, iter::Peekable};
 
 use crate::{Error, FuncArg};
 
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
     pub args: &'a [FuncArg],
+    // Serializes program output into a user-friendly format
+    pub serialize_output: bool,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: &'a str,
@@ -58,27 +64,39 @@ pub struct Cairo1RunConfig<'a> {
     // Should be true if either air_public_input or cairo_pie_output are needed
     // Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
+    // Appends return values to the output segment. This is performed by default when running in proof_mode
+    pub append_return_values: bool,
 }
 
 impl Default for Cairo1RunConfig<'_> {
     fn default() -> Self {
         Self {
             args: Default::default(),
+            serialize_output: false,
             trace_enabled: false,
             relocate_mem: false,
             layout: "plain",
             proof_mode: false,
             finalize_builtins: false,
+            append_return_values: false,
         }
     }
 }
 
 // Runs a Cairo 1 program
-// Returns the runner & VM after execution + the return values
+// Returns the runner & VM after execution + the return values + the serialized return values (if serialize_output is enabled)
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
-) -> Result<(CairoRunner, VirtualMachine, Vec<MaybeRelocatable>), Error> {
+) -> Result<
+    (
+        CairoRunner,
+        VirtualMachine,
+        Vec<MaybeRelocatable>,
+        Option<String>,
+    ),
+    Error,
+> {
     let metadata = create_metadata(sierra_program, Some(Default::default()))?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
@@ -98,8 +116,7 @@ pub fn cairo_run_program(
         &type_sizes,
         main_func,
         initial_gas,
-        cairo_run_config.proof_mode,
-        cairo_run_config.args,
+        &cairo_run_config,
     )?;
 
     // Fetch return type data
@@ -115,20 +132,12 @@ pub fn cairo_run_program(
 
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
-
-    // Header used to initiate the infinite loop after executing the program
-    // Also appends return values to output segment
-    let proof_mode_header = if cairo_run_config.proof_mode {
-        create_proof_mode_header(builtins.len() as i16, return_type_size)
-    } else {
-        casm! {}.instructions
-    };
+    let builtin_count: i16 = builtins.len().into_or_panic();
 
     // This is the program we are actually running/proving
     // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
-        proof_mode_header.iter(),
-        entry_code.iter(),
+        entry_code.instructions.iter(),
         casm_program.instructions.iter(),
         libfunc_footer.iter(),
     );
@@ -147,12 +156,12 @@ pub fn cairo_run_program(
 
     let program = if cairo_run_config.proof_mode {
         Program::new_for_proof(
-            builtins,
+            builtins.clone(),
             data,
             0,
             // Proof mode is on top
-            // jmp rel 0 is on PC == 2
-            2,
+            // `jmp rel 0` is the last line of the entry code.
+            entry_code.current_code_offset - 2,
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
@@ -163,7 +172,7 @@ pub fn cairo_run_program(
         )?
     } else {
         Program::new(
-            builtins,
+            builtins.clone(),
             data,
             Some(0),
             program_hints,
@@ -191,38 +200,68 @@ pub fn cairo_run_program(
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
-        // As we will be inserting the return values into the output segment after running the main program (right before the infinite loop) the computed size for the output builtin will be 0
-        // We need to manually set the segment size for the output builtin's segment so memory hole counting doesn't fail due to having a higher accessed address count than the segment's size
-        vm.segments
-            .segment_sizes
-            .insert(2, return_type_size as usize);
+        runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
     }
+
     runner.end_run(false, false, &mut vm, &mut hint_processor)?;
 
+    let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
     // Fetch return values
-    let return_values = fetch_return_values(return_type_size, return_type_id, &vm)?;
+    let return_values = fetch_return_values(
+        return_type_size,
+        return_type_id,
+        &vm,
+        builtin_count,
+        skip_output,
+    )?;
+
+    let serialized_output = if cairo_run_config.serialize_output {
+        Some(serialize_output(
+            &return_values,
+            &mut vm,
+            return_type_id,
+            &sierra_program_registry,
+            &type_sizes,
+        ))
+    } else {
+        None
+    };
 
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
-        finalize_builtins(
-            cairo_run_config.proof_mode,
-            &main_func.signature.ret_types,
-            &type_sizes,
-            &mut vm,
-        )?;
+        if skip_output {
+            // Set stop pointer for each builtin
+            vm.builtins_final_stack_from_stack_pointer_dict(
+                &builtins
+                    .iter()
+                    .enumerate()
+                    .map(|(i, builtin)| {
+                        (
+                            builtin.name(),
+                            (vm.get_ap() - (builtins.len() - 1 - i)).unwrap(),
+                        )
+                    })
+                    .collect(),
+                false,
+            )?;
+        } else {
+            finalize_builtins(
+                &main_func.signature.ret_types,
+                &type_sizes,
+                &mut vm,
+                builtin_count,
+            )?;
+        }
 
         // Build execution public memory
         if cairo_run_config.proof_mode {
-            // As the output builtin is not used by the program we need to compute it's stop ptr manually
-            vm.set_output_stop_ptr_offset(return_type_size as usize);
-
             runner.finalize_segments(&mut vm)?;
         }
     }
 
     runner.relocate(&mut vm, true)?;
 
-    Ok((runner, vm, return_values))
+    Ok((runner, vm, return_values, serialized_output))
 }
 
 fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
@@ -302,38 +341,6 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
-// Create proof_mode specific instructions
-// Including the "canonical" proof mode instructions (the ones added by the compiler in cairo 0)
-// wich call the firt program instruction and then initiate an infinite loop.
-// And also appending the return values to the output builtin's memory segment
-fn create_proof_mode_header(builtin_count: i16, return_type_size: i16) -> Vec<Instruction> {
-    // As the output builtin is not used by cairo 1 (we forced it for this purpose), it's segment is always empty
-    // so we can start writing values directly from it's base, which is located relative to the fp before the other builtin's bases
-    let output_fp_offset: i16 = -(builtin_count + 2); // The 2 here represents the return_fp & end segments
-
-    // The pc offset where the original program should start
-    // Without this header it should start at 0, but we add 2 for each call and jump instruction (as both of them use immediate values)
-    // and also 1 for each instruction added to copy each return value into the output segment
-    let program_start_offset: i16 = 4 + return_type_size;
-
-    let mut ctx = casm! {};
-    casm_extend! {ctx,
-        call rel program_start_offset; // Begin program execution by calling the first instruction in the original program
-    };
-    // Append each return value to the output segment
-    for (i, j) in (1..return_type_size + 1).rev().enumerate() {
-        casm_extend! {ctx,
-            // [ap -j] is where each return value is located in memory
-            // [[fp + output_fp_offet] + 0] is the base of the output segment
-            [ap - j] = [[fp + output_fp_offset] + i as i16];
-        };
-    }
-    casm_extend! {ctx,
-        jmp rel 0; // Infinite loop
-    };
-    ctx.instructions
-}
-
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -342,18 +349,19 @@ fn create_entry_code(
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
     initial_gas: usize,
-    proof_mode: bool,
-    args: &[FuncArg],
-) -> Result<(Vec<Instruction>, Vec<BuiltinName>), Error> {
-    let mut ctx = casm! {};
+    config: &Cairo1RunConfig,
+) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
+    let copy_to_output_builtin = config.proof_mode || config.append_return_values;
+    let signature = &func.signature;
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) = get_function_builtins(func, proof_mode);
-
+    let (builtins, builtin_offset) =
+        get_function_builtins(&signature.param_types, copy_to_output_builtin);
+    let mut ctx = casm! {};
     // Load all vecs to memory.
     // Load all array args content to memory.
     let mut array_args_data = vec![];
     let mut ap_offset: i16 = 0;
-    for arg in args {
+    for arg in config.args {
         let FuncArg::Array(values) = arg else {
             continue;
         };
@@ -373,10 +381,10 @@ fn create_entry_code(
     }
     let mut array_args_data_iter = array_args_data.iter();
     let after_arrays_data_offset = ap_offset;
-    let mut arg_iter = args.iter().enumerate();
+    let mut arg_iter = config.args.iter().enumerate();
     let mut param_index = 0;
     let mut expected_arguments_size = 0;
-    if func.signature.param_types.iter().any(|ty| {
+    if signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
@@ -395,19 +403,13 @@ fn create_entry_code(
         }
         ap_offset += 3;
     }
-    for ty in func.signature.param_types.iter() {
+
+    for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
         if let Some(offset) = builtin_offset.get(generic_ty) {
-            let mut offset = *offset;
-            if proof_mode {
-                // Everything is off by 2 due to the proof mode header
-                offset += 2;
-            }
-            casm_extend! {ctx,
-                [ap + 0] = [fp - offset], ap++;
-            }
+            casm_extend!(ctx, [ap + 0] = [fp - *offset], ap++;);
             ap_offset += 1;
         } else if generic_ty == &SystemType::ID {
             casm_extend! {ctx,
@@ -416,15 +418,11 @@ fn create_entry_code(
             }
             ap_offset += 1;
         } else if generic_ty == &GasBuiltinType::ID {
-            casm_extend! {ctx,
-                [ap + 0] = initial_gas, ap++;
-            }
+            casm_extend!(ctx, [ap + 0] = initial_gas, ap++;);
             ap_offset += 1;
         } else if generic_ty == &SegmentArenaType::ID {
             let offset = -ap_offset + after_arrays_data_offset;
-            casm_extend! {ctx,
-                [ap + 0] = [ap + offset] + 3, ap++;
-            }
+            casm_extend!(ctx, [ap + 0] = [ap + offset] + 3, ap++;);
             ap_offset += 1;
         } else {
             let ty_size = type_sizes[ty];
@@ -460,7 +458,8 @@ fn create_entry_code(
             param_index += 1;
         };
     }
-    let actual_args_size = args
+    let actual_args_size = config
+        .args
         .iter()
         .map(|arg| match arg {
             FuncArg::Single(_) => 1,
@@ -475,17 +474,107 @@ fn create_entry_code(
     }
 
     let before_final_call = ctx.current_code_offset;
-    let final_call_size = 3;
+
+    let return_type_id = signature
+        .ret_types
+        .last()
+        .ok_or(Error::NoRetTypesInSignature)?;
+    let return_type_size = type_sizes
+        .get(return_type_id)
+        .cloned()
+        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let builtin_count: i16 = builtins.len().into_or_panic();
+    let builtin_locations: Vec<i16> = builtins
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            let fp_loc = i.into_or_panic::<i16>() - builtin_count - 2;
+            let generic = match name {
+                BuiltinName::range_check => RangeCheckType::ID,
+                BuiltinName::pedersen => PedersenType::ID,
+                BuiltinName::bitwise => BitwiseType::ID,
+                BuiltinName::ec_op => EcOpType::ID,
+                BuiltinName::poseidon => PoseidonType::ID,
+                BuiltinName::segment_arena => SegmentArenaType::ID,
+                BuiltinName::keccak
+                | BuiltinName::ecdsa
+                | BuiltinName::output
+                | BuiltinName::range_check96
+                | BuiltinName::add_mod
+                | BuiltinName::mul_mod => return fp_loc,
+            };
+            signature
+                .ret_types
+                .iter()
+                .position(|ty| {
+                    sierra_program_registry
+                        .get_type(ty)
+                        .unwrap()
+                        .info()
+                        .long_id
+                        .generic_id
+                        == generic
+                })
+                .map(|i| (signature.ret_types.len() - i).into_or_panic())
+                .unwrap_or(fp_loc)
+        })
+        .collect();
+    if copy_to_output_builtin {
+        assert!(
+            builtins.iter().contains(&BuiltinName::output),
+            "Output builtin is required for proof mode or append_return_values"
+        );
+    }
+
+    let final_call_size =
+        // The call.
+        2
+        // The copying of the return values to the output segment. 
+        + if copy_to_output_builtin { return_type_size.into_or_panic::<usize>() + 1 } else { 0 }
+        // Rewriting the builtins to top of the stack.
+        + builtins.len()
+        // The return or infinite loop.
+        + if config.proof_mode { 2 } else { 1 };
     let offset = final_call_size
         + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
 
-    casm_extend! {ctx,
-        call rel offset;
-        ret;
+    casm_extend!(ctx, call rel offset;);
+
+    if copy_to_output_builtin {
+        let Some(output_builtin_idx) = builtins.iter().position(|b| b == &BuiltinName::output)
+        else {
+            panic!("Output builtin is required for proof mode or append_return_values.");
+        };
+        let output_fp_offset: i16 = builtin_locations[output_builtin_idx];
+        for (i, j) in (1..return_type_size + 1).rev().enumerate() {
+            casm_extend! {ctx,
+                // [ap -j] is where each return value is located in memory
+                // [[fp + output_fp_offet] + 0] is the base of the output segment
+                [ap - j] = [[fp + output_fp_offset] + i as i16];
+            };
+        }
     }
+    let mut ret_builtin_offset = return_type_size - 1;
+    for (builtin, location) in builtins.iter().zip(builtin_locations) {
+        if builtin == &BuiltinName::output && copy_to_output_builtin {
+            casm_extend!(ctx, [ap + 0] = [fp + location] + return_type_size, ap++;);
+        } else if location < 0 {
+            casm_extend!(ctx, [ap + 0] = [fp + location], ap++;);
+        } else {
+            casm_extend!(ctx, [ap + 0] = [ap - (ret_builtin_offset + location)], ap++;);
+        }
+        ret_builtin_offset += 1;
+    }
+
+    if config.proof_mode {
+        casm_extend!(ctx, jmp rel 0;);
+    } else {
+        casm_extend!(ctx, ret;);
+    }
+
     assert_eq!(before_final_call + final_call_size, ctx.current_code_offset);
 
-    Ok((ctx.instructions, builtins))
+    Ok((ctx, builtins))
 }
 
 fn get_info<'a>(
@@ -520,74 +609,35 @@ fn create_metadata(
     }
 }
 
-/// Type representing the Output builtin.
-#[derive(Default)]
-pub struct OutputType {}
-impl cairo_lang_sierra::extensions::NoGenericArgsGenericType for OutputType {
-    const ID: cairo_lang_sierra::ids::GenericTypeId =
-        cairo_lang_sierra::ids::GenericTypeId::new_inline("Output");
-    const STORABLE: bool = true;
-    const DUPLICATABLE: bool = false;
-    const DROPPABLE: bool = false;
-    const ZERO_SIZED: bool = false;
-}
-
 fn get_function_builtins(
-    func: &Function,
-    proof_mode: bool,
+    params: &[cairo_lang_sierra::ids::ConcreteTypeId],
+    append_output: bool,
 ) -> (
     Vec<BuiltinName>,
     HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
 ) {
-    let entry_params = &func.signature.param_types;
     let mut builtins = Vec::new();
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
-    // Fetch builtins from the entry_params in the standard order
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("Poseidon".into()))
-    {
-        builtins.push(BuiltinName::poseidon);
-        builtin_offset.insert(PoseidonType::ID, current_offset);
-        current_offset += 1;
-    }
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("EcOp".into()))
-    {
-        builtins.push(BuiltinName::ec_op);
-        builtin_offset.insert(EcOpType::ID, current_offset);
-        current_offset += 1
-    }
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("Bitwise".into()))
-    {
-        builtins.push(BuiltinName::bitwise);
-        builtin_offset.insert(BitwiseType::ID, current_offset);
-        current_offset += 1;
-    }
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("RangeCheck".into()))
-    {
-        builtins.push(BuiltinName::range_check);
-        builtin_offset.insert(RangeCheckType::ID, current_offset);
-        current_offset += 1;
-    }
-    if entry_params
-        .iter()
-        .any(|ti| ti.debug_name == Some("Pedersen".into()))
-    {
-        builtins.push(BuiltinName::pedersen);
-        builtin_offset.insert(PedersenType::ID, current_offset);
-        current_offset += 1;
+    for (debug_name, builtin_name, sierra_id) in [
+        ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
+        ("EcOp", BuiltinName::ec_op, EcOpType::ID),
+        ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
+        ("RangeCheck", BuiltinName::range_check, RangeCheckType::ID),
+        ("Pedersen", BuiltinName::pedersen, PedersenType::ID),
+    ] {
+        if params
+            .iter()
+            .any(|id| id.debug_name.as_deref() == Some(debug_name))
+        {
+            builtins.push(builtin_name);
+            builtin_offset.insert(sierra_id, current_offset);
+            current_offset += 1;
+        }
     }
     // Force an output builtin so that we can write the program output into it's segment
-    if proof_mode {
+    if append_output {
         builtins.push(BuiltinName::output);
-        builtin_offset.insert(OutputType::ID, current_offset);
     }
     builtins.reverse();
     (builtins, builtin_offset)
@@ -597,8 +647,21 @@ fn fetch_return_values(
     return_type_size: i16,
     return_type_id: &ConcreteTypeId,
     vm: &VirtualMachine,
+    builtin_count: i16,
+    fetch_from_output: bool,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
-    let mut return_values = vm.get_return_values(return_type_size as usize)?;
+    let mut return_values = if fetch_from_output {
+        let output_builtin_end = vm
+            .get_relocatable((vm.get_ap() + (-builtin_count as i32)).unwrap())
+            .unwrap();
+        let output_builtin_base = (output_builtin_end + (-return_type_size as i32)).unwrap();
+        vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
+    } else {
+        vm.get_continuous_range(
+            (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
+            return_type_size as usize,
+        )?
+    };
     // Check if this result is a Panic result
     if return_type_id
         .debug_name
@@ -639,10 +702,10 @@ fn fetch_return_values(
 // Calculates builtins' final_stack setting each stop_ptr
 // Calling this function is a must if either air_public_input or cairo_pie are needed
 fn finalize_builtins(
-    proof_mode: bool,
     main_ret_types: &[ConcreteTypeId],
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     vm: &mut VirtualMachine,
+    builtin_count: i16,
 ) -> Result<(), Error> {
     // Set stop pointers for builtins so we can obtain the air public input
     // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
@@ -652,8 +715,9 @@ fn finalize_builtins(
     let ret_types_and_sizes = main_ret_types.iter().zip(ret_types_sizes.clone());
 
     let full_ret_types_size: i16 = ret_types_sizes.sum();
-    let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
-        .map_err(VirtualMachineError::Math)?;
+    let mut stack_pointer = (vm.get_ap()
+        - (full_ret_types_size as usize + builtin_count as usize).saturating_sub(1))
+    .map_err(VirtualMachineError::Math)?;
 
     // Calculate the stack_ptr for each return builtin in the return values
     let mut builtin_name_to_stack_pointer = HashMap::new();
@@ -678,8 +742,373 @@ fn finalize_builtins(
     }
 
     // Set stop pointer for each builtin
-    vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, proof_mode)?;
+    vm.builtins_final_stack_from_stack_pointer_dict(&builtin_name_to_stack_pointer, false)?;
     Ok(())
+}
+
+fn serialize_output(
+    return_values: &[MaybeRelocatable],
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> String {
+    let mut output_string = String::new();
+    let mut return_values_iter = return_values.iter().peekable();
+    serialize_output_inner(
+        &mut return_values_iter,
+        &mut output_string,
+        vm,
+        return_type_id,
+        sierra_program_registry,
+        type_sizes,
+    );
+    output_string
+}
+
+fn serialize_output_inner<'a>(
+    return_values_iter: &mut Peekable<impl Iterator<Item = &'a MaybeRelocatable>>,
+    output_string: &mut String,
+    vm: &mut VirtualMachine,
+    return_type_id: &ConcreteTypeId,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) {
+    match sierra_program_registry.get_type(return_type_id).unwrap() {
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
+            // Fetch array from memory
+            let array_start = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array start_ptr not Relocatable");
+            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
+            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
+                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
+                    // Pop the value we just peeked
+                    return_values_iter.next();
+                    (array_start, (array_end - array_start).unwrap())
+                }
+                _ => ((array_start.segment_index, 0).into(), array_start.offset),
+            };
+            let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
+            let mut array_data_iter = array_data.iter().peekable();
+            let array_elem_id = &info.ty;
+            // Serialize array data
+            maybe_add_whitespace(output_string);
+            output_string.push('[');
+            while array_data_iter.peek().is_some() {
+                serialize_output_inner(
+                    &mut array_data_iter,
+                    output_string,
+                    vm,
+                    array_elem_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+            output_string.push(']');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Box(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Box Pointer is not Relocatable");
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Const(_) => {
+            unimplemented!("Not supported in the current version")
+        },
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        // Only unsigned integer values implement Into<Bytes31>
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint128(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Value is not an integer");
+            output_string.push_str(&val.to_string());
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint8(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint16(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint32(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint64(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Sint128(_) => {
+            maybe_add_whitespace(output_string);
+            let val = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Value is not an integer");
+            output_string.push_str(&signed_felt(val).to_string());
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::NonZero(info) => {
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Nullable(info) => {
+            // As this represents a pointer, we need to extract it's values
+            let ptr = match return_values_iter.next().expect("Missing return value") {
+                MaybeRelocatable::RelocatableValue(ptr) => *ptr,
+                MaybeRelocatable::Int(felt) if felt.is_zero() => {
+                    // Nullable is Null
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str("null");
+                    return;
+                }
+                _ => panic!("Invalid Nullable"),
+            };
+            let type_size = type_sizes.type_size(&info.ty);
+            let data = vm
+                .get_continuous_range(ptr, type_size)
+                .expect("Failed to extract value from nullable ptr");
+            let mut data_iter = data.iter().peekable();
+            serialize_output_inner(
+                &mut data_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Enum(info) => {
+            // First we check if it is a Panic enum, as we already handled panics when fetching return values,
+            // we can ignore them and move on to the non-panic variant
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n.starts_with("core::panics::PanicResult"))
+                {
+                    return serialize_output_inner(
+                        return_values_iter,
+                        output_string,
+                        vm,
+                        &info.variants[0],
+                        sierra_program_registry,
+                        type_sizes,
+                    );
+                }
+            }
+            let num_variants = &info.variants.len();
+            let casm_variant_idx: usize = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_int()
+                .expect("Enum tag is not integer")
+                .to_usize()
+                .expect("Invalid enum tag");
+            // Convert casm variant idx to sierra variant idx
+            let variant_idx = if *num_variants > 2 {
+                num_variants - 1 - (casm_variant_idx >> 1)
+            } else {
+                casm_variant_idx
+            };
+            let variant_type_id = &info.variants[variant_idx];
+
+            // Handle core::bool separately
+            if let GenericArg::UserType(user_type) = &info.info.long_id.generic_args[0] {
+                if user_type
+                    .debug_name
+                    .as_ref()
+                    .is_some_and(|n| n == "core::bool")
+                {
+                    // Sanity checks
+                    assert!(
+                        *num_variants == 2
+                            && variant_idx < 2
+                            && type_sizes
+                                .get(&info.variants[0])
+                                .is_some_and(|size| size.is_zero())
+                            && type_sizes
+                                .get(&info.variants[1])
+                                .is_some_and(|size| size.is_zero()),
+                        "Malformed bool enum"
+                    );
+
+                    let boolean_string = match variant_idx {
+                        0 => "false",
+                        _ => "true",
+                    };
+                    maybe_add_whitespace(output_string);
+                    output_string.push_str(boolean_string);
+                    return;
+                }
+            }
+            // TODO: Something similar to the bool handling could be done for unit enum variants if we could get the type info with the variant names
+
+            // Space is always allocated for the largest enum member, padding with zeros in front for the smaller variants
+            let mut max_variant_size = 0;
+            for variant in &info.variants {
+                let variant_size = type_sizes.get(variant).unwrap();
+                max_variant_size = std::cmp::max(max_variant_size, *variant_size)
+            }
+            for _ in 0..max_variant_size - type_sizes.get(variant_type_id).unwrap() {
+                // Remove padding
+                assert_eq!(
+                    return_values_iter.next(),
+                    Some(&MaybeRelocatable::from(0)),
+                    "Malformed enum"
+                );
+            }
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                variant_type_id,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Struct(info) => {
+            for member_type_id in &info.members {
+                serialize_output_inner(
+                    return_values_iter,
+                    output_string,
+                    vm,
+                    member_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                )
+            }
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252Dict(info) => {
+            // Process Dictionary
+            let dict_ptr = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Dict Ptr not Relocatable");
+            if !(dict_ptr.offset
+                == vm
+                    .get_segment_size(dict_ptr.segment_index as usize)
+                    .unwrap_or_default()
+                && dict_ptr.offset % 3 == 0)
+            {
+                panic!("Return value is not a valid Felt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range((dict_ptr.segment_index, 0).into(), dict_ptr.offset)
+                .expect("Malformed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                );
+            }
+            output_string.push('}');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::SquashedFelt252Dict(info) => {
+            // Process Dictionary
+            let dict_start = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_start ptr not Relocatable");
+            let dict_end = return_values_iter
+                .next()
+                .expect("Missing return val")
+                .get_relocatable()
+                .expect("Squashed dict_end ptr not Relocatable");
+            let dict_size = (dict_end - dict_start).unwrap();
+            if dict_size % 3 != 0 {
+                panic!("Return value is not a valid SquashedFelt252Dict")
+            }
+            // Fetch dictionary values type id
+            let value_type_id = &info.ty;
+            // Fetch the dictionary's memory
+            let dict_mem = vm
+                .get_continuous_range(dict_start, dict_size)
+                .expect("Malformed squashed dictionary memory");
+            // Serialize the dictionary
+            output_string.push('{');
+            // The dictionary's memory is made up of (key, prev_value, next_value) tuples
+            // The prev value is not relevant to the user so we can skip over it for calrity
+            for (key, _, value) in dict_mem.iter().tuples() {
+                maybe_add_whitespace(output_string);
+                // Serialize the key wich should always be a Felt value
+                output_string.push_str(&key.to_string());
+                output_string.push(':');
+                // Serialize the value
+                // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
+                let value_vec = vec![value.clone()];
+                let mut value_iter = value_vec.iter().peekable();
+                serialize_output_inner(
+                    &mut value_iter,
+                    output_string,
+                    vm,
+                    value_type_id,
+                    sierra_program_registry,
+                    type_sizes,
+                );
+            }
+            output_string.push('}');
+        }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Span(_) => unimplemented!("Span types get resolved to Array in the current version"),
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Snapshot(info) => {
+            serialize_output_inner(
+                return_values_iter,
+                output_string,
+                vm,
+                &info.ty,
+                sierra_program_registry,
+                type_sizes,
+            )
+        }
+        _ => panic!("Unexpected return type")
+    }
+}
+
+fn maybe_add_whitespace(string: &mut String) {
+    if !string.is_empty() && !string.ends_with('[') && !string.ends_with('{') {
+        string.push(' ');
+    }
 }
 
 #[cfg(test)]
@@ -732,17 +1161,23 @@ mod tests {
     #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
     #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
     #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
-    fn check_append_ret_values_to_output_segment(#[case] filename: &str) {
+    fn check_append_ret_values_to_output_segment(
+        #[case] filename: &str,
+        #[values(true, false)] proof_mode: bool,
+    ) {
         // Compile to sierra
         let sierra_program = compile_to_sierra(filename);
         // Set proof_mode
         let cairo_run_config = Cairo1RunConfig {
-            proof_mode: true,
+            proof_mode,
             layout: "all_cairo",
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
+            finalize_builtins: true,
             ..Default::default()
         };
         // Run program
-        let (_, vm, return_values) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        let (runner, vm, return_values, _) =
+            cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
         let return_values = if main_hash_panic_result(&sierra_program) {
@@ -762,5 +1197,10 @@ mod tests {
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
+
+        // Check that cairo_pie can be outputted when not running in proof_mode
+        if !proof_mode {
+            assert!(runner.get_cairo_pie(&vm).is_ok())
+        }
     }
 }
