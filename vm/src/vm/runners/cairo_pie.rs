@@ -73,7 +73,7 @@ pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    //#[serde(serialize_with = "serde_impl::serialize_additional_data")]
+    #[serde(serialize_with = "crate::types::builtin_name::serde_impl::serialize_builtin_name_map_with_suffix")]
     pub additional_data: HashMap<BuiltinName, BuiltinAdditionalData>,
     pub version: CairoPieVersion,
 }
