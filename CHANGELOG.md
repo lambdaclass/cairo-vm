@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(BREAKING): Enable segment arena builtin on cairo1-run.
+
 * fix(BREAKING): Remove unsafe impl of `Add<usize> for &'a Relocatable`[#1718](https://github.com/lambdaclass/cairo-vm/pull/1718)
 
 * fix(BREAKING): Handle triple dereference references[#1708](https://github.com/lambdaclass/cairo-vm/pull/1708)
