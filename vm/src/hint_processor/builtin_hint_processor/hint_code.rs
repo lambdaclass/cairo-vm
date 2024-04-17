@@ -694,6 +694,15 @@ x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 value = slope = div_mod(3 * x ** 2, 2 * y, SECP_P)"#;
 
+pub const EC_DOUBLE_SLOPE_V4: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA, SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, SECP256R1_P)
+y = pack(ids.point.y, SECP256R1_P)
+value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#;
+
 pub const EC_DOUBLE_SLOPE_EXTERNAL_CONSTS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import ec_double_slope
 
@@ -722,7 +731,7 @@ x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
 
-pub const COMPUTE_SLOPE_SECP256R1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
+pub const COMPUTE_SLOPE_SECP256R1_V1: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import line_slope
 
 # Compute the slope.
@@ -731,6 +740,17 @@ y0 = pack(ids.point0.y, PRIME)
 x1 = pack(ids.point1.x, PRIME)
 y1 = pack(ids.point1.y, PRIME)
 value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP_P)"#;
+
+pub const COMPUTE_SLOPE_SECP256R1_V2: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import line_slope
+
+# Compute the slope.
+x0 = pack(ids.point0.x, PRIME)
+y0 = pack(ids.point0.y, PRIME)
+x1 = pack(ids.point1.x, PRIME)
+y1 = pack(ids.point1.y, PRIME)
+value = slope = line_slope(point1=(x0, y0), point2=(x1, y1), p=SECP256R1_P)"#;
 
 pub const IMPORT_SECP256R1_P: &str =
     "from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P";
