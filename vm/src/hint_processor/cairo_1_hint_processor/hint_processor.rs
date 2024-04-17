@@ -390,6 +390,7 @@ impl Cairo1HintProcessor {
         let dict_manager_exec_scope =
             exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
 
+        // The hint is only for dictionary finalization, so can be called.
         let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address)?;
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
             .map_err(HintError::from)
@@ -948,8 +949,9 @@ impl Cairo1HintProcessor {
                 HintError::CustomHint("No current key".to_string().into_boxed_str())
             })?,
         )?;
-
-        Ok(())
+        exec_scopes
+            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?
+            .finalize_segment(vm, (dict_accesses_address + (n_accesses * 3))?)
     }
 
     fn alloc_constant_size(
