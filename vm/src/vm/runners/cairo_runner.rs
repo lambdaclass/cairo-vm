@@ -282,6 +282,7 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::segment_arena,
             BuiltinName::range_check96,
             BuiltinName::add_mod,
             BuiltinName::mul_mod,

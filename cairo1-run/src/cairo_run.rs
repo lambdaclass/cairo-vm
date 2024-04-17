@@ -38,7 +38,8 @@ use cairo_vm::{
         runners::{
             builtin_runner::{
                 BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
-                POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+                POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SEGMENT_ARENA_BUILTIN_NAME,
+                SIGNATURE_BUILTIN_NAME,
             },
             cairo_runner::{CairoRunner, RunResources, RunnerMode},
         },
@@ -400,6 +401,8 @@ fn create_entry_code(
         } else if generic_ty == &GasBuiltinType::ID {
             casm_extend!(ctx, [ap + 0] = initial_gas, ap++;);
             ap_offset += 1;
+        } else if generic_ty == &SegmentArenaType::ID {
+            continue;
         } else {
             let ty_size = type_sizes[ty];
             let param_ap_offset_end = ap_offset + ty_size;
@@ -596,6 +599,11 @@ fn get_function_builtins(
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
     for (debug_name, builtin_name, sierra_id) in [
+        (
+            "SegmentArena",
+            BuiltinName::segment_arena,
+            SegmentArenaType::ID,
+        ),
         ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
         ("EcOp", BuiltinName::ec_op, EcOpType::ID),
         ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
@@ -705,6 +713,7 @@ fn finalize_builtins(
                 "EcOp" => EC_OP_BUILTIN_NAME,
                 "Bitwise" => BITWISE_BUILTIN_NAME,
                 "Pedersen" => HASH_BUILTIN_NAME,
+                "SegmentArena" => SEGMENT_ARENA_BUILTIN_NAME,
                 "Output" => OUTPUT_BUILTIN_NAME,
                 "Ecdsa" => SIGNATURE_BUILTIN_NAME,
                 _ => {
