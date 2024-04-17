@@ -1,6 +1,6 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
-use crate::serde::deserialize_program::BuiltinName;
+use crate::types::builtin_name::BuiltinName;
 use crate::stdlib::prelude::*;
 use crate::types::instance_definitions::bitwise_instance_def::{
     CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
@@ -143,14 +143,14 @@ impl BuiltinRunner {
         }
         if self.included() {
             let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix())))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix())))?;
             if self.base() as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    self.name(),
+                    self.name().to_str_with_suffix(),
                     stop_pointer,
                     self.base(),
                 ))));
@@ -160,7 +160,7 @@ impl BuiltinRunner {
             let used = num_instances * self.cells_per_instance() as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
-                    self.name(),
+                    self.name().to_str_with_suffix(),
                     Relocatable::from((self.base() as isize, used)),
                     Relocatable::from((self.base() as isize, stop_ptr)),
                 ))));
@@ -196,7 +196,7 @@ impl BuiltinRunner {
                         let min_step = (ratio * self.instances_per_component()) as usize;
                         if vm.current_step < min_step {
                             return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                                Box::new((min_step, self.name())),
+                                Box::new((min_step, self.name().to_str_with_suffix())),
                             )
                             .into());
                         };
@@ -406,23 +406,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        match self {
-            BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
-            BuiltinRunner::EcOp(_) => EC_OP_BUILTIN_NAME,
-            BuiltinRunner::Hash(_) => HASH_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck(_) => RANGE_CHECK_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck96(_) => RANGE_CHECK_96_BUILTIN_NAME,
-            BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
-            BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
-            BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
-            BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
-            BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
-            BuiltinRunner::Mod(b) => b.name(),
-        }
-    }
-
-    pub fn identifier(&self) -> BuiltinName {
+    pub fn name(&self) -> BuiltinName {
         match self {
             BuiltinRunner::Bitwise(_) => BuiltinName::bitwise,
             BuiltinRunner::EcOp(_) => BuiltinName::ec_op,
@@ -467,7 +451,7 @@ impl BuiltinRunner {
         // Verify that n is not too large to make sure the expected_offsets set that is constructed
         // below is not too large.
         if n > div_floor(offset_len, n_input_cells) {
-            return Err(MemoryError::MissingMemoryCells(Box::new(self.name())).into());
+            return Err(MemoryError::MissingMemoryCells(Box::new(self.name().to_str())).into());
         }
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
@@ -482,7 +466,7 @@ impl BuiltinRunner {
         }
         if !missing_offsets.is_empty() {
             return Err(MemoryError::MissingMemoryCellsWithOffsets(Box::new((
-                self.name(),
+                self.name().to_str_with_suffix(),
                 missing_offsets,
             )))
             .into());
@@ -517,7 +501,7 @@ impl BuiltinRunner {
                 let size = self.get_allocated_memory_units(vm)?;
                 if used > size {
                     return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
-                        self.name(),
+                        self.name().to_str(),
                         used,
                         size,
                     )))
@@ -661,7 +645,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -756,7 +740,7 @@ mod tests {
     fn get_name_bitwise() {
         let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.into();
-        assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::bitwise, builtin.name())
     }
 
     #[test]
@@ -764,7 +748,7 @@ mod tests {
     fn get_name_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.into();
-        assert_eq!(HASH_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::pedersen, builtin.name())
     }
 
     #[test]
@@ -772,7 +756,7 @@ mod tests {
     fn get_name_range_check() {
         let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
         let builtin: BuiltinRunner = range_check.into();
-        assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::range_check, builtin.name())
     }
 
     #[test]
@@ -780,7 +764,7 @@ mod tests {
     fn get_name_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.into();
-        assert_eq!(EC_OP_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::ec_op, builtin.name())
     }
 
     #[test]
@@ -788,7 +772,7 @@ mod tests {
     fn get_name_ecdsa() {
         let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.into();
-        assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::ecdsa, builtin.name())
     }
 
     #[test]
@@ -796,7 +780,7 @@ mod tests {
     fn get_name_output() {
         let output = OutputBuiltinRunner::new(true);
         let builtin: BuiltinRunner = output.into();
-        assert_eq!(OUTPUT_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::output, builtin.name())
     }
 
     #[test]

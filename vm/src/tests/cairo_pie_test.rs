@@ -1,4 +1,4 @@
-use crate::felt_str;
+use crate::{felt_str, types::builtin_name::BuiltinName};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -17,7 +17,6 @@ use crate::{
     vm::runners::{
         builtin_runner::{
             HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME,
         },
         cairo_pie::{
             BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
@@ -59,9 +58,9 @@ fn pedersen_test() {
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((6, 0)));
     // builtin_segments
     let expected_builtin_segments = HashMap::from([
-        (String::from("output"), SegmentInfo::from((2, 1))),
-        (String::from("pedersen"), SegmentInfo::from((3, 3))),
-        (String::from("range_check"), SegmentInfo::from((4, 0))),
+        (BuiltinName::output, SegmentInfo::from((2, 1))),
+        (BuiltinName::pedersen, SegmentInfo::from((3, 3))),
+        (BuiltinName::range_check, SegmentInfo::from((4, 0))),
     ]);
     assert_eq!(pie_metadata.builtin_segments, expected_builtin_segments);
     // program_segment
@@ -85,9 +84,9 @@ fn pedersen_test() {
         n_steps: 14,
         n_memory_holes: 0,
         builtin_instance_counter: HashMap::from([
-            (RANGE_CHECK_BUILTIN_NAME.to_string(), 0),
-            (OUTPUT_BUILTIN_NAME.to_string(), 1),
-            (HASH_BUILTIN_NAME.to_string(), 1),
+            (BuiltinName::range_check, 0),
+            (BuiltinName::output, 1),
+            (BuiltinName::pedersen, 1),
         ]),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
@@ -166,12 +165,12 @@ fn common_signature() {
     let expected_execution_resources = ExecutionResources {
         n_steps: 11,
         n_memory_holes: 0,
-        builtin_instance_counter: HashMap::from([(SIGNATURE_BUILTIN_NAME.to_string(), 1)]),
+        builtin_instance_counter: HashMap::from([(BuiltinName::ecdsa, 1)]),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
     let expected_additional_data = HashMap::from([(
-        SIGNATURE_BUILTIN_NAME.to_string(),
+        BuiltinName::ecdsa,
         BuiltinAdditionalData::Signature(HashMap::from([(
             Relocatable::from((2, 0)),
             (

@@ -7,7 +7,7 @@ use crate::{
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::layout::MEMORY_UNITS_PER_STEP,
+    types::{builtin_name::BuiltinName, layout::MEMORY_UNITS_PER_STEP},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -18,7 +18,6 @@ use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     math_utils::safe_div_usize,
-    serde::deserialize_program::BuiltinName,
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -1070,7 +1069,7 @@ impl CairoRunner {
         let mut builtin_instance_counter = HashMap::new();
         for builtin_runner in &vm.builtin_runners {
             builtin_instance_counter.insert(
-                builtin_runner.name().to_string(),
+                builtin_runner.identifier(),
                 builtin_runner.get_used_instances(&vm.segments)?,
             );
         }
@@ -1294,7 +1293,7 @@ impl CairoRunner {
                 pointer = new_pointer;
             } else {
                 if !allow_missing_builtins {
-                    return Err(RunnerError::MissingBuiltin(builtin_id.name()));
+                    return Err(RunnerError::MissingBuiltin(builtin_id.builtin_name()));
                 }
                 pointer.offset = pointer.offset.saturating_sub(1);
 
@@ -1534,7 +1533,7 @@ pub struct SegmentInfo {
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
-    pub builtin_instance_counter: HashMap<String, usize>,
+    pub builtin_instance_counter: HashMap<BuiltinName, usize>,
 }
 
 /// Returns a copy of the execution resources where all the builtins with a usage counter

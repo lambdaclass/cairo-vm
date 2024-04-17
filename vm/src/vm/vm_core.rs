@@ -1,5 +1,6 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
@@ -35,7 +36,7 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{
-    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME,
     RC_N_PARTS_STANDARD,
 };
 
@@ -699,7 +700,7 @@ impl VirtualMachine {
                     let value = value.as_ref().map(|x| x.get_value());
                     if Some(&deduced_memory_cell) != value && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
-                            builtin.name(),
+                            builtin.name().to_str(),
                             deduced_memory_cell,
                             value.cloned(),
                         ))));
@@ -726,7 +727,7 @@ impl VirtualMachine {
         };
         if value != current_value {
             return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
-                builtin.name(),
+                builtin.name().to_str(),
                 value,
                 Some(current_value),
             ))));
@@ -1026,7 +1027,7 @@ impl VirtualMachine {
         let builtin = match self
             .builtin_runners
             .iter()
-            .find(|b| b.name() == OUTPUT_BUILTIN_NAME)
+            .find(|b| b.name() == BuiltinName::output)
         {
             Some(x) => x,
             _ => return Ok(()),
@@ -1067,7 +1068,7 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,
-        builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+        builtin_name_to_stack_pointer: &HashMap<BuiltinName, Relocatable>,
         skip_output: bool,
     ) -> Result<(), RunnerError> {
         for builtin in self.builtin_runners.iter_mut() {
@@ -1077,7 +1078,7 @@ impl VirtualMachine {
             builtin.final_stack(
                 &self.segments,
                 builtin_name_to_stack_pointer
-                    .get(builtin.name())
+                    .get(&builtin.name())
                     .cloned()
                     .unwrap_or_default(),
             )?;

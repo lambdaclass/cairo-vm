@@ -1,12 +1,12 @@
-use crate::stdlib::{
+use crate::{stdlib::{
     collections::{BTreeMap, HashMap},
     prelude::*,
-};
+}, types::builtin_name::BuiltinName};
 
 use serde::{Deserialize, Serialize};
 
 use super::deserialize_program::{
-    ApTracking, Attribute, BuiltinName, DebugInfo, FlowTrackingData, HintParams, Identifier,
+    ApTracking, Attribute, DebugInfo, FlowTrackingData, HintParams, Identifier,
     Member, ProgramJson, Reference, ReferenceManager, ValueAddress,
 };
 use crate::types::program::Program;

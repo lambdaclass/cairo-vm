@@ -168,7 +168,7 @@ impl BitwiseBuiltinRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::{BuiltinRunner, BITWISE_BUILTIN_NAME};
     use crate::vm::vm_core::VirtualMachine;

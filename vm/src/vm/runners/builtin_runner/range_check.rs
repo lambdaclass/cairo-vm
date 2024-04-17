@@ -166,7 +166,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
 mod tests {
     use super::*;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::runner_errors::RunnerError;
     use crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME;
     use crate::vm::vm_memory::memory::Memory;

@@ -1,7 +1,6 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    serde::deserialize_program::BuiltinName,
     stdlib::{
         borrow::Cow,
         collections::BTreeMap,
@@ -11,6 +10,7 @@ use crate::{
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, CELLS_PER_MOD, N_WORDS},
         relocatable::{relocate_address, MaybeRelocatable, Relocatable},
+        builtin_name::BuiltinName,
     },
     vm::{
         errors::{

@@ -2,7 +2,7 @@ use starknet_crypto::{pedersen_hash, FieldElement};
 
 use crate::Felt252;
 
-use crate::serde::deserialize_program::BuiltinName;
+use crate::types::builtin_name::BuiltinName;
 use crate::stdlib::vec::Vec;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_pie::StrippedProgram;
