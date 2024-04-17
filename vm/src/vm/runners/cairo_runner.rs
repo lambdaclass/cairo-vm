@@ -164,9 +164,24 @@ pub struct CairoRunner {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum RunnerMode {
-    ExecutionMode,
+    /// Execution mode for Cairo 0 programs
+    ExecutionModeCairo0,
+    /// Execution mode for Cairo 1 programs
+    ExecutionModeCairo1,
+    /// Proof mode for Cairo 0 programs
     ProofModeCanonical,
+    /// Proof mode for Cairo 1 programs
     ProofModeCairo1,
+}
+
+impl RunnerMode {
+    /// Returns whether the runner mode is proof mode
+    pub fn is_proof_mode(&self) -> bool {
+        matches!(
+            self,
+            RunnerMode::ProofModeCanonical | RunnerMode::ProofModeCairo1
+        )
+    }
 }
 
 impl CairoRunner {
@@ -208,7 +223,7 @@ impl CairoRunner {
             original_steps: None,
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: if mode != RunnerMode::ExecutionMode {
+            execution_public_memory: if mode.is_proof_mode() {
                 Some(Vec::new())
             } else {
                 None
@@ -225,7 +240,7 @@ impl CairoRunner {
         if proof_mode {
             Self::new_v2(program, layout, RunnerMode::ProofModeCanonical)
         } else {
-            Self::new_v2(program, layout, RunnerMode::ExecutionMode)
+            Self::new_v2(program, layout, RunnerMode::ExecutionModeCairo0)
         }
     }
 
@@ -367,8 +382,7 @@ impl CairoRunner {
     }
 
     fn is_proof_mode(&self) -> bool {
-        self.runner_mode == RunnerMode::ProofModeCanonical
-            || self.runner_mode == RunnerMode::ProofModeCairo1
+        self.runner_mode.is_proof_mode()
     }
 
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
