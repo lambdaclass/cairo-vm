@@ -12,7 +12,9 @@ use crate::{
         fmt,
         prelude::*,
         sync::Arc,
-    }, types::builtin_name::BuiltinName, utils::CAIRO_PRIME
+    },
+    types::builtin_name::BuiltinName,
+    utils::CAIRO_PRIME,
 };
 
 use crate::utils::PRIME_STR;

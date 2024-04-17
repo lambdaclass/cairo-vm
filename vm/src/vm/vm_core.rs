@@ -36,8 +36,7 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{
-    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME,
-    RC_N_PARTS_STANDARD,
+    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, RC_N_PARTS_STANDARD,
 };
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
@@ -1247,9 +1246,6 @@ mod tests {
     use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
-    use crate::vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
-    };
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -3620,7 +3616,7 @@ mod tests {
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(bx))
-            if *bx == (EC_OP_BUILTIN_NAME,
+            if *bx == (BuiltinName::ec_op.to_str_with_suffix(),
                     MaybeRelocatable::Int(crate::felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )),
@@ -3864,8 +3860,8 @@ mod tests {
 
         let builtins = vm.get_builtin_runners();
 
-        assert_eq!(builtins[0].name(), HASH_BUILTIN_NAME);
-        assert_eq!(builtins[1].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(builtins[0].name(), BuiltinName::pedersen);
+        assert_eq!(builtins[1].name(), BuiltinName::bitwise);
     }
 
     #[test]
@@ -4399,7 +4395,7 @@ mod tests {
                 .get(0)
                 .unwrap()
                 .name(),
-            "pedersen_builtin"
+            BuiltinName::pedersen
         );
         assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
         assert_eq!(

@@ -12,12 +12,9 @@ use alloc::{
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::collections::HashMap,
     types::relocatable::Relocatable,
     vm::runners::{
-        builtin_runner::{
-            HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-        },
         cairo_pie::{
             BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
         },
@@ -93,20 +90,17 @@ fn pedersen_test() {
     // additional_data
     let expected_additional_data = HashMap::from([
         (
-            OUTPUT_BUILTIN_NAME.to_string(),
+            BuiltinName::output,
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
                 pages: HashMap::new(),
                 attributes: HashMap::new(),
             }),
         ),
         (
-            HASH_BUILTIN_NAME.to_string(),
+            BuiltinName::pedersen,
             BuiltinAdditionalData::Hash(vec![Relocatable::from((3, 2))]),
         ),
-        (
-            RANGE_CHECK_BUILTIN_NAME.to_string(),
-            BuiltinAdditionalData::None,
-        ),
+        (BuiltinName::range_check, BuiltinAdditionalData::None),
     ]);
     assert_eq!(cairo_pie.additional_data, expected_additional_data);
     // memory
@@ -143,7 +137,7 @@ fn common_signature() {
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((4, 0)));
     // builtin_segments
     let expected_builtin_segments =
-        HashMap::from([(String::from("ecdsa"), SegmentInfo::from((2, 2)))]);
+        HashMap::from([(BuiltinName::ecdsa, SegmentInfo::from((2, 2)))]);
     assert_eq!(pie_metadata.builtin_segments, expected_builtin_segments);
     // program_segment
     assert_eq!(pie_metadata.program_segment, SegmentInfo::from((0, 21)));

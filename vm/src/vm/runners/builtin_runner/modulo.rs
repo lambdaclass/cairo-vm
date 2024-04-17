@@ -7,10 +7,10 @@ use crate::{
         prelude::{Box, Vec},
     },
     types::{
+        builtin_name::BuiltinName,
         errors::math_errors::MathError,
         instance_definitions::mod_instance_def::{ModInstanceDef, CELLS_PER_MOD, N_WORDS},
         relocatable::{relocate_address, MaybeRelocatable, Relocatable},
-        builtin_name::BuiltinName,
     },
     vm::{
         errors::{
@@ -693,10 +693,7 @@ mod tests {
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
             utils::test_utils::Program,
-            vm::runners::{
-                builtin_runner::{BuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME},
-                cairo_runner::CairoRunner,
-            },
+            vm::runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
             Felt252,
         };
 
@@ -731,7 +728,7 @@ mod tests {
 
         let air_private_input = runner.get_air_private_input(&vm);
         assert_eq!(
-            air_private_input.0.get(ADD_MOD_BUILTIN_NAME).unwrap()[0],
+            air_private_input.0.get(&BuiltinName::add_mod).unwrap()[0],
             PrivateInput::Mod(ModInput {
                 instances: vec![
                     ModInputInstance {
@@ -799,7 +796,7 @@ mod tests {
             })
         );
         assert_eq!(
-            air_private_input.0.get(MUL_MOD_BUILTIN_NAME).unwrap()[0],
+            air_private_input.0.get(&BuiltinName::mul_mod).unwrap()[0],
             PrivateInput::Mod(ModInput {
                 instances: vec![
                     ModInputInstance {

@@ -18,8 +18,8 @@ use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, HintParams, Identifier,
-        InstructionLocation, OffsetValue, ReferenceManager,
+        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
+        OffsetValue, ReferenceManager,
     },
     types::{
         errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,

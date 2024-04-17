@@ -8,7 +8,7 @@ use crate::Felt252;
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
-    types::{relocatable::MaybeRelocatable, builtin_name::BuiltinName},
+    types::{builtin_name::BuiltinName, relocatable::MaybeRelocatable},
     vm::{
         runners::cairo_runner::{CairoArg, CairoRunner},
         vm_core::VirtualMachine,
@@ -128,13 +128,12 @@ fn run_cairo_1_entrypoint(
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
-    let builtins = runner
-        .get_program_builtins();
+    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&b.identifier()))
+        .filter(|b| builtins.contains(&b.name()))
         .flat_map(|b| b.initial_stack())
         .collect();
 
@@ -227,13 +226,12 @@ fn run_cairo_1_entrypoint_with_run_resources(
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
-    let builtins = runner
-        .get_program_builtins();
+    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&b.identifier()))
+        .filter(|b| builtins.contains(&b.name()))
         .flat_map(|b| b.initial_stack())
         .collect();
 

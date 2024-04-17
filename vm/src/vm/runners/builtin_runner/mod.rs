@@ -1,7 +1,7 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
-use crate::types::builtin_name::BuiltinName;
 use crate::stdlib::prelude::*;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::bitwise_instance_def::{
     CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
 };
@@ -142,12 +142,16 @@ impl BuiltinRunner {
             return output.final_stack(segments, pointer);
         }
         if self.included() {
-            let stop_pointer_addr =
-                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix())))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix())))?;
+            let stop_pointer_addr = (pointer - 1).map_err(|_| {
+                RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix()))
+            })?;
+            let stop_pointer =
+                segments
+                    .memory
+                    .get_relocatable(stop_pointer_addr)
+                    .map_err(|_| {
+                        RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix()))
+                    })?;
             if self.base() as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(Box::new((
                     self.name().to_str_with_suffix(),
