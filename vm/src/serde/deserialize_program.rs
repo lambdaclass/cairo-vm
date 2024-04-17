@@ -323,10 +323,11 @@ pub enum OffsetValue {
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
-    pub offset1: OffsetValue,
-    pub offset2: OffsetValue,
-    pub dereference: bool,
-    pub value_type: String,
+    pub offset1: OffsetValue,    // A in cast(A + B, type)
+    pub offset2: OffsetValue,    // B in cast(A + B, type)
+    pub outer_dereference: bool, // [] in [cast(A + B, type)]
+    pub inner_dereference: bool, // [] in cast([A + B], type)
+    pub value_type: String,      // type in cast(A + B, type)
 }
 
 impl ValueAddress {
@@ -341,7 +342,8 @@ impl ValueAddress {
         ValueAddress {
             offset1: OffsetValue::Value(99),
             offset2: OffsetValue::Value(99),
-            dereference: false,
+            outer_dereference: false,
+            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -756,7 +758,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -4, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -769,7 +772,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -782,7 +786,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
                         offset2: OffsetValue::Immediate(Felt252::from(2)),
-                        dereference: false,
+                        outer_dereference: false,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -795,7 +800,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, 0, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },
