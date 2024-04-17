@@ -356,7 +356,7 @@ impl CairoRunner {
         }
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
-                program_builtins.iter().map(|n| n.to_str()).collect(),
+                program_builtins.iter().map(|n| **n).collect(),
                 self.layout.name.clone(),
             ))));
         }
@@ -1017,8 +1017,7 @@ impl CairoRunner {
 
             builtin_segment_info.push((
                 index,
-                stop_ptr
-                    .ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name().to_str())))?,
+                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
             ));
         }
 
@@ -1040,9 +1039,7 @@ impl CairoRunner {
                 builtin.name(),
                 (
                     index as isize,
-                    stop_ptr.ok_or_else(|| {
-                        RunnerError::NoStopPointer(Box::new(builtin.name().to_str()))
-                    })?,
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
                 )
                     .into(),
             );
@@ -1292,16 +1289,12 @@ impl CairoRunner {
                 pointer = new_pointer;
             } else {
                 if !allow_missing_builtins {
-                    return Err(RunnerError::MissingBuiltin(
-                        builtin_name.to_str_with_suffix(),
-                    ));
+                    return Err(RunnerError::MissingBuiltin(*builtin_name));
                 }
                 pointer.offset = pointer.offset.saturating_sub(1);
 
                 if !vm.get_integer(pointer)?.is_zero() {
-                    return Err(RunnerError::MissingBuiltinStopPtrNotZero(
-                        builtin_name.to_str_with_suffix(),
-                    ));
+                    return Err(RunnerError::MissingBuiltinStopPtrNotZero(*builtin_name));
                 }
             }
         }
@@ -1508,14 +1501,15 @@ impl CairoRunner {
             .map(|builtin| -> Result<_, VirtualMachineError> {
                 let (base, stop_ptr) = builtin.get_memory_segment_addresses();
                 let stop_ptr = if self.program.builtins.contains(&builtin.name()) {
-                    stop_ptr.ok_or_else(|| {
-                        RunnerError::NoStopPointer(Box::new(builtin.name().to_str()))
-                    })?
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?
                 } else {
                     stop_ptr.unwrap_or_default()
                 };
 
-                Ok((builtin.name().to_str(), relocate((base, stop_ptr))?))
+                Ok((
+                    builtin.name().to_str_with_suffix(),
+                    relocate((base, stop_ptr))?,
+                ))
             })
             .collect()
     }
@@ -3871,9 +3865,7 @@ mod tests {
         vm.builtin_runners = vec![BuiltinRunner::Output(OutputBuiltinRunner::new(true))];
         assert_eq!(
             cairo_runner.get_builtin_segments_info(&vm),
-            Err(RunnerError::NoStopPointer(Box::new(
-                BuiltinName::output.to_str()
-            ))),
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::output))),
         );
     }
 
@@ -4521,7 +4513,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
-                HashSet::from([BuiltinName::output.to_str()]),
+                HashSet::from([BuiltinName::output]),
                 String::from("plain")
             ))))
         );
@@ -4536,7 +4528,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
-                HashSet::from([BuiltinName::output.to_str(), BuiltinName::pedersen.to_str()]),
+                HashSet::from([BuiltinName::output, BuiltinName::pedersen]),
                 String::from("plain")
             ))))
         );
@@ -4551,7 +4543,7 @@ mod tests {
         assert_eq!(
             cairo_runner.initialize_builtins(&mut vm, false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
-                HashSet::from([BuiltinName::bitwise.to_str()]),
+                HashSet::from([BuiltinName::bitwise]),
                 String::from("small")
             ))))
         );

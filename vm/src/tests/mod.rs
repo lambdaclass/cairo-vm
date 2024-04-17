@@ -310,21 +310,16 @@ fn get_casm_contract_builtins(
         .unwrap()
         .builtins
         .iter()
-        .map(|n| format!("{}_builtin", n))
-        .map(|s| match &*s {
-            crate::vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME => BuiltinName::output,
-            crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME => {
-                BuiltinName::range_check
-            }
-            crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME => BuiltinName::pedersen,
-            crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME => BuiltinName::ecdsa,
-            crate::vm::runners::builtin_runner::KECCAK_BUILTIN_NAME => BuiltinName::keccak,
-            crate::vm::runners::builtin_runner::BITWISE_BUILTIN_NAME => BuiltinName::bitwise,
-            crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME => BuiltinName::ec_op,
-            crate::vm::runners::builtin_runner::POSEIDON_BUILTIN_NAME => BuiltinName::poseidon,
-            crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME => {
-                BuiltinName::segment_arena
-            }
+        .map(|s| match s.as_str() {
+            "output" => BuiltinName::output,
+            "range_check" => BuiltinName::range_check,
+            "pedersen" => BuiltinName::pedersen,
+            "ecdsa" => BuiltinName::ecdsa,
+            "keccak" => BuiltinName::keccak,
+            "bitwise" => BuiltinName::bitwise,
+            "ec_op" => BuiltinName::ec_op,
+            "poseidon" => BuiltinName::poseidon,
+            "segment_arena" => BuiltinName::segment_arena,
             _ => panic!("Invalid builtin {}", s),
         })
         .collect()

@@ -56,19 +56,6 @@ pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
 
-pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
-pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
-pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
-pub const RANGE_CHECK_96_BUILTIN_NAME: &str = "range_check_96_builtin";
-pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa_builtin";
-pub const BITWISE_BUILTIN_NAME: &str = "bitwise_builtin";
-pub const EC_OP_BUILTIN_NAME: &str = "ec_op_builtin";
-pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
-pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
-pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
-pub const ADD_MOD_BUILTIN_NAME: &str = "add_mod_builtin";
-pub const MUL_MOD_BUILTIN_NAME: &str = "mul_mod_builtin";
-
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
  * are either storing a `dyn Trait` inside an `Arc<Mutex<&dyn Trait>>` or
@@ -142,19 +129,15 @@ impl BuiltinRunner {
             return output.final_stack(segments, pointer);
         }
         if self.included() {
-            let stop_pointer_addr = (pointer - 1).map_err(|_| {
-                RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix()))
-            })?;
-            let stop_pointer =
-                segments
-                    .memory
-                    .get_relocatable(stop_pointer_addr)
-                    .map_err(|_| {
-                        RunnerError::NoStopPointer(Box::new(self.name().to_str_with_suffix()))
-                    })?;
+            let stop_pointer_addr =
+                (pointer - 1).map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
+            let stop_pointer = segments
+                .memory
+                .get_relocatable(stop_pointer_addr)
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(self.name())))?;
             if self.base() as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    self.name().to_str_with_suffix(),
+                    self.name(),
                     stop_pointer,
                     self.base(),
                 ))));
@@ -164,7 +147,7 @@ impl BuiltinRunner {
             let used = num_instances * self.cells_per_instance() as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
-                    self.name().to_str_with_suffix(),
+                    self.name(),
                     Relocatable::from((self.base() as isize, used)),
                     Relocatable::from((self.base() as isize, stop_ptr)),
                 ))));
@@ -200,7 +183,7 @@ impl BuiltinRunner {
                         let min_step = (ratio * self.instances_per_component()) as usize;
                         if vm.current_step < min_step {
                             return Err(InsufficientAllocatedCellsError::MinStepNotReached(
-                                Box::new((min_step, self.name().to_str_with_suffix())),
+                                Box::new((min_step, self.name())),
                             )
                             .into());
                         };
@@ -422,7 +405,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(_) => BuiltinName::ecdsa,
             BuiltinRunner::Poseidon(_) => BuiltinName::poseidon,
             BuiltinRunner::SegmentArena(_) => BuiltinName::segment_arena,
-            BuiltinRunner::Mod(b) => b.identifier(),
+            BuiltinRunner::Mod(b) => b.name(),
         }
     }
 
@@ -455,7 +438,7 @@ impl BuiltinRunner {
         // Verify that n is not too large to make sure the expected_offsets set that is constructed
         // below is not too large.
         if n > div_floor(offset_len, n_input_cells) {
-            return Err(MemoryError::MissingMemoryCells(Box::new(self.name().to_str())).into());
+            return Err(MemoryError::MissingMemoryCells(Box::new(self.name())).into());
         }
         // Check that the two inputs (x and y) of each instance are set.
         let mut missing_offsets = Vec::with_capacity(n);
@@ -470,7 +453,7 @@ impl BuiltinRunner {
         }
         if !missing_offsets.is_empty() {
             return Err(MemoryError::MissingMemoryCellsWithOffsets(Box::new((
-                self.name().to_str_with_suffix(),
+                self.name(),
                 missing_offsets,
             )))
             .into());
@@ -505,7 +488,7 @@ impl BuiltinRunner {
                 let size = self.get_allocated_memory_units(vm)?;
                 if used > size {
                     return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
-                        self.name().to_str(),
+                        self.name(),
                         used,
                         size,
                     )))
@@ -986,7 +969,7 @@ mod tests {
             Err(MemoryError::InsufficientAllocatedCells(
                 InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
                     160,
-                    KECCAK_BUILTIN_NAME
+                    BuiltinName::keccak
                 )))
             ))
         );
@@ -1207,7 +1190,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (BITWISE_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::bitwise, vec![0])
         );
     }
 
@@ -1226,7 +1209,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == BITWISE_BUILTIN_NAME
+            )) if *bx == BuiltinName::bitwise
         );
     }
 
@@ -1247,7 +1230,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (HASH_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::pedersen, vec![0])
         );
     }
 
@@ -1266,7 +1249,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == HASH_BUILTIN_NAME
+            )) if *bx == BuiltinName::pedersen
         );
     }
 
@@ -1291,7 +1274,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == RANGE_CHECK_BUILTIN_NAME
+            )) if *bx == BuiltinName::range_check
         );
     }
 
@@ -1309,7 +1292,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == RANGE_CHECK_BUILTIN_NAME
+            )) if *bx == BuiltinName::range_check
         );
     }
 
@@ -1378,7 +1361,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == EC_OP_BUILTIN_NAME
+            )) if *bx == BuiltinName::ec_op
         );
     }
 
@@ -1397,7 +1380,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == EC_OP_BUILTIN_NAME
+            )) if *bx == BuiltinName::ec_op
         );
     }
 
@@ -1419,7 +1402,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (EC_OP_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::ec_op, vec![0])
         );
     }
 
@@ -1450,7 +1433,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (EC_OP_BUILTIN_NAME, vec![7])
+            )) if *bx == (BuiltinName::ec_op, vec![7])
         );
     }
 

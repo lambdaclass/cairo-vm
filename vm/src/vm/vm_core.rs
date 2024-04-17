@@ -35,9 +35,7 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::{
-    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, RC_N_PARTS_STANDARD,
-};
+use super::runners::builtin_runner::{ModBuiltinRunner, RC_N_PARTS_STANDARD};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -699,7 +697,7 @@ impl VirtualMachine {
                     let value = value.as_ref().map(|x| x.get_value());
                     if Some(&deduced_memory_cell) != value && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
-                            builtin.name().to_str(),
+                            builtin.name(),
                             deduced_memory_cell,
                             value.cloned(),
                         ))));
@@ -726,7 +724,7 @@ impl VirtualMachine {
         };
         if value != current_value {
             return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
-                builtin.name().to_str(),
+                builtin.name(),
                 value,
                 Some(current_value),
             ))));
@@ -1106,7 +1104,7 @@ impl VirtualMachine {
         batch_size: Option<usize>,
     ) -> Result<(), VirtualMachineError> {
         let fetch_builtin_params = |mod_params: Option<(Relocatable, usize)>,
-                                    mod_name: &'static str|
+                                    mod_name: BuiltinName|
          -> Result<
             Option<(Relocatable, &ModBuiltinRunner, usize)>,
             VirtualMachineError,
@@ -1136,8 +1134,8 @@ impl VirtualMachine {
 
         ModBuiltinRunner::fill_memory(
             &mut self.segments.memory,
-            fetch_builtin_params(add_mod_ptr_n, ADD_MOD_BUILTIN_NAME)?,
-            fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
+            fetch_builtin_params(add_mod_ptr_n, BuiltinName::add_mod)?,
+            fetch_builtin_params(mul_mod_ptr_n, BuiltinName::mul_mod)?,
         )
         .map_err(VirtualMachineError::RunnerError)
     }
@@ -3616,7 +3614,7 @@ mod tests {
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(bx))
-            if *bx == (BuiltinName::ec_op.to_str_with_suffix(),
+            if *bx == (BuiltinName::ec_op,
                     MaybeRelocatable::Int(crate::felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )),

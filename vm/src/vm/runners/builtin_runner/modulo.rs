@@ -109,14 +109,7 @@ impl ModBuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        match self.builtin_type {
-            ModBuiltinType::Mul => super::MUL_MOD_BUILTIN_NAME,
-            ModBuiltinType::Add => super::ADD_MOD_BUILTIN_NAME,
-        }
-    }
-
-    pub fn identifier(&self) -> BuiltinName {
+    pub fn name(&self) -> BuiltinName {
         match self.builtin_type {
             ModBuiltinType::Mul => BuiltinName::mul_mod,
             ModBuiltinType::Add => BuiltinName::add_mod,
