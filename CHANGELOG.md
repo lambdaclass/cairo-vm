@@ -7,6 +7,8 @@
   * Replace `HintReference` boolean field `dereference` with boolean fields `outer_dereference` & `inner_dereference`
   * Reference parsing now handles the case of dereferences inside the cast. Aka references of type `cast([A + B], type)` such as `cast([[fp + 2] + 2], felt)`.
 
+* Bump `starknet-types-core` version + Use the lib's pedersen hash [#1692](https://github.com/lambdaclass/cairo-vm/pull/1692)
+
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
 
 * feat: missing EC hints for Starknet OS 0.13.1 [#1706](https://github.com/lambdaclass/cairo-vm/pull/1706)
