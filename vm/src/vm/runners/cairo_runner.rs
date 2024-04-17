@@ -1565,7 +1565,7 @@ impl AddAssign<&ExecutionResources> for ExecutionResources {
         self.n_memory_holes += rhs.n_memory_holes;
         for (k, v) in rhs.builtin_instance_counter.iter() {
             // FIXME: remove k's clone, use &'static str
-            *self.builtin_instance_counter.entry(k.clone()).or_insert(0) += v;
+            *self.builtin_instance_counter.entry(*k).or_insert(0) += v;
         }
     }
 }
@@ -1586,7 +1586,7 @@ impl SubAssign<&ExecutionResources> for ExecutionResources {
         self.n_memory_holes -= rhs.n_memory_holes;
         for (k, v) in rhs.builtin_instance_counter.iter() {
             // FIXME: remove k's clone, use &'static str
-            let entry = self.builtin_instance_counter.entry(k.clone()).or_insert(0);
+            let entry = self.builtin_instance_counter.entry(*k).or_insert(0);
             *entry = (*entry).saturating_sub(*v);
         }
     }
