@@ -61,7 +61,7 @@ impl BuiltinName {
     /// assert_eq!(builtin_name.to_str_with_suffix(), "poseidon_builtin");
     ///
     /// ```
-    pub const fn to_str_with_suffix(self) -> &'static str {
+    pub fn to_str_with_suffix(self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME_WITH_SUFFIX,

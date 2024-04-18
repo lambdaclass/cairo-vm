@@ -1507,7 +1507,7 @@ impl CairoRunner {
                 };
 
                 Ok((
-                    builtin.name().to_str_with_suffix(),
+                    builtin.name().to_str(),
                     relocate((base, stop_ptr))?,
                 ))
             })
