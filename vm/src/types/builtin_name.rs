@@ -167,13 +167,14 @@ impl BuiltinName {
     }
 }
 
-// Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
+/// NOTE: Adds "_builtin" suffix
 impl core::fmt::Display for BuiltinName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.to_str_with_suffix().fmt(f)
     }
 }
 
+// Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
 pub(crate) mod serde_generic_map_impl {
     use super::BuiltinName;
     use crate::stdlib::collections::HashMap;
