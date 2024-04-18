@@ -1426,11 +1426,12 @@ impl CairoRunner {
             metadata,
             memory: (&vm.segments.memory).into(),
             execution_resources: self.get_execution_resources(vm)?,
-            additional_data: CairoPieAdditionalData(vm
-                .builtin_runners
-                .iter()
-                .map(|b| (b.name(), b.get_additional_data()))
-                .collect()),
+            additional_data: CairoPieAdditionalData(
+                vm.builtin_runners
+                    .iter()
+                    .map(|b| (b.name(), b.get_additional_data()))
+                    .collect(),
+            ),
             version: CairoPieVersion { cairo_pie: () },
         })
     }

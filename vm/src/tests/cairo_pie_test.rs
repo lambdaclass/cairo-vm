@@ -102,7 +102,7 @@ fn pedersen_test() {
         ),
         (BuiltinName::range_check, BuiltinAdditionalData::None),
     ]);
-    assert_eq!(cairo_pie.additional_data, expected_additional_data);
+    assert_eq!(cairo_pie.additional_data.0, expected_additional_data);
     // memory
     assert_eq!(
         cairo_pie.memory,
@@ -177,7 +177,7 @@ fn common_signature() {
             ),
         )])),
     )]);
-    assert_eq!(cairo_pie.additional_data, expected_additional_data);
+    assert_eq!(cairo_pie.additional_data.0, expected_additional_data);
     // memory
     assert_eq!(
         cairo_pie.memory,
@@ -236,7 +236,7 @@ fn relocate_segments() {
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    assert!(cairo_pie.additional_data.is_empty());
+    assert!(cairo_pie.additional_data.0.is_empty());
     // memory
     assert_eq!(
         cairo_pie.memory,
