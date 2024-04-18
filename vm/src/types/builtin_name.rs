@@ -85,8 +85,8 @@ impl BuiltinName {
         }
     }
 
-    pub(crate) fn from_suffixed_string(suffixed_str: &String) -> Option<Self> {
-        match suffixed_str.as_str() {
+    pub fn from_str_with_suffix(suffixed_str: &str) -> Option<Self> {
+        match suffixed_str {
             OUTPUT_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::output),
             RANGE_CHECK_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::range_check),
             HASH_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::pedersen),
@@ -99,6 +99,24 @@ impl BuiltinName {
             RANGE_CHECK_96_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::range_check96),
             ADD_MOD_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::add_mod),
             MUL_MOD_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::mul_mod),
+            _ => None,
+        }
+    }
+
+    pub fn from_str(str: &str) -> Option<Self> {
+        match str {
+            OUTPUT_BUILTIN_NAME => Some(BuiltinName::output),
+            RANGE_CHECK_BUILTIN_NAME => Some(BuiltinName::range_check),
+            HASH_BUILTIN_NAME => Some(BuiltinName::pedersen),
+            SIGNATURE_BUILTIN_NAME => Some(BuiltinName::ecdsa),
+            KECCAK_BUILTIN_NAME => Some(BuiltinName::keccak),
+            BITWISE_BUILTIN_NAME => Some(BuiltinName::bitwise),
+            EC_OP_BUILTIN_NAME => Some(BuiltinName::ec_op),
+            POSEIDON_BUILTIN_NAME => Some(BuiltinName::poseidon),
+            SEGMENT_ARENA_BUILTIN_NAME => Some(BuiltinName::segment_arena),
+            RANGE_CHECK_96_BUILTIN_NAME => Some(BuiltinName::range_check96),
+            ADD_MOD_BUILTIN_NAME => Some(BuiltinName::add_mod),
+            MUL_MOD_BUILTIN_NAME => Some(BuiltinName::mul_mod),
             _ => None,
         }
     }
@@ -137,7 +155,7 @@ pub(crate) mod serde_generic_map_impl {
         let map = HashMap::<String, V>::deserialize(d)?;
         // Then match keys to BuiltinName and handle invalid names
         map.into_iter()
-            .map(|(k, v)| BuiltinName::from_suffixed_string(&k).map(|k| (k, v)))
+            .map(|(k, v)| BuiltinName::from_str_with_suffix(&k).map(|k| (k, v)))
             .collect::<Option<HashMap<_, _>>>()
             .ok_or(D::Error::custom("Invalid builtin name"))
     }

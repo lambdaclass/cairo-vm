@@ -310,17 +310,6 @@ fn get_casm_contract_builtins(
         .unwrap()
         .builtins
         .iter()
-        .map(|s| match s.as_str() {
-            "output" => BuiltinName::output,
-            "range_check" => BuiltinName::range_check,
-            "pedersen" => BuiltinName::pedersen,
-            "ecdsa" => BuiltinName::ecdsa,
-            "keccak" => BuiltinName::keccak,
-            "bitwise" => BuiltinName::bitwise,
-            "ec_op" => BuiltinName::ec_op,
-            "poseidon" => BuiltinName::poseidon,
-            "segment_arena" => BuiltinName::segment_arena,
-            _ => panic!("Invalid builtin {}", s),
-        })
+        .map(|s| BuiltinName::from_str(s).expect("Invalid builtin name"))
         .collect()
 }
