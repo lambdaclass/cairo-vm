@@ -7,6 +7,8 @@
   * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
   * `CairoLayout` field `name` type changed from `String` to `LayoutName`.
 
+* fix(BREAKING): Remove unsafe impl of `Add<usize> for &'a Relocatable`[#1718](https://github.com/lambdaclass/cairo-vm/pull/1718)
+
 * fix(BREAKING): Handle triple dereference references[#1708](https://github.com/lambdaclass/cairo-vm/pull/1708)
   * Replace `ValueAddress` boolean field `dereference` with boolean fields `outer_dereference` & `inner_dereference`
   * Replace `HintReference` boolean field `dereference` with boolean fields `outer_dereference` & `inner_dereference`
