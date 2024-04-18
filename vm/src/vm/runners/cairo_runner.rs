@@ -1499,10 +1499,7 @@ impl CairoRunner {
                     stop_ptr.unwrap_or_default()
                 };
 
-                Ok((
-                    builtin.name().to_str(),
-                    relocate((base, stop_ptr))?,
-                ))
+                Ok((builtin.name().to_str(), relocate((base, stop_ptr))?))
             })
             .collect()
     }
