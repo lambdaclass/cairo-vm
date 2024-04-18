@@ -2,6 +2,25 @@
 
 #### Upcoming Changes
 
+* refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
+  * `BuiltinName` moved from `crate::serde::deserialize_program` module to `crate::types::builtin_name`.
+    * Implement `BuiltinName` methods `to_str`, `to_str_with_suffix`, `from_str` & `from_str_with_suffix`.
+  * Remove `BuiltinName` method `name`.
+  * All builtin-related error variants now store `BuiltinName` instead of `&'static str` or `String`.
+  * Remove constants: `OUTPUT_BUILTIN_NAME`, `HASH_BUILTIN_NAME`, `RANGE_CHECK_BUILTIN_NAME`,`RANGE_CHECK_96_BUILTIN_NAME`, `SIGNATURE_BUILTIN_NAME`, `BITWISE_BUILTIN_NAME`, `EC_OP_BUILTIN_NAME`, `KECCAK_BUILTIN_NAME`, `POSEIDON_BUILTIN_NAME`, `SEGMENT_ARENA_BUILTIN_NAME`, `ADD_MOD_BUILTIN_NAME` &
+`MUL_MOD_BUILTIN_NAME`.
+  * Remove `BuiltinRunner` & `ModBuiltinRunner` method `identifier`
+  * Structs containing string representation of builtin names now use `BuiltinName` instead:
+    * `AirPrivateInput(pub HashMap<&'static str, Vec<PrivateInput>>)` ->  `AirPrivateInput(pub HashMap<BuiltinName, Vec<PrivateInput>>)`.
+    * `CairoPieMetadata` field `additional_data`: `HashMap<String, BuiltinAdditionalData>,` -> `HashMap<BuiltinName, BuiltinAdditionalData>`.
+    * `CairoPieMetadata` field `builtin_segments`: `HashMap<String, SegmentInfo>` -> `HashMap<BuiltinName, SegmentInfo>`.
+    * `ExecutiobResources` field `builtin_instance_counter`: `HashMap<String, usize>` -> `HashMap<BuiltinName, usize>`
+  * Methods returning string representation of builtin names now use `BuiltinName` instead:
+    * `BuiltinRunner`, `ModBuiltinRunner` & `RangeCheckBuiltinRunner` method `name`: `&'static str` -> `BuiltinName`.
+    * `CairoRunner` method `get_builtin_segment_info_for_pie`: `Result<HashMap<String, cairo_pie::SegmentInfo>, RunnerError>` -> `Result<HashMap<BuiltinName, cairo_pie::SegmentInfo>, RunnerError>`
+
+  Notes: Serialization of vm outputs that now contain `BuiltinName` & `Display` implementation of `BuiltinName` have not been affected by this PR
+
 * Bump `starknet-types-core` version + Use the lib's pedersen hash [#1692](https://github.com/lambdaclass/cairo-vm/pull/1692)
 
 * refactor: Remove unused code & use constants whenever possible for builtin instance definitions[#1707](https://github.com/lambdaclass/cairo-vm/pull/1707)
