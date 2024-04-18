@@ -1228,7 +1228,7 @@ fn run_program_with_custom_mod_builtin_params(
 fn cairo_run_apply_poly() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/apply_poly.json");
-    run_program(program_data, false, Some("all_cairo"), None, None);
+    run_program(program_data, false, None, None, None);
 }
 
 #[test]
@@ -1236,5 +1236,5 @@ fn cairo_run_apply_poly() {
 fn cairo_run_apply_poly_proof() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/proof/apply_poly.json");
-    run_program(program_data, true, Some("all_cairo"), None, None);
+    run_program(program_data, true, None, None, None);
 }
