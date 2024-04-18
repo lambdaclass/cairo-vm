@@ -356,17 +356,6 @@ impl MaybeRelocatable {
     }
 }
 
-impl<'a> Add<usize> for &'a Relocatable {
-    type Output = Relocatable;
-
-    fn add(self, other: usize) -> Self::Output {
-        Relocatable {
-            segment_index: self.segment_index,
-            offset: self.offset + other,
-        }
-    }
-}
-
 /// Turns a MaybeRelocatable into a Felt252 value.
 /// If the value is an Int, it will extract the Felt252 value from it.
 /// If the value is RelocatableValue, it will relocate it according to the relocation_table
