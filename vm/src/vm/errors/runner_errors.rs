@@ -3,6 +3,7 @@
 
 use crate::stdlib::{collections::HashSet, prelude::*};
 use crate::types::builtin_name::BuiltinName;
+use crate::types::layout_name::LayoutName;
 use thiserror_no_std::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
@@ -40,9 +41,7 @@ pub enum RunnerError {
     #[error("EcOpBuiltin: point {0:?} is not on the curve")]
     PointNotOnCurve(Box<(Felt252, Felt252)>),
     #[error("Builtin(s) {:?} not present in layout {}", (*.0).0, (*.0).1)]
-    NoBuiltinForInstance(Box<(HashSet<BuiltinName>, String)>),
-    #[error("Invalid layout {0}")]
-    InvalidLayoutName(Box<str>),
+    NoBuiltinForInstance(Box<(HashSet<BuiltinName>, LayoutName)>),
     #[error("end_run called twice.")]
     EndRunCalledTwice,
     #[error("end_run must be called before finalize_segments.")]

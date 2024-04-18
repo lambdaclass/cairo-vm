@@ -1243,6 +1243,7 @@ mod tests {
     use super::*;
     use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::{
         any_box,
@@ -4305,7 +4306,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm, false).unwrap();
@@ -4330,7 +4331,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm, false).unwrap();

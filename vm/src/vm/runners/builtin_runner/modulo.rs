@@ -685,6 +685,7 @@ mod tests {
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            types::layout_name::LayoutName,
             utils::test_utils::Program,
             vm::runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
             Felt252,
@@ -696,7 +697,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner = CairoRunner::new(&program, "all_cairo", true).unwrap();
+        let mut runner = CairoRunner::new(&program, LayoutName::all_cairo, true).unwrap();
 
         let mut vm = VirtualMachine::new(false);
         let end = runner.initialize(&mut vm, false).unwrap();

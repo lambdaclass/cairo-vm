@@ -1,4 +1,7 @@
-use crate::{felt_str, types::builtin_name::BuiltinName};
+use crate::{
+    felt_str,
+    types::{builtin_name::BuiltinName, layout_name::LayoutName},
+};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -37,7 +40,7 @@ fn pedersen_test() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -119,7 +122,7 @@ fn common_signature() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -194,7 +197,7 @@ fn relocate_segments() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -253,7 +256,7 @@ fn serialize_cairo_pie() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "small",
+            layout: LayoutName::small,
             ..Default::default()
         },
         &mut hint_processor,

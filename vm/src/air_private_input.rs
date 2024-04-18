@@ -204,6 +204,7 @@ impl AirPrivateInputSerializable {
 
 #[cfg(test)]
 mod tests {
+    use crate::types::layout_name::LayoutName;
     #[cfg(feature = "std")]
     use {
         super::*,
@@ -291,7 +292,7 @@ mod tests {
             proof_mode: true,
             relocate_mem: true,
             trace_enabled: true,
-            layout: "small",
+            layout: LayoutName::small,
             ..Default::default()
         };
         let (runner, vm) = crate::cairo_run::cairo_run(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"), &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();

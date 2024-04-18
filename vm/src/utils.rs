@@ -249,7 +249,12 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, "all_cairo", false).unwrap()
+            CairoRunner::new(
+                &$program,
+                crate::types::layout_name::LayoutName::all_cairo,
+                false,
+            )
+            .unwrap()
         };
         ($program:expr, $layout:expr) => {
             CairoRunner::new(&$program, $layout, false).unwrap()

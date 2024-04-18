@@ -1,7 +1,7 @@
 use cairo_vm::{
     cairo_run::{cairo_run_program, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    types::program::Program,
+    types::{layout_name::LayoutName, program::Program},
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::path::Path;
@@ -51,7 +51,7 @@ fn main() {
             entrypoint: "main",
             trace_enabled: false,
             relocate_mem: false,
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             proof_mode: true,
             secure_run: Some(false),
             ..Default::default()
