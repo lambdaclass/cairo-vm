@@ -49,7 +49,7 @@ use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
-use super::builtin_runner::ModBuiltinRunner;
+use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
     builtin_runner::{
         KeccakBuiltinRunner, PoseidonBuiltinRunner, RC_N_PARTS_96, RC_N_PARTS_STANDARD,
@@ -1426,11 +1426,11 @@ impl CairoRunner {
             metadata,
             memory: (&vm.segments.memory).into(),
             execution_resources: self.get_execution_resources(vm)?,
-            additional_data: vm
+            additional_data: CairoPieAdditionalData(vm
                 .builtin_runners
                 .iter()
                 .map(|b| (b.name(), b.get_additional_data()))
-                .collect(),
+                .collect()),
             version: CairoPieVersion { cairo_pie: () },
         })
     }

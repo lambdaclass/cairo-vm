@@ -69,12 +69,17 @@ pub enum BuiltinAdditionalData {
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieAdditionalData(
+    #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
+    pub HashMap<BuiltinName, BuiltinAdditionalData>
+);
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub additional_data: HashMap<BuiltinName, BuiltinAdditionalData>,
+    pub additional_data: CairoPieAdditionalData,
     pub version: CairoPieVersion,
 }
 
