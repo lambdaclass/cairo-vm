@@ -136,6 +136,8 @@ impl BuiltinName {
         }
     }
 
+    // Implementing this as a trait would generate confusion as `Display` impl uses suffixed version
+    #[allow(clippy::should_implement_trait)]
     /// Converts a [`BuiltinName`] from its string representation
     ///
     /// ## Example
