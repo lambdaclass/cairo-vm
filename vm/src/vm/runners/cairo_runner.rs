@@ -568,10 +568,7 @@ impl CairoRunner {
             } else {
                 let mut stack_prefix = vec![
                     Into::<MaybeRelocatable>::into(
-                        self.execution_base
-                            .as_ref()
-                            .ok_or(RunnerError::NoExecBase)?
-                            + target_offset,
+                        (self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?,
                     ),
                     MaybeRelocatable::from(Felt252::zero()),
                 ];
@@ -589,20 +586,16 @@ impl CairoRunner {
                 )?;
             }
 
-            self.initial_fp = Some(
-                self.execution_base
-                    .as_ref()
-                    .ok_or(RunnerError::NoExecBase)?
-                    + target_offset,
-            );
+            self.initial_fp =
+                Some((self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?);
 
             self.initial_ap = self.initial_fp;
-            return Ok(self.program_base.as_ref().ok_or(RunnerError::NoProgBase)?
+            return Ok((self.program_base.ok_or(RunnerError::NoProgBase)?
                 + self
                     .program
                     .shared_program_data
                     .end
-                    .ok_or(RunnerError::NoProgramEnd)?);
+                    .ok_or(RunnerError::NoProgramEnd)?)?);
         }
 
         let return_fp = vm.segments.add();
