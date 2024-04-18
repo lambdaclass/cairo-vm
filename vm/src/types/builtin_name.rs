@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{self, Arbitrary};
 
+// Internal constants
 const OUTPUT_BUILTIN_NAME: &str = "output";
 const HASH_BUILTIN_NAME: &str = "pedersen";
 const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
@@ -29,7 +30,7 @@ const SEGMENT_ARENA_BUILTIN_NAME_WITH_SUFFIX: &str = "segment_arena_builtin";
 const ADD_MOD_BUILTIN_NAME_WITH_SUFFIX: &str = "add_mod_builtin";
 const MUL_MOD_BUILTIN_NAME_WITH_SUFFIX: &str = "mul_mod_builtin";
 
-// This enum is used to deserialize program builtins into &str and catch non-valid names
+/// Enum representing the name of a cairo builtin
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
@@ -49,6 +50,17 @@ pub enum BuiltinName {
 }
 
 impl BuiltinName {
+    /// Converts a [`BuiltinName`] to its string representation adding the "_builtin" suffix
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use cairo_vm::types::builtin_name::BuiltinName;
+    ///
+    /// let builtin_name = BuiltinName::poseidon;
+    /// assert_eq!(builtin_name.to_str_with_suffix(), "poseidon_builtin");
+    ///
+    /// ```
     pub const fn to_str_with_suffix(&self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME_WITH_SUFFIX,
@@ -65,9 +77,18 @@ impl BuiltinName {
             BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME_WITH_SUFFIX,
         }
     }
-}
 
-impl BuiltinName {
+    /// Converts a [`BuiltinName`] to its string representation
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use cairo_vm::types::builtin_name::BuiltinName;
+    ///
+    /// let builtin_name = BuiltinName::poseidon;
+    /// assert_eq!(builtin_name.to_str(), "poseidon");
+    ///
+    /// ```
     pub fn to_str(&self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME,
@@ -85,6 +106,18 @@ impl BuiltinName {
         }
     }
 
+    /// Converts a [`BuiltinName`] from its string representation removing the "_builtin" suffix
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use cairo_vm::types::builtin_name::BuiltinName;
+    ///
+    /// assert_eq!(BuiltinName::from_str_with_suffix("poseidon_builtin"), Some(BuiltinName::poseidon));
+    ///
+    /// assert_eq!(BuiltinName::from_str_with_suffix("unknown"), None);
+    ///
+    /// ```
     pub fn from_str_with_suffix(suffixed_str: &str) -> Option<Self> {
         match suffixed_str {
             OUTPUT_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::output),
@@ -103,6 +136,18 @@ impl BuiltinName {
         }
     }
 
+    /// Converts a [`BuiltinName`] from its string representation
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use cairo_vm::types::builtin_name::BuiltinName;
+    ///
+    /// assert_eq!(BuiltinName::from_str("poseidon"), Some(BuiltinName::poseidon));
+    ///
+    /// assert_eq!(BuiltinName::from_str("unknown"), None);
+    ///
+    /// ```
     pub fn from_str(str: &str) -> Option<Self> {
         match str {
             OUTPUT_BUILTIN_NAME => Some(BuiltinName::output),
@@ -122,6 +167,7 @@ impl BuiltinName {
     }
 }
 
+// Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
 impl core::fmt::Display for BuiltinName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.to_str_with_suffix().fmt(f)
