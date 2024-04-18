@@ -179,7 +179,7 @@ impl core::fmt::Display for BuiltinName {
 // Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
 pub(crate) mod serde_generic_map_impl {
     use super::BuiltinName;
-    use crate::stdlib::collections::HashMap;
+    use crate::stdlib::{collections::HashMap, string::String};
     use serde::{de::Error, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<S, V>(
