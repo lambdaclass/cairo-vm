@@ -183,8 +183,12 @@ impl SignatureBuiltinRunner {
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
         for (addr, signature) in self.signatures.borrow().iter() {
-            if let (Ok(pubkey), Ok(msg)) = (memory.get_integer(*addr), memory.get_integer(addr + 1))
-            {
+            if let (Ok(pubkey), Some(msg)) = (
+                memory.get_integer(*addr),
+                (*addr + 1_usize)
+                    .ok()
+                    .and_then(|addr| memory.get_integer(addr).ok()),
+            ) {
                 private_inputs.push(PrivateInput::Signature(PrivateInputSignature {
                     index: addr
                         .offset
