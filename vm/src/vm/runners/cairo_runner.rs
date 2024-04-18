@@ -1529,7 +1529,7 @@ pub struct SegmentInfo {
 pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
-    #[serde(serialize_with = "crate::types::builtin_name::serde_impl::serialize_builtin_name_map_with_suffix")]
+    #[serde(with = "crate::types::builtin_name::serde_impl")]
     pub builtin_instance_counter: HashMap<BuiltinName, usize>,
 }
 
