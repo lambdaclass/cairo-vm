@@ -110,7 +110,7 @@ impl core::fmt::Display for BuiltinName {
     }
 }
 
-pub(crate) mod serde_impl {
+pub(crate) mod serde_generic_map_impl {
     use super::BuiltinName;
     use crate::stdlib::collections::HashMap;
     use serde::{de::Error, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
