@@ -93,7 +93,7 @@ impl CairoLayout {
             rc_units: 4,
             builtins: BuiltinsInstanceDef::recursive_with_poseidon(),
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(9, 4, 16)),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(8, 4, 16)),
         }
     }
 
