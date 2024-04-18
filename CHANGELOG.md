@@ -12,7 +12,7 @@
   * Remove `BuiltinRunner` & `ModBuiltinRunner` method `identifier`
   * Structs containing string representation of builtin names now use `BuiltinName` instead:
     * `AirPrivateInput(pub HashMap<&'static str, Vec<PrivateInput>>)` ->  `AirPrivateInput(pub HashMap<BuiltinName, Vec<PrivateInput>>)`.
-    * `CairoPieMetadata` field `additional_data`: `HashMap<String, BuiltinAdditionalData>,` -> `HashMap<BuiltinName, BuiltinAdditionalData>`.
+    * `CairoPieMetadata` field `additional_data`: `HashMap<String, BuiltinAdditionalData>,` -> `CairoPieAdditionalData` with `CairoPieAdditionalData(pub HashMap<BuiltinName, BuiltinAdditionalData>)`
     * `CairoPieMetadata` field `builtin_segments`: `HashMap<String, SegmentInfo>` -> `HashMap<BuiltinName, SegmentInfo>`.
     * `ExecutiobResources` field `builtin_instance_counter`: `HashMap<String, usize>` -> `HashMap<BuiltinName, usize>`
   * Methods returning string representation of builtin names now use `BuiltinName` instead:
