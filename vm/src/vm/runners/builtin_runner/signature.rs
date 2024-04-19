@@ -220,13 +220,14 @@ mod tests {
     use super::*;
     use crate::{
         relocatable,
+        types::builtin_name::BuiltinName,
         utils::test_utils::*,
         vm::{
             errors::{
                 memory_errors::{InsufficientAllocatedCellsError, MemoryError},
                 runner_errors::RunnerError,
             },
-            runners::builtin_runner::{BuiltinRunner, SIGNATURE_BUILTIN_NAME},
+            runners::builtin_runner::BuiltinRunner,
             vm_core::VirtualMachine,
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
@@ -310,7 +311,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                SIGNATURE_BUILTIN_NAME,
+                BuiltinName::ecdsa,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))))
@@ -337,7 +338,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(SIGNATURE_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::ecdsa)))
         );
     }
 
@@ -427,7 +428,7 @@ mod tests {
             Err(MemoryError::InsufficientAllocatedCells(
                 InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
                     512,
-                    SIGNATURE_BUILTIN_NAME
+                    BuiltinName::ecdsa
                 )))
             ))
         )
@@ -444,7 +445,7 @@ mod tests {
             builtin.get_used_cells_and_allocated_size(&vm),
             Err(MemoryError::InsufficientAllocatedCells(
                 InsufficientAllocatedCellsError::BuiltinCells(Box::new((
-                    SIGNATURE_BUILTIN_NAME,
+                    BuiltinName::ecdsa,
                     50,
                     2
                 )))
@@ -461,7 +462,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, (0, 1).into()),
             Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                SIGNATURE_BUILTIN_NAME,
+                BuiltinName::ecdsa,
                 relocatable!(1, 0),
                 0
             ))))

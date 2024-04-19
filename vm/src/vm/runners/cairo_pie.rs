@@ -1,8 +1,8 @@
 use super::cairo_runner::ExecutionResources;
 use crate::stdlib::prelude::{String, Vec};
+use crate::types::builtin_name::BuiltinName;
 use crate::vm::errors::cairo_pie_errors::CairoPieValidationError;
 use crate::{
-    serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
@@ -71,11 +71,17 @@ pub enum BuiltinAdditionalData {
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieAdditionalData(
+    #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
+    pub  HashMap<BuiltinName, BuiltinAdditionalData>,
+);
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    pub additional_data: HashMap<String, BuiltinAdditionalData>,
+    pub additional_data: CairoPieAdditionalData,
     pub version: CairoPieVersion,
 }
 
@@ -131,61 +137,114 @@ impl CairoPie {
         Ok(())
     }
 
+    pub fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
+        self.metadata.run_validity_checks()?;
+        self.run_memory_validity_checks()?;
+        if self.execution_resources.builtin_instance_counter.len()
+            != self.metadata.program.builtins.len()
+            || !self.metadata.program.builtins.iter().all(|b| {
+                self.execution_resources
+                    .builtin_instance_counter
+                    .contains_key(b)
+            })
+        {
+            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
+        }
+        Ok(())
+    }
+
+    fn run_memory_validity_checks(&self) -> Result<(), CairoPieValidationError> {
+        let mut segment_sizes = vec![
+            &self.metadata.program_segment,
+            &self.metadata.execution_segment,
+            &self.metadata.ret_fp_segment,
+            &self.metadata.ret_pc_segment,
+        ];
+        segment_sizes.extend(self.metadata.builtin_segments.values());
+        segment_sizes.extend(self.metadata.extra_segments.iter());
+        let segment_sizes: HashMap<isize, usize> =
+            HashMap::from_iter(segment_sizes.iter().map(|si| (si.index, si.size)));
+
+        let validate_addr = |addr: Relocatable| -> Result<(), CairoPieValidationError> {
+            if !segment_sizes
+                .get(&addr.segment_index)
+                .is_some_and(|size| addr.offset < *size)
+            {
+                return Err(CairoPieValidationError::InvalidAddress);
+            }
+            Ok(())
+        };
+
+        for ((si, so), value) in self.memory.0.iter() {
+            validate_addr((*si as isize, *so).into())?;
+            if let MaybeRelocatable::RelocatableValue(val) = value {
+                validate_addr(*val)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl CairoPieMetadata {
-    pub fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
+    pub(crate) fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
         if self.program.main > self.program.data.len() {
-            return Err(CairoPieValidationError::InvalidMainAddress)
+            return Err(CairoPieValidationError::InvalidMainAddress);
         }
         if self.program.data.len() != self.program_segment.size {
-            return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch)
+            return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch);
         }
-        if self.builtin_segments.len() != self.program.builtins.len() || !self.program.builtins.iter().all(|b| self.builtin_segments.contains_key(b)) {
-            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch)
+        if self.builtin_segments.len() != self.program.builtins.len()
+            || !self
+                .program
+                .builtins
+                .iter()
+                .all(|b| self.builtin_segments.contains_key(b))
+        {
+            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
         }
         if !self.ret_fp_segment.size.is_zero() {
-            return Err(CairoPieValidationError::InvalidRetFpSegmentSize)
+            return Err(CairoPieValidationError::InvalidRetFpSegmentSize);
         }
         if !self.ret_pc_segment.size.is_zero() {
-            return Err(CairoPieValidationError::InvalidRetPcSegmentSize)
+            return Err(CairoPieValidationError::InvalidRetPcSegmentSize);
         }
         self.validate_segment_order()
     }
 
     fn validate_segment_order(&self) -> Result<(), CairoPieValidationError> {
         if !self.program_segment.index.is_zero() {
-            return Err(CairoPieValidationError::InvalidProgramSegmentIndex)
+            return Err(CairoPieValidationError::InvalidProgramSegmentIndex);
         }
         if !self.execution_segment.index.is_one() {
-            return Err(CairoPieValidationError::InvalidExecutionSegmentIndex)
+            return Err(CairoPieValidationError::InvalidExecutionSegmentIndex);
         }
         for (i, builtin_name) in self.program.builtins.iter().enumerate() {
             // We can safely index as run_validity_checks already ensures that the keys match
             if self.builtin_segments[builtin_name].index != 2 + i as isize {
-                return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(builtin_name.name()))
+                return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(
+                    *builtin_name,
+                ));
             }
         }
         let n_builtins = self.program.builtins.len() as isize;
         if self.ret_fp_segment.index != n_builtins + 2 {
-            return Err(CairoPieValidationError::InvalidRetFpSegmentIndex)
+            return Err(CairoPieValidationError::InvalidRetFpSegmentIndex);
         }
         if self.ret_pc_segment.index != n_builtins + 3 {
-            return Err(CairoPieValidationError::InvalidRetPcSegmentIndex)
+            return Err(CairoPieValidationError::InvalidRetPcSegmentIndex);
         }
         for (i, segment) in self.extra_segments.iter().enumerate() {
             if segment.index != 4 + n_builtins + i as isize {
-                return Err(CairoPieValidationError::InvalidExtraSegmentIndex)
+                return Err(CairoPieValidationError::InvalidExtraSegmentIndex);
             }
         }
-
         Ok(())
     }
 }
 
 mod serde_impl {
-    use crate::serde::deserialize_program::BuiltinName;
     use crate::stdlib::collections::HashMap;
+    use crate::types::builtin_name::BuiltinName;
     use num_traits::Num;
     use serde::ser::SerializeMap;
 

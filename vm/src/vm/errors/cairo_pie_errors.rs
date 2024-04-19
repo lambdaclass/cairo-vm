@@ -1,5 +1,7 @@
 use thiserror_no_std::Error;
 
+use crate::types::builtin_name::BuiltinName;
+
 #[derive(Eq, Hash, PartialEq, Debug, Error)]
 pub enum CairoPieValidationError {
     #[error("Invalid main() address.")]
@@ -17,11 +19,13 @@ pub enum CairoPieValidationError {
     #[error("Invalid segment index for execution_segment.")]
     InvalidExecutionSegmentIndex,
     #[error("Invalid segment index for {0}.")]
-    InvalidBuiltinSegmentIndex(&'static str),
+    InvalidBuiltinSegmentIndex(BuiltinName),
     #[error("Invalid segment index for ret_fp_segment.")]
     InvalidRetFpSegmentIndex,
     #[error("Invalid segment index for ret_pc_segment.")]
     InvalidRetPcSegmentIndex,
     #[error("Invalid segment indices for extra_segments.")]
-    InvalidExtraSegmentIndex
+    InvalidExtraSegmentIndex,
+    #[error("Invalid address")]
+    InvalidAddress,
 }
