@@ -129,15 +129,14 @@ impl HashBuiltinRunner {
         };
         let mut verified_addresses = self.verified_addresses.borrow_mut();
         for addr in additional_data {
-            if addr.segment_index == self.base as isize {
-                // Mark offset as verified
-                if addr.offset > verified_addresses.len() {
-                    verified_addresses.resize(addr.offset, false);
-                }
-                verified_addresses.insert(addr.offset, true)
-            } else {
+            if addr.segment_index != self.base as isize {
                 return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
             }
+            // Mark offset as verified
+            if addr.offset > verified_addresses.len() {
+                verified_addresses.resize(addr.offset, false);
+            }
+            verified_addresses.insert(addr.offset, true)
         }
         Ok(())
     }
