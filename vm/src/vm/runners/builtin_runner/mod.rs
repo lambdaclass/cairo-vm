@@ -508,6 +508,18 @@ impl BuiltinRunner {
         }
     }
 
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        match self {
+            BuiltinRunner::Hash(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Output(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Signature(builtin) => builtin.extend_additional_data(additional_data),
+            _ => Ok(()),
+        }
+    }
+
     // Returns information about the builtin that should be added to the AIR private input.
     pub fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
         match self {
