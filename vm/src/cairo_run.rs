@@ -126,19 +126,16 @@ pub fn cairo_run_pie(
         return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
     }
     pie.run_validity_checks()?;
-    let secure_run = cairo_run_config
-        .secure_run
-        .unwrap_or(true);
+    let secure_run = cairo_run_config.secure_run.unwrap_or(true);
 
-    let allow_missing_builtins = cairo_run_config
-        .allow_missing_builtins
-        .unwrap_or_default();
+    let allow_missing_builtins = cairo_run_config.allow_missing_builtins.unwrap_or_default();
 
     let program = Program::from_stripped_program(&pie.metadata.program);
     let mut cairo_runner = CairoRunner::new(&program, cairo_run_config.layout, false)?;
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
+    vm.finalize_segments_by_cairo_pie(pie);
     // Load previous execution memory
     let n_extra_segments = pie.metadata.extra_segments.len();
     vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;

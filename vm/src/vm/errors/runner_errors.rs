@@ -129,7 +129,7 @@ pub enum RunnerError {
     #[error("The number of steps in the Cairo PIE's execution resources does not match the number of steps in the RunResources")]
     PieNStepsVsRunResourcesNStepsMismatch,
     #[error("A Cairo PIE can not be ran in proof_mode")]
-    CairoPieProofMode
+    CairoPieProofMode,
 }
 
 #[cfg(test)]
