@@ -116,6 +116,9 @@ pub fn cairo_run_pie(
     cairo_run_config: &CairoRunConfig,
     hint_processor: &mut dyn HintProcessor,
 ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    if cairo_run_config.proof_mode {
+        return Err(RunnerError::CairoPieProofMode.into());
+    }
     if !hint_processor
         .get_n_steps()
         .is_some_and(|steps| steps == pie.execution_resources.n_steps)
@@ -125,11 +128,11 @@ pub fn cairo_run_pie(
     pie.run_validity_checks()?;
     let secure_run = cairo_run_config
         .secure_run
-        .unwrap_or(!cairo_run_config.proof_mode);
+        .unwrap_or(true);
 
     let allow_missing_builtins = cairo_run_config
         .allow_missing_builtins
-        .unwrap_or(cairo_run_config.proof_mode);
+        .unwrap_or_default();
 
     let program = Program::from_stripped_program(&pie.metadata.program);
     let mut cairo_runner = CairoRunner::new(&program, cairo_run_config.layout, false)?;
@@ -145,9 +148,6 @@ pub fn cairo_run_pie(
         .run_until_pc(end, &mut vm, hint_processor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
 
-    if cairo_run_config.proof_mode {
-        cairo_runner.run_for_steps(1, &mut vm, hint_processor)?;
-    }
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
         false,
@@ -157,9 +157,7 @@ pub fn cairo_run_pie(
 
     vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
-    if cairo_run_config.proof_mode {
-        cairo_runner.finalize_segments(&mut vm)?;
-    }
+
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
     }
