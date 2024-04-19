@@ -715,7 +715,7 @@ fn finalize_builtins(
     let mut builtin_name_to_stack_pointer = HashMap::new();
     for (id, size) in ret_types_and_sizes {
         if let Some(ref name) = id.debug_name {
-            let builtin_name = match &*name.to_string() {
+            let builtin_name = match name.as_str() {
                 "RangeCheck" => BuiltinName::range_check,
                 "Poseidon" => BuiltinName::poseidon,
                 "EcOp" => BuiltinName::ec_op,

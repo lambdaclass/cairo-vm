@@ -182,6 +182,7 @@ impl CairoRunner {
             LayoutName::starknet => CairoLayout::starknet_instance(),
             LayoutName::starknet_with_keccak => CairoLayout::starknet_with_keccak_instance(),
             LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
+            LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => CairoLayout::dynamic_instance(),
