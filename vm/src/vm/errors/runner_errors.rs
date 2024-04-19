@@ -128,7 +128,7 @@ pub enum RunnerError {
     MissingBuiltinStopPtrNotZero(BuiltinName),
     #[error("The number of steps in the Cairo PIE's execution resources does not match the number of steps in the RunResources")]
     PieNStepsVsRunResourcesNStepsMismatch,
-    #[error("Cairo PIE can not be ran in proof_mode")]
+    #[error("A Cairo PIE can not be ran in proof_mode")]
     CairoPieProofMode
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    types::{layout_name::LayoutName, program::Program},
+    types::{builtin_name::BuiltinName, layout_name::LayoutName, program::Program},
     vm::{
         errors::{
             cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
@@ -143,6 +143,12 @@ pub fn cairo_run_pie(
     let n_extra_segments = pie.metadata.extra_segments.len();
     vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
     // Load builtin additional data
+    for (name, data) in pie.additional_data.0.iter() {
+        // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
+        if matches!(name, BuiltinName::pedersen) && secure_run {
+            continue;
+        }
+    }
 
     cairo_runner
         .run_until_pc(end, &mut vm, hint_processor)
