@@ -4,6 +4,11 @@
 
 * feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
 
+* refactor(BREAKING): Use an enum to represent layout name[#1715](https://github.com/lambdaclass/cairo-vm/pull/1715)
+  * Add enum `LayoutName` to represent cairo layout names.
+  * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
+  * `CairoLayout` field `name` type changed from `String` to `LayoutName`.
+
 * fix(BREAKING): Remove unsafe impl of `Add<usize> for &'a Relocatable`[#1718](https://github.com/lambdaclass/cairo-vm/pull/1718)
 
 * fix(BREAKING): Handle triple dereference references[#1708](https://github.com/lambdaclass/cairo-vm/pull/1708)

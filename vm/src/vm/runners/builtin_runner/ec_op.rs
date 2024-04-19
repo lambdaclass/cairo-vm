@@ -243,6 +243,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
@@ -834,7 +835,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
@@ -859,7 +860,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
