@@ -310,7 +310,11 @@ impl MemorySegmentManager {
         }
     }
 
-    pub(crate) fn load_pie_memory(&mut self, pie_memory: &CairoPieMemory, n_extra_segments: usize) -> Result<(), MemoryError> {
+    pub(crate) fn load_pie_memory(
+        &mut self,
+        pie_memory: &CairoPieMemory,
+        n_extra_segments: usize,
+    ) -> Result<(), MemoryError> {
         // Create extra segments
         for _ in 0..n_extra_segments {
             self.add();
@@ -318,7 +322,7 @@ impl MemorySegmentManager {
         // Load previous execution memory
         for ((si, so), val) in pie_memory.0.iter() {
             self.memory.insert((*si as isize, *so).into(), val)?;
-        } 
+        }
         Ok(())
     }
 }

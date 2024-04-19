@@ -2,7 +2,9 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{layout_name::LayoutName, program::Program},
     vm::{
-        errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
+        errors::{
+            cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
+        },
         runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
         security::verify_secure_runner,
         vm_core::VirtualMachine,
@@ -105,12 +107,21 @@ pub fn cairo_run(
     cairo_run_program(&program, cairo_run_config, hint_executor)
 }
 
-// proof_mode ignored
+// Note: Cairo PIEs cannot be ran in proof_mode
+// WARNING: As the RunResources are part of the HintProcessor trait, the caller should make sure that
+// the number of steps in the `RunResources` matches that of the `ExecutionResources` in the `CairoPie`.
+// An error will be returned if this doesn't hold.
 pub fn cairo_run_pie(
     pie: &CairoPie,
     cairo_run_config: &CairoRunConfig,
-    hint_executor: &mut dyn HintProcessor,
+    hint_processor: &mut dyn HintProcessor,
 ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    if !hint_processor
+        .get_n_steps()
+        .is_some_and(|steps| steps == pie.execution_resources.n_steps)
+    {
+        return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
+    }
     pie.run_validity_checks()?;
     let secure_run = cairo_run_config
         .secure_run
@@ -121,11 +132,7 @@ pub fn cairo_run_pie(
         .unwrap_or(cairo_run_config.proof_mode);
 
     let program = Program::from_stripped_program(&pie.metadata.program);
-    let mut cairo_runner = CairoRunner::new(
-        &program,
-        cairo_run_config.layout,
-        false,
-    )?;
+    let mut cairo_runner = CairoRunner::new(&program, cairo_run_config.layout, false)?;
 
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
@@ -135,17 +142,17 @@ pub fn cairo_run_pie(
     // Load builtin additional data
 
     cairo_runner
-        .run_until_pc(end, &mut vm, hint_executor)
+        .run_until_pc(end, &mut vm, hint_processor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
 
     if cairo_run_config.proof_mode {
-        cairo_runner.run_for_steps(1, &mut vm, hint_executor)?;
+        cairo_runner.run_for_steps(1, &mut vm, hint_processor)?;
     }
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
         false,
         &mut vm,
-        hint_executor,
+        hint_processor,
     )?;
 
     vm.verify_auto_deductions()?;

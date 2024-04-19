@@ -126,6 +126,8 @@ pub enum RunnerError {
     MissingBuiltin(BuiltinName),
     #[error("The stop pointer of the missing builtin {0} must be 0")]
     MissingBuiltinStopPtrNotZero(BuiltinName),
+    #[error("The number of steps in the Cairo PIE's execution resources does not match the number of steps in the RunResources")]
+    PieNStepsVsRunResourcesNStepsMismatch,
 }
 
 #[cfg(test)]
