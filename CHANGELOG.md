@@ -5,6 +5,11 @@
 * BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
   * `PublicInput` field `layout_params` renamed to `dynamic_params` & type changed from`&'a CairoLayout` to `()`.
 
+* refactor(BREAKING): Use an enum to represent layout name[#1715](https://github.com/lambdaclass/cairo-vm/pull/1715)
+  * Add enum `LayoutName` to represent cairo layout names.
+  * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
+  * `CairoLayout` field `name` type changed from `String` to `LayoutName`.
+
 * fix(BREAKING): Remove unsafe impl of `Add<usize> for &'a Relocatable`[#1718](https://github.com/lambdaclass/cairo-vm/pull/1718)
 
 * fix(BREAKING): Handle triple dereference references[#1708](https://github.com/lambdaclass/cairo-vm/pull/1708)
