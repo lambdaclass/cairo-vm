@@ -509,7 +509,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info() {
+    fn get_additional_data() {
         let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
         let signatures = HashMap::from([(
             Relocatable::from((4, 0)),
@@ -527,5 +527,32 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Signature(signatures)
         )
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let mut builtin_a = SignatureBuiltinRunner::new(Some(512), true);
+        let signatures = HashMap::from([(
+            Relocatable::from((0, 0)),
+            Signature {
+                r: FieldElement::from_dec_str("45678").unwrap(),
+                s: FieldElement::from_dec_str("1239").unwrap(),
+            },
+        )]);
+        builtin_a.signatures = Rc::new(RefCell::new(signatures));
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = SignatureBuiltinRunner::new(Some(512), true);
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        // Signature doesn't implement PartialEq so we can't comapre the list of signatures directly
+        let signatures_a = builtin_a.signatures.borrow();
+        let signatures_b = builtin_b.signatures.borrow();
+        assert_eq!(signatures_a.len(), signatures_b.len());
+        for ((addr_a, signature_a), (addr_b, signature_b)) in
+            signatures_a.iter().zip(signatures_b.iter())
+        {
+            assert_eq!(addr_a, addr_b);
+            assert_eq!(signature_a.r, signature_b.r);
+            assert_eq!(signature_a.s, signature_b.s);
+        }
     }
 }
