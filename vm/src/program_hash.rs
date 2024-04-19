@@ -2,8 +2,8 @@ use starknet_crypto::{pedersen_hash, FieldElement};
 
 use crate::Felt252;
 
-use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::vec::Vec;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::runners::cairo_pie::StrippedProgram;
 
@@ -58,15 +58,12 @@ where
 ///
 /// Converts the builtin name to bytes then attempts to create a field element from
 /// these bytes. This function will fail if the builtin name is over 31 characters.
-fn builtin_to_field_element(builtin: &BuiltinName) -> Result<FieldElement, ProgramHashError> {
+fn builtin_name_to_field_element(
+    builtin_name: &BuiltinName,
+) -> Result<FieldElement, ProgramHashError> {
     // The Python implementation uses the builtin name without suffix
-    let builtin_name = builtin
-        .name()
-        .strip_suffix("_builtin")
-        .unwrap_or(builtin.name());
-
-    FieldElement::from_byte_slice_be(builtin_name.as_bytes())
-        .map_err(|_| ProgramHashError::InvalidProgramBuiltin(builtin.name()))
+    FieldElement::from_byte_slice_be(builtin_name.to_str().as_bytes())
+        .map_err(|_| ProgramHashError::InvalidProgramBuiltin(builtin_name.to_str()))
 }
 
 /// The `value: FieldElement` is `pub(crate)` and there is no accessor.
@@ -111,7 +108,7 @@ pub fn compute_program_hash_chain(
     let builtin_list: Result<Vec<FieldElement>, _> = program
         .builtins
         .iter()
-        .map(builtin_to_field_element)
+        .map(builtin_name_to_field_element)
         .collect();
     let builtin_list = builtin_list?;
 
