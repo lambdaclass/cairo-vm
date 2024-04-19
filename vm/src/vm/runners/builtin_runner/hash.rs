@@ -136,6 +136,8 @@ impl HashBuiltinRunner {
                         verified_addresses.resize(addr.offset, false);
                     }
                     verified_addresses.insert(addr.offset, true)
+                } else {
+                    return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
                 }
             }
         }
