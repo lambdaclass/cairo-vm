@@ -128,17 +128,15 @@ impl HashBuiltinRunner {
             _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen)),
         };
         let mut verified_addresses = self.verified_addresses.borrow_mut();
-        if verified_addresses.is_empty() {
-            for addr in additional_data {
-                if addr.segment_index == self.base as isize {
-                    // Mark offset as verified
-                    if addr.offset > verified_addresses.len() {
-                        verified_addresses.resize(addr.offset, false);
-                    }
-                    verified_addresses.insert(addr.offset, true)
-                } else {
-                    return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
+        for addr in additional_data {
+            if addr.segment_index == self.base as isize {
+                // Mark offset as verified
+                if addr.offset > verified_addresses.len() {
+                    verified_addresses.resize(addr.offset, false);
                 }
+                verified_addresses.insert(addr.offset, true)
+            } else {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
             }
         }
         Ok(())
