@@ -2,7 +2,12 @@ use bincode::enc::write::Writer;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-use cairo_vm::{air_public_input::PublicInputError, vm::errors::trace_errors::TraceError, Felt252};
+use cairo_vm::{
+  air_public_input::PublicInputError,
+  types::layout_name::LayoutName,
+  vm::errors::trace_errors::TraceError,
+  Felt252
+};
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
 use std::{
@@ -19,8 +24,8 @@ struct Args {
     trace_file: Option<PathBuf>,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
-    layout: String,
+    #[clap(long = "layout", default_value = "plain", value_enum)]
+    layout: LayoutName,
     #[clap(long = "proof_mode", value_parser)]
     proof_mode: bool,
     #[clap(long = "air_public_input", requires = "proof_mode")]
@@ -90,22 +95,6 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
     Ok(FuncArgs(args))
 }
 
-fn validate_layout(value: &str) -> Result<String, String> {
-    match value {
-        "plain"
-        | "small"
-        | "dex"
-        | "recursive"
-        | "starknet"
-        | "starknet_with_keccak"
-        | "recursive_large_output"
-        | "all_cairo"
-        | "all_solidity"
-        | "dynamic" => Ok(value.to_string()),
-        _ => Err(format!("{value} is not a valid layout")),
-    }
-}
-
 pub struct FileWriter {
     buf_writer: io::BufWriter<std::fs::File>,
     bytes_written: usize,
@@ -146,7 +135,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         proof_mode: args.proof_mode,
         serialize_output: args.print_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
-        layout: &args.layout,
+        layout: args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
@@ -273,6 +262,14 @@ mod tests {
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res == "3628800");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bitwise_ok(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "11772");
     }
 
     #[rstest]

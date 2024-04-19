@@ -1,7 +1,7 @@
 use super::cairo_runner::ExecutionResources;
 use crate::stdlib::prelude::{String, Vec};
+use crate::types::builtin_name::BuiltinName;
 use crate::{
-    serde::deserialize_program::BuiltinName,
     stdlib::{collections::HashMap, prelude::*},
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
@@ -69,11 +69,17 @@ pub enum BuiltinAdditionalData {
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieAdditionalData(
+    #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
+    pub  HashMap<BuiltinName, BuiltinAdditionalData>,
+);
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPie {
     pub metadata: CairoPieMetadata,
     pub memory: CairoPieMemory,
     pub execution_resources: ExecutionResources,
-    pub additional_data: HashMap<String, BuiltinAdditionalData>,
+    pub additional_data: CairoPieAdditionalData,
     pub version: CairoPieVersion,
 }
 
@@ -85,7 +91,7 @@ pub struct CairoPieMetadata {
     pub ret_fp_segment: SegmentInfo,
     pub ret_pc_segment: SegmentInfo,
     #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
-    pub builtin_segments: HashMap<String, SegmentInfo>,
+    pub builtin_segments: HashMap<BuiltinName, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
 }
 
@@ -132,6 +138,7 @@ impl CairoPie {
 
 mod serde_impl {
     use crate::stdlib::collections::HashMap;
+    use crate::types::builtin_name::BuiltinName;
     use num_traits::Num;
     use serde::ser::SerializeMap;
 
@@ -323,26 +330,26 @@ mod serde_impl {
     }
 
     pub fn serialize_builtin_segments<S>(
-        values: &HashMap<String, SegmentInfo>,
+        values: &HashMap<BuiltinName, SegmentInfo>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
-        const BUILTIN_ORDERED_LIST: &[&str] = &[
-            "output",
-            "pedersen",
-            "range_check",
-            "ecdsa",
-            "bitwise",
-            "ec_op",
-            "keccak",
-            "poseidon",
+        const BUILTIN_ORDERED_LIST: &[BuiltinName] = &[
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
         ];
 
         for name in BUILTIN_ORDERED_LIST {
-            if let Some(info) = values.get(*name) {
+            if let Some(info) = values.get(name) {
                 map_serializer.serialize_entry(name, info)?
             }
         }
