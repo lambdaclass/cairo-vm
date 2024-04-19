@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `recursive_with_poseidon` layout[#1724](https://github.com/lambdaclass/cairo-vm/pull/1724)
+
 * refactor(BREAKING): Use an enum to represent layout name[#1715](https://github.com/lambdaclass/cairo-vm/pull/1715)
   * Add enum `LayoutName` to represent cairo layout names.
   * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
