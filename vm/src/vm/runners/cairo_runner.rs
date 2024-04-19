@@ -1435,11 +1435,6 @@ impl CairoRunner {
         })
     }
 
-    /// Return CairoRunner.layout
-    fn get_layout(&self) -> &CairoLayout {
-        &self.layout
-    }
-
     pub fn get_air_public_input(
         &self,
         vm: &VirtualMachine,
