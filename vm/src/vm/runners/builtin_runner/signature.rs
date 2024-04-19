@@ -2,8 +2,10 @@ use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInp
 use crate::math_utils::div_mod;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::types::builtin_name::BuiltinName;
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::Felt252;
 use crate::{
@@ -178,6 +180,31 @@ impl SignatureBuiltinRunner {
             })
             .collect();
         BuiltinAdditionalData::Signature(signatures)
+    }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Signature(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa)),
+        };
+        for (addr, (r, s)) in additional_data {
+            if addr.segment_index != self.base as isize {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa));
+            }
+            self.signatures.borrow_mut().insert(
+                *addr,
+                Signature {
+                    r: FieldElement::from_bytes_be(&r.to_bytes_be())
+                        .map_err(|_| MathError::ByteConversionError)?,
+                    s: FieldElement::from_bytes_be(&s.to_bytes_be())
+                        .map_err(|_| MathError::ByteConversionError)?,
+                },
+            );
+        }
+        Ok(())
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
