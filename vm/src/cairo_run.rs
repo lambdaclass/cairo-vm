@@ -1,10 +1,9 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    types::layout_name::LayoutName,
-    types::program::Program,
+    types::{layout_name::LayoutName, program::Program},
     vm::{
         errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
-        runners::cairo_runner::CairoRunner,
+        runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
         security::verify_secure_runner,
         vm_core::VirtualMachine,
     },
@@ -104,6 +103,62 @@ pub fn cairo_run(
     let program = Program::from_bytes(program_content, Some(cairo_run_config.entrypoint))?;
 
     cairo_run_program(&program, cairo_run_config, hint_executor)
+}
+
+// proof_mode ignored
+pub fn cairo_run_pie(
+    pie: &CairoPie,
+    cairo_run_config: &CairoRunConfig,
+    hint_executor: &mut dyn HintProcessor,
+) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    pie.run_validity_checks()?;
+    let secure_run = cairo_run_config
+        .secure_run
+        .unwrap_or(!cairo_run_config.proof_mode);
+
+    let allow_missing_builtins = cairo_run_config
+        .allow_missing_builtins
+        .unwrap_or(cairo_run_config.proof_mode);
+
+    let program = Program::from_stripped_program(&pie.metadata.program);
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        false,
+    )?;
+
+    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
+    let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
+    // Load previous execution memory
+    let n_extra_segments = pie.metadata.extra_segments.len();
+    vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
+    // Load builtin additional data
+
+    cairo_runner
+        .run_until_pc(end, &mut vm, hint_executor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+
+    if cairo_run_config.proof_mode {
+        cairo_runner.run_for_steps(1, &mut vm, hint_executor)?;
+    }
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        &mut vm,
+        hint_executor,
+    )?;
+
+    vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
+    if cairo_run_config.proof_mode {
+        cairo_runner.finalize_segments(&mut vm)?;
+    }
+    if secure_run {
+        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+    }
+    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
+
+    Ok((cairo_runner, vm))
 }
 
 #[cfg(feature = "arbitrary")]
