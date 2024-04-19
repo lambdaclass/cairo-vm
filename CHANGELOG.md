@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
+
 * refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
   * `BuiltinName` moved from `crate::serde::deserialize_program` module to `crate::types::builtin_name`.
     * Implement `BuiltinName` methods `to_str`, `to_str_with_suffix`, `from_str` & `from_str_with_suffix`.
