@@ -205,13 +205,20 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         append_return_values: args.append_return_values,
     };
 
-    let compiler_config = CompilerConfig {
-        replace_ids: true,
-        ..CompilerConfig::default()
+    // Try to parse the file as a sierra program
+    let file = std::fs::read(&args.filename)?;
+    let sierra_program = match serde_json::from_slice(&file) {
+        Ok(program) => program,
+        Err(_) => {
+            // If it fails, try to compile it as a cairo program
+            let compiler_config = CompilerConfig {
+                replace_ids: true,
+                ..CompilerConfig::default()
+            };
+            compile_cairo_project_at_path(&args.filename, compiler_config)
+                .map_err(|err| Error::SierraCompilation(err.to_string()))?
+        }
     };
-
-    let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
-        .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
     let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
