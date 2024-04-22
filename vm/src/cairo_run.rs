@@ -164,8 +164,7 @@ pub fn cairo_run_pie(
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
         // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE ran
-        let new_pie = cairo_runner.get_cairo_pie(&vm)?;
-        new_pie.check_pie_compatibility(&pie)?;
+        cairo_runner.get_cairo_pie(&vm)?.check_pie_compatibility(&pie)?;
     }
     cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
