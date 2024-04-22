@@ -28,4 +28,14 @@ pub enum CairoPieValidationError {
     InvalidExtraSegmentIndex,
     #[error("Invalid address")]
     InvalidAddress,
+    #[error("Cairo PIE diff: metadata mismatch")]
+    DiffMetadata,
+    #[error("Cairo PIE diff: memory mismatch")]
+    DiffMemory,
+    #[error("Cairo PIE diff: execution_resources mismatch")]
+    DiffExecutionResources,
+    #[error("Cairo PIE diff: additional_data mismatch")]
+    DiffAdditionalData,
+    #[error("Cairo PIE diff: additional_data[{0}] mismatch")]
+    DiffAdditionalDataForBuiltin(BuiltinName),
 }

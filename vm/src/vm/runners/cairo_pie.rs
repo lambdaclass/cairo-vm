@@ -183,6 +183,35 @@ impl CairoPie {
         }
         Ok(())
     }
+
+    /// Checks that the pie received is identical to self, skipping the fields execution_resources.n_steps, and additional_data[pedersen]
+    /// Stricter runs check more Pedersen addresses leading to different address lists
+    pub(crate) fn check_pie_compatibility(
+        &self,
+        pie: &CairoPie,
+    ) -> Result<(), CairoPieValidationError> {
+        if self.metadata != pie.metadata {
+            return Err(CairoPieValidationError::DiffMetadata);
+        }
+        if self.memory != pie.memory {
+            return Err(CairoPieValidationError::DiffMemory);
+        }
+        if self.execution_resources.n_steps != pie.execution_resources.n_steps
+            || self.execution_resources.builtin_instance_counter
+                != pie.execution_resources.builtin_instance_counter
+        {
+            return Err(CairoPieValidationError::DiffExecutionResources);
+        }
+        if self.additional_data.0.len() != pie.additional_data.0.len() {
+            return Err(CairoPieValidationError::DiffAdditionalData);
+        }
+        for (name, data) in self.additional_data.0.iter() {
+            if !pie.additional_data.0.get(name).is_some_and(|d| d == data) {
+                return Err(CairoPieValidationError::DiffAdditionalDataForBuiltin(*name));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl CairoPieMetadata {
