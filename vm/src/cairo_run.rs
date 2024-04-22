@@ -283,6 +283,7 @@ mod tests {
     };
     use bincode::enc::write::SliceWriter;
 
+    use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -444,13 +445,11 @@ mod tests {
         assert!(cairo_runner.relocated_trace.is_none());
     }
 
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_and_run_cairo_pie_fibonacci() {
+    #[rstest]
+    #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
+    fn get_and_run_cairo_pie_fibonacci( #[case] program_content: &[u8]) {
         // First run program to get Cairo PIE
         let cairo_pie = {
-            let program_content = include_bytes!("../../cairo_programs/fibonacci.json");
-
             let (runner, vm) = cairo_run(
                 program_content,
                 &CairoRunConfig::default(),
