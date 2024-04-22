@@ -137,6 +137,7 @@ impl CairoPie {
         Ok(())
     }
 
+    /// Check that self is a valid Cairo PIE
     pub fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
         self.metadata.run_validity_checks()?;
         self.run_memory_validity_checks()?;
@@ -186,7 +187,7 @@ impl CairoPie {
 
     /// Checks that the pie received is identical to self, skipping the fields execution_resources.n_steps, and additional_data[pedersen]
     /// Stricter runs check more Pedersen addresses leading to different address lists
-    pub(crate) fn check_pie_compatibility(
+    pub fn check_pie_compatibility(
         &self,
         pie: &CairoPie,
     ) -> Result<(), CairoPieValidationError> {
