@@ -101,9 +101,8 @@ pub struct StrippedProgram {
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
     pub main: usize,
-
-    // Dummy field for serialization only.
-    #[serde(serialize_with = "serde_impl::serialize_prime")]
+    // Dummy field
+    #[serde(with = "serde_impl::prime")]
     pub prime: (),
 }
 
@@ -175,6 +174,8 @@ pub(super) mod serde_impl {
 
     use super::CAIRO_PIE_VERSION;
     use super::{CairoPieMemory, SegmentInfo};
+    #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+    use crate::alloc::string::ToString;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -256,12 +257,37 @@ pub(super) mod serde_impl {
         where
             D: Deserializer<'de>,
         {
-            let felt_values = Vec::<serde_json::Number>::deserialize(d)?;
-            felt_values
+            let numbers = Vec::<serde_json::Number>::deserialize(d)?;
+            numbers
                 .into_iter()
                 .map(|n| Felt252::from_dec_str(&n.to_string()).map(|f| MaybeRelocatable::from(f)))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| D::Error::custom("Failed to deserilaize Felt252 value"))
+        }
+    }
+
+    pub mod prime {
+        use super::*;
+
+        pub fn serialize<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            // Note: This uses an API intended only for testing.
+            serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
+        }
+
+        pub fn deserialize<'de, D>(d: D) -> Result<(), D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let prime = serde_json::Number::deserialize(d)?;
+
+            if prime.to_string() != CAIRO_PRIME.to_string() {
+                Err(D::Error::custom("Invalid prime"))
+            } else {
+                Ok(())
+            }
         }
     }
 
@@ -342,17 +368,6 @@ pub(super) mod serde_impl {
             }
             res
         }
-    }
-
-    pub fn serialize_prime<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
-        use crate::alloc::string::ToString;
-
-        // Note: This uses an API intended only for testing.
-        serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
     }
 
     pub fn serialize_signature_additional_data<S>(
