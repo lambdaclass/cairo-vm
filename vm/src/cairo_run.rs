@@ -136,9 +136,6 @@ pub fn cairo_run_pie(
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
     vm.finalize_segments_by_cairo_pie(pie);
-    // Load previous execution memory
-    let n_extra_segments = pie.metadata.extra_segments.len();
-    vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
     // Load builtin additional data
     for (name, data) in pie.additional_data.0.iter() {
         // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
@@ -149,6 +146,9 @@ pub fn cairo_run_pie(
             builtin.extend_additional_data(data)?;
         }
     }
+    // Load previous execution memory
+    let n_extra_segments = pie.metadata.extra_segments.len();
+    vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
 
     cairo_runner
         .run_until_pc(end, &mut vm, hint_processor)
@@ -453,6 +453,8 @@ mod tests {
     #[rstest]
     #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
     #[case(include_bytes!("../../cairo_programs/integration.json"))]
+    #[case(include_bytes!("../../cairo_programs/common_signature.json"))]
+    #[case(include_bytes!("../../cairo_programs/relocate_segments.json"))]
     fn get_and_run_cairo_pie(#[case] program_content: &[u8]) {
         let cairo_run_config = CairoRunConfig {
             layout: LayoutName::starknet_with_keccak,
