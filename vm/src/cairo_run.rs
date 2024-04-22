@@ -452,12 +452,17 @@ mod tests {
 
     #[rstest]
     #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
-    fn get_and_run_cairo_pie_fibonacci(#[case] program_content: &[u8]) {
+    #[case(include_bytes!("../../cairo_programs/integration.json"))]
+    fn get_and_run_cairo_pie(#[case] program_content: &[u8]) {
+        let cairo_run_config = CairoRunConfig {
+            layout: LayoutName::starknet_with_keccak,
+            ..Default::default()
+        };
         // First run program to get Cairo PIE
         let cairo_pie = {
             let (runner, vm) = cairo_run(
                 program_content,
-                &CairoRunConfig::default(),
+                &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),
             )
             .unwrap();
@@ -467,6 +472,6 @@ mod tests {
             Default::default(),
             RunResources::new(cairo_pie.execution_resources.n_steps),
         );
-        cairo_run_pie(&cairo_pie, &CairoRunConfig::default(), &mut hint_processor).unwrap();
+        assert!(cairo_run_pie(&cairo_pie, &cairo_run_config, &mut hint_processor).is_ok());
     }
 }
