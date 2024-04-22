@@ -1,5 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
+    types::layout_name::LayoutName,
     types::program::Program,
     vm::{
         errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
@@ -15,7 +16,7 @@ use bincode::enc::write::Writer;
 use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
-use arbitrary::{self, Arbitrary, Unstructured};
+use arbitrary::{self, Arbitrary};
 
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
@@ -23,28 +24,11 @@ pub struct CairoRunConfig<'a> {
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
-    #[cfg_attr(feature = "arbitrary", arbitrary(with = arbitrary_layout))]
-    pub layout: &'a str,
+    pub layout: LayoutName,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
     pub disable_trace_padding: bool,
     pub allow_missing_builtins: Option<bool>,
-}
-
-#[cfg(feature = "arbitrary")]
-fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<&'a str> {
-    let layouts = [
-        "plain",
-        "small",
-        "dex",
-        "starknet",
-        "starknet_with_keccak",
-        "recursive_large_output",
-        "all_cairo",
-        "all_solidity",
-        "dynamic",
-    ];
-    Ok(u.choose(&layouts)?)
 }
 
 impl<'a> Default for CairoRunConfig<'a> {
@@ -53,7 +37,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             entrypoint: "main",
             trace_enabled: false,
             relocate_mem: false,
-            layout: "plain",
+            layout: LayoutName::plain,
             proof_mode: false,
             secure_run: None,
             disable_trace_padding: false,
