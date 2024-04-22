@@ -205,13 +205,20 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         append_return_values: args.append_return_values,
     };
 
-    let compiler_config = CompilerConfig {
-        replace_ids: true,
-        ..CompilerConfig::default()
+    // Try to parse the file as a sierra program
+    let file = std::fs::read(&args.filename)?;
+    let sierra_program = match serde_json::from_slice(&file) {
+        Ok(program) => program,
+        Err(_) => {
+            // If it fails, try to compile it as a cairo program
+            let compiler_config = CompilerConfig {
+                replace_ids: true,
+                ..CompilerConfig::default()
+            };
+            compile_cairo_project_at_path(&args.filename, compiler_config)
+                .map_err(|err| Error::SierraCompilation(err.to_string()))?
+        }
     };
-
-    let sierra_program = compile_cairo_project_at_path(&args.filename, compiler_config)
-        .map_err(|err| Error::SierraCompilation(err.to_string()))?;
 
     let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
@@ -326,6 +333,14 @@ mod tests {
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res == "3628800");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bitwise_ok(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "11772");
     }
 
     #[rstest]

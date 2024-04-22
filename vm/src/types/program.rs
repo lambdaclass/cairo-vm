@@ -18,8 +18,8 @@ use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
-        InstructionLocation, OffsetValue, ReferenceManager,
+        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
+        OffsetValue, ReferenceManager,
     },
     types::{
         errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,
@@ -32,6 +32,7 @@ use core::num::NonZeroUsize;
 #[cfg(feature = "std")]
 use std::path::Path;
 
+use super::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use super::relocatable::Relocatable;
 #[cfg(all(feature = "arbitrary", feature = "std"))]
