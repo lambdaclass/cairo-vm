@@ -71,8 +71,14 @@ The cairo1-run cli supports the following optional arguments:
 
 # Running scarb projects
 
-First compile your project running `scarb build`
+As cairo1-run skips gas checks when running, you will need to add the following to your Scarb.toml to ensure that compilation is done without adding gas checks:
 
+```toml
+[cairo]
+enable-gas = false
+```
+
+First compile your project running `scarb build`
 
 Then run the compiled project's sierra file located at `project_name/target/project_name.sierra.json`
 
