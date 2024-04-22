@@ -151,8 +151,12 @@ impl CairoPie {
         zip_reader
             .by_name("metadata.json")?
             .read_to_end(&mut metadata)?;
-        let metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
-        dbg!(metadata);
+        let _metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
+        let mut memory = vec![];
+        zip_reader
+            .by_name("memory.bin")?
+            .read_to_end(&mut memory)?;
+        let _memory = CairoPieMemory::from_bytes(&memory);
         // zip_writer.start_file("metadata.json", options)?;
         // zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
         // zip_writer.start_file("memory.bin", options)?;
@@ -169,6 +173,7 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
+    use num_integer::Integer;
     use num_traits::Num;
     use serde::ser::SerializeMap;
 
@@ -187,6 +192,7 @@ pub(super) mod serde_impl {
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
+    pub const CELL_BYTE_LEN: usize = ADDR_BYTE_LEN + FIELD_BYTE_LEN;
     pub const ADDR_BASE: u64 = 0x8000000000000000; // 2 ** (8 * ADDR_BYTE_LEN - 1)
     pub const OFFSET_BASE: u64 = 0x800000000000; // 2 ** OFFSET_BIT_LEN
     pub const RELOCATE_BASE: &str =
@@ -367,6 +373,41 @@ pub(super) mod serde_impl {
                 };
             }
             res
+        }
+
+        pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
+
+            if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
+                return None;
+            }
+
+            let relocatable_from_bytes = | bytes: [u8; 8]| -> (usize, usize) {
+                const N_SEGMENT_BITS: usize = 16;
+                const N_OFFSET_BITS: usize = 47;
+                const SEGMENT_MASK: u64 = ((1 << N_SEGMENT_BITS) - 1) << N_OFFSET_BITS;
+                const OFFSET_MASK: u64 = (1 << N_OFFSET_BITS) - 1;
+
+                let addr = u64::from_le_bytes(bytes);
+                let segment = (addr & SEGMENT_MASK) >> N_OFFSET_BITS;
+                let offset = addr & OFFSET_MASK;
+                (segment as usize, offset as usize)
+            };
+
+            let mut res = vec![];
+            for cell_bytes in bytes.chunks(CELL_BYTE_LEN) {
+                let addr = relocatable_from_bytes(cell_bytes[0..ADDR_BYTE_LEN].try_into().ok()?);
+                let field_bytes = &cell_bytes[ADDR_BYTE_LEN..CELL_BYTE_LEN];
+                // Check the last bit to determine if it is a Relocatable or Felt value
+                let value = if (field_bytes[field_bytes.len() - 1] & 0x80) != 0 {
+                    let (segment, offset) = relocatable_from_bytes(field_bytes[0..ADDR_BYTE_LEN].try_into().ok()?);
+                    MaybeRelocatable::from((segment as isize, offset))
+                } else {
+                    MaybeRelocatable::from(Felt252::from_bytes_be_slice(field_bytes))
+                };
+                res.push((addr, value));
+            }
+
+            Some(CairoPieMemory(res))
         }
     }
 
