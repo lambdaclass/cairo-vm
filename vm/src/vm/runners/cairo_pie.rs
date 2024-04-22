@@ -59,7 +59,7 @@ pub struct OutputBuiltinAdditionalData {
 #[serde(untagged)]
 pub enum BuiltinAdditionalData {
     // Contains verified addresses as contiguous index, value pairs
-    #[serde(serialize_with = "serde_impl::serialize_hash_additional_data")]
+    #[serde(with = "serde_impl::hash_additional_data")]
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
@@ -443,20 +443,32 @@ pub(super) mod serde_impl {
         seq_serializer.end()
     }
 
-    pub fn serialize_hash_additional_data<S>(
-        values: &[Relocatable],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+    pub mod hash_additional_data {
+        use super::*;
+        pub fn serialize<S>(values: &[Relocatable], serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut seq_serializer: <S as Serializer>::SerializeSeq =
+                serializer.serialize_seq(Some(values.len()))?;
 
-        for value in values {
-            seq_serializer.serialize_element(&[value.segment_index, value.offset as isize])?;
+            for value in values {
+                seq_serializer.serialize_element(&[value.segment_index, value.offset as isize])?;
+            }
+
+            seq_serializer.end()
         }
 
-        seq_serializer.end()
+        pub fn deserialize<'de, D>(d: D) -> Result<Vec<Relocatable>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let tuples = Vec::<(usize, usize)>::deserialize(d)?;
+            Ok(tuples
+                .into_iter()
+                .map(|(x, y)| Relocatable::from((x as isize, y)))
+                .collect())
+        }
     }
 
     pub fn serialize_builtin_segments<S>(
