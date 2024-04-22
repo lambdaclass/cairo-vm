@@ -1,5 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::pedersen_instance_def::CELLS_PER_HASH;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -116,6 +117,28 @@ impl HashBuiltinRunner {
             }
         }
         BuiltinAdditionalData::Hash(verified_addresses)
+    }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Hash(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen)),
+        };
+        let mut verified_addresses = self.verified_addresses.borrow_mut();
+        for addr in additional_data {
+            if addr.segment_index != self.base as isize {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
+            }
+            // Mark offset as verified
+            if addr.offset > verified_addresses.len() {
+                verified_addresses.resize(addr.offset, false);
+            }
+            verified_addresses.insert(addr.offset, true)
+        }
+        Ok(())
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
@@ -442,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info() {
+    fn get_additional_data() {
         let mut builtin = HashBuiltinRunner::new(Some(1), true);
         let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
         builtin.verified_addresses =
@@ -451,6 +474,17 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Hash(verified_addresses)
         )
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let mut builtin_a = HashBuiltinRunner::new(Some(1), true);
+        builtin_a.verified_addresses =
+            RefCell::new(vec![false, false, false, true, false, false, true]);
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = HashBuiltinRunner::new(Some(1), true);
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin_a.verified_addresses, builtin_b.verified_addresses);
     }
 
     #[test]
