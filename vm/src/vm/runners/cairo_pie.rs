@@ -83,7 +83,7 @@ pub struct CairoPie {
     pub version: CairoPieVersion,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieMetadata {
     pub program: StrippedProgram,
     pub program_segment: SegmentInfo,
@@ -95,9 +95,9 @@ pub struct CairoPieMetadata {
     pub extra_segments: Vec<SegmentInfo>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct StrippedProgram {
-    #[serde(serialize_with = "serde_impl::serialize_program_data")]
+    #[serde(with = "serde_impl::program_data")]
     pub data: Vec<MaybeRelocatable>,
     pub builtins: Vec<BuiltinName>,
     pub main: usize,
@@ -107,10 +107,10 @@ pub struct StrippedProgram {
     pub prime: (),
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieVersion {
-    // Dummy field for serialization only.
-    #[serde(serialize_with = "serde_impl::serialize_version")]
+    // Dummy field
+    #[serde(with = "serde_impl::version")]
     pub cairo_pie: (),
 }
 
@@ -134,15 +134,47 @@ impl CairoPie {
         zip_writer.finish()?;
         Ok(())
     }
+
+    #[cfg(feature = "std")]
+    pub fn read_zip_file(file_path: &Path) -> Result<(), std::io::Error> {
+        use std::io::Read;
+
+        use zip::ZipArchive;
+
+        let file = File::open(file_path)?;
+        let mut zip_reader = ZipArchive::new(file)?;
+        let mut version = vec![];
+        zip_reader
+            .by_name("version.json")?
+            .read_to_end(&mut version)?;
+        let _version: CairoPieVersion = serde_json::from_slice(&version)?;
+        let mut metadata = vec![];
+        zip_reader
+            .by_name("metadata.json")?
+            .read_to_end(&mut metadata)?;
+        let metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
+        dbg!(metadata);
+        // zip_writer.start_file("metadata.json", options)?;
+        // zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
+        // zip_writer.start_file("memory.bin", options)?;
+        // zip_writer.write_all(&self.memory.to_bytes())?;
+        // zip_writer.start_file("additional_data.json", options)?;
+        // zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        // zip_writer.start_file("execution_resources.json", options)?;
+        // zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        // zip_writer.finish()?;
+        Ok(())
+    }
 }
 
-mod serde_impl {
+pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
     use num_traits::Num;
     use serde::ser::SerializeMap;
 
-    use super::{CairoPieMemory, SegmentInfo, CAIRO_PIE_VERSION};
+    use super::CAIRO_PIE_VERSION;
+    use super::{CairoPieMemory, SegmentInfo};
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
@@ -150,7 +182,7 @@ mod serde_impl {
         Felt252,
     };
     use num_bigint::BigUint;
-    use serde::{ser::SerializeSeq, Serialize, Serializer};
+    use serde::{de::Error, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
@@ -159,7 +191,7 @@ mod serde_impl {
     pub const RELOCATE_BASE: &str =
         "8000000000000000000000000000000000000000000000000000000000000000"; // 2 ** (8 * FIELD_BYTE_LEN - 1)
 
-    struct Felt252Wrapper<'a>(&'a Felt252);
+    pub(crate) struct Felt252Wrapper<'a>(&'a Felt252);
 
     impl<'a> Serialize for Felt252Wrapper<'a> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -174,25 +206,63 @@ mod serde_impl {
         }
     }
 
-    pub fn serialize_program_data<S>(
-        values: &[MaybeRelocatable],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+    pub mod version {
+        use super::*;
 
-        for value in values {
-            match value {
-                MaybeRelocatable::RelocatableValue(_) => todo!(),
-                MaybeRelocatable::Int(x) => {
-                    seq_serializer.serialize_element(&Felt252Wrapper(x))?;
-                }
-            };
+        pub fn serialize<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str(CAIRO_PIE_VERSION)
         }
 
-        seq_serializer.end()
+        pub fn deserialize<'de, D>(d: D) -> Result<(), D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let version = String::deserialize(d)?;
+
+            if version != CAIRO_PIE_VERSION {
+                Err(D::Error::custom("Invalid cairo_pie version"))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    pub mod program_data {
+        use super::*;
+        use crate::types::relocatable::MaybeRelocatable;
+
+        pub fn serialize<S>(values: &[MaybeRelocatable], serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+
+            for value in values {
+                match value {
+                    MaybeRelocatable::RelocatableValue(_) => todo!(),
+                    MaybeRelocatable::Int(x) => {
+                        seq_serializer.serialize_element(&Felt252Wrapper(x))?;
+                    }
+                };
+            }
+
+            seq_serializer.end()
+        }
+
+        pub fn deserialize<'de, D>(d: D) -> Result<Vec<MaybeRelocatable>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let felt_values = Vec::<serde_json::Number>::deserialize(d)?;
+            felt_values
+                .into_iter()
+                .map(|n| Felt252::from_dec_str(&n.to_string()).map(|f| MaybeRelocatable::from(f)))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| D::Error::custom("Failed to deserilaize Felt252 value"))
+        }
     }
 
     pub fn serialize_memory<S>(
@@ -285,13 +355,6 @@ mod serde_impl {
         serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
     }
 
-    pub fn serialize_version<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(CAIRO_PIE_VERSION)
-    }
-
     pub fn serialize_signature_additional_data<S>(
         values: &HashMap<Relocatable, (Felt252, Felt252)>,
         serializer: S,
@@ -359,6 +422,11 @@ mod serde_impl {
 
 #[cfg(test)]
 mod test {
+    use crate::{
+        cairo_run::CairoRunConfig,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    };
+
     use super::*;
 
     #[test]
@@ -423,5 +491,25 @@ mod test {
             "0200000000800000000000000000000000000000000000000000000000000080",
             "value mismatch: {mem_str:?}",
         );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn read_write_pie_zip() {
+        // Run a program to obtain the CairoPie
+        let cairo_pie = {
+            let (runner, vm) = crate::cairo_run::cairo_run(
+                include_bytes!("../../../../cairo_programs/fibonacci.json"),
+                &CairoRunConfig::default(),
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie(&vm).unwrap()
+        };
+        // Serialize the CairoPie into a zip file
+        let file_path = Path::new("temp.zip");
+        cairo_pie.write_zip_file(file_path).unwrap();
+        // Deserialize the zip file
+        CairoPie::read_zip_file(file_path).unwrap();
     }
 }
