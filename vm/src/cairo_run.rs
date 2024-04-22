@@ -480,4 +480,28 @@ mod tests {
         // Default config runs with secure_run, which checks that the Cairo PIE produced by this run is compatible with the one received
         assert!(cairo_run_pie(&cairo_pie, &cairo_run_config, &mut hint_processor).is_ok());
     }
+
+    #[test]
+    fn cairo_run_pie_n_steps_not_set() {
+        // First run program to get Cairo PIE
+        let cairo_pie = {
+            let (runner, vm) = cairo_run(
+                include_bytes!("../../cairo_programs/fibonacci.json"),
+                &CairoRunConfig::default(),
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie(&vm).unwrap()
+        };
+        // Run Cairo PIE
+        let res = cairo_run_pie(
+            &cairo_pie,
+            &CairoRunConfig::default(),
+            &mut BuiltinHintProcessor::new_empty(),
+        );
+        assert!(res.is_err_and(|err| matches!(
+            err,
+            CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
+        )));
+    }
 }
