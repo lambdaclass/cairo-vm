@@ -413,7 +413,7 @@ pub(super) mod serde_impl {
                         relocatable_from_bytes(field_bytes[0..ADDR_BYTE_LEN].try_into().ok()?);
                     MaybeRelocatable::from((segment as isize, offset))
                 } else {
-                    MaybeRelocatable::from(Felt252::from_bytes_be_slice(field_bytes))
+                    MaybeRelocatable::from(Felt252::from_bytes_le_slice(field_bytes))
                 };
                 res.push((addr, value));
             }
