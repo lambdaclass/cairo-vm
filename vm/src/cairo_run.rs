@@ -140,7 +140,7 @@ pub fn cairo_run_pie(
     let n_extra_segments = pie.metadata.extra_segments.len();
     vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
     // Load builtin additional data
-    for (name, data) in pie.additional_data.0.iter() {
+    for (name, _data) in pie.additional_data.0.iter() {
         // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
         if matches!(name, BuiltinName::pedersen) && secure_run {
             continue;
@@ -270,6 +270,7 @@ pub fn write_encoded_memory(
 mod tests {
     use super::*;
     use crate::stdlib::prelude::*;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::Felt252;
     use crate::{
         hint_processor::{
@@ -439,5 +440,27 @@ mod tests {
             .is_ok());
         assert!(cairo_runner.relocate(&mut vm, false).is_ok());
         assert!(cairo_runner.relocated_trace.is_none());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_and_run_cairo_pie_fibonacci() {
+        // First run program to get Cairo PIE
+        let cairo_pie = {
+            let program_content = include_bytes!("../../cairo_programs/fibonacci.json");
+
+            let (runner, vm) = cairo_run(
+                program_content,
+                &CairoRunConfig::default(),
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie(&vm).unwrap()
+        };
+        let mut hint_processor = BuiltinHintProcessor::new(
+            Default::default(),
+            RunResources::new(cairo_pie.execution_resources.n_steps),
+        );
+        cairo_run_pie(&cairo_pie, &CairoRunConfig::default(), &mut hint_processor).unwrap();
     }
 }
