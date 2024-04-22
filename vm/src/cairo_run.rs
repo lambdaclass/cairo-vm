@@ -455,6 +455,8 @@ mod tests {
     #[case(include_bytes!("../../cairo_programs/integration.json"))]
     #[case(include_bytes!("../../cairo_programs/common_signature.json"))]
     #[case(include_bytes!("../../cairo_programs/relocate_segments.json"))]
+    #[case(include_bytes!("../../cairo_programs/ec_op.json"))]
+    #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
     fn get_and_run_cairo_pie(#[case] program_content: &[u8]) {
         let cairo_run_config = CairoRunConfig {
             layout: LayoutName::starknet_with_keccak,
@@ -474,6 +476,7 @@ mod tests {
             Default::default(),
             RunResources::new(cairo_pie.execution_resources.n_steps),
         );
+        // Default config runs with secure_run, which checks that the Cairo PIE produced by this run is compatible with the one received
         assert!(cairo_run_pie(&cairo_pie, &cairo_run_config, &mut hint_processor).is_ok());
     }
 }
