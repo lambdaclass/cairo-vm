@@ -140,10 +140,13 @@ pub fn cairo_run_pie(
     let n_extra_segments = pie.metadata.extra_segments.len();
     vm.segments.load_pie_memory(&pie.memory, n_extra_segments)?;
     // Load builtin additional data
-    for (name, _data) in pie.additional_data.0.iter() {
+    for (name, data) in pie.additional_data.0.iter() {
         // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
         if matches!(name, BuiltinName::pedersen) && secure_run {
             continue;
+        }
+        if let Some(builtin) = vm.builtin_runners.iter_mut().find(|b| b.name() == *name) {
+            builtin.extend_additional_data(data)?;
         }
     }
 
@@ -164,7 +167,9 @@ pub fn cairo_run_pie(
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
         // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE ran
-        cairo_runner.get_cairo_pie(&vm)?.check_pie_compatibility(&pie)?;
+        cairo_runner
+            .get_cairo_pie(&vm)?
+            .check_pie_compatibility(&pie)?;
     }
     cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
@@ -447,7 +452,7 @@ mod tests {
 
     #[rstest]
     #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
-    fn get_and_run_cairo_pie_fibonacci( #[case] program_content: &[u8]) {
+    fn get_and_run_cairo_pie_fibonacci(#[case] program_content: &[u8]) {
         // First run program to get Cairo PIE
         let cairo_pie = {
             let (runner, vm) = cairo_run(
