@@ -913,11 +913,8 @@ dependencies = [
  "bitvec",
  "cairo-lang-casm",
  "cairo-lang-starknet",
-<<<<<<< HEAD
  "cairo-lang-starknet-classes",
-=======
  "clap",
->>>>>>> a462d8d453d2510867c5e640ba1c5bccea6b644d
  "criterion",
  "generic-array",
  "hashbrown 0.14.3",
