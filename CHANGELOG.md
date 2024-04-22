@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
+
 * refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
   * `BuiltinName` moved from `crate::serde::deserialize_program` module to `crate::types::builtin_name`.
     * Implement `BuiltinName` methods `to_str`, `to_str_with_suffix`, `from_str` & `from_str_with_suffix`.

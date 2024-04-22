@@ -130,6 +130,8 @@ pub enum RunnerError {
     PieNStepsVsRunResourcesNStepsMismatch,
     #[error("A Cairo PIE can not be ran in proof_mode")]
     CairoPieProofMode,
+    #[error("{0}: Invalid additional data")]
+    InvalidAdditionalData(BuiltinName),
 }
 
 #[cfg(test)]
