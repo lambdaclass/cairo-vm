@@ -42,7 +42,7 @@ struct Args {
     air_public_input: Option<PathBuf>,
     #[clap(
         long = "air_private_input",
-        requires_all = ["proof_mode", "trace_file", "memory_file"] 
+        requires_all = ["proof_mode", "trace_file", "memory_file"]
     )]
     air_private_input: Option<PathBuf>,
     #[clap(
@@ -227,13 +227,21 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         ..CompilerConfig::default()
     };
 
-    let mut db = RootDatabase::builder()
-        .detect_corelib()
-        .skip_auto_withdraw_gas()
-        .build()
-        .unwrap();
-    let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
-    let sierra_program = compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
+    // Try to parse the file as a sierra program
+    let file = std::fs::read(&args.filename)?;
+    let sierra_program = match serde_json::from_slice(&file) {
+        Ok(program) => program,
+        Err(_) => {
+            // If it fails, try to compile it as a cairo program
+            let mut db = RootDatabase::builder()
+                .detect_corelib()
+                .skip_auto_withdraw_gas()
+                .build()
+                .unwrap();
+            let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
+            compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
+        }
+    };
 
     let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
@@ -332,6 +340,7 @@ fn main() -> Result<(), Error> {
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
+    use cairo_vm::serde;
     use rstest::rstest;
 
     #[rstest]

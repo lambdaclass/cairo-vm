@@ -7,7 +7,7 @@ Once you are inside the `./cairo1-run` folder, use the CLI with the following co
 To install the required dependencies(cairo corelib) run
 
 ```bash
-make deps 
+make deps
 ```
 
 Now that you have the dependencies necessary to run the tests, you can run:
@@ -16,10 +16,10 @@ Now that you have the dependencies necessary to run the tests, you can run:
 make test
 ```
 
-To execute a cairo 1 program
+To execute a Cairo 1 program (either as Cairo 1 source file or Sierra)
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo 
+cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
 ```
 
 Arguments to generate the trace and memory files
@@ -44,7 +44,7 @@ cargo run ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --
 To execute all the cairo 1 programs inside `../cairo_programs/cairo-1-programs/` and generate the corresponding trace and the memory files
 
 ```bash
-make run 
+make run
 ```
 
 ## CLI argument list
@@ -68,3 +68,15 @@ The cairo1-run cli supports the following optional arguments:
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
 * `--append_return_values`: Adds extra instructions to the program in order to append the return values to the output builtin's segment. This is the default behaviour for proof_mode.
+
+# Running scarb projects
+
+First compile your project running `scarb build`
+
+
+Then run the compiled project's sierra file located at `project_name/target/project_name.sierra.json`
+
+Example:
+```bash
+  cargo run path-to-project/target/project_name.sierra.json
+```
