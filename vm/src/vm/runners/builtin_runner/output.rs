@@ -1,4 +1,5 @@
 use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -7,8 +8,6 @@ use crate::vm::runners::cairo_pie::{
 };
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-
-use super::OUTPUT_BUILTIN_NAME;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputBuiltinState {
@@ -85,14 +84,14 @@ impl OutputBuiltinRunner {
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
             let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BuiltinName::output)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BuiltinName::output)))?;
             if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    OUTPUT_BUILTIN_NAME,
+                    BuiltinName::output,
                     stop_pointer,
                     self.base,
                 ))));
@@ -101,7 +100,7 @@ impl OutputBuiltinRunner {
             let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
-                    OUTPUT_BUILTIN_NAME,
+                    BuiltinName::output,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
                 ))));
@@ -260,7 +259,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                OUTPUT_BUILTIN_NAME,
+                BuiltinName::output,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))))
@@ -311,7 +310,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::output)))
         );
     }
 

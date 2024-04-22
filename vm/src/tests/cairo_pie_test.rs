@@ -1,4 +1,7 @@
-use crate::felt_str;
+use crate::{
+    felt_str,
+    types::{builtin_name::BuiltinName, layout_name::LayoutName},
+};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -12,13 +15,9 @@ use alloc::{
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::collections::HashMap,
     types::relocatable::Relocatable,
     vm::runners::{
-        builtin_runner::{
-            HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-            SIGNATURE_BUILTIN_NAME,
-        },
         cairo_pie::{
             BuiltinAdditionalData, CairoPieMemory, OutputBuiltinAdditionalData, SegmentInfo,
         },
@@ -41,7 +40,7 @@ fn pedersen_test() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -59,9 +58,9 @@ fn pedersen_test() {
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((6, 0)));
     // builtin_segments
     let expected_builtin_segments = HashMap::from([
-        (String::from("output"), SegmentInfo::from((2, 1))),
-        (String::from("pedersen"), SegmentInfo::from((3, 3))),
-        (String::from("range_check"), SegmentInfo::from((4, 0))),
+        (BuiltinName::output, SegmentInfo::from((2, 1))),
+        (BuiltinName::pedersen, SegmentInfo::from((3, 3))),
+        (BuiltinName::range_check, SegmentInfo::from((4, 0))),
     ]);
     assert_eq!(pie_metadata.builtin_segments, expected_builtin_segments);
     // program_segment
@@ -85,31 +84,28 @@ fn pedersen_test() {
         n_steps: 14,
         n_memory_holes: 0,
         builtin_instance_counter: HashMap::from([
-            (RANGE_CHECK_BUILTIN_NAME.to_string(), 0),
-            (OUTPUT_BUILTIN_NAME.to_string(), 1),
-            (HASH_BUILTIN_NAME.to_string(), 1),
+            (BuiltinName::range_check, 0),
+            (BuiltinName::output, 1),
+            (BuiltinName::pedersen, 1),
         ]),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
     let expected_additional_data = HashMap::from([
         (
-            OUTPUT_BUILTIN_NAME.to_string(),
+            BuiltinName::output,
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
                 pages: HashMap::new(),
                 attributes: HashMap::new(),
             }),
         ),
         (
-            HASH_BUILTIN_NAME.to_string(),
+            BuiltinName::pedersen,
             BuiltinAdditionalData::Hash(vec![Relocatable::from((3, 2))]),
         ),
-        (
-            RANGE_CHECK_BUILTIN_NAME.to_string(),
-            BuiltinAdditionalData::None,
-        ),
+        (BuiltinName::range_check, BuiltinAdditionalData::None),
     ]);
-    assert_eq!(cairo_pie.additional_data, expected_additional_data);
+    assert_eq!(cairo_pie.additional_data.0, expected_additional_data);
     // memory
     assert_eq!(
         cairo_pie.memory,
@@ -126,7 +122,7 @@ fn common_signature() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -144,7 +140,7 @@ fn common_signature() {
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((4, 0)));
     // builtin_segments
     let expected_builtin_segments =
-        HashMap::from([(String::from("ecdsa"), SegmentInfo::from((2, 2)))]);
+        HashMap::from([(BuiltinName::ecdsa, SegmentInfo::from((2, 2)))]);
     assert_eq!(pie_metadata.builtin_segments, expected_builtin_segments);
     // program_segment
     assert_eq!(pie_metadata.program_segment, SegmentInfo::from((0, 21)));
@@ -166,12 +162,12 @@ fn common_signature() {
     let expected_execution_resources = ExecutionResources {
         n_steps: 11,
         n_memory_holes: 0,
-        builtin_instance_counter: HashMap::from([(SIGNATURE_BUILTIN_NAME.to_string(), 1)]),
+        builtin_instance_counter: HashMap::from([(BuiltinName::ecdsa, 1)]),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
     let expected_additional_data = HashMap::from([(
-        SIGNATURE_BUILTIN_NAME.to_string(),
+        BuiltinName::ecdsa,
         BuiltinAdditionalData::Signature(HashMap::from([(
             Relocatable::from((2, 0)),
             (
@@ -184,7 +180,7 @@ fn common_signature() {
             ),
         )])),
     )]);
-    assert_eq!(cairo_pie.additional_data, expected_additional_data);
+    assert_eq!(cairo_pie.additional_data.0, expected_additional_data);
     // memory
     assert_eq!(
         cairo_pie.memory,
@@ -201,7 +197,7 @@ fn relocate_segments() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         },
         &mut hint_processor,
@@ -243,7 +239,7 @@ fn relocate_segments() {
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    assert!(cairo_pie.additional_data.is_empty());
+    assert!(cairo_pie.additional_data.0.is_empty());
     // memory
     assert_eq!(
         cairo_pie.memory,
@@ -260,7 +256,7 @@ fn serialize_cairo_pie() {
     let result = cairo_run(
         program_content,
         &CairoRunConfig {
-            layout: "small",
+            layout: LayoutName::small,
             ..Default::default()
         },
         &mut hint_processor,

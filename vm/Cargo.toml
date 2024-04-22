@@ -63,7 +63,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror-no-std = { workspace = true }
-starknet-types-core = { version = "0.0.9", default-features = false, features = ["serde", "curve", "num-traits"] }
+starknet-types-core = { version = "0.1.0", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 cairo-lang-starknet-classes = { workspace = true }
 
 # only for std
@@ -80,6 +80,9 @@ ark-std = { workspace = true, optional = true }
 
 # Enable arbitrary when fuzzing
 arbitrary = { workspace = true, features = ["derive"], optional = true }
+
+# Used to derive clap traits for CLIs
+clap = { version = "4.3.10", features = ["derive"], optional = true}
 
 [dev-dependencies]
 assert_matches = "1.5.0"

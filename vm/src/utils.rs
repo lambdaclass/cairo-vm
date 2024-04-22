@@ -249,7 +249,12 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(&$program, "all_cairo", false).unwrap()
+            CairoRunner::new(
+                &$program,
+                crate::types::layout_name::LayoutName::all_cairo,
+                false,
+            )
+            .unwrap()
         };
         ($program:expr, $layout:expr) => {
             CairoRunner::new(&$program, $layout, false).unwrap()
@@ -332,7 +337,7 @@ pub mod test_utils {
         >,
         pub(crate) constants:
             crate::stdlib::collections::HashMap<crate::stdlib::string::String, crate::Felt252>,
-        pub(crate) builtins: crate::utils::Vec<crate::serde::deserialize_program::BuiltinName>,
+        pub(crate) builtins: crate::utils::Vec<crate::types::builtin_name::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
 
@@ -440,7 +445,7 @@ pub mod test_utils {
 
     macro_rules! exec_scopes_ref {
         () => {
-            &mut ExecutionScopes::new()
+            &mut crate::types::exec_scope::ExecutionScopes::new()
         };
     }
     pub(crate) use exec_scopes_ref;
@@ -621,6 +626,7 @@ pub mod test_utils {
 mod test {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::HintsCollection;
     use crate::{
         hint_processor::{
@@ -630,7 +636,7 @@ mod test {
             },
             hint_processor_definition::HintReference,
         },
-        serde::deserialize_program::{BuiltinName, ReferenceManager},
+        serde::deserialize_program::ReferenceManager,
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},

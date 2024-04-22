@@ -1,5 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
@@ -13,18 +14,13 @@ use crate::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
-use super::POSEIDON_BUILTIN_NAME;
-
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
     pub base: usize,
     ratio: Option<u32>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
-    pub(crate) instances_per_component: u32,
 }
 
 impl PoseidonBuiltinRunner {
@@ -32,12 +28,9 @@ impl PoseidonBuiltinRunner {
         PoseidonBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: CELLS_PER_POSEIDON,
-            n_input_cells: INPUT_CELLS_PER_POSEIDON,
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
-            instances_per_component: 1,
         }
     }
 
@@ -68,26 +61,26 @@ impl PoseidonBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address.offset % self.cells_per_instance as usize;
-        if index < self.n_input_cells as usize {
+        let index = address.offset % CELLS_PER_POSEIDON as usize;
+        if index < INPUT_CELLS_PER_POSEIDON as usize {
             return Ok(None);
         }
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
         let first_input_addr = (address - index)?;
-        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
+        let first_output_addr = (first_input_addr + INPUT_CELLS_PER_POSEIDON as usize)?;
 
         let mut input_felts = vec![];
 
-        for i in 0..self.n_input_cells as usize {
+        for i in 0..INPUT_CELLS_PER_POSEIDON as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
                         .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            POSEIDON_BUILTIN_NAME,
+                            BuiltinName::poseidon,
                             (first_input_addr + i)?,
                         ))))?;
                     FieldElement::from_bytes_be(&num.to_bytes_be())
@@ -121,7 +114,7 @@ impl PoseidonBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_POSEIDON as usize))
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
@@ -156,7 +149,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -232,7 +225,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                POSEIDON_BUILTIN_NAME,
+                BuiltinName::poseidon,
                 relocatable!(0, 1002),
                 relocatable!(0, 0)
             ))))
@@ -283,7 +276,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::poseidon)))
         );
     }
 

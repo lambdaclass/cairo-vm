@@ -1,15 +1,15 @@
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    serde::deserialize_program::BuiltinName,
     stdlib::{
         borrow::Cow,
         collections::BTreeMap,
         prelude::{Box, Vec},
     },
     types::{
+        builtin_name::BuiltinName,
         errors::math_errors::MathError,
-        instance_definitions::mod_instance_def::{ModInstanceDef, N_WORDS},
+        instance_definitions::mod_instance_def::{ModInstanceDef, CELLS_PER_MOD, N_WORDS},
         relocatable::{relocate_address, MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -30,8 +30,6 @@ use num_traits::Zero;
 
 //The maximum n value that the function fill_memory accepts.
 const FILL_MEMORY_MAX: usize = 100000;
-
-const INPUT_CELLS: usize = 7;
 
 const VALUES_PTR_OFFSET: u32 = 4;
 const OFFSETS_PTR_OFFSET: u32 = 5;
@@ -111,14 +109,7 @@ impl ModBuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        match self.builtin_type {
-            ModBuiltinType::Mul => super::MUL_MOD_BUILTIN_NAME,
-            ModBuiltinType::Add => super::ADD_MOD_BUILTIN_NAME,
-        }
-    }
-
-    pub fn identifier(&self) -> BuiltinName {
+    pub fn name(&self) -> BuiltinName {
         match self.builtin_type {
             ModBuiltinType::Mul => BuiltinName::mul_mod,
             ModBuiltinType::Add => BuiltinName::add_mod,
@@ -146,14 +137,6 @@ impl ModBuiltinRunner {
         self.instance_def.ratio
     }
 
-    pub fn cells_per_instance(&self) -> u32 {
-        INPUT_CELLS as u32
-    }
-
-    pub fn n_input_cells(&self) -> u32 {
-        INPUT_CELLS as u32
-    }
-
     pub fn batch_size(&self) -> usize {
         self.instance_def.batch_size
     }
@@ -169,7 +152,7 @@ impl ModBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance() as usize))
+        Ok(div_ceil(used_cells, CELLS_PER_MOD as usize))
     }
 
     pub(crate) fn air_private_input(&self, segments: &MemorySegmentManager) -> Vec<PrivateInput> {
@@ -179,8 +162,11 @@ impl ModBuiltinRunner {
             .unwrap_or_default();
         let relocation_table = segments.relocate_segments().unwrap_or_default();
         let mut instances = Vec::<ModInputInstance>::new();
-        for instance in 0..segment_size.checked_div(INPUT_CELLS).unwrap_or_default() {
-            let instance_addr_offset = instance * INPUT_CELLS;
+        for instance in 0..segment_size
+            .checked_div(CELLS_PER_MOD as usize)
+            .unwrap_or_default()
+        {
+            let instance_addr_offset = instance * CELLS_PER_MOD as usize;
             let values_ptr = segments
                 .memory
                 .get_relocatable(
@@ -382,7 +368,7 @@ impl ModBuiltinRunner {
         }
         let n_instances = safe_div_usize(inputs.n, self.instance_def.batch_size)?;
         for instance in 1..n_instances {
-            let instance_ptr = (builtin_ptr + instance * INPUT_CELLS)?;
+            let instance_ptr = (builtin_ptr + instance * CELLS_PER_MOD as usize)?;
             for i in 0..N_WORDS {
                 memory.insert_as_accessed((instance_ptr + i)?, &inputs.p_values[i])?;
             }
@@ -600,12 +586,12 @@ impl ModBuiltinRunner {
         let segment_size = vm
             .get_segment_used_size(self.base)
             .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-        let n_instances = div_ceil(segment_size, INPUT_CELLS);
+        let n_instances = div_ceil(segment_size, CELLS_PER_MOD as usize);
         let mut prev_inputs = Inputs::default();
         for instance in 0..n_instances {
             let inputs = self.read_inputs(
                 &vm.segments.memory,
-                (self.base as isize, instance * INPUT_CELLS).into(),
+                (self.base as isize, instance * CELLS_PER_MOD as usize).into(),
             )?;
             if !instance.is_zero() && prev_inputs.n > self.instance_def.batch_size {
                 for i in 0..N_WORDS {
@@ -699,11 +685,9 @@ mod tests {
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            types::layout_name::LayoutName,
             utils::test_utils::Program,
-            vm::runners::{
-                builtin_runner::{BuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME},
-                cairo_runner::CairoRunner,
-            },
+            vm::runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
             Felt252,
         };
 
@@ -713,7 +697,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner = CairoRunner::new(&program, "all_cairo", true).unwrap();
+        let mut runner = CairoRunner::new(&program, LayoutName::all_cairo, true).unwrap();
 
         let mut vm = VirtualMachine::new(false);
         let end = runner.initialize(&mut vm, false).unwrap();
@@ -738,7 +722,7 @@ mod tests {
 
         let air_private_input = runner.get_air_private_input(&vm);
         assert_eq!(
-            air_private_input.0.get(ADD_MOD_BUILTIN_NAME).unwrap()[0],
+            air_private_input.0.get(&BuiltinName::add_mod).unwrap()[0],
             PrivateInput::Mod(ModInput {
                 instances: vec![
                     ModInputInstance {
@@ -806,7 +790,7 @@ mod tests {
             })
         );
         assert_eq!(
-            air_private_input.0.get(MUL_MOD_BUILTIN_NAME).unwrap()[0],
+            air_private_input.0.get(&BuiltinName::mul_mod).unwrap()[0],
             PrivateInput::Mod(ModInput {
                 instances: vec![
                     ModInputInstance {

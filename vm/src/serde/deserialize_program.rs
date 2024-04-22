@@ -1,7 +1,7 @@
 //! # Program deserialization
 //!
 //! This module contains the logic for [`Program`] deserialization.
-//! Users shouldn't need to use it directly (except for [`BuiltinName`]).
+//! Users shouldn't need to use it directly
 //!
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
@@ -13,13 +13,11 @@ use crate::{
         prelude::*,
         sync::Arc,
     },
+    types::builtin_name::BuiltinName,
     utils::CAIRO_PRIME,
-    vm::runners::builtin_runner::RANGE_CHECK_96_BUILTIN_NAME,
 };
 
 use crate::utils::PRIME_STR;
-use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
-use crate::vm::runners::builtin_runner::{ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME};
 use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
@@ -29,11 +27,6 @@ use crate::{
         program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
-    vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-        SIGNATURE_BUILTIN_NAME,
-    },
 };
 use num_bigint::BigUint;
 use num_traits::{float::FloatCore, Num};
@@ -42,44 +35,6 @@ use serde_json::Number;
 
 #[cfg(all(feature = "arbitrary", feature = "std"))]
 use arbitrary::{self, Arbitrary, Unstructured};
-
-// This enum is used to deserialize program builtins into &str and catch non-valid names
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
-#[allow(non_camel_case_types)]
-pub enum BuiltinName {
-    output,
-    range_check,
-    pedersen,
-    ecdsa,
-    keccak,
-    bitwise,
-    ec_op,
-    poseidon,
-    segment_arena,
-    range_check96,
-    add_mod,
-    mul_mod,
-}
-
-impl BuiltinName {
-    pub fn name(&self) -> &'static str {
-        match self {
-            BuiltinName::output => OUTPUT_BUILTIN_NAME,
-            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
-            BuiltinName::pedersen => HASH_BUILTIN_NAME,
-            BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME,
-            BuiltinName::keccak => KECCAK_BUILTIN_NAME,
-            BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
-            BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
-            BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
-            BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
-            BuiltinName::range_check96 => RANGE_CHECK_96_BUILTIN_NAME,
-            BuiltinName::add_mod => ADD_MOD_BUILTIN_NAME,
-            BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME,
-        }
-    }
-}
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
@@ -323,10 +278,11 @@ pub enum OffsetValue {
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
-    pub offset1: OffsetValue,
-    pub offset2: OffsetValue,
-    pub dereference: bool,
-    pub value_type: String,
+    pub offset1: OffsetValue,    // A in cast(A + B, type)
+    pub offset2: OffsetValue,    // B in cast(A + B, type)
+    pub outer_dereference: bool, // [] in [cast(A + B, type)]
+    pub inner_dereference: bool, // [] in cast([A + B], type)
+    pub value_type: String,      // type in cast(A + B, type)
 }
 
 impl ValueAddress {
@@ -341,7 +297,8 @@ impl ValueAddress {
         ValueAddress {
             offset1: OffsetValue::Value(99),
             offset2: OffsetValue::Value(99),
-            dereference: false,
+            outer_dereference: false,
+            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -756,7 +713,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -4, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -769,7 +727,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -782,7 +741,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
                         offset2: OffsetValue::Immediate(Felt252::from(2)),
-                        dereference: false,
+                        outer_dereference: false,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -795,7 +755,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, 0, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },

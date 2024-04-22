@@ -8,7 +8,7 @@ use cairo_run::Cairo1RunConfig;
 use cairo_vm::{
     air_public_input::PublicInputError,
     cairo_run::EncodeTraceError,
-    types::errors::program_errors::ProgramError,
+    types::{errors::program_errors::ProgramError, layout_name::LayoutName},
     vm::errors::{
         memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
         vm_errors::VirtualMachineError,
@@ -34,8 +34,8 @@ struct Args {
     trace_file: Option<PathBuf>,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
-    layout: String,
+    #[clap(long = "layout", default_value = "plain", value_enum)]
+    layout: LayoutName,
     #[clap(long = "proof_mode", value_parser)]
     proof_mode: bool,
     #[clap(long = "air_public_input", requires = "proof_mode")]
@@ -109,21 +109,6 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
         }
     }
     Ok(FuncArgs(args))
-}
-
-fn validate_layout(value: &str) -> Result<String, String> {
-    match value {
-        "plain"
-        | "small"
-        | "dex"
-        | "starknet"
-        | "starknet_with_keccak"
-        | "recursive_large_output"
-        | "all_cairo"
-        | "all_solidity"
-        | "dynamic" => Ok(value.to_string()),
-        _ => Err(format!("{value} is not a valid layout")),
-    }
 }
 
 #[derive(Debug, Error)]
@@ -215,25 +200,29 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         proof_mode: args.proof_mode,
         serialize_output: args.print_output,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
-        layout: &args.layout,
+        layout: args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
         finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
     };
 
-    let compiler_config = CompilerConfig {
-        replace_ids: true,
-        ..CompilerConfig::default()
+    // Try to parse the file as a sierra program
+    let file = std::fs::read(&args.filename)?;
+    let sierra_program = match serde_json::from_slice(&file) {
+        Ok(program) => program,
+        Err(_) => {
+            // If it fails, try to compile it as a cairo program
+            let mut db = RootDatabase::builder()
+                .detect_corelib()
+                .skip_auto_withdraw_gas()
+                .build()
+                .unwrap();
+            let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
+            let sierra_program =
+                compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
+        }
     };
-
-    let mut db = RootDatabase::builder()
-        .detect_corelib()
-        .skip_auto_withdraw_gas()
-        .build()
-        .unwrap();
-    let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
-    let sierra_program = compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
 
     let (runner, vm, _, serialized_output) =
         cairo_run::cairo_run_program(&sierra_program, cairo_run_config)?;
@@ -348,6 +337,14 @@ mod tests {
     fn test_run_factorial_ok(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res == "3628800");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bitwise.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_bitwise_ok(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "11772");
     }
 
     #[rstest]

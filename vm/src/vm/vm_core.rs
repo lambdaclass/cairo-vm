@@ -1,5 +1,6 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
@@ -34,10 +35,7 @@ use core::num::NonZeroUsize;
 use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
-use super::runners::builtin_runner::{
-    ModBuiltinRunner, ADD_MOD_BUILTIN_NAME, MUL_MOD_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
-    RC_N_PARTS_STANDARD,
-};
+use super::runners::builtin_runner::{ModBuiltinRunner, RC_N_PARTS_STANDARD};
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -1026,7 +1024,7 @@ impl VirtualMachine {
         let builtin = match self
             .builtin_runners
             .iter()
-            .find(|b| b.name() == OUTPUT_BUILTIN_NAME)
+            .find(|b| b.name() == BuiltinName::output)
         {
             Some(x) => x,
             _ => return Ok(()),
@@ -1067,7 +1065,7 @@ impl VirtualMachine {
     #[doc(hidden)]
     pub fn builtins_final_stack_from_stack_pointer_dict(
         &mut self,
-        builtin_name_to_stack_pointer: &HashMap<&'static str, Relocatable>,
+        builtin_name_to_stack_pointer: &HashMap<BuiltinName, Relocatable>,
         skip_output: bool,
     ) -> Result<(), RunnerError> {
         for builtin in self.builtin_runners.iter_mut() {
@@ -1077,7 +1075,7 @@ impl VirtualMachine {
             builtin.final_stack(
                 &self.segments,
                 builtin_name_to_stack_pointer
-                    .get(builtin.name())
+                    .get(&builtin.name())
                     .cloned()
                     .unwrap_or_default(),
             )?;
@@ -1106,7 +1104,7 @@ impl VirtualMachine {
         batch_size: Option<usize>,
     ) -> Result<(), VirtualMachineError> {
         let fetch_builtin_params = |mod_params: Option<(Relocatable, usize)>,
-                                    mod_name: &'static str|
+                                    mod_name: BuiltinName|
          -> Result<
             Option<(Relocatable, &ModBuiltinRunner, usize)>,
             VirtualMachineError,
@@ -1136,8 +1134,8 @@ impl VirtualMachine {
 
         ModBuiltinRunner::fill_memory(
             &mut self.segments.memory,
-            fetch_builtin_params(add_mod_ptr_n, ADD_MOD_BUILTIN_NAME)?,
-            fetch_builtin_params(mul_mod_ptr_n, MUL_MOD_BUILTIN_NAME)?,
+            fetch_builtin_params(add_mod_ptr_n, BuiltinName::add_mod)?,
+            fetch_builtin_params(mul_mod_ptr_n, BuiltinName::mul_mod)?,
         )
         .map_err(VirtualMachineError::RunnerError)
     }
@@ -1245,10 +1243,8 @@ mod tests {
     use super::*;
     use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
-    use crate::vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME,
-    };
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -1256,9 +1252,6 @@ mod tests {
         },
         relocatable,
         types::{
-            instance_definitions::{
-                bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
-            },
             instruction::{Op1Addr, Register},
             relocatable::Relocatable,
         },
@@ -3380,7 +3373,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_bitwise_builtin_valid_and() {
         let mut vm = vm!();
-        let builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
         vm.segments = segments![((0, 5), 10), ((0, 6), 12), ((0, 7), 0)];
         assert_matches!(
@@ -3418,7 +3411,7 @@ mod tests {
             opcode: Opcode::AssertEq,
         };
 
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
 
@@ -3459,7 +3452,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_ec_op_builtin_valid() {
         let mut vm = vm!();
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(builtin.into());
 
         vm.segments = segments![
@@ -3528,7 +3521,7 @@ mod tests {
            end
     */
     fn verify_auto_deductions_for_ec_op_builtin_valid() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3576,7 +3569,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_auto_deductions_for_ec_op_builtin_valid_points_invalid_result() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
         builtin.base = 3;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3622,7 +3615,7 @@ mod tests {
         assert_matches!(
             error,
             Err(VirtualMachineError::InconsistentAutoDeduction(bx))
-            if *bx == (EC_OP_BUILTIN_NAME,
+            if *bx == (BuiltinName::ec_op,
                     MaybeRelocatable::Int(crate::felt_str!(
                         "2739017437753868763038285897969098325279422804143820990343394856167768859289"
                     )),
@@ -3647,7 +3640,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let mut vm = vm!();
         vm.builtin_runners.push(builtin.into());
@@ -3670,7 +3663,7 @@ mod tests {
     end
     */
     fn verify_auto_deductions_for_addr_bitwise() {
-        let mut builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
         builtin.base = 2;
         let builtin: BuiltinRunner = builtin.into();
         let mut vm = vm!();
@@ -3860,14 +3853,14 @@ mod tests {
     fn test_get_builtin_runners() {
         let mut vm = vm!();
         let hash_builtin = HashBuiltinRunner::new(Some(8), true);
-        let bitwise_builtin = BitwiseBuiltinRunner::new(&BitwiseInstanceDef::default(), true);
+        let bitwise_builtin = BitwiseBuiltinRunner::new(Some(256), true);
         vm.builtin_runners.push(hash_builtin.into());
         vm.builtin_runners.push(bitwise_builtin.into());
 
         let builtins = vm.get_builtin_runners();
 
-        assert_eq!(builtins[0].name(), HASH_BUILTIN_NAME);
-        assert_eq!(builtins[1].name(), BITWISE_BUILTIN_NAME);
+        assert_eq!(builtins[0].name(), BuiltinName::pedersen);
+        assert_eq!(builtins[1].name(), BuiltinName::bitwise);
     }
 
     #[test]
@@ -4313,7 +4306,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm, false).unwrap();
@@ -4338,7 +4331,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
         let end = cairo_runner.initialize(&mut vm, false).unwrap();
@@ -4401,7 +4394,7 @@ mod tests {
                 .get(0)
                 .unwrap()
                 .name(),
-            "pedersen_builtin"
+            BuiltinName::pedersen
         );
         assert_eq!(virtual_machine_from_builder.run_context.ap, 18,);
         assert_eq!(

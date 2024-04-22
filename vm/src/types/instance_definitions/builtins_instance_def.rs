@@ -6,6 +6,8 @@ use super::{
     range_check_instance_def::RangeCheckInstanceDef,
 };
 
+pub(crate) const BUILTIN_INSTANCES_PER_COMPONENT: u32 = 1;
+
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -75,7 +77,7 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(128), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(128))),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(Some(8))),
@@ -91,7 +93,7 @@ impl BuiltinsInstanceDef {
     pub(crate) fn starknet() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(32))),
             range_check: Some(RangeCheckInstanceDef::new(Some(16))),
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
@@ -107,12 +109,12 @@ impl BuiltinsInstanceDef {
     pub(crate) fn starknet_with_keccak() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(32), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(32))),
             range_check: Some(RangeCheckInstanceDef::new(Some(16))),
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(64))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
-            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            keccak: Some(KeccakInstanceDef::new(Some(2048))),
             poseidon: Some(PoseidonInstanceDef::default()),
             range_check96: None,
             add_mod: None,
@@ -123,7 +125,7 @@ impl BuiltinsInstanceDef {
     pub(crate) fn recursive_large_output() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(128), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(128))),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: None,
             bitwise: Some(BitwiseInstanceDef::new(Some(8))),
@@ -136,15 +138,31 @@ impl BuiltinsInstanceDef {
         }
     }
 
+    pub(crate) fn recursive_with_poseidon() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(Some(256))),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16))),
+            ecdsa: None,
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
+            ec_op: None,
+            keccak: None,
+            poseidon: Some(PoseidonInstanceDef::new(Some(64))),
+            range_check96: None,
+            add_mod: None,
+            mul_mod: None,
+        }
+    }
+
     pub(crate) fn all_cairo() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(256), 1)),
+            pedersen: Some(PedersenInstanceDef::new(Some(256))),
             range_check: Some(RangeCheckInstanceDef::default()),
             ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
             bitwise: Some(BitwiseInstanceDef::new(Some(16))),
             ec_op: Some(EcOpInstanceDef::new(Some(1024))),
-            keccak: Some(KeccakInstanceDef::new(Some(2048), vec![200; 8])),
+            keccak: Some(KeccakInstanceDef::new(Some(2048))),
             poseidon: Some(PoseidonInstanceDef::new(Some(256))),
             range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
             #[cfg(feature = "mod_builtin")]
@@ -177,7 +195,7 @@ impl BuiltinsInstanceDef {
     pub(crate) fn dynamic() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(None, 4)),
+            pedersen: Some(PedersenInstanceDef::new(None)),
             range_check: Some(RangeCheckInstanceDef::new(None)),
             ecdsa: Some(EcdsaInstanceDef::new(None)),
             bitwise: Some(BitwiseInstanceDef::new(None)),
