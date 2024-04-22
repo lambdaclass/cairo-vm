@@ -213,14 +213,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         Ok(program) => program,
         Err(_) => {
             // If it fails, try to compile it as a cairo program
+            let compiler_config = CompilerConfig {
+                replace_ids: true,
+                ..CompilerConfig::default()
+            };
             let mut db = RootDatabase::builder()
                 .detect_corelib()
                 .skip_auto_withdraw_gas()
                 .build()
                 .unwrap();
             let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
-            let sierra_program =
-                compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
+            compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
         }
     };
 
