@@ -1432,24 +1432,13 @@ impl CairoRunner {
         })
     }
 
-    /// Return CairoRunner.layout
-    fn get_layout(&self) -> &CairoLayout {
-        &self.layout
-    }
-
     pub fn get_air_public_input(
         &self,
         vm: &VirtualMachine,
     ) -> Result<PublicInput, PublicInputError> {
-        let dyn_layout = match self.layout.name {
-            LayoutName::dynamic => Some(self.get_layout()),
-            _ => None,
-        };
-
         PublicInput::new(
             &self.relocated_memory,
             self.layout.name.to_str(),
-            dyn_layout,
             &vm.get_public_memory_addresses()?,
             self.get_memory_segment_addresses(vm)?,
             self.relocated_trace

@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
+  * `PublicInput` field `layout_params` renamed to `dynamic_params` & type changed from`&'a CairoLayout` to `()`.
+
 * feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
 
 * refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
