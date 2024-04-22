@@ -68,7 +68,7 @@ pub enum BuiltinAdditionalData {
     None,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieAdditionalData(
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
     pub  HashMap<BuiltinName, BuiltinAdditionalData>,
@@ -135,38 +135,49 @@ impl CairoPie {
     }
 
     #[cfg(feature = "std")]
-    pub fn read_zip_file(file_path: &Path) -> Result<(), std::io::Error> {
+    pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
         use std::io::Read;
-
         use zip::ZipArchive;
 
         let file = File::open(file_path)?;
         let mut zip_reader = ZipArchive::new(file)?;
+
         let mut version = vec![];
         zip_reader
             .by_name("version.json")?
             .read_to_end(&mut version)?;
-        let _version: CairoPieVersion = serde_json::from_slice(&version)?;
+        let version: CairoPieVersion = serde_json::from_slice(&version)?;
+
         let mut metadata = vec![];
         zip_reader
             .by_name("metadata.json")?
             .read_to_end(&mut metadata)?;
-        let _metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
+        let metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
+
         let mut memory = vec![];
+        zip_reader.by_name("memory.bin")?.read_to_end(&mut memory)?;
+        let memory = CairoPieMemory::from_bytes(&memory)
+            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+
+        let mut execution_resources = vec![];
         zip_reader
-            .by_name("memory.bin")?
-            .read_to_end(&mut memory)?;
-        let _memory = CairoPieMemory::from_bytes(&memory);
-        // zip_writer.start_file("metadata.json", options)?;
-        // zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
-        // zip_writer.start_file("memory.bin", options)?;
-        // zip_writer.write_all(&self.memory.to_bytes())?;
-        // zip_writer.start_file("additional_data.json", options)?;
-        // zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
-        // zip_writer.start_file("execution_resources.json", options)?;
-        // zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
-        // zip_writer.finish()?;
-        Ok(())
+            .by_name("execution_resources.json")?
+            .read_to_end(&mut execution_resources)?;
+        let execution_resources: ExecutionResources = serde_json::from_slice(&execution_resources)?;
+
+        let mut additional_data = vec![];
+        zip_reader
+            .by_name("additional_data.json")?
+            .read_to_end(&mut additional_data)?;
+        let additional_data: CairoPieAdditionalData = serde_json::from_slice(&additional_data)?;
+
+        Ok(CairoPie {
+            metadata,
+            memory,
+            execution_resources,
+            additional_data,
+            version,
+        })
     }
 }
 
@@ -376,12 +387,11 @@ pub(super) mod serde_impl {
         }
 
         pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
-
             if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
                 return None;
             }
 
-            let relocatable_from_bytes = | bytes: [u8; 8]| -> (usize, usize) {
+            let relocatable_from_bytes = |bytes: [u8; 8]| -> (usize, usize) {
                 const N_SEGMENT_BITS: usize = 16;
                 const N_OFFSET_BITS: usize = 47;
                 const SEGMENT_MASK: u64 = ((1 << N_SEGMENT_BITS) - 1) << N_OFFSET_BITS;
@@ -399,7 +409,8 @@ pub(super) mod serde_impl {
                 let field_bytes = &cell_bytes[ADDR_BYTE_LEN..CELL_BYTE_LEN];
                 // Check the last bit to determine if it is a Relocatable or Felt value
                 let value = if (field_bytes[field_bytes.len() - 1] & 0x80) != 0 {
-                    let (segment, offset) = relocatable_from_bytes(field_bytes[0..ADDR_BYTE_LEN].try_into().ok()?);
+                    let (segment, offset) =
+                        relocatable_from_bytes(field_bytes[0..ADDR_BYTE_LEN].try_into().ok()?);
                     MaybeRelocatable::from((segment as isize, offset))
                 } else {
                     MaybeRelocatable::from(Felt252::from_bytes_be_slice(field_bytes))
@@ -566,6 +577,8 @@ mod test {
         let file_path = Path::new("temp.zip");
         cairo_pie.write_zip_file(file_path).unwrap();
         // Deserialize the zip file
-        CairoPie::read_zip_file(file_path).unwrap();
+        let deserialized_pie = CairoPie::read_zip_file(file_path).unwrap();
+        // Check that both pies are equal
+        assert_eq!(cairo_pie, deserialized_pie);
     }
 }
