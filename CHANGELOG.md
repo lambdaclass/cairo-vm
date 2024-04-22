@@ -5,6 +5,7 @@
 * feat: Implement running from `CairoPie`[#1720](https://github.com/lambdaclass/cairo-vm/pull/1720)
   * Add function `cairo_run_pie`
   * Add `CairoPie` methods `run_validity_checks` & `check_pie_compatibility`
+  * Add `Program` method `from_stripped_program`
 
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
