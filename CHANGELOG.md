@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* feat: Implement running from `CairoPie`[#1720](https://github.com/lambdaclass/cairo-vm/pull/1720)
+  * Add function `cairo_run_pie`
+  * Add `CairoPie` methods `run_validity_checks` & `check_pie_compatibility`
+
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
 * refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
