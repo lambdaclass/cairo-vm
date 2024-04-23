@@ -464,8 +464,14 @@ pub(super) mod serde_impl {
             let mut res = HashMap::new();
             for ((index, offset), (r, s)) in number_map.into_iter() {
                 let addr = Relocatable::from((
-                    index.as_u64().ok_or(D::Error::custom("Invalid address"))? as isize,
-                    offset.as_u64().ok_or(D::Error::custom("Invalid address"))? as usize,
+                    index
+                        .as_u64()
+                        .ok_or_else(|| D::Error::custom("Invalid address"))?
+                        as isize,
+                    offset
+                        .as_u64()
+                        .ok_or_else(|| D::Error::custom("Invalid address"))?
+                        as usize,
                 ));
                 let r = Felt252::from_dec_str(r.as_str())
                     .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
