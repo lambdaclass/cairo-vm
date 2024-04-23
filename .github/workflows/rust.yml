@@ -758,7 +758,7 @@ jobs:
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
           cairo_programs/**/*.pie.zip
-        key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
+        key: ${{ cairo_test_programs }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
         
     - name: Run comparison
