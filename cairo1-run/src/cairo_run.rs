@@ -35,19 +35,14 @@ use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap}
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
-    serde::deserialize_program::{
-        ApTracking, BuiltinName, FlowTrackingData, HintParams, ReferenceManager,
+    serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
+    types::{
+        builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
+        relocatable::MaybeRelocatable,
     },
-    types::{program::Program, relocatable::MaybeRelocatable},
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        runners::{
-            builtin_runner::{
-                BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, OUTPUT_BUILTIN_NAME,
-                POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-            },
-            cairo_runner::{CairoRunner, RunResources, RunnerMode},
-        },
+        runners::cairo_runner::{CairoRunner, RunResources, RunnerMode},
         vm_core::VirtualMachine,
     },
     Felt252,
@@ -65,7 +60,7 @@ pub struct Cairo1RunConfig<'a> {
     pub serialize_output: bool,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
-    pub layout: &'a str,
+    pub layout: LayoutName,
     pub proof_mode: bool,
     // Should be true if either air_public_input or cairo_pie_output are needed
     // Sets builtins stop_ptr by calling `final_stack` on each builtin
@@ -81,7 +76,7 @@ impl Default for Cairo1RunConfig<'_> {
             serialize_output: false,
             trace_enabled: false,
             relocate_mem: false,
-            layout: "plain",
+            layout: LayoutName::plain,
             proof_mode: false,
             finalize_builtins: false,
             append_return_values: false,
@@ -242,10 +237,7 @@ pub fn cairo_run_program(
                     .iter()
                     .enumerate()
                     .map(|(i, builtin)| {
-                        (
-                            builtin.name(),
-                            (vm.get_ap() - (builtins.len() - 1 - i)).unwrap(),
-                        )
+                        (*builtin, (vm.get_ap() - (builtins.len() - 1 - i)).unwrap())
                     })
                     .collect(),
                 false,
@@ -779,14 +771,14 @@ fn finalize_builtins(
     let mut builtin_name_to_stack_pointer = HashMap::new();
     for (id, size) in ret_types_and_sizes {
         if let Some(ref name) = id.debug_name {
-            let builtin_name = match &*name.to_string() {
-                "RangeCheck" => RANGE_CHECK_BUILTIN_NAME,
-                "Poseidon" => POSEIDON_BUILTIN_NAME,
-                "EcOp" => EC_OP_BUILTIN_NAME,
-                "Bitwise" => BITWISE_BUILTIN_NAME,
-                "Pedersen" => HASH_BUILTIN_NAME,
-                "Output" => OUTPUT_BUILTIN_NAME,
-                "Ecdsa" => SIGNATURE_BUILTIN_NAME,
+            let builtin_name = match name.as_str() {
+                "RangeCheck" => BuiltinName::range_check,
+                "Poseidon" => BuiltinName::poseidon,
+                "EcOp" => BuiltinName::ec_op,
+                "Bitwise" => BuiltinName::bitwise,
+                "Pedersen" => BuiltinName::pedersen,
+                "Output" => BuiltinName::output,
+                "Ecdsa" => BuiltinName::ecdsa,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
@@ -1226,7 +1218,7 @@ mod tests {
         // Set proof_mode
         let cairo_run_config = Cairo1RunConfig {
             proof_mode,
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
             finalize_builtins: true,
             ..Default::default()

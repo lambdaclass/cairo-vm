@@ -1,3 +1,4 @@
+use crate::types::layout_name::LayoutName;
 #[cfg(feature = "cairo-1-hints")]
 use crate::vm::errors::cairo_run_errors::CairoRunError;
 #[cfg(feature = "cairo-1-hints")]
@@ -8,8 +9,7 @@ use crate::Felt252;
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
-    serde::deserialize_program::BuiltinName,
-    types::relocatable::MaybeRelocatable,
+    types::{builtin_name::BuiltinName, relocatable::MaybeRelocatable},
     vm::{
         runners::cairo_runner::{CairoArg, CairoRunner},
         vm_core::VirtualMachine,
@@ -48,32 +48,32 @@ mod skip_instruction_test;
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
 fn run_program_simple(data: &[u8]) {
-    run_program(data, false, Some("all_cairo"), None, None)
+    run_program(data, false, None, None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
 fn run_program_small(data: &[u8]) {
-    run_program(data, false, Some("small"), None, None)
+    run_program(data, false, Some(LayoutName::small), None, None)
 }
 
 fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, false, Some("all_cairo"), Some(trace), None)
+    run_program(data, false, None, Some(trace), None)
 }
 
 fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, false, Some("all_cairo"), None, Some(error))
+    run_program(data, false, None, None, Some(error))
 }
 
 fn run_program(
     data: &[u8],
     proof_mode: bool,
-    layout: Option<&str>,
+    layout: Option<LayoutName>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
 ) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
-        layout: layout.unwrap_or("all_cairo"),
+        layout: layout.unwrap_or(LayoutName::all_cairo),
         relocate_mem: true,
         trace_enabled: true,
         proof_mode,
@@ -115,7 +115,7 @@ fn run_cairo_1_entrypoint(
 
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
-        "all_cairo",
+        LayoutName::all_cairo,
         false,
     )
     .unwrap();
@@ -129,11 +129,7 @@ fn run_cairo_1_entrypoint(
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
-    let builtins: Vec<&'static str> = runner
-        .get_program_builtins()
-        .iter()
-        .map(|b| b.name())
-        .collect();
+    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = vm
         .get_builtin_runners()
@@ -217,7 +213,7 @@ fn run_cairo_1_entrypoint_with_run_resources(
 ) -> Result<Vec<Felt252>, CairoRunError> {
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
-        "all_cairo",
+        LayoutName::all_cairo,
         false,
     )
     .unwrap();
@@ -231,11 +227,7 @@ fn run_cairo_1_entrypoint_with_run_resources(
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
 
-    let builtins: Vec<&'static str> = runner
-        .get_program_builtins()
-        .iter()
-        .map(|b| b.name())
-        .collect();
+    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = vm
         .get_builtin_runners()
@@ -319,22 +311,6 @@ fn get_casm_contract_builtins(
         .unwrap()
         .builtins
         .iter()
-        .map(|n| format!("{}_builtin", n))
-        .map(|s| match &*s {
-            crate::vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME => BuiltinName::output,
-            crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME => {
-                BuiltinName::range_check
-            }
-            crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME => BuiltinName::pedersen,
-            crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME => BuiltinName::ecdsa,
-            crate::vm::runners::builtin_runner::KECCAK_BUILTIN_NAME => BuiltinName::keccak,
-            crate::vm::runners::builtin_runner::BITWISE_BUILTIN_NAME => BuiltinName::bitwise,
-            crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME => BuiltinName::ec_op,
-            crate::vm::runners::builtin_runner::POSEIDON_BUILTIN_NAME => BuiltinName::poseidon,
-            crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME => {
-                BuiltinName::segment_arena
-            }
-            _ => panic!("Invalid builtin {}", s),
-        })
+        .map(|s| BuiltinName::from_str(s).expect("Invalid builtin name"))
         .collect()
 }

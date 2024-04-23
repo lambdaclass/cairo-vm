@@ -6,6 +6,39 @@
   * Added segment merging of the dictionary segments.
   * Added validation of the generated segment arena in cairo1 run.
 
+* feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
+
+* BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
+  * `PublicInput` field `layout_params` renamed to `dynamic_params` & type changed from`&'a CairoLayout` to `()`.
+
+* feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
+
+* refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
+  * `BuiltinName` moved from `crate::serde::deserialize_program` module to `crate::types::builtin_name`.
+    * Implement `BuiltinName` methods `to_str`, `to_str_with_suffix`, `from_str` & `from_str_with_suffix`.
+  * Remove `BuiltinName` method `name`.
+  * All builtin-related error variants now store `BuiltinName` instead of `&'static str` or `String`.
+  * Remove constants: `OUTPUT_BUILTIN_NAME`, `HASH_BUILTIN_NAME`, `RANGE_CHECK_BUILTIN_NAME`,`RANGE_CHECK_96_BUILTIN_NAME`, `SIGNATURE_BUILTIN_NAME`, `BITWISE_BUILTIN_NAME`, `EC_OP_BUILTIN_NAME`, `KECCAK_BUILTIN_NAME`, `POSEIDON_BUILTIN_NAME`, `SEGMENT_ARENA_BUILTIN_NAME`, `ADD_MOD_BUILTIN_NAME` &
+`MUL_MOD_BUILTIN_NAME`.
+  * Remove `BuiltinRunner` & `ModBuiltinRunner` method `identifier`
+  * Structs containing string representation of builtin names now use `BuiltinName` instead:
+    * `AirPrivateInput(pub HashMap<&'static str, Vec<PrivateInput>>)` ->  `AirPrivateInput(pub HashMap<BuiltinName, Vec<PrivateInput>>)`.
+    * `CairoPieMetadata` field `additional_data`: `HashMap<String, BuiltinAdditionalData>,` -> `CairoPieAdditionalData` with `CairoPieAdditionalData(pub HashMap<BuiltinName, BuiltinAdditionalData>)`
+    * `CairoPieMetadata` field `builtin_segments`: `HashMap<String, SegmentInfo>` -> `HashMap<BuiltinName, SegmentInfo>`.
+    * `ExecutiobResources` field `builtin_instance_counter`: `HashMap<String, usize>` -> `HashMap<BuiltinName, usize>`
+  * Methods returning string representation of builtin names now use `BuiltinName` instead:
+    * `BuiltinRunner`, `ModBuiltinRunner` & `RangeCheckBuiltinRunner` method `name`: `&'static str` -> `BuiltinName`.
+    * `CairoRunner` method `get_builtin_segment_info_for_pie`: `Result<HashMap<String, cairo_pie::SegmentInfo>, RunnerError>` -> `Result<HashMap<BuiltinName, cairo_pie::SegmentInfo>, RunnerError>`
+
+  Notes: Serialization of vm outputs that now contain `BuiltinName` & `Display` implementation of `BuiltinName` have not been affected by this PR
+
+* feat: Add `recursive_with_poseidon` layout[#1724](https://github.com/lambdaclass/cairo-vm/pull/1724)
+
+* refactor(BREAKING): Use an enum to represent layout name[#1715](https://github.com/lambdaclass/cairo-vm/pull/1715)
+  * Add enum `LayoutName` to represent cairo layout names.
+  * `CairoRunConfig`, `Cairo1RunConfig` & `CairoRunner` field `layout` type changed from `String` to `LayoutName`.
+  * `CairoLayout` field `name` type changed from `String` to `LayoutName`.
+
 * fix(BREAKING): Remove unsafe impl of `Add<usize> for &'a Relocatable`[#1718](https://github.com/lambdaclass/cairo-vm/pull/1718)
 
 * fix(BREAKING): Handle triple dereference references[#1708](https://github.com/lambdaclass/cairo-vm/pull/1708)

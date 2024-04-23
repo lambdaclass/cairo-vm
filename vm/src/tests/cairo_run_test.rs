@@ -1,4 +1,4 @@
-use crate::tests::*;
+use crate::{tests::*, types::layout_name::LayoutName};
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
@@ -1076,7 +1076,7 @@ fn run_program_allow_missing_builtins() {
     let program_data = include_bytes!("../../../cairo_programs/pedersen_extra_builtins.json");
     let config = CairoRunConfig {
         allow_missing_builtins: Some(true),
-        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
     assert!(crate::cairo_run::cairo_run(
@@ -1094,7 +1094,7 @@ fn run_program_allow_missing_builtins_proof() {
     let config = CairoRunConfig {
         proof_mode: true,
         allow_missing_builtins: Some(true),
-        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
     assert!(crate::cairo_run::cairo_run(
@@ -1167,7 +1167,7 @@ fn run_program_with_custom_mod_builtin_params(
     security_error: Option<&str>,
 ) {
     let cairo_run_config = CairoRunConfig {
-        layout: "all_cairo",
+        layout: LayoutName::all_cairo,
         proof_mode,
         ..Default::default()
     };
@@ -1228,7 +1228,7 @@ fn run_program_with_custom_mod_builtin_params(
 fn cairo_run_apply_poly() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/apply_poly.json");
-    run_program(program_data, false, Some("all_cairo"), None, None);
+    run_program(program_data, false, None, None, None);
 }
 
 #[test]
@@ -1236,5 +1236,5 @@ fn cairo_run_apply_poly() {
 fn cairo_run_apply_poly_proof() {
     let program_data =
         include_bytes!("../../../cairo_programs/mod_builtin_feature/proof/apply_poly.json");
-    run_program(program_data, true, Some("all_cairo"), None, None);
+    run_program(program_data, true, None, None, None);
 }
