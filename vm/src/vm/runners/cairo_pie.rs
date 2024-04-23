@@ -642,5 +642,7 @@ mod test {
         let deserialized_pie = CairoPie::read_zip_file(file_path).unwrap();
         // Check that both pies are equal
         assert_eq!(cairo_pie, deserialized_pie);
+        // Remove zip file created by the test
+        std::fs::remove_file(file_path).unwrap();
     }
 }
