@@ -124,6 +124,19 @@ impl OutputBuiltinRunner {
         })
     }
 
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Output(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::output)),
+        };
+        self.pages.extend(additional_data.pages.clone());
+        self.attributes.extend(additional_data.attributes.clone());
+        Ok(())
+    }
+
     pub(crate) fn set_stop_ptr_offset(&mut self, offset: usize) {
         self.stop_ptr = Some(offset)
     }
@@ -456,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info_no_pages_no_attributes() {
+    fn get_additional_data_no_pages_no_attributes() {
         let builtin = OutputBuiltinRunner::new(true);
         assert_eq!(
             builtin.get_additional_data(),
@@ -598,5 +611,27 @@ mod tests {
             public_memory,
             vec![(0, 0), (1, 0), (2, 1), (3, 1), (4, 2), (5, 2), (6, 2)]
         );
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let builtin_a = OutputBuiltinRunner {
+            base: 0,
+            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            stop_ptr: None,
+            included: true,
+        };
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = OutputBuiltinRunner {
+            base: 0,
+            pages: Default::default(),
+            attributes: Default::default(),
+            stop_ptr: None,
+            included: true,
+        };
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin_a.attributes, builtin_b.attributes);
+        assert_eq!(builtin_a.pages, builtin_b.pages);
     }
 }

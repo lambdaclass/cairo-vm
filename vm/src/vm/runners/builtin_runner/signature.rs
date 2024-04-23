@@ -2,8 +2,10 @@ use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInp
 use crate::math_utils::div_mod;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
+use crate::types::builtin_name::BuiltinName;
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
+use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::Felt252;
 use crate::{
@@ -178,6 +180,31 @@ impl SignatureBuiltinRunner {
             })
             .collect();
         BuiltinAdditionalData::Signature(signatures)
+    }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Signature(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa)),
+        };
+        for (addr, (r, s)) in additional_data {
+            if addr.segment_index != self.base as isize {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa));
+            }
+            self.signatures.borrow_mut().insert(
+                *addr,
+                Signature {
+                    r: FieldElement::from_bytes_be(&r.to_bytes_be())
+                        .map_err(|_| MathError::ByteConversionError)?,
+                    s: FieldElement::from_bytes_be(&s.to_bytes_be())
+                        .map_err(|_| MathError::ByteConversionError)?,
+                },
+            );
+        }
+        Ok(())
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
@@ -482,7 +509,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info() {
+    fn get_additional_data() {
         let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
         let signatures = HashMap::from([(
             Relocatable::from((4, 0)),
@@ -500,5 +527,32 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Signature(signatures)
         )
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let mut builtin_a = SignatureBuiltinRunner::new(Some(512), true);
+        let signatures = HashMap::from([(
+            Relocatable::from((0, 0)),
+            Signature {
+                r: FieldElement::from_dec_str("45678").unwrap(),
+                s: FieldElement::from_dec_str("1239").unwrap(),
+            },
+        )]);
+        builtin_a.signatures = Rc::new(RefCell::new(signatures));
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = SignatureBuiltinRunner::new(Some(512), true);
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        // Signature doesn't implement PartialEq so we can't comapre the list of signatures directly
+        let signatures_a = builtin_a.signatures.borrow();
+        let signatures_b = builtin_b.signatures.borrow();
+        assert_eq!(signatures_a.len(), signatures_b.len());
+        for ((addr_a, signature_a), (addr_b, signature_b)) in
+            signatures_a.iter().zip(signatures_b.iter())
+        {
+            assert_eq!(addr_a, addr_b);
+            assert_eq!(signature_a.r, signature_b.r);
+            assert_eq!(signature_a.s, signature_b.s);
+        }
     }
 }

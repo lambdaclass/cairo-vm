@@ -499,12 +499,27 @@ impl BuiltinRunner {
         }
     }
 
+    /// Returns data stored internally by builtins needed to re-execute from a cairo pie
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         match self {
             BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
             BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
             BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
             _ => BuiltinAdditionalData::None,
+        }
+    }
+
+    /// Extends the builtin's internal data with the internal data obtained from a previous cairo execution
+    /// Used solely when running from a cairo pie
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        match self {
+            BuiltinRunner::Hash(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Output(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Signature(builtin) => builtin.extend_additional_data(additional_data),
+            _ => Ok(()),
         }
     }
 
