@@ -329,6 +329,9 @@ compare_air_private_input: $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INP
 compare_pie: $(CAIRO_RS_PIE) $(CAIRO_PIE)
 	cd vm/src/tests; ./compare_vm_state.sh pie
 
+compare_all_pie_outputs: $(CAIRO_RS_PIE)
+	cd vm/src/tests; ./compare_all_pie_outputs.sh
+
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
 	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
