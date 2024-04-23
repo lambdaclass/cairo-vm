@@ -749,11 +749,12 @@ jobs:
         path: target/release/cairo-vm-cli
         fail-on-cache-miss: true
     
-    - name: Fetch programs
+    - name: Fetch PIEs
       uses: actions/cache/restore@v3
       with:
-        path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        path: |
+          cairo_programs/**/*rs.pie.zip
+        key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
         
     - name: Run comparison
