@@ -186,7 +186,6 @@ pub(super) mod serde_impl {
     use crate::types::builtin_name::BuiltinName;
     use num_integer::Integer;
     use num_traits::Num;
-    use serde::ser::SerializeMap;
 
     use super::CAIRO_PIE_VERSION;
     use super::{CairoPieMemory, SegmentInfo};
@@ -199,7 +198,11 @@ pub(super) mod serde_impl {
         Felt252,
     };
     use num_bigint::BigUint;
-    use serde::{de::Error, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{
+        de::Error, ser::SerializeMap, ser::SerializeSeq, Deserialize, Deserializer, Serialize,
+        Serializer,
+    };
+    use serde_json::Number;
 
     pub const ADDR_BYTE_LEN: usize = 8;
     pub const FIELD_BYTE_LEN: usize = 32;
@@ -250,7 +253,6 @@ pub(super) mod serde_impl {
 
     pub mod program_data {
         use super::*;
-        use crate::types::relocatable::MaybeRelocatable;
 
         pub fn serialize<S>(values: &[MaybeRelocatable], serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -289,21 +291,27 @@ pub(super) mod serde_impl {
     pub mod prime {
         use super::*;
 
+        use lazy_static::lazy_static;
+        lazy_static! {
+            static ref CAIRO_PRIME_NUMBER: Number =
+                Number::from_string_unchecked(CAIRO_PRIME.to_string());
+        }
+
         pub fn serialize<S>(_value: &(), serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
         {
             // Note: This uses an API intended only for testing.
-            serde_json::Number::from_string_unchecked(CAIRO_PRIME.to_string()).serialize(serializer)
+            CAIRO_PRIME_NUMBER.serialize(serializer)
         }
 
         pub fn deserialize<'de, D>(d: D) -> Result<(), D::Error>
         where
             D: Deserializer<'de>,
         {
-            let prime = serde_json::Number::deserialize(d)?;
+            let prime = Number::deserialize(d)?;
 
-            if prime.as_str() != CAIRO_PRIME.to_string() {
+            if prime != *CAIRO_PRIME_NUMBER {
                 Err(D::Error::custom("Invalid prime"))
             } else {
                 Ok(())
@@ -426,8 +434,6 @@ pub(super) mod serde_impl {
     }
 
     pub mod signature_additional_data {
-        use serde_json::Number;
-
         use super::*;
 
         pub fn serialize<S>(
@@ -476,6 +482,7 @@ pub(super) mod serde_impl {
 
     pub mod hash_additional_data {
         use super::*;
+
         pub fn serialize<S>(values: &[Relocatable], serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
