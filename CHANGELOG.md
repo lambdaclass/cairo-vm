@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
+
 * feat: Implement running from `CairoPie`[#1720](https://github.com/lambdaclass/cairo-vm/pull/1720)
   * Add function `cairo_run_pie`
   * Add `CairoPie` methods `run_validity_checks` & `check_pie_compatibility`
