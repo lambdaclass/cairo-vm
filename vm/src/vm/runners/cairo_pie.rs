@@ -536,7 +536,6 @@ pub(super) mod serde_impl {
 
 #[cfg(test)]
 mod test {
-    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     #[cfg(feature = "std")]
     use rstest::rstest;
 
@@ -615,8 +614,11 @@ mod test {
     #[case(include_bytes!("../../../../cairo_programs/ec_op.json"), "ec_op")]
     #[case(include_bytes!("../../../../cairo_programs/bitwise_output.json"), "bitwise")]
     fn read_write_pie_zip(#[case] program_content: &[u8], #[case] identifier: &str) {
-        use crate::cairo_run::CairoRunConfig;
-        use crate::types::layout_name::LayoutName;
+        use crate::{
+            cairo_run::CairoRunConfig,
+            hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            types::layout_name::LayoutName,
+        };
         // Run a program to obtain the CairoPie
         let cairo_pie = {
             let cairo_run_config = CairoRunConfig {
