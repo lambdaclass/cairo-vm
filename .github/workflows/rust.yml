@@ -727,7 +727,7 @@ jobs:
 
   compare-run-from-cairo-pie-all-outputs:
     name: Compare all outputs from running Cairo PIEs
-    needs: [ build-programs, build-release ]
+    needs: [ build-programs, build-release, run-cairo-release ]
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
