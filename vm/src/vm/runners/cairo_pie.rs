@@ -256,11 +256,14 @@ pub(super) mod serde_impl {
         where
             S: Serializer,
         {
+            use serde::ser::Error;
             let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
 
             for value in values {
                 match value {
-                    MaybeRelocatable::RelocatableValue(_) => todo!(),
+                    MaybeRelocatable::RelocatableValue(_) => {
+                        return Err(S::Error::custom("Invalid program data"))
+                    }
                     MaybeRelocatable::Int(x) => {
                         seq_serializer.serialize_element(&Felt252Wrapper(x))?;
                     }
