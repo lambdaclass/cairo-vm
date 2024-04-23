@@ -4,6 +4,13 @@
 
 * refactor: Add `lib.rs` to cairo1-run[#1714](https://github.com/lambdaclass/cairo-vm/pull/1714)
 
+* feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
+
+* BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
+  * `PublicInput` field `layout_params` renamed to `dynamic_params` & type changed from`&'a CairoLayout` to `()`.
+
+* feat: `cairo1-run` accepts Sierra programs [#1719](https://github.com/lambdaclass/cairo-vm/pull/1719)
+
 * refactor(BREAKING): Use `BuiltinName` enum instead of string representation [#1722](https://github.com/lambdaclass/cairo-vm/pull/1722)
   * `BuiltinName` moved from `crate::serde::deserialize_program` module to `crate::types::builtin_name`.
     * Implement `BuiltinName` methods `to_str`, `to_str_with_suffix`, `from_str` & `from_str_with_suffix`.

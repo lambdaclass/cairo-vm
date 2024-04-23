@@ -126,6 +126,8 @@ pub enum RunnerError {
     MissingBuiltin(BuiltinName),
     #[error("The stop pointer of the missing builtin {0} must be 0")]
     MissingBuiltinStopPtrNotZero(BuiltinName),
+    #[error("{0}: Invalid additional data")]
+    InvalidAdditionalData(BuiltinName),
 }
 
 #[cfg(test)]
