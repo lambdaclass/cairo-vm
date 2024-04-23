@@ -461,7 +461,7 @@ pub(super) mod serde_impl {
             D: Deserializer<'de>,
         {
             let number_map = Vec::<((Number, Number), (Number, Number))>::deserialize(d)?;
-            let mut res = HashMap::new();
+            let mut res = HashMap::with_capacity(number_map.len());
             for ((index, offset), (r, s)) in number_map.into_iter() {
                 let addr = Relocatable::from((
                     index
