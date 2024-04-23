@@ -533,6 +533,7 @@ mod test {
         cairo_run::CairoRunConfig,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
     };
+    use rstest::rstest;
 
     use super::*;
 
@@ -600,21 +601,33 @@ mod test {
         );
     }
 
-    #[test]
+    #[rstest]
     #[cfg(feature = "std")]
-    fn read_write_pie_zip() {
+    #[case(include_bytes!("../../../../cairo_programs/fibonacci.json"), "fibonacci")]
+    #[case(include_bytes!("../../../../cairo_programs/integration.json"), "integration")]
+    #[case(include_bytes!("../../../../cairo_programs/common_signature.json"), "signature")]
+    #[case(include_bytes!("../../../../cairo_programs/relocate_segments.json"), "relocate")]
+    #[case(include_bytes!("../../../../cairo_programs/ec_op.json"), "ec_op")]
+    #[case(include_bytes!("../../../../cairo_programs/bitwise_output.json"), "bitwise")]
+    fn read_write_pie_zip(#[case] program_content: &[u8], #[case] identifier: &str) {
+        use crate::types::layout_name::LayoutName;
         // Run a program to obtain the CairoPie
         let cairo_pie = {
+            let cairo_run_config = CairoRunConfig {
+                layout: LayoutName::starknet_with_keccak,
+                ..Default::default()
+            };
             let (runner, vm) = crate::cairo_run::cairo_run(
-                include_bytes!("../../../../cairo_programs/fibonacci.json"),
-                &CairoRunConfig::default(),
+                program_content,
+                &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),
             )
             .unwrap();
             runner.get_cairo_pie(&vm).unwrap()
         };
         // Serialize the CairoPie into a zip file
-        let file_path = Path::new("temp.zip");
+        let filename = format!("temp_file_{}", identifier); // Identifier used to avoid name clashes
+        let file_path = Path::new(&filename);
         cairo_pie.write_zip_file(file_path).unwrap();
         // Deserialize the zip file
         let deserialized_pie = CairoPie::read_zip_file(file_path).unwrap();
