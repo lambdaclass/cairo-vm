@@ -338,6 +338,7 @@ clean:
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(TEST_DIR)/*.pie.zip
+	rm -f $(TEST_DIR)/*.pie
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json

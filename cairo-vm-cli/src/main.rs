@@ -76,7 +76,7 @@ struct Args {
         // passing run_from_cairo_pie + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
-    run_from_cairo_pie: bool
+    run_from_cairo_pie: bool,
 }
 
 #[derive(Debug, Error)]
@@ -174,25 +174,26 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         ..Default::default()
     };
 
-
-    let (cairo_runner, mut vm) =
-        match {
-            if args.run_from_cairo_pie {
-                let pie = CairoPie::read_zip_file(&args.filename)?;
-                let mut hint_processor = BuiltinHintProcessor::new(Default::default(), RunResources::new(pie.execution_resources.n_steps));
-                cairo_run::cairo_run_pie(&pie, &cairo_run_config, &mut hint_processor)
-            } else {
-                let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
-                let mut hint_processor = BuiltinHintProcessor::new_empty();
-                cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_processor)
-            }
-        } {
-            Ok(runner) => runner,
-            Err(error) => {
-                eprintln!("{error}");
-                return Err(Error::Runner(error));
-            }
-        };
+    let (cairo_runner, mut vm) = match {
+        if args.run_from_cairo_pie {
+            let pie = CairoPie::read_zip_file(&args.filename)?;
+            let mut hint_processor = BuiltinHintProcessor::new(
+                Default::default(),
+                RunResources::new(pie.execution_resources.n_steps),
+            );
+            cairo_run::cairo_run_pie(&pie, &cairo_run_config, &mut hint_processor)
+        } else {
+            let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
+            cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_processor)
+        }
+    } {
+        Ok(runner) => runner,
+        Err(error) => {
+            eprintln!("{error}");
+            return Err(Error::Runner(error));
+        }
+    };
 
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();
