@@ -277,7 +277,7 @@ pub(super) mod serde_impl {
             let numbers = Vec::<serde_json::Number>::deserialize(d)?;
             numbers
                 .into_iter()
-                .map(|n| Felt252::from_dec_str(n.as_str()).map(|f| MaybeRelocatable::from(f)))
+                .map(|n| Felt252::from_dec_str(n.as_str()).map(MaybeRelocatable::from))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| D::Error::custom("Failed to deserilaize Felt252 value"))
         }
