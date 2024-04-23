@@ -63,7 +63,7 @@ pub enum BuiltinAdditionalData {
     Hash(Vec<Relocatable>),
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
-    #[serde(serialize_with = "serde_impl::serialize_signature_additional_data")]
+    #[serde(with = "serde_impl::signature_additional_data")]
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
@@ -277,7 +277,7 @@ pub(super) mod serde_impl {
             let numbers = Vec::<serde_json::Number>::deserialize(d)?;
             numbers
                 .into_iter()
-                .map(|n| Felt252::from_dec_str(&n.to_string()).map(|f| MaybeRelocatable::from(f)))
+                .map(|n| Felt252::from_dec_str(n.as_str()).map(|f| MaybeRelocatable::from(f)))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| D::Error::custom("Failed to deserilaize Felt252 value"))
         }
@@ -300,7 +300,7 @@ pub(super) mod serde_impl {
         {
             let prime = serde_json::Number::deserialize(d)?;
 
-            if prime.to_string() != CAIRO_PRIME.to_string() {
+            if prime.as_str() != CAIRO_PRIME.to_string() {
                 Err(D::Error::custom("Invalid prime"))
             } else {
                 Ok(())
@@ -422,25 +422,53 @@ pub(super) mod serde_impl {
         }
     }
 
-    pub fn serialize_signature_additional_data<S>(
-        values: &HashMap<Relocatable, (Felt252, Felt252)>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+    pub mod signature_additional_data {
+        use serde_json::Number;
 
-        for (key, (x, y)) in values {
-            seq_serializer.serialize_element(&[
-                [
-                    Felt252Wrapper(&Felt252::from(key.segment_index)),
-                    Felt252Wrapper(&Felt252::from(key.offset)),
-                ],
-                [Felt252Wrapper(x), Felt252Wrapper(y)],
-            ])?;
+        use super::*;
+
+        pub fn serialize<S>(
+            values: &HashMap<Relocatable, (Felt252, Felt252)>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut seq_serializer = serializer.serialize_seq(Some(values.len()))?;
+
+            for (key, (x, y)) in values {
+                seq_serializer.serialize_element(&[
+                    [
+                        Felt252Wrapper(&Felt252::from(key.segment_index)),
+                        Felt252Wrapper(&Felt252::from(key.offset)),
+                    ],
+                    [Felt252Wrapper(x), Felt252Wrapper(y)],
+                ])?;
+            }
+            seq_serializer.end()
         }
-        seq_serializer.end()
+
+        pub fn deserialize<'de, D>(
+            d: D,
+        ) -> Result<HashMap<Relocatable, (Felt252, Felt252)>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let number_map = HashMap::<(Number, Number), (Number, Number)>::deserialize(d)?;
+            let mut res = HashMap::new();
+            for ((index, offset), (r, s)) in number_map.into_iter() {
+                let addr = Relocatable::from((
+                    index.as_u64().ok_or(D::Error::custom("Invalid address"))? as isize,
+                    offset.as_u64().ok_or(D::Error::custom("Invalid address"))? as usize,
+                ));
+                let r = Felt252::from_dec_str(r.as_str())
+                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                let s = Felt252::from_dec_str(s.as_str())
+                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                res.insert(addr, (r, s));
+            }
+            Ok(res)
+        }
     }
 
     pub mod hash_additional_data {
