@@ -137,39 +137,28 @@ impl CairoPie {
     #[cfg(feature = "std")]
     pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
         use std::io::Read;
+
         use zip::ZipArchive;
 
         let file = File::open(file_path)?;
         let mut zip_reader = ZipArchive::new(file)?;
 
-        let mut version = vec![];
-        zip_reader
-            .by_name("version.json")?
-            .read_to_end(&mut version)?;
-        let version: CairoPieVersion = serde_json::from_slice(&version)?;
+        let reader = std::io::BufReader::new(zip_reader.by_name("version.json")?);
+        let version: CairoPieVersion = serde_json::from_reader(reader)?;
 
-        let mut metadata = vec![];
-        zip_reader
-            .by_name("metadata.json")?
-            .read_to_end(&mut metadata)?;
-        let metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
+        let reader = std::io::BufReader::new(zip_reader.by_name("metadata.json")?);
+        let metadata: CairoPieMetadata = serde_json::from_reader(reader)?;
 
         let mut memory = vec![];
         zip_reader.by_name("memory.bin")?.read_to_end(&mut memory)?;
         let memory = CairoPieMemory::from_bytes(&memory)
             .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
 
-        let mut execution_resources = vec![];
-        zip_reader
-            .by_name("execution_resources.json")?
-            .read_to_end(&mut execution_resources)?;
-        let execution_resources: ExecutionResources = serde_json::from_slice(&execution_resources)?;
+        let reader = std::io::BufReader::new(zip_reader.by_name("execution_resources.json")?);
+        let execution_resources: ExecutionResources = serde_json::from_reader(reader)?;
 
-        let mut additional_data = vec![];
-        zip_reader
-            .by_name("additional_data.json")?
-            .read_to_end(&mut additional_data)?;
-        let additional_data: CairoPieAdditionalData = serde_json::from_slice(&additional_data)?;
+        let reader = std::io::BufReader::new(zip_reader.by_name("additional_data.json")?);
+        let additional_data: CairoPieAdditionalData = serde_json::from_reader(reader)?;
 
         Ok(CairoPie {
             metadata,
@@ -461,7 +450,7 @@ pub(super) mod serde_impl {
             D: Deserializer<'de>,
         {
             let number_map = Vec::<((Number, Number), (Number, Number))>::deserialize(d)?;
-            let mut res = HashMap::new();
+            let mut res = HashMap::with_capacity(number_map.len());
             for ((index, offset), (r, s)) in number_map.into_iter() {
                 let addr = Relocatable::from((
                     index
