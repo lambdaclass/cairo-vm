@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: Add support for cairo1 run with segements arena validation.
+  * Refactored the runner CASM code generation to user a more high level builder.
+  * Added segment merging of the dictionary segments.
+  * Added validation of the generated segment arena in cairo1 run.
 
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
