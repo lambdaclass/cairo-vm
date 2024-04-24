@@ -762,5 +762,5 @@ jobs:
         fail-on-cache-miss: true
    
     - name: Run comparison
-      run: make compare_all_pie_outputs
+      run: cd vm/src/tests; ./compare_all_pie_outputs.sh
 
