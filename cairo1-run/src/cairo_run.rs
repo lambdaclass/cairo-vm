@@ -1,3 +1,4 @@
+use crate::error::Error;
 use cairo_lang_casm::{
     builder::{CasmBuilder, Var},
     casm, casm_build_extend,
@@ -51,21 +52,45 @@ use itertools::{chain, Itertools};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
-use crate::{Error, FuncArg};
+/// Representation of a cairo argument
+/// Can consist of a single Felt or an array of Felts
+#[derive(Debug, Clone)]
+pub enum FuncArg {
+    Array(Vec<Felt252>),
+    Single(Felt252),
+}
 
+impl From<Felt252> for FuncArg {
+    fn from(value: Felt252) -> Self {
+        Self::Single(value)
+    }
+}
+
+impl From<Vec<Felt252>> for FuncArg {
+    fn from(value: Vec<Felt252>) -> Self {
+        Self::Array(value)
+    }
+}
+
+/// Configuration parameters for a cairo run
 #[derive(Debug)]
 pub struct Cairo1RunConfig<'a> {
+    /// Input arguments for the `main` function in the cairo progran
     pub args: &'a [FuncArg],
-    // Serializes program output into a user-friendly format
+    /// Serialize program output into a user-friendly format
     pub serialize_output: bool,
+    /// Compute cairo trace during execution
     pub trace_enabled: bool,
+    /// Relocate cairo memory at the end of the run
     pub relocate_mem: bool,
+    /// Cairo layout chosen for the run
     pub layout: LayoutName,
+    /// Run in proof_mode
     pub proof_mode: bool,
-    // Should be true if either air_public_input or cairo_pie_output are needed
-    // Sets builtins stop_ptr by calling `final_stack` on each builtin
+    /// Should be true if either air_public_input or cairo_pie_output are needed
+    /// Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
-    // Appends return values to the output segment. This is performed by default when running in proof_mode
+    /// Appends return values to the output segment. This is performed by default when running in proof_mode
     pub append_return_values: bool,
 }
 
