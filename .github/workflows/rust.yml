@@ -752,7 +752,12 @@ jobs:
     - name: Fetch traces for cairo-vm
       uses: actions/cache/restore@v3
       with:
-        path: cairo_programs/*.pie.zip
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+          cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: cairo_test_programs-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
    
