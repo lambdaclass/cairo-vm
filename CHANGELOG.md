@@ -8,6 +8,8 @@
 
 * refactor: Add `lib.rs` to cairo1-run[#1714](https://github.com/lambdaclass/cairo-vm/pull/1714)
 
+* feat: Implement `CairoPie::read_zip_file`[#1729](https://github.com/lambdaclass/cairo-vm/pull/1729)
+
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
 * BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
