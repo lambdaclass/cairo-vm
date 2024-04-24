@@ -413,4 +413,29 @@ mod tests {
             Felt252::THREE
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_integer_from_reference_without_outer_defer() {
+        // Reference: cast([fp + 4] + (-5), felt)
+        let mut vm = vm!();
+        vm.segments = segments![
+            ((1, 4), 8), // [fp + 4]
+        ];
+        // [fp + 4] + (-5) = 8 - 5 = 3
+        let hint_ref = HintReference {
+            offset1: OffsetValue::Reference(Register::FP, 4, true),
+            offset2: OffsetValue::Immediate(Felt252::from(-5)),
+            outer_dereference: false,
+            inner_dereference: false,
+            ap_tracking_data: Default::default(),
+            cairo_type: None,
+        };
+
+        assert_eq!(
+            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
+                .expect("Unexpected get integer fail"),
+            Felt252::THREE
+        );
+    }
 }
