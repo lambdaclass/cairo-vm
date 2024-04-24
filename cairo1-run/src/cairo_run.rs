@@ -1050,6 +1050,10 @@ fn serialize_output_inner<'a>(
                 type_sizes,
             )
         }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_info) => {
+            // Ignore it
+            let _ = return_values_iter.next();
+        },
         _ => panic!("Unexpected return type")
     }
 }
