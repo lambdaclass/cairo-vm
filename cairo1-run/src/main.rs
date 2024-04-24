@@ -3,10 +3,8 @@ use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
 use cairo_vm::{
-  air_public_input::PublicInputError,
-  types::layout_name::LayoutName,
-  vm::errors::trace_errors::TraceError,
-  Felt252
+    air_public_input::PublicInputError, types::layout_name::LayoutName,
+    vm::errors::trace_errors::TraceError, Felt252,
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
@@ -157,8 +155,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         }
     };
 
-    let (runner, vm, _, serialized_output) =
-        cairo_run_program(&sierra_program, cairo_run_config)?;
+    let (runner, vm, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
