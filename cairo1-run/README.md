@@ -105,9 +105,7 @@ Add the helper function:
 fn identity<T>(t: T) -> T { t }
 ```
 
-And use it when creating the `Nullable<Box<T>>` by using either option:
-
+And use it when creating the `Nullable<Box<T>>`:
 ```
 NullableTrait::<Box<T>::new(BoxTrait::new(identity(value)))
-NullableTrait::<Box<T>::new(identity(BoxTrait::new(value)))
 ```
