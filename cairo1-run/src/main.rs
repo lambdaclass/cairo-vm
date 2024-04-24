@@ -157,8 +157,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         }
     };
 
-    let (runner, vm, _, serialized_output) =
-        cairo_run_program(&sierra_program, cairo_run_config)?;
+    let (runner, vm, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
 
     if let Some(file_path) = args.air_public_input {
         let json = runner.get_air_public_input(&vm)?.serialize_json()?;
