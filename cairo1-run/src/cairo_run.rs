@@ -1069,7 +1069,9 @@ mod tests {
     use std::path::Path;
 
     use super::*;
-    use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
+    use cairo_lang_compiler::{
+        compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
+    };
     use cairo_vm::types::relocatable::Relocatable;
     use rstest::rstest;
 
@@ -1078,8 +1080,13 @@ mod tests {
             replace_ids: true,
             ..CompilerConfig::default()
         };
-
-        compile_cairo_project_at_path(Path::new(filename), compiler_config).unwrap()
+        let mut db = RootDatabase::builder()
+            .detect_corelib()
+            .skip_auto_withdraw_gas()
+            .build()
+            .unwrap();
+        let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
+        compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
     }
 
     fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
