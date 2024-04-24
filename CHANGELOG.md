@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* feat: Bump to 2.6.3 + Remove gas checks[#1709](https://github.com/lambdaclass/cairo-vm/pull/1709)
+  * Bump cairo_lang crates & corelib to v2.6.3
+  * Disable gas checks when compiling to sierra & casm
+  * Add `Known bugs & issues` segment to README, poining out issues derived from the removal of gas checks and cairo v2.6.3
+
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
 * BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
