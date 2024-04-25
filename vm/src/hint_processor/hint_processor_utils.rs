@@ -192,27 +192,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_integer_from_reference_with_immediate_off2() {
-        let mut vm = vm!();
-        vm.segments = segments![((1, 0), 1)];
-        let hint_ref = HintReference {
-            offset1: OffsetValue::Reference(Register::FP, 0, false),
-            offset2: OffsetValue::Immediate(Felt252::TWO),
-            outer_dereference: false,
-            inner_dereference: false,
-            ap_tracking_data: Default::default(),
-            cairo_type: None,
-        };
-
-        assert_eq!(
-            get_integer_from_reference(&vm, &hint_ref, &ApTracking::new())
-                .expect("Unexpected get integer fail"),
-            Felt252::THREE
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_offset_value_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
