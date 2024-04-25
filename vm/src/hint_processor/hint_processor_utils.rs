@@ -15,16 +15,16 @@ use crate::Felt252;
 
 use num_traits::ToPrimitive;
 
-///Inserts value into the address of the given ids variable
+/// Inserts value into the address of the given ids variable
 pub fn insert_value_from_reference(
     value: impl Into<MaybeRelocatable>,
     vm: &mut VirtualMachine,
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
+    let addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
         .ok_or(HintError::UnknownIdentifierInternal)?;
-    vm.insert_value(var_addr, value).map_err(HintError::Memory)
+    vm.insert_value(addr, value).map_err(HintError::Memory)
 }
 
 ///Returns the Integer value stored in the given ids variable
@@ -34,21 +34,10 @@ pub fn get_integer_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Felt252, HintError> {
-    // Compute the initial value
-    let mut val = if let OffsetValue::Immediate(f) = &hint_reference.offset1 {
-        *f
-    } else {
-        let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
-            .ok_or(HintError::UnknownIdentifierInternal)?;
-        vm.get_integer(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))?
-            .into_owned()
-    };
-    // If offset2 is an immediate, we need to add it's value to the initial value
-    if let OffsetValue::Immediate(f) = &hint_reference.offset2 {
-        val += f;
-    }
-    Ok(val)
+    get_maybe_relocatable_from_reference(vm, hint_reference, ap_tracking)
+        .ok_or(HintError::UnknownIdentifierInternal)?
+        .get_int()
+        .ok_or(HintError::WrongIdentifierTypeInternal)
 }
 
 ///Returns the Relocatable value stored in the given ids variable
@@ -57,14 +46,10 @@ pub fn get_ptr_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Result<Relocatable, HintError> {
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)
-        .ok_or(HintError::UnknownIdentifierInternal)?;
-    if hint_reference.outer_dereference {
-        vm.get_relocatable(var_addr)
-            .map_err(|_| HintError::WrongIdentifierTypeInternal(Box::new(var_addr)))
-    } else {
-        Ok(var_addr)
-    }
+    get_maybe_relocatable_from_reference(vm, hint_reference, ap_tracking)
+        .ok_or(HintError::UnknownIdentifierInternal)?
+        .get_relocatable()
+        .ok_or(HintError::WrongIdentifierTypeInternal)
 }
 
 ///Returns the value given by a reference as [MaybeRelocatable]
@@ -73,60 +58,52 @@ pub fn get_maybe_relocatable_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Option<MaybeRelocatable> {
-    //First handle case on only immediate
-    if let OffsetValue::Immediate(num) = &hint_reference.offset1 {
-        return Some(MaybeRelocatable::from(num));
+    let offset1 = get_offset_value(
+        vm,
+        &hint_reference.offset1,
+        &hint_reference.ap_tracking_data,
+        &ap_tracking,
+    )?;
+    let offset2 = get_offset_value(
+        vm,
+        &hint_reference.offset2,
+        &hint_reference.ap_tracking_data,
+        &ap_tracking,
+    )?;
+    let mut val = offset1.add(&offset2).ok()?;
+    if hint_reference.inner_dereference && hint_reference.outer_dereference {
+        val = vm.get_maybe(&val)?;
     }
-    //Then calculate address
-    let var_addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-    if hint_reference.outer_dereference {
-        vm.get_maybe(&var_addr)
-    } else {
-        Some(MaybeRelocatable::from(var_addr))
+    if hint_reference.inner_dereference || hint_reference.outer_dereference {
+        val = vm.get_maybe(&val)?;
     }
+    Some(val)
 }
 
-///Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]
+/// Computes the memory address of the ids variable indicated by the HintReference as a [Relocatable]
 pub fn compute_addr_from_reference(
-    //Reference data of the ids variable
     hint_reference: &HintReference,
     vm: &VirtualMachine,
-    //ApTracking of the Hint itself
-    hint_ap_tracking: &ApTracking,
+    ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
-    let mut offset1 =
-        if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
-            get_offset_value_reference(
-                vm,
-                hint_reference,
-                hint_ap_tracking,
-                &hint_reference.offset1,
-            )?
-            .get_relocatable()?
-        } else {
-            return None;
-        };
-
-    match &hint_reference.offset2 {
-        OffsetValue::Reference(_register, _offset, _deref) => {
-            // Cant add two relocatable values
-            // So OffSet2 must be Bigint
-            let value = get_offset_value_reference(
-                vm,
-                hint_reference,
-                hint_ap_tracking,
-                &hint_reference.offset2,
-            )?;
-
-            offset1 += value.get_int_ref()?.to_usize()?
-        }
-        OffsetValue::Value(value) => offset1 = (offset1 + *value).ok()?,
-        _ => {}
-    }
+    // Only handles refrences with outer deref, other references are not valid for writing
+    let offset1 = get_offset_value(
+        vm,
+        &hint_reference.offset1,
+        &hint_reference.ap_tracking_data,
+        &ap_tracking,
+    )?;
+    let offset2 = get_offset_value(
+        vm,
+        &hint_reference.offset2,
+        &hint_reference.ap_tracking_data,
+        &ap_tracking,
+    )?;
+    let mut val = offset1.add(&offset2).ok()?;
     if hint_reference.inner_dereference {
-        offset1 = vm.get_relocatable(offset1).ok()?
-    }
-    Some(offset1)
+        val = vm.get_maybe(&val)?;
+    };
+    val.get_relocatable()
 }
 
 fn apply_ap_tracking_correction(
@@ -154,33 +131,33 @@ pub fn felt_to_u32(felt: &Felt252) -> Result<u32, MathError> {
         .ok_or_else(|| MathError::Felt252ToU32Conversion(Box::new(*felt)))
 }
 
-fn get_offset_value_reference(
+fn get_offset_value(
     vm: &VirtualMachine,
-    hint_reference: &HintReference,
-    hint_ap_tracking: &ApTracking,
     offset_value: &OffsetValue,
+    reference_ap_tracking: &Option<ApTracking>,
+    hint_ap_tracking: &ApTracking,
 ) -> Option<MaybeRelocatable> {
-    let (register, offset, deref) = match offset_value {
-        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
-        _ => return None,
-    };
+    match offset_value {
+        OffsetValue::Immediate(f) => Some(f.into()),
+        OffsetValue::Value(v) => Some(Felt252::from(*v).into()),
+        OffsetValue::Reference(register, offset, deref) => {
+            let addr = (if matches!(register, Register::FP) {
+                vm.get_fp()
+            } else {
+                apply_ap_tracking_correction(
+                    vm.get_ap(),
+                    reference_ap_tracking.as_ref()?,
+                    hint_ap_tracking,
+                )?
+            } + *offset)
+                .ok()?;
 
-    let base_addr = if register == &Register::FP {
-        vm.get_fp()
-    } else {
-        let var_ap_trackig = hint_reference.ap_tracking_data.as_ref()?;
-
-        apply_ap_tracking_correction(vm.get_ap(), var_ap_trackig, hint_ap_tracking)?
-    };
-
-    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
-        return None;
-    }
-
-    if *deref {
-        vm.get_maybe(&(base_addr + *offset).ok()?)
-    } else {
-        Some((base_addr + *offset).ok()?.into())
+            if *deref {
+                vm.get_maybe(&addr)
+            } else {
+                Some(addr.into())
+            }
+        }
     }
 }
 
