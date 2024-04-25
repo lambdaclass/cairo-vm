@@ -1,5 +1,5 @@
 struct NullableVec<T> {
-    items: Felt252Dict<Nullable<Box<T>>>,
+    items: SquashedFelt252Dict<Nullable<Box<T>>>,
     len: usize,
 }
 
@@ -13,7 +13,7 @@ fn main() -> NullableVec<u32> {
 
     // Return NullableVec
     NullableVec {
-        items: d,
+        items: d.squash(),
         len: 3,
     }
 }

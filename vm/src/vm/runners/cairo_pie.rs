@@ -115,73 +115,64 @@ pub struct CairoPieVersion {
     pub cairo_pie: (),
 }
 
-impl CairoPie {
-    #[cfg(feature = "std")]
-    pub fn write_zip_file(&self, file_path: &Path) -> Result<(), std::io::Error> {
-        let file = File::create(file_path)?;
-        let mut zip_writer = ZipWriter::new(file);
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-        zip_writer.start_file("version.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
-        zip_writer.start_file("metadata.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
-        zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write_all(&self.memory.to_bytes())?;
-        zip_writer.start_file("additional_data.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
-        zip_writer.start_file("execution_resources.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
-        zip_writer.finish()?;
+impl CairoPieMetadata {
+    pub(crate) fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
+        if self.program.main > self.program.data.len() {
+            return Err(CairoPieValidationError::InvalidMainAddress);
+        }
+        if self.program.data.len() != self.program_segment.size {
+            return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch);
+        }
+        if self.builtin_segments.len() != self.program.builtins.len()
+            || !self
+                .program
+                .builtins
+                .iter()
+                .all(|b| self.builtin_segments.contains_key(b))
+        {
+            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
+        }
+        if !self.ret_fp_segment.size.is_zero() {
+            return Err(CairoPieValidationError::InvalidRetFpSegmentSize);
+        }
+        if !self.ret_pc_segment.size.is_zero() {
+            return Err(CairoPieValidationError::InvalidRetPcSegmentSize);
+        }
+        self.validate_segment_order()
+    }
+
+    fn validate_segment_order(&self) -> Result<(), CairoPieValidationError> {
+        if !self.program_segment.index.is_zero() {
+            return Err(CairoPieValidationError::InvalidProgramSegmentIndex);
+        }
+        if !self.execution_segment.index.is_one() {
+            return Err(CairoPieValidationError::InvalidExecutionSegmentIndex);
+        }
+        for (i, builtin_name) in self.program.builtins.iter().enumerate() {
+            // We can safely index as run_validity_checks already ensures that the keys match
+            if self.builtin_segments[builtin_name].index != 2 + i as isize {
+                return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(
+                    *builtin_name,
+                ));
+            }
+        }
+        let n_builtins = self.program.builtins.len() as isize;
+        if self.ret_fp_segment.index != n_builtins + 2 {
+            return Err(CairoPieValidationError::InvalidRetFpSegmentIndex);
+        }
+        if self.ret_pc_segment.index != n_builtins + 3 {
+            return Err(CairoPieValidationError::InvalidRetPcSegmentIndex);
+        }
+        for (i, segment) in self.extra_segments.iter().enumerate() {
+            if segment.index != 4 + n_builtins + i as isize {
+                return Err(CairoPieValidationError::InvalidExtraSegmentIndex);
+            }
+        }
         Ok(())
     }
+}
 
-    #[cfg(feature = "std")]
-    pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
-        use std::io::Read;
-        use zip::ZipArchive;
-
-        let file = File::open(file_path)?;
-        let mut zip_reader = ZipArchive::new(file)?;
-
-        let mut version = vec![];
-        zip_reader
-            .by_name("version.json")?
-            .read_to_end(&mut version)?;
-        let version: CairoPieVersion = serde_json::from_slice(&version)?;
-
-        let mut metadata = vec![];
-        zip_reader
-            .by_name("metadata.json")?
-            .read_to_end(&mut metadata)?;
-        let metadata: CairoPieMetadata = serde_json::from_slice(&metadata)?;
-
-        let mut memory = vec![];
-        zip_reader.by_name("memory.bin")?.read_to_end(&mut memory)?;
-        let memory = CairoPieMemory::from_bytes(&memory)
-            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
-
-        let mut execution_resources = vec![];
-        zip_reader
-            .by_name("execution_resources.json")?
-            .read_to_end(&mut execution_resources)?;
-        let execution_resources: ExecutionResources = serde_json::from_slice(&execution_resources)?;
-
-        let mut additional_data = vec![];
-        zip_reader
-            .by_name("additional_data.json")?
-            .read_to_end(&mut additional_data)?;
-        let additional_data: CairoPieAdditionalData = serde_json::from_slice(&additional_data)?;
-
-        Ok(CairoPie {
-            metadata,
-            memory,
-            execution_resources,
-            additional_data,
-            version,
-        })
-    }
-
+impl CairoPie {
     /// Check that self is a valid Cairo PIE
     pub fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
         self.metadata.run_validity_checks()?;
@@ -255,62 +246,59 @@ impl CairoPie {
         }
         Ok(())
     }
-}
 
-impl CairoPieMetadata {
-    pub(crate) fn run_validity_checks(&self) -> Result<(), CairoPieValidationError> {
-        if self.program.main > self.program.data.len() {
-            return Err(CairoPieValidationError::InvalidMainAddress);
-        }
-        if self.program.data.len() != self.program_segment.size {
-            return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch);
-        }
-        if self.builtin_segments.len() != self.program.builtins.len()
-            || !self
-                .program
-                .builtins
-                .iter()
-                .all(|b| self.builtin_segments.contains_key(b))
-        {
-            return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
-        }
-        if !self.ret_fp_segment.size.is_zero() {
-            return Err(CairoPieValidationError::InvalidRetFpSegmentSize);
-        }
-        if !self.ret_pc_segment.size.is_zero() {
-            return Err(CairoPieValidationError::InvalidRetPcSegmentSize);
-        }
-        self.validate_segment_order()
+    #[cfg(feature = "std")]
+    pub fn write_zip_file(&self, file_path: &Path) -> Result<(), std::io::Error> {
+        let file = File::create(file_path)?;
+        let mut zip_writer = ZipWriter::new(file);
+        let options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        zip_writer.start_file("version.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
+        zip_writer.start_file("metadata.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
+        zip_writer.start_file("memory.bin", options)?;
+        zip_writer.write_all(&self.memory.to_bytes())?;
+        zip_writer.start_file("additional_data.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        zip_writer.start_file("execution_resources.json", options)?;
+        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        zip_writer.finish()?;
+        Ok(())
     }
 
-    fn validate_segment_order(&self) -> Result<(), CairoPieValidationError> {
-        if !self.program_segment.index.is_zero() {
-            return Err(CairoPieValidationError::InvalidProgramSegmentIndex);
-        }
-        if !self.execution_segment.index.is_one() {
-            return Err(CairoPieValidationError::InvalidExecutionSegmentIndex);
-        }
-        for (i, builtin_name) in self.program.builtins.iter().enumerate() {
-            // We can safely index as run_validity_checks already ensures that the keys match
-            if self.builtin_segments[builtin_name].index != 2 + i as isize {
-                return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(
-                    *builtin_name,
-                ));
-            }
-        }
-        let n_builtins = self.program.builtins.len() as isize;
-        if self.ret_fp_segment.index != n_builtins + 2 {
-            return Err(CairoPieValidationError::InvalidRetFpSegmentIndex);
-        }
-        if self.ret_pc_segment.index != n_builtins + 3 {
-            return Err(CairoPieValidationError::InvalidRetPcSegmentIndex);
-        }
-        for (i, segment) in self.extra_segments.iter().enumerate() {
-            if segment.index != 4 + n_builtins + i as isize {
-                return Err(CairoPieValidationError::InvalidExtraSegmentIndex);
-            }
-        }
-        Ok(())
+    #[cfg(feature = "std")]
+    pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
+        use std::io::Read;
+        use zip::ZipArchive;
+
+        let file = File::open(file_path)?;
+        let mut zip_reader = ZipArchive::new(file)?;
+
+        let reader = std::io::BufReader::new(zip_reader.by_name("version.json")?);
+        let version: CairoPieVersion = serde_json::from_reader(reader)?;
+
+        let reader = std::io::BufReader::new(zip_reader.by_name("metadata.json")?);
+        let metadata: CairoPieMetadata = serde_json::from_reader(reader)?;
+
+        let mut memory = vec![];
+        zip_reader.by_name("memory.bin")?.read_to_end(&mut memory)?;
+        let memory = CairoPieMemory::from_bytes(&memory)
+            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+
+        let reader = std::io::BufReader::new(zip_reader.by_name("execution_resources.json")?);
+        let execution_resources: ExecutionResources = serde_json::from_reader(reader)?;
+
+        let reader = std::io::BufReader::new(zip_reader.by_name("additional_data.json")?);
+        let additional_data: CairoPieAdditionalData = serde_json::from_reader(reader)?;
+
+        Ok(CairoPie {
+            metadata,
+            memory,
+            execution_resources,
+            additional_data,
+            version,
+        })
     }
 }
 
@@ -594,11 +582,17 @@ pub(super) mod serde_impl {
             D: Deserializer<'de>,
         {
             let number_map = Vec::<((Number, Number), (Number, Number))>::deserialize(d)?;
-            let mut res = HashMap::new();
+            let mut res = HashMap::with_capacity(number_map.len());
             for ((index, offset), (r, s)) in number_map.into_iter() {
                 let addr = Relocatable::from((
-                    index.as_u64().ok_or(D::Error::custom("Invalid address"))? as isize,
-                    offset.as_u64().ok_or(D::Error::custom("Invalid address"))? as usize,
+                    index
+                        .as_u64()
+                        .ok_or_else(|| D::Error::custom("Invalid address"))?
+                        as isize,
+                    offset
+                        .as_u64()
+                        .ok_or_else(|| D::Error::custom("Invalid address"))?
+                        as usize,
                 ));
                 let r = Felt252::from_dec_str(r.as_str())
                     .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
