@@ -86,7 +86,6 @@ pub fn compute_addr_from_reference(
     vm: &VirtualMachine,
     ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
-    // Only handles refrences with outer deref, other references are not valid for writing
     let offset1 = get_offset_value(
         vm,
         &hint_reference.offset1,
