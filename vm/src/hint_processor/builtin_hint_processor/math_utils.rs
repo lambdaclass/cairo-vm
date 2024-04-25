@@ -894,7 +894,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "a".to_string()
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "a"
         );
     }
 
