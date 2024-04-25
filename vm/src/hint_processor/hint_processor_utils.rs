@@ -220,21 +220,26 @@ mod tests {
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, 2_i32, false);
 
         assert_matches!(
-            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            get_offset_value(&vm, &hint_ref.offset1, &hint_ref.ap_tracking_data, &ApTracking::new()),
             Some(x) if x == mayberelocatable!(1, 2)
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_offset_value_reference_invalid() {
+    fn get_offset_value_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
         let mut hint_ref = HintReference::new(0, 0, false, true);
         hint_ref.offset1 = OffsetValue::Reference(Register::FP, -2_i32, false);
 
         assert_matches!(
-            get_offset_value_reference(&vm, &hint_ref, &ApTracking::new(), &hint_ref.offset1),
+            get_offset_value(
+                &vm,
+                &hint_ref.offset1,
+                &hint_ref.ap_tracking_data,
+                &ApTracking::new()
+            ),
             None
         );
     }

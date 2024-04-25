@@ -214,7 +214,7 @@ mod tests {
 
         assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotRelocatable(bx)) if *bx == "value"
+            Err(HintError::IdentifierNotRelocatable(bx)) if *bx == "value".to_string()
         );
     }
 
@@ -270,7 +270,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "value"
+            Err(HintError::IdentifierNotInteger(bx)) if *bx == "value".to_string()
         );
     }
 }
