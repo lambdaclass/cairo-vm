@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Don't assume outer deref when fetching integer values from references[#1732](https://github.com/lambdaclass/cairo-vm/pull/1732)
+
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
 * BREAKING: Set dynamic params as null by default on air public input [#1716](https://github.com/lambdaclass/cairo-vm/pull/1716)
