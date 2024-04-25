@@ -7,7 +7,7 @@ struct FP16x16 {
     sign: bool
 }
 
-fn main() -> Felt252Dict<Nullable<FP16x16>> {
+fn main() -> SquashedFelt252Dict<Nullable<FP16x16>> {
     // Create the dictionary
     let mut d: Felt252Dict<Nullable<FP16x16>> = Default::default();
 
@@ -20,5 +20,5 @@ fn main() -> Felt252Dict<Nullable<FP16x16>> {
     d.insert(1, nullable_from_box(box_a));
     d.insert(2, nullable_from_box(box_b));
 
-    d
+    d.squash()
 }
