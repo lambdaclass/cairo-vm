@@ -79,7 +79,7 @@ impl PoseidonBuiltinRunner {
                     .get_int_ref()
                     .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
                         BuiltinName::poseidon,
-                        (first_input_addr + i)?,
+                        m_index,
                     ))))?,
                 _ => return Ok(None),
             };
