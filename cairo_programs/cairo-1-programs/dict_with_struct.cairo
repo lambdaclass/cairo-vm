@@ -11,9 +11,9 @@ fn main() -> SquashedFelt252Dict<Nullable<FP16x16>> {
     // Create the dictionary
     let mut d: Felt252Dict<Nullable<FP16x16>> = Default::default();
 
-    let box_a = BoxTrait::new(FP16x16 { mag: 1, sign: false });
-    let box_b = BoxTrait::new(FP16x16 { mag: 1, sign: true });
-    let box_c = BoxTrait::new(FP16x16 { mag: 1, sign: true });
+    let box_a = BoxTrait::new(identity(FP16x16 { mag: 1, sign: false }));
+    let box_b = BoxTrait::new(identity(FP16x16 { mag: 1, sign: true }));
+    let box_c = BoxTrait::new(identity(FP16x16 { mag: 1, sign: true }));
 
     // Insert it as a `Span`
     d.insert(0, nullable_from_box(box_c));
@@ -22,3 +22,7 @@ fn main() -> SquashedFelt252Dict<Nullable<FP16x16>> {
 
     d.squash()
 }
+
+// TODO: remove this temporary fixed once fixed in cairo
+#[inline(never)]
+fn identity<T>(t: T) -> T { t }
