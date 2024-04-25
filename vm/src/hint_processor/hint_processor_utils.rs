@@ -62,13 +62,13 @@ pub fn get_maybe_relocatable_from_reference(
         vm,
         &hint_reference.offset1,
         &hint_reference.ap_tracking_data,
-        &ap_tracking,
+        ap_tracking,
     )?;
     let offset2 = get_offset_value(
         vm,
         &hint_reference.offset2,
         &hint_reference.ap_tracking_data,
-        &ap_tracking,
+        ap_tracking,
     )?;
     let mut val = offset1.add(&offset2).ok()?;
     if hint_reference.inner_dereference && hint_reference.outer_dereference {
@@ -91,13 +91,13 @@ pub fn compute_addr_from_reference(
         vm,
         &hint_reference.offset1,
         &hint_reference.ap_tracking_data,
-        &ap_tracking,
+        ap_tracking,
     )?;
     let offset2 = get_offset_value(
         vm,
         &hint_reference.offset2,
         &hint_reference.ap_tracking_data,
-        &ap_tracking,
+        ap_tracking,
     )?;
     let mut val = offset1.add(&offset2).ok()?;
     if hint_reference.inner_dereference {
