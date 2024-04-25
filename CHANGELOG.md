@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Bump `starknet-types-core` version + Use the lib's pedersen hash [#1734](https://github.com/lambdaclass/cairo-vm/pull/1734)
+
 * feat: Add support for cairo1 run with segements arena validation.
   * Refactored the runner CASM code generation to user a more high level builder.
   * Added segment merging of the dictionary segments.
