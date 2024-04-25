@@ -11,7 +11,7 @@ use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "std")]
 use {
-    std::{fs::File, io::Write, path::Path},
+    std::{fs::File, path::Path},
     zip::ZipWriter,
 };
 
@@ -35,11 +35,8 @@ impl From<(isize, usize)> for SegmentInfo {
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
 // Allows practical serialization + conversion between CairoPieMemory & Memory
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CairoPieMemory(
-    #[serde(serialize_with = "serde_impl::serialize_memory")]
-    pub  Vec<((usize, usize), MaybeRelocatable)>,
-);
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CairoPieMemory(pub Vec<((usize, usize), MaybeRelocatable)>);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PublicMemoryPage {
@@ -258,20 +255,17 @@ impl CairoPie {
         zip_writer.start_file("metadata.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.metadata)?;
         zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write_all(&self.memory.to_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.memory)?;
         zip_writer.start_file("additional_data.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
-        zip_writer.finish()?;
         zip_writer.finish()?;
         Ok(())
     }
 
     #[cfg(feature = "std")]
     pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
-        use std::io::Read;
-
         use zip::ZipArchive;
 
         let file = File::open(file_path)?;
@@ -283,10 +277,8 @@ impl CairoPie {
         let reader = std::io::BufReader::new(zip_reader.by_name("metadata.json")?);
         let metadata: CairoPieMetadata = serde_json::from_reader(reader)?;
 
-        let mut memory = vec![];
-        zip_reader.by_name("memory.bin")?.read_to_end(&mut memory)?;
-        let memory = CairoPieMemory::from_bytes(&memory)
-            .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+        let reader = std::io::BufReader::new(zip_reader.by_name("memory.bin")?);
+        let memory: CairoPieMemory = serde_json::from_reader(reader)?;
 
         let reader = std::io::BufReader::new(zip_reader.by_name("execution_resources.json")?);
         let execution_resources: ExecutionResources = serde_json::from_reader(reader)?;
@@ -439,48 +431,23 @@ pub(super) mod serde_impl {
         }
     }
 
-    pub fn serialize_memory<S>(
-        values: &[((usize, usize), MaybeRelocatable)],
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // Missing segment and memory holes can be ignored
-        // as they can be inferred by the address on the prover side
-        let mem_cap = values.len() * ADDR_BYTE_LEN + values.len() * FIELD_BYTE_LEN;
-        let mut res = Vec::with_capacity(mem_cap);
-
-        for ((segment, offset), value) in values.iter() {
-            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
-            res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
-            match value {
-                // Serializes RelocatableValue(little endian):
-                // 1bit |   SEGMENT_BITS |   OFFSET_BITS
-                // 1    |     segment    |   offset
-                MaybeRelocatable::RelocatableValue(rel_val) => {
-                    let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16)
-                        .map_err(|_| serde::ser::Error::custom("invalid relocation base str"))?;
-                    let reloc_value = reloc_base
-                        + BigUint::from(rel_val.segment_index as usize)
-                            * BigUint::from(OFFSET_BASE)
-                        + BigUint::from(rel_val.offset);
-                    res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
-                }
-                // Serializes Int(little endian):
-                // 1bit | Num
-                // 0    | num
-                MaybeRelocatable::Int(data_val) => {
-                    res.extend_from_slice(data_val.to_bytes_le().as_ref());
-                }
-            };
+    impl Serialize for CairoPieMemory {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_bytes(&self.to_bytes())
         }
+    }
 
-        let string = res
-            .iter()
-            .fold(String::new(), |string, b| string + &format!("{:02x}", b));
-
-        serializer.serialize_str(&string)
+    impl<'de> Deserialize<'de> for CairoPieMemory {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            CairoPieMemory::from_bytes(&Vec::<u8>::deserialize(deserializer)?)
+                .ok_or(D::Error::custom("Invalid Memory"))
+        }
     }
 
     impl CairoPieMemory {
