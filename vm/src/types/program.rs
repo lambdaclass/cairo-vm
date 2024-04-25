@@ -386,6 +386,18 @@ impl Program {
         })
     }
 
+    pub fn from_stripped_program(stripped: &StrippedProgram) -> Program {
+        Program {
+            shared_program_data: Arc::new(SharedProgramData {
+                data: stripped.data.clone(),
+                main: Some(stripped.main),
+                ..Default::default()
+            }),
+            constants: Default::default(),
+            builtins: stripped.builtins.clone(),
+        }
+    }
+
     pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
         let program_serializer: ProgramSerializer = ProgramSerializer::from(self);
         let bytes: Vec<u8> = serde_json::to_vec(&program_serializer)?;
