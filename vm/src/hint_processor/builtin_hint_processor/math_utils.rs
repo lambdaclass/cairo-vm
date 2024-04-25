@@ -1068,7 +1068,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "a".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
 
@@ -1103,7 +1103,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "a".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
 
@@ -1156,7 +1156,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "a".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
 
@@ -1182,7 +1182,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "b".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "b"
         );
     }
 
@@ -1412,7 +1412,7 @@ mod tests {
         let ids_data = ids_data!["value"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "value".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -2234,7 +2234,7 @@ mod tests {
                     )
                 ])
             ),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "value".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -2404,7 +2404,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "a".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
 
@@ -2421,7 +2421,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "b".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "b"
         );
     }
 
@@ -2439,7 +2439,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == "b".to_string()
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "b"
         );
     }
 
