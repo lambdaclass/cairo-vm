@@ -36,6 +36,7 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{ModBuiltinRunner, RC_N_PARTS_STANDARD};
+use super::runners::cairo_pie::CairoPie;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -1138,6 +1139,21 @@ impl VirtualMachine {
             fetch_builtin_params(mul_mod_ptr_n, BuiltinName::mul_mod)?,
         )
         .map_err(VirtualMachineError::RunnerError)
+    }
+
+    pub(crate) fn finalize_segments_by_cairo_pie(&mut self, pie: &CairoPie) {
+        let mut segment_infos = vec![
+            &pie.metadata.program_segment,
+            &pie.metadata.execution_segment,
+            &pie.metadata.ret_fp_segment,
+            &pie.metadata.ret_pc_segment,
+        ];
+        segment_infos.extend(pie.metadata.builtin_segments.values());
+        segment_infos.extend(pie.metadata.extra_segments.iter());
+        for info in segment_infos {
+            self.segments
+                .finalize(Some(info.size), info.index as usize, None)
+        }
     }
 }
 
