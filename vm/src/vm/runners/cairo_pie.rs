@@ -264,7 +264,6 @@ impl CairoPie {
         zip_writer.start_file("execution_resources.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
         zip_writer.finish()?;
-        zip_writer.finish()?;
         Ok(())
     }
 
