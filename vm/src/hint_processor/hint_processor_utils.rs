@@ -178,9 +178,10 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_reference_with_immediate_value() {
+        // Reference: cast(2, felt)
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
-        let mut hint_ref = HintReference::new(0, 0, false, true);
+        let mut hint_ref = HintReference::new(0, 0, false, false);
         hint_ref.offset1 = OffsetValue::Immediate(Felt252::from(2));
 
         assert_eq!(
