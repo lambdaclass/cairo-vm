@@ -254,15 +254,16 @@ impl CairoPie {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         zip_writer.start_file("version.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.version)?;
         zip_writer.start_file("metadata.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.metadata)?;
         zip_writer.start_file("memory.bin", options)?;
         zip_writer.write_all(&self.memory.to_bytes())?;
         zip_writer.start_file("additional_data.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
+        zip_writer.finish()?;
         zip_writer.finish()?;
         Ok(())
     }
