@@ -1,7 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
-use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
@@ -12,7 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_integer::div_ceil;
-use starknet_crypto::{poseidon_permute_comp, FieldElement};
+use starknet_types_core::hash::Poseidon;
 
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
@@ -76,28 +75,23 @@ impl PoseidonBuiltinRunner {
         for i in 0..INPUT_CELLS_PER_POSEIDON as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
-                Some(value) => {
-                    let num = value
-                        .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            BuiltinName::poseidon,
-                            (first_input_addr + i)?,
-                        ))))?;
-                    FieldElement::from_bytes_be(&num.to_bytes_be())
-                        .map_err(|_| MathError::ByteConversionError)?
-                }
+                Some(value) => *value
+                    .get_int_ref()
+                    .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
+                        BuiltinName::poseidon,
+                        (first_input_addr + i)?,
+                    ))))?,
                 _ => return Ok(None),
             };
             input_felts.push(val)
         }
         // n_input_cells is fixed to 3, so this try_into will never fail
-        let mut poseidon_state: [FieldElement; 3] = input_felts.try_into().unwrap();
-        poseidon_permute_comp(&mut poseidon_state);
+        let mut poseidon_state: [Felt252; 3] = input_felts.try_into().unwrap();
+        Poseidon::hades_permutation(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
-            self.cache.borrow_mut().insert(
-                (first_output_addr + i)?,
-                Felt252::from_bytes_be(&elem.to_bytes_be()),
-            );
+            self.cache
+                .borrow_mut()
+                .insert((first_output_addr + i)?, *elem);
         }
 
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
