@@ -1,6 +1,14 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: Add support for cairo1 run with segements arena validation.
+  * Refactored the runner CASM code generation to user a more high level builder.
+  * Added segment merging of the dictionary segments.
+  * Added validation of the generated segment arena in cairo1 run.
+
+* refactor: Add `lib.rs` to cairo1-run[#1714](https://github.com/lambdaclass/cairo-vm/pull/1714)
+
+* feat: Implement `CairoPie::read_zip_file`[#1729](https://github.com/lambdaclass/cairo-vm/pull/1729)
 
 * feat: Bump to 2.6.3 + Remove gas checks[#1709](https://github.com/lambdaclass/cairo-vm/pull/1709)
   * Bump cairo_lang crates & corelib to v2.6.3
