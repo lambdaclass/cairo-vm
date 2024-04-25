@@ -274,3 +274,23 @@ fn serialize_cairo_pie() {
             .unwrap(),
     );
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn run_pie_validity_checks_integration() {
+    // Run the program
+    let program_content = include_bytes!("../../../cairo_programs/integration.json");
+    let mut hint_processor = BuiltinHintProcessor::new_empty();
+    let (runner, vm) = cairo_run(
+        program_content,
+        &CairoRunConfig {
+            layout: LayoutName::all_cairo,
+            ..Default::default()
+        },
+        &mut hint_processor,
+    )
+    .expect("cairo_run failure");
+    // Obtain the pie
+    let cairo_pie = runner.get_cairo_pie(&vm).expect("Failed to get pie");
+    assert!(cairo_pie.run_validity_checks().is_ok())
+}
