@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
+
 * feat: Add support for cairo1 run with segements arena validation.
   * Refactored the runner CASM code generation to user a more high level builder.
   * Added segment merging of the dictionary segments.
