@@ -272,7 +272,10 @@ impl Memory {
                 let value = cell.get_value();
                 match value {
                     Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
-                        let mut new_cell = MemoryCell::new(Memory::relocate_address(addr, &self.relocation_rules)?);
+                        let mut new_cell = MemoryCell::new(Memory::relocate_address(
+                            addr,
+                            &self.relocation_rules,
+                        )?);
                         if cell.is_accessed() {
                             new_cell.mark_accessed();
                         }
