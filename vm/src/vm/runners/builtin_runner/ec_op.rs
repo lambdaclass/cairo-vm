@@ -241,12 +241,12 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, felt_str, relocatable};
 
@@ -316,7 +316,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                EC_OP_BUILTIN_NAME,
+                BuiltinName::ec_op,
                 relocatable!(0, 994),
                 relocatable!(0, 0)
             ))))
@@ -367,7 +367,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::ec_op)))
         );
     }
 
@@ -833,7 +833,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
@@ -858,7 +858,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(

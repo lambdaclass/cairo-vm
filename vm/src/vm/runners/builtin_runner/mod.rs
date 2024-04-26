@@ -1,7 +1,7 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
-use crate::serde::deserialize_program::BuiltinName;
 use crate::stdlib::prelude::*;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::bitwise_instance_def::{
     CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,
 };
@@ -55,19 +55,6 @@ pub use segment_arena::SegmentArenaBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
-
-pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
-pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
-pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
-pub const RANGE_CHECK_96_BUILTIN_NAME: &str = "range_check_96_builtin";
-pub const SIGNATURE_BUILTIN_NAME: &str = "ecdsa_builtin";
-pub const BITWISE_BUILTIN_NAME: &str = "bitwise_builtin";
-pub const EC_OP_BUILTIN_NAME: &str = "ec_op_builtin";
-pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
-pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
-pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
-pub const ADD_MOD_BUILTIN_NAME: &str = "add_mod_builtin";
-pub const MUL_MOD_BUILTIN_NAME: &str = "mul_mod_builtin";
 
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -406,23 +393,7 @@ impl BuiltinRunner {
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        match self {
-            BuiltinRunner::Bitwise(_) => BITWISE_BUILTIN_NAME,
-            BuiltinRunner::EcOp(_) => EC_OP_BUILTIN_NAME,
-            BuiltinRunner::Hash(_) => HASH_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck(_) => RANGE_CHECK_BUILTIN_NAME,
-            BuiltinRunner::RangeCheck96(_) => RANGE_CHECK_96_BUILTIN_NAME,
-            BuiltinRunner::Output(_) => OUTPUT_BUILTIN_NAME,
-            BuiltinRunner::Keccak(_) => KECCAK_BUILTIN_NAME,
-            BuiltinRunner::Signature(_) => SIGNATURE_BUILTIN_NAME,
-            BuiltinRunner::Poseidon(_) => POSEIDON_BUILTIN_NAME,
-            BuiltinRunner::SegmentArena(_) => SEGMENT_ARENA_BUILTIN_NAME,
-            BuiltinRunner::Mod(b) => b.name(),
-        }
-    }
-
-    pub fn identifier(&self) -> BuiltinName {
+    pub fn name(&self) -> BuiltinName {
         match self {
             BuiltinRunner::Bitwise(_) => BuiltinName::bitwise,
             BuiltinRunner::EcOp(_) => BuiltinName::ec_op,
@@ -434,7 +405,7 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(_) => BuiltinName::ecdsa,
             BuiltinRunner::Poseidon(_) => BuiltinName::poseidon,
             BuiltinRunner::SegmentArena(_) => BuiltinName::segment_arena,
-            BuiltinRunner::Mod(b) => b.identifier(),
+            BuiltinRunner::Mod(b) => b.name(),
         }
     }
 
@@ -536,12 +507,27 @@ impl BuiltinRunner {
         }
     }
 
+    /// Returns data stored internally by builtins needed to re-execute from a cairo pie
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         match self {
             BuiltinRunner::Hash(builtin) => builtin.get_additional_data(),
             BuiltinRunner::Output(builtin) => builtin.get_additional_data(),
             BuiltinRunner::Signature(builtin) => builtin.get_additional_data(),
             _ => BuiltinAdditionalData::None,
+        }
+    }
+
+    /// Extends the builtin's internal data with the internal data obtained from a previous cairo execution
+    /// Used solely when running from a cairo pie
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        match self {
+            BuiltinRunner::Hash(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Output(builtin) => builtin.extend_additional_data(additional_data),
+            BuiltinRunner::Signature(builtin) => builtin.extend_additional_data(additional_data),
+            _ => Ok(()),
         }
     }
 
@@ -669,7 +655,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -765,7 +751,7 @@ mod tests {
     fn get_name_bitwise() {
         let bitwise = BitwiseBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = bitwise.into();
-        assert_eq!(BITWISE_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::bitwise, builtin.name())
     }
 
     #[test]
@@ -773,7 +759,7 @@ mod tests {
     fn get_name_hash() {
         let hash = HashBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = hash.into();
-        assert_eq!(HASH_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::pedersen, builtin.name())
     }
 
     #[test]
@@ -781,7 +767,7 @@ mod tests {
     fn get_name_range_check() {
         let range_check = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
         let builtin: BuiltinRunner = range_check.into();
-        assert_eq!(RANGE_CHECK_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::range_check, builtin.name())
     }
 
     #[test]
@@ -789,7 +775,7 @@ mod tests {
     fn get_name_ec_op() {
         let ec_op = EcOpBuiltinRunner::new(Some(256), true);
         let builtin: BuiltinRunner = ec_op.into();
-        assert_eq!(EC_OP_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::ec_op, builtin.name())
     }
 
     #[test]
@@ -797,7 +783,7 @@ mod tests {
     fn get_name_ecdsa() {
         let signature = SignatureBuiltinRunner::new(Some(10), true);
         let builtin: BuiltinRunner = signature.into();
-        assert_eq!(SIGNATURE_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::ecdsa, builtin.name())
     }
 
     #[test]
@@ -805,7 +791,7 @@ mod tests {
     fn get_name_output() {
         let output = OutputBuiltinRunner::new(true);
         let builtin: BuiltinRunner = output.into();
-        assert_eq!(OUTPUT_BUILTIN_NAME, builtin.name())
+        assert_eq!(BuiltinName::output, builtin.name())
     }
 
     #[test]
@@ -1007,7 +993,7 @@ mod tests {
             Err(MemoryError::InsufficientAllocatedCells(
                 InsufficientAllocatedCellsError::MinStepNotReached(Box::new((
                     160,
-                    KECCAK_BUILTIN_NAME
+                    BuiltinName::keccak
                 )))
             ))
         );
@@ -1228,7 +1214,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (BITWISE_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::bitwise, vec![0])
         );
     }
 
@@ -1247,7 +1233,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == BITWISE_BUILTIN_NAME
+            )) if *bx == BuiltinName::bitwise
         );
     }
 
@@ -1268,7 +1254,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (HASH_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::pedersen, vec![0])
         );
     }
 
@@ -1287,7 +1273,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == HASH_BUILTIN_NAME
+            )) if *bx == BuiltinName::pedersen
         );
     }
 
@@ -1312,7 +1298,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == RANGE_CHECK_BUILTIN_NAME
+            )) if *bx == BuiltinName::range_check
         );
     }
 
@@ -1330,7 +1316,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == RANGE_CHECK_BUILTIN_NAME
+            )) if *bx == BuiltinName::range_check
         );
     }
 
@@ -1399,7 +1385,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == EC_OP_BUILTIN_NAME
+            )) if *bx == BuiltinName::ec_op
         );
     }
 
@@ -1418,7 +1404,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCells(bx)
-            )) if *bx == EC_OP_BUILTIN_NAME
+            )) if *bx == BuiltinName::ec_op
         );
     }
 
@@ -1440,7 +1426,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (EC_OP_BUILTIN_NAME, vec![0])
+            )) if *bx == (BuiltinName::ec_op, vec![0])
         );
     }
 
@@ -1471,7 +1457,7 @@ mod tests {
             builtin.run_security_checks(&vm),
             Err(VirtualMachineError::Memory(
                 MemoryError::MissingMemoryCellsWithOffsets(bx)
-            )) if *bx == (EC_OP_BUILTIN_NAME, vec![7])
+            )) if *bx == (BuiltinName::ec_op, vec![7])
         );
     }
 
