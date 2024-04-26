@@ -46,6 +46,7 @@ struct Args {
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args, conflicts_with = "args_file")]
     args: FuncArgs,
+    // Same rules from `args` apply here
     #[clap(long = "args_file", value_parser, value_hint=ValueHint::FilePath, conflicts_with = "args")]
     args_file: Option<PathBuf>,
     #[clap(long = "print_output", value_parser)]

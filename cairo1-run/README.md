@@ -55,6 +55,8 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--args <ARGUMENTS>`: Receives the arguments to be passed to the program's main function. Receives whitespace-separated values which can be numbers or arrays, with arrays consisting of whitespace-separated numbers wrapped between brackets
 
+* `--args_file <FILENAME>`: Receives the name of the file from where arguments should be read. Expects the same argument format of the `--args` flag. Should be used if the list of arguments exceeds the shell's capacity.
+
 * `--trace_file <TRACE_FILE>`: Receives the name of a file and outputs the relocated trace into it
 
 * `--memory_file <MEMORY_FILE>`: Receives the name of a file and outputs the relocated memory into it
