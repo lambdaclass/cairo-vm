@@ -4,6 +4,8 @@
 
 * feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
 
+* Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
+
 * feat: Add support for cairo1 run with segements arena validation.
   * Refactored the runner CASM code generation to user a more high level builder.
   * Added segment merging of the dictionary segments.
@@ -12,6 +14,11 @@
 * refactor: Add `lib.rs` to cairo1-run[#1714](https://github.com/lambdaclass/cairo-vm/pull/1714)
 
 * feat: Implement `CairoPie::read_zip_file`[#1729](https://github.com/lambdaclass/cairo-vm/pull/1729)
+
+* feat: Bump to 2.6.3 + Remove gas checks[#1709](https://github.com/lambdaclass/cairo-vm/pull/1709)
+  * Bump cairo_lang crates & corelib to v2.6.3
+  * Disable gas checks when compiling to sierra & casm
+  * Add `Known bugs & issues` segment to README, poining out issues derived from the removal of gas checks and cairo v2.6.3
 
 * feat: Implement running from `CairoPie`[#1720](https://github.com/lambdaclass/cairo-vm/pull/1720)
   * Add function `cairo_run_pie`
