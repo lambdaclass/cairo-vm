@@ -44,8 +44,10 @@ struct Args {
     cairo_pie_output: Option<PathBuf>,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
-    #[clap(long = "args", default_value = "", value_parser=process_args)]
+    #[clap(long = "args", default_value = "", value_parser=process_args, conflicts_with = "args_file")]
     args: FuncArgs,
+    #[clap(long = "args_file", value_parser, value_hint=ValueHint::FilePath, conflicts_with = "args")]
+    args_file: Option<PathBuf>,
     #[clap(long = "print_output", value_parser)]
     print_output: bool,
     #[clap(
@@ -129,7 +131,10 @@ impl FileWriter {
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
-    let args = Args::try_parse_from(args)?;
+    let mut args = Args::try_parse_from(args)?;
+    if let Some(filename) = args.args_file {
+        args.args = process_args(&std::fs::read_to_string(filename)?).unwrap();
+    }
 
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
