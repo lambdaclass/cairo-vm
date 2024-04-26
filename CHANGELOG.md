@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
+
 * Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
 
 * feat: Add support for cairo1 run with segements arena validation.
