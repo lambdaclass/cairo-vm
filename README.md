@@ -330,7 +330,7 @@ You can find more detailed instructions in the [CONTRIBUTING.md](CONTRIBUTING.md
 
 ### Cairo
 
-- From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
+- From Cairo Documentation: [How Cairo Works](https://docs.cairo-lang.org/how_cairo_works/index.html)
 - [Cairo – a Turing-complete STARK-friendly CPU architecture](https://eprint.iacr.org/2021/1063)
 - [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 - [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust
