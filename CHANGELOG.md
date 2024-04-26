@@ -152,6 +152,8 @@
 
 * feat: output builtin features for bootloader support [#1580](https://github.com/lambdaclass/cairo-vm/pull/1580)
 
+* fix: add support for arrays shorter than 2 as arguments for cairo1-run [#1737](https://github.com/lambdaclass/cairo-vm/pull/1737)
+
 #### [1.0.0-rc1] - 2024-02-23
 
 * Bump `starknet-types-core` dependency version to 0.0.9 [#1628](https://github.com/lambdaclass/cairo-vm/pull/1628)
