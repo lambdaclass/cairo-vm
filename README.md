@@ -138,7 +138,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 
-The flag `--layout` determines which builtins can be used. More info about layouts [here](https://docs.cairo-lang.org/how_cairo_works/builtins.html?highlight=layout#layouts).
+The flag `--layout` determines which builtins can be used. More info about layouts [here](https://docs.cairo-lang.org/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
