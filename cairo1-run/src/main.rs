@@ -1,7 +1,9 @@
 use bincode::enc::write::Writer;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
-use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
+use cairo_lang_compiler::{
+    compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
+};
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -150,8 +152,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
                 replace_ids: true,
                 ..CompilerConfig::default()
             };
-            compile_cairo_project_at_path(&args.filename, compiler_config)
-                .map_err(|err| Error::SierraCompilation(err.to_string()))?
+            let mut db = RootDatabase::builder()
+                .detect_corelib()
+                .skip_auto_withdraw_gas()
+                .build()
+                .unwrap();
+            let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
+            compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
         }
     };
 

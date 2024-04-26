@@ -13,7 +13,7 @@ use cairo_lang_sierra::{
         bitwise::BitwiseType,
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
-        gas::{CostTokenType, GasBuiltinType},
+        gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
         range_check::RangeCheckType,
@@ -25,11 +25,10 @@ use cairo_lang_sierra::{
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
-use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
+use cairo_lang_sierra_gas::objects::CostInfoProvider;
 use cairo_lang_sierra_to_casm::{
-    compiler::CairoProgram,
-    metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
+    compiler::{CairoProgram, SierraToCasmConfig},
+    metadata::calc_metadata_ap_change_only,
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
@@ -123,12 +122,17 @@ pub fn cairo_run_program(
     ),
     Error,
 > {
-    let metadata = create_metadata(sierra_program, Some(Default::default()))?;
+    let metadata = calc_metadata_ap_change_only(sierra_program)
+        .map_err(|_| VirtualMachineError::Unexpected)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
         get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
+    let config = SierraToCasmConfig {
+        gas_usage_check: false,
+        max_bytecode_size: usize::MAX,
+    };
     let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, true)?;
+        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, config)?;
 
     let main_func = find_function(sierra_program, "::main")?;
 
@@ -146,15 +150,11 @@ pub fn cairo_run_program(
     )?;
 
     // Fetch return type data
-    let return_type_id = main_func
-        .signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+
+    let return_type_id = main_func.signature.ret_types.last();
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
 
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
@@ -177,8 +177,6 @@ pub fn cairo_run_program(
         .map(|x| Felt252::from(&x))
         .map(MaybeRelocatable::from)
         .collect();
-
-    let data_len = data.len();
 
     let program = if cairo_run_config.proof_mode {
         Program::new_for_proof(
@@ -220,8 +218,6 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-
-    additional_initialization(&mut vm, data_len)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
@@ -285,26 +281,6 @@ pub fn cairo_run_program(
     runner.relocate(&mut vm, true)?;
 
     Ok((runner, vm, return_values, serialized_output))
-}
-
-fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
-    // Create the builtin cost segment
-    let builtin_cost_segment = vm.add_memory_segment();
-    for token_type in CostTokenType::iter_precost() {
-        vm.insert_value(
-            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize))
-                .map_err(VirtualMachineError::Math)?,
-            Felt252::default(),
-        )?
-    }
-    // Put a pointer to the builtin cost segment at the end of the program (after the
-    // additional `ret` statement).
-    vm.insert_value(
-        (vm.get_pc() + data_len).map_err(VirtualMachineError::Math)?,
-        builtin_cost_segment,
-    )?;
-
-    Ok(())
 }
 
 #[allow(clippy::type_complexity)]
@@ -518,14 +494,10 @@ fn create_entry_code(
 
     casm_build_extend!(ctx, let () = call FUNCTION;);
 
-    let return_type_id = signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let return_type_id = signature.ret_types.last();
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
     let mut offset: i16 = 0;
     for ty in signature.ret_types.iter().rev() {
         let info = get_info(sierra_program_registry, ty)
@@ -660,28 +632,6 @@ fn get_info<'a>(
         .map(|ctc| ctc.info())
 }
 
-/// Creates the metadata required for a Sierra program lowering to casm.
-fn create_metadata(
-    sierra_program: &cairo_lang_sierra::program::Program,
-    metadata_config: Option<MetadataComputationConfig>,
-) -> Result<Metadata, VirtualMachineError> {
-    if let Some(metadata_config) = metadata_config {
-        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
-            MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
-            MetadataError::CostError(_) => VirtualMachineError::Unexpected,
-        })
-    } else {
-        Ok(Metadata {
-            ap_change_info: calc_ap_changes(sierra_program, |_, _| 0)
-                .map_err(|_| VirtualMachineError::Unexpected)?,
-            gas_info: GasInfo {
-                variable_values: Default::default(),
-                function_costs: Default::default(),
-            },
-        })
-    }
-}
-
 fn get_function_builtins(
     params: &[cairo_lang_sierra::ids::ConcreteTypeId],
     append_output: bool,
@@ -718,7 +668,7 @@ fn get_function_builtins(
 
 fn fetch_return_values(
     return_type_size: i16,
-    return_type_id: &ConcreteTypeId,
+    return_type_id: Option<&ConcreteTypeId>,
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
@@ -737,10 +687,12 @@ fn fetch_return_values(
     };
     // Check if this result is a Panic result
     if return_type_id
-        .debug_name
-        .as_ref()
-        .ok_or_else(|| Error::TypeIdNoDebugName(return_type_id.clone()))?
-        .starts_with("core::panics::PanicResult::")
+        .and_then(|id| {
+            id.debug_name
+                .as_ref()
+                .map(|name| name.starts_with("core::panics::PanicResult::"))
+        })
+        .unwrap_or_default()
     {
         // Check the failure flag (aka first return value)
         if return_values.first() != Some(&MaybeRelocatable::from(0)) {
@@ -822,11 +774,16 @@ fn finalize_builtins(
 fn serialize_output(
     return_values: &[MaybeRelocatable],
     vm: &mut VirtualMachine,
-    return_type_id: &ConcreteTypeId,
+    return_type_id: Option<&ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> String {
     let mut output_string = String::new();
+    let return_type_id = if let Some(id) = return_type_id {
+        id
+    } else {
+        return output_string;
+    };
     let mut return_values_iter = return_values.iter().peekable();
     serialize_output_inner(
         &mut return_values_iter,
@@ -1174,6 +1131,10 @@ fn serialize_output_inner<'a>(
                 type_sizes,
             )
         }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_info) => {
+            // Ignore it
+            let _ = return_values_iter.next();
+        },
         _ => panic!("Unexpected return type")
     }
 }
@@ -1189,7 +1150,9 @@ mod tests {
     use std::path::Path;
 
     use super::*;
-    use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
+    use cairo_lang_compiler::{
+        compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
+    };
     use cairo_vm::types::relocatable::Relocatable;
     use rstest::rstest;
 
@@ -1198,8 +1161,13 @@ mod tests {
             replace_ids: true,
             ..CompilerConfig::default()
         };
-
-        compile_cairo_project_at_path(Path::new(filename), compiler_config).unwrap()
+        let mut db = RootDatabase::builder()
+            .detect_corelib()
+            .skip_auto_withdraw_gas()
+            .build()
+            .unwrap();
+        let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
+        compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
     }
 
     fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
