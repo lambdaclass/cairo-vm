@@ -1003,7 +1003,7 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
             Err(HintError::IdentifierNotInteger(bx))
-            if *bx == ("len".to_string(), (1,1).into())
+            if bx.as_ref() == "len"
         );
     }
 
