@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
+
 * Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
 
 * feat: Add support for cairo1 run with segements arena validation.
