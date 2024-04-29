@@ -90,7 +90,6 @@ mod tests {
     use super::*;
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::runner_errors::RunnerError;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
     #[cfg(not(feature = "std"))]
     use alloc::boxed::Box;

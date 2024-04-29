@@ -526,7 +526,6 @@ mod test {
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
-        let vm = vm!();
         assert_eq!(
             get_error_attr_value(2, &runner),
             Some(String::from("Error message: Invalid hash\n"))
@@ -1058,7 +1057,6 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         // Ref id 0 corresponds to __main__.main.x, our tempvar
         assert_eq!(
             get_value_from_simple_reference(0, &ApTracking::default(), &runner),
@@ -1077,7 +1075,6 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
             substitute_error_message_references(attribute, &runner),
@@ -1099,7 +1096,6 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         // Ref id 0 corresponds to __main__.main.cat, our struct
         assert_eq!(
             get_value_from_simple_reference(0, &ApTracking::default(), &runner),
@@ -1118,7 +1114,6 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
             substitute_error_message_references(attribute, &runner),

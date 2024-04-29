@@ -171,7 +171,6 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -185,6 +184,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = BitwiseBuiltinRunner::new(Some(10), true);
+        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -202,6 +202,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
+        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -224,6 +225,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
+        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -250,6 +252,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), false).into();
+        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -272,6 +275,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
+        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -331,7 +335,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&runner.vm),
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
             Ok((0, 5))
         );
     }
@@ -369,13 +373,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(5));
     }
 
     #[test]
@@ -439,6 +443,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
+        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
@@ -448,6 +453,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
+        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));

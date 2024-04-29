@@ -1633,7 +1633,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_with_disordered_builtins() {
         let program = program![BuiltinName::range_check, BuiltinName::output];
-        let cairo_runner = cairo_runner!(program, LayoutName::plain);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         assert!(cairo_runner.initialize_builtins(false).is_err());
     }
 
@@ -1641,7 +1641,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_missing_builtins_no_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
-        let cairo_runner = cairo_runner!(program, LayoutName::plain);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         assert_matches!(
             cairo_runner.initialize_builtins(false),
             Err(RunnerError::NoBuiltinForInstance(_))
@@ -1652,7 +1652,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_missing_builtins_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
-        let cairo_runner = cairo_runner!(program);
+        let mut cairo_runner = cairo_runner!(program);
         assert!(cairo_runner.initialize_builtins(true).is_ok())
     }
 
@@ -2262,8 +2262,7 @@ mod tests {
             main = Some(3),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
         assert_eq!(end, Relocatable::from((3, 0)));
@@ -2341,8 +2340,7 @@ mod tests {
             main = Some(8),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -2387,7 +2385,8 @@ mod tests {
             ((2, 0), 7),
             ((2, 1), 18446744073709551608_i128)
         );
-        assert!(vm
+        assert!(cairo_runner
+            .vm
             .segments
             .memory
             .get(&MaybeRelocatable::from((2, 2)))
@@ -2456,8 +2455,7 @@ mod tests {
             main = Some(4),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -2500,7 +2498,8 @@ mod tests {
         );
         assert_eq!(cairo_runner.vm.builtin_runners[0].base(), 2);
         check_memory!(cairo_runner.vm.segments.memory, ((2, 0), 1), ((2, 1), 17));
-        assert!(vm
+        assert!(cairo_runner
+            .vm
             .segments
             .memory
             .get(&MaybeRelocatable::from((2, 2)))
@@ -2595,8 +2594,7 @@ mod tests {
             main = Some(13),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
@@ -2649,7 +2647,8 @@ mod tests {
             ((3, 0), 7),
             ((3, 1), 18446744073709551608_i128)
         );
-        assert!(vm
+        assert!(cairo_runner
+            .vm
             .segments
             .memory
             .get(&MaybeRelocatable::from((2, 2)))
@@ -2663,7 +2662,8 @@ mod tests {
         assert_eq!(cairo_runner.vm.builtin_runners[0].base(), 2);
 
         check_memory!(cairo_runner.vm.segments.memory, ((2, 0), 7));
-        assert!(vm
+        assert!(cairo_runner
+            .vm
             .segments
             .memory
             .get(&(MaybeRelocatable::from((2, 1))))
@@ -2698,8 +2698,7 @@ mod tests {
     */
     fn relocate_memory_with_gap() {
         let program = program!();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         for _ in 0..4 {
             cairo_runner.vm.segments.add();
         }
@@ -2753,7 +2752,8 @@ mod tests {
             )
             .unwrap();
         cairo_runner.vm.segments.compute_effective_sizes();
-        let rel_table = vm
+        let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -2848,15 +2848,15 @@ mod tests {
             main = Some(4),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
         cairo_runner.initialize_vm().unwrap();
         assert_matches!(cairo_runner.run_until_pc(end, &mut hint_processor), Ok(()));
         cairo_runner.vm.segments.compute_effective_sizes();
-        let rel_table = vm
+        let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -2984,15 +2984,15 @@ mod tests {
             main = Some(4),
         );
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
         let end = cairo_runner.initialize_main_entrypoint().unwrap();
         cairo_runner.initialize_vm().unwrap();
         assert_matches!(cairo_runner.run_until_pc(end, &mut hint_processor), Ok(()));
         cairo_runner.vm.segments.compute_effective_sizes();
-        let rel_table = vm
+        let rel_table = cairo_runner
+            .vm
             .segments
             .relocate_segments()
             .expect("Couldn't relocate after compute effective sizes");
@@ -3375,9 +3375,7 @@ mod tests {
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(&program);
-
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
 
@@ -3396,8 +3394,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_empty() {
         let program = program!();
-        let mut cairo_runner = cairo_runner!(&program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo, false, true);
         assert_matches!(
             cairo_runner.initialize(false),
             Err(RunnerError::MissingMain)
@@ -3451,9 +3448,7 @@ mod tests {
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(&program);
-
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
 
@@ -3521,9 +3516,7 @@ mod tests {
         );
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(&program);
-
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         cairo_runner.initialize_builtins(false).unwrap();
         cairo_runner.initialize_segments(None);
 
@@ -3686,7 +3679,6 @@ mod tests {
         let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
-        let vm = vm!();
 
         cairo_runner.layout.diluted_pool_instance_def = None;
         assert_matches!(cairo_runner.check_diluted_check_usage(), Ok(()));
@@ -3787,8 +3779,7 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
 
         let end = cairo_runner.initialize(false).unwrap();
         cairo_runner
@@ -4451,7 +4442,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_one_builtin() {
         let program = program![BuiltinName::output];
-        let cairo_runner = cairo_runner!(program, LayoutName::plain);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         assert_eq!(
             cairo_runner.initialize_builtins(false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
@@ -4465,7 +4456,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_two_builtins() {
         let program = program![BuiltinName::output, BuiltinName::pedersen];
-        let cairo_runner = cairo_runner!(program, LayoutName::plain);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         assert_eq!(
             cairo_runner.initialize_builtins(false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((
@@ -4479,7 +4470,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_small_two_builtins() {
         let program = program![BuiltinName::output, BuiltinName::bitwise];
-        let cairo_runner = cairo_runner!(program, LayoutName::small);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::small);
         assert_eq!(
             cairo_runner.initialize_builtins(false),
             Err(RunnerError::NoBuiltinForInstance(Box::new((

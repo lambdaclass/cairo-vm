@@ -176,10 +176,7 @@ mod tests {
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, relocatable};
 
-    use crate::vm::{
-        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine,
-    };
+    use crate::vm::{errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -332,7 +329,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut hint_processor)
@@ -345,8 +342,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::ec_op],
@@ -376,13 +371,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(3));
     }
 
     #[test]

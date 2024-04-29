@@ -172,10 +172,7 @@ mod tests {
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         types::program::Program,
         utils::test_utils::*,
-        vm::{
-            runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
-            vm_core::VirtualMachine,
-        },
+        vm::runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -336,7 +333,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut hint_processor)
@@ -350,8 +347,6 @@ mod tests {
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::range_check],
@@ -381,13 +376,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(1));
     }
 
     #[test]
