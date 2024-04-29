@@ -540,4 +540,34 @@ mod tests {
         let expected_output = "[1 2] [1 false 1 true]";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
+
+    #[rstest]
+    #[case("tensor_new.cairo", "[1 2] [1 false 1 true]")]
+    fn test_run_progarm(
+        #[case] program: &str,
+        #[case] expected_output: &str,
+        #[values(
+        &["--cairo_pie_output", "/dev/null"],
+        &["--cairo_pie_output", "/dev/null", "--append_return_values"],
+        &["--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"],
+    )]
+        extra_flags: &[&str],
+    ) {
+        let common_flags = vec![
+            "--print_output",
+            "--trace_file",
+            "/dev/null",
+            "--memory_file",
+            "/dev/null",
+            "--layout",
+            "all_cairo",
+        ];
+        let mut args = vec!["cairo1-run"];
+        let filename = format!("../cairo_programs/cairo-1-programs/{}", program);
+        args.push(&filename);
+        args.extend_from_slice(&common_flags);
+        args.extend_from_slice(&extra_flags);
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
+    }
 }
