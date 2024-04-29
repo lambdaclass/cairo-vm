@@ -753,7 +753,7 @@ mod test {
                 layout: LayoutName::starknet_with_keccak,
                 ..Default::default()
             };
-            let (runner, vm) = crate::cairo_run::cairo_run(
+            let runner = crate::cairo_run::cairo_run(
                 program_content,
                 &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),

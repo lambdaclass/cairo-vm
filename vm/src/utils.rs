@@ -264,7 +264,7 @@ pub mod test_utils {
             CairoRunner::new(&$program, $layout, $proof_mode, false).unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr, $trace_enabled:expr) => {
-            CairoRunner::new(&program, $layout, proof_mode, $trace_enabled).unwrap()
+            CairoRunner::new(&$program, $layout, $proof_mode, $trace_enabled).unwrap()
         };
     }
     pub(crate) use cairo_runner;
@@ -387,11 +387,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false)
+            crate::vm::vm_core::VirtualMachine::new(false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace)
+            crate::vm::vm_core::VirtualMachine::new($use_trace)
         }};
     }
     pub(crate) use vm;
@@ -640,7 +640,7 @@ mod test {
         serde::deserialize_program::ReferenceManager,
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
+        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
 
     #[cfg(target_arch = "wasm32")]

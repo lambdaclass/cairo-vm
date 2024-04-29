@@ -186,8 +186,6 @@ mod tests {
     fn get_used_instances() {
         let builtin = BitwiseBuiltinRunner::new(Some(10), true);
 
-        let mut vm = vm!();
-
         vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
@@ -204,8 +202,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -228,8 +224,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         vm.segments = segments![
             ((0, 0), (0, 0)),
@@ -257,8 +251,6 @@ mod tests {
     fn final_stack_error_when_notincluded() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), false).into();
 
-        let mut vm = vm!();
-
         vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
@@ -281,8 +273,6 @@ mod tests {
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
         vm.segments = segments![
             ((0, 0), (0, 0)),
             ((0, 1), (0, 1)),
@@ -304,10 +294,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
             builtins = vec![BuiltinName::bitwise],
@@ -334,24 +320,26 @@ mod tests {
         );
 
         let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 5)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&runner.vm),
+            Ok((0, 5))
+        );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::pedersen, BuiltinName::bitwise],
@@ -384,7 +372,7 @@ mod tests {
         let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
@@ -451,7 +439,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
-        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(0));
@@ -461,7 +448,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(256), true));
-        let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(builtin.get_used_cells(&vm.segments), Ok(4));
