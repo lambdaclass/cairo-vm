@@ -320,9 +320,9 @@ mod tests {
         #[case] expected_output: &str,
         #[case] inputs: Option<&str>,
         #[values(
-        &["--cairo_pie_output", "/dev/null"],
-        &["--cairo_pie_output", "/dev/null", "--append_return_values"],
-        &["--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"],
+        &["--cairo_pie_output", "/dev/null"], // Non proof-mode
+        &["--cairo_pie_output", "/dev/null", "--append_return_values"], // Non proof-mode & appending return values to ouput
+        &["--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"], // Proof mode
     )]
         extra_flags: &[&str],
     ) {
