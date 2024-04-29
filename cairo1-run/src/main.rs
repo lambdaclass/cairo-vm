@@ -339,7 +339,7 @@ mod tests {
         let filename = format!("../cairo_programs/cairo-1-programs/{}", program);
         args.push(&filename);
         args.extend_from_slice(&common_flags);
-        args.extend_from_slice(&extra_flags);
+        args.extend_from_slice(extra_flags);
         if let Some(inputs) = inputs {
             args.extend_from_slice(&["--args", inputs])
         }
