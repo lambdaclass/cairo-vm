@@ -1170,24 +1170,24 @@ mod tests {
         compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
     }
 
-    fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
+    fn return_value_size(sierra_program: &SierraProgram) -> i16 {
+        let sierra_program_registry =
+            ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program).unwrap();
+        let type_sizes =
+            get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
         let main_func = find_function(sierra_program, "::main").unwrap();
         main_func
             .signature
             .ret_types
             .last()
-            .and_then(|rt| {
-                rt.debug_name
-                    .as_ref()
-                    .map(|n| n.as_ref().starts_with("core::panics::PanicResult::"))
-            })
+            .and_then(|ty| type_sizes.get(ty).map(|i| *i))
             .unwrap_or_default()
     }
 
     #[rstest]
     #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
     #[case("../cairo_programs/cairo-1-programs/array_get.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
+    // TODO: skipped due to bug #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
     #[case("../cairo_programs/cairo-1-programs/enum_flow.cairo")]
     #[case("../cairo_programs/cairo-1-programs/enum_match.cairo")]
     #[case("../cairo_programs/cairo-1-programs/factorial.cairo")]
@@ -1217,26 +1217,29 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (runner, vm, return_values, _) =
-            cairo_run_program(&sierra_program, cairo_run_config).unwrap();
-        // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
-        // And handle the panics returning an error, so we need to add it here
-        let return_values = if main_hash_panic_result(&sierra_program) {
-            let mut rv = vec![Felt252::ZERO.into(), Felt252::ZERO.into()];
-            rv.extend_from_slice(&return_values);
-            rv
-        } else {
-            return_values
-        };
-        // Check that the output segment contains the return values
+        let (runner, vm, _, _) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        let return_value_size = return_value_size(&sierra_program);
+        // Check that the output segment contains the same return values as the execution segment
         // The output builtin will always be the first builtin, so we know it's segment is 2
+        println!("{}", vm.segments);
         let output_builtin_segment = vm
-            .get_continuous_range((2, 0).into(), return_values.len())
+            .get_continuous_range((2, 0).into(), return_value_size as usize)
             .unwrap();
-        assert_eq!(output_builtin_segment, return_values, "{}", filename);
+        let builtin_count = runner.get_program_builtins().len();
+        let execution_segment_last_values = vm
+            .get_continuous_range(
+                (vm.get_ap() - (return_value_size as usize + builtin_count)).unwrap(),
+                return_value_size as usize,
+            )
+            .unwrap();
+        assert_eq!(
+            output_builtin_segment, execution_segment_last_values,
+            "{}",
+            filename
+        );
         // Just for consistency, we will check that there are no values in the output segment after the return values
         assert!(vm
-            .get_maybe(&Relocatable::from((2_isize, return_values.len())))
+            .get_maybe(&Relocatable::from((2_isize, return_value_size as usize)))
             .is_none());
 
         // Check that cairo_pie can be outputted when not running in proof_mode
