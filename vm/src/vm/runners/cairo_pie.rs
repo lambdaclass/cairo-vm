@@ -759,7 +759,7 @@ mod test {
                 &mut BuiltinHintProcessor::new_empty(),
             )
             .unwrap();
-            runner.get_cairo_pie(&vm).unwrap()
+            runner.get_cairo_pie().unwrap()
         };
         // Serialize the CairoPie into a zip file
         let filename = format!("temp_file_{}", identifier); // Identifier used to avoid name clashes

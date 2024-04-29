@@ -253,17 +253,18 @@ pub mod test_utils {
                 &$program,
                 crate::types::layout_name::LayoutName::all_cairo,
                 false,
+                false,
             )
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&$program, $layout, false).unwrap()
+            CairoRunner::new(&$program, $layout, false, false).unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&$program, $layout, $proof_mode).unwrap()
+            CairoRunner::new(&$program, $layout, $proof_mode, false).unwrap()
         };
-        ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
+        ($program:expr, $layout:expr, $proof_mode:expr, $trace_enabled:expr) => {
+            CairoRunner::new(&program, $layout, proof_mode, $trace_enabled).unwrap()
         };
     }
     pub(crate) use cairo_runner;
