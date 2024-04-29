@@ -413,139 +413,23 @@ mod tests {
     }
 
     #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode"].as_slice())]
-    fn test_run_branching_no_args(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 0);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo","--args", "1 2 3"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1 2 3"].as_slice())]
-    fn test_run_branching_too_many_args(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 3);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
-    fn test_array_input_sum(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "12");
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/struct_span_return.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_struct_span_return(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "[[4 3] [2 1]]");
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
-    fn test_tensor(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res == "1");
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_nullable_dict_ok(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        assert_matches!(run(args), Ok(Some(res)) if res.is_empty());
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_felt_dict(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "{66675: [8 9 10 11] 66676: [1 2 3]}";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_span.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_felt_span(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "[8 9 10 11]";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/array_integer_tuple.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_array_integer_tuple(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "[1] 1";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/nullable_box_vec.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_nullable_box_vec(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "{0: 10 1: 20 2: 30} 3";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/dict_with_struct.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_dict_with_struct(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "{0: 1 true 1: 1 false 2: 1 true}";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/felt_dict_squash.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_felt_dict_squash(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "{66675: [4 5 6] 66676: [1 2 3]}";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/null_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_null_ret(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "null";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/bytes31_ret.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_bytes31_ret(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "123";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/tensor_new.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
-    fn test_run_tensor_new(#[case] args: &[&str]) {
-        let args = args.iter().cloned().map(String::from);
-        let expected_output = "[1 2] [1 false 1 true]";
-        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
-    }
-
-    #[rstest]
-    #[case("tensor_new.cairo", "[1 2] [1 false 1 true]")]
+    #[case("tensor_new.cairo", "[1 2] [1 false 1 true]", None)]
+    #[case("bytes31_ret.cairo", "123", None)]
+    #[case("null_ret.cairo", "null", None)]
+    #[case("felt_dict_squash.cairo", "{66675: [4 5 6] 66676: [1 2 3]}", None)]
+    #[case("dict_with_struct.cairo", "{0: 1 true 1: 1 false 2: 1 true}", None)]
+    #[case("nullable_box_vec.cairo", "{0: 10 1: 20 2: 30} 3", None)]
+    #[case("array_integer_tuple.cairo", "[1] 1", None)]
+    #[case("felt_dict.cairo", "{66675: [8 9 10 11] 66676: [1 2 3]}", None)]
+    #[case("felt_span.cairo", "[8 9 10 11]", None)]
+    #[case("nullable_dict.cairo", "", None)]
+    #[case("struct_span_return.cairo", "[[4 3] [2 1]]", None)]
+    #[case("null_ret.cairo", "null", None)]
+    #[case("with_input/tensor.cairo", "1", Some("[2 2] [1 2 3 4]"))]
     fn test_run_progarm(
         #[case] program: &str,
         #[case] expected_output: &str,
+        #[case] inputs: Option<&str>,
         #[values(
         &["--cairo_pie_output", "/dev/null"],
         &["--cairo_pie_output", "/dev/null", "--append_return_values"],
@@ -567,7 +451,42 @@ mod tests {
         args.push(&filename);
         args.extend_from_slice(&common_flags);
         args.extend_from_slice(&extra_flags);
+        if let Some(inputs) = inputs {
+            args.extend_from_slice(&["--args", inputs])
+        }
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/tensor.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "[2 2] [1 2 3 4]"].as_slice())]
+    fn test_tensor_with_input(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "1");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null", "--args", "2 [1 2 3 4] 0 [9 8]"].as_slice())]
+    fn test_array_input_sum(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Ok(Some(res)) if res == "12");
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode"].as_slice())]
+    fn test_run_branching_no_args(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 0);
+    }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo","--args", "1 2 3"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1 2 3"].as_slice())]
+    fn test_run_branching_too_many_args(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 3);
     }
 }
