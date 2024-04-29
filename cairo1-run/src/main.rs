@@ -326,7 +326,7 @@ mod tests {
     )]
         extra_flags: &[&str],
     ) {
-        let common_flags = vec![
+        let common_flags = &[
             "--print_output",
             "--trace_file",
             "/dev/null",
@@ -338,7 +338,7 @@ mod tests {
         let mut args = vec!["cairo1-run"];
         let filename = format!("../cairo_programs/cairo-1-programs/{}", program);
         args.push(&filename);
-        args.extend_from_slice(&common_flags);
+        args.extend_from_slice(common_flags);
         args.extend_from_slice(extra_flags);
         if let Some(inputs) = inputs {
             args.extend_from_slice(&["--args", inputs])
