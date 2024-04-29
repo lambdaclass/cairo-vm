@@ -1274,10 +1274,7 @@ mod tests {
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
-            runners::{
-                builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
-                cairo_runner::CairoRunner,
-            },
+            runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
     use assert_matches::assert_matches;
@@ -4381,7 +4378,6 @@ mod tests {
         #[cfg(feature = "hooks")]
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
-            _runner: &mut CairoRunner,
             _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
@@ -4429,13 +4425,10 @@ mod tests {
             .expect("Call to `Program::from_file()` failed.");
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let mut cairo_runner = cairo_runner!(program);
-            let end = cairo_runner
-                .initialize(&mut virtual_machine_from_builder, false)
-                .unwrap();
+            cairo_runner.vm = virtual_machine_from_builder;
+            let end = cairo_runner.initialize(false).unwrap();
 
-            assert!(cairo_runner
-                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
-                .is_err());
+            assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
         }
     }
 

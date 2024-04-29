@@ -174,7 +174,7 @@ mod tests {
     use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
+        types::program::Program, utils::test_utils::*,
     };
 
     #[cfg(target_arch = "wasm32")]

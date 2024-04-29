@@ -170,9 +170,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::program::Program,
-        utils::test_utils::*,
-        vm::runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
+        types::program::Program, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner,
     };
 
     #[cfg(target_arch = "wasm32")]

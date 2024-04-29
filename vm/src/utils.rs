@@ -249,7 +249,7 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(
+            crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 crate::types::layout_name::LayoutName::all_cairo,
                 false,
@@ -258,13 +258,26 @@ pub mod test_utils {
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&$program, $layout, false, false).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(&$program, $layout, false, false)
+                .unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&$program, $layout, $proof_mode, false).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                $proof_mode,
+                false,
+            )
+            .unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr, $trace_enabled:expr) => {
-            CairoRunner::new(&$program, $layout, $proof_mode, $trace_enabled).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                $proof_mode,
+                $trace_enabled,
+            )
+            .unwrap()
         };
     }
     pub(crate) use cairo_runner;

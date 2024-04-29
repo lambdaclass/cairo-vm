@@ -152,7 +152,6 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::CairoRunner;
 
     use crate::vm::runners::builtin_runner::BuiltinRunner;
     #[cfg(target_arch = "wasm32")]

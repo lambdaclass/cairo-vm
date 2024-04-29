@@ -651,7 +651,6 @@ mod tests {
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

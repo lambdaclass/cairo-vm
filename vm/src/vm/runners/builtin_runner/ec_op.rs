@@ -248,7 +248,6 @@ mod tests {
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, felt_str, relocatable};
 
     use crate::vm::{

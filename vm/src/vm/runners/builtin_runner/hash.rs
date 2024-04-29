@@ -173,7 +173,6 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, relocatable};
 
     use crate::vm::{errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner};
