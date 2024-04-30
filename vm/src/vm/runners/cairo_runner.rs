@@ -461,9 +461,9 @@ impl CairoRunner {
     pub fn initialize_segments(&mut self, program_base: Option<Relocatable>) {
         self.program_base = match program_base {
             Some(base) => Some(base),
-            None => Some(self.vm.segments.add()),
+            None => Some(self.vm.add_memory_segment()),
         };
-        self.execution_base = Some(self.vm.segments.add());
+        self.execution_base = Some(self.vm.add_memory_segment());
         for builtin_runner in self.vm.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.vm.segments);
         }
@@ -498,7 +498,7 @@ impl CairoRunner {
         mut stack: Vec<MaybeRelocatable>,
         return_fp: MaybeRelocatable,
     ) -> Result<Relocatable, RunnerError> {
-        let end = self.vm.segments.add();
+        let end = self.vm.add_memory_segment();
         stack.append(&mut vec![
             return_fp,
             MaybeRelocatable::RelocatableValue(end),
@@ -551,8 +551,8 @@ impl CairoRunner {
                 target_offset = stack.len() + 2;
 
                 // This values shouldn't be needed with a canonical proof mode
-                let return_fp = self.vm.segments.add();
-                let end = self.vm.segments.add();
+                let return_fp = self.vm.add_memory_segment();
+                let end = self.vm.add_memory_segment();
                 stack.append(&mut vec![
                     MaybeRelocatable::RelocatableValue(return_fp),
                     MaybeRelocatable::RelocatableValue(end),
@@ -597,7 +597,7 @@ impl CairoRunner {
                     .ok_or(RunnerError::NoProgramEnd)?)?);
         }
 
-        let return_fp = self.vm.segments.add();
+        let return_fp = self.vm.add_memory_segment();
         if let Some(main) = &self.entrypoint {
             let main_clone = *main;
             Ok(self.initialize_function_entrypoint(
@@ -679,7 +679,7 @@ impl CairoRunner {
             .clone();
         #[cfg(feature = "hooks")]
         self.vm.execute_before_first_step(&hint_data)?;
-        while self.vm.run_context.pc != address && !hint_processor.consumed() {
+        while self.vm.get_pc() != address && !hint_processor.consumed() {
             self.vm.step(
                 hint_processor,
                 &mut self.exec_scopes,
@@ -689,7 +689,7 @@ impl CairoRunner {
                 self.program
                     .shared_program_data
                     .hints_collection
-                    .get_hint_range_for_pc(self.vm.run_context.pc.offset)
+                    .get_hint_range_for_pc(self.vm.get_pc().offset)
                     .and_then(|range| {
                         range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
                     })
@@ -702,7 +702,7 @@ impl CairoRunner {
             hint_processor.consume_step();
         }
 
-        if self.vm.run_context.pc != address {
+        if self.vm.get_pc() != address {
             return Err(VirtualMachineError::UnfinishedExecution);
         }
 
@@ -732,14 +732,14 @@ impl CairoRunner {
             .program
             .shared_program_data
             .hints_collection
-            .get_hint_range_for_pc(self.vm.run_context.pc.offset)
+            .get_hint_range_for_pc(self.vm.get_pc().offset)
             .and_then(|range| {
                 range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
             })
             .unwrap_or(&[]);
 
         for remaining_steps in (1..=steps).rev() {
-            if self.final_pc.as_ref() == Some(&self.vm.run_context.pc) {
+            if self.final_pc.as_ref() == Some(&self.vm.get_pc()) {
                 return Err(VirtualMachineError::EndOfProgram(remaining_steps));
             }
 
@@ -1335,7 +1335,7 @@ impl CairoRunner {
         if let None | Some(false) = return_fp
             .segment_index
             .to_usize()
-            .and_then(|u| self.vm.segments.get_segment_size(u))
+            .and_then(|u| self.vm.get_segment_size(u))
             .map(|u| u.is_zero())
         {
             // return_fp negative index / no size / size is zero
@@ -1345,7 +1345,7 @@ impl CairoRunner {
         if let None | Some(false) = return_pc
             .segment_index
             .to_usize()
-            .and_then(|u| self.vm.segments.get_segment_size(u))
+            .and_then(|u| self.vm.get_segment_size(u))
             .map(|u| u.is_zero())
         {
             // return_pc negative index / no size / size is zero
