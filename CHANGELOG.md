@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
+
 * BREAKING: Remove unused `CairoRunner` field `original_steps`[#1742](https://github.com/lambdaclass/cairo-vm/pull/1742)
 
 * feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
