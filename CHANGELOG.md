@@ -4,6 +4,8 @@
 
 * `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
 
+* feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
+
 * Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
 
 * feat: Add support for cairo1 run with segements arena validation.
@@ -24,6 +26,8 @@
   * Add function `cairo_run_pie`
   * Add `CairoPie` methods `run_validity_checks` & `check_pie_compatibility`
   * Add `Program` method `from_stripped_program`
+
+* bugfix: Don't assume outer deref when fetching integer values from references[#1732](https://github.com/lambdaclass/cairo-vm/pull/1732)
 
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 
