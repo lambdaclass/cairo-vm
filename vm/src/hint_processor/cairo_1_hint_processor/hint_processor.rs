@@ -27,7 +27,7 @@ use core::ops::Shl;
 
 use num_bigint::{BigInt, BigUint};
 use num_integer::{ExtendedGcd, Integer};
-use num_traits::{ToPrimitive, Signed};
+use num_traits::{Signed, ToPrimitive};
 
 /// Execution scope for constant memory allocation.
 struct MemoryExecScope {
@@ -242,51 +242,73 @@ impl Cairo1HintProcessor {
                 vm, dividend0, dividend1, dividend2, dividend3, divisor0, divisor1, quotient0,
                 quotient1, quotient2, quotient3, remainder0, remainder1,
             ),
-            Hint::Core(CoreHintBase::Core(CoreHint::U256InvModN { b0, b1, n0, n1, g0_or_no_inv, g1_option, s_or_r0, s_or_r1, t_or_k0, t_or_k1 } )) => {
+            Hint::Core(CoreHintBase::Core(CoreHint::U256InvModN {
+                b0,
+                b1,
+                n0,
+                n1,
+                g0_or_no_inv,
+                g1_option,
+                s_or_r0,
+                s_or_r1,
+                t_or_k0,
+                t_or_k1,
+            })) => {
                 let pow_2_128 = BigInt::from(u128::MAX) + 1u32;
-            let b0 = get_val(vm, b0)?.to_bigint();
-            let b1 = get_val(vm, b1)?.to_bigint();
-            let n0 = get_val(vm, n0)?.to_bigint();
-            let n1 = get_val(vm, n1)?.to_bigint();
-            let b: BigInt = b0.clone() + b1.clone().shl(128);
-            let n: BigInt = n0 + n1.shl(128);
-            let ExtendedGcd { gcd: mut g, x: _, y: mut r } = n.extended_gcd(&b);
-            if n == 1.into() {
-                vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(b0))?;
-                vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(b1))?;
-                vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(1))?;
-                vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(0))?;
-                vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(1))?;
-                vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt252::from(0))?;
-            } else if g != 1.into() {
-                // This makes sure `g0_or_no_inv` is always non-zero in the no inverse case.
-                if g.is_even() {
-                    g = 2u32.into();
-                }let (limb1, limb0) = (&b / &g).div_rem(&pow_2_128);
-                vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
-                vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
-                let (limb1, limb0) = (&n / &g).div_rem(&pow_2_128);
-                vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
-                vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
-                let (limb1, limb0) = g.div_rem(&pow_2_128);
-                vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(limb0))?;
-                vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt252::from(limb1))?;
-            } else {
-                r %= &n;
-                if r.is_negative() {
-                    r += &n;
+                let b0 = get_val(vm, b0)?.to_bigint();
+                let b1 = get_val(vm, b1)?.to_bigint();
+                let n0 = get_val(vm, n0)?.to_bigint();
+                let n1 = get_val(vm, n1)?.to_bigint();
+                let b: BigInt = b0.clone() + b1.clone().shl(128);
+                let n: BigInt = n0 + n1.shl(128);
+                let ExtendedGcd {
+                    gcd: mut g,
+                    x: _,
+                    y: mut r,
+                } = n.extended_gcd(&b);
+                if n == 1.into() {
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(b0))?;
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(b1))?;
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(1))?;
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(0))?;
+                    vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(1))?;
+                    vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt252::from(0))?;
+                } else if g != 1.into() {
+                    // This makes sure `g0_or_no_inv` is always non-zero in the no inverse case.
+                    if g.is_even() {
+                        g = 2u32.into();
+                    }
+                    let (limb1, limb0) = (&b / &g).div_rem(&pow_2_128);
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+                    let (limb1, limb0) = (&n / &g).div_rem(&pow_2_128);
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
+                    let (limb1, limb0) = g.div_rem(&pow_2_128);
+                    vm.insert_value(
+                        cell_ref_to_relocatable(g0_or_no_inv, vm)?,
+                        Felt252::from(limb0),
+                    )?;
+                    vm.insert_value(
+                        cell_ref_to_relocatable(g1_option, vm)?,
+                        Felt252::from(limb1),
+                    )?;
+                } else {
+                    r %= &n;
+                    if r.is_negative() {
+                        r += &n;
+                    }
+                    let k: BigInt = (&r * b - 1) / n;
+                    let (limb1, limb0) = r.div_rem(&pow_2_128);
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
+                    vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+                    let (limb1, limb0) = k.div_rem(&pow_2_128);
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
+                    vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
+                    vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(0))?;
                 }
-                let k: BigInt = (&r * b - 1) / n;
-                let (limb1, limb0) = r.div_rem(&pow_2_128);
-                vm.insert_value(cell_ref_to_relocatable( s_or_r0, vm)?,  Felt252::from(limb0))?;
-                vm.insert_value(cell_ref_to_relocatable( s_or_r1, vm)?, Felt252::from(limb1))?;
-                let (limb1, limb0) = k.div_rem(&pow_2_128);
-                vm.insert_value(cell_ref_to_relocatable( t_or_k0, vm)?,  Felt252::from(limb0))?;
-                vm.insert_value(cell_ref_to_relocatable( t_or_k1, vm)?, Felt252::from(limb1))?;
-                vm.insert_value(cell_ref_to_relocatable( g0_or_no_inv, vm)?, Felt252::from(0))?;
+                Ok(())
             }
-            Ok(())
-        },
 
             hint => Err(HintError::UnknownHint(
                 format!("{:?}", hint).into_boxed_str(),
