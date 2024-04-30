@@ -375,10 +375,6 @@ mod tests {
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-
         let program = program!(
             builtins = vec![BuiltinName::pedersen],
             data = vec_data!(
@@ -404,6 +400,8 @@ mod tests {
         );
         let mut cairo_runner = cairo_runner!(program);
 
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
+
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
         let address = cairo_runner.initialize(false).unwrap();
@@ -412,7 +410,10 @@ mod tests {
             .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 7)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 7))
+        );
     }
 
     #[test]
