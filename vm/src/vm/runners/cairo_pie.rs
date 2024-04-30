@@ -270,7 +270,6 @@ impl CairoPie {
     #[cfg(feature = "std")]
     pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
         use std::io::Read;
-
         use zip::ZipArchive;
 
         let file = File::open(file_path)?;
