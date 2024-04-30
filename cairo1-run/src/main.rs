@@ -540,4 +540,13 @@ mod tests {
         let expected_output = "[1 2] [1 false 1 true]";
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
     }
+
+    #[rstest]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ecdsa_recover.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/ecdsa_recover.cairo", "--print_output", "--trace_file", "/dev/null", "--memory_file", "/dev/null", "--layout", "all_cairo", "--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"].as_slice())]
+    fn test_run_ecdsa_recover(#[case] args: &[&str]) {
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = "3490001189944926769628658346285649224182856084131963744896357527096042836716";
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output);
+    }
 }
