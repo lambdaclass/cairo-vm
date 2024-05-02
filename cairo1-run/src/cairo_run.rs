@@ -217,6 +217,7 @@ pub fn cairo_run_program(
         entrypoint,
         &sierra_program_registry,
         builtin_generic_ids,
+        &type_sizes,
     )?;
     dbg!(&vm.get_pc());
     dbg!(&vm.get_ap());
@@ -392,6 +393,7 @@ fn get_info<'a>(
 }
 
 // Mirrors runner.initialize() but also adds entrypoint args & gas builtin
+#[allow(clippy::too_many_arguments)]
 fn runner_initialize(
     runner: &mut CairoRunner,
     vm: &mut VirtualMachine,
@@ -400,25 +402,58 @@ fn runner_initialize(
     entrypoint: usize,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     builtin_generic_ids: HashMap<GenericTypeId, BuiltinName>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
-    let builtin_runners = vm
-        .builtin_runners
-        .iter()
-        .map(|b| (b.name(), b))
-        .collect::<HashMap<_, _>>();
+    let fetch_builtin_initial_stack =
+        |vm: &VirtualMachine, builtin_name: BuiltinName| -> Vec<MaybeRelocatable> {
+            vm.builtin_runners
+                .iter()
+                .find(|b| b.name() == builtin_name)
+                .unwrap()
+                .initial_stack()
+        };
+    let mut args = cairo_run_config.args.iter();
     let mut stack = vec![];
     for param in &main_func.signature.param_types {
-        let info = get_info(&sierra_program_registry, param)
-            .ok_or_else(|| Error::NoInfoForType(param.clone()))?;
-        if let Some(builtin_name) = builtin_generic_ids.get(&info.long_id.generic_id) {
-            stack.extend(builtin_runners[builtin_name].initial_stack());
-        } else if &info.long_id.generic_id == &GasBuiltinType::ID {
+        let generic_id = &get_info(sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?
+            .long_id
+            .generic_id;
+        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
+            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
+        } else if generic_id == &GasBuiltinType::ID {
             stack.push(MaybeRelocatable::from(9999999)); // initial gas
+        } else if generic_id == &SystemType::ID {
+            panic!("Encountered SystemType in Program")
         } else {
-            panic!("Unknown param type {}", param.debug_name.as_ref().unwrap());
+            // These must be input arguments
+            let size = type_sizes.get(param).unwrap();
+            let mut i = 0;
+            while i < *size {
+                match args.next() {
+                    Some(FuncArg::Single(f)) => {
+                        stack.push(f.into());
+                        i += 1
+                    }
+                    Some(FuncArg::Array(array)) => {
+                        let array_start = vm.add_memory_segment();
+                        let array_end = vm.load_data(
+                            array_start,
+                            &array.iter().map(|f| f.into()).collect::<Vec<_>>(),
+                        )?;
+                        stack.push(array_start.into());
+                        stack.push(array_end.into());
+                        i += 2;
+                    }
+                    _ => panic!("Missing arg"),
+                }
+            }
         }
+    }
+    if args.next().is_some() {
+        panic!("Args leftover after initialization")
     }
     let return_fp = vm.add_memory_segment();
     let end = runner.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
