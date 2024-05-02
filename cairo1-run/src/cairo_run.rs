@@ -269,12 +269,7 @@ pub fn cairo_run_program(
                 false,
             )?;
         } else {
-            finalize_builtins(
-                &main_func.signature.ret_types,
-                &type_sizes,
-                &mut vm,
-                builtin_count,
-            )?;
+            finalize_builtins(&main_func.signature.ret_types, &type_sizes, &mut vm)?;
         }
 
         // Build execution public memory
@@ -525,7 +520,6 @@ fn finalize_builtins(
     main_ret_types: &[ConcreteTypeId],
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     vm: &mut VirtualMachine,
-    builtin_count: i16,
 ) -> Result<(), Error> {
     // Set stop pointers for builtins so we can obtain the air public input
     // Cairo 1 programs have other return values aside from the used builtin's final pointers, so we need to hand-pick them
@@ -535,9 +529,8 @@ fn finalize_builtins(
     let ret_types_and_sizes = main_ret_types.iter().zip(ret_types_sizes.clone());
 
     let full_ret_types_size: i16 = ret_types_sizes.sum();
-    let mut stack_pointer = (vm.get_ap()
-        - (full_ret_types_size as usize + builtin_count as usize).saturating_sub(1))
-    .map_err(VirtualMachineError::Math)?;
+    let mut stack_pointer = (vm.get_ap() - (full_ret_types_size as usize).saturating_sub(1))
+        .map_err(VirtualMachineError::Math)?;
 
     // Calculate the stack_ptr for each return builtin in the return values
     let mut builtin_name_to_stack_pointer = HashMap::new();
