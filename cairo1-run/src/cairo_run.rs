@@ -381,116 +381,116 @@ fn create_entry_code(
         }
         casm_build_extend!(ctx, ap += builtins.len(););
     }
-    // Load all vecs to memory.
-    // Load all array args content to memory.
-    let mut array_args_data = vec![];
-    for arg in config.args {
-        let FuncArg::Array(values) = arg else {
-            continue;
-        };
-        casm_build_extend! {ctx,
-            tempvar arr;
-            hint AllocSegment {} into {dst: arr};
-            ap += 1;
-        };
-        array_args_data.push(arr);
-        for (i, v) in values.iter().enumerate() {
-            casm_build_extend! {ctx,
-                const cvalue = v.to_bigint();
-                tempvar value = cvalue;
-                assert value = arr[i.to_i16().unwrap()];
-            };
-        }
-    }
-    let mut array_args_data_iter = array_args_data.into_iter();
-    let mut arg_iter = config.args.iter().enumerate();
-    let mut param_index = 0;
-    let mut expected_arguments_size = 0;
-    if got_segment_arena {
-        // Allocating the segment arena and initializing it.
-        casm_build_extend! {ctx,
-            tempvar segment_arena;
-            tempvar infos;
-            hint AllocSegment {} into {dst: segment_arena};
-            hint AllocSegment {} into {dst: infos};
-            const czero = 0;
-            tempvar zero = czero;
-            // Write Infos segment, n_constructed (0), and n_destructed (0) to the segment.
-            assert infos = *(segment_arena++);
-            assert zero = *(segment_arena++);
-            assert zero = *(segment_arena++);
-        }
-        // Adding the segment arena to the builtins var map.
-        builtin_vars.insert(SegmentArenaType::ID, segment_arena);
-    };
+    // // Load all vecs to memory.
+    // // Load all array args content to memory.
+    // let mut array_args_data = vec![];
+    // for arg in config.args {
+    //     let FuncArg::Array(values) = arg else {
+    //         continue;
+    //     };
+    //     casm_build_extend! {ctx,
+    //         tempvar arr;
+    //         hint AllocSegment {} into {dst: arr};
+    //         ap += 1;
+    //     };
+    //     array_args_data.push(arr);
+    //     for (i, v) in values.iter().enumerate() {
+    //         casm_build_extend! {ctx,
+    //             const cvalue = v.to_bigint();
+    //             tempvar value = cvalue;
+    //             assert value = arr[i.to_i16().unwrap()];
+    //         };
+    //     }
+    // }
+    // let mut array_args_data_iter = array_args_data.into_iter();
+    // let mut arg_iter = config.args.iter().enumerate();
+    // let mut param_index = 0;
+    // let mut expected_arguments_size = 0;
+    // if got_segment_arena {
+    //     // Allocating the segment arena and initializing it.
+    //     casm_build_extend! {ctx,
+    //         tempvar segment_arena;
+    //         tempvar infos;
+    //         hint AllocSegment {} into {dst: segment_arena};
+    //         hint AllocSegment {} into {dst: infos};
+    //         const czero = 0;
+    //         tempvar zero = czero;
+    //         // Write Infos segment, n_constructed (0), and n_destructed (0) to the segment.
+    //         assert infos = *(segment_arena++);
+    //         assert zero = *(segment_arena++);
+    //         assert zero = *(segment_arena++);
+    //     }
+    //     // Adding the segment arena to the builtins var map.
+    //     builtin_vars.insert(SegmentArenaType::ID, segment_arena);
+    // };
 
-    for ty in &signature.param_types {
-        let info = get_info(sierra_program_registry, ty)
-            .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
-        let generic_ty = &info.long_id.generic_id;
-        if let Some(var) = builtin_vars.get(generic_ty).cloned() {
-            casm_build_extend!(ctx, tempvar _builtin = var;);
-        } else if generic_ty == &SystemType::ID {
-            casm_build_extend! {ctx,
-                tempvar system;
-                hint AllocSegment {} into {dst: system};
-                ap += 1;
-            };
-        } else if generic_ty == &GasBuiltinType::ID {
-            casm_build_extend! {ctx,
-                const initial_gas = initial_gas;
-                tempvar _gas = initial_gas;
-            };
-        } else {
-            let ty_size = type_sizes[ty];
-            let mut param_accum_size = 0;
-            expected_arguments_size += ty_size;
-            while param_accum_size < ty_size {
-                let Some((arg_index, arg)) = arg_iter.next() else {
-                    break;
-                };
-                match arg {
-                    FuncArg::Single(value) => {
-                        casm_build_extend! {ctx,
-                            const value = value.to_bigint();
-                            tempvar _value = value;
-                        };
-                        param_accum_size += 1;
-                    }
-                    FuncArg::Array(values) => {
-                        let var = array_args_data_iter.next().unwrap();
-                        casm_build_extend! {ctx,
-                            const length = values.len();
-                            tempvar start = var;
-                            tempvar end = var + length;
-                        };
-                        param_accum_size += 2;
-                        if param_accum_size > ty_size {
-                            return Err(Error::ArgumentUnaligned {
-                                param_index,
-                                arg_index,
-                            });
-                        }
-                    }
-                }
-            }
-            param_index += 1;
-        };
-    }
-    let actual_args_size = config
-        .args
-        .iter()
-        .map(|arg| match arg {
-            FuncArg::Single(_) => 1,
-            FuncArg::Array(_) => 2,
-        })
-        .sum::<i16>();
-    if expected_arguments_size != actual_args_size {
-        return Err(Error::ArgumentsSizeMismatch {
-            expected: expected_arguments_size,
-            actual: actual_args_size,
-        });
-    }
+    // for ty in &signature.param_types {
+    //     let info = get_info(sierra_program_registry, ty)
+    //         .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
+    //     let generic_ty = &info.long_id.generic_id;
+    //     if let Some(var) = builtin_vars.get(generic_ty).cloned() {
+    //         casm_build_extend!(ctx, tempvar _builtin = var;);
+    //     } else if generic_ty == &SystemType::ID {
+    //         casm_build_extend! {ctx,
+    //             tempvar system;
+    //             hint AllocSegment {} into {dst: system};
+    //             ap += 1;
+    //         };
+    //     } else if generic_ty == &GasBuiltinType::ID {
+    //         casm_build_extend! {ctx,
+    //             const initial_gas = initial_gas;
+    //             tempvar _gas = initial_gas;
+    //         };
+    //     } else {
+    //         let ty_size = type_sizes[ty];
+    //         let mut param_accum_size = 0;
+    //         expected_arguments_size += ty_size;
+    //         while param_accum_size < ty_size {
+    //             let Some((arg_index, arg)) = arg_iter.next() else {
+    //                 break;
+    //             };
+    //             match arg {
+    //                 FuncArg::Single(value) => {
+    //                     casm_build_extend! {ctx,
+    //                         const value = value.to_bigint();
+    //                         tempvar _value = value;
+    //                     };
+    //                     param_accum_size += 1;
+    //                 }
+    //                 FuncArg::Array(values) => {
+    //                     let var = array_args_data_iter.next().unwrap();
+    //                     casm_build_extend! {ctx,
+    //                         const length = values.len();
+    //                         tempvar start = var;
+    //                         tempvar end = var + length;
+    //                     };
+    //                     param_accum_size += 2;
+    //                     if param_accum_size > ty_size {
+    //                         return Err(Error::ArgumentUnaligned {
+    //                             param_index,
+    //                             arg_index,
+    //                         });
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         param_index += 1;
+    //     };
+    // }
+    // let actual_args_size = config
+    //     .args
+    //     .iter()
+    //     .map(|arg| match arg {
+    //         FuncArg::Single(_) => 1,
+    //         FuncArg::Array(_) => 2,
+    //     })
+    //     .sum::<i16>();
+    // if expected_arguments_size != actual_args_size {
+    //     return Err(Error::ArgumentsSizeMismatch {
+    //         expected: expected_arguments_size,
+    //         actual: actual_args_size,
+    //     });
+    // }
 
     casm_build_extend!(ctx, let () = call FUNCTION;);
 
