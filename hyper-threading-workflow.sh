@@ -2,9 +2,11 @@
 
 rm -rf examples/hyper_threading/hyper_threading_*
 
+make cairo_bench_programs
+
 #commits
-PR_COMMIT="59840b36be82fb7d486939e01799251b3865b97a"
-MAIN_COMMIT="c5839fd5b696a58486cde68c394b2f2ca54787d9"
+PR_COMMIT="bc276ce6c83eaba4b73e70dd197dbca6bea04e8d"
+MAIN_COMMIT="3f1f9ecfffcc52e6d30ce3254b55a7b7cb94eb7f"
 
 git pull 
 
