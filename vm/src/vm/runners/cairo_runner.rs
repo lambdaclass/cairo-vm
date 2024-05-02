@@ -155,7 +155,6 @@ pub struct CairoRunner {
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
     runner_mode: RunnerMode,
-    pub original_steps: Option<usize>,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -202,7 +201,6 @@ impl CairoRunner {
             run_ended: false,
             segments_finalized: false,
             runner_mode: mode.clone(),
-            original_steps: None,
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
             execution_public_memory: if mode != RunnerMode::ExecutionMode {
@@ -1026,15 +1024,12 @@ impl CairoRunner {
     }
 
     pub fn get_execution_resources(&self) -> Result<ExecutionResources, RunnerError> {
-        let n_steps = match self.original_steps {
-            Some(x) => x,
-            None => self
-                .vm
-                .trace
-                .as_ref()
-                .map(|x| x.len())
-                .unwrap_or(self.vm.current_step),
-        };
+        let n_steps = self
+            .vm
+            .trace
+            .as_ref()
+            .map(|x| x.len())
+            .unwrap_or(self.vm.current_step);
         let n_memory_holes = self.get_memory_holes()?;
 
         let mut builtin_instance_counter = HashMap::new();
@@ -3878,7 +3873,7 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.original_steps = Some(10);
+        cairo_runner.vm.current_step = 10;
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![4]);
         assert_eq!(
             cairo_runner.get_execution_resources(),
@@ -3897,7 +3892,7 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.original_steps = Some(10);
+        cairo_runner.vm.current_step = 10;
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![4]);
         cairo_runner.vm.builtin_runners = vec![{
             let mut builtin = OutputBuiltinRunner::new(true);
