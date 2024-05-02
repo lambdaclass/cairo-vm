@@ -544,6 +544,7 @@ fn finalize_builtins(
                 "Pedersen" => BuiltinName::pedersen,
                 "Output" => BuiltinName::output,
                 "Ecdsa" => BuiltinName::ecdsa,
+                "SegmentArena" => BuiltinName::segment_arena,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
