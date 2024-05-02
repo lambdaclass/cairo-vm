@@ -138,16 +138,17 @@ pub fn cairo_run_program(
 
     let initial_gas = 9999999999999_usize;
 
-    // Modified entry code to be compatible with custom cairo1 Proof Mode.
-    // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
-    let (entry_code, builtins) = create_entry_code(
-        &sierra_program_registry,
-        &casm_program,
-        &type_sizes,
-        main_func,
-        initial_gas,
-        &cairo_run_config,
-    )?;
+    // // Modified entry code to be compatible with custom cairo1 Proof Mode.
+    // // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
+    // let (entry_code, builtins) = create_entry_code(
+    //     &sierra_program_registry,
+    //     &casm_program,
+    //     &type_sizes,
+    //     main_func,
+    //     initial_gas,
+    //     &cairo_run_config,
+    // )?;
+    let (builtins, _) = get_function_builtins(&main_func.signature.param_types, cairo_run_config.proof_mode || cairo_run_config.append_return_values);
 
     // Fetch return type data
 
@@ -163,7 +164,6 @@ pub fn cairo_run_program(
     // This is the program we are actually running/proving
     // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
-        entry_code.instructions.iter(),
         casm_program.instructions.iter(),
         libfunc_footer.iter(),
     );
@@ -185,7 +185,7 @@ pub fn cairo_run_program(
             0,
             // Proof mode is on top
             // `jmp rel 0` is the last line of the entry code.
-            entry_code.current_code_offset - 2,
+            4 - 2, // TODO Update,
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
@@ -218,9 +218,13 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-
+    dbg!(&vm.get_pc());
+    dbg!(&vm.get_ap());
+    dbg!(&vm.get_fp());
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    let err = runner.run_until_pc(end, &mut vm, &mut hint_processor);
+    println!("{}", vm.segments);
+    err?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
     }
@@ -347,7 +351,7 @@ fn create_entry_code(
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
-    initial_gas: usize,
+    _initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.proof_mode || config.append_return_values;
