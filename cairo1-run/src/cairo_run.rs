@@ -148,7 +148,10 @@ pub fn cairo_run_program(
     //     initial_gas,
     //     &cairo_run_config,
     // )?;
-    let (builtins, _) = get_function_builtins(&main_func.signature.param_types, cairo_run_config.proof_mode || cairo_run_config.append_return_values);
+    let (builtins, _) = get_function_builtins(
+        &main_func.signature.param_types,
+        cairo_run_config.proof_mode || cairo_run_config.append_return_values,
+    );
 
     // Fetch return type data
 
@@ -163,10 +166,7 @@ pub fn cairo_run_program(
 
     // This is the program we are actually running/proving
     // With (embedded proof mode), cairo1 header and the libfunc footer
-    let instructions = chain!(
-        casm_program.instructions.iter(),
-        libfunc_footer.iter(),
-    );
+    let instructions = chain!(casm_program.instructions.iter(), libfunc_footer.iter(),);
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
@@ -685,10 +685,11 @@ fn fetch_return_values(
         vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
     } else {
         vm.get_continuous_range(
-            (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
+            (vm.get_ap() - return_type_size as usize).unwrap(),
             return_type_size as usize,
         )?
     };
+    dbg!(&return_values);
     // Check if this result is a Panic result
     if return_type_id
         .and_then(|id| {
