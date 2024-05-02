@@ -38,7 +38,7 @@ use cairo_vm::{
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
     types::{
         builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
-        relocatable::MaybeRelocatable,
+        relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
@@ -198,7 +198,7 @@ pub fn cairo_run_program(
         Program::new(
             builtins.clone(),
             data,
-            Some(0),
+            Some(entry_code.current_code_offset),
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
@@ -217,8 +217,17 @@ pub fn cairo_run_program(
 
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
 
+    let end = runner_initialize(
+        &mut runner,
+        &mut vm,
+        &cairo_run_config,
+        main_func,
+        &sierra_program_registry,
+    )?;
+    dbg!(&vm.get_pc());
+    dbg!(&vm.get_ap());
+    dbg!(&vm.get_fp());
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
@@ -664,6 +673,46 @@ fn get_function_builtins(
     }
     builtins.reverse();
     (builtins, builtin_offset)
+}
+
+// Mirrors runner.initialize() but also adds entrypoint args & gas builtin
+fn runner_initialize(
+    runner: &mut CairoRunner,
+    vm: &mut VirtualMachine,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> Result<Relocatable, Error> {
+    runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
+    runner.initialize_segments(vm, None);
+    let builtin_runners = vm
+        .builtin_runners
+        .iter()
+        .map(|b| (b.name(), b))
+        .collect::<HashMap<_, _>>();
+    let builtin_generic_ids = HashMap::from([
+        (PoseidonType::ID, BuiltinName::poseidon),
+        (EcOpType::ID, BuiltinName::ec_op),
+        (BitwiseType::ID, BuiltinName::bitwise),
+        (RangeCheckType::ID, BuiltinName::range_check),
+        (PedersenType::ID, BuiltinName::pedersen),
+    ]);
+    let mut stack = vec![];
+    for param in &main_func.signature.param_types {
+        let info = get_info(&sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?;
+        if let Some(builtin_name) = builtin_generic_ids.get(&info.long_id.generic_id) {
+            stack.extend(builtin_runners[builtin_name].initial_stack());
+        } else if &info.long_id.generic_id == &GasBuiltinType::ID {
+            stack.push(MaybeRelocatable::from(9999999)); // initial gas
+        } else {
+            panic!("Unknown param type {}", param.debug_name.as_ref().unwrap());
+        }
+    }
+    let return_fp = vm.add_memory_segment();
+    let end = runner.initialize_function_entrypoint(vm, 0, stack, return_fp.into())?;
+    runner.initialize_vm(vm)?;
+    Ok(end)
 }
 
 fn fetch_return_values(
