@@ -1363,6 +1363,12 @@ impl CairoRunner {
 
     // Constructs and returns a CairoPie representing the current VM run.
     pub fn get_cairo_pie(&self, vm: &VirtualMachine) -> Result<CairoPie, RunnerError> {
+        self.get_cairo_pie_with_input_len(vm, self.program.builtins_len())
+    }
+
+    // Constructs and returns a CairoPie representing the current VM run for a run with input len.
+    // This method should be used when the cairo run has input arguments, where input_len represents all of the inputs (including builtins, gas and cairo arguments)
+    pub fn get_cairo_pie_with_input_len(&self, vm: &VirtualMachine, input_len: usize) -> Result<CairoPie, RunnerError> {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
 
@@ -1371,10 +1377,9 @@ impl CairoRunner {
         for info in builtin_segments.values() {
             known_segment_indices.insert(info.index);
         }
-        let n_used_builtins = self.program.builtins_len();
-        let return_fp_addr = (execution_base + n_used_builtins)?;
-        let return_fp = vm.segments.memory.get_relocatable(return_fp_addr)?;
-        let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?)?;
+        let return_fp_addr = (execution_base + input_len)?;
+        let return_fp = vm.segments.memory.get_relocatable(return_fp_addr).unwrap();
+        let return_pc = vm.segments.memory.get_relocatable((return_fp_addr + 1)?).unwrap();
 
         if let None | Some(false) = return_fp
             .segment_index

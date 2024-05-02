@@ -1,4 +1,5 @@
 use bincode::enc::write::Writer;
+use cairo1_run::cairo_run::get_cairo_pie;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
@@ -203,7 +204,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     }
 
     if let Some(ref file_path) = args.cairo_pie_output {
-        runner.get_cairo_pie(&vm)?.write_zip_file(file_path)?
+        get_cairo_pie(&sierra_program, &runner, &vm)?.write_zip_file(file_path)?
     }
 
     if let Some(trace_path) = args.trace_file {
