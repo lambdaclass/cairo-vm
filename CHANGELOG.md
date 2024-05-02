@@ -5,6 +5,10 @@
 * perf: use a more compact representation for `MemoryCell` [#1672](https://github.com/lambdaclass/cairo-vm/pull/1672)
   * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
 
+* `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
+
+* BREAKING: Remove unused `CairoRunner` field `original_steps`[#1742](https://github.com/lambdaclass/cairo-vm/pull/1742)
+
 * feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
 
 * Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
