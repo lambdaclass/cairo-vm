@@ -650,6 +650,7 @@ pub(super) mod serde_impl {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::segment_arena,
         ];
 
         for name in BUILTIN_ORDERED_LIST {
