@@ -137,6 +137,9 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
+    let entrypoint =
+        casm_program.debug_info.sierra_statement_info[main_func.entry_point.0].code_offset;
+
     let (builtins, builtin_generic_ids) = get_function_builtins(
         &main_func.signature.param_types,
         cairo_run_config.proof_mode || cairo_run_config.append_return_values,
@@ -174,7 +177,7 @@ pub fn cairo_run_program(
             0,
             // Proof mode is on top
             // `jmp rel 0` is the last line of the entry code.
-            4 - 2, // TODO Update,
+            entrypoint - 2,
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
@@ -187,7 +190,7 @@ pub fn cairo_run_program(
         Program::new(
             builtins.clone(),
             data,
-            Some(0),
+            Some(entrypoint),
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
@@ -211,6 +214,7 @@ pub fn cairo_run_program(
         &mut vm,
         &cairo_run_config,
         main_func,
+        entrypoint,
         &sierra_program_registry,
         builtin_generic_ids,
     )?;
@@ -393,6 +397,7 @@ fn runner_initialize(
     vm: &mut VirtualMachine,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
+    entrypoint: usize,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     builtin_generic_ids: HashMap<GenericTypeId, BuiltinName>,
 ) -> Result<Relocatable, Error> {
@@ -416,7 +421,7 @@ fn runner_initialize(
         }
     }
     let return_fp = vm.add_memory_segment();
-    let end = runner.initialize_function_entrypoint(vm, 0, stack, return_fp.into())?;
+    let end = runner.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
     runner.initialize_vm(vm)?;
     Ok(end)
 }
