@@ -163,8 +163,32 @@ pub struct CairoRunner {
 #[derive(Clone, Debug, PartialEq)]
 pub enum RunnerMode {
     ExecutionMode,
+    /// Execution mode for Cairo 0 programs
+    ExecutionModeCairo0,
+    /// Execution mode for Cairo 1 programs
+    ExecutionModeCairo1,
+    /// Proof mode for Cairo 0 programs
     ProofModeCanonical,
+    /// Proof mode for Cairo 1 programs
     ProofModeCairo1,
+}
+
+impl RunnerMode {
+    /// Returns whether the runner mode is proof mode
+    pub fn is_proof_mode(&self) -> bool {
+        matches!(
+            self,
+            RunnerMode::ProofModeCanonical | RunnerMode::ProofModeCairo1
+        )
+    }
+
+    /// Returns whether the runner mode is for Cairo 1 programs
+    pub fn is_cairo1(&self) -> bool {
+        matches!(
+            self,
+            RunnerMode::ExecutionModeCairo1 | RunnerMode::ProofModeCairo1
+        )
+    }
 }
 
 impl CairoRunner {
@@ -201,7 +225,7 @@ impl CairoRunner {
             runner_mode: mode.clone(),
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: if mode != RunnerMode::ExecutionMode {
+            execution_public_memory: if mode.is_proof_mode() {
                 Some(Vec::new())
             } else {
                 None
@@ -252,6 +276,7 @@ impl CairoRunner {
             BuiltinName::ec_op,
             BuiltinName::keccak,
             BuiltinName::poseidon,
+            BuiltinName::segment_arena,
             BuiltinName::range_check96,
             BuiltinName::add_mod,
             BuiltinName::mul_mod,
@@ -348,6 +373,14 @@ impl CairoRunner {
                 builtin_runners.push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
             }
         }
+
+        if self.runner_mode.is_cairo1() {
+            let included = program_builtins.remove(&BuiltinName::segment_arena);
+            if included || self.is_proof_mode() {
+                builtin_runners.push(SegmentArenaBuiltinRunner::new(included).into());
+            }
+        }
+
         if !program_builtins.is_empty() && !allow_missing_builtins {
             return Err(RunnerError::NoBuiltinForInstance(Box::new((
                 program_builtins.iter().map(|n| **n).collect(),
@@ -360,8 +393,7 @@ impl CairoRunner {
     }
 
     fn is_proof_mode(&self) -> bool {
-        self.runner_mode == RunnerMode::ProofModeCanonical
-            || self.runner_mode == RunnerMode::ProofModeCairo1
+        self.runner_mode.is_proof_mode()
     }
 
     // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner

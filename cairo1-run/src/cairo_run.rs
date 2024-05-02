@@ -199,7 +199,7 @@ pub fn cairo_run_program(
     let runner_mode = if cairo_run_config.proof_mode {
         RunnerMode::ProofModeCairo1
     } else {
-        RunnerMode::ExecutionMode
+        RunnerMode::ExecutionModeCairo1
     };
 
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
@@ -342,6 +342,11 @@ fn get_function_builtins(
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
     for (debug_name, builtin_name, sierra_id) in [
+        (
+            "SegmentArena",
+            BuiltinName::segment_arena,
+            SegmentArenaType::ID,
+        ),
         ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
         ("EcOp", BuiltinName::ec_op, EcOpType::ID),
         ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
