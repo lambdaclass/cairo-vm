@@ -36,8 +36,10 @@ use cairo_vm::{
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
     types::{
-        builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
-        relocatable::MaybeRelocatable,
+        builtin_name::BuiltinName,
+        layout_name::LayoutName,
+        program::Program,
+        relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
@@ -135,7 +137,7 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let (builtins, _) = get_function_builtins(
+    let (builtins, builtin_generic_ids) = get_function_builtins(
         &main_func.signature.param_types,
         cairo_run_config.proof_mode || cairo_run_config.append_return_values,
     );
@@ -204,7 +206,14 @@ pub fn cairo_run_program(
 
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
+    let end = runner_initialize(
+        &mut runner,
+        &mut vm,
+        &cairo_run_config,
+        main_func,
+        &sierra_program_registry,
+        builtin_generic_ids,
+    )?;
     dbg!(&vm.get_pc());
     dbg!(&vm.get_ap());
     dbg!(&vm.get_fp());
@@ -336,11 +345,10 @@ fn get_function_builtins(
     append_output: bool,
 ) -> (
     Vec<BuiltinName>,
-    HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
+    HashMap<cairo_lang_sierra::ids::GenericTypeId, BuiltinName>,
 ) {
     let mut builtins = Vec::new();
-    let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
-    let mut current_offset = 3;
+    let mut generic_id_to_builtin = HashMap::new();
     for (debug_name, builtin_name, sierra_id) in [
         (
             "SegmentArena",
@@ -358,8 +366,7 @@ fn get_function_builtins(
             .any(|id| id.debug_name.as_deref() == Some(debug_name))
         {
             builtins.push(builtin_name);
-            builtin_offset.insert(sierra_id, current_offset);
-            current_offset += 1;
+            generic_id_to_builtin.insert(sierra_id, builtin_name);
         }
     }
     // Force an output builtin so that we can write the program output into it's segment
@@ -367,7 +374,51 @@ fn get_function_builtins(
         builtins.push(BuiltinName::output);
     }
     builtins.reverse();
-    (builtins, builtin_offset)
+    (builtins, generic_id_to_builtin)
+}
+
+fn get_info<'a>(
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+    ty: &'a cairo_lang_sierra::ids::ConcreteTypeId,
+) -> Option<&'a cairo_lang_sierra::extensions::types::TypeInfo> {
+    sierra_program_registry
+        .get_type(ty)
+        .ok()
+        .map(|ctc| ctc.info())
+}
+
+// Mirrors runner.initialize() but also adds entrypoint args & gas builtin
+fn runner_initialize(
+    runner: &mut CairoRunner,
+    vm: &mut VirtualMachine,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    builtin_generic_ids: HashMap<GenericTypeId, BuiltinName>,
+) -> Result<Relocatable, Error> {
+    runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
+    runner.initialize_segments(vm, None);
+    let builtin_runners = vm
+        .builtin_runners
+        .iter()
+        .map(|b| (b.name(), b))
+        .collect::<HashMap<_, _>>();
+    let mut stack = vec![];
+    for param in &main_func.signature.param_types {
+        let info = get_info(&sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?;
+        if let Some(builtin_name) = builtin_generic_ids.get(&info.long_id.generic_id) {
+            stack.extend(builtin_runners[builtin_name].initial_stack());
+        } else if &info.long_id.generic_id == &GasBuiltinType::ID {
+            stack.push(MaybeRelocatable::from(9999999)); // initial gas
+        } else {
+            panic!("Unknown param type {}", param.debug_name.as_ref().unwrap());
+        }
+    }
+    let return_fp = vm.add_memory_segment();
+    let end = runner.initialize_function_entrypoint(vm, 0, stack, return_fp.into())?;
+    runner.initialize_vm(vm)?;
+    Ok(end)
 }
 
 fn fetch_return_values(
