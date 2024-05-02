@@ -384,7 +384,6 @@ fn fetch_return_values(
             return_type_size as usize,
         )?
     };
-    dbg!(&return_values);
     // Check if this result is a Panic result
     if return_type_id
         .and_then(|id| {
