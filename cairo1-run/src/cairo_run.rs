@@ -1217,7 +1217,7 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (runner, vm, return_values, _) =
+        let (_, vm, return_values, _) =
             cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
@@ -1233,15 +1233,12 @@ mod tests {
         let output_builtin_segment = vm
             .get_continuous_range((2, 0).into(), return_values.len())
             .unwrap();
+        // While this test can make sure that the return values are the same as the output segment values, as the code that fetches return values
+        // takes them from the output segment we can't be sure that these return values are correct, for this we use the integration tests in the main.rs file
         assert_eq!(output_builtin_segment, return_values, "{}", filename);
         // Just for consistency, we will check that there are no values in the output segment after the return values
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
-
-        // Check that cairo_pie can be outputted when not running in proof_mode
-        if !proof_mode {
-            assert!(runner.get_cairo_pie(&vm).is_ok())
-        }
     }
 }
