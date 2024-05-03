@@ -227,6 +227,7 @@ pub fn cairo_run_program(
         main_func,
         &sierra_program_registry,
         &type_sizes,
+        cairo_run_config.append_return_values || cairo_run_config.proof_mode,
     )?;
     println!("{}", vm.segments);
     dbg!(&vm.get_pc());
@@ -624,6 +625,7 @@ fn runner_initialize(
     main_func: &Function,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+    add_output: bool,
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
@@ -645,6 +647,9 @@ fn runner_initialize(
                 .unwrap()
                 .initial_stack()
         };
+    if add_output {
+        stack.extend(fetch_builtin_initial_stack(vm, BuiltinName::output));
+    }
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
