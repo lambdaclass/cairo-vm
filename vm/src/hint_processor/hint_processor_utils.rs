@@ -61,7 +61,7 @@ pub fn get_maybe_relocatable_from_reference(
     // Optimization for most common case
     if hint_reference.outer_dereference {
         let addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
-        return vm.get_maybe(&addr)
+        return vm.get_maybe(&addr);
     }
     let offset1 = get_offset_value(
         vm,
@@ -126,34 +126,6 @@ pub fn compute_addr_from_reference(
     Some(offset1)
 }
 
-fn get_offset_value_reference(
-    vm: &VirtualMachine,
-    offset_value: &OffsetValue,
-    reference_ap_tracking: &Option<ApTracking>,
-    hint_ap_tracking: &ApTracking,
-) -> Option<MaybeRelocatable>{
-    let (register, offset, deref) = match offset_value {
-        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
-        _ => return None,
-    };
-
-    let base_addr = if register == &Register::FP {
-        vm.get_fp()
-    } else {
-        apply_ap_tracking_correction(vm.get_ap(), reference_ap_tracking.as_ref()?, hint_ap_tracking)?
-    };
-
-    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
-        return None;
-    }
-
-    if *deref {
-        vm.get_maybe(&(base_addr + *offset).ok()?)
-    } else {
-        Some((base_addr + *offset).ok()?.into())
-}
-}
-
 fn apply_ap_tracking_correction(
     ap: Relocatable,
     ref_ap_tracking: &ApTracking,
@@ -206,6 +178,39 @@ fn get_offset_value(
                 Some(addr.into())
             }
         }
+    }
+}
+
+// Similar behaviour as `get_offset_value` but only handles OffsetValue::Reference type
+fn get_offset_value_reference(
+    vm: &VirtualMachine,
+    offset_value: &OffsetValue,
+    reference_ap_tracking: &Option<ApTracking>,
+    hint_ap_tracking: &ApTracking,
+) -> Option<MaybeRelocatable> {
+    let (register, offset, deref) = match offset_value {
+        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
+        _ => return None,
+    };
+
+    let base_addr = if register == &Register::FP {
+        vm.get_fp()
+    } else {
+        apply_ap_tracking_correction(
+            vm.get_ap(),
+            reference_ap_tracking.as_ref()?,
+            hint_ap_tracking,
+        )?
+    };
+
+    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
+        return None;
+    }
+
+    if *deref {
+        vm.get_maybe(&(base_addr + *offset).ok()?)
+    } else {
+        Some((base_addr + *offset).ok()?.into())
     }
 }
 
