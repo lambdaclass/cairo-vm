@@ -200,7 +200,7 @@ pub fn cairo_run_program(
         Program::new(
             builtins.clone(),
             data,
-            Some(entry_code.current_code_offset),
+            Some(0),
             program_hints,
             ReferenceManager {
                 references: Vec::new(),
