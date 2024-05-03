@@ -37,7 +37,9 @@ use cairo_vm::{
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
     types::{
-        builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
+        builtin_name::BuiltinName,
+        layout_name::LayoutName,
+        program::Program,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     vm::{
@@ -224,12 +226,15 @@ pub fn cairo_run_program(
         &cairo_run_config,
         main_func,
         &sierra_program_registry,
+        &type_sizes,
     )?;
     dbg!(&vm.get_pc());
     dbg!(&vm.get_ap());
     dbg!(&vm.get_fp());
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    let err = runner.run_until_pc(end, &mut vm, &mut hint_processor);
+    println!("{}", vm.segments);
+    err?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
     }
@@ -390,31 +395,6 @@ fn create_entry_code(
         }
         casm_build_extend!(ctx, ap += builtins.len(););
     }
-    // Load all vecs to memory.
-    // Load all array args content to memory.
-    let mut array_args_data = vec![];
-    for arg in config.args {
-        let FuncArg::Array(values) = arg else {
-            continue;
-        };
-        casm_build_extend! {ctx,
-            tempvar arr;
-            hint AllocSegment {} into {dst: arr};
-            ap += 1;
-        };
-        array_args_data.push(arr);
-        for (i, v) in values.iter().enumerate() {
-            casm_build_extend! {ctx,
-                const cvalue = v.to_bigint();
-                tempvar value = cvalue;
-                assert value = arr[i.to_i16().unwrap()];
-            };
-        }
-    }
-    let mut array_args_data_iter = array_args_data.into_iter();
-    let mut arg_iter = config.args.iter().enumerate();
-    let mut param_index = 0;
-    let mut expected_arguments_size = 0;
     if got_segment_arena {
         // Allocating the segment arena and initializing it.
         casm_build_extend! {ctx,
@@ -450,55 +430,7 @@ fn create_entry_code(
                 const initial_gas = initial_gas;
                 tempvar _gas = initial_gas;
             };
-        } else {
-            let ty_size = type_sizes[ty];
-            let mut param_accum_size = 0;
-            expected_arguments_size += ty_size;
-            while param_accum_size < ty_size {
-                let Some((arg_index, arg)) = arg_iter.next() else {
-                    break;
-                };
-                match arg {
-                    FuncArg::Single(value) => {
-                        casm_build_extend! {ctx,
-                            const value = value.to_bigint();
-                            tempvar _value = value;
-                        };
-                        param_accum_size += 1;
-                    }
-                    FuncArg::Array(values) => {
-                        let var = array_args_data_iter.next().unwrap();
-                        casm_build_extend! {ctx,
-                            const length = values.len();
-                            tempvar start = var;
-                            tempvar end = var + length;
-                        };
-                        param_accum_size += 2;
-                        if param_accum_size > ty_size {
-                            return Err(Error::ArgumentUnaligned {
-                                param_index,
-                                arg_index,
-                            });
-                        }
-                    }
-                }
-            }
-            param_index += 1;
-        };
-    }
-    let actual_args_size = config
-        .args
-        .iter()
-        .map(|arg| match arg {
-            FuncArg::Single(_) => 1,
-            FuncArg::Array(_) => 2,
-        })
-        .sum::<i16>();
-    if expected_arguments_size != actual_args_size {
-        return Err(Error::ArgumentsSizeMismatch {
-            expected: expected_arguments_size,
-            actual: actual_args_size,
-        });
+        }
     }
 
     casm_build_extend!(ctx, let () = call FUNCTION;);
@@ -682,14 +614,10 @@ fn runner_initialize(
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
-    let builtin_runners = vm
-        .builtin_runners
-        .iter()
-        .map(|b| (b.name(), b))
-        .collect::<HashMap<_, _>>();
     let builtin_generic_ids = HashMap::from([
         (PoseidonType::ID, BuiltinName::poseidon),
         (EcOpType::ID, BuiltinName::ec_op),
@@ -697,22 +625,69 @@ fn runner_initialize(
         (RangeCheckType::ID, BuiltinName::range_check),
         (PedersenType::ID, BuiltinName::pedersen),
     ]);
+    let return_fp = vm.add_memory_segment();
+    let return_pc = vm.add_memory_segment();
     let mut stack = vec![];
+    let fetch_builtin_initial_stack =
+        |vm: &VirtualMachine, builtin_name: BuiltinName| -> Vec<MaybeRelocatable> {
+            vm.builtin_runners
+                .iter()
+                .find(|b| b.name() == builtin_name)
+                .unwrap()
+                .initial_stack()
+        };
     for param in &main_func.signature.param_types {
-        let info = get_info(&sierra_program_registry, param)
-            .ok_or_else(|| Error::NoInfoForType(param.clone()))?;
-        if let Some(builtin_name) = builtin_generic_ids.get(&info.long_id.generic_id) {
-            stack.extend(builtin_runners[builtin_name].initial_stack());
-        } else if &info.long_id.generic_id == &GasBuiltinType::ID {
-            stack.push(MaybeRelocatable::from(9999999)); // initial gas
-        } else {
-            panic!("Unknown param type {}", param.debug_name.as_ref().unwrap());
+        let generic_id = &get_info(sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?
+            .long_id
+            .generic_id;
+        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
+            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
         }
     }
-    let return_fp = vm.add_memory_segment();
-    let end = runner.initialize_function_entrypoint(vm, 0, stack, return_fp.into())?;
+    stack.push(return_fp.into());
+    stack.push(return_pc.into());
+    let mut args = cairo_run_config.args.iter();
+    for param in &main_func.signature.param_types {
+        let generic_id = &get_info(sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?
+            .long_id
+            .generic_id;
+        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
+            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
+        } else if generic_id == &GasBuiltinType::ID {
+            stack.push(MaybeRelocatable::from(9999999)); // initial gas
+        } else {
+            // These must be input arguments
+            let size = type_sizes.get(param).unwrap();
+            let mut i = 0;
+            while i < *size {
+                match args.next() {
+                    Some(FuncArg::Single(f)) => {
+                        stack.push(f.into());
+                        i += 1
+                    }
+                    Some(FuncArg::Array(array)) => {
+                        let array_start = vm.add_memory_segment();
+                        let array_end = vm.load_data(
+                            array_start,
+                            &array.iter().map(|f| f.into()).collect::<Vec<_>>(),
+                        )?;
+                        stack.push(array_start.into());
+                        stack.push(array_end.into());
+                        i += 2;
+                    }
+                    _ => panic!("Missing arg"),
+                }
+            }
+        }
+    }
+    if args.next().is_some() {
+        panic!("Args leftover after initialization")
+    }
+    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_fp, return_pc)?;
     runner.initialize_vm(vm)?;
-    Ok(end)
+    Ok(return_pc)
 }
 
 fn fetch_return_values(
