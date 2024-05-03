@@ -362,7 +362,7 @@ fn create_entry_code(
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
-    initial_gas: usize,
+    _initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.proof_mode || config.append_return_values;
@@ -413,7 +413,7 @@ fn create_entry_code(
         // Adding the segment arena to the builtins var map.
         builtin_vars.insert(SegmentArenaType::ID, segment_arena);
     };
-
+    let mut arg_offset = 1;
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
@@ -426,11 +426,19 @@ fn create_entry_code(
                 hint AllocSegment {} into {dst: system};
                 ap += 1;
             };
-        } else if generic_ty == &GasBuiltinType::ID {
-            casm_build_extend! {ctx,
-                const initial_gas = initial_gas;
-                tempvar _gas = initial_gas;
-            };
+        // } else if generic_ty == &GasBuiltinType::ID {
+        //     casm_build_extend! {ctx,
+        //         const initial_gas = initial_gas;
+        //         tempvar _gas = initial_gas;
+        //     };
+        } else {
+            for _ in 0..(type_sizes.get(&ty).cloned().unwrap_or_default()) {
+                let var = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
+                casm_build_extend! {ctx,
+                    tempvar _var = var;
+                };
+                arg_offset += 1;
+            }
         }
     }
 
