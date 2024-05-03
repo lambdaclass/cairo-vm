@@ -43,10 +43,7 @@ use cairo_vm::{
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        runners::{
-            cairo_pie::CairoPie,
-            cairo_runner::{CairoRunner, RunResources, RunnerMode},
-        },
+        runners::cairo_runner::{CairoRunner, RunResources, RunnerMode},
         vm_core::VirtualMachine,
     },
     Felt252,
@@ -936,24 +933,6 @@ fn maybe_add_whitespace(string: &mut String) {
     if !string.is_empty() && !string.ends_with('[') && !string.ends_with('{') {
         string.push(' ');
     }
-}
-
-pub fn get_cairo_pie(
-    sierra_program: &SierraProgram,
-    runner: &CairoRunner,
-    vm: &VirtualMachine,
-) -> Result<CairoPie, Error> {
-    let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
-    let type_sizes =
-        get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
-    let input_len = find_function(&sierra_program, "::main")?
-        .signature
-        .param_types
-        .iter()
-        .fold(0, |init, ty| {
-            init + type_sizes.get(ty).cloned().unwrap_or_default()
-        });
-    Ok(runner.get_cairo_pie_with_input_len(vm, input_len as usize)?)
 }
 
 #[cfg(test)]
