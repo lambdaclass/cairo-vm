@@ -58,6 +58,11 @@ pub fn get_maybe_relocatable_from_reference(
     hint_reference: &HintReference,
     ap_tracking: &ApTracking,
 ) -> Option<MaybeRelocatable> {
+    // Optimization for most common case
+    if hint_reference.outer_dereference {
+        let addr = compute_addr_from_reference(hint_reference, vm, ap_tracking)?;
+        return vm.get_maybe(&addr)
+    }
     let offset1 = get_offset_value(
         vm,
         &hint_reference.offset1,
@@ -86,23 +91,67 @@ pub fn compute_addr_from_reference(
     vm: &VirtualMachine,
     ap_tracking: &ApTracking,
 ) -> Option<Relocatable> {
-    let offset1 = get_offset_value(
-        vm,
-        &hint_reference.offset1,
-        &hint_reference.ap_tracking_data,
-        ap_tracking,
-    )?;
-    let offset2 = get_offset_value(
-        vm,
-        &hint_reference.offset2,
-        &hint_reference.ap_tracking_data,
-        ap_tracking,
-    )?;
-    let mut val = offset1.add(&offset2).ok()?;
+    let mut offset1 =
+        if let OffsetValue::Reference(_register, _offset, _deref) = &hint_reference.offset1 {
+            get_offset_value_reference(
+                vm,
+                &hint_reference.offset1,
+                &hint_reference.ap_tracking_data,
+                ap_tracking,
+            )?
+            .get_relocatable()?
+        } else {
+            return None;
+        };
+
+    match &hint_reference.offset2 {
+        OffsetValue::Reference(_register, _offset, _deref) => {
+            // Cant add two relocatable values
+            // So OffSet2 must be Bigint
+            let value = get_offset_value_reference(
+                vm,
+                &hint_reference.offset2,
+                &hint_reference.ap_tracking_data,
+                ap_tracking,
+            )?;
+
+            offset1 += value.get_int_ref()?.to_usize()?
+        }
+        OffsetValue::Value(value) => offset1 = (offset1 + *value).ok()?,
+        OffsetValue::Immediate(f) => offset1 = (offset1 + f).ok()?,
+    }
     if hint_reference.inner_dereference {
-        val = vm.get_maybe(&val)?;
+        offset1 = vm.get_relocatable(offset1).ok()?
+    }
+    Some(offset1)
+}
+
+fn get_offset_value_reference(
+    vm: &VirtualMachine,
+    offset_value: &OffsetValue,
+    reference_ap_tracking: &Option<ApTracking>,
+    hint_ap_tracking: &ApTracking,
+) -> Option<MaybeRelocatable>{
+    let (register, offset, deref) = match offset_value {
+        OffsetValue::Reference(register, offset, deref) => (register, offset, deref),
+        _ => return None,
     };
-    val.get_relocatable()
+
+    let base_addr = if register == &Register::FP {
+        vm.get_fp()
+    } else {
+        apply_ap_tracking_correction(vm.get_ap(), reference_ap_tracking.as_ref()?, hint_ap_tracking)?
+    };
+
+    if offset.is_negative() && base_addr.offset < offset.unsigned_abs() as usize {
+        return None;
+    }
+
+    if *deref {
+        vm.get_maybe(&(base_addr + *offset).ok()?)
+    } else {
+        Some((base_addr + *offset).ok()?.into())
+}
 }
 
 fn apply_ap_tracking_correction(
