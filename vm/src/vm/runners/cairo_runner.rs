@@ -539,6 +539,33 @@ impl CairoRunner {
         Ok(end)
     }
 
+    pub fn initialize_function_entrypoint_cairo_1(
+        &mut self,
+        vm: &mut VirtualMachine,
+        entrypoint: usize,
+        mut stack: Vec<MaybeRelocatable>,
+        return_fp: Relocatable,
+        return_pc: Relocatable,
+    ) -> Result<(), RunnerError> {
+        stack.append(&mut vec![
+            return_fp.into(),
+            return_pc.into(),
+        ]);
+        if let Some(base) = &self.execution_base {
+            self.initial_fp = Some(Relocatable {
+                segment_index: base.segment_index,
+                offset: base.offset + stack.len(),
+            });
+            self.initial_ap = self.initial_fp;
+        } else {
+            return Err(RunnerError::NoExecBase);
+        }
+        self.initialize_state(vm, entrypoint, stack)?;
+        self.final_pc = Some(return_pc);
+        Ok(())
+    }
+
+
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.is_proof_mode() == True, the execution starts from the start label rather then the main() function.
     ///Returns the value of the program counter after returning from main.

@@ -404,6 +404,8 @@ fn runner_initialize(
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
+    let return_fp = vm.add_memory_segment();
+    let return_pc = vm.add_memory_segment();
     let fetch_builtin_initial_stack =
         |vm: &VirtualMachine, builtin_name: BuiltinName| -> Vec<MaybeRelocatable> {
             vm.builtin_runners
@@ -453,10 +455,9 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    let return_fp = vm.add_memory_segment();
-    let end = runner.initialize_function_entrypoint(vm, entrypoint, stack, return_fp.into())?;
+    runner.initialize_function_entrypoint_cairo_1(vm, entrypoint, stack, return_fp, return_pc)?;
     runner.initialize_vm(vm)?;
-    Ok(end)
+    Ok(return_pc)
 }
 
 fn fetch_return_values(
