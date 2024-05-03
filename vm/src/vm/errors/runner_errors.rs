@@ -6,6 +6,7 @@ use crate::types::builtin_name::BuiltinName;
 use crate::types::layout_name::LayoutName;
 use thiserror_no_std::Error;
 
+use super::cairo_pie_errors::CairoPieValidationError;
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use crate::Felt252;
@@ -132,6 +133,8 @@ pub enum RunnerError {
     CairoPieProofMode,
     #[error("{0}: Invalid additional data")]
     InvalidAdditionalData(BuiltinName),
+    #[error("Cairo Pie validation failed: {0}")]
+    CairoPieValidation(#[from] CairoPieValidationError),
 }
 
 #[cfg(test)]
