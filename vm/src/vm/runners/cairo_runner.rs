@@ -511,18 +511,13 @@ impl CairoRunner {
         &mut self,
         vm: &mut VirtualMachine,
         entrypoint: usize,
-        mut stack: Vec<MaybeRelocatable>,
-        return_fp: Relocatable,
+        stack: Vec<MaybeRelocatable>,
         return_pc: Relocatable,
     ) -> Result<(), RunnerError> {
-        stack.append(&mut vec![
-            return_fp.into(),
-            return_pc.into(),
-        ]);
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
-                offset: base.offset + stack.len(),
+                offset: base.offset + stack.len() - 2,
             });
             self.initial_ap = self.initial_fp;
         } else {

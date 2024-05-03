@@ -228,6 +228,7 @@ pub fn cairo_run_program(
         &sierra_program_registry,
         &type_sizes,
     )?;
+    println!("{}", vm.segments);
     dbg!(&vm.get_pc());
     dbg!(&vm.get_ap());
     dbg!(&vm.get_fp());
@@ -685,7 +686,7 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_fp, return_pc)?;
+    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc)?;
     runner.initialize_vm(vm)?;
     Ok(return_pc)
 }
