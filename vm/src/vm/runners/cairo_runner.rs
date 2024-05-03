@@ -517,7 +517,7 @@ impl CairoRunner {
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
-                offset: base.offset + stack.len() - 2,
+                offset: base.offset + stack.len() - self.program.builtins_len(),
             });
             self.initial_ap = self.initial_fp;
         } else {
