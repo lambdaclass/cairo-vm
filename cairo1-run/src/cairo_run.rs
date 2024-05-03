@@ -423,6 +423,18 @@ fn runner_initialize(
             .generic_id;
         if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
             stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
+        }
+    }
+    stack.push(return_fp.into());
+    stack.push(return_pc.into());
+
+    for param in &main_func.signature.param_types {
+        let generic_id = &get_info(sierra_program_registry, param)
+            .ok_or_else(|| Error::NoInfoForType(param.clone()))?
+            .long_id
+            .generic_id;
+        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
+            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
         } else if generic_id == &GasBuiltinType::ID {
             stack.push(MaybeRelocatable::from(9999999)); // initial gas
         } else if generic_id == &SystemType::ID {
