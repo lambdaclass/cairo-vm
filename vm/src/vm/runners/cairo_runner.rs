@@ -513,11 +513,12 @@ impl CairoRunner {
         entrypoint: usize,
         stack: Vec<MaybeRelocatable>,
         return_pc: Relocatable,
+        input_size: usize
     ) -> Result<(), RunnerError> {
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
-                offset: base.offset + stack.len() - self.program.builtins_len(),
+                offset: base.offset + stack.len() - input_size,
             });
             self.initial_ap = self.initial_fp;
         } else {

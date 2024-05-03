@@ -686,7 +686,10 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc)?;
+    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+        i + type_sizes.get(ty).cloned().unwrap_or_default()
+    });
+    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
     Ok(return_pc)
 }
