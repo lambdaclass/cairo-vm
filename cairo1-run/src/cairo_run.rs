@@ -373,8 +373,17 @@ fn create_entry_code(
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
     let mut ctx = CasmBuilder::default();
     // Getting a variable pointing to the location of each builtin.
+    let got_segment_arena = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    });
     let mut builtin_vars =
         HashMap::<GenericTypeId, Var>::from_iter(builtin_offset.iter().map(|(id, offset)| {
+            let mut offset = *offset;
+            if got_segment_arena {
+                offset += 3; // TODO: maybe fix offsest so they use the second stack instead of the fake one
+            }
             (
                 id.clone(),
                 ctx.add_var(CellExpression::Deref(deref!([fp - offset]))),
@@ -384,11 +393,6 @@ fn create_entry_code(
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
-    });
-    let got_segment_arena = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
     });
     // if got_segment_arena {
     //     // // Allocating local vars to save the builtins for the validations.
@@ -402,9 +406,10 @@ fn create_entry_code(
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
-        dbg!(&generic_ty, arg_offset);
         if let Some(var) = builtin_vars.get(generic_ty).cloned() {
-            casm_build_extend!(ctx, tempvar _builtin = var;);
+            casm_build_extend!(ctx,
+                tempvar _builtin = var;
+            );
         } else if generic_ty == &SystemType::ID {
             casm_build_extend! {ctx,
                 tempvar system;
@@ -413,15 +418,11 @@ fn create_entry_code(
             };
         } else if generic_ty == &SegmentArenaType::ID {
             let segment_arena = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
-            let infos = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset + 1])));
-            let zero = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset + 2])));
             casm_build_extend! {ctx,
                 tempvar _segment_arena = segment_arena;
-                tempvar _infos = infos;
-                tempvar _zero = zero;
             };
             builtin_vars.insert(SegmentArenaType::ID, segment_arena);
-            arg_offset += 3;
+            arg_offset += 1;
         } else {
             for _ in 0..(type_sizes.get(&ty).cloned().unwrap_or_default()) {
                 let var = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
@@ -608,6 +609,24 @@ fn get_function_builtins(
 }
 
 // Mirrors runner.initialize() but also adds entrypoint args & gas builtin
+/* Execution segment after initialization:
+[
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    *1 segment_arena_ptr
+    *1 infos_ptr
+    *1 0
+    builtin_base_0
+    builtin_base_1
+    *1 segment_arena_ptr + 3 (segment_arena base)
+    *2 arg_0
+    *2 arg_1
+]
+*1 if segment arena is present
+*2 if args are used
+*/
 fn runner_initialize(
     runner: &mut CairoRunner,
     vm: &mut VirtualMachine,
@@ -626,9 +645,6 @@ fn runner_initialize(
         (RangeCheckType::ID, BuiltinName::range_check),
         (PedersenType::ID, BuiltinName::pedersen),
     ]);
-    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
-        i + type_sizes.get(ty).cloned().unwrap_or_default()
-    });
     let return_fp = vm.add_memory_segment();
     let return_pc = vm.add_memory_segment();
     let mut stack = vec![];
@@ -654,6 +670,28 @@ fn runner_initialize(
     }
     stack.push(return_fp.into());
     stack.push(return_pc.into());
+
+    let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    });
+    let segment_arena_ptr = if got_segment_arena {
+        let segment_arna_ptr = vm.add_memory_segment();
+        let infos_ptr = vm.add_memory_segment();
+        stack.extend([
+            segment_arna_ptr.into(),
+            infos_ptr.into(),
+            Felt252::ZERO.into(),
+        ]);
+        vm.load_data(
+            segment_arna_ptr,
+            &vec![infos_ptr.into(), Felt252::ZERO.into(), Felt252::ZERO.into()],
+        )?
+    } else {
+        // Dummy value as it wont be used
+        Relocatable::default()
+    };
     let mut args = cairo_run_config.args.iter();
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
@@ -665,11 +703,7 @@ fn runner_initialize(
         } else if generic_id == &GasBuiltinType::ID {
             stack.push(MaybeRelocatable::from(9999999)); // initial gas
         } else if generic_id == &SegmentArenaType::ID {
-            input_size += 2; // Segment arena takes up 3 memory slots, but has size 1
-            let segment_arna_ptr = vm.add_memory_segment();
-            let infos_ptr = vm.add_memory_segment();
-            stack.extend([segment_arna_ptr.into(), infos_ptr.into(), Felt252::ZERO.into()]);
-            vm.load_data(segment_arna_ptr, &vec![infos_ptr.into(),Felt252::ZERO.into(), Felt252::ZERO.into()])?;
+            stack.push(segment_arena_ptr.into());
         } else {
             // These must be input arguments
             let size = type_sizes.get(param).unwrap();
@@ -698,6 +732,11 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
+    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+        i + type_sizes.get(ty).cloned().unwrap_or_default()
+    });
+    dbg!(&input_size);
+    dbg!(&stack.len());
     runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
     Ok(return_pc)
