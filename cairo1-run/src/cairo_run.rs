@@ -426,8 +426,7 @@ fn create_entry_code(
         }
     }
 
-    casm_build_extend!(ctx, 
-        let () = call FUNCTION;);
+    casm_build_extend!(ctx, let () = call FUNCTION;);
 
     let return_type_id = signature.ret_types.last();
     let return_type_size = return_type_id
