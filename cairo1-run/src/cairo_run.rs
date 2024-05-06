@@ -390,35 +390,19 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    if got_segment_arena {
-        // Allocating local vars to save the builtins for the validations.
-        for _ in 0..builtins.len() {
-            casm_build_extend!(ctx, tempvar _local;);
-        }
-        casm_build_extend!(ctx, ap += builtins.len(););
-    }
-    if got_segment_arena {
-        // Allocating the segment arena and initializing it.
-        casm_build_extend! {ctx,
-            tempvar segment_arena;
-            tempvar infos;
-            hint AllocSegment {} into {dst: segment_arena};
-            hint AllocSegment {} into {dst: infos};
-            const czero = 0;
-            tempvar zero = czero;
-            // Write Infos segment, n_constructed (0), and n_destructed (0) to the segment.
-            assert infos = *(segment_arena++);
-            assert zero = *(segment_arena++);
-            assert zero = *(segment_arena++);
-        }
-        // Adding the segment arena to the builtins var map.
-        builtin_vars.insert(SegmentArenaType::ID, segment_arena);
-    };
+    // if got_segment_arena {
+    //     // // Allocating local vars to save the builtins for the validations.
+    //     // for _ in 0..builtins.len() {
+    //     //     casm_build_extend!(ctx, tempvar _local;);
+    //     // }
+    //     casm_build_extend!(ctx, ap += builtins.len() + 1 ;);
+    // }
     let mut arg_offset = 1;
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
+        dbg!(&generic_ty, arg_offset);
         if let Some(var) = builtin_vars.get(generic_ty).cloned() {
             casm_build_extend!(ctx, tempvar _builtin = var;);
         } else if generic_ty == &SystemType::ID {
@@ -427,11 +411,17 @@ fn create_entry_code(
                 hint AllocSegment {} into {dst: system};
                 ap += 1;
             };
-        // } else if generic_ty == &GasBuiltinType::ID {
-        //     casm_build_extend! {ctx,
-        //         const initial_gas = initial_gas;
-        //         tempvar _gas = initial_gas;
-        //     };
+        } else if generic_ty == &SegmentArenaType::ID {
+            let segment_arena = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
+            let infos = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset + 1])));
+            let zero = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset + 2])));
+            casm_build_extend! {ctx,
+                tempvar _segment_arena = segment_arena;
+                tempvar _infos = infos;
+                tempvar _zero = zero;
+            };
+            builtin_vars.insert(SegmentArenaType::ID, segment_arena);
+            arg_offset += 3;
         } else {
             for _ in 0..(type_sizes.get(&ty).cloned().unwrap_or_default()) {
                 let var = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
@@ -636,6 +626,9 @@ fn runner_initialize(
         (RangeCheckType::ID, BuiltinName::range_check),
         (PedersenType::ID, BuiltinName::pedersen),
     ]);
+    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+        i + type_sizes.get(ty).cloned().unwrap_or_default()
+    });
     let return_fp = vm.add_memory_segment();
     let return_pc = vm.add_memory_segment();
     let mut stack = vec![];
@@ -671,6 +664,12 @@ fn runner_initialize(
             stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
         } else if generic_id == &GasBuiltinType::ID {
             stack.push(MaybeRelocatable::from(9999999)); // initial gas
+        } else if generic_id == &SegmentArenaType::ID {
+            input_size += 2; // Segment arena takes up 3 memory slots, but has size 1
+            let segment_arna_ptr = vm.add_memory_segment();
+            let infos_ptr = vm.add_memory_segment();
+            stack.extend([segment_arna_ptr.into(), infos_ptr.into(), Felt252::ZERO.into()]);
+            vm.load_data(segment_arna_ptr, &vec![infos_ptr.into(),Felt252::ZERO.into(), Felt252::ZERO.into()])?;
         } else {
             // These must be input arguments
             let size = type_sizes.get(param).unwrap();
@@ -699,9 +698,6 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
-        i + type_sizes.get(ty).cloned().unwrap_or_default()
-    });
     runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
     Ok(return_pc)
