@@ -390,17 +390,9 @@ fn create_entry_code(
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
     });
-    // if got_segment_arena {
-    //     // Allocating local vars to save the builtins for the validations.
-    //     for _ in 0..builtins.len() {
-    //         casm_build_extend!(ctx, tempvar _local;);
-    //     }
-    //     casm_build_extend!(ctx, ap += builtins.len() + 1 ;);
-    // }
     let mut arg_offset = 1;
     if got_segment_arena {
         arg_offset += 3; // Apply correction
-        //casm_build_extend!(ctx, ap += 1;);
     }
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
@@ -738,7 +730,7 @@ fn runner_initialize(
     });
     runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
-    if got_segment_arena{
+    if got_segment_arena {
         // First FP must always point to the return_pc so we apply this correction here
         vm.set_fp(vm.get_fp().offset - 3);
     }
