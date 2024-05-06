@@ -378,12 +378,9 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
+    dbg!(&builtin_offset);
     let mut builtin_vars =
         HashMap::<GenericTypeId, Var>::from_iter(builtin_offset.iter().map(|(id, offset)| {
-            let mut offset = *offset;
-            if got_segment_arena {
-                offset += 3; // TODO: maybe fix offsest so they use the second stack instead of the fake one
-            }
             (
                 id.clone(),
                 ctx.add_var(CellExpression::Deref(deref!([fp - offset]))),
@@ -395,13 +392,17 @@ fn create_entry_code(
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
     });
     // if got_segment_arena {
-    //     // // Allocating local vars to save the builtins for the validations.
-    //     // for _ in 0..builtins.len() {
-    //     //     casm_build_extend!(ctx, tempvar _local;);
-    //     // }
+    //     // Allocating local vars to save the builtins for the validations.
+    //     for _ in 0..builtins.len() {
+    //         casm_build_extend!(ctx, tempvar _local;);
+    //     }
     //     casm_build_extend!(ctx, ap += builtins.len() + 1 ;);
     // }
     let mut arg_offset = 1;
+    if got_segment_arena {
+        arg_offset += 3; // Apply correction
+        casm_build_extend!(ctx, ap += 3;);
+    }
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
@@ -434,7 +435,8 @@ fn create_entry_code(
         }
     }
 
-    casm_build_extend!(ctx, let () = call FUNCTION;);
+    casm_build_extend!(ctx, 
+        let () = call FUNCTION;);
 
     let return_type_id = signature.ret_types.last();
     let return_type_size = return_type_id
@@ -732,9 +734,13 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
+    if got_segment_arena{
+        // First FP must always point to the return_pc so we apply this correction here
+        input_size += 3;
+    }
     dbg!(&input_size);
     dbg!(&stack.len());
     runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
