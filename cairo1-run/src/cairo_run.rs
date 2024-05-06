@@ -378,7 +378,6 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    dbg!(&builtin_offset);
     let mut builtin_vars =
         HashMap::<GenericTypeId, Var>::from_iter(builtin_offset.iter().map(|(id, offset)| {
             (
@@ -401,7 +400,7 @@ fn create_entry_code(
     let mut arg_offset = 1;
     if got_segment_arena {
         arg_offset += 3; // Apply correction
-        casm_build_extend!(ctx, ap += 3;);
+        //casm_build_extend!(ctx, ap += 1;);
     }
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
@@ -734,17 +733,15 @@ fn runner_initialize(
     if args.next().is_some() {
         panic!("Args leftover after initialization")
     }
-    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
-    if got_segment_arena{
-        // First FP must always point to the return_pc so we apply this correction here
-        input_size += 3;
-    }
-    dbg!(&input_size);
-    dbg!(&stack.len());
     runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
+    if got_segment_arena{
+        // First FP must always point to the return_pc so we apply this correction here
+        vm.set_fp(vm.get_fp().offset - 3);
+    }
     Ok(return_pc)
 }
 
