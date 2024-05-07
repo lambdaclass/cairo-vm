@@ -267,7 +267,11 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case("ecdsa_recover.cairo", "3490001189944926769628658346285649224182856084131963744896357527096042836716", None)]
+    #[case(
+        "ecdsa_recover.cairo",
+        "3490001189944926769628658346285649224182856084131963744896357527096042836716",
+        None
+    )]
     #[case("tensor_new.cairo", "[1 2] [1 false 1 true]", None)]
     #[case("bytes31_ret.cairo", "123", None)]
     #[case("null_ret.cairo", "null", None)]
