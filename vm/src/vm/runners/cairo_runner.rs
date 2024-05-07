@@ -514,7 +514,7 @@ impl CairoRunner {
         stack: Vec<Option<MaybeRelocatable>>,
         return_pc: Relocatable,
         input_size: usize
-    ) -> Result<(), RunnerError> {
+    ) -> Result<Relocatable, RunnerError> {
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
@@ -526,7 +526,13 @@ impl CairoRunner {
         }
         self.initialize_state_cairo_1(vm, entrypoint, stack)?;
         self.final_pc = Some(return_pc);
-        Ok(())
+        Ok(if self.is_proof_mode() {
+            // program_base = None case already handled by initialize_state_cairo_1
+            (self.program_base.unwrap()
+                + self.program.shared_program_data.end.ok_or(RunnerError::NoProgramEnd)?)?
+        } else {
+            return_pc
+        })
     }
 
     // Mirrors initialize_state but allows gaps in the stack

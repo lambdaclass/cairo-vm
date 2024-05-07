@@ -760,7 +760,13 @@ fn runner_initialize(
     let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
-    runner.initialize_function_entrypoint_cairo_1(vm, 0, stack, return_pc, input_size as usize)?;
+    let end = runner.initialize_function_entrypoint_cairo_1(
+        vm,
+        0,
+        stack,
+        return_pc,
+        input_size as usize,
+    )?;
     runner.initialize_vm(vm)?;
     if got_segment_arena {
         // First FP must always point to the return_pc so we apply this correction here
@@ -769,13 +775,7 @@ fn runner_initialize(
             vm.set_fp(vm.get_fp().offset - runner.get_program().builtins_len());
         }
     }
-    if cairo_run_config.proof_mode {
-        Ok((runner.program_base.unwrap_or_default()
-            + runner.get_program().end().unwrap_or_default())
-        .map_err(VirtualMachineError::Math)?)
-    } else {
-        Ok(return_pc)
-    }
+    Ok(end)
 }
 
 fn fetch_return_values(
