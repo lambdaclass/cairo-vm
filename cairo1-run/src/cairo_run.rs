@@ -392,7 +392,10 @@ fn create_entry_code(
     });
     let mut arg_offset = 1;
     if got_segment_arena {
-        arg_offset += 3 + builtins.len() as i16; // Apply correction
+        arg_offset += 3;
+        if copy_to_output_builtin {
+            arg_offset += builtins.len() as i16; // Apply correction
+        }
     }
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
