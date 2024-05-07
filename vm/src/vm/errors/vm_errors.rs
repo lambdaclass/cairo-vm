@@ -32,8 +32,9 @@ pub enum VirtualMachineError {
     TracerError(#[from] TraceError),
     #[error(transparent)]
     MainScopeError(#[from] ExecScopeError),
-    #[error(transparent)]
-    Other(anyhow::Error),
+    // TODO: CHECK THIS
+    // #[error(transparent)]
+    // Other(anyhow::Error),
     #[error("Instruction MSB should be 0")]
     InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
@@ -76,12 +77,8 @@ pub enum VirtualMachineError {
     InvalidRes(u64),
     #[error("Invalid opcode value: {0}")]
     InvalidOpcode(u64),
-    #[error("This is not implemented")]
-    NotImplemented,
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
     InconsistentAutoDeduction(Box<(BuiltinName, MaybeRelocatable, Option<MaybeRelocatable>)>),
-    #[error("Invalid hint encoding at pc: {0}")]
-    InvalidHintEncoding(Box<MaybeRelocatable>),
     #[error("Expected output builtin to be present")]
     NoOutputBuiltin,
     #[error("Expected range_check builtin to be present")]
@@ -96,8 +93,6 @@ pub enum VirtualMachineError {
     DiffTypeComparison(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Failed to compare {} and  {}, cant compare two relocatable values of different segment indexes", (*.0).0, (*.0).1)]
     DiffIndexComp(Box<(Relocatable, Relocatable)>),
-    #[error("Couldn't convert usize to u32")]
-    NoneInMemoryRange,
     #[error("Expected integer, found: {0:?}")]
     ExpectedIntAtRange(Box<Option<MaybeRelocatable>>),
     #[error("Could not convert slice to array")]
@@ -108,18 +103,13 @@ pub enum VirtualMachineError {
     NoImm,
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
-    #[error("Could not reach the end of the program. Executed steps: {0}.")]
-    StepsLimit(u64),
     #[error("Could not reach the end of the program. RunResources has no remaining steps.")]
     UnfinishedExecution,
     #[error("Current run is not finished")]
     RunNotFinished,
-    #[error("Invalid argument count, expected {} but got {}", (*.0).0, (*.0).1)]
-    InvalidArgCount(Box<(usize, usize)>),
-    #[error("Couldn't parse prime: {0}")]
-    CouldntParsePrime(Box<str>),
     #[error("{HINT_ERROR_STR}{}", (*.0).1)]
     Hint(Box<(usize, HintError)>),
+    // TODO CHECK THIS
     #[error("Unexpected Failure")]
     Unexpected,
     #[error("Out of bounds access to builtin segment")]
@@ -128,8 +118,6 @@ pub enum VirtualMachineError {
     OutOfBoundsProgramSegmentAccess,
     #[error("Security Error: Invalid Memory Value: temporary address not relocated: {0}")]
     InvalidMemoryValueTemporaryAddress(Box<Relocatable>),
-    #[error("accessed_addresses is None.")]
-    MissingAccessedAddresses,
     #[error("Failed to write the output builtin content")]
     FailedToWriteOutput,
     #[error("Failed to find index {0} in the vm's relocation table")]

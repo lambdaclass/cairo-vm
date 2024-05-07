@@ -68,8 +68,6 @@ pub enum RunnerError {
     FailedAddingReturnValues,
     #[error("Missing execution public memory")]
     NoExecPublicMemory,
-    #[error("Coulnd't parse prime from felt lib")]
-    CouldntParsePrime,
     #[error("Could not convert vec with Maybe Relocatables into u64 array")]
     MaybeRelocVecToU64ArrayError,
     #[error("Expected Integer value, got Relocatable instead")]
