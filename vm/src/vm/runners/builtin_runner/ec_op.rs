@@ -1,5 +1,5 @@
 use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
-use crate::stdlib::{borrow::Cow, prelude::*};
+use crate::stdlib::prelude::*;
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP, SCALAR_HEIGHT,
@@ -122,14 +122,13 @@ impl EcOpBuiltinRunner {
 
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
+        let mut input_cells = Vec::<Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
         for i in 0..INPUT_CELLS_PER_EC_OP as usize {
             match memory.get(&(instance + i)?) {
                 None => return Ok(None),
                 Some(addr) => {
-                    input_cells.push(match addr {
-                        // Only relocatable values can be owned
-                        Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
+                    input_cells.push(match addr.as_ref() {
+                        MaybeRelocatable::Int(num) => *num,
                         _ => {
                             return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
                                 Box::new((instance + i)?),
@@ -149,21 +148,21 @@ impl EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0],
-                input_cells[pair.1],
+                &input_cells[pair.0],
+                &input_cells[pair.1],
                 &alpha,
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve(Box::new((
-                    *input_cells[pair.0],
-                    *input_cells[pair.1],
+                    input_cells[pair.0],
+                    input_cells[pair.1],
                 ))));
             };
         }
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
-            input_cells[4],
+            &input_cells[4],
             SCALAR_HEIGHT,
         )?;
         self.cache.borrow_mut().insert(x_addr, result.0);

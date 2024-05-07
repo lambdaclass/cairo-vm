@@ -52,6 +52,12 @@
     * `verify_secure_runner`
   * [hooks feature] `BeforeFirstStepHookFunc` dyn Fn no longer takes a mutable reference to `CairoRunner`, along with `VirtualMachine::execute_before_first_step`.
 
+* perf: use a more compact representation for `MemoryCell` [#1672](https://github.com/lambdaclass/cairo-vm/pull/1672)
+  * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
+
+#### [1.0.0-rc2] - 2024-05-02
+
+
 * `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
 
 * BREAKING: Remove unused `CairoRunner` field `original_steps`[#1742](https://github.com/lambdaclass/cairo-vm/pull/1742)

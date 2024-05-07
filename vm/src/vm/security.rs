@@ -65,10 +65,10 @@ pub fn verify_secure_runner(
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
     if !runner.vm.segments.memory.temp_data.is_empty() {
         for value in runner.vm.segments.memory.data.iter().flatten() {
-            match value.as_ref().map(|x| x.get_value()) {
+            match value.get_value() {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
-                        Box::new(*addr),
+                        Box::new(addr),
                     ))
                 }
                 _ => {}

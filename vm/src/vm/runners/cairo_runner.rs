@@ -939,13 +939,13 @@ impl CairoRunner {
         self.relocated_memory.push(None);
         for (index, segment) in self.vm.segments.memory.data.iter().enumerate() {
             for (seg_offset, cell) in segment.iter().enumerate() {
-                match cell {
+                match cell.get_value() {
                     Some(cell) => {
                         let relocated_addr = relocate_address(
                             Relocatable::from((index as isize, seg_offset)),
                             relocation_table,
                         )?;
-                        let value = relocate_value(cell.get_value().clone(), relocation_table)?;
+                        let value = relocate_value(cell, relocation_table)?;
                         if self.relocated_memory.len() <= relocated_addr {
                             self.relocated_memory.resize(relocated_addr + 1, None);
                         }
@@ -4067,11 +4067,11 @@ mod tests {
 
         cairo_runner.vm.segments.memory.data = vec![
             vec![
-                Some(MemoryCell::new(Felt252::from(0x8000_8023_8012u64).into())),
-                Some(MemoryCell::new(Felt252::from(0xBFFF_8000_0620u64).into())),
-                Some(MemoryCell::new(Felt252::from(0x8FFF_8000_0750u64).into())),
+                MemoryCell::new(Felt252::from(0x8000_8023_8012u64).into()),
+                MemoryCell::new(Felt252::from(0xBFFF_8000_0620u64).into()),
+                MemoryCell::new(Felt252::from(0x8FFF_8000_0750u64).into()),
             ],
-            vec![Some(MemoryCell::new((0isize, 0usize).into())); 128 * 1024],
+            vec![MemoryCell::new((0isize, 0usize).into()); 128 * 1024],
         ];
 
         cairo_runner.run_for_steps(1, &mut hint_processor).unwrap();
@@ -4091,9 +4091,9 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.vm.segments.memory.data = vec![vec![Some(MemoryCell::new(
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
             mayberelocatable!(0x80FF_8000_0530u64),
-        ))]];
+        )]];
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(12), true).into()];
 
@@ -4123,9 +4123,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         cairo_runner.vm.builtin_runners = vec![];
         cairo_runner.vm.current_step = 10000;
-        cairo_runner.vm.segments.memory.data = vec![vec![Some(MemoryCell::new(
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
             mayberelocatable!(0x80FF_8000_0530u64),
-        ))]];
+        )]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
@@ -4145,9 +4145,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
-        cairo_runner.vm.segments.memory.data = vec![vec![Some(MemoryCell::new(
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
             mayberelocatable!(0x80FF_8000_0530u64),
-        ))]];
+        )]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
@@ -4210,9 +4210,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
-        cairo_runner.vm.segments.memory.data = vec![vec![Some(MemoryCell::new(
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
             mayberelocatable!(0x80FF_8000_0530u64),
-        ))]];
+        )]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
@@ -4699,7 +4699,7 @@ mod tests {
         cairo_runner.vm.builtin_runners.push(output_builtin.into());
         cairo_runner.vm.segments.memory.data = vec![
             vec![],
-            vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
+            vec![MemoryCell::new(MaybeRelocatable::from((0, 0)))],
             vec![],
         ];
         cairo_runner.vm.set_ap(1);
@@ -4728,8 +4728,8 @@ mod tests {
         let output_builtin = OutputBuiltinRunner::new(true);
         cairo_runner.vm.builtin_runners.push(output_builtin.into());
         cairo_runner.vm.segments.memory.data = vec![
-            vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
-            vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 1))))],
+            vec![MemoryCell::new(MaybeRelocatable::from((0, 0)))],
+            vec![MemoryCell::new(MaybeRelocatable::from((0, 1)))],
             vec![],
         ];
         cairo_runner.vm.set_ap(1);
@@ -4761,10 +4761,10 @@ mod tests {
         cairo_runner.vm.builtin_runners.push(bitwise_builtin.into());
         cairo_runner.initialize_segments(None);
         cairo_runner.vm.segments.memory.data = vec![
-            vec![Some(MemoryCell::new(MaybeRelocatable::from((0, 0))))],
+            vec![MemoryCell::new(MaybeRelocatable::from((0, 0)))],
             vec![
-                Some(MemoryCell::new(MaybeRelocatable::from((2, 0)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((3, 5)))),
+                MemoryCell::new(MaybeRelocatable::from((2, 0))),
+                MemoryCell::new(MaybeRelocatable::from((3, 5))),
             ],
             vec![],
         ];
