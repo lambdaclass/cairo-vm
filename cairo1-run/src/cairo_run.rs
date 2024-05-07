@@ -1,6 +1,6 @@
 use crate::error::Error;
 use cairo_lang_casm::{
-    builder::{CasmBuilder, Var},
+    builder::CasmBuilder,
     casm, casm_build_extend,
     cell_expression::CellExpression,
     deref, deref_or_immediate,
@@ -21,7 +21,7 @@ use cairo_lang_sierra::{
         starknet::syscalls::SystemType,
         ConcreteType, NamedType,
     },
-    ids::{ConcreteTypeId, GenericTypeId},
+    ids::ConcreteTypeId,
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
@@ -51,7 +51,10 @@ use cairo_vm::{
 };
 use itertools::{chain, Itertools};
 use num_traits::{cast::ToPrimitive, Zero};
-use std::{collections::HashMap, iter::Peekable};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::Peekable,
+};
 
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
@@ -369,8 +372,7 @@ fn create_entry_code(
     let copy_to_output_builtin = config.proof_mode || config.append_return_values;
     let signature = &func.signature;
     // The builtins in the formatting expected by the runner.
-    let (builtins, builtin_offset) =
-        get_function_builtins(&signature.param_types, copy_to_output_builtin);
+    let (builtins, _) = get_function_builtins(&signature.param_types, copy_to_output_builtin);
     let mut ctx = CasmBuilder::default();
     // Getting a variable pointing to the location of each builtin.
     let got_segment_arena = signature.param_types.iter().any(|ty| {
@@ -378,14 +380,14 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    let mut builtin_vars =
-        HashMap::<GenericTypeId, Var>::from_iter(builtin_offset.iter().map(|(id, offset)| {
-            (
-                id.clone(),
-                ctx.add_var(CellExpression::Deref(deref!([fp - offset]))),
-            )
-        }));
-    // Getting a variable for the location output builtin if required.
+    let builtin_generic_ids = HashSet::from([
+        PoseidonType::ID,
+        EcOpType::ID,
+        BitwiseType::ID,
+        RangeCheckType::ID,
+        PedersenType::ID,
+    ]);
+    let mut builtin_vars = HashMap::new();
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
@@ -401,10 +403,12 @@ fn create_entry_code(
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
-        if let Some(var) = builtin_vars.get(generic_ty).cloned() {
+        if builtin_generic_ids.contains(generic_ty) {
+            let builtin = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
             casm_build_extend!(ctx,
-                tempvar _builtin = var;
+                tempvar _builtin = builtin;
             );
+            builtin_vars.insert(generic_ty.clone(), builtin);
             arg_offset += 1;
         } else if generic_ty == &SystemType::ID {
             casm_build_extend! {ctx,
