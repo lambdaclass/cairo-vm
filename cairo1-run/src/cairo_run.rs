@@ -746,13 +746,13 @@ fn runner_initialize(
                         stack.push(Some(array_end.into()));
                         i += 2;
                     }
-                    _ => panic!("Missing arg"),
+                    _ => return Err(Error::MissingArgument),
                 }
             }
         }
     }
     if args.next().is_some() {
-        panic!("Args leftover after initialization")
+        return Err(Error::ExcessArgument);
     }
     let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()

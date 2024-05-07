@@ -52,8 +52,10 @@ pub enum Error {
     NoInfoForType(ConcreteTypeId),
     #[error("Failed to extract return values from VM")]
     FailedToExtractReturnValues,
-    #[error("Function expects arguments of size {expected} and received {actual} instead.")]
-    ArgumentsSizeMismatch { expected: i16, actual: i16 },
+    #[error("Function expected more arguments than the ones provided")]
+    MissingArgument,
+    #[error("Function expected less arguments than the ones provided")]
+    ExcessArgument,
     #[error("Function param {param_index} only partially contains argument {arg_index}.")]
     ArgumentUnaligned {
         param_index: usize,
