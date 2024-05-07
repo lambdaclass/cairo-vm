@@ -390,7 +390,7 @@ fn create_entry_code(
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
     });
-    let mut arg_offset = 1;
+    let mut arg_offset = 0;
     if got_segment_arena {
         arg_offset += 3;
         if copy_to_output_builtin {
@@ -405,6 +405,7 @@ fn create_entry_code(
             casm_build_extend!(ctx,
                 tempvar _builtin = var;
             );
+            arg_offset += 1;
         } else if generic_ty == &SystemType::ID {
             casm_build_extend! {ctx,
                 tempvar system;
