@@ -9,6 +9,7 @@ use crate::{
     },
     types::{builtin_name::BuiltinName, layout::MEMORY_UNITS_PER_STEP, layout_name::LayoutName},
     vm::{
+        errors::cairo_run_errors::CairoRunError,
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
     },
@@ -28,7 +29,6 @@ use crate::{
     utils::is_subsequence,
     vm::{
         errors::{
-            cairo_run_errors::CairoRunError,
             memory_errors::{InsufficientAllocatedCellsError, MemoryError},
             runner_errors::RunnerError,
             trace_errors::TraceError,

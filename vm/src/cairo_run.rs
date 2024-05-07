@@ -2,9 +2,7 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{builtin_name::BuiltinName, layout_name::LayoutName, program::Program},
     vm::{
-        errors::{
-            cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
-        },
+        errors::{runner_errors::RunnerError, vm_exception::VmException},
         runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
         security::verify_secure_runner,
         vm_core::VirtualMachine,
@@ -112,6 +110,7 @@ pub fn cairo_run(
 /// WARNING: As the RunResources are part of the HintProcessor trait, the caller should make sure that
 /// the number of steps in the `RunResources` matches that of the `ExecutionResources` in the `CairoPie`.
 /// An error will be returned if this doesn't hold.
+use crate::vm::errors::cairo_run_errors::CairoRunError;
 pub fn cairo_run_pie(
     pie: &CairoPie,
     cairo_run_config: &CairoRunConfig,
@@ -126,7 +125,7 @@ pub fn cairo_run_pie(
     {
         return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
     }
-    pie.run_validity_checks()?;
+    pie.run_validity_checks().unwrap();
     let secure_run = cairo_run_config.secure_run.unwrap_or(true);
 
     let allow_missing_builtins = cairo_run_config.allow_missing_builtins.unwrap_or_default();
@@ -170,7 +169,8 @@ pub fn cairo_run_pie(
         // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE received
         cairo_runner
             .get_cairo_pie(&vm)?
-            .check_pie_compatibility(pie)?;
+            .check_pie_compatibility(pie)
+            .unwrap();
     }
     cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
