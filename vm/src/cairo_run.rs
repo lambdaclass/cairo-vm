@@ -13,6 +13,7 @@ use crate::{
 
 use crate::Felt252;
 use bincode::enc::write::Writer;
+
 use thiserror_no_std::Error;
 
 #[cfg(feature = "arbitrary")]
@@ -125,8 +126,7 @@ pub fn cairo_run_pie(
     {
         return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
     }
-    pie.run_validity_checks()
-        .map_err(|cairo_pie_err| CairoRunError::Runner(cairo_pie_err.into()))?;
+    pie.run_validity_checks()?;
     let secure_run = cairo_run_config.secure_run.unwrap_or(true);
 
     let allow_missing_builtins = cairo_run_config.allow_missing_builtins.unwrap_or_default();
@@ -170,8 +170,7 @@ pub fn cairo_run_pie(
         // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE received
         cairo_runner
             .get_cairo_pie(&vm)?
-            .check_pie_compatibility(pie)
-            .map_err(|cairo_pie_err| CairoRunError::Runner(cairo_pie_err.into()))?;
+            .check_pie_compatibility(pie)?;
     }
     cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
 
