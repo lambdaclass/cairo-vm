@@ -511,7 +511,7 @@ impl CairoRunner {
         &mut self,
         vm: &mut VirtualMachine,
         entrypoint: usize,
-        stack: Vec<MaybeRelocatable>,
+        stack: Vec<Option<MaybeRelocatable>>,
         return_pc: Relocatable,
         input_size: usize
     ) -> Result<(), RunnerError> {
@@ -524,8 +524,34 @@ impl CairoRunner {
         } else {
             return Err(RunnerError::NoExecBase);
         }
-        self.initialize_state(vm, entrypoint, stack)?;
+        self.initialize_state_cairo_1(vm, entrypoint, stack)?;
         self.final_pc = Some(return_pc);
+        Ok(())
+    }
+
+    // Mirrors initialize_state but allows gaps in the stack
+    // This is necessary for how segment validations are implemented in cairo 1
+    fn initialize_state_cairo_1(
+        &mut self,
+        vm: &mut VirtualMachine,
+        entrypoint: usize,
+        stack: Vec<Option<MaybeRelocatable>>,
+    ) -> Result<(), RunnerError> {
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_pc = Some((prog_base + entrypoint)?);
+        vm.load_data(prog_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
+
+        // Mark all addresses from the program segment as accessed
+        for i in 0..self.program.shared_program_data.data.len() {
+            vm.segments.memory.mark_as_accessed((prog_base + i)?);
+        }
+        for (i, elem) in stack.iter().enumerate() {
+            if let Some(val) = elem {
+                vm.insert_value((exec_base + i)?, val)?;
+            }
+        }
         Ok(())
     }
 

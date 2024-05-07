@@ -392,7 +392,7 @@ fn create_entry_code(
     });
     let mut arg_offset = 1;
     if got_segment_arena {
-        arg_offset += 3; // Apply correction
+        arg_offset += 3 + builtins.len() as i16; // Apply correction
     }
     for ty in &signature.param_types {
         let info = get_info(sierra_program_registry, ty)
@@ -607,6 +607,8 @@ fn get_function_builtins(
     builtin_base_1
     return_fp
     return_pc
+    *1.1 gap (for builtin_0 final ptr)
+    *1.1 gap (for builtin_1 final ptr)
     *1 segment_arena_ptr
     *1 infos_ptr
     *1 0
@@ -617,6 +619,7 @@ fn get_function_builtins(
     *2 arg_1
 ]
 *1 if segment arena is present
+*1.1 if segment arena is present & append_return_values/proof_mode is used
 *2 if args are used
 */
 fn runner_initialize(
@@ -649,7 +652,11 @@ fn runner_initialize(
                 .initial_stack()
         };
     if add_output {
-        stack.extend(fetch_builtin_initial_stack(vm, BuiltinName::output));
+        stack.extend(
+            fetch_builtin_initial_stack(vm, BuiltinName::output)
+                .into_iter()
+                .map(|x| Some(x)),
+        );
     }
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
@@ -657,11 +664,15 @@ fn runner_initialize(
             .long_id
             .generic_id;
         if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
-            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
+            stack.extend(
+                fetch_builtin_initial_stack(vm, *builtin_name)
+                    .into_iter()
+                    .map(|x| Some(x)),
+            );
         }
     }
-    stack.push(return_fp.into());
-    stack.push(return_pc.into());
+    stack.push(Some(return_fp.into()));
+    stack.push(Some(return_pc.into()));
 
     let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
@@ -669,12 +680,19 @@ fn runner_initialize(
             .unwrap_or_default()
     });
     let segment_arena_ptr = if got_segment_arena {
+        if add_output {
+            // Leave a gap for builtin final stack used in segment validations
+            for _ in 0..runner.get_program_builtins().len() {
+                stack.push(None);
+            }
+        }
+        // Add segment_arena
         let segment_arna_ptr = vm.add_memory_segment();
         let infos_ptr = vm.add_memory_segment();
         stack.extend([
-            segment_arna_ptr.into(),
-            infos_ptr.into(),
-            Felt252::ZERO.into(),
+            Some(segment_arna_ptr.into()),
+            Some(infos_ptr.into()),
+            Some(Felt252::ZERO.into()),
         ]);
         vm.load_data(
             segment_arna_ptr,
@@ -691,11 +709,15 @@ fn runner_initialize(
             .long_id
             .generic_id;
         if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
-            stack.extend(fetch_builtin_initial_stack(vm, *builtin_name));
+            stack.extend(
+                fetch_builtin_initial_stack(vm, *builtin_name)
+                    .into_iter()
+                    .map(|x| Some(x)),
+            );
         } else if generic_id == &GasBuiltinType::ID {
-            stack.push(MaybeRelocatable::from(9999999)); // initial gas
+            stack.push(Some(MaybeRelocatable::from(999999999))); // initial gas
         } else if generic_id == &SegmentArenaType::ID {
-            stack.push(segment_arena_ptr.into());
+            stack.push(Some(segment_arena_ptr.into()));
         } else {
             // These must be input arguments
             let size = type_sizes.get(param).unwrap();
@@ -703,7 +725,7 @@ fn runner_initialize(
             while i < *size {
                 match args.next() {
                     Some(FuncArg::Single(f)) => {
-                        stack.push(f.into());
+                        stack.push(Some(f.into()));
                         i += 1
                     }
                     Some(FuncArg::Array(array)) => {
@@ -712,8 +734,8 @@ fn runner_initialize(
                             array_start,
                             &array.iter().map(|f| f.into()).collect::<Vec<_>>(),
                         )?;
-                        stack.push(array_start.into());
-                        stack.push(array_end.into());
+                        stack.push(Some(array_start.into()));
+                        stack.push(Some(array_end.into()));
                         i += 2;
                     }
                     _ => panic!("Missing arg"),
@@ -732,6 +754,9 @@ fn runner_initialize(
     if got_segment_arena {
         // First FP must always point to the return_pc so we apply this correction here
         vm.set_fp(vm.get_fp().offset - 3);
+        if add_output {
+            vm.set_fp(vm.get_fp().offset - runner.get_program_builtins().len());
+        }
     }
     Ok(return_pc)
 }
