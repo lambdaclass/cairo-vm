@@ -305,6 +305,10 @@ impl Program {
         self.builtins.len()
     }
 
+    pub fn end(&self) -> Option<usize> {
+        self.shared_program_data.end
+    }
+
     pub fn get_identifier(&self, id: &str) -> Option<&Identifier> {
         self.shared_program_data.identifiers.get(id)
     }

@@ -682,7 +682,7 @@ fn runner_initialize(
     let segment_arena_ptr = if got_segment_arena {
         if add_output {
             // Leave a gap for builtin final stack used in segment validations
-            for _ in 0..runner.get_program_builtins().len() {
+            for _ in 0..runner.get_program().builtins_len() {
                 stack.push(None);
             }
         }
@@ -755,10 +755,16 @@ fn runner_initialize(
         // First FP must always point to the return_pc so we apply this correction here
         vm.set_fp(vm.get_fp().offset - 3);
         if add_output {
-            vm.set_fp(vm.get_fp().offset - runner.get_program_builtins().len());
+            vm.set_fp(vm.get_fp().offset - runner.get_program().builtins_len());
         }
     }
-    Ok(return_pc)
+    if cairo_run_config.proof_mode {
+        Ok((runner.program_base.unwrap_or_default()
+            + runner.get_program().end().unwrap_or_default())
+        .map_err(VirtualMachineError::Math)?)
+    } else {
+        Ok(return_pc)
+    }
 }
 
 fn fetch_return_values(
