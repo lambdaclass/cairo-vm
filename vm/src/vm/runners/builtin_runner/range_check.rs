@@ -122,8 +122,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
         // Split value into n_parts parts of less than _INNER_RC_BOUND size.
         for value in range_check_segment {
             rc_bounds = value
-                .as_ref()?
-                .get_value()
+                .get_value()?
                 .get_int_ref()?
                 .to_le_digits()
                 // TODO: maybe skip leading zeros
@@ -151,8 +150,8 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
-            for (index, val) in segment.iter().enumerate() {
-                if let Some(value) = val.as_ref().and_then(|cell| cell.get_value().get_int()) {
+            for (index, cell) in segment.iter().enumerate() {
+                if let Some(value) = cell.get_value().and_then(|value| value.get_int()) {
                     private_inputs.push(PrivateInput::Value(PrivateInputValue { index, value }))
                 }
             }
