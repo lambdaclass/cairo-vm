@@ -26,7 +26,7 @@ use crate::{
     },
 };
 #[cfg(feature = "cairo-1-hints")]
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 
 #[cfg(feature = "std")]
@@ -384,6 +384,18 @@ impl Program {
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
             prime: (),
         })
+    }
+
+    pub fn from_stripped_program(stripped: &StrippedProgram) -> Program {
+        Program {
+            shared_program_data: Arc::new(SharedProgramData {
+                data: stripped.data.clone(),
+                main: Some(stripped.main),
+                ..Default::default()
+            }),
+            constants: Default::default(),
+            builtins: stripped.builtins.clone(),
+        }
     }
 
     pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {

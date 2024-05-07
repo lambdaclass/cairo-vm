@@ -36,6 +36,7 @@ use num_traits::{ToPrimitive, Zero};
 
 use super::errors::runner_errors::RunnerError;
 use super::runners::builtin_runner::{ModBuiltinRunner, RC_N_PARTS_STANDARD};
+use super::runners::cairo_pie::CairoPie;
 
 const MAX_TRACEBACK_ENTRIES: u32 = 20;
 
@@ -694,12 +695,12 @@ impl VirtualMachine {
                     )
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    let value = value.as_ref().map(|x| x.get_value());
-                    if Some(&deduced_memory_cell) != value && value.is_some() {
+                    let value = value.get_value();
+                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
                             builtin.name(),
                             deduced_memory_cell,
-                            value.cloned(),
+                            value,
                         ))));
                     }
                 }
@@ -1138,6 +1139,21 @@ impl VirtualMachine {
             fetch_builtin_params(mul_mod_ptr_n, BuiltinName::mul_mod)?,
         )
         .map_err(VirtualMachineError::RunnerError)
+    }
+
+    pub(crate) fn finalize_segments_by_cairo_pie(&mut self, pie: &CairoPie) {
+        let mut segment_infos = vec![
+            &pie.metadata.program_segment,
+            &pie.metadata.execution_segment,
+            &pie.metadata.ret_fp_segment,
+            &pie.metadata.ret_pc_segment,
+        ];
+        segment_infos.extend(pie.metadata.builtin_segments.values());
+        segment_infos.extend(pie.metadata.extra_segments.iter());
+        for info in segment_infos {
+            self.segments
+                .finalize(Some(info.size), info.index as usize, None)
+        }
     }
 }
 
@@ -3023,8 +3039,8 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = vm.segments.memory.data;
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
     }
 
     #[test]
@@ -3121,15 +3137,15 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[0][1].as_ref().unwrap().is_accessed());
-        assert!(mem[0][4].as_ref().unwrap().is_accessed());
-        assert!(mem[0][6].as_ref().unwrap().is_accessed());
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
-        assert!(mem[1][2].as_ref().unwrap().is_accessed());
-        assert!(mem[1][3].as_ref().unwrap().is_accessed());
-        assert!(mem[1][4].as_ref().unwrap().is_accessed());
-        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert!(mem[0][1].is_accessed());
+        assert!(mem[0][4].is_accessed());
+        assert!(mem[0][6].is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
+        assert!(mem[1][2].is_accessed());
+        assert!(mem[1][3].is_accessed());
+        assert!(mem[1][4].is_accessed());
+        assert!(mem[1][5].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
@@ -4257,11 +4273,11 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[0][0].as_ref().unwrap().is_accessed());
-        assert!(mem[0][1].as_ref().unwrap().is_accessed());
-        assert!(mem[0][2].as_ref().unwrap().is_accessed());
-        assert!(mem[0][10].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[0][0].is_accessed());
+        assert!(mem[0][1].is_accessed());
+        assert!(mem[0][2].is_accessed());
+        assert!(mem[0][10].is_accessed());
+        assert!(mem[1][1].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
@@ -4483,8 +4499,8 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = vm.segments.memory.data;
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
     }
 
     #[test]
@@ -4584,15 +4600,15 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[4][1].as_ref().unwrap().is_accessed());
-        assert!(mem[4][4].as_ref().unwrap().is_accessed());
-        assert!(mem[4][6].as_ref().unwrap().is_accessed());
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
-        assert!(mem[1][2].as_ref().unwrap().is_accessed());
-        assert!(mem[1][3].as_ref().unwrap().is_accessed());
-        assert!(mem[1][4].as_ref().unwrap().is_accessed());
-        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert!(mem[4][1].is_accessed());
+        assert!(mem[4][4].is_accessed());
+        assert!(mem[4][6].is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
+        assert!(mem[1][2].is_accessed());
+        assert!(mem[1][3].is_accessed());
+        assert!(mem[1][4].is_accessed());
+        assert!(mem[1][5].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
