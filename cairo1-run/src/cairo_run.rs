@@ -21,7 +21,7 @@ use cairo_lang_sierra::{
         starknet::syscalls::SystemType,
         ConcreteType, NamedType,
     },
-    ids::ConcreteTypeId,
+    ids::{ConcreteTypeId, GenericTypeId},
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
@@ -380,13 +380,6 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    let builtin_generic_ids = HashSet::from([
-        PoseidonType::ID,
-        EcOpType::ID,
-        BitwiseType::ID,
-        RangeCheckType::ID,
-        PedersenType::ID,
-    ]);
     let mut builtin_vars = HashMap::new();
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
@@ -403,8 +396,11 @@ fn create_entry_code(
         let info = get_info(sierra_program_registry, ty)
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
-        if builtin_generic_ids.contains(generic_ty) {
+        if is_builtin_id(generic_ty) || generic_ty == &SegmentArenaType::ID {
+            // Handle builtin
+            // Create a variable for the builtin base so we can reference it later
             let builtin = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
+            // Create tempvar to advance FP register
             casm_build_extend!(ctx,
                 tempvar _builtin = builtin;
             );
@@ -416,14 +412,8 @@ fn create_entry_code(
                 hint AllocSegment {} into {dst: system};
                 ap += 1;
             };
-        } else if generic_ty == &SegmentArenaType::ID {
-            let segment_arena = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
-            casm_build_extend! {ctx,
-                tempvar _segment_arena = segment_arena;
-            };
-            builtin_vars.insert(SegmentArenaType::ID, segment_arena);
-            arg_offset += 1;
         } else {
+            // Handle argument
             for _ in 0..(type_sizes.get(&ty).cloned().unwrap_or_default()) {
                 let var = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
                 casm_build_extend! {ctx,
@@ -572,6 +562,19 @@ fn get_info<'a>(
         .get_type(ty)
         .ok()
         .map(|ctc| ctc.info())
+}
+
+fn is_builtin_id(id: &GenericTypeId) -> bool {
+    lazy_static::lazy_static! {
+        static ref BUILTIN_GENERIC_IDS: HashSet<GenericTypeId> = HashSet::from([
+            PoseidonType::ID,
+            EcOpType::ID,
+            BitwiseType::ID,
+            RangeCheckType::ID,
+            PedersenType::ID,
+        ]);
+    }
+    BUILTIN_GENERIC_IDS.contains(id)
 }
 
 fn get_function_builtins(
