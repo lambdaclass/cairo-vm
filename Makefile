@@ -7,6 +7,8 @@ STARKNET_SIERRA_COMPILE_CAIRO_1:=cairo1/bin/starknet-sierra-compile
 STARKNET_COMPILE_CAIRO_2:=cairo2/bin/starknet-compile
 STARKNET_SIERRA_COMPILE_CAIRO_2:=cairo2/bin/starknet-sierra-compile
 
+export PATH:=$(PATH):$(HOME)/.cargo/bin
+
 ifndef PROPTEST_CASES
 	PROPTEST_CASES:=10
 	export PROPTEST_CASES
