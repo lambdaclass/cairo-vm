@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* feat: unify `arbitrary`, `hooks`, `print` and `skip_next_instruction_hint` features as a single `test_utils` feature [#1755](https://github.com/lambdaclass/cairo-vm/pull/1755)
+  * BREAKING: removed the above features
+
 * bugfix: cairo1-run CLI: Set finalize_builtins to true when using --air_public_input flag [#1744](https://github.com/lambdaclass/cairo-vm/pull/1752)
 
 * feat: Add hint `U256InvModN` to `Cairo1HintProcessor` [#1744](https://github.com/lambdaclass/cairo-vm/pull/1744)
