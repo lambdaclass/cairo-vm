@@ -15,7 +15,7 @@ use crate::vm::vm_core::VirtualMachine;
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use crate::Felt252;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
 pub trait HintProcessorLogic {

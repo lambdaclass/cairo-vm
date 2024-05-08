@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: unify `hooks`, `print` and `skip_next_instruction_hint` features as a single `test_utils` feature [#1755](https://github.com/lambdaclass/cairo-vm/pull/1755)
+* feat: unify `arbitrary`, `hooks`, `print` and `skip_next_instruction_hint` features as a single `test_utils` feature [#1755](https://github.com/lambdaclass/cairo-vm/pull/1755)
   * BREAKING: removed the above features
 
 * feat: Add hint `U256InvModN` to `Cairo1HintProcessor` [#1744](https://github.com/lambdaclass/cairo-vm/pull/1744)

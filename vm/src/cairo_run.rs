@@ -16,7 +16,7 @@ use bincode::enc::write::Writer;
 
 use thiserror_no_std::Error;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]

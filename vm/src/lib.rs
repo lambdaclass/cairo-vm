@@ -2,9 +2,12 @@
 //!
 //! ## Feature Flags
 //! - `std`: Enables usage of the [`std`] standard library. Enabled by default.
-//! - `test_utils`: Enables test utils ([`Hooks`](crate::vm::hooks::Hooks) support for the [VirtualMachine](vm::vm_core::VirtualMachine) and the `print_*` and `skip_next_instruction()` hints). Not enabled by default.
+//! - `test_utils`: Enables the following to help with tests (not enabled by default):
+//!    - [`Hooks`](crate::vm::hooks::Hooks) support for the [VirtualMachine](vm::vm_core::VirtualMachine);
+//!    - the `print_*` family of hints;
+//!    - the `skip_next_instruction()` hints;
+//!    - implementations of [`arbitrary::Arbitrary`](https://docs.rs/arbitrary/latest/arbitrary/) for some structs.
 //! - `cairo-1-hints`: Enable hints that were introduced in Cairo 1. Not enabled by default.
-//! - `arbitrary`: Enables implementations of [`arbitrary::Arbitrary`](https://docs.rs/arbitrary/latest/arbitrary/) for some structs. Not enabled by default.
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(warnings)]
