@@ -72,7 +72,13 @@ pub fn cairo_run_program(
 
     cairo_runner
         .run_until_pc(end, &mut vm, hint_executor)
-        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+        .map_err(|err| {
+            CairoRunError::VmException(Box::new(VmException::from_vm_error(
+                &cairo_runner,
+                &vm,
+                err,
+            )))
+        })?;
 
     if cairo_run_config.proof_mode {
         cairo_runner.run_for_steps(1, &mut vm, hint_executor)?;
@@ -153,7 +159,13 @@ pub fn cairo_run_pie(
 
     cairo_runner
         .run_until_pc(end, &mut vm, hint_processor)
-        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+        .map_err(|err| {
+            CairoRunError::VmException(Box::new(VmException::from_vm_error(
+                &cairo_runner,
+                &vm,
+                err,
+            )))
+        })?;
 
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
@@ -209,7 +221,13 @@ pub fn cairo_run_fuzzed_program(
         res => res,
     };
 
-    res.map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+    res.map_err(|err| {
+        CairoRunError::VmException(Box::new(VmException::from_vm_error(
+            &cairo_runner,
+            &vm,
+            err,
+        )))
+    })?;
 
     cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
 
