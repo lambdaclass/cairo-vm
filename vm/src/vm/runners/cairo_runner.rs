@@ -1141,8 +1141,9 @@ impl CairoRunner {
 
         self.initialize_vm(vm)?;
 
-        self.run_until_pc(end, vm, hint_processor)
-            .map_err(|err| VmException::from_vm_error(self, vm, err))?;
+        self.run_until_pc(end, vm, hint_processor).map_err(|err| {
+            CairoRunError::VmException(Box::new(VmException::from_vm_error(self, vm, err)))
+        })?;
         self.end_run(true, false, vm, hint_processor)?;
 
         if verify_secure {

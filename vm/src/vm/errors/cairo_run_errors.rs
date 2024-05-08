@@ -21,7 +21,19 @@ pub enum CairoRunError {
     #[error(transparent)]
     MemoryError(#[from] MemoryError),
     #[error(transparent)]
-    VmException(#[from] VmException),
+    VmException(#[from] Box<VmException>),
     #[error("Cairo Pie validation failed: {0}")]
     CairoPieValidation(#[from] CairoPieValidationError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Test to catch possible enum size regressions
+    fn test_cairo_run_error_size() {
+        let size = crate::stdlib::mem::size_of::<CairoRunError>();
+        assert!(size <= 32, "{size}")
+    }
 }
