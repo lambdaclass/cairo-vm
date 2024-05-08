@@ -14,6 +14,7 @@ brew install pyenv gmp
 # Make sure pyenv has been installed correctly
 pyenv -v
 
+make uv-program
 make deps-macos
 
 pyenv local 3.9.15

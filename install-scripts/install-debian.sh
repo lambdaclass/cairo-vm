@@ -30,6 +30,7 @@ eval "$(pyenv init -)"
 # Make sure pyenv has been installed correctly
 pyenv -v
 
+make uv-program
 make deps
 
 pyenv local 3.9.15
