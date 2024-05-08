@@ -4091,9 +4091,9 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
-        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
-            mayberelocatable!(0x80FF_8000_0530u64),
-        )]];
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        ))]];
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(12), true).into()];
 
@@ -4123,9 +4123,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
         cairo_runner.vm.builtin_runners = vec![];
         cairo_runner.vm.current_step = 10000;
-        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
-            mayberelocatable!(0x80FF_8000_0530u64),
-        )]];
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        ))]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
@@ -4145,9 +4145,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
-        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
-            mayberelocatable!(0x80FF_8000_0530u64),
-        )]];
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        ))]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
@@ -4210,9 +4210,9 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         cairo_runner.vm.builtin_runners =
             vec![RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into()];
-        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(
-            mayberelocatable!(0x80FF_8000_0530u64),
-        )]];
+        cairo_runner.vm.segments.memory.data = vec![vec![MemoryCell::new(mayberelocatable!(
+            0x80FF_8000_0530u64
+        ))]];
         cairo_runner.vm.trace = Some(vec![TraceEntry {
             pc: (0, 0).into(),
             ap: 0,
