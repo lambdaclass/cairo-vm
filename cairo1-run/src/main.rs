@@ -144,7 +144,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         layout: args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
-        finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
     };
 
