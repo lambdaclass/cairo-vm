@@ -204,6 +204,9 @@ build-cairo-2-compiler:
 		&& mv cairo/ cairo2/; \
 	fi
 
+uv-program:
+	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.1.41/uv-installer.sh | sh
+
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
@@ -216,7 +219,7 @@ cargo-deps:
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
+deps: uv-program create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 $(VENV_CMD) cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -226,7 +229,7 @@ deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cai
 	. cairo-vm-env/bin/activate ; \
 	$(PIP_CMD) install -r requirements.txt ; \
 
-deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
+deps-macos: uv-program create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 $(VENV_CMD) cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
