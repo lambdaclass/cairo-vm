@@ -30,9 +30,5 @@ pyenv -v
 make uv-program
 make deps
 
-pyenv local 3.9.15
-
-pip install -r requirements.txt
-
 echo "-- You need to follow these instructions to finish installing pyenv: --"
 pyenv init || true
