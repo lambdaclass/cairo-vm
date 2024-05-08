@@ -298,6 +298,8 @@ mod tests {
     #[case("null_ret.cairo", "null", None)]
     #[case("with_input/tensor.cairo", "1", Some("[2 2] [1 2 3 4]"))]
     #[case("with_input/array_input_sum.cairo", "12", Some("2 [1 2 3 4] 0 [9 8]"))]
+    #[case("with_input/array_length.cairo", "5", Some("[1 2 3 4] [1]"))]
+    #[case("with_input/array_length.cairo", "4", Some("[1 2 3 4] []"))]
     #[case("with_input/branching.cairo", "0", Some("17"))]
     #[case("with_input/branching.cairo", "1", Some("0"))]
     #[case("dictionaries.cairo", "1024", None)]
