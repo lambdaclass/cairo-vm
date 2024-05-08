@@ -520,7 +520,10 @@ impl CairoRunner {
                 segment_index: base.segment_index,
                 offset: base.offset + stack.len() - input_size,
             });
-            self.initial_ap = self.initial_fp;
+            self.initial_ap = Some(Relocatable {
+                segment_index: base.segment_index,
+                offset: base.offset + stack.len(),
+            });
         } else {
             return Err(RunnerError::NoExecBase);
         }

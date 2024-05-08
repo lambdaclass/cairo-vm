@@ -18,7 +18,6 @@ use cairo_lang_sierra::{
         poseidon::PoseidonType,
         range_check::RangeCheckType,
         segment_arena::SegmentArenaType,
-        starknet::syscalls::SystemType,
         ConcreteType, NamedType,
     },
     ids::{ConcreteTypeId, GenericTypeId},
@@ -385,11 +384,11 @@ fn create_entry_code(
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
     });
-    let mut arg_offset = 0;
+    let mut fp_offset = 0;
     if got_segment_arena {
-        arg_offset += 3;
+        fp_offset += 3;
         if copy_to_output_builtin {
-            arg_offset += builtins.len() as i16; // Apply correction
+            fp_offset += builtins.len() as i16; // Apply correction
         }
     }
     for ty in &signature.param_types {
@@ -397,30 +396,10 @@ fn create_entry_code(
             .ok_or_else(|| Error::NoInfoForType(ty.clone()))?;
         let generic_ty = &info.long_id.generic_id;
         if is_builtin_id(generic_ty) || generic_ty == &SegmentArenaType::ID {
-            // Handle builtin
             // Create a variable for the builtin base so we can reference it later
-            let builtin = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
-            // Create tempvar to advance FP register
-            casm_build_extend!(ctx,
-                tempvar _builtin = builtin;
-            );
+            let builtin = ctx.add_var(CellExpression::Deref(deref!([fp + fp_offset])));
             builtin_vars.insert(generic_ty.clone(), builtin);
-            arg_offset += 1;
-        } else if generic_ty == &SystemType::ID {
-            casm_build_extend! {ctx,
-                tempvar system;
-                hint AllocSegment {} into {dst: system};
-                ap += 1;
-            };
-        } else {
-            // Handle argument
-            for _ in 0..(type_sizes.get(&ty).cloned().unwrap_or_default()) {
-                let var = ctx.add_var(CellExpression::Deref(deref!([fp + arg_offset])));
-                casm_build_extend! {ctx,
-                    tempvar _var = var;
-                };
-                arg_offset += 1;
-            }
+            fp_offset += 1;
         }
     }
 
