@@ -12,6 +12,14 @@ ifndef PROPTEST_CASES
 	export PROPTEST_CASES
 endif
 
+ifeq (, $(shell which uv))
+	PIP_CMD=python -m pip
+	VENV_CMD=python -m venv
+else
+	PIP_CMD=uv pip
+	VENV_CMD=uv venv
+endif
+
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
 	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph\
 	compare_benchmarks_deps compare_benchmarks docs clean \
@@ -210,23 +218,23 @@ cairo1-run-deps:
 
 deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	PYENV_VERSION=pypy3.9-7.3.9 $(VENV_CMD) cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
-	pip install -r requirements.txt ; \
+	$(PIP_CMD) install -r requirements.txt ; \
 	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	PYENV_VERSION=3.9.15 $(VENV_CMD) cairo-vm-env
 	. cairo-vm-env/bin/activate ; \
-	pip install -r requirements.txt ; \
+	$(PIP_CMD) install -r requirements.txt ; \
 
 deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+	PYENV_VERSION=pypy3.9-7.3.9 $(VENV_CMD) cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib $(PIP_CMD) install -r requirements.txt ; \
 	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	PYENV_VERSION=3.9.15 $(VENV_CMD) cairo-vm-env
 	. cairo-vm-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib $(PIP_CMD) install -r requirements.txt ; \
 
 $(RELBIN):
 	cargo build --release
@@ -366,7 +374,7 @@ clean:
 fuzzer-deps: build
 	cargo +nightly install cargo-fuzz
 	. cairo-vm-env/bin/activate; \
-		pip install atheris==2.2.2 maturin==1.2.3; \
+		$(PIP_CMD) install atheris==2.2.2 maturin==1.2.3; \
 		cd fuzzer/; \
 		maturin develop
 
