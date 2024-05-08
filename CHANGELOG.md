@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* bugifx: cairo1-run CLI: Set finalize_builtins to true when using --air_public_input flag [#1744](https://github.com/lambdaclass/cairo-vm/pull/1752)
+* bugfix: cairo1-run CLI: Set finalize_builtins to true when using --air_public_input flag [#1744](https://github.com/lambdaclass/cairo-vm/pull/1752)
 
 * feat: Add hint `U256InvModN` to `Cairo1HintProcessor` [#1744](https://github.com/lambdaclass/cairo-vm/pull/1744)
 
