@@ -510,10 +510,9 @@ impl CairoRunner {
     pub fn initialize_function_entrypoint_cairo_1(
         &mut self,
         vm: &mut VirtualMachine,
-        entrypoint: usize,
         stack: Vec<Option<MaybeRelocatable>>,
         return_pc: Relocatable,
-        input_size: usize
+        input_size: usize,
     ) -> Result<Relocatable, RunnerError> {
         if let Some(base) = &self.execution_base {
             self.initial_fp = Some(Relocatable {
@@ -527,12 +526,16 @@ impl CairoRunner {
         } else {
             return Err(RunnerError::NoExecBase);
         }
-        self.initialize_state_cairo_1(vm, entrypoint, stack)?;
+        self.initialize_state_cairo_1(vm, stack)?;
         self.final_pc = Some(return_pc);
         Ok(if self.is_proof_mode() {
             // program_base = None case already handled by initialize_state_cairo_1
             (self.program_base.unwrap()
-                + self.program.shared_program_data.end.ok_or(RunnerError::NoProgramEnd)?)?
+                + self
+                    .program
+                    .shared_program_data
+                    .end
+                    .ok_or(RunnerError::NoProgramEnd)?)?
         } else {
             return_pc
         })
@@ -543,12 +546,11 @@ impl CairoRunner {
     fn initialize_state_cairo_1(
         &mut self,
         vm: &mut VirtualMachine,
-        entrypoint: usize,
         stack: Vec<Option<MaybeRelocatable>>,
     ) -> Result<(), RunnerError> {
         let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
-        self.initial_pc = Some((prog_base + entrypoint)?);
+        self.initial_pc = Some(prog_base);
         vm.load_data(prog_base, &self.program.shared_program_data.data)
             .map_err(RunnerError::MemoryInitializationError)?;
 
@@ -563,7 +565,6 @@ impl CairoRunner {
         }
         Ok(())
     }
-
 
     ///Initializes state for running a program from the main() entrypoint.
     ///If self.is_proof_mode() == True, the execution starts from the start label rather then the main() function.
