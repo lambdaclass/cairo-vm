@@ -623,6 +623,9 @@ fn runner_initialize(
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
+    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
+        i + type_sizes.get(ty).cloned().unwrap_or_default()
+    });
     let builtin_generic_ids = HashMap::from([
         (PoseidonType::ID, BuiltinName::poseidon),
         (EcOpType::ID, BuiltinName::ec_op),
@@ -670,11 +673,13 @@ fn runner_initialize(
             .unwrap_or_default()
     });
     let segment_arena_ptr = if got_segment_arena {
+        input_size += 3;
         if add_output {
             // Leave a gap for builtin final stack used in segment validations
             for _ in 0..runner.get_program().builtins_len() {
                 stack.push(None);
             }
+            input_size += 2;
         }
         // Add segment_arena
         let segment_arna_ptr = vm.add_memory_segment();
@@ -736,24 +741,9 @@ fn runner_initialize(
     if args.next().is_some() {
         return Err(Error::ExcessArgument);
     }
-    let input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
-        i + type_sizes.get(ty).cloned().unwrap_or_default()
-    });
-    let end = runner.initialize_function_entrypoint_cairo_1(
-        vm,
-        0,
-        stack,
-        return_pc,
-        input_size as usize,
-    )?;
+    let end =
+        runner.initialize_function_entrypoint_cairo_1(vm, stack, return_pc, input_size as usize)?;
     runner.initialize_vm(vm)?;
-    if got_segment_arena {
-        // First FP must always point to the return_pc so we apply this correction here
-        vm.set_fp(vm.get_fp().offset - 3);
-        if add_output {
-            vm.set_fp(vm.get_fp().offset - runner.get_program().builtins_len());
-        }
-    }
     Ok(end)
 }
 
