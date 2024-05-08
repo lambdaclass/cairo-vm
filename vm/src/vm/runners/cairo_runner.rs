@@ -507,14 +507,38 @@ impl CairoRunner {
         Ok(end)
     }
 
+    // Loads the stack into the execution segment and creates the corresponding initial pointers for cairo 1 program execution
+    // Cairo 1 initial stack contains the classic initial stack and also the arguments to the main function
+    // Asumes entrypoint = 0
+    // An example of initial_stack:
+    /*
+       [
+           2:0 (range_check builtin)
+           3:0 (bitwise builtin)
+           4:0 (return_fp)
+           5:0 (return_pc)
+           2:0 (range_check builtin)
+           3:0 (bitwise builtin)
+           4   (arg 0)
+           5   (arg 1)
+       ]
+
+       And the corresponding inital pointers:
+       PC: 0:0
+       FP: 0:3 (Points to return_pc 5:0)
+       AP: 0:8 (Points to next free memory slot in execution segment)
+    */
     pub fn initialize_function_entrypoint_cairo_1(
         &mut self,
         vm: &mut VirtualMachine,
         stack: Vec<Option<MaybeRelocatable>>,
-        return_pc: Relocatable,
-        input_size: usize,
+        return_pc: Relocatable, // Created before calling this function to maintain segment order
+        input_size: usize, // Size of the arguments (both cairo arguments & builtin pointer) of the function
     ) -> Result<Relocatable, RunnerError> {
         if let Some(base) = &self.execution_base {
+            // As cairo 1 stack is made up of the classic inital stack + the inputs to the main function
+            // We need tp keep FP pointing to the end of the classic stack (where the return_pc is written),
+            // and the AP pointing to the end of the full stack (so we can write into it)
             self.initial_fp = Some(Relocatable {
                 segment_index: base.segment_index,
                 offset: base.offset + stack.len() - input_size,
@@ -541,7 +565,7 @@ impl CairoRunner {
         })
     }
 
-    // Mirrors initialize_state but allows gaps in the stack
+    // Mirrors initialize_state but allows gaps in the stack, and asumes entrypoint = 0
     // This is necessary for how segment validations are implemented in cairo 1
     fn initialize_state_cairo_1(
         &mut self,
