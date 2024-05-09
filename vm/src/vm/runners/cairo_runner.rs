@@ -507,6 +507,8 @@ impl CairoRunner {
         Ok(end)
     }
 
+    #[doc(hidden)]
+    // This is very specific to how cairo 1 execution is implemented and shouldn't be used in a different context
     // Loads the stack into the execution segment and creates the corresponding initial pointers for cairo 1 program execution
     // Cairo 1 initial stack contains the classic initial stack and also the arguments to the main function
     // Asumes entrypoint = 0
