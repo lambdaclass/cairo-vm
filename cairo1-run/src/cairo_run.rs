@@ -1165,7 +1165,7 @@ mod tests {
     use cairo_lang_compiler::{
         compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
     };
-    use cairo_vm::types::relocatable::Relocatable;
+    use cairo_vm::{program_hash::compute_program_hash_chain, types::relocatable::Relocatable};
     use rstest::rstest;
 
     fn compile_to_sierra(filename: &str) -> SierraProgram {
@@ -1252,5 +1252,36 @@ mod tests {
         assert!(vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
+    }
+    #[test]
+    fn check_program_hash_doesnt_change_based_on_arguments() {
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo",
+        );
+        let config_a = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[FuncArg::Single(Felt252::ONE),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+                FuncArg::Single(Felt252::TWO),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE])],
+            ..Default::default()
+        };
+        let config_b = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::THREE]),
+                FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::TWO])],
+            ..Default::default()
+        };
+        let runner_a = cairo_run_program(&sierra_program, config_a).unwrap().0;
+        let runner_b = cairo_run_program(&sierra_program, config_b).unwrap().0;
+        let hash_a =
+            compute_program_hash_chain(&runner_a.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        let hash_b =
+            compute_program_hash_chain(&runner_b.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        assert_eq!(hash_a, hash_b)
     }
 }
