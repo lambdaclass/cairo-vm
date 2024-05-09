@@ -50,10 +50,7 @@ use cairo_vm::{
 };
 use itertools::{chain, Itertools};
 use num_traits::{cast::ToPrimitive, Zero};
-use std::{
-    collections::{HashMap, HashSet},
-    iter::Peekable,
-};
+use std::{collections::HashMap, iter::Peekable};
 
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
@@ -381,10 +378,11 @@ fn create_entry_code(
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
     });
     let mut fp_offset = 0;
+    // Segment Arena adds values not contemplated in the signature params, so we need to adjust the offset in order to skip these values
     if got_segment_arena {
         fp_offset += 3;
         if copy_to_output_builtin {
-            fp_offset += builtins.len() as i16; // Apply correction
+            fp_offset += builtins.len() as i16;
         }
     }
     for ty in &signature.param_types {
@@ -540,16 +538,11 @@ fn get_info<'a>(
 }
 
 fn is_builtin_id(id: &GenericTypeId) -> bool {
-    lazy_static::lazy_static! {
-        static ref BUILTIN_GENERIC_IDS: HashSet<GenericTypeId> = HashSet::from([
-            PoseidonType::ID,
-            EcOpType::ID,
-            BitwiseType::ID,
-            RangeCheckType::ID,
-            PedersenType::ID,
-        ]);
-    }
-    BUILTIN_GENERIC_IDS.contains(id)
+    id == &PoseidonType::ID
+        || id == &EcOpType::ID
+        || id == &BitwiseType::ID
+        || id == &RangeCheckType::ID
+        || id == &PedersenType::ID
 }
 
 fn get_function_builtins(
@@ -580,6 +573,8 @@ fn get_function_builtins(
 }
 
 // Mirrors runner.initialize() but also adds entrypoint args & gas builtin
+// It will first allocate the classic initial stack made up of builtin bases & return pointers, followed
+// by the arguments to the main function made up of the builtin bases, the segment arena values, and the input arguments.
 /* Execution segment after initialization:
 [
     builtin_base_0
@@ -600,6 +595,10 @@ fn get_function_builtins(
 *1 if segment arena is present
 *1.1 if segment arena is present & append_return_values/proof_mode is used
 *2 if args are used
+After initialization, the registers will have the following values:
+PC: 0:0 (As the cairo 1 entrycode contains instructions to call the function's entrypoint)
+FP: &return_pc (The FP register needs to point to the return_pc, so it will lag behind the AP register in this case)
+AP: Will point to the next free memory cell in the execution segment
 */
 fn runner_initialize(
     runner: &mut CairoRunner,
