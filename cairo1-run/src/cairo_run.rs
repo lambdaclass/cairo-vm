@@ -608,7 +608,7 @@ After:
 *1.1 if segment arena is present & append_return_values/proof_mode is used
 *2 if args are used
 
-NOTE: As this values are written after the inital AP is calculeted AP will need to be increased (via cairo instructions) by the size of these arguments after loading them in order to write into the execution segment.
+NOTE: As this values are written after the inital AP is calculated AP will need to be increased (via cairo instructions) by the size of these arguments after loading them in order to write into the execution segment.
 As FP needs to point to the return_pc no update is needed.
 */
 fn load_signature_params(
