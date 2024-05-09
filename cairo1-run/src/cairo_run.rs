@@ -225,14 +225,8 @@ pub fn cairo_run_program(
         &type_sizes,
         cairo_run_config.append_return_values || cairo_run_config.proof_mode,
     )?;
-    println!("{}", vm.segments);
-    dbg!(&vm.get_pc());
-    dbg!(&vm.get_ap());
-    dbg!(&vm.get_fp());
     // Run it until the end / infinite loop in proof_mode
-    let err = runner.run_until_pc(end, &mut vm, &mut hint_processor);
-    println!("{}", vm.segments);
-    err?;
+    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
     }
