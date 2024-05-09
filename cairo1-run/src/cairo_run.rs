@@ -216,14 +216,14 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
 
-    let end = runner_initialize(
-        &mut runner,
+    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
+    load_signature_params(
         &mut vm,
+        &runner,
         &cairo_run_config,
         main_func,
         &sierra_program_registry,
         &type_sizes,
-        cairo_run_config.append_return_values || cairo_run_config.proof_mode,
     )?;
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
@@ -578,10 +578,16 @@ fn get_function_builtins(
     builtins
 }
 
-// Mirrors runner.initialize() but also adds entrypoint args & gas builtin
-// It will first allocate the classic initial stack made up of builtin bases & return pointers, followed
-// by the arguments to the main function made up of the builtin bases, the segment arena values, and the input arguments.
-/* Execution segment after initialization:
+// Loads the arguments of the main function into the execution segment (including builtin bases, segment arena values & arguments)
+/* Example of execution segment before and after calling this function:
+Before:
+[
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+]
+After:
 [
     builtin_base_0
     builtin_base_1
@@ -601,44 +607,19 @@ fn get_function_builtins(
 *1 if segment arena is present
 *1.1 if segment arena is present & append_return_values/proof_mode is used
 *2 if args are used
-After initialization, the registers will have the following values:
-PC: 0:0 (As the cairo 1 entrycode contains instructions to call the function's entrypoint)
-FP: &return_pc (The FP register needs to point to the return_pc, so it will lag behind the AP register in this case)
-AP: Same as FP (An instruction will be added to advance AP by the input_size at the start of the entry_code so we can write into AP)
-*/
-fn runner_initialize(
-    runner: &mut CairoRunner,
-    vm: &mut VirtualMachine,
-    cairo_run_config: &Cairo1RunConfig,
-    main_func: &Function,
-    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
-    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
-    add_output: bool,
-) -> Result<Relocatable, Error> {
-    let end = runner.initialize(vm, cairo_run_config.proof_mode)?;
-    load_signature_params(
-        vm,
-        runner,
-        cairo_run_config,
-        main_func,
-        sierra_program_registry,
-        type_sizes,
-        add_output,
-    )?;
-    Ok(end)
-}
 
-// Loads the arguments of the main function into the execution segment
-// AP will need to be increased (via cairo instructions) by the size of these arguments after loading them in order to write into the execution segment
+NOTE: As this values are written after the inital AP is calculeted AP will need to be increased (via cairo instructions) by the size of these arguments after loading them in order to write into the execution segment.
+As FP needs to point to the return_pc no update is needed.
+*/
 fn load_signature_params(
     vm: &mut VirtualMachine,
-    runner: &mut CairoRunner,
+    runner: &CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
-    add_output: bool,
 ) -> Result<(), Error> {
+    let add_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
         vm.builtin_runners
             .iter()
