@@ -626,42 +626,38 @@ fn runner_initialize(
     let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
-    let builtin_generic_ids = HashMap::from([
-        (PoseidonType::ID, BuiltinName::poseidon),
-        (EcOpType::ID, BuiltinName::ec_op),
-        (BitwiseType::ID, BuiltinName::bitwise),
-        (RangeCheckType::ID, BuiltinName::range_check),
-        (PedersenType::ID, BuiltinName::pedersen),
+    let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
+        vm.builtin_runners
+            .iter()
+            .find(|b| b.name() == builtin_name)
+            .unwrap()
+            .base() as isize
+    };
+    let builtin_bases = HashMap::from([
+        (PoseidonType::ID, builtin_base(vm, BuiltinName::poseidon)),
+        (EcOpType::ID, builtin_base(vm, BuiltinName::ec_op)),
+        (BitwiseType::ID, builtin_base(vm, BuiltinName::bitwise)),
+        (
+            RangeCheckType::ID,
+            builtin_base(vm, BuiltinName::range_check),
+        ),
+        (PedersenType::ID, builtin_base(vm, BuiltinName::pedersen)),
     ]);
     let return_fp = vm.add_memory_segment();
     let return_pc = vm.add_memory_segment();
-    let mut stack = vec![];
-    let fetch_builtin_initial_stack =
-        |vm: &VirtualMachine, builtin_name: BuiltinName| -> Vec<MaybeRelocatable> {
-            vm.builtin_runners
-                .iter()
-                .find(|b| b.name() == builtin_name)
-                .unwrap()
-                .initial_stack()
-        };
+    let mut stack = Vec::<Option<MaybeRelocatable>>::new();
     if add_output {
-        stack.extend(
-            fetch_builtin_initial_stack(vm, BuiltinName::output)
-                .into_iter()
-                .map(|x| Some(x)),
-        );
+        stack.push(Some(
+            Relocatable::from((builtin_base(vm, BuiltinName::output), 0)).into(),
+        ));
     }
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
             .long_id
             .generic_id;
-        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
-            stack.extend(
-                fetch_builtin_initial_stack(vm, *builtin_name)
-                    .into_iter()
-                    .map(|x| Some(x)),
-            );
+        if let Some(base) = builtin_bases.get(generic_id) {
+            stack.push(Some(Relocatable::from((*base, 0)).into()))
         }
     }
     stack.push(Some(return_fp.into()));
@@ -703,12 +699,8 @@ fn runner_initialize(
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
             .long_id
             .generic_id;
-        if let Some(builtin_name) = builtin_generic_ids.get(generic_id) {
-            stack.extend(
-                fetch_builtin_initial_stack(vm, *builtin_name)
-                    .into_iter()
-                    .map(|x| Some(x)),
-            );
+        if let Some(base) = builtin_bases.get(generic_id) {
+            stack.push(Some(Relocatable::from((*base, 0)).into()))
         } else if generic_id == &GasBuiltinType::ID {
             stack.push(Some(MaybeRelocatable::from(999999999))); // initial gas
         } else if generic_id == &SegmentArenaType::ID {
