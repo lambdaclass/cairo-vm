@@ -672,7 +672,7 @@ impl CairoRunner {
             .hints_collection
             .hints_ranges
             .clone();
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         vm.execute_before_first_step(self, &hint_data)?;
         while vm.run_context.pc != address && !hint_processor.consumed() {
             vm.step(
