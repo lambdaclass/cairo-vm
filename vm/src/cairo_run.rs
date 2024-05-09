@@ -14,12 +14,12 @@ use bincode::enc::write::Writer;
 
 use thiserror_no_std::Error;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
-    #[cfg_attr(feature = "arbitrary", arbitrary(value = "main"))]
+    #[cfg_attr(feature = "test_utils", arbitrary(value = "main"))]
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
@@ -177,7 +177,7 @@ pub fn cairo_run_pie(
     Ok((cairo_runner, vm))
 }
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 pub fn cairo_run_fuzzed_program(
     program: Program,
     cairo_run_config: &CairoRunConfig,

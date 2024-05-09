@@ -143,7 +143,13 @@ impl BuiltinRunner {
                 ))));
             }
             let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
+            let mut num_instances = self.get_used_instances(segments)?;
+            if matches!(self, BuiltinRunner::SegmentArena(_)) {
+                // SegmentArena builtin starts with one instance pre-loaded
+                // This is reflected in the builtin base's offset, but as we compare `stop_ptr.offset` agains `used`
+                // instead of comparing `stop_ptr` against `base + used` we need to account for the base offset (aka the pre-loaded instance) here
+                num_instances += 1;
+            }
             let used = num_instances * self.cells_per_instance() as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
@@ -446,7 +452,11 @@ impl BuiltinRunner {
         for i in 0..n {
             for j in 0..n_input_cells {
                 let offset = cells_per_instance * i + j;
-                if let None | Some(None) = builtin_segment.get(offset) {
+                if builtin_segment
+                    .get(offset)
+                    .filter(|x| x.is_some())
+                    .is_none()
+                {
                     missing_offsets.push(offset)
                 }
             }
@@ -463,7 +473,11 @@ impl BuiltinRunner {
         for i in 0..n {
             for j in n_input_cells..cells_per_instance {
                 let offset = cells_per_instance * i + j;
-                if let None | Some(None) = builtin_segment.get(offset) {
+                if builtin_segment
+                    .get(offset)
+                    .filter(|x| x.is_some())
+                    .is_none()
+                {
                     vm.verify_auto_deductions_for_addr(
                         Relocatable::from((builtin_segment_index as isize, offset)),
                         self,
@@ -651,6 +665,7 @@ mod tests {
     use crate::types::program::Program;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::vm::vm_memory::memory::MemoryCell;
     use crate::{utils::test_utils::*, vm::vm_core::VirtualMachine};
     use assert_matches::assert_matches;
 
@@ -1321,7 +1336,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments.memory.data = vec![vec![None, None, None]];
+        vm.segments.memory.data = vec![vec![MemoryCell::NONE, MemoryCell::NONE, MemoryCell::NONE]];
 
         assert_matches!(builtin.run_security_checks(&vm), Ok(()));
     }
