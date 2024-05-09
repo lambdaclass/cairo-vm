@@ -46,7 +46,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d713b3834d76b85304d4d525563c1276e2e30dc97cc67bfb4585a4a29fc2c89f"
 dependencies = [
  "cfg-if",
- "getrandom",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -905,7 +904,7 @@ dependencies = [
 name = "cairo-vm"
 version = "1.0.0-rc2"
 dependencies = [
- "ahash 0.8.6",
+ "ahash 0.8.9",
  "anyhow",
  "arbitrary",
  "ark-ff",

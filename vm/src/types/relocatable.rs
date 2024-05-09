@@ -29,7 +29,7 @@ impl Hash for Relocatable {
 }
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
-#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(Felt252),
