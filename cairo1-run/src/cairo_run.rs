@@ -615,12 +615,7 @@ fn runner_initialize(
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     add_output: bool,
 ) -> Result<Relocatable, Error> {
-    runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
-    runner.initialize_segments(vm, None);
-    // Calculate the size of the input arguments
-    let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
-        i + type_sizes.get(ty).cloned().unwrap_or_default()
-    });
+    let end = runner.initialize(vm, cairo_run_config.proof_mode)?;
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
         vm.builtin_runners
             .iter()
@@ -635,31 +630,8 @@ fn runner_initialize(
         (RangeCheckType::ID, BuiltinName::range_check),
         (PedersenType::ID, BuiltinName::pedersen),
     ]);
-    // Create return_fp & return_pc before creating segments for arguments & segment arena so we mantain a correct segment order
-    let return_fp = vm.add_memory_segment();
-    let return_pc = vm.add_memory_segment();
     // Create the stack that will be loaded into the execution segment
     let mut stack = Vec::<Option<MaybeRelocatable>>::new();
-    // Add the output builtin's base to the stack if present (we do this here as we won't find the output builtin in the function's signature)
-    if add_output {
-        stack.push(Some(
-            Relocatable::from((builtin_base(vm, BuiltinName::output), 0)).into(),
-        ));
-    }
-    // Add the builtin bases to the stack according to the function signature
-    for param in &main_func.signature.param_types {
-        let generic_id = &get_info(sierra_program_registry, param)
-            .ok_or_else(|| Error::NoInfoForType(param.clone()))?
-            .long_id
-            .generic_id;
-        if let Some(name) = builtin_names.get(generic_id) {
-            stack.push(Some(Relocatable::from((builtin_base(vm, *name), 0)).into()))
-        }
-    }
-    // Add the return_fp & return_pc to the stack
-    stack.push(Some(return_fp.into()));
-    stack.push(Some(return_pc.into()));
-
     // Add the segment_arena-related values to the stack
     let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
@@ -667,14 +639,12 @@ fn runner_initialize(
             .unwrap_or_default()
     });
     let segment_arena_ptr = if got_segment_arena {
-        input_size += 3; // The size of the segment_arena in the sierra type_sizes is smaller than its actual size in memory
         if add_output {
             // Leave a gap for builtin final stack used in segment validations
             // The validation loop will fill these gaps at the end of the program with the builtin's final pointers
             for _ in 0..runner.get_program().builtins_len() {
                 stack.push(None);
             }
-            input_size += runner.get_program().builtins_len() as i16;
         }
         let segment_arena_ptr = vm.add_memory_segment();
         let infos_ptr = vm.add_memory_segment();
@@ -732,9 +702,12 @@ fn runner_initialize(
     if args.next().is_some() {
         return Err(Error::ExcessArgument);
     }
-    let end =
-        runner.initialize_function_entrypoint_cairo_1(vm, stack, return_pc, input_size as usize)?;
-    runner.initialize_vm(vm)?;
+    // Load the stack into the execution segment
+    for (i, elem) in stack.iter().enumerate() {
+        if let Some(val) = elem {
+            vm.insert_value((vm.get_ap() + i).map_err(VirtualMachineError::Math)?, val)?;
+        }
+    }
     Ok(end)
 }
 
