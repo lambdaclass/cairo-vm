@@ -367,7 +367,7 @@ fn create_entry_code(
     let mut ctx = CasmBuilder::default();
     // Advance ap so that it points to the next free memory cell in the execution segment
     // The cells between the current AP pointer and the next free cell contain the arguments to the main function
-    // Which have been already filled during the initialization step
+    // which have been already filled during the initialization step
     let mut input_size = signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default() as usize
     });
