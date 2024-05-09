@@ -39,7 +39,7 @@ mod pedersen_test;
 mod struct_test;
 
 mod cairo_pie_test;
-#[cfg(feature = "skip_next_instruction_hint")]
+#[cfg(feature = "test_utils")]
 mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.

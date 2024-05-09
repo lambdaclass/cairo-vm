@@ -143,7 +143,13 @@ impl BuiltinRunner {
                 ))));
             }
             let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
+            let mut num_instances = self.get_used_instances(segments)?;
+            if matches!(self, BuiltinRunner::SegmentArena(_)) {
+                // SegmentArena builtin starts with one instance pre-loaded
+                // This is reflected in the builtin base's offset, but as we compare `stop_ptr.offset` agains `used`
+                // instead of comparing `stop_ptr` against `base + used` we need to account for the base offset (aka the pre-loaded instance) here
+                num_instances += 1;
+            }
             let used = num_instances * self.cells_per_instance() as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
