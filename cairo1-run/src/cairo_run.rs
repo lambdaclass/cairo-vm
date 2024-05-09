@@ -347,7 +347,7 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
-// Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by 
+// Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by
 // the instructions in the entry_code (produced by `create_entry_code`)
 
 /* Example of execution segment before running the main function:
@@ -1315,18 +1315,22 @@ mod tests {
         );
         let config_a = Cairo1RunConfig {
             layout: LayoutName::all_cairo,
-            args: &[FuncArg::Single(Felt252::ONE),
+            args: &[
+                FuncArg::Single(Felt252::ONE),
                 FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
                 FuncArg::Single(Felt252::TWO),
-                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE])],
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+            ],
             ..Default::default()
         };
         let config_b = Cairo1RunConfig {
             layout: LayoutName::all_cairo,
-            args: &[FuncArg::Single(Felt252::ZERO),
+            args: &[
+                FuncArg::Single(Felt252::ZERO),
                 FuncArg::Array(vec![Felt252::THREE]),
                 FuncArg::Single(Felt252::ZERO),
-                FuncArg::Array(vec![Felt252::TWO])],
+                FuncArg::Array(vec![Felt252::TWO]),
+            ],
             ..Default::default()
         };
         let runner_a = cairo_run_program(&sierra_program, config_a).unwrap().0;
