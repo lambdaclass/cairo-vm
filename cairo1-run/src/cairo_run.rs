@@ -623,10 +623,13 @@ fn runner_initialize(
 ) -> Result<Relocatable, Error> {
     runner.initialize_builtins(vm, cairo_run_config.proof_mode)?;
     runner.initialize_segments(vm, None);
+    // Calculate the size of the input arguments
     let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
+    // Store builtin bases values so we don't need to fetch them twice
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
+        dbg!(builtin_name);
         vm.builtin_runners
             .iter()
             .find(|b| b.name() == builtin_name)
@@ -643,14 +646,18 @@ fn runner_initialize(
         ),
         (PedersenType::ID, builtin_base(vm, BuiltinName::pedersen)),
     ]);
+    // Create return_fp & return_pc before creating segments for arguments & segment arena so we mantain a correct segment order
     let return_fp = vm.add_memory_segment();
     let return_pc = vm.add_memory_segment();
+    // Create the stack that will be loaded into the execution segment
     let mut stack = Vec::<Option<MaybeRelocatable>>::new();
+    // Add the output builtin's base to the stack if present (we do this here as we won't find the output builtin in the function's signature)
     if add_output {
         stack.push(Some(
             Relocatable::from((builtin_base(vm, BuiltinName::output), 0)).into(),
         ));
     }
+    // Add the builtin bases to the stack according to the function signature
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
@@ -660,33 +667,35 @@ fn runner_initialize(
             stack.push(Some(Relocatable::from((*base, 0)).into()))
         }
     }
+    // Add the return_fp & return_pc to the stack
     stack.push(Some(return_fp.into()));
     stack.push(Some(return_pc.into()));
 
+    // Add the segment_arena-related values to the stack
     let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
     let segment_arena_ptr = if got_segment_arena {
-        input_size += 3;
+        input_size += 3; // The size of the segment_arena in the sierra type_sizes is smaller than its actual size in memory
         if add_output {
             // Leave a gap for builtin final stack used in segment validations
+            // The validation loop will fill these gaps at the end of the program with the builtin's final pointers
             for _ in 0..runner.get_program().builtins_len() {
                 stack.push(None);
             }
-            input_size += 2;
+            input_size += runner.get_program().builtins_len() as i16;
         }
-        // Add segment_arena
-        let segment_arna_ptr = vm.add_memory_segment();
+        let segment_arena_ptr = vm.add_memory_segment();
         let infos_ptr = vm.add_memory_segment();
         stack.extend([
-            Some(segment_arna_ptr.into()),
+            Some(segment_arena_ptr.into()),
             Some(infos_ptr.into()),
             Some(Felt252::ZERO.into()),
         ]);
         vm.load_data(
-            segment_arna_ptr,
+            segment_arena_ptr,
             &vec![infos_ptr.into(), Felt252::ZERO.into(), Felt252::ZERO.into()],
         )?
     } else {
