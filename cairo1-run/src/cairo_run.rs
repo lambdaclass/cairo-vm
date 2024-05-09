@@ -616,6 +616,29 @@ fn runner_initialize(
     add_output: bool,
 ) -> Result<Relocatable, Error> {
     let end = runner.initialize(vm, cairo_run_config.proof_mode)?;
+    load_signature_params(
+        vm,
+        runner,
+        cairo_run_config,
+        main_func,
+        sierra_program_registry,
+        type_sizes,
+        add_output,
+    )?;
+    Ok(end)
+}
+
+// Loads the arguments of the main function into the execution segment
+// AP will need to be increased (via cairo instructions) by the size of these arguments after loading them in order to write into the execution segment
+fn load_signature_params(
+    vm: &mut VirtualMachine,
+    runner: &mut CairoRunner,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+    add_output: bool,
+) -> Result<(), Error> {
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
         vm.builtin_runners
             .iter()
@@ -708,7 +731,7 @@ fn runner_initialize(
             vm.insert_value((vm.get_ap() + i).map_err(VirtualMachineError::Math)?, val)?;
         }
     }
-    Ok(end)
+    Ok(())
 }
 
 fn fetch_return_values(
