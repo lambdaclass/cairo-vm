@@ -3818,9 +3818,7 @@ mod tests {
                     &mut HashMap::from([(
                         Relocatable::from((0, 0)),
                         (0_usize, NonZeroUsize::new(1).unwrap())
-                    )]
-                    .into_iter()
-                    .collect(),
+                    )]),
                     &HashMap::new(),
                 ),
                 Ok(())
