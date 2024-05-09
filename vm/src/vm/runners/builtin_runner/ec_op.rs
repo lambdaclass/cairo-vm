@@ -1,5 +1,5 @@
 use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
-use crate::stdlib::{borrow::Cow, prelude::*};
+use crate::stdlib::prelude::*;
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP, SCALAR_HEIGHT,
@@ -122,14 +122,13 @@ impl EcOpBuiltinRunner {
 
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
+        let mut input_cells = Vec::<Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
         for i in 0..INPUT_CELLS_PER_EC_OP as usize {
             match memory.get(&(instance + i)?) {
                 None => return Ok(None),
                 Some(addr) => {
-                    input_cells.push(match addr {
-                        // Only relocatable values can be owned
-                        Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
+                    input_cells.push(match addr.as_ref() {
+                        MaybeRelocatable::Int(num) => *num,
                         _ => {
                             return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
                                 Box::new((instance + i)?),
@@ -149,21 +148,21 @@ impl EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0],
-                input_cells[pair.1],
+                &input_cells[pair.0],
+                &input_cells[pair.1],
                 &alpha,
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve(Box::new((
-                    *input_cells[pair.0],
-                    *input_cells[pair.1],
+                    input_cells[pair.0],
+                    input_cells[pair.1],
                 ))));
             };
         }
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
-            input_cells[4],
+            &input_cells[4],
             SCALAR_HEIGHT,
         )?;
         self.cache.borrow_mut().insert(x_addr, result.0);
@@ -242,12 +241,12 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
-    use crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME;
     use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, felt_str, relocatable};
 
@@ -317,7 +316,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                EC_OP_BUILTIN_NAME,
+                BuiltinName::ec_op,
                 relocatable!(0, 994),
                 relocatable!(0, 0)
             ))))
@@ -368,7 +367,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::ec_op)))
         );
     }
 
@@ -834,7 +833,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
@@ -859,7 +858,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(

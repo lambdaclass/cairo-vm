@@ -1,6 +1,7 @@
 use core::cmp::max;
 use core::fmt;
 
+use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
 use num_traits::Zero;
 
@@ -293,8 +294,7 @@ impl MemorySegmentManager {
         for _ in 0..self.zero_segment_size.saturating_sub(size) {
             // As zero_segment_index is only accessible to the segment manager
             // we can asume that it is always valid and index direcly into it
-            self.memory.data[self.zero_segment_index]
-                .push(Some(MemoryCell::new(Felt252::ZERO.into())))
+            self.memory.data[self.zero_segment_index].push(MemoryCell::new(Felt252::ZERO.into()))
         }
         self.zero_segment_size = max(self.zero_segment_size, size);
         self.zero_segment_index
@@ -307,6 +307,22 @@ impl MemorySegmentManager {
             self.zero_segment_index = 0;
             self.zero_segment_size = 0;
         }
+    }
+
+    pub(crate) fn load_pie_memory(
+        &mut self,
+        pie_memory: &CairoPieMemory,
+        n_extra_segments: usize,
+    ) -> Result<(), MemoryError> {
+        // Create extra segments
+        for _ in 0..n_extra_segments {
+            self.add();
+        }
+        // Load previous execution memory
+        for ((si, so), val) in pie_memory.0.iter() {
+            self.memory.insert((*si as isize, *so).into(), val)?;
+        }
+        Ok(())
     }
 }
 
@@ -593,9 +609,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
+                MemoryCell::new(MaybeRelocatable::from((0, 1))),
+                MemoryCell::new(MaybeRelocatable::from((0, 2))),
+                MemoryCell::new(MaybeRelocatable::from((0, 3))),
             ]
         );
     }

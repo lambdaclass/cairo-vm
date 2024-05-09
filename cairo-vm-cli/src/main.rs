@@ -6,11 +6,14 @@ use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
+use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
+use cairo_vm::vm::runners::cairo_pie::CairoPie;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
+use cairo_vm::vm::runners::cairo_runner::RunResources;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::vm_core::VirtualMachine;
 #[cfg(feature = "with_tracer")]
@@ -42,8 +45,8 @@ struct Args {
     entrypoint: String,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", value_parser=validate_layout)]
-    layout: String,
+    #[clap(long = "layout", default_value = "plain", value_enum)]
+    layout: LayoutName,
     #[structopt(long = "proof_mode")]
     proof_mode: bool,
     #[structopt(long = "secure_run")]
@@ -67,22 +70,13 @@ struct Args {
     #[structopt(long = "tracer")]
     #[cfg(feature = "with_tracer")]
     tracer: bool,
-}
-
-fn validate_layout(value: &str) -> Result<String, String> {
-    match value {
-        "plain"
-        | "small"
-        | "dex"
-        | "recursive"
-        | "starknet"
-        | "starknet_with_keccak"
-        | "recursive_large_output"
-        | "all_cairo"
-        | "all_solidity"
-        | "dynamic" => Ok(value.to_string()),
-        _ => Err(format!("{value} is not a valid layout")),
-    }
+    #[structopt(
+        long = "run_from_cairo_pie",
+        // We need to add these air_private_input & air_public_input or else
+        // passing run_from_cairo_pie + either of these without proof_mode will not fail
+        conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
+    )]
+    run_from_cairo_pie: bool,
 }
 
 #[derive(Debug, Error)]
@@ -168,28 +162,38 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
-    let mut hint_executor = BuiltinHintProcessor::new_empty();
+
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
-        layout: &args.layout,
+        layout: args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         ..Default::default()
     };
 
-    let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
-
-    let (cairo_runner, mut vm) =
-        match cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_executor) {
-            Ok(runner) => runner,
-            Err(error) => {
-                eprintln!("{error}");
-                return Err(Error::Runner(error));
-            }
-        };
+    let (cairo_runner, mut vm) = match {
+        if args.run_from_cairo_pie {
+            let pie = CairoPie::read_zip_file(&args.filename)?;
+            let mut hint_processor = BuiltinHintProcessor::new(
+                Default::default(),
+                RunResources::new(pie.execution_resources.n_steps),
+            );
+            cairo_run::cairo_run_pie(&pie, &cairo_run_config, &mut hint_processor)
+        } else {
+            let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
+            let mut hint_processor = BuiltinHintProcessor::new_empty();
+            cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_processor)
+        }
+    } {
+        Ok(runner) => runner,
+        Err(error) => {
+            eprintln!("{error}");
+            return Err(Error::Runner(error));
+        }
+    };
 
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();
@@ -409,29 +413,5 @@ mod tests {
     #[test]
     fn test_main() {
         main().unwrap();
-    }
-
-    #[test]
-    fn test_valid_layouts() {
-        let valid_layouts = vec![
-            "plain",
-            "small",
-            "dex",
-            "starknet",
-            "starknet_with_keccak",
-            "recursive_large_output",
-            "all_cairo",
-            "all_solidity",
-        ];
-
-        for layout in valid_layouts {
-            assert_eq!(validate_layout(layout), Ok(layout.to_string()));
-        }
-    }
-
-    #[test]
-    fn test_invalid_layout() {
-        let invalid_layout = "invalid layout name";
-        assert!(validate_layout(invalid_layout).is_err());
     }
 }

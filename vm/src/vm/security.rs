@@ -65,10 +65,10 @@ pub fn verify_secure_runner(
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
     if !vm.segments.memory.temp_data.is_empty() {
         for value in vm.segments.memory.data.iter().flatten() {
-            match value.as_ref().map(|x| x.get_value()) {
+            match value.get_value() {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
-                        Box::new(*addr),
+                        Box::new(addr),
                     ))
                 }
                 _ => {}
@@ -86,8 +86,8 @@ pub fn verify_secure_runner(
 mod test {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::BuiltinName;
 
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::relocatable::Relocatable;
 
     use crate::Felt252;
