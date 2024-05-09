@@ -218,6 +218,13 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
+    load_arguments(
+        &mut vm,
+        &runner,
+        &cairo_run_config,
+        main_func,
+        &sierra_program_registry,
+    )?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
@@ -340,6 +347,62 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
+fn load_arguments(
+    vm: &mut VirtualMachine,
+    runner: &CairoRunner,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> Result<(), Error> {
+    let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    });
+    let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
+    // builtin bases (minus output) + segment arena (aka 3 + builtins)
+    let mut ap_offset = runner.get_program().builtins_len();
+    if append_output {
+        ap_offset -= 1;
+    }
+    if got_segment_arena {
+        ap_offset += 3;
+        if append_output {
+            ap_offset += runner.get_program().builtins_len();
+        }
+    }
+    for arg in cairo_run_config.args {
+        match arg {
+            FuncArg::Array(args) => {
+                let array_start = vm.add_memory_segment();
+                let array_end = vm.load_data(
+                    array_start,
+                    &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
+                )?;
+                vm.insert_value(
+                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_start,
+                )?;
+                ap_offset += 1;
+                vm.insert_value(
+                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_end,
+                )?;
+                ap_offset += 1;
+            }
+            FuncArg::Single(arg) => {
+                vm.insert_value(
+                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    arg,
+                )?;
+                ap_offset += 1;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -381,30 +444,6 @@ fn create_entry_code(
         }
         casm_build_extend!(ctx, ap += builtins.len(););
     }
-    // Load all vecs to memory.
-    // Load all array args content to memory.
-    let mut array_args_data = vec![];
-    for arg in config.args {
-        let FuncArg::Array(values) = arg else {
-            continue;
-        };
-        casm_build_extend! {ctx,
-            tempvar arr;
-            hint AllocSegment {} into {dst: arr};
-            ap += 1;
-        };
-        array_args_data.push(arr);
-        for (i, v) in values.iter().enumerate() {
-            casm_build_extend! {ctx,
-                const cvalue = v.to_bigint();
-                tempvar value = cvalue;
-                assert value = arr[i.to_i16().unwrap()];
-            };
-        }
-    }
-    let mut array_args_data_iter = array_args_data.into_iter();
-    let mut arg_iter = config.args.iter().enumerate();
-    let mut param_index = 0;
     let mut expected_arguments_size = 0;
     if got_segment_arena {
         // Allocating the segment arena and initializing it.
@@ -443,39 +482,12 @@ fn create_entry_code(
             };
         } else {
             let ty_size = type_sizes[ty];
-            let mut param_accum_size = 0;
+            // We already loaded these arguments
+            casm_build_extend!(ctx,
+                ap+=ty_size as usize;
+            );
             expected_arguments_size += ty_size;
-            while param_accum_size < ty_size {
-                let Some((arg_index, arg)) = arg_iter.next() else {
-                    break;
-                };
-                match arg {
-                    FuncArg::Single(value) => {
-                        casm_build_extend! {ctx,
-                            const value = value.to_bigint();
-                            tempvar _value = value;
-                        };
-                        param_accum_size += 1;
-                    }
-                    FuncArg::Array(values) => {
-                        let var = array_args_data_iter.next().unwrap();
-                        casm_build_extend! {ctx,
-                            const length = values.len();
-                            tempvar start = var;
-                            tempvar end = var + length;
-                        };
-                        param_accum_size += 2;
-                        if param_accum_size > ty_size {
-                            return Err(Error::ArgumentUnaligned {
-                                param_index,
-                                arg_index,
-                            });
-                        }
-                    }
-                }
-            }
-            param_index += 1;
-        };
+        }
     }
     let actual_args_size = config
         .args
