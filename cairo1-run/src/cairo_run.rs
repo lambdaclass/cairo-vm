@@ -140,8 +140,6 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let initial_gas = 9999999999999_usize;
-
     // Modified entry code to be compatible with custom cairo1 Proof Mode.
     // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
     let (entry_code, builtins) = create_entry_code(
@@ -149,7 +147,6 @@ pub fn cairo_run_program(
         &casm_program,
         &type_sizes,
         main_func,
-        initial_gas,
         &cairo_run_config,
     )?;
 
@@ -365,13 +362,12 @@ fn create_entry_code(
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
-    _initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.proof_mode || config.append_return_values;
     let signature = &func.signature;
     // The builtins in the formatting expected by the runner.
-    let (builtins, _) = get_function_builtins(&signature.param_types, copy_to_output_builtin);
+    let builtins = get_function_builtins(&signature.param_types, copy_to_output_builtin);
     let mut ctx = CasmBuilder::default();
     // Getting a variable pointing to the location of each builtin.
     let got_segment_arena = signature.param_types.iter().any(|ty| {
@@ -559,27 +555,20 @@ fn is_builtin_id(id: &GenericTypeId) -> bool {
 fn get_function_builtins(
     params: &[cairo_lang_sierra::ids::ConcreteTypeId],
     append_output: bool,
-) -> (
-    Vec<BuiltinName>,
-    HashMap<cairo_lang_sierra::ids::GenericTypeId, i16>,
-) {
+) -> Vec<BuiltinName> {
     let mut builtins = Vec::new();
-    let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
-    let mut current_offset = 3;
-    for (debug_name, builtin_name, sierra_id) in [
-        ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
-        ("EcOp", BuiltinName::ec_op, EcOpType::ID),
-        ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
-        ("RangeCheck", BuiltinName::range_check, RangeCheckType::ID),
-        ("Pedersen", BuiltinName::pedersen, PedersenType::ID),
+    for (debug_name, builtin_name) in [
+        ("Poseidon", BuiltinName::poseidon),
+        ("EcOp", BuiltinName::ec_op),
+        ("Bitwise", BuiltinName::bitwise),
+        ("RangeCheck", BuiltinName::range_check),
+        ("Pedersen", BuiltinName::pedersen),
     ] {
         if params
             .iter()
             .any(|id| id.debug_name.as_deref() == Some(debug_name))
         {
             builtins.push(builtin_name);
-            builtin_offset.insert(sierra_id, current_offset);
-            current_offset += 1;
         }
     }
     // Force an output builtin so that we can write the program output into it's segment
@@ -587,7 +576,7 @@ fn get_function_builtins(
         builtins.push(BuiltinName::output);
     }
     builtins.reverse();
-    (builtins, builtin_offset)
+    builtins
 }
 
 // Mirrors runner.initialize() but also adds entrypoint args & gas builtin
@@ -627,7 +616,6 @@ fn runner_initialize(
     let mut input_size = main_func.signature.param_types.iter().fold(0, |i, ty| {
         i + type_sizes.get(ty).cloned().unwrap_or_default()
     });
-    // Store builtin bases values so we don't need to fetch them twice
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
         vm.builtin_runners
             .iter()
@@ -698,6 +686,7 @@ fn runner_initialize(
         // Dummy value as it wont be used
         Relocatable::default()
     };
+    // Add arguments to the "main" function to the stack according to it's signature
     let mut args = cairo_run_config.args.iter();
     for param in &main_func.signature.param_types {
         let generic_id = &get_info(sierra_program_registry, param)
@@ -707,7 +696,7 @@ fn runner_initialize(
         if let Some(name) = builtin_names.get(generic_id) {
             stack.push(Some(Relocatable::from((builtin_base(vm, *name), 0)).into()))
         } else if generic_id == &GasBuiltinType::ID {
-            stack.push(Some(MaybeRelocatable::from(999999999))); // initial gas
+            stack.push(Some(MaybeRelocatable::from(9999999999999_usize))); // initial gas
         } else if generic_id == &SegmentArenaType::ID {
             stack.push(Some(segment_arena_ptr.into()));
         } else {
