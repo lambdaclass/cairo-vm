@@ -407,6 +407,10 @@ fn load_arguments(
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
+    if cairo_run_config.args.is_empty() {
+        // Nothing to be done
+        return Ok(())
+    }
     let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
         ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena")
     });
