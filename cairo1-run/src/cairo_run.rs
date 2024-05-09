@@ -357,15 +357,26 @@ fn create_entry_code(
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.proof_mode || config.append_return_values;
     let signature = &func.signature;
-    // The builtins in the formatting expected by the runner.
-    let builtins = get_function_builtins(&signature.param_types, copy_to_output_builtin);
-    let mut ctx = CasmBuilder::default();
-    // Getting a variable pointing to the location of each builtin.
     let got_segment_arena = signature.param_types.iter().any(|ty| {
         get_info(sierra_program_registry, ty)
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
+    // The builtins in the formatting expected by the runner.
+    let builtins = get_function_builtins(&signature.param_types, copy_to_output_builtin);
+    let mut ctx = CasmBuilder::default();
+    // Advance ap so that it points to the next free memory cell in the execution segment
+    let mut input_size = signature.param_types.iter().fold(0, |i, ty| {
+        i + type_sizes.get(ty).cloned().unwrap_or_default() as usize
+    });
+    if got_segment_arena {
+        input_size += 3;
+        if copy_to_output_builtin {
+            input_size += builtins.len();
+        }
+    }
+    casm_build_extend!(ctx, ap+=input_size;);
+    // Getting a variable pointing to the location of each builtin.
     let mut builtin_vars = HashMap::new();
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
@@ -390,7 +401,6 @@ fn create_entry_code(
             fp_offset += 1;
         }
     }
-
     casm_build_extend!(ctx, let () = call FUNCTION;);
 
     let return_type_id = signature.ret_types.last();
@@ -592,7 +602,7 @@ fn get_function_builtins(
 After initialization, the registers will have the following values:
 PC: 0:0 (As the cairo 1 entrycode contains instructions to call the function's entrypoint)
 FP: &return_pc (The FP register needs to point to the return_pc, so it will lag behind the AP register in this case)
-AP: Will point to the next free memory cell in the execution segment
+AP: Same as FP (An instruction will be added to advance AP by the input_size at the start of the entry_code so we can write into AP)
 */
 fn runner_initialize(
     runner: &mut CairoRunner,

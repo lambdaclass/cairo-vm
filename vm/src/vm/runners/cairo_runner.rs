@@ -528,7 +528,7 @@ impl CairoRunner {
        And the corresponding inital pointers:
        PC: 0:0
        FP: 0:3 (Points to return_pc 5:0)
-       AP: 0:8 (Points to next free memory slot in execution segment)
+       AP: 0:3 (Needs to be advanced to 0:8 via a cairo instruction so that it points to next free memory slot in execution segment)
     */
     pub fn initialize_function_entrypoint_cairo_1(
         &mut self,
@@ -545,10 +545,7 @@ impl CairoRunner {
                 segment_index: base.segment_index,
                 offset: base.offset + stack.len() - input_size,
             });
-            self.initial_ap = Some(Relocatable {
-                segment_index: base.segment_index,
-                offset: base.offset + stack.len(),
-            });
+            self.initial_ap = self.initial_fp;
         } else {
             return Err(RunnerError::NoExecBase);
         }
