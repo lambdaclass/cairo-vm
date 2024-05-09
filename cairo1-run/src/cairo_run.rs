@@ -629,22 +629,18 @@ fn runner_initialize(
     });
     // Store builtin bases values so we don't need to fetch them twice
     let builtin_base = |vm: &VirtualMachine, builtin_name: BuiltinName| -> isize {
-        dbg!(builtin_name);
         vm.builtin_runners
             .iter()
             .find(|b| b.name() == builtin_name)
             .unwrap()
             .base() as isize
     };
-    let builtin_bases = HashMap::from([
-        (PoseidonType::ID, builtin_base(vm, BuiltinName::poseidon)),
-        (EcOpType::ID, builtin_base(vm, BuiltinName::ec_op)),
-        (BitwiseType::ID, builtin_base(vm, BuiltinName::bitwise)),
-        (
-            RangeCheckType::ID,
-            builtin_base(vm, BuiltinName::range_check),
-        ),
-        (PedersenType::ID, builtin_base(vm, BuiltinName::pedersen)),
+    let builtin_names = HashMap::from([
+        (PoseidonType::ID, BuiltinName::poseidon),
+        (EcOpType::ID, BuiltinName::ec_op),
+        (BitwiseType::ID, BuiltinName::bitwise),
+        (RangeCheckType::ID, BuiltinName::range_check),
+        (PedersenType::ID, BuiltinName::pedersen),
     ]);
     // Create return_fp & return_pc before creating segments for arguments & segment arena so we mantain a correct segment order
     let return_fp = vm.add_memory_segment();
@@ -663,8 +659,8 @@ fn runner_initialize(
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
             .long_id
             .generic_id;
-        if let Some(base) = builtin_bases.get(generic_id) {
-            stack.push(Some(Relocatable::from((*base, 0)).into()))
+        if let Some(name) = builtin_names.get(generic_id) {
+            stack.push(Some(Relocatable::from((builtin_base(vm, *name), 0)).into()))
         }
     }
     // Add the return_fp & return_pc to the stack
@@ -708,8 +704,8 @@ fn runner_initialize(
             .ok_or_else(|| Error::NoInfoForType(param.clone()))?
             .long_id
             .generic_id;
-        if let Some(base) = builtin_bases.get(generic_id) {
-            stack.push(Some(Relocatable::from((*base, 0)).into()))
+        if let Some(name) = builtin_names.get(generic_id) {
+            stack.push(Some(Relocatable::from((builtin_base(vm, *name), 0)).into()))
         } else if generic_id == &GasBuiltinType::ID {
             stack.push(Some(MaybeRelocatable::from(999999999))); // initial gas
         } else if generic_id == &SegmentArenaType::ID {
