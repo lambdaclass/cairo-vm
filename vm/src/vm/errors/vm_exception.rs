@@ -309,6 +309,7 @@ impl Location {
 #[cfg(test)]
 mod test {
     use crate::stdlib::{boxed::Box, collections::HashMap};
+    use crate::types::layout_name::LayoutName;
     use assert_matches::assert_matches;
     #[cfg(feature = "std")]
     use std::path::Path;
@@ -656,10 +657,10 @@ mod test {
         .expect("Call to `Program::from_file()` failed.");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -670,10 +671,10 @@ mod test {
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -708,10 +709,10 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 ";
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         assert!(cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .is_err());
@@ -867,10 +868,10 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -912,10 +913,10 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -951,10 +952,10 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -990,10 +991,10 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -1029,10 +1030,10 @@ cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();
@@ -1066,10 +1067,10 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, "all_cairo", false);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
         let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm).unwrap();
+        let end = cairo_runner.initialize(&mut vm, false).unwrap();
         let error = cairo_runner
             .run_until_pc(end, &mut vm, &mut hint_processor)
             .unwrap_err();

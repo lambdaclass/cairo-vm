@@ -1,7 +1,7 @@
 //! # Program deserialization
 //!
 //! This module contains the logic for [`Program`] deserialization.
-//! Users shouldn't need to use it directly (except for [`BuiltinName`]).
+//! Users shouldn't need to use it directly
 //!
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
@@ -13,11 +13,11 @@ use crate::{
         prelude::*,
         sync::Arc,
     },
+    types::builtin_name::BuiltinName,
     utils::CAIRO_PRIME,
 };
 
 use crate::utils::PRIME_STR;
-use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
@@ -27,53 +27,16 @@ use crate::{
         program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
-    vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-        SIGNATURE_BUILTIN_NAME,
-    },
 };
 use num_bigint::BigUint;
 use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary, Unstructured};
 
-// This enum is used to deserialize program builtins into &str and catch non-valid names
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
-#[allow(non_camel_case_types)]
-pub enum BuiltinName {
-    output,
-    range_check,
-    pedersen,
-    ecdsa,
-    keccak,
-    bitwise,
-    ec_op,
-    poseidon,
-    segment_arena,
-}
-
-impl BuiltinName {
-    pub fn name(&self) -> &'static str {
-        match self {
-            BuiltinName::output => OUTPUT_BUILTIN_NAME,
-            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
-            BuiltinName::pedersen => HASH_BUILTIN_NAME,
-            BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME,
-            BuiltinName::keccak => KECCAK_BUILTIN_NAME,
-            BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
-            BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
-            BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
-            BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
-        }
-    }
-}
-
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
@@ -88,7 +51,7 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -96,7 +59,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -104,7 +67,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -126,7 +89,7 @@ impl Default for ApTracking {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -141,24 +104,21 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
-    #[cfg_attr(
-        all(feature = "arbitrary", feature = "std"),
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "test_utils", serde(skip_serializing_if = "Option::is_none"))]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -172,14 +132,14 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         arbitrary_parent_location(u, 20)
     }
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Result<Location> {
     let parent_location = if depth > 0 {
         Some((
@@ -199,26 +159,48 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+impl DebugInfo {
+    pub fn new(instruction_locations: HashMap<usize, InstructionLocation>) -> Self {
+        Self {
+            instruction_locations,
+        }
+    }
+    pub fn get_instruction_locations(&self) -> HashMap<usize, InstructionLocation> {
+        self.instruction_locations.clone()
+    }
+}
+
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+impl InputFile {
+    #[cfg(feature = "std")]
+    pub fn get_content(&self) -> Result<String, String> {
+        let content = std::fs::read_to_string(self.filename.clone());
+        if let Ok(content) = content {
+            return Ok(content);
+        }
+        Err(format!("Failed to read file {}", self.filename.clone()))
+    }
+}
+
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -266,13 +248,13 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
@@ -282,7 +264,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
@@ -290,13 +272,14 @@ pub enum OffsetValue {
     Reference(Register, i32, bool),
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
-    pub offset1: OffsetValue,
-    pub offset2: OffsetValue,
-    pub dereference: bool,
-    pub value_type: String,
+    pub offset1: OffsetValue,    // A in cast(A + B, type)
+    pub offset2: OffsetValue,    // B in cast(A + B, type)
+    pub outer_dereference: bool, // [] in [cast(A + B, type)]
+    pub inner_dereference: bool, // [] in cast([A + B], type)
+    pub value_type: String,      // type in cast(A + B, type)
 }
 
 impl ValueAddress {
@@ -311,7 +294,8 @@ impl ValueAddress {
         ValueAddress {
             offset1: OffsetValue::Value(99),
             offset2: OffsetValue::Value(99),
-            dereference: false,
+            outer_dereference: false,
+            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -726,7 +710,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -4, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -739,7 +724,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -752,7 +738,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
                         offset2: OffsetValue::Immediate(Felt252::from(2)),
-                        dereference: false,
+                        outer_dereference: false,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -765,7 +752,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, 0, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },

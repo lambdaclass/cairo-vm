@@ -15,7 +15,7 @@ use crate::vm::vm_core::VirtualMachine;
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
 use crate::Felt252;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
 pub trait HintProcessorLogic {
@@ -98,12 +98,13 @@ fn get_ids_data(
     Ok(ids_data)
 }
 
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HintReference {
     pub offset1: OffsetValue,
     pub offset2: OffsetValue,
-    pub dereference: bool,
+    pub inner_dereference: bool,
+    pub outer_dereference: bool,
     pub ap_tracking_data: Option<ApTracking>,
     pub cairo_type: Option<String>,
 }
@@ -114,7 +115,8 @@ impl HintReference {
             offset1: OffsetValue::Reference(Register::FP, offset1, false),
             offset2: OffsetValue::Value(0),
             ap_tracking_data: None,
-            dereference: true,
+            outer_dereference: true,
+            inner_dereference: false,
             cairo_type: None,
         }
     }
@@ -124,7 +126,8 @@ impl HintReference {
             offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference),
             offset2: OffsetValue::Value(offset2),
             ap_tracking_data: None,
-            dereference,
+            outer_dereference: dereference,
+            inner_dereference: false,
             cairo_type: None,
         }
     }
@@ -135,7 +138,8 @@ impl From<Reference> for HintReference {
         HintReference {
             offset1: reference.value_address.offset1.clone(),
             offset2: reference.value_address.offset2.clone(),
-            dereference: reference.value_address.dereference,
+            outer_dereference: reference.value_address.outer_dereference,
+            inner_dereference: reference.value_address.inner_dereference,
             // only store `ap` tracking data if the reference is referred to it
             ap_tracking_data: match (
                 &reference.value_address.offset1,

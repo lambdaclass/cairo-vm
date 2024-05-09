@@ -3,8 +3,6 @@ use core::ops::Shl;
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
-use crate::types::errors::math_errors::MathError;
-use crate::utils::biguint_to_felt;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -130,8 +128,8 @@ pub fn nondet_bigint3(
         .ok_or(HintError::BigIntToBigUintFail)?;
     let arg: Vec<MaybeRelocatable> = bigint3_split(&value)?
         .into_iter()
-        .map(|ref n| biguint_to_felt(n).map(MaybeRelocatable::from))
-        .collect::<Result<Vec<MaybeRelocatable>, MathError>>()?;
+        .map(|ref n| Felt252::from(n).into())
+        .collect::<Vec<MaybeRelocatable>>();
     vm.write_arg(res_reloc, &arg).map_err(HintError::Memory)?;
     Ok(())
 }

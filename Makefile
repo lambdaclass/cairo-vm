@@ -13,13 +13,14 @@ ifndef PROPTEST_CASES
 endif
 
 .PHONY: build-cairo-1-compiler build-cairo-1-compiler-macos build-cairo-2-compiler build-cairo-2-compiler-macos \
-	deps deps-macos cargo-deps build run check test clippy coverage benchmark \
+	deps deps-macos cargo-deps build run check test clippy coverage benchmark flamegraph\
 	compare_benchmarks_deps compare_benchmarks docs clean \
 	compare_trace_memory compare_trace compare_memory compare_pie compare_all_no_proof \
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
+	hyper-threading-benchmarks \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
-	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \
+	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -48,6 +49,10 @@ PROOF_BENCH_DIR=cairo_programs/benchmarks
 PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
 PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR)/%.json, $(PROOF_BENCH_FILES))
 
+MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
+MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
+COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
+
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
@@ -59,6 +64,9 @@ $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_pub
 
 $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
+
+$(MOD_BUILTIN_TEST_PROOF_DIR)/%.json: $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo
+	cairo-compile --cairo_path="$(MOD_BUILTIN_TEST_PROOF_DIR):$(MOD_BUILTIN_TEST_PROOF_DIR)" $< --output $@ --proof_mode
 
 # ======================
 # Run without proof mode
@@ -85,6 +93,10 @@ COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, 
 PRINT_TEST_DIR=cairo_programs/print_feature
 PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
 COMPILED_PRINT_TESTS:=$(patsubst $(PRINT_TEST_DIR)/%.cairo, $(PRINT_TEST_DIR)/%.json, $(PRINT_TEST_FILES))
+
+MOD_BUILTIN_TEST_DIR=cairo_programs/mod_builtin_feature
+MOD_BUILTIN_TEST_FILES:=$(wildcard $(MOD_BUILTIN_TEST_DIR)/*.cairo)
+COMPILED_MOD_BUILTIN_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_DIR)/%.cairo, $(MOD_BUILTIN_TEST_DIR)/%.json, $(MOD_BUILTIN_TEST_FILES))
 
 NORETROCOMPAT_DIR:=cairo_programs/noretrocompat
 NORETROCOMPAT_FILES:=$(wildcard $(NORETROCOMPAT_DIR)/*.cairo)
@@ -168,7 +180,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.4.2
+CAIRO_2_VERSION = 2.5.4
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
@@ -187,17 +199,16 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
-	# cargo install --version 0.6.1 flamegraph
+	cargo install --version 0.6.1 flamegraph --locked
 	cargo install --version 1.14.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest
+	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack
+	cargo install --version 0.12.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
+deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -207,7 +218,7 @@ deps: cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
 	. cairo-vm-env/bin/activate ; \
 	pip install -r requirements.txt ; \
 
-deps-macos: cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
+deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
 	arch -x86_64 pyenv install -s pypy3.9-7.3.9
 	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
 	. cairo-vm-pypy-env/bin/activate ; \
@@ -228,8 +239,8 @@ run:
 check:
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS)
-cairo_proof_programs: $(COMPILED_PROOF_TESTS)
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS)
+cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
@@ -279,9 +290,8 @@ benchmark-action: cairo_bench_programs
 iai-benchmark-action: cairo_bench_programs
 	cargo bench --bench iai_benchmark
 
-# Temporarily removed due to version issues. Installing cargo flamegraph pumps an error in rust 1.70
-# flamegraph:
-# 	cargo flamegraph --root --bench criterion_benchmark -- --bench
+flamegraph:
+	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
 compare_benchmarks: cairo_bench_programs
 	cd bench && ./run_benchmarks.sh
@@ -319,6 +329,9 @@ compare_air_private_input: $(CAIRO_RS_AIR_PRIVATE_INPUT) $(CAIRO_AIR_PRIVATE_INP
 compare_pie: $(CAIRO_RS_PIE) $(CAIRO_PIE)
 	cd vm/src/tests; ./compare_vm_state.sh pie
 
+compare_all_pie_outputs: $(CAIRO_RS_PIE)
+	cd vm/src/tests; ./compare_all_pie_outputs.sh
+
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
 	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --verbose --release --locked --no-deps --all-features --open
@@ -328,11 +341,13 @@ clean:
 	rm -f $(TEST_DIR)/*.memory
 	rm -f $(TEST_DIR)/*.trace
 	rm -f $(TEST_DIR)/*.pie.zip
+	rm -f $(TEST_DIR)/*.pie
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(TEST_PROOF_DIR)/*.cairo
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
 	rm -f $(TEST_PROOF_DIR)/*.json
@@ -374,3 +389,9 @@ build-cairo-lang: | $(CAIRO_LANG_REPO_DIR)
 hint-accountant: build-cairo-lang
 	cargo r -p hint_accountant
 
+create-proof-programs-symlinks:
+	cd cairo_programs/proof_programs; ln -s ../*.cairo .
+
+hyper-threading-benchmarks: cairo_bench_programs
+	cargo build -p hyper_threading --release && \
+	sh examples/hyper_threading/hyper-threading.sh

@@ -21,42 +21,45 @@ A faster and safer implementation of the Cairo VM in Rust
 
 ## Table of Contents
 
-- [Disclaimer](#%EF%B8%8F-disclaimer)
-- [About](#-about)
+- [Table of Contents](#table-of-contents)
+- [📖 About](#-about)
   - [The Cairo language](#the-cairo-language)
-- [Getting Started](#-getting-started)
+- [🌅 Getting Started](#-getting-started)
   - [Dependencies](#dependencies)
-- [Usage](#-usage)
+    - [Required](#required)
+    - [Optional](#optional)
+    - [Installation script](#installation-script)
+- [🚀 Usage](#-usage)
   - [Adding cairo-vm as a dependency](#adding-cairo-vm-as-a-dependency)
-  - [Running cairo-vm from the CLI](#running-cairo-vm-from-cli)
+  - [Running cairo-vm from CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
   - [WebAssembly Demo](#webassembly-demo)
   - [Testing](#testing)
-- [Benchmarks](#-benchmarks)
-- [Changelog](#-changelog)
-- [Contributing](#-contributing)
-- [Related Projects](#-related-projects)
-- [Documentation](#-documentation)
+  - [Tracer](#tracer)
+- [📊 Benchmarks](#-benchmarks)
+- [📜 Changelog](#-changelog)
+- [🛠 Contributing](#-contributing)
+- [🌞 Related Projects](#-related-projects)
+- [📚 Documentation](#-documentation)
   - [Cairo](#cairo)
   - [Original Cairo VM Internals](#original-cairo-vm-internals)
   - [Compilers and Interpreters](#compilers-and-interpreters)
   - [StarkNet](#starknet)
-  - [Computational Integrity and Zero-Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
-- [License](#%EF%B8%8F-license)
+  - [Computational Integrity and Zero Knowledge Proofs](#computational-integrity-and-zero-knowledge-proofs)
+    - [Basics](#basics)
+    - [ZK SNARKs](#zk-snarks)
+    - [STARKs](#starks)
+- [⚖️ License](#️-license)
 
-## ⚠️ Disclaimer
-
-🚧 `cairo-vm` is still being built therefore breaking changes might happen often so use it at your own risk. 🚧
-Cargo doesn't comply with [semver](https://semver.org/), so we advise to pin the version to 0.1.0. This can be done adding `cairo-vm = "0.1.0"` to your Cargo.toml
 
 ## 📖 About
 
 Cairo VM is the virtual machine for the [Cairo language](https://www.cairo-lang.org/).
 
-There's an older version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which is **currently in production**.
+Previously, there was a version of [Cairo VM](https://github.com/starkware-libs/cairo-lang) written in Python, which **was used in production**.
 
-This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Once completed, it will replace the older one as the sole Cairo VM.
+This repository contains the newer version, written in Rust. It's faster and has safer and more expressive typing. Now in production, it has replaced the older Python version to become the primary Cairo VM.
 
 ### The Cairo language
 
@@ -72,7 +75,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 These are needed in order to compile and use the project.
 
-- [Rust 1.70.0 or newer](https://www.rust-lang.org/tools/install)
+- [Rust 1.74.1 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
 #### Optional
@@ -105,20 +108,16 @@ You can then activate this environment by running
 You can add the following to your rust project's `Cargo.toml`:
 
 ```toml
-cairo-vm = { version = '0.7.0', features = ["lambdaworks-felt"] }
+cairo-vm = { version = '0.7.0'}
 ```
-
-The `features = ["lambdaworks-felt"]` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
 
 ### Running cairo-vm from CLI
 
 To run programs from the command line, first compile the repository from the cairo-vm-cli folder:
 
 ```bash
-cd cairo-vm-cli; cargo build --release -F lambdaworks-felt; cd ..
+cd cairo-vm-cli; cargo build --release; cd ..
 ```
-
-The `-F lambdaworks-felt` part adds usage of [`lambdaworks-math`](https://github.com/lambdaclass/lambdaworks) as the backend for `Felt252`. This improves performance by more than 20%, and will be the default in the future.
 
 Once the binary is built, it can be found in `target/release/` under the name `cairo-vm-cli`.
 
@@ -139,7 +138,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 
-The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+The flag `--layout` determines which builtins can be used. More info about layouts [here](https://docs.cairo-lang.org/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
@@ -169,13 +168,17 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `--proof_mode`: Runs the program in proof_mode
 
-- `--secure_run`: Runs security checks after execution. Enabled by default when not in proof_mode
+- `--secure_run`: Runs security checks after execution. Enabled by default when not in proof_mode.
 
 - `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
 
 - `--air_private_input <AIR_PRIVATE_INPUT>`: Receives the name of a file and outputs the AIR private inputs into it. Can only be used if proof_mode, trace_file & memory_file are also enabled.
 
-- `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
+- `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode is not enabled.
+
+- `--allow_missing_builtins`: Disables the check that all builtins used by the program need to be included in the selected layout. Enabled by default when in proof_mode.
+
+- `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
@@ -208,7 +211,7 @@ When running a Cairo program directly using the Cairo-vm repository you would fi
   ```rust
   let mut vm = VirtualMachine::new(false);
 
-  let mut cairo_runner = CairoRunner::new(&program, "all_cairo", false);
+  let mut cairo_runner = CairoRunner::new(&program, LayoutName::all_cairo, false);
 
   let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -262,6 +265,10 @@ Now that you have the dependencies necessary to run the test suite you can run:
 make test
 ```
 
+### Tracer
+
+Cairo-vm offers a tracer which gives you a visualization of how your memory and registers change line after line as the VM executes the code. You can read more about it [here](./docs/tracer/README.md)
+
 ## 📊 Benchmarks
 
 Running a [Cairo program](./cairo_programs/benchmarks/big_fibonacci.cairo) that gets the 1.5 millionth Fibonacci number we got the following benchmarks:
@@ -289,6 +296,12 @@ Run only the `iai_benchmark` benchmark suite with cargo:
 ```bash
 cargo bench --bench iai_benchmark
 ```
+
+Benchmark the `cairo-vm` in a hyper-threaded environment with the [`examples/hyper_threading/ crate`](examples/hyper_threading/)
+```bash
+make hyper-threading-benchmarks
+```
+
 
 ## 📜 Changelog
 
@@ -319,7 +332,7 @@ You can find more detailed instructions in the [CONTRIBUTING.md](CONTRIBUTING.md
 
 ### Cairo
 
-- From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
+- From Cairo Documentation: [How Cairo Works](https://docs.cairo-lang.org/how_cairo_works/index.html)
 - [Cairo – a Turing-complete STARK-friendly CPU architecture](https://eprint.iacr.org/2021/1063)
 - [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 - [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust

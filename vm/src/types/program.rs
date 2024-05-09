@@ -13,30 +13,29 @@ use crate::{
 
 #[cfg(feature = "cairo-1-hints")]
 use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
-#[cfg(feature = "cairo-1-hints")]
-use crate::utils::biguint_to_felt;
 use crate::utils::PRIME_STR;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
-        InstructionLocation, OffsetValue, ReferenceManager,
+        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
+        OffsetValue, ReferenceManager,
     },
     types::{
         errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,
     },
 };
 #[cfg(feature = "cairo-1-hints")]
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
+use super::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use super::relocatable::Relocatable;
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{Arbitrary, Unstructured};
 
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
@@ -74,7 +73,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) reference_manager: Vec<HintReference>,
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for SharedProgramData {
     /// Create an arbitary [`SharedProgramData`] using `HintsCollection::new` to generate `hints` and
     /// `hints_ranges`
@@ -198,7 +197,7 @@ type HintRange = Option<(usize, NonZeroUsize)>;
 #[cfg(feature = "extensive_hints")]
 pub type HintRange = (usize, NonZeroUsize);
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
@@ -310,6 +309,22 @@ impl Program {
         self.shared_program_data.identifiers.get(id)
     }
 
+    pub fn get_relocated_instruction_locations(
+        &self,
+        relocation_table: &[usize],
+    ) -> Option<HashMap<usize, InstructionLocation>> {
+        self.shared_program_data.instruction_locations.as_ref()?;
+        let relocated_instructions = self
+            .shared_program_data
+            .instruction_locations
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k + relocation_table[0], v.clone()))
+            .collect();
+        Some(relocated_instructions)
+    }
+
     pub fn iter_identifiers(&self) -> impl Iterator<Item = (&str, &Identifier)> {
         self.shared_program_data
             .identifiers
@@ -325,7 +340,8 @@ impl Program {
                 HintReference {
                     offset1: r.value_address.offset1.clone(),
                     offset2: r.value_address.offset2.clone(),
-                    dereference: r.value_address.dereference,
+                    outer_dereference: r.value_address.outer_dereference,
+                    inner_dereference: r.value_address.inner_dereference,
                     // only store `ap` tracking data if the reference is referred to it
                     ap_tracking_data: match (&r.value_address.offset1, &r.value_address.offset2) {
                         (OffsetValue::Reference(Register::AP, _, _), _)
@@ -370,6 +386,18 @@ impl Program {
         })
     }
 
+    pub fn from_stripped_program(stripped: &StrippedProgram) -> Program {
+        Program {
+            shared_program_data: Arc::new(SharedProgramData {
+                data: stripped.data.clone(),
+                main: Some(stripped.main),
+                ..Default::default()
+            }),
+            constants: Default::default(),
+            builtins: stripped.builtins.clone(),
+        }
+    }
+
     pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
         let program_serializer: ProgramSerializer = ProgramSerializer::from(self);
         let bytes: Vec<u8> = serde_json::to_vec(&program_serializer)?;
@@ -406,7 +434,7 @@ impl TryFrom<CasmContractClass> for Program {
         let data = value
             .bytecode
             .iter()
-            .map(|x| MaybeRelocatable::from(biguint_to_felt(&x.value).unwrap_or_default()))
+            .map(|x| MaybeRelocatable::from(Felt252::from(&x.value)))
             .collect();
         //Hint data is going to be hosted processor-side, hints field will only store the pc where hints are located.
         // Only one pc will be stored, so the hint processor will be responsible for executing all hints for a given pc
@@ -481,7 +509,7 @@ mod tests {
 
     use super::*;
     use crate::felt_hex;
-    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData};
+    use crate::serde::deserialize_program::{ApTracking, FlowTrackingData, InputFile, Location};
     use crate::utils::test_utils::*;
 
     use assert_matches::assert_matches;
@@ -945,6 +973,61 @@ mod tests {
             program.get_identifier("missing"),
             identifiers.get("missing"),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_relocated_instruction_locations() {
+        fn build_instruction_location_for_test(start_line: u32) -> InstructionLocation {
+            InstructionLocation {
+                inst: Location {
+                    end_line: 0,
+                    end_col: 0,
+                    input_file: InputFile {
+                        filename: String::from("test"),
+                    },
+                    parent_location: None,
+                    start_line,
+                    start_col: 0,
+                },
+                hints: vec![],
+            }
+        }
+
+        let reference_manager = ReferenceManager {
+            references: Vec::new(),
+        };
+        let builtins: Vec<BuiltinName> = Vec::new();
+        let data: Vec<MaybeRelocatable> = vec![];
+        let identifiers: HashMap<String, Identifier> = HashMap::new();
+        let mut instruction_locations: HashMap<usize, InstructionLocation> = HashMap::new();
+
+        let il_1 = build_instruction_location_for_test(0);
+        let il_2 = build_instruction_location_for_test(2);
+        let il_3 = build_instruction_location_for_test(3);
+        instruction_locations.insert(5, il_1.clone());
+        instruction_locations.insert(10, il_2.clone());
+        instruction_locations.insert(12, il_3.clone());
+
+        let program = Program::new(
+            builtins,
+            data,
+            None,
+            HashMap::new(),
+            reference_manager,
+            identifiers,
+            Vec::new(),
+            Some(instruction_locations),
+        )
+        .unwrap();
+
+        let relocated_instructions = program.get_relocated_instruction_locations(&[2]);
+        assert!(relocated_instructions.is_some());
+        let relocated_instructions = relocated_instructions.unwrap();
+        assert_eq!(relocated_instructions.len(), 3);
+        assert_eq!(relocated_instructions.get(&7), Some(&il_1));
+        assert_eq!(relocated_instructions.get(&12), Some(&il_2));
+        assert_eq!(relocated_instructions.get(&14), Some(&il_3));
     }
 
     #[test]

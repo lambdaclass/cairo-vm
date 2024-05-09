@@ -1,6 +1,6 @@
 use crate::stdlib::prelude::*;
+use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
-use crate::utils::bigint_to_felt;
 use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
 use crate::vm::vm_core::VirtualMachine;
 use crate::Felt252;
@@ -12,7 +12,7 @@ pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252),
         ResOperand::Deref(cell) => (cell, 0.into()),
         ResOperand::BinOp(bin_op) => {
             if let DerefOrImmediate::Immediate(val) = &bin_op.b {
-                (&bin_op.a, bigint_to_felt(&val.value)?)
+                (&bin_op.a, Felt252::from(&val.value))
             } else {
                 return Err(HintError::CustomHint(
                     "Failed to extract buffer, expected ResOperand of BinOp type to have Inmediate b value".to_owned().into_boxed_str()
@@ -30,6 +30,16 @@ pub(crate) fn extract_buffer(buffer: &ResOperand) -> Result<(&CellRef, Felt252),
     Ok((cell, base_offset))
 }
 
+pub(crate) fn get_mayberelocatable(
+    vm: &VirtualMachine,
+    cell: &CellRef,
+) -> Result<MaybeRelocatable, VirtualMachineError> {
+    let relocatable = cell_ref_to_relocatable(cell, vm)?;
+    vm.get_maybe(&relocatable).ok_or_else(|| {
+        VirtualMachineError::InvalidMemoryValueTemporaryAddress(Box::new(relocatable))
+    })
+}
+
 /// Fetches the value of `res_operand` from the vm.
 pub(crate) fn get_val(
     vm: &VirtualMachine,
@@ -40,12 +50,12 @@ pub(crate) fn get_val(
         ResOperand::DoubleDeref(cell, offset) => {
             get_double_deref_val(vm, cell, &Felt252::from(*offset as i32))
         }
-        ResOperand::Immediate(x) => Ok(bigint_to_felt(&x.value)?),
+        ResOperand::Immediate(x) => Ok(Felt252::from(&x.value)),
         ResOperand::BinOp(op) => {
             let a = get_cell_val(vm, &op.a)?;
             let b = match &op.b {
                 DerefOrImmediate::Deref(cell) => get_cell_val(vm, cell)?,
-                DerefOrImmediate::Immediate(x) => bigint_to_felt(&x.value)?,
+                DerefOrImmediate::Immediate(x) => Felt252::from(&x.value),
             };
             match op.op {
                 Operation::Add => Ok(a + b),
@@ -108,12 +118,12 @@ pub(crate) fn res_operand_get_val(
         ResOperand::DoubleDeref(cell, offset) => {
             get_double_deref_val(vm, cell, &Felt252::from(*offset as i32))
         }
-        ResOperand::Immediate(x) => Ok(bigint_to_felt(&x.value)?),
+        ResOperand::Immediate(x) => Ok(Felt252::from(&x.value)),
         ResOperand::BinOp(op) => {
             let a = get_cell_val(vm, &op.a)?;
             let b = match &op.b {
                 DerefOrImmediate::Deref(cell) => get_cell_val(vm, cell)?,
-                DerefOrImmediate::Immediate(x) => bigint_to_felt(&x.value)?,
+                DerefOrImmediate::Immediate(x) => Felt252::from(&x.value),
             };
             match op.op {
                 Operation::Add => Ok(a + b),

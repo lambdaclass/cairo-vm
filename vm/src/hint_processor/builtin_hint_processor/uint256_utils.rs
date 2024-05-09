@@ -1,4 +1,3 @@
-use crate::utils::{biguint_to_felt, felt_to_biguint};
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
@@ -76,13 +75,13 @@ impl<'a> Uint256<'a> {
     }
 
     pub(crate) fn pack(self) -> BigUint {
-        (felt_to_biguint(*self.high) << 128) + felt_to_biguint(*self.low)
+        (self.high.to_biguint() << 128) + self.low.to_biguint()
     }
 
     pub(crate) fn split(num: &BigUint) -> Self {
         let mask_low: BigUint = u128::MAX.into();
-        let low = biguint_to_felt(&(num & mask_low)).unwrap();
-        let high = biguint_to_felt(&(num >> 128)).unwrap();
+        let low = Felt252::from(&(num & mask_low));
+        let high = Felt252::from(&(num >> 128));
         Self::from_values(low, high)
     }
 }
@@ -292,7 +291,7 @@ pub fn uint256_sqrt(
         ));
     }
 
-    let root = biguint_to_felt(&root)?;
+    let root = Felt252::from(&root);
 
     if only_low {
         insert_value_from_var_name("root", root, vm, ids_data, ap_tracking)?;
@@ -394,8 +393,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (felt_to_biguint(*a_high) << 128_u32) + felt_to_biguint(*a_low);
-    let div = (felt_to_biguint(*div_high) << 128_u32) + felt_to_biguint(*div_low);
+    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
+    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
@@ -453,9 +452,9 @@ pub fn uint256_mul_div_mod(
     let div_high = div_high.as_ref();
 
     // Main Logic
-    let a = felt_to_biguint(*a_high).shl(128_usize) + felt_to_biguint(*a_low);
-    let b = felt_to_biguint(*b_high).shl(128_usize) + felt_to_biguint(*b_low);
-    let div = felt_to_biguint(*div_high).shl(128_usize) + felt_to_biguint(*div_low);
+    let a = a_high.to_biguint().shl(128_usize) + a_low.to_biguint();
+    let b = b_high.to_biguint().shl(128_usize) + b_low.to_biguint();
+    let div = div_high.to_biguint().shl(128_usize) + div_low.to_biguint();
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
@@ -464,32 +463,32 @@ pub fn uint256_mul_div_mod(
     // ids.quotient_low.low
     vm.insert_value(
         quotient_low_addr,
-        biguint_to_felt(&(&quotient & &BigUint::from(u128::MAX)))?,
+        Felt252::from(&(&quotient & &BigUint::from(u128::MAX))),
     )?;
     // ids.quotient_low.high
     vm.insert_value(
         (quotient_low_addr + 1)?,
-        biguint_to_felt(&((&quotient).shr(128_u32) & &BigUint::from(u128::MAX)))?,
+        Felt252::from(&((&quotient).shr(128_u32) & &BigUint::from(u128::MAX))),
     )?;
     // ids.quotient_high.low
     vm.insert_value(
         quotient_high_addr,
-        biguint_to_felt(&((&quotient).shr(256_u32) & &BigUint::from(u128::MAX)))?,
+        Felt252::from(&((&quotient).shr(256_u32) & &BigUint::from(u128::MAX))),
     )?;
     // ids.quotient_high.high
     vm.insert_value(
         (quotient_high_addr + 1)?,
-        biguint_to_felt(&((&quotient).shr(384_u32)))?,
+        Felt252::from(&((&quotient).shr(384_u32))),
     )?;
     //ids.remainder.low
     vm.insert_value(
         remainder_addr,
-        biguint_to_felt(&(&remainder & &BigUint::from(u128::MAX)))?,
+        Felt252::from(&(&remainder & &BigUint::from(u128::MAX))),
     )?;
     //ids.remainder.high
     vm.insert_value(
         (remainder_addr + 1)?,
-        biguint_to_felt(&remainder.shr(128_u32))?,
+        Felt252::from(&remainder.shr(128_u32)),
     )?;
 
     Ok(())
@@ -508,10 +507,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
