@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Fix BuiltinRunner::final_stack for SegmentArena[#1747](https://github.com/lambdaclass/cairo-vm/pull/1747)
+
 * feat: unify `arbitrary`, `hooks`, `print` and `skip_next_instruction_hint` features as a single `test_utils` feature [#1755](https://github.com/lambdaclass/cairo-vm/pull/1755)
   * BREAKING: removed the above features
 
