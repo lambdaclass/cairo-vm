@@ -34,7 +34,7 @@ mod_builtin = []
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
 
 [dependencies]
-ahash = { version = "0.8.6", default-features = false }
+ahash = { version = "0.8.11", default-features = false, features = ["runtime-rng"] }
 zip = {version = "0.6.6", optional = true }
 num-bigint = { workspace = true }
 rand = { workspace = true }
