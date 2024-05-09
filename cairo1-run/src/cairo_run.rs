@@ -482,7 +482,7 @@ fn create_entry_code(
             };
         } else {
             let ty_size = type_sizes[ty];
-            // We already loaded these arguments
+            // We already loaded these arguments, so we just advance AP
             casm_build_extend!(ctx,
                 ap+=ty_size as usize;
             );
