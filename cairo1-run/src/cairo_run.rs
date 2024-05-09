@@ -223,7 +223,6 @@ pub fn cairo_run_program(
         &runner,
         &cairo_run_config,
         main_func,
-        &sierra_program_registry,
     )?;
 
     // Run it until the end / infinite loop in proof_mode
@@ -407,12 +406,9 @@ fn load_arguments(
     runner: &CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
-    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
 ) -> Result<(), Error> {
     let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
+        ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena")
     });
     let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
