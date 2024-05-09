@@ -1,7 +1,6 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
-#[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
@@ -453,23 +452,6 @@ impl VirtualMachine {
         decode_instruction(instruction)
     }
 
-    #[cfg(not(feature = "extensive_hints"))]
-    pub fn step_hint(
-        &mut self,
-        hint_processor: &mut dyn HintProcessor,
-        exec_scopes: &mut ExecutionScopes,
-        hint_datas: &[Box<dyn Any>],
-        constants: &HashMap<String, Felt252>,
-    ) -> Result<(), VirtualMachineError> {
-        for (hint_index, hint_data) in hint_datas.iter().enumerate() {
-            hint_processor
-                .execute_hint(self, exec_scopes, hint_data, constants)
-                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
-        }
-        Ok(())
-    }
-
-    #[cfg(feature = "extensive_hints")]
     pub fn step_hint(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
@@ -3805,7 +3787,6 @@ mod tests {
             ((1, 1), (3, 0))
         ];
 
-        #[cfg(feature = "extensive_hints")]
         let mut hint_data = hint_data;
 
         //Run Steps
