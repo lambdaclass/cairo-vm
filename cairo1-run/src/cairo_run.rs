@@ -347,6 +347,61 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
+// Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by 
+// the instructions in the entry_code (produced by `create_entry_code`)
+
+/* Example of execution segment before running the main function:
+Before calling this function (after runner.initialize):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+]
+After calling this function (before running the VM):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1+2+3) gap
+    (*1+2) gap
+    (*1+2) gap
+    (*2) gap
+    (*2) gap
+    (*2) gap
+    gap
+    gap
+    (*2) gap
+    (*3) arg_0
+    (*3) arg_1
+]
+
+After the entry_code (up until calling main) has been ran by the VM:
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1+2+3) gap (for output_builtin final ptr)
+    (*1+2) gap (for builtin_0 final ptr)
+    (*1+2) gap (for builtin_1 final ptr)
+    (*2) segment_arena_ptr
+    (*2) infos_ptr
+    (*2) 0
+    builtin_base_0
+    builtin_base_1
+    (*2) segment_arena_ptr + 3 (segment_arena base)
+    (*3) arg_0
+    (*3) arg_1
+]
+(*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
+(*2) if segment arena is present
+(*3) if args are used
+*/
 fn load_arguments(
     vm: &mut VirtualMachine,
     runner: &CairoRunner,
