@@ -415,7 +415,14 @@ fn load_arguments(
             .unwrap_or_default()
     });
     let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
-    // builtin bases (minus output) + segment arena (aka 3 + builtins)
+    // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
+    // These include:
+    // * The builtin bases (not including output)
+    // * The segment arena values (if present), including:
+    //  * segment_arena_ptr
+    //  * info_segment_ptr
+    //  * 0
+    //  * (Only if the output builtin is added) A gap for each builtin's final pointer
     let mut ap_offset = runner.get_program().builtins_len();
     if append_output {
         ap_offset -= 1;
