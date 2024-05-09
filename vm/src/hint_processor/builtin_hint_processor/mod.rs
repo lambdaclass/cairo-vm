@@ -16,17 +16,19 @@ pub mod keccak_utils;
 pub mod math_utils;
 pub mod memcpy_hint_utils;
 pub mod memset_utils;
+mod mod_circuit;
 pub mod poseidon_utils;
 pub mod pow_utils;
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
 pub mod print;
 pub mod secp;
 pub mod segments;
 pub mod set;
 pub mod sha256_utils;
 pub mod signature;
-#[cfg(feature = "skip_next_instruction_hint")]
-#[cfg_attr(docsrs, doc(cfg(feature = "skip_next_instruction_hint")))]
+#[cfg(feature = "test_utils")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
 pub mod skip_next_instruction;
 pub mod squash_dict_utils;
 pub mod uint256_utils;

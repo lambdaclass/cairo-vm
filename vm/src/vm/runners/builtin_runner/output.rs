@@ -1,4 +1,5 @@
 use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
@@ -6,10 +7,7 @@ use crate::vm::runners::cairo_pie::{
     Attributes, BuiltinAdditionalData, OutputBuiltinAdditionalData, Pages, PublicMemoryPage,
 };
 use crate::vm::vm_core::VirtualMachine;
-use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-
-use super::OUTPUT_BUILTIN_NAME;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputBuiltinState {
@@ -62,22 +60,8 @@ impl OutputBuiltinRunner {
         self.base
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
-    pub fn deduce_memory_cell(
-        &self,
-        _address: Relocatable,
-        _memory: &Memory,
-    ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        Ok(None)
-    }
-
     pub fn get_allocated_memory_units(&self, _vm: &VirtualMachine) -> Result<usize, MemoryError> {
         Ok(0)
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -100,14 +84,14 @@ impl OutputBuiltinRunner {
     ) -> Result<Relocatable, RunnerError> {
         if self.included {
             let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BuiltinName::output)))?;
             let stop_pointer = segments
                 .memory
                 .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+                .map_err(|_| RunnerError::NoStopPointer(Box::new(BuiltinName::output)))?;
             if self.base as isize != stop_pointer.segment_index {
                 return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    OUTPUT_BUILTIN_NAME,
+                    BuiltinName::output,
                     stop_pointer,
                     self.base,
                 ))));
@@ -116,7 +100,7 @@ impl OutputBuiltinRunner {
             let used = self.get_used_cells(segments).map_err(RunnerError::Memory)?;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
-                    OUTPUT_BUILTIN_NAME,
+                    BuiltinName::output,
                     Relocatable::from((self.base as isize, used)),
                     Relocatable::from((self.base as isize, stop_ptr)),
                 ))));
@@ -129,11 +113,28 @@ impl OutputBuiltinRunner {
         }
     }
 
+    pub fn add_attribute(&mut self, name: String, value: Vec<usize>) {
+        self.attributes.insert(name, value);
+    }
+
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
             pages: self.pages.clone(),
             attributes: self.attributes.clone(),
         })
+    }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Output(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::output)),
+        };
+        self.pages.extend(additional_data.pages.clone());
+        self.attributes.extend(additional_data.attributes.clone());
+        Ok(())
     }
 
     pub(crate) fn set_stop_ptr_offset(&mut self, offset: usize) {
@@ -175,10 +176,11 @@ impl OutputBuiltinRunner {
         Ok(())
     }
 
-    pub fn get_public_memory(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
-        let size = self
-            .stop_ptr
-            .ok_or(RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))?;
+    pub fn get_public_memory(
+        &self,
+        segments: &MemorySegmentManager,
+    ) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let size = self.get_used_cells(segments)?;
 
         let mut public_memory: Vec<(usize, usize)> = (0..size).map(|i| (i, 0)).collect();
         for (page_id, page) in self.pages.iter() {
@@ -270,7 +272,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                OUTPUT_BUILTIN_NAME,
+                BuiltinName::output,
                 relocatable!(0, 998),
                 relocatable!(0, 0)
             ))))
@@ -321,7 +323,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(OUTPUT_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::output)))
         );
     }
 
@@ -370,54 +372,6 @@ mod tests {
             MaybeRelocatable::RelocatableValue((builtin.base() as isize, 0).into())
         );
         assert_eq!(initial_stack.len(), 1);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = OutputBuiltinRunner::new(true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin = BuiltinRunner::Output(OutputBuiltinRunner::new(true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
     }
 
     #[test]
@@ -500,7 +454,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_add_validation_rule() {
-        let builtin = OutputBuiltinRunner::new(true);
+        let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -515,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info_no_pages_no_attributes() {
+    fn get_additional_data_no_pages_no_attributes() {
         let builtin = OutputBuiltinRunner::new(true);
         assert_eq!(
             builtin.get_additional_data(),
@@ -531,8 +485,8 @@ mod tests {
     fn get_air_private_input() {
         let builtin: BuiltinRunner = OutputBuiltinRunner::new(true).into();
 
-        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
-        assert!(builtin.air_private_input(&memory).is_empty());
+        let segments = segments![((0, 0), 0), ((0, 1), 1), ((0, 2), 2), ((0, 3), 3)];
+        assert!(builtin.air_private_input(&segments).is_empty());
     }
 
     #[test]
@@ -612,6 +566,18 @@ mod tests {
     }
 
     #[test]
+    pub fn add_attribute() {
+        let mut builtin = OutputBuiltinRunner::new(true);
+        assert!(builtin.attributes.is_empty());
+
+        let name = "gps_fact_topology".to_string();
+        let values = vec![0, 12, 30];
+        builtin.add_attribute(name.clone(), values.clone());
+
+        assert_eq!(builtin.attributes, HashMap::from([(name, values)]));
+    }
+
+    #[test]
     fn get_public_memory() {
         let mut builtin = OutputBuiltinRunner::new(true);
 
@@ -637,12 +603,35 @@ mod tests {
             )
             .unwrap();
 
-        builtin.stop_ptr = Some(7);
+        let mut segments = MemorySegmentManager::new();
+        segments.segment_used_sizes = Some(vec![7]);
 
-        let public_memory = builtin.get_public_memory().unwrap();
+        let public_memory = builtin.get_public_memory(&segments).unwrap();
         assert_eq!(
             public_memory,
             vec![(0, 0), (1, 0), (2, 1), (3, 1), (4, 2), (5, 2), (6, 2)]
         );
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let builtin_a = OutputBuiltinRunner {
+            base: 0,
+            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            stop_ptr: None,
+            included: true,
+        };
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = OutputBuiltinRunner {
+            base: 0,
+            pages: Default::default(),
+            attributes: Default::default(),
+            stop_ptr: None,
+            included: true,
+        };
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin_a.attributes, builtin_b.attributes);
+        assert_eq!(builtin_a.pages, builtin_b.pages);
     }
 }

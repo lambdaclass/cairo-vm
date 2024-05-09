@@ -1,4 +1,9 @@
+use core::cmp::max;
 use core::fmt;
+
+use crate::vm::runners::cairo_pie::CairoPieMemory;
+use crate::Felt252;
+use num_traits::Zero;
 
 use crate::stdlib::prelude::*;
 use crate::stdlib::{any::Any, collections::HashMap};
@@ -12,6 +17,8 @@ use crate::{
     },
 };
 
+use super::memory::MemoryCell;
+
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
@@ -19,6 +26,11 @@ pub struct MemorySegmentManager {
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
+    // Segment index of the zero segment index, a memory segment filled with zeroes, used exclusively by builtin runners
+    // This segment will never have index 0 so we use 0 to represent uninitialized value
+    zero_segment_index: usize,
+    // Segment size of the zero segment index
+    zero_segment_size: usize,
 }
 
 impl MemorySegmentManager {
@@ -71,6 +83,8 @@ impl MemorySegmentManager {
             segment_used_sizes: None,
             public_memory_offsets: HashMap::new(),
             memory: Memory::new(),
+            zero_segment_index: 0,
+            zero_segment_size: 0,
         }
     }
 
@@ -206,11 +220,16 @@ impl MemorySegmentManager {
             if i > builtin_segments_start && i <= builtin_segments_end {
                 continue;
             }
-            let accessed_amount = match self.memory.get_amount_of_accessed_addresses_for_segment(i)
-            {
-                Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
-                _ => continue,
-            };
+            let accessed_amount =
+                // Instead of marking the values in the zero segment until zero_segment_size as accessed we use zero_segment_size as accessed_amount
+                if !self.zero_segment_index.is_zero() && i == self.zero_segment_index {
+                    self.zero_segment_size
+                } else {
+                    match self.memory.get_amount_of_accessed_addresses_for_segment(i) {
+                        Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
+                        _ => continue,
+                    }
+                };
             let segment_size = self
                 .get_segment_size(i)
                 .ok_or(MemoryError::MissingSegmentUsedSizes)?;
@@ -262,6 +281,48 @@ impl MemorySegmentManager {
         }
         self.public_memory_offsets
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
+    }
+
+    // Creates the zero segment if it wasn't previously created
+    // Fills the segment with the value 0 until size is reached
+    // Returns the index of the zero segment
+    pub(crate) fn add_zero_segment(&mut self, size: usize) -> usize {
+        if self.zero_segment_index.is_zero() {
+            self.zero_segment_index = self.add().segment_index as usize;
+        }
+        // Fil zero segment with zero values until size is reached
+        for _ in 0..self.zero_segment_size.saturating_sub(size) {
+            // As zero_segment_index is only accessible to the segment manager
+            // we can asume that it is always valid and index direcly into it
+            self.memory.data[self.zero_segment_index].push(MemoryCell::new(Felt252::ZERO.into()))
+        }
+        self.zero_segment_size = max(self.zero_segment_size, size);
+        self.zero_segment_index
+    }
+
+    // Finalizes the zero segment and clears it's tracking data from the manager
+    pub(crate) fn finalize_zero_segment(&mut self) {
+        if !self.zero_segment_index.is_zero() {
+            self.finalize(Some(self.zero_segment_size), self.zero_segment_index, None);
+            self.zero_segment_index = 0;
+            self.zero_segment_size = 0;
+        }
+    }
+
+    pub(crate) fn load_pie_memory(
+        &mut self,
+        pie_memory: &CairoPieMemory,
+        n_extra_segments: usize,
+    ) -> Result<(), MemoryError> {
+        // Create extra segments
+        for _ in 0..n_extra_segments {
+            self.add();
+        }
+        // Load previous execution memory
+        for ((si, so), val) in pie_memory.0.iter() {
+            self.memory.insert((*si as isize, *so).into(), val)?;
+        }
+        Ok(())
     }
 }
 
@@ -548,9 +609,9 @@ mod tests {
         assert_eq!(
             segments.memory.data[1],
             vec![
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 1)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 2)))),
-                Some(MemoryCell::new(MaybeRelocatable::from((0, 3)))),
+                MemoryCell::new(MaybeRelocatable::from((0, 1))),
+                MemoryCell::new(MaybeRelocatable::from((0, 2))),
+                MemoryCell::new(MaybeRelocatable::from((0, 3))),
             ]
         );
     }

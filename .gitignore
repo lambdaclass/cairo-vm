@@ -10,6 +10,8 @@
 **/*.memory
 **/*.air_public_input
 **/*.air_private_input
+**/*.pie.zip
+**/*.pie
 **/*.swp
 bench/results
 .python-version

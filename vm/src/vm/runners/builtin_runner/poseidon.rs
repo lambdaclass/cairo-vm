@@ -1,5 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
@@ -13,18 +14,13 @@ use crate::Felt252;
 use num_integer::div_ceil;
 use starknet_crypto::{poseidon_permute_comp, FieldElement};
 
-use super::POSEIDON_BUILTIN_NAME;
-
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
     pub base: usize,
     ratio: Option<u32>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
-    pub(crate) instances_per_component: u32,
 }
 
 impl PoseidonBuiltinRunner {
@@ -32,12 +28,9 @@ impl PoseidonBuiltinRunner {
         PoseidonBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: CELLS_PER_POSEIDON,
-            n_input_cells: INPUT_CELLS_PER_POSEIDON,
             stop_ptr: None,
             included,
             cache: RefCell::new(HashMap::new()),
-            instances_per_component: 1,
         }
     }
 
@@ -68,26 +61,26 @@ impl PoseidonBuiltinRunner {
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address.offset % self.cells_per_instance as usize;
-        if index < self.n_input_cells as usize {
+        let index = address.offset % CELLS_PER_POSEIDON as usize;
+        if index < INPUT_CELLS_PER_POSEIDON as usize {
             return Ok(None);
         }
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
         let first_input_addr = (address - index)?;
-        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
+        let first_output_addr = (first_input_addr + INPUT_CELLS_PER_POSEIDON as usize)?;
 
         let mut input_felts = vec![];
 
-        for i in 0..self.n_input_cells as usize {
+        for i in 0..INPUT_CELLS_PER_POSEIDON as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
                     let num = value
                         .get_int_ref()
                         .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            POSEIDON_BUILTIN_NAME,
+                            BuiltinName::poseidon,
                             (first_input_addr + i)?,
                         ))))?;
                     FieldElement::from_bytes_be(&num.to_bytes_be())
@@ -110,10 +103,6 @@ impl PoseidonBuiltinRunner {
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
     }
 
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
-    }
-
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
         segments
             .get_segment_used_size(self.base())
@@ -125,44 +114,7 @@ impl PoseidonBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
-    }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    POSEIDON_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as usize;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    POSEIDON_BUILTIN_NAME,
-                    Relocatable::from((self.base as isize, used)),
-                    Relocatable::from((self.base as isize, stop_ptr)),
-                ))));
-            }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
+        Ok(div_ceil(used_cells, CELLS_PER_POSEIDON as usize))
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
@@ -197,7 +149,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
@@ -231,7 +183,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -255,7 +207,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -273,7 +225,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                POSEIDON_BUILTIN_NAME,
+                BuiltinName::poseidon,
                 relocatable!(0, 1002),
                 relocatable!(0, 0)
             ))))
@@ -283,7 +235,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
-        let mut builtin = PoseidonBuiltinRunner::new(Some(10), false);
+        let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), false).into();
 
         let mut vm = vm!();
 
@@ -307,7 +259,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = PoseidonBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -324,7 +276,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::poseidon)))
         );
     }
 
@@ -443,7 +395,7 @@ mod tests {
     fn get_air_private_input() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
 
-        let memory = memory![
+        let segments = segments![
             ((0, 0), 0),
             ((0, 1), 1),
             ((0, 2), 2),
@@ -458,7 +410,7 @@ mod tests {
             ((0, 11), 11)
         ];
         assert_eq!(
-            builtin.air_private_input(&memory),
+            builtin.air_private_input(&segments),
             (vec![
                 PrivateInput::PoseidonState(PrivateInputPoseidonState {
                     index: 0,

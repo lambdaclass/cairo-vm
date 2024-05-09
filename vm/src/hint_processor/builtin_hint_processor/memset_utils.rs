@@ -21,8 +21,7 @@ pub fn memset_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?.into_owned());
+    let n: Box<dyn Any> = Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
@@ -56,7 +55,6 @@ pub fn memset_step_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
     use crate::types::relocatable::Relocatable;
     use crate::{
         any_box,
@@ -101,7 +99,7 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n".to_string(), (1,1).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "n"
         );
     }
 

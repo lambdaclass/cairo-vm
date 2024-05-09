@@ -18,23 +18,24 @@ use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{
-        deserialize_and_parse_program, Attribute, BuiltinName, HintParams, Identifier,
-        InstructionLocation, OffsetValue, ReferenceManager,
+        deserialize_and_parse_program, Attribute, HintParams, Identifier, InstructionLocation,
+        OffsetValue, ReferenceManager,
     },
     types::{
         errors::program_errors::ProgramError, instruction::Register, relocatable::MaybeRelocatable,
     },
 };
 #[cfg(feature = "cairo-1-hints")]
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 
 #[cfg(feature = "std")]
 use std::path::Path;
 
+use super::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use super::relocatable::Relocatable;
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{Arbitrary, Unstructured};
 
 // NOTE: `Program` has been split in two containing some data that will be deep-copied
@@ -72,7 +73,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) reference_manager: Vec<HintReference>,
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for SharedProgramData {
     /// Create an arbitary [`SharedProgramData`] using `HintsCollection::new` to generate `hints` and
     /// `hints_ranges`
@@ -196,7 +197,7 @@ type HintRange = Option<(usize, NonZeroUsize)>;
 #[cfg(feature = "extensive_hints")]
 pub type HintRange = (usize, NonZeroUsize);
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub(crate) shared_program_data: Arc<SharedProgramData>,
@@ -339,7 +340,8 @@ impl Program {
                 HintReference {
                     offset1: r.value_address.offset1.clone(),
                     offset2: r.value_address.offset2.clone(),
-                    dereference: r.value_address.dereference,
+                    outer_dereference: r.value_address.outer_dereference,
+                    inner_dereference: r.value_address.inner_dereference,
                     // only store `ap` tracking data if the reference is referred to it
                     ap_tracking_data: match (&r.value_address.offset1, &r.value_address.offset2) {
                         (OffsetValue::Reference(Register::AP, _, _), _)
@@ -382,6 +384,18 @@ impl Program {
                 .ok_or(ProgramError::StrippedProgramNoMain)?,
             prime: (),
         })
+    }
+
+    pub fn from_stripped_program(stripped: &StrippedProgram) -> Program {
+        Program {
+            shared_program_data: Arc::new(SharedProgramData {
+                data: stripped.data.clone(),
+                main: Some(stripped.main),
+                ..Default::default()
+            }),
+            constants: Default::default(),
+            builtins: stripped.builtins.clone(),
+        }
     }
 
     pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {

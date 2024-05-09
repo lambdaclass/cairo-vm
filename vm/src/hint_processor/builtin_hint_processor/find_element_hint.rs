@@ -30,9 +30,7 @@ pub fn find_element(
         .to_usize()
         .ok_or_else(|| HintError::ValueOutOfRange(Box::new(*elm_size_bigint.as_ref())))?;
     if elm_size == 0 {
-        return Err(HintError::ValueOutOfRange(Box::new(
-            elm_size_bigint.into_owned(),
-        )));
+        return Err(HintError::ValueOutOfRange(Box::new(elm_size_bigint)));
     }
 
     if let Some(find_element_index_value) = find_element_index {
@@ -44,7 +42,7 @@ pub fn find_element(
         if found_key.as_ref() != key.as_ref() {
             return Err(HintError::InvalidIndex(Box::new((
                 find_element_index_value,
-                key.into_owned(),
+                key,
                 found_key.into_owned(),
             ))));
         }
@@ -56,13 +54,13 @@ pub fn find_element(
             if n_elms.as_ref() > find_element_max_size {
                 return Err(HintError::FindElemMaxSize(Box::new((
                     *find_element_max_size,
-                    n_elms.into_owned(),
+                    n_elms,
                 ))));
             }
         }
         let n_elms_iter: u32 = n_elms
             .to_u32()
-            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms.into_owned())))?;
+            .ok_or_else(|| MathError::Felt252ToI32Conversion(Box::new(n_elms)))?;
 
         for i in 0..n_elms_iter {
             let iter_key = vm
@@ -80,9 +78,7 @@ pub fn find_element(
             }
         }
 
-        Err(HintError::NoValueForKeyFindElement(Box::new(
-            key.into_owned(),
-        )))
+        Err(HintError::NoValueForKeyFindElement(Box::new(key)))
     }
 }
 
@@ -93,10 +89,10 @@ pub fn search_sorted_lower(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let find_element_max_size = exec_scopes.get::<Felt252>("find_element_max_size");
-    let n_elms = *get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
+    let n_elms = get_integer_from_var_name("n_elms", vm, ids_data, ap_tracking)?;
     let rel_array_ptr = get_relocatable_from_var_name("array_ptr", vm, ids_data, ap_tracking)?;
-    let elm_size = *get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
-    let key = *get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
+    let elm_size = get_integer_from_var_name("elm_size", vm, ids_data, ap_tracking)?;
+    let key = get_integer_from_var_name("key", vm, ids_data, ap_tracking)?;
 
     if elm_size == Felt252::ZERO {
         return Err(HintError::ValueOutOfRange(Box::new(elm_size)));
@@ -274,7 +270,7 @@ mod tests {
         let ids_data = ids_data!["array_ptr", "elm_size", "n_elms", "index", "key"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("key".to_string(), (1,4).into())
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "key"
         );
     }
 
@@ -287,7 +283,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("elm_size".to_string(), (1,1).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "elm_size"
         );
     }
 
@@ -325,7 +321,7 @@ mod tests {
             init_vm_ids_data(HashMap::from([("n_elms".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n_elms".to_string(), (1,2).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "n_elms"
         );
     }
 
@@ -368,7 +364,7 @@ mod tests {
             init_vm_ids_data(HashMap::from([("key".to_string(), relocatable)]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::FIND_ELEMENT),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("key".to_string(), (1,4).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "key"
         );
     }
 
@@ -407,7 +403,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("elm_size".to_string(), (1,1).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "elm_size"
         );
     }
 
@@ -433,7 +429,7 @@ mod tests {
         )]));
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::SEARCH_SORTED_LOWER),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n_elms".to_string(), (1,2).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "n_elms"
         );
     }
 
