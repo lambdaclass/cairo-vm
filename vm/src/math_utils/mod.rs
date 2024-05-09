@@ -4,13 +4,67 @@ pub use is_prime::is_prime;
 
 use core::cmp::min;
 
-use crate::stdlib::{boxed::Box, ops::Shr};
+use crate::stdlib::{boxed::Box, ops::Shr, prelude::Vec};
 use crate::types::errors::math_errors::MathError;
-use felt::Felt252;
-use num_bigint::{BigInt, BigUint, RandBigInt};
+use crate::utils::CAIRO_PRIME;
+use crate::Felt252;
+use lazy_static::lazy_static;
+use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
 use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
+use starknet_types_core::felt::NonZeroFelt;
+
+lazy_static! {
+    pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
+    static ref POWERS_OF_TWO: Vec<NonZeroFelt> =
+        core::iter::successors(Some(Felt252::ONE), |x| Some(x * Felt252::TWO))
+            .take(252)
+            .map(|x| x.try_into().unwrap())
+            .collect::<Vec<_>>();
+}
+
+/// Returns the `n`th (up to the `251`th power) power of 2 as a [`Felt252`]
+/// in constant time.
+/// It silently returns `1` if the input is out of bounds.
+pub fn pow2_const(n: u32) -> Felt252 {
+    // If the conversion fails then it's out of range and we compute the power as usual
+    POWERS_OF_TWO
+        .get(n as usize)
+        .unwrap_or(&POWERS_OF_TWO[0])
+        .into()
+}
+
+/// Returns the `n`th (up to the `251`th power) power of 2 as a [`&stark_felt::NonZeroFelt`]
+/// in constant time.
+/// It silently returns `1` if the input is out of bounds.
+pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
+    // If the conversion fails then it's out of range and we compute the power as usual
+    POWERS_OF_TWO.get(n as usize).unwrap_or(&POWERS_OF_TWO[0])
+}
+
+/// Converts [`Felt252`] into a [`BigInt`] number in the range: `(- FIELD / 2, FIELD / 2)`.
+///
+/// # Examples
+///
+/// ```
+/// # use cairo_vm::{Felt252, math_utils::signed_felt};
+/// # use num_bigint::BigInt;
+/// let positive = Felt252::from(5);
+/// assert_eq!(signed_felt(positive), BigInt::from(5));
+///
+/// let negative = Felt252::MAX;
+/// assert_eq!(signed_felt(negative), BigInt::from(-1));
+/// ```
+
+pub fn signed_felt(felt: Felt252) -> BigInt {
+    let biguint = felt.to_biguint();
+    if biguint > *SIGNED_FELT_MAX {
+        BigInt::from_biguint(num_bigint::Sign::Minus, &*CAIRO_PRIME - &biguint)
+    } else {
+        biguint.to_bigint().expect("cannot fail")
+    }
+}
 
 ///Returns the integer square root of the nonnegative integer n.
 ///This is the floor of the exact square root of n.
@@ -43,17 +97,13 @@ pub fn isqrt(n: &BigUint) -> Result<BigUint, MathError> {
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
 pub fn safe_div(x: &Felt252, y: &Felt252) -> Result<Felt252, MathError> {
-    if y.is_zero() {
-        return Err(MathError::DividedByZero);
-    }
-
-    let (q, r) = x.div_mod_floor(y);
+    let (q, r) = x.div_rem(&y.try_into().map_err(|_| MathError::DividedByZero)?);
 
     if !r.is_zero() {
-        return Err(MathError::SafeDivFail(Box::new((x.clone(), y.clone()))));
+        Err(MathError::SafeDivFail(Box::new((*x, *y))))
+    } else {
+        Ok(q)
     }
-
-    Ok(q)
 }
 
 /// Performs integer division between x and y; fails if x is not divisible by y.
@@ -144,6 +194,20 @@ pub fn div_mod(n: &BigInt, m: &BigInt, p: &BigInt) -> Result<BigInt, MathError> 
         ))));
     }
     Ok((n * a).mod_floor(p))
+}
+
+pub(crate) fn div_mod_unsigned(
+    n: &BigUint,
+    m: &BigUint,
+    p: &BigUint,
+) -> Result<BigUint, MathError> {
+    // BigUint to BigInt conversion cannot fail & div_mod will always return a positive value if all values are positive so we can safely unwrap here
+    div_mod(
+        &n.to_bigint().unwrap(),
+        &m.to_bigint().unwrap(),
+        &p.to_bigint().unwrap(),
+    )
+    .map(|i| i.to_biguint().unwrap())
 }
 
 pub fn ec_add(
@@ -359,7 +423,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
             .unwrap()
         );
@@ -381,7 +446,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
             .unwrap()
         );
@@ -403,7 +469,8 @@ mod tests {
             div_mod(
                 &a,
                 &b,
-                &BigInt::from_str_radix(&felt::PRIME_STR[2..], 16).expect("Couldn't parse prime")
+                &BigInt::from_str_radix(&crate::utils::PRIME_STR[2..], 16)
+                    .expect("Couldn't parse prime")
             )
             .unwrap()
         );
@@ -412,27 +479,27 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
-        let x = Felt252::new(26);
-        let y = Felt252::new(13);
-        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::new(2));
+        let x = Felt252::from(26);
+        let y = Felt252::from(13);
+        assert_matches!(safe_div(&x, &y), Ok(i) if i == Felt252::from(2));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
-        let x = Felt252::new(25);
-        let y = Felt252::new(4);
+        let x = Felt252::from(25);
+        let y = Felt252::from(4);
         let result = safe_div(&x, &y);
         assert_matches!(
             result,
-            Err(MathError::SafeDivFail(bx)) if *bx == (Felt252::new(25), Felt252::new(4)));
+            Err(MathError::SafeDivFail(bx)) if *bx == (Felt252::from(25), Felt252::from(4)));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
-        let x = Felt252::new(25);
-        let y = Felt252::zero();
+        let x = Felt252::from(25);
+        let y = Felt252::ZERO;
         let result = safe_div(&x, &y);
         assert_matches!(result, Err(MathError::DividedByZero));
     }
@@ -881,6 +948,26 @@ mod tests {
 
     #[cfg(feature = "std")]
     proptest! {
+        #[test]
+        fn pow2_const_in_range_returns_power_of_2(x in 0..=251u32) {
+            prop_assert_eq!(pow2_const(x), Felt252::TWO.pow(x));
+        }
+
+        #[test]
+        fn pow2_const_oob_returns_1(x in 252u32..) {
+            prop_assert_eq!(pow2_const(x), Felt252::ONE);
+        }
+
+        #[test]
+        fn pow2_const_nz_in_range_returns_power_of_2(x in 0..=251u32) {
+            prop_assert_eq!(Felt252::from(pow2_const_nz(x)), Felt252::TWO.pow(x));
+        }
+
+        #[test]
+        fn pow2_const_nz_oob_returns_1(x in 252u32..) {
+            prop_assert_eq!(Felt252::from(pow2_const_nz(x)), Felt252::ONE);
+        }
+
         #[test]
         // Test for sqrt_prime_power_ of a quadratic residue. Result should be the minimum root.
         fn sqrt_prime_power_using_random_prime(ref x in any::<[u8; 38]>(), ref y in any::<u64>()) {

@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
 
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -11,8 +12,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
-use num_traits::{ToPrimitive, Zero};
+
+use num_traits::ToPrimitive;
 
 pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     if let Ok(usort_max_size) = exec_scopes.get::<Felt252>("usort_max_size") {
@@ -42,7 +43,7 @@ pub fn usort_body(
         if input_len_u64 > usort_max_size {
             return Err(HintError::UsortOutOfRange(Box::new((
                 usort_max_size,
-                input_len.into_owned(),
+                input_len,
             ))));
         }
     }
@@ -51,7 +52,7 @@ pub fn usort_body(
     for i in 0..input_len_u64 {
         let val = vm.get_integer((input_ptr + i as usize)?)?.into_owned();
         if let Err(output_index) = output.binary_search(&val) {
-            output.insert(output_index, val.clone());
+            output.insert(output_index, val);
         }
         positions_dict.entry(val).or_default().push(i);
     }
@@ -70,12 +71,12 @@ pub fn usort_body(
     }
 
     for (i, repetition_amount) in multiplicities.into_iter().enumerate() {
-        vm.insert_value((multiplicities_base + i)?, Felt252::new(repetition_amount))?;
+        vm.insert_value((multiplicities_base + i)?, Felt252::from(repetition_amount))?;
     }
 
     insert_value_from_var_name(
         "output_len",
-        Felt252::new(output_len),
+        Felt252::from(output_len),
         vm,
         ids_data,
         ap_tracking,
@@ -97,14 +98,14 @@ pub fn verify_usort(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?.clone();
+    let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let mut positions = exec_scopes
         .get_mut_dict_ref::<Felt252, Vec<u64>>("positions_dict")?
         .remove(value.as_ref())
         .ok_or(HintError::UnexpectedPositionsDictFail)?;
     positions.reverse();
     exec_scopes.insert_value("positions", positions);
-    exec_scopes.insert_value("last_pos", Felt252::zero());
+    exec_scopes.insert_value("last_pos", Felt252::ZERO);
     Ok(())
 }
 
@@ -127,9 +128,9 @@ pub fn verify_multiplicity_body(
         .get_mut_list_ref::<u64>("positions")?
         .pop()
         .ok_or(HintError::CouldntPopPositions)?;
-    let pos_diff = Felt252::new(current_pos) - exec_scopes.get::<Felt252>("last_pos")?;
+    let pos_diff = Felt252::from(current_pos) - exec_scopes.get::<Felt252>("last_pos")?;
     insert_value_from_var_name("next_item_index", pos_diff, vm, ids_data, ap_tracking)?;
-    exec_scopes.insert_value("last_pos", Felt252::new(current_pos + 1));
+    exec_scopes.insert_value("last_pos", Felt252::from(current_pos + 1));
     Ok(())
 }
 
@@ -173,7 +174,7 @@ mod tests {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_matches!(
             run_hint!(vm, ids_data, USORT_BODY, &mut exec_scopes),
-            Err(HintError::UsortOutOfRange(bx)) if *bx == (1, Felt252::new(5_i32))
+            Err(HintError::UsortOutOfRange(bx)) if *bx == (1, Felt252::from(5_i32))
         );
     }
 }

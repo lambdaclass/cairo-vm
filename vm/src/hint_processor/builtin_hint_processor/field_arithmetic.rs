@@ -1,4 +1,4 @@
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Zero;
@@ -274,7 +274,6 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };

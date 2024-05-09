@@ -1,17 +1,20 @@
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    prelude::*,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+    },
+    types::builtin_name::BuiltinName,
 };
 
-use felt::Felt252;
 use serde::{Deserialize, Serialize};
 
 use super::deserialize_program::{
-    ApTracking, Attribute, BuiltinName, DebugInfo, FlowTrackingData, HintParams, Identifier,
-    Member, ProgramJson, Reference, ReferenceManager, ValueAddress,
+    ApTracking, Attribute, DebugInfo, FlowTrackingData, HintParams, Identifier, Member,
+    ProgramJson, Reference, ReferenceManager, ValueAddress,
 };
 use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 // This struct is used to Serialize and Deserialize a Program struct
 // Their fields are equal to the ProgramJson
@@ -195,7 +198,8 @@ impl From<&Program> for ProgramSerializer {
                 value_address: ValueAddress {
                     offset1: r.offset1,
                     offset2: r.offset2,
-                    dereference: r.dereference,
+                    outer_dereference: r.outer_dereference,
+                    inner_dereference: r.inner_dereference,
                     value_type: r.cairo_type.unwrap_or_default(),
                 },
                 ap_tracking_data: r.ap_tracking_data.unwrap_or_default(),
@@ -250,14 +254,14 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_json_from_program_test() {
         let programs_bytes: Vec<Vec<u8>> = [
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
             include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
             include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
                 .to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
             include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
             include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),
@@ -291,14 +295,14 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn serialize_and_deserialize_programs() {
         let programs_bytes: Vec<Vec<u8>> = [
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/assert_nn.json").to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
             include_bytes!("../../../cairo_programs/blake2s_felts.json").to_vec(),
             include_bytes!("../../../cairo_programs/cairo_finalize_keccak_block_size_1000.json")
                 .to_vec(),
             include_bytes!("../../../cairo_programs/bitwise_recursion.json").to_vec(),
-            include_bytes!("../../../cairo_programs/_keccak.json").to_vec(),
+            include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
             include_bytes!("../../../cairo_programs/ec_double_slope.json").to_vec(),
             include_bytes!("../../../cairo_programs/example_blake2s.json").to_vec(),
             include_bytes!("../../../cairo_programs/fibonacci.json").to_vec(),

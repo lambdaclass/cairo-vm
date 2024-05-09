@@ -1,45 +1,42 @@
+use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
-use crate::types::instance_definitions::keccak_instance_def::KeccakInstanceDef;
+use crate::types::builtin_name::BuiltinName;
+use crate::types::instance_definitions::keccak_instance_def::{
+    CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
+};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
-use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
+use crate::Felt252;
+use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
-use num_traits::One;
-
-use super::KECCAK_BUILTIN_NAME;
 
 const KECCAK_FELT_BYTE_SIZE: usize = 25; // 200 / 8
+const BITS: u32 = 200;
+lazy_static! {
+    static ref KECCAK_INPUT_MAX: Felt252 = Felt252::TWO.pow(BITS);
+}
 
 #[derive(Debug, Clone)]
 pub struct KeccakBuiltinRunner {
     ratio: Option<u32>,
     pub base: usize,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    state_rep: Vec<u32>,
-    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
 impl KeccakBuiltinRunner {
-    pub(crate) fn new(instance_def: &KeccakInstanceDef, included: bool) -> Self {
+    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
         KeccakBuiltinRunner {
             base: 0,
-            ratio: instance_def.ratio,
-            n_input_cells: instance_def._state_rep.len() as u32,
-            cells_per_instance: instance_def.cells_per_builtin(),
+            ratio,
             stop_ptr: None,
             included,
-            instances_per_component: instance_def._instance_per_component,
-            state_rep: instance_def._state_rep.clone(),
             cache: RefCell::new(HashMap::new()),
         }
     }
@@ -64,72 +61,67 @@ impl KeccakBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
     pub fn deduce_memory_cell(
         &self,
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        let index = address.offset % self.cells_per_instance as usize;
-        if index < self.n_input_cells as usize {
+        let index = address.offset % CELLS_PER_KECCAK as usize;
+        if index < INPUT_CELLS_PER_KECCAK as usize {
             return Ok(None);
         }
         if let Some(felt) = self.cache.borrow().get(&address) {
             return Ok(Some(felt.into()));
         }
         let first_input_addr = (address - index)?;
-        let first_output_addr = (first_input_addr + self.n_input_cells as usize)?;
+        let first_output_addr = (first_input_addr + INPUT_CELLS_PER_KECCAK as usize)?;
 
         let mut input_felts = vec![];
 
-        for i in 0..self.n_input_cells as usize {
+        for i in 0..INPUT_CELLS_PER_KECCAK as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
                 Some(value) => {
-                    let num = value.get_int_ref().ok_or_else(|| {
-                        RunnerError::BuiltinExpectedInteger(Box::new((
-                            KECCAK_BUILTIN_NAME,
-                            m_index,
-                        )))
-                    })?;
-                    if num >= &(Felt252::one() << self.state_rep[i]) {
+                    let num = value
+                        .get_int_ref()
+                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
+                            BuiltinName::keccak,
+                            (first_input_addr + i)?,
+                        ))))?;
+                    if num >= &KECCAK_INPUT_MAX {
                         return Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
-                            m_index,
-                            self.state_rep[i],
-                            num.clone(),
+                            (first_input_addr + i)?,
+                            BITS,
+                            *num,
                         ))));
                     }
-                    num.clone()
+                    *num
                 }
                 _ => return Ok(None),
             };
-
             input_felts.push(val)
         }
-
         let input_message: Vec<u8> = input_felts
             .iter()
-            .flat_map(|x| Self::right_pad(&x.to_biguint().to_bytes_le(), KECCAK_FELT_BYTE_SIZE))
+            .flat_map(|x| {
+                let mut bytes = x.to_bytes_le().to_vec();
+                bytes.resize(KECCAK_FELT_BYTE_SIZE, 0);
+                bytes
+            })
             .collect();
         let keccak_result = Self::keccak_f(&input_message)?;
 
         let mut start_index = 0_usize;
-        for (i, bits) in self.state_rep.iter().enumerate() {
-            let end_index = start_index + *bits as usize / 8;
-            self.cache.borrow_mut().insert(
-                (first_output_addr + i)?,
-                Felt252::from(BigUint::from_bytes_le(
-                    &keccak_result[start_index..end_index],
-                )),
-            );
+        for i in 0..INPUT_CELLS_PER_KECCAK {
+            let end_index = start_index + BITS as usize / 8;
+            self.cache.borrow_mut().insert((first_output_addr + i)?, {
+                let mut bytes = keccak_result[start_index..end_index].to_vec();
+                bytes.resize(32, 0);
+                Felt252::from_bytes_le_slice(&bytes)
+            });
             start_index = end_index;
         }
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -143,58 +135,7 @@ impl KeccakBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
-    }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    KECCAK_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as usize;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    KECCAK_BUILTIN_NAME,
-                    Relocatable::from((self.base as isize, used)),
-                    Relocatable::from((self.base as isize, stop_ptr)),
-                ))));
-            }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
-    }
-
-    pub fn get_memory_accesses(
-        &self,
-        vm: &VirtualMachine,
-    ) -> Result<Vec<Relocatable>, MemoryError> {
-        let segment_size = vm
-            .segments
-            .get_segment_size(self.base)
-            .ok_or(MemoryError::MissingSegmentUsedSizes)?;
-
-        Ok((0..segment_size)
-            .map(|i| (self.base as isize, i).into())
-            .collect())
+        Ok(div_ceil(used_cells, CELLS_PER_KECCAK as usize))
     }
 
     pub fn get_used_diluted_check_units(&self, diluted_n_bits: u32) -> usize {
@@ -211,13 +152,6 @@ impl KeccakBuiltinRunner {
         safe_div_usize(262144_usize, diluted_n_bits as usize).unwrap_or(0)
     }
 
-    fn right_pad(bytes: &[u8], final_size: usize) -> Vec<u8> {
-        let zeros: Vec<u8> = vec![0; final_size - bytes.len()];
-        let mut bytes_vector = bytes.to_vec();
-        bytes_vector.extend(zeros);
-        bytes_vector
-    }
-
     fn keccak_f(input_message: &[u8]) -> Result<Vec<u8>, RunnerError> {
         let bigint = BigUint::from_bytes_le(input_message);
         let mut keccak_input = bigint.to_u64_digits();
@@ -227,19 +161,61 @@ impl KeccakBuiltinRunner {
         keccak::f1600(&mut keccak_input);
         Ok(keccak_input.iter().flat_map(|x| x.to_le_bytes()).collect())
     }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_KECCAK as usize)
+                .enumerate()
+            {
+                // Add the input cells of each keccak instance to the private inputs
+                if let (
+                    Ok(input_s0),
+                    Ok(input_s1),
+                    Ok(input_s2),
+                    Ok(input_s3),
+                    Ok(input_s4),
+                    Ok(input_s5),
+                    Ok(input_s6),
+                    Ok(input_s7),
+                ) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                    memory.get_integer((self.base as isize, off + 5).into()),
+                    memory.get_integer((self.base as isize, off + 6).into()),
+                    memory.get_integer((self.base as isize, off + 7).into()),
+                ) {
+                    private_inputs.push(PrivateInput::KeccakState(PrivateInputKeccakState {
+                        index,
+                        input_s0: *input_s0,
+                        input_s1: *input_s1,
+                        input_s2: *input_s2,
+                        input_s3: *input_s3,
+                        input_s4: *input_s4,
+                        input_s5: *input_s5,
+                        input_s6: *input_s6,
+                        input_s7: *input_s7,
+                    }))
+                }
+            }
+        }
+        private_inputs
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use num_traits::Num;
-
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
-    use crate::stdlib::collections::HashMap;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
@@ -253,8 +229,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -265,8 +240,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true);
+        let mut builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -290,8 +264,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true);
+        let mut builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -308,7 +281,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                KECCAK_BUILTIN_NAME,
+                BuiltinName::keccak,
                 relocatable!(0, 992),
                 relocatable!(0, 0)
             ))))
@@ -318,8 +291,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
-        let mut builtin =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), false);
+        let mut builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), false).into();
 
         let mut vm = vm!();
 
@@ -343,8 +315,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true);
+        let mut builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -361,21 +332,20 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::keccak)))
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
         let program = Program::from_bytes(
-            include_bytes!("../../../../../cairo_programs/_keccak.json"),
+            include_bytes!("../../../../../cairo_programs/keccak.json"),
             Some("main"),
         )
         .unwrap();
@@ -384,7 +354,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -399,8 +369,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::new(Some(10), vec![200; 8]), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
         vm.current_step = 160;
@@ -410,57 +379,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         let vm = vm!();
 
         assert_eq!(
@@ -472,8 +392,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -483,8 +402,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
-        let builtin: BuiltinRunner =
-            KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true).into();
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -494,7 +412,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
-        let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let keccak_builtin = KeccakBuiltinRunner::new(Some(2048), true);
         assert_eq!(
             keccak_builtin.initial_stack(),
             vec![mayberelocatable!(0, 0)]
@@ -504,7 +422,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
-        let keccak_builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), false);
+        let keccak_builtin = KeccakBuiltinRunner::new(Some(2048), false);
         assert_eq!(keccak_builtin.initial_stack(), Vec::new())
     }
 
@@ -533,18 +451,14 @@ mod tests {
             ((0, 34), 0),
             ((0, 35), 0)
         ];
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(
-                Felt252::from_str_radix(
-                    "1006979841721999878391288827876533441431370448293338267890891",
-                    10
-                )
-                .unwrap()
-            )))
+            Ok(Some(MaybeRelocatable::from(felt_hex!(
+                "0xa06bd018ba91b93146f53563cff2efba46fee2eabe9d89b4cb"
+            ))))
         );
     }
 
@@ -558,7 +472,7 @@ mod tests {
             ((0, 7), 120),
             ((0, 8), 52)
         ];
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -567,7 +481,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_offset_lt_input_cell_length_none() {
         let memory = memory![((0, 4), 32)];
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 2)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -577,17 +491,14 @@ mod tests {
     fn deduce_memory_cell_expected_integer() {
         let memory = memory![((0, 0), (1, 2))];
 
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
-        builtin.n_input_cells = 1;
-        builtin.cells_per_instance = 100;
-
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
+        let result = builtin.deduce_memory_cell(Relocatable::from((0, 9)), &memory);
 
         assert_eq!(
             result,
             Err(RunnerError::BuiltinExpectedInteger(Box::new((
-                KECCAK_BUILTIN_NAME,
+                BuiltinName::keccak,
                 (0, 0).into()
             ))))
         );
@@ -598,27 +509,9 @@ mod tests {
     fn deduce_memory_cell_missing_input_cells() {
         let memory = memory![((0, 1), (1, 2))];
 
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        builtin.n_input_cells = 1;
-        builtin.cells_per_instance = 100;
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 1)), &memory);
-
-        assert_eq!(result, Ok(None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn deduce_memory_cell_input_cell() {
-        let memory = memory![((0, 0), (1, 2))];
-
-        let mut builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
-
-        builtin.n_input_cells = 1;
-        builtin.cells_per_instance = 100;
-
-        let result = builtin.deduce_memory_cell(Relocatable::from((0, 0)), &memory);
 
         assert_eq!(result, Ok(None));
     }
@@ -628,7 +521,7 @@ mod tests {
     fn deduce_memory_cell_get_memory_err() {
         let memory = memory![((0, 35), 0)];
 
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 15)), &memory);
 
@@ -638,8 +531,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_memory_int_larger_than_bits() {
-        let memory = memory![
-            ((0, 16), 43),
+        let mut memory = memory![
             ((0, 17), 199),
             ((0, 18), 0),
             ((0, 19), 0),
@@ -661,8 +553,9 @@ mod tests {
             ((0, 35), 0)
         ];
 
-        let keccak_instance = KeccakInstanceDef::new(Some(2048), vec![1; 8]);
-        let builtin = KeccakBuiltinRunner::new(&keccak_instance, true);
+        memory.insert((0, 16).into(), Felt252::MAX).unwrap();
+
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 25)), &memory);
 
@@ -670,8 +563,8 @@ mod tests {
             result,
             Err(RunnerError::IntegerBiggerThanPowerOfTwo(Box::new((
                 (0, 16).into(),
-                1,
-                43.into()
+                BITS,
+                Felt252::MAX
             ))))
         );
     }
@@ -679,18 +572,11 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_diluted_check_units_result() {
-        let builtin = KeccakBuiltinRunner::new(&KeccakInstanceDef::default(), true);
+        let builtin = KeccakBuiltinRunner::new(Some(2048), true);
 
         let result: usize = builtin.get_used_diluted_check_units(16);
 
         assert_eq!(result, 16384);
-    }
-
-    #[test]
-    fn right_pad() {
-        let num = [1_u8];
-        let padded_num = KeccakBuiltinRunner::right_pad(&num, 5);
-        assert_eq!(padded_num, vec![1, 0, 0, 0, 0]);
     }
 
     #[test]
@@ -699,5 +585,36 @@ mod tests {
         let expected_output_bytes = b"\xf6\x98\x81\xe1\x00!\x1f.\xc4*\x8c\x0c\x7fF\xc8q8\xdf\xb9\xbe\x07H\xca7T1\xab\x16\x17\xa9\x11\xff-L\x87\xb2iY.\x96\x82x\xde\xbb\\up?uz:0\xee\x08\x1b\x15\xd6\n\xab\r\x0b\x87T:w\x0fH\xe7!f},\x08a\xe5\xbe8\x16\x13\x9a?\xad~<9\xf7\x03`\x8b\xd8\xa3F\x8aQ\xf9\n9\xcdD\xb7.X\xf7\x8e\x1f\x17\x9e \xe5i\x01rr\xdf\xaf\x99k\x9f\x8e\x84\\\xday`\xf1``\x02q+\x8e\xad\x96\xd8\xff\xff3<\xb6\x01o\xd7\xa6\x86\x9d\xea\xbc\xfb\x08\xe1\xa3\x1c\x06z\xab@\xa1\xc1\xb1xZ\x92\x96\xc0.\x01\x13g\x93\x87!\xa6\xa8z\x9c@\x0bY'\xe7\xa7Qr\xe5\xc1\xa3\xa6\x88H\xa5\xc0@9k:y\xd1Kw\xd5";
         let output_bytes = KeccakBuiltinRunner::keccak_f(input_bytes);
         assert_eq!(output_bytes, Ok(expected_output_bytes.to_vec()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
+
+        let segments = segments![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&segments),
+            (vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+                index: 0,
+                input_s0: 0.into(),
+                input_s1: 1.into(),
+                input_s2: 2.into(),
+                input_s3: 3.into(),
+                input_s4: 4.into(),
+                input_s5: 5.into(),
+                input_s6: 6.into(),
+                input_s7: 7.into()
+            }),]),
+        );
     }
 }

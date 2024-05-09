@@ -1,28 +1,22 @@
+use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
-use crate::types::instance_definitions::pedersen_instance_def::{
-    CELLS_PER_HASH, INPUT_CELLS_PER_HASH,
-};
+use crate::types::builtin_name::BuiltinName;
+use crate::types::instance_definitions::pedersen_instance_def::CELLS_PER_HASH;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
 use num_integer::{div_ceil, Integer};
-use starknet_crypto::{pedersen_hash, FieldElement};
-
-use super::HASH_BUILTIN_NAME;
+use starknet_types_core::hash::StarkHash;
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
     pub base: usize,
     ratio: Option<u32>,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     // This act as a cache to optimize calls to deduce_memory_cell
     // Therefore need interior mutability
     // 1 at position 'n' means offset 'n' relative to base pointer
@@ -35,12 +29,9 @@ impl HashBuiltinRunner {
         HashBuiltinRunner {
             base: 0,
             ratio,
-            cells_per_instance: CELLS_PER_HASH,
-            n_input_cells: INPUT_CELLS_PER_HASH,
             stop_ptr: None,
             verified_addresses: RefCell::new(Vec::new()),
             included,
-            instances_per_component: 1,
         }
     }
 
@@ -64,17 +55,12 @@ impl HashBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
     pub fn deduce_memory_cell(
         &self,
         address: Relocatable,
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
-        if address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize))
-            != 2
+        if address.offset.mod_floor(&(CELLS_PER_HASH as usize)) != 2
             || *self
                 .verified_addresses
                 .borrow()
@@ -102,29 +88,11 @@ impl HashBuiltinRunner {
                     .resize(address.offset + 1, false);
             }
             self.verified_addresses.borrow_mut()[address.offset] = true;
-
-            //Convert MaybeRelocatable to FieldElement
-            let a_string = num_a.to_str_radix(10);
-            let b_string = num_b.to_str_radix(10);
-            let (y, x) = match (
-                FieldElement::from_dec_str(&a_string),
-                FieldElement::from_dec_str(&b_string),
-            ) {
-                (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
-                _ => return Err(RunnerError::FailedStringConversion),
-            };
             //Compute pedersen Hash
-            let fe_result = pedersen_hash(&x, &y);
-            //Convert result from FieldElement to MaybeRelocatable
-            let r_byte_slice = fe_result.to_bytes_be();
-            let result = Felt252::from_bytes_be(&r_byte_slice);
+            let result = starknet_types_core::hash::Pedersen::hash(num_b, num_a);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -138,44 +106,7 @@ impl HashBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
-    }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(HASH_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(HASH_BUILTIN_NAME)))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    HASH_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as usize;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    HASH_BUILTIN_NAME,
-                    Relocatable::from((self.base as isize, used)),
-                    Relocatable::from((self.base as isize, stop_ptr)),
-                ))));
-            }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
+        Ok(div_ceil(used_cells, CELLS_PER_HASH as usize))
     }
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
@@ -187,24 +118,68 @@ impl HashBuiltinRunner {
         }
         BuiltinAdditionalData::Hash(verified_addresses)
     }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Hash(d) => d,
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen)),
+        };
+        let mut verified_addresses = self.verified_addresses.borrow_mut();
+        for addr in additional_data {
+            if addr.segment_index != self.base as isize {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
+            }
+            // Mark offset as verified
+            if addr.offset > verified_addresses.len() {
+                verified_addresses.resize(addr.offset, false);
+            }
+            verified_addresses.insert(addr.offset, true)
+        }
+        Ok(())
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_HASH as usize)
+                .enumerate()
+            {
+                // Add the input cells of each hash instance to the private inputs
+                if let (Ok(x), Ok(y)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                ) {
+                    private_inputs.push(PrivateInput::Pair(PrivateInputPair {
+                        index,
+                        x: *x,
+                        y: *y,
+                    }))
+                }
+            }
+        }
+        private_inputs
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
-    use crate::stdlib::collections::HashMap;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use felt::felt_str;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -223,7 +198,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = HashBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -247,7 +222,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = HashBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -265,7 +240,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                HASH_BUILTIN_NAME,
+                BuiltinName::pedersen,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))))
@@ -275,7 +250,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
-        let mut builtin = HashBuiltinRunner::new(Some(10), false);
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), false).into();
 
         let mut vm = vm!();
 
@@ -299,7 +274,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = HashBuiltinRunner::new(Some(10), true);
+        let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -316,7 +291,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(HASH_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::pedersen)))
         );
     }
 
@@ -357,7 +332,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -401,7 +376,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -419,8 +394,8 @@ mod tests {
         let result = builtin.deduce_memory_cell(Relocatable::from((0, 5)), &memory);
         assert_eq!(
             result,
-            Ok(Some(MaybeRelocatable::from(felt_str!(
-                "3270867057177188607814717243084834301278723532952411121381966378910183338911"
+            Ok(Some(MaybeRelocatable::from(felt_hex!(
+                "0x73b3ec210cccbb970f80c6826fb1c40ae9f487617696234ff147451405c339f"
             ))))
         );
         assert_eq!(
@@ -459,54 +434,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = HashBuiltinRunner::new(Some(256), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None),);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let vm = vm!();
@@ -538,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info() {
+    fn get_additional_data() {
         let mut builtin = HashBuiltinRunner::new(Some(1), true);
         let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
         builtin.verified_addresses =
@@ -547,5 +474,55 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Hash(verified_addresses)
         )
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let mut builtin_a = HashBuiltinRunner::new(Some(1), true);
+        builtin_a.verified_addresses =
+            RefCell::new(vec![false, false, false, true, false, false, true]);
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = HashBuiltinRunner::new(Some(1), true);
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin_a.verified_addresses, builtin_b.verified_addresses);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = HashBuiltinRunner::new(None, true).into();
+
+        let segments = segments![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4),
+            ((0, 5), 5),
+            ((0, 6), 6),
+            ((0, 7), 7),
+            ((0, 8), 8),
+            ((0, 9), 9)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&segments),
+            (vec![
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 0,
+                    x: 0.into(),
+                    y: 1.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 1,
+                    x: 3.into(),
+                    y: 4.into()
+                }),
+                PrivateInput::Pair(PrivateInputPair {
+                    index: 2,
+                    x: 6.into(),
+                    y: 7.into()
+                }),
+            ]),
+        );
     }
 }

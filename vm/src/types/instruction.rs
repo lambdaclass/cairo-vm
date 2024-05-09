@@ -1,13 +1,13 @@
-use felt::Felt252;
+use crate::Felt252;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Register {
     AP,
@@ -112,28 +112,28 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_call_instruction_true() {
-        let encoded_instruction = Felt252::new(1226245742482522112_i64);
+        let encoded_instruction = Felt252::from(1226245742482522112_i64);
         assert!(is_call_instruction(&encoded_instruction));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_call_instruction_false() {
-        let encoded_instruction = Felt252::new(4612671187288031229_i64);
+        let encoded_instruction = Felt252::from(4612671187288031229_i64);
         assert!(!is_call_instruction(&encoded_instruction));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn is_call_instruction_invalid() {
-        let encoded_instruction = Felt252::new(1u64 << 63);
+        let encoded_instruction = Felt252::from(1u64 << 63);
         assert!(!is_call_instruction(&encoded_instruction));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn instruction_size() {
-        let encoded_instruction = Felt252::new(1226245742482522112_i64);
+        let encoded_instruction = Felt252::from(1226245742482522112_i64);
         let instruction = decode_instruction(encoded_instruction.to_u64().unwrap()).unwrap();
         assert_eq!(instruction.size(), 2);
     }

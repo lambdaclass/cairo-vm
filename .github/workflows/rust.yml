@@ -18,9 +18,27 @@ env:
     cairo_programs/**/*.json
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
+  TEST_COLLECT_COVERAGE: 1
+  PROPTEST_CASES: 100
 
 jobs:
+
+  # We need to use the same files across all jobs or else hashing will fail
+  upload_proof_programs_symlinks:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Create proof_programs symlinks
+      run: make create-proof-programs-symlinks
+    - uses: actions/upload-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/*.cairo
+  
   build-programs:
+    needs: upload_proof_programs_symlinks
     strategy:
       matrix:
         # NOTE: we build cairo_bench_programs so clippy can check the benchmarks too
@@ -38,6 +56,11 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch from cache
       uses: actions/cache@v3
@@ -89,6 +112,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+    
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch test programs
       uses: actions/cache/restore@v3
@@ -133,7 +161,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.74.1
       with:
           components: rustfmt, clippy
     - name: Set up cargo cache
@@ -141,8 +169,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
     - name: Format
       run: make check-fmt
+
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -160,10 +194,14 @@ jobs:
   smoke:
     needs: merge-caches
     name: Make sure all builds work
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: ["vm", "cairo-vm-cli", "cairo1-run"]
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.74.1
       with:
         targets: wasm32-unknown-unknown
 
@@ -176,8 +214,14 @@ jobs:
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-all-features
+
     - name: Checkout
       uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -187,25 +231,86 @@ jobs:
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
-    - name: Check all features (felt)
+    - name: Check all features (${{ matrix.crate }})
       run: |
-        cd felt
+        cd ${{ matrix.crate }}
         cargo check-all-features
         cargo check-all-features --workspace --all-targets
 
-    - name: Check all features (vm)
-      run: |
-        cd vm
-        cargo check-all-features
+  smoke-workspace:
+    needs: merge-caches
+    name: Make sure all builds work (workspace)
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [1, 2, 3, 4, 5, 6]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.74.1
+      with:
+        targets: wasm32-unknown-unknown
 
-    - name: Check all features (CLI)
-      run: |
-        cd cairo-vm-cli
-        cargo check-all-features
-    
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Install cargo-all-features
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-all-features
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Download proof programs symlinks
+      uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
     - name: Check all features (workspace)
       run: |
-        cargo check-all-features --workspace --all-targets
+        cargo check-all-features --n-chunks 6 --chunk ${{ matrix.chunk }} --workspace --all-targets
+
+  smoke-no-std:
+    needs: merge-caches
+    name: Make sure all builds work (no_std)
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.74.1
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Download proof programs symlinks
+      uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
 
     - name: Check no-std
       run: |
@@ -218,19 +323,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: ["", "lambdaworks-felt"]
+        special_features: ["", "extensive_hints", "mod_builtin"]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.74.1
       with:
           components: llvm-tools-preview
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -285,7 +395,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.74.1
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
@@ -318,6 +428,11 @@ jobs:
       with:
         fetch-depth: 0
 
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
     - name: Check cache
       uses: actions/cache@v3
       id: trace-cache
@@ -326,6 +441,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
@@ -365,10 +482,10 @@ jobs:
         include:
         - program-target: cairo_proof_programs
           programs-dir: cairo_programs/proof_programs
-          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input '
+          extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input --air_private_input {program}.rs.air_private_input '
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
-          extra-args: ''
+          extra-args: '--cairo_pie_output {program}.rs.pie.zip'
     name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
@@ -382,6 +499,11 @@ jobs:
         key: cli-bin-rel-${{ github.sha }}
         path: target/release/cairo-vm-cli
         fail-on-cache-miss: true
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
 
     - name: Fetch programs
       uses: actions/cache/restore@v3
@@ -404,6 +526,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
 
 
@@ -445,37 +569,37 @@ jobs:
         path: lcov-test-no_std-.info
         key: codecov-cache-test-no_std--${{ github.sha }}
         fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-extensive_hints.info
+        key: codecov-cache-test#1-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-extensive_hints.info
+        key: codecov-cache-test#2-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-extensive_hints.info
+        key: codecov-cache-test#3-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/extensive_hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-extensive_hints.info
+        key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-no_std-extensive_hints.info
+        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
 
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 1)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#1-lambdaworks-felt.info
-        key: codecov-cache-test#1-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 2)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#2-lambdaworks-felt.info
-        key: codecov-cache-test#2-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 3)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#3-lambdaworks-felt.info
-        key: codecov-cache-test#3-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests with stdlib (w/lambdaworks; part. 4)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test#4-lambdaworks-felt.info
-        key: codecov-cache-test#4-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/lambdaworks)
-      uses: actions/cache/restore@v3
-      with:
-        path: lcov-test-no_std-lambdaworks-felt.info
-        key: codecov-cache-test-no_std-lambdaworks-felt-${{ github.sha }}
-        fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
@@ -496,6 +620,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
     - name: Fetch traces for cairo-lang
       uses: actions/cache/restore@v3
       with:
@@ -503,6 +632,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         fail-on-cache-miss: true
 
@@ -513,6 +644,8 @@ jobs:
           cairo_programs/**/*.memory
           cairo_programs/**/*.trace
           cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
 
@@ -521,9 +654,11 @@ jobs:
         if [ ${{ matrix.program-target }} = cairo_proof_programs ]; then
           PROOF=proof_mode 
           AIR_PUBLIC_INPUT=air_public_input
+          AIR_PRIVATE_INPUT=air_private_input
+        else
+          PIE=pie
         fi
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT
-        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF
+        ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT $PIE
 
   wasm-demo:
     name: Build the wasm demo
@@ -550,3 +685,82 @@ jobs:
         cairo-compile cairo_programs/array_sum.cairo --no_debug_info --output cairo_programs/array_sum.json
         cd examples/wasm-demo
         wasm-pack build --target=web
+        
+  compare-factorial-outputs-all-layouts:
+    name: Compare factorial outputs for all layouts
+    needs: [ build-programs, build-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+      
+    - name: Install cairo-lang and deps
+      run: pip install -r requirements.txt
+      
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+    
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+        
+    - name: Run script
+      run: ./vm/src/tests/compare_factorial_outputs_all_layouts.sh
+
+  compare-run-from-cairo-pie-all-outputs:
+    name: Compare all outputs from running Cairo PIEs
+    needs: [ build-programs, build-release, run-cairo-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+      
+    - name: Install cairo-lang and deps
+      run: pip install -r requirements.txt
+      
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+    
+    - name: Fetch traces for cairo-vm
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+          cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
+        key: cairo_test_programs-release-trace-cache-${{ github.sha }}
+        fail-on-cache-miss: true
+   
+    - name: Run comparison
+      run: ./vm/src/tests/compare_all_pie_outputs.sh
+

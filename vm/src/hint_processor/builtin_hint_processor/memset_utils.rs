@@ -1,5 +1,6 @@
 use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
 
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -11,8 +12,6 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
-use num_traits::{One, Signed};
 
 //  Implements hint:
 //  %{ vm_enter_scope({'n': ids.n}) %}
@@ -22,8 +21,7 @@ pub fn memset_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?.into_owned());
+    let n: Box<dyn Any> = Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
@@ -44,10 +42,10 @@ pub fn memset_step_loop(
     // get `n` variable from vm scope
     let n = exec_scopes.get_mut_ref::<Felt252>("n")?;
     // this variable will hold the value of `n - 1`
-    *n -= Felt252::one();
+    *n -= Felt252::ONE;
     // if `new_n` is positive, insert 1 in the address of `continue_loop`
     // else, insert 0
-    let flag = Felt252::new(n.is_positive());
+    let flag = Felt252::from((*n > Felt252::ZERO) as u8);
     insert_value_from_var_name(i_name, flag, vm, ids_data, ap_tracking)?;
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
@@ -57,7 +55,6 @@ pub fn memset_step_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
     use crate::types::relocatable::Relocatable;
     use crate::{
         any_box,
@@ -72,7 +69,6 @@ mod tests {
         vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -103,7 +99,7 @@ mod tests {
         let ids_data = ids_data!["n"];
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("n".to_string(), (1,1).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "n"
         );
     }
 
@@ -115,7 +111,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 1
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt252::ONE)];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (1, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 1), 5)];
@@ -133,7 +129,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize vm scope with variable `n` = 5
-        let mut exec_scopes = scope![("n", Felt252::new(5))];
+        let mut exec_scopes = scope![("n", Felt252::from(5))];
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 0), the actual addr of continue_loop
         vm.segments = segments![((1, 2), 5)];
@@ -154,7 +150,7 @@ mod tests {
 
         // we don't initialize `n` now:
         /*  vm.exec_scopes
-        .assign_or_update_variable("n",  Felt252::one()));  */
+        .assign_or_update_variable("n",  Felt252::ONE));  */
 
         // initialize ids.continue_loop
         // we create a memory gap so that there is None in (0, 1), the actual addr of continue_loop
@@ -174,7 +170,7 @@ mod tests {
         // initialize fp
         vm.run_context.fp = 1;
         // initialize with variable `n`
-        let mut exec_scopes = scope![("n", Felt252::one())];
+        let mut exec_scopes = scope![("n", Felt252::ONE)];
         // initialize ids.continue_loop
         // a value is written in the address so the hint cant insert value there
         vm.segments = segments![((1, 0), 5)];
@@ -184,8 +180,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 0)),
-                    MaybeRelocatable::from(Felt252::new(5)),
-                    MaybeRelocatable::from(Felt252::zero()))
+                    MaybeRelocatable::from(Felt252::from(5)),
+                    MaybeRelocatable::from(Felt252::ZERO))
         );
     }
 }

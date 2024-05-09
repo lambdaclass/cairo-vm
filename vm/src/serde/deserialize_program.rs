@@ -1,19 +1,24 @@
 //! # Program deserialization
 //!
 //! This module contains the logic for [`Program`] deserialization.
-//! Users shouldn't need to use it directly (except for [`BuiltinName`]).
+//! Users shouldn't need to use it directly
 //!
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    fmt,
-    prelude::*,
-    sync::Arc,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        fmt,
+        prelude::*,
+        sync::Arc,
+    },
+    types::builtin_name::BuiltinName,
+    utils::CAIRO_PRIME,
 };
 
-use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
+use crate::utils::PRIME_STR;
+use crate::Felt252;
 use crate::{
     serde::deserialize_utils,
     types::{
@@ -22,54 +27,16 @@ use crate::{
         program::{HintsCollection, Program, SharedProgramData},
         relocatable::MaybeRelocatable,
     },
-    vm::runners::builtin_runner::{
-        BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME,
-        OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-        SIGNATURE_BUILTIN_NAME,
-    },
 };
-use felt::{Felt252, PRIME_STR};
-use num_traits::float::FloatCore;
-use num_traits::{Num, Pow};
+use num_bigint::BigUint;
+use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary, Unstructured};
 
-// This enum is used to deserialize program builtins into &str and catch non-valid names
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
-#[allow(non_camel_case_types)]
-pub enum BuiltinName {
-    output,
-    range_check,
-    pedersen,
-    ecdsa,
-    keccak,
-    bitwise,
-    ec_op,
-    poseidon,
-    segment_arena,
-}
-
-impl BuiltinName {
-    pub fn name(&self) -> &'static str {
-        match self {
-            BuiltinName::output => OUTPUT_BUILTIN_NAME,
-            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
-            BuiltinName::pedersen => HASH_BUILTIN_NAME,
-            BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME,
-            BuiltinName::keccak => KECCAK_BUILTIN_NAME,
-            BuiltinName::bitwise => BITWISE_BUILTIN_NAME,
-            BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
-            BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
-            BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
-        }
-    }
-}
-
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
@@ -84,7 +51,7 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -92,7 +59,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -100,7 +67,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -122,7 +89,7 @@ impl Default for ApTracking {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -137,24 +104,21 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
-    #[cfg_attr(
-        all(feature = "arbitrary", feature = "std"),
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "test_utils", serde(skip_serializing_if = "Option::is_none"))]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -168,14 +132,14 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         arbitrary_parent_location(u, 20)
     }
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Result<Location> {
     let parent_location = if depth > 0 {
         Some((
@@ -195,26 +159,48 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+impl DebugInfo {
+    pub fn new(instruction_locations: HashMap<usize, InstructionLocation>) -> Self {
+        Self {
+            instruction_locations,
+        }
+    }
+    pub fn get_instruction_locations(&self) -> HashMap<usize, InstructionLocation> {
+        self.instruction_locations.clone()
+    }
+}
+
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+impl InputFile {
+    #[cfg(feature = "std")]
+    pub fn get_content(&self) -> Result<String, String> {
+        let content = std::fs::read_to_string(self.filename.clone());
+        if let Ok(content) = content {
+            return Ok(content);
+        }
+        Err(format!("Failed to read file {}", self.filename.clone()))
+    }
+}
+
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -226,7 +212,7 @@ where
     D: Deserializer<'de>,
 {
     let n = Number::deserialize(deserializer)?;
-    match Felt252::parse_bytes(n.to_string().as_bytes(), 10) {
+    match Felt252::from_dec_str(&n.to_string()).ok() {
         Some(x) => Ok(Some(x)),
         None => {
             // Handle de Number with scientific notation cases
@@ -248,22 +234,27 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
         None => {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
-
-            let exponent = list[1].parse::<u32>().ok()?;
-            let base = Felt252::parse_bytes(list[0].to_string().as_bytes(), 10)?;
+            let exponent = list[1].parse::<u128>().ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
+            let base_biguint = BigUint::from_str_radix(list[0], 10).ok()? % CAIRO_PRIME.clone();
+            let base = Felt252::from_dec_str(&base_biguint.to_string()).ok()?;
             Some(base * Felt252::from(10).pow(exponent))
         }
-        Some(float) => Felt252::parse_bytes(FloatCore::round(float).to_string().as_bytes(), 10),
+        Some(float) => {
+            let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
+            // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
+            Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
+        }
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
@@ -273,7 +264,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
@@ -281,13 +272,14 @@ pub enum OffsetValue {
     Reference(Register, i32, bool),
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
-    pub offset1: OffsetValue,
-    pub offset2: OffsetValue,
-    pub dereference: bool,
-    pub value_type: String,
+    pub offset1: OffsetValue,    // A in cast(A + B, type)
+    pub offset2: OffsetValue,    // B in cast(A + B, type)
+    pub outer_dereference: bool, // [] in [cast(A + B, type)]
+    pub inner_dereference: bool, // [] in cast([A + B], type)
+    pub value_type: String,      // type in cast(A + B, type)
 }
 
 impl ValueAddress {
@@ -302,7 +294,8 @@ impl ValueAddress {
         ValueAddress {
             offset1: OffsetValue::Value(99),
             offset2: OffsetValue::Value(99),
-            dereference: false,
+            outer_dereference: false,
+            inner_dereference: false,
             value_type: String::from("felt"),
         }
     }
@@ -321,14 +314,9 @@ impl<'de> de::Visitor<'de> for Felt252Visitor {
     where
         E: de::Error,
     {
-        // Strip the '0x' prefix from the encoded hex string
-        if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-            // Add padding if necessary
-            let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-            Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
-        } else {
-            Err(String::from("hex prefix error")).map_err(de::Error::custom)
-        }
+        // Add padding if necessary
+        let value = deserialize_utils::maybe_add_padding(value.to_string());
+        Felt252::from_hex(&value).map_err(de::Error::custom)
     }
 }
 
@@ -348,15 +336,11 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
         let mut data: Vec<MaybeRelocatable> = vec![];
 
         while let Some(value) = seq.next_element::<String>()? {
-            if let Some(no_prefix_hex) = value.strip_prefix("0x") {
-                // Add padding if necessary
-                let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
-                data.push(MaybeRelocatable::Int(
-                    Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
-                ));
-            } else {
-                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
-            };
+            // Add padding if necessary
+            let value = deserialize_utils::maybe_add_padding(value.to_string());
+            data.push(MaybeRelocatable::Int(
+                Felt252::from_hex(&value).map_err(de::Error::custom)?,
+            ));
         }
         Ok(data)
     }
@@ -475,7 +459,6 @@ pub fn parse_program_json(
         if value.type_.as_deref() == Some("const") {
             let value = value
                 .value
-                .clone()
                 .ok_or_else(|| ProgramError::ConstWithoutValue(key.clone()))?;
             constants.insert(key.clone(), value);
         }
@@ -510,11 +493,9 @@ pub fn parse_program_json(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_str;
     use assert_matches::assert_matches;
     use core::num::NonZeroUsize;
-    use felt::felt_str;
-    use num_traits::One;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -674,12 +655,12 @@ mod tests {
         let program_json: ProgramJson = serde_json::from_str(valid_json).unwrap();
 
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000_i64)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000_i64)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let mut hints = BTreeMap::new();
@@ -729,7 +710,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -4, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -742,7 +724,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -754,8 +737,9 @@ mod tests {
                     pc: Some(0),
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, -3, true),
-                        offset2: OffsetValue::Immediate(Felt252::new(2)),
-                        dereference: false,
+                        offset2: OffsetValue::Immediate(Felt252::from(2)),
+                        outer_dereference: false,
+                        inner_dereference: false,
                         value_type: "felt".to_string(),
                     },
                 },
@@ -768,7 +752,8 @@ mod tests {
                     value_address: ValueAddress {
                         offset1: OffsetValue::Reference(Register::FP, 0, false),
                         offset2: OffsetValue::Value(0),
-                        dereference: true,
+                        outer_dereference: true,
+                        inner_dereference: false,
                         value_type: "felt*".to_string(),
                     },
                 },
@@ -880,12 +865,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let hints: HashMap<_, _> = [
@@ -949,12 +934,12 @@ mod tests {
 
         let builtins: Vec<BuiltinName> = Vec::new();
         let data: Vec<MaybeRelocatable> = vec![
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(1000)),
-            MaybeRelocatable::Int(Felt252::new(5189976364521848832_i64)),
-            MaybeRelocatable::Int(Felt252::new(2000)),
-            MaybeRelocatable::Int(Felt252::new(5201798304953696256_i64)),
-            MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(1000)),
+            MaybeRelocatable::Int(Felt252::from(5189976364521848832_i64)),
+            MaybeRelocatable::Int(Felt252::from(2000)),
+            MaybeRelocatable::Int(Felt252::from(5201798304953696256_i64)),
+            MaybeRelocatable::Int(Felt252::from(2345108766317314046_i64)),
         ];
 
         let hints: HashMap<_, _> = [
@@ -1066,7 +1051,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::new(3)),
+                value: Some(Felt252::from(3)),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1077,7 +1062,7 @@ mod tests {
             Identifier {
                 pc: None,
                 type_: Some(String::from("const")),
-                value: Some(Felt252::zero()),
+                value: Some(Felt252::ZERO),
                 full_name: None,
                 members: None,
                 cairo_type: None,
@@ -1500,7 +1485,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::one() * Felt252::from(10).pow(27))
+            Ok(x) if x == Some(Felt252::ONE * Felt252::from(10).pow(27_u32))
         );
     }
 
@@ -1511,7 +1496,7 @@ mod tests {
 
         assert_matches!(
             felt_from_number(n),
-            Ok(x) if x == Some(Felt252::from_str_radix("64", 10).unwrap() * Felt252::from(10).pow(74))
+            Ok(x) if x == Some(Felt252::from_dec_str("64").unwrap() * Felt252::from(10).pow(74_u32))
         );
     }
 
@@ -1522,9 +1507,8 @@ mod tests {
         assert_eq!(
             felt_from_number(n).unwrap(),
             Some(
-                Felt252::from_str_radix(
+                Felt252::from_dec_str(
                     "2082797363194934431336897723140298717588791783575467744530053896730196177808",
-                    10
                 )
                 .unwrap()
             )
@@ -1550,9 +1534,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             f,
-            Felt252::from_str_radix(
+            Felt252::from_dec_str(
                 "2471602022505793130446032259107029522557827898253184929958153020344968292412",
-                10
             )
             .unwrap()
         );

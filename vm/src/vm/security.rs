@@ -65,10 +65,10 @@ pub fn verify_secure_runner(
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
     if !vm.segments.memory.temp_data.is_empty() {
         for value in vm.segments.memory.data.iter().flatten() {
-            match value.as_ref().map(|x| x.get_value()) {
+            match value.get_value() {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
-                        Box::new(*addr),
+                        Box::new(addr),
                     ))
                 }
                 _ => {}
@@ -86,15 +86,13 @@ pub fn verify_secure_runner(
 mod test {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::BuiltinName;
-    use crate::stdlib::collections::HashMap;
 
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::relocatable::Relocatable;
 
+    use crate::Felt252;
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
-    use felt::Felt252;
-    use num_traits::Zero;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -121,7 +119,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         vm.segments.compute_effective_sizes();
         assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
     }
@@ -134,7 +132,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
 
         vm.segments = segments![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -153,7 +151,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
 
         vm.segments = segments![((0, 0), 100)];
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -171,7 +169,7 @@ mod test {
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         vm.builtin_runners[0].set_stop_ptr(0);
         vm.segments.memory = memory![((2, 0), 1)];
         vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
@@ -189,7 +187,7 @@ mod test {
 
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         runner
             .end_run(false, false, &mut vm, &mut hint_processor)
@@ -207,10 +205,10 @@ mod test {
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
@@ -218,7 +216,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
@@ -235,10 +233,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_properly_relocated() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
@@ -246,7 +244,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         vm.segments.memory = memory![
             ((0, 1), (1, 0)),
             ((0, 2), (2, 1)),
@@ -263,10 +261,10 @@ mod test {
     fn verify_secure_runner_temporary_memory_not_fully_relocated() {
         let program = program!(
             data = vec![
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
-                Felt252::zero().into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
+                Felt252::ZERO.into(),
             ],
             main = Some(0),
         );
@@ -274,7 +272,7 @@ mod test {
         let mut runner = cairo_runner!(program);
         let mut vm = vm!();
 
-        runner.initialize(&mut vm).unwrap();
+        runner.initialize(&mut vm, false).unwrap();
         vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),

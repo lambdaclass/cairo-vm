@@ -5,6 +5,9 @@ on:
   # At the end of every day
   - cron: "0 0 * * *"
 
+env:
+  PROPTEST_CASES: 10000
+
 jobs:
   fresh_run:
     strategy:
@@ -35,7 +38,7 @@ jobs:
       uses: actions/checkout@v3
     
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.70.0
+      uses: dtolnay/rust-toolchain@1.74.1
 
     - name: Install Pyenv
       uses: "gabrielfalcao/pyenv-action@v13"

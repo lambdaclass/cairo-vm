@@ -1,4 +1,5 @@
-use felt::Felt252;
+use crate::Felt252;
+use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::Zero;
 
@@ -7,6 +8,7 @@ use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
+    math_utils::pow2_const_nz,
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -79,15 +81,11 @@ pub fn uint384_split_128(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.into_owned();
-    insert_value_from_var_name(
-        "low",
-        &a & &Felt252::from(u128::MAX),
-        vm,
-        ids_data,
-        ap_tracking,
-    )?;
-    insert_value_from_var_name("high", a >> 128_u32, vm, ids_data, ap_tracking)
+    let bound = pow2_const_nz(128);
+    let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let (high, low) = a.div_rem(bound);
+    insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)
 }
 
 /* Implements Hint:
@@ -111,15 +109,29 @@ pub fn add_no_uint384_check(
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
     let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
 
-    let sum_d0 = a.limbs[0].to_biguint() + b.limbs[0].to_biguint();
-    let carry_d0 = Felt252::from((sum_d0 >= shift) as usize);
-    let sum_d1 = a.limbs[1].to_biguint() + b.limbs[1].to_biguint() + carry_d0.to_biguint();
-    let carry_d1 = Felt252::from((sum_d1 >= shift) as usize);
-    let sum_d2 = a.limbs[2].to_biguint() + b.limbs[2].to_biguint() + carry_d1.to_biguint();
+    let sum_d0 = (a.limbs[0].as_ref().to_biguint()) + (b.limbs[0].as_ref().to_biguint());
+    let carry_d0 = BigUint::from((sum_d0 >= shift) as usize);
+    let sum_d1 =
+        (a.limbs[1].as_ref().to_biguint()) + (b.limbs[1].as_ref().to_biguint()) + &carry_d0;
+    let carry_d1 = BigUint::from((sum_d1 >= shift) as usize);
+    let sum_d2 =
+        (a.limbs[2].as_ref().to_biguint()) + (b.limbs[2].as_ref().to_biguint()) + &carry_d1;
     let carry_d2 = Felt252::from((sum_d2 >= shift) as usize);
 
-    insert_value_from_var_name("carry_d0", carry_d0, vm, ids_data, ap_tracking)?;
-    insert_value_from_var_name("carry_d1", carry_d1, vm, ids_data, ap_tracking)?;
+    insert_value_from_var_name(
+        "carry_d0",
+        Felt252::from(&carry_d0),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "carry_d1",
+        Felt252::from(&carry_d1),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
     insert_value_from_var_name("carry_d2", carry_d2, vm, ids_data, ap_tracking)
 }
 
@@ -230,8 +242,8 @@ pub fn sub_reduced_a_and_reduced_b(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
-    use core::ops::Shl;
 
+    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -240,17 +252,12 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::{
-            exec_scope::ExecutionScopes,
-            relocatable::{MaybeRelocatable, Relocatable},
-        },
+        types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
-    use felt::felt_str;
 
-    use num_traits::One;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -364,8 +371,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 7)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(221)))
+                    MaybeRelocatable::from(Felt252::from(2)),
+                    MaybeRelocatable::from(Felt252::from(221)))
         );
     }
 
@@ -451,8 +458,8 @@ mod tests {
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
             )) if *bx == (Relocatable::from((1, 1)),
-                    MaybeRelocatable::from(Felt252::new(2)),
-                    MaybeRelocatable::from(Felt252::new(34895349583295832495320945304_i128)))
+                    MaybeRelocatable::from(Felt252::from(2)),
+                    MaybeRelocatable::from(Felt252::from(34895349583295832495320945304_i128)))
         );
     }
 
@@ -488,7 +495,7 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", Felt252::one().shl(128_u32))]
+                &[("path.path.path.SHIFT", crate::math_utils::pow2_const(128))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

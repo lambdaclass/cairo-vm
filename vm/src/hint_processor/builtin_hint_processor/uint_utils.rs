@@ -1,4 +1,4 @@
-use felt::Felt252;
+use crate::Felt252;
 use num_bigint::BigUint;
 use num_traits::One;
 
@@ -8,7 +8,7 @@ pub(crate) fn split<const N: usize>(num: &BigUint, num_bits_shift: u32) -> [Felt
     [0; N].map(|_| {
         let a = &num & bitmask;
         num >>= num_bits_shift;
-        Felt252::from(a)
+        Felt252::from(&a)
     })
 }
 

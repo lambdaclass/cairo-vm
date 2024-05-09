@@ -1,9 +1,10 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt5;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE;
-use crate::math_utils::{div_mod, safe_div_bigint};
+use crate::math_utils::{div_mod, safe_div_bigint, signed_felt};
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::bigint_utils::BigInt3,
@@ -12,9 +13,8 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use felt::Felt252;
 use num_bigint::BigInt;
-use num_traits::{One, Signed, Zero};
+use num_traits::Signed;
 
 use super::hint_utils::insert_value_from_var_name;
 
@@ -49,8 +49,8 @@ pub fn bigint_pack_div_mod_hint(
             ],
         };
         let x_lower = x_lower.pack86();
-        let d3 = x_bigint5.limbs[3].as_ref().to_signed_felt();
-        let d4 = x_bigint5.limbs[4].as_ref().to_signed_felt();
+        let d3 = signed_felt(*x_bigint5.limbs[3].as_ref());
+        let d4 = signed_felt(*x_bigint5.limbs[4].as_ref());
         x_lower + d3 * BigInt::from(BASE.pow(3)) + d4 * BigInt::from(BASE.pow(4))
     };
     let y: BigInt = BigInt3::from_var_name("y", vm, ids_data, ap_tracking)?.pack86();
@@ -84,9 +84,9 @@ pub fn bigint_safe_div_hint(
 
     let k = safe_div_bigint(&(res * y - x), &p)?;
     let (value, flag) = if k.is_positive() {
-        (k.clone(), Felt252::one())
+        (k.clone(), Felt252::ONE)
     } else {
-        (-k.clone(), Felt252::zero())
+        (-k.clone(), Felt252::ZERO)
     };
 
     exec_scopes.insert_value("k", k);
@@ -103,7 +103,6 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
-    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use crate::vm::vm_core::VirtualMachine;
@@ -219,6 +218,6 @@ mod test {
         check_memory![vm.segments.memory, ((1, 0), 1)];
         // let flag_result = get_integer_from_var_name("flag", vm, ids_data, ap_tracking);
         // assert!(flag_result.is_ok());
-        // assert_eq!(flag_result.unwrap().as_ref(), Felt252::one());
+        // assert_eq!(flag_result.unwrap().as_ref(), Felt252::ONE);
     }
 }

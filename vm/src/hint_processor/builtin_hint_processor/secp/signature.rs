@@ -1,3 +1,4 @@
+use crate::Felt252;
 use crate::{
     any_box,
     hint_processor::{
@@ -11,7 +12,6 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use core::ops::Add;
-use felt::Felt252;
 use num_bigint::BigInt;
 use num_integer::Integer;
 
@@ -109,7 +109,6 @@ pub fn get_point_from_x(
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    #[allow(deprecated)]
     let beta = constants
         .get(BETA)
         .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
@@ -122,8 +121,7 @@ pub fn get_point_from_x(
     // Divide by 4
     let mut y = y_cube_int.modpow(&(&*SECP_P + 1_u32).shr(2_u32), &SECP_P);
 
-    #[allow(deprecated)]
-    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_biguint();
+    let v = get_integer_from_var_name("v", vm, ids_data, ap_tracking)?.to_bigint();
     if v.is_even() != y.is_even() {
         y = &*SECP_P - y;
     }
@@ -258,7 +256,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()
@@ -288,7 +286,7 @@ mod tests {
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BETA, Felt252::new(7)),]
+                &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
                     .collect()

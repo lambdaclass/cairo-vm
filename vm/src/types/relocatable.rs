@@ -5,18 +5,18 @@ use crate::stdlib::{
     prelude::*,
 };
 
+use crate::Felt252;
 use crate::{
     relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
 };
-use felt::Felt252;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
-#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
+#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub struct Relocatable {
     pub segment_index: isize,
     pub offset: usize,
@@ -28,11 +28,25 @@ impl Hash for Relocatable {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
     Int(Felt252),
+}
+
+// NOTE: implemented manually so we can format the felt properly
+impl fmt::Debug for MaybeRelocatable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MaybeRelocatable::RelocatableValue(v) => {
+                f.debug_tuple("RelocatableValue").field(&v).finish()
+            }
+            MaybeRelocatable::Int(v) => {
+                f.debug_tuple("Int").field(&format_args!("{}", &v)).finish()
+            }
+        }
+    }
 }
 
 impl From<(isize, usize)> for Relocatable {
@@ -52,7 +66,7 @@ impl From<(isize, usize)> for MaybeRelocatable {
 
 impl From<usize> for MaybeRelocatable {
     fn from(num: usize) -> Self {
-        MaybeRelocatable::Int(Felt252::new(num))
+        MaybeRelocatable::Int(Felt252::from(num))
     }
 }
 
@@ -76,7 +90,7 @@ impl From<&Relocatable> for Relocatable {
 
 impl From<&Felt252> for MaybeRelocatable {
     fn from(val: &Felt252) -> Self {
-        MaybeRelocatable::Int(val.clone())
+        MaybeRelocatable::Int(*val)
     }
 }
 
@@ -118,6 +132,13 @@ impl AddAssign<usize> for Relocatable {
     }
 }
 
+impl Add<u32> for Relocatable {
+    type Output = Result<Relocatable, MathError>;
+    fn add(self, other: u32) -> Result<Self, MathError> {
+        self + other as usize
+    }
+}
+
 impl Add<i32> for Relocatable {
     type Output = Result<Relocatable, MathError>;
     fn add(self, other: i32) -> Result<Self, MathError> {
@@ -134,7 +155,7 @@ impl Add<&Felt252> for Relocatable {
         let new_offset = (self.offset as u64 + other)
             .and_then(|x| x.to_usize())
             .ok_or_else(|| {
-                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, other.clone())))
+                MathError::RelocatableAddFelt252OffsetExceeded(Box::new((self, *other)))
             })?;
         Ok((self.segment_index, new_offset).into())
     }
@@ -206,9 +227,7 @@ impl TryFrom<&MaybeRelocatable> for Relocatable {
     fn try_from(other: &MaybeRelocatable) -> Result<Self, MathError> {
         match other {
             MaybeRelocatable::RelocatableValue(rel) => Ok(*rel),
-            MaybeRelocatable::Int(num) => {
-                Err(MathError::Felt252ToRelocatable(Box::new(num.clone())))
-            }
+            MaybeRelocatable::Int(num) => Err(MathError::Felt252ToRelocatable(Box::new(*num))),
         }
     }
 }
@@ -218,15 +237,8 @@ impl MaybeRelocatable {
     pub fn add_int(&self, other: &Felt252) -> Result<MaybeRelocatable, MathError> {
         match *self {
             MaybeRelocatable::Int(ref value) => Ok(MaybeRelocatable::Int(value + other)),
-            MaybeRelocatable::RelocatableValue(ref rel) => {
-                let big_offset = other + rel.offset;
-                let new_offset = big_offset.to_usize().ok_or_else(|| {
-                    MathError::RelocatableAddFelt252OffsetExceeded(Box::new((*rel, other.clone())))
-                })?;
-                Ok(MaybeRelocatable::RelocatableValue(Relocatable {
-                    segment_index: rel.segment_index,
-                    offset: new_offset,
-                }))
+            MaybeRelocatable::RelocatableValue(rel) => {
+                Ok(MaybeRelocatable::RelocatableValue((rel + other)?))
             }
         }
     }
@@ -234,7 +246,7 @@ impl MaybeRelocatable {
     /// Adds a usize to self
     pub fn add_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
         Ok(match *self {
-            MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value + other),
+            MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value + other as u64),
             MaybeRelocatable::RelocatableValue(rel) => (rel + other)?.into(),
         })
     }
@@ -255,6 +267,14 @@ impl MaybeRelocatable {
                 Ok((rel + num_ref)?.into())
             }
         }
+    }
+
+    /// Subs a usize from self
+    pub fn sub_usize(&self, other: usize) -> Result<MaybeRelocatable, MathError> {
+        Ok(match *self {
+            MaybeRelocatable::Int(ref value) => MaybeRelocatable::Int(value - other as u64),
+            MaybeRelocatable::RelocatableValue(rel) => (rel - other)?.into(),
+        })
     }
 
     /// Substracts two MaybeRelocatable values and returns the result as a MaybeRelocatable value.
@@ -281,14 +301,16 @@ impl MaybeRelocatable {
             (MaybeRelocatable::RelocatableValue(rel_a), MaybeRelocatable::Int(ref num_b)) => {
                 Ok(MaybeRelocatable::from((
                     rel_a.segment_index,
-                    (rel_a.offset - num_b).to_usize().ok_or_else(|| {
-                        MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, num_b.clone())))
-                    })?,
+                    (rel_a.offset as u64 - num_b)
+                        .and_then(|x| x.to_usize())
+                        .ok_or_else(|| {
+                            MathError::RelocatableSubFelt252NegOffset(Box::new((*rel_a, *num_b)))
+                        })?,
                 )))
             }
-            (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => Err(
-                MathError::SubRelocatableFromInt(Box::new((int.clone(), *rel))),
-            ),
+            (MaybeRelocatable::Int(int), MaybeRelocatable::RelocatableValue(rel)) => {
+                Err(MathError::SubRelocatableFromInt(Box::new((*int, *rel))))
+            }
         }
     }
 
@@ -300,9 +322,11 @@ impl MaybeRelocatable {
     ) -> Result<(MaybeRelocatable, MaybeRelocatable), MathError> {
         match (self, other) {
             (MaybeRelocatable::Int(val), MaybeRelocatable::Int(div)) => Ok((
-                MaybeRelocatable::from(val / div),
+                MaybeRelocatable::from(
+                    val.field_div(&div.try_into().map_err(|_| MathError::DividedByZero)?),
+                ),
                 // NOTE: elements on a field element always have multiplicative inverse
-                MaybeRelocatable::from(Felt252::zero()),
+                MaybeRelocatable::from(Felt252::ZERO),
             )),
             _ => Err(MathError::DivModWrongType(Box::new((
                 self.clone(),
@@ -311,10 +335,19 @@ impl MaybeRelocatable {
         }
     }
 
+    // TODO: Check if its more performant to use get_int instead
     /// Returns a reference to the inner value if it is a Felt252, returns None otherwise.
     pub fn get_int_ref(&self) -> Option<&Felt252> {
         match self {
             MaybeRelocatable::Int(num) => Some(num),
+            MaybeRelocatable::RelocatableValue(_) => None,
+        }
+    }
+
+    /// Returns the inner value if it is a Felt252, returns None otherwise.
+    pub fn get_int(&self) -> Option<Felt252> {
+        match self {
+            MaybeRelocatable::Int(num) => Some(*num),
             MaybeRelocatable::RelocatableValue(_) => None,
         }
     }
@@ -324,17 +357,6 @@ impl MaybeRelocatable {
         match self {
             MaybeRelocatable::RelocatableValue(rel) => Some(*rel),
             MaybeRelocatable::Int(_) => None,
-        }
-    }
-}
-
-impl<'a> Add<usize> for &'a Relocatable {
-    type Output = Relocatable;
-
-    fn add(self, other: usize) -> Self::Output {
-        Relocatable {
-            segment_index: self.segment_index,
-            offset: self.offset + other,
         }
     }
 }
@@ -378,25 +400,22 @@ pub fn relocate_address(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{felt_hex, felt_str};
     use crate::{relocatable, utils::test_utils::mayberelocatable};
-    use felt::felt_str;
-    use num_traits::{One, Zero};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
     #[cfg(feature = "std")]
-    use num_traits::Bounded;
-
     #[cfg(feature = "std")]
     use proptest::prelude::*;
 
     #[cfg(feature = "std")]
     proptest! {
         #[test]
-        fn add_relocatable_felt(offset in any::<usize>(), ref bigint in any::<[u8; 32]>()) {
+        fn add_relocatable_felt(offset in any::<u64>(), ref bigint in any::<[u8; 32]>()) {
             let big = &Felt252::from_bytes_be(bigint);
-            let rel = Relocatable::from((0, offset));
+            let rel = Relocatable::from((0, offset as usize));
 
             let sum = (big + offset).to_usize()
                 .map(|offset| (0, offset).into());
@@ -404,11 +423,11 @@ mod tests {
         }
 
         #[test]
-        fn add_relocatable_felt_extremes(offset in any::<usize>()) {
-            let big_zero = &Felt252::zero();
-            let big_max = &Felt252::max_value();
-            let big_min = &(big_zero + (i64::MIN as usize));
-            let rel = Relocatable::from((0, offset));
+        fn add_relocatable_felt_extremes(offset in any::<u64>()) {
+            let big_zero = &Felt252::ZERO;
+            let big_max = &Felt252::MAX;
+            let big_min = &(big_zero + (i64::MIN as u64));
+            let rel = Relocatable::from((0, offset as usize));
 
             let sum_max = (big_max + offset).to_usize()
                 .map(|offset| (0, offset).into());
@@ -425,24 +444,24 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_int() {
-        let addr = MaybeRelocatable::from(Felt252::new(7i32));
-        let added_addr = addr.add_int(&Felt252::new(2i32));
-        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::new(9))));
+        let addr = MaybeRelocatable::from(Felt252::from(7i32));
+        let added_addr = addr.add_int(&Felt252::from(2i32));
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::from(9))));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_usize_to_int() {
-        let addr = MaybeRelocatable::from(Felt252::new(7_i32));
+        let addr = MaybeRelocatable::from(Felt252::from(7_i32));
         let added_addr = addr.add_usize(2).unwrap();
-        assert_eq!(MaybeRelocatable::Int(Felt252::new(9)), added_addr);
+        assert_eq!(MaybeRelocatable::Int(Felt252::from(9)), added_addr);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
-        let added_addr = addr.add_int(&Felt252::new(2));
+        let added_addr = addr.add_int(&Felt252::from(2));
         assert_eq!(
             added_addr,
             Ok(MaybeRelocatable::RelocatableValue(Relocatable {
@@ -456,12 +475,12 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_mod_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
-        let error = addr.add_int(&felt_str!("18446744073709551616"));
+        let error = addr.add_int(&felt_hex!("0x10000000000000000"));
         assert_eq!(
             error,
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                felt_str!("18446744073709551616")
+                felt_hex!("0x10000000000000000")
             ))))
         );
     }
@@ -483,12 +502,11 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_int_prime_mod() {
-        let addr = MaybeRelocatable::Int(felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000004",
-            16
+        let addr = MaybeRelocatable::Int(felt_hex!(
+            "800000000000011000000000000000000000000000000000000000000000004"
         ));
-        let added_addr = addr.add_int(&Felt252::one());
-        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::new(4))));
+        let added_addr = addr.add_int(&Felt252::ONE);
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::from(4))));
     }
 
     #[test]
@@ -513,9 +531,9 @@ mod tests {
         let addr_a = &MaybeRelocatable::from(felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020488"
         ));
-        let addr_b = &MaybeRelocatable::from(Felt252::new(17_i32));
+        let addr_b = &MaybeRelocatable::from(Felt252::from(17_i32));
         let added_addr = addr_a.add(addr_b);
-        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::new(24))));
+        assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::from(24))));
     }
 
     #[test]
@@ -537,7 +555,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_relocatable() {
         let addr_a = &MaybeRelocatable::from((7, 7));
-        let addr_b = &MaybeRelocatable::from(Felt252::new(10));
+        let addr_b = &MaybeRelocatable::from(Felt252::from(10));
         let added_addr = addr_a.add(addr_b);
         assert_eq!(
             added_addr,
@@ -551,7 +569,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocatable_to_int() {
-        let addr_a = &MaybeRelocatable::from(Felt252::new(10_i32));
+        let addr_a = &MaybeRelocatable::from(Felt252::from(10_i32));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
         let added_addr = addr_a.add(addr_b);
         assert_eq!(
@@ -567,9 +585,8 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
-        let addr_b = &MaybeRelocatable::Int(felt_str!(
-            "800000000000011000000000000000000000000000000000000000000000001",
-            16
+        let addr_b = &MaybeRelocatable::Int(felt_hex!(
+            "800000000000011000000000000000000000000000000000000000000000001"
         ));
         let added_addr = addr_a.add(addr_b);
         assert_eq!(
@@ -585,12 +602,12 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_rel_int_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
-        let error = addr.add(&MaybeRelocatable::from(felt_str!("18446744073709551616")));
+        let error = addr.add(&MaybeRelocatable::from(felt_hex!("0x10000000000000000")));
         assert_eq!(
             error,
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                felt_str!("18446744073709551616")
+                felt_hex!("0x10000000000000000")
             ))))
         );
     }
@@ -598,7 +615,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_int_rel_offset_exceeded() {
-        let addr = MaybeRelocatable::Int(felt_str!("18446744073709551616"));
+        let addr = MaybeRelocatable::Int(felt_hex!("0x10000000000000000"));
         let relocatable = Relocatable {
             offset: 0,
             segment_index: 0,
@@ -608,7 +625,7 @@ mod tests {
             error,
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                felt_str!("18446744073709551616")
+                felt_hex!("0x10000000000000000")
             ))))
         );
     }
@@ -616,10 +633,10 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_int_from_int() {
-        let addr_a = &MaybeRelocatable::from(Felt252::new(7));
-        let addr_b = &MaybeRelocatable::from(Felt252::new(5));
+        let addr_a = &MaybeRelocatable::from(Felt252::from(7));
+        let addr_b = &MaybeRelocatable::from(Felt252::from(5));
         let sub_addr = addr_a.sub(addr_b);
-        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt252::new(2))));
+        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt252::from(2))));
     }
 
     #[test]
@@ -628,7 +645,7 @@ mod tests {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
         let sub_addr = addr_a.sub(addr_b);
-        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt252::new(10))));
+        assert_eq!(sub_addr, Ok(MaybeRelocatable::Int(Felt252::from(10))));
     }
 
     #[test]
@@ -650,7 +667,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
-        let addr_b = &MaybeRelocatable::from(Felt252::new(5_i32));
+        let addr_b = &MaybeRelocatable::from(Felt252::from(5_i32));
         let addr_c = addr_a.sub(addr_b);
         assert_eq!(addr_c, Ok(MaybeRelocatable::from((7, 12))));
     }
@@ -659,9 +676,9 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_rel_to_int_error() {
         assert_eq!(
-            MaybeRelocatable::from(Felt252::new(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
+            MaybeRelocatable::from(Felt252::from(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
             Err(MathError::SubRelocatableFromInt(Box::new((
-                Felt252::new(7_i32),
+                Felt252::from(7_i32),
                 Relocatable::from((7, 10))
             ))))
         );
@@ -670,25 +687,27 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn divmod_working() {
-        let value = &MaybeRelocatable::from(Felt252::new(10));
-        let div = &MaybeRelocatable::from(Felt252::new(3));
+        let value = &MaybeRelocatable::from(Felt252::from(10));
+        let div = &MaybeRelocatable::from(Felt252::from(3));
         let (q, r) = value.divmod(div).expect("Unexpected error in divmod");
         assert_eq!(
             q,
-            MaybeRelocatable::from(Felt252::new(10) / Felt252::new(3))
+            MaybeRelocatable::from(
+                Felt252::from(10).field_div(&Felt252::from(3).try_into().unwrap())
+            )
         );
-        assert_eq!(r, MaybeRelocatable::from(Felt252::zero()));
+        assert_eq!(r, MaybeRelocatable::from(Felt252::ZERO));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn divmod_bad_type() {
-        let value = &MaybeRelocatable::from(Felt252::new(10));
+        let value = &MaybeRelocatable::from(Felt252::from(10));
         let div = &MaybeRelocatable::from((2, 7));
         assert_eq!(
             value.divmod(div),
             Err(MathError::DivModWrongType(Box::new((
-                MaybeRelocatable::from(Felt252::new(10)),
+                MaybeRelocatable::from(Felt252::from(10)),
                 MaybeRelocatable::from((2, 7))
             ))))
         );
@@ -701,7 +720,7 @@ mod tests {
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
             relocate_value(value, &relocation_table),
-            Ok(Felt252::new(12))
+            Ok(Felt252::from(12))
         );
     }
 
@@ -741,11 +760,11 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_int_value() {
-        let value = MaybeRelocatable::from(Felt252::new(7));
+        let value = MaybeRelocatable::from(Felt252::from(7));
         let relocation_table = vec![1, 2, 5];
         assert_eq!(
             relocate_value(value, &relocation_table),
-            Ok(Felt252::new(7))
+            Ok(Felt252::from(7))
         );
     }
 
@@ -764,23 +783,20 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_int() {
         assert_eq!(
-            relocatable!(1, 2) + &Felt252::new(4),
+            relocatable!(1, 2) + &Felt252::from(4),
             Ok(relocatable!(1, 6))
         );
-        assert_eq!(
-            relocatable!(3, 2) + &Felt252::zero(),
-            Ok(relocatable!(3, 2))
-        );
+        assert_eq!(relocatable!(3, 2) + &Felt252::ZERO, Ok(relocatable!(3, 2)));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_eq!(
-            relocatable!(0, 0) + &(Felt252::new(usize::MAX) + 1_usize),
+            relocatable!(0, 0) + &(Felt252::from(usize::MAX) + 1_u64),
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(0, 0),
-                Felt252::new(usize::MAX) + 1_usize
+                Felt252::from(usize::MAX) + 1_u64
             ))))
         );
     }
@@ -887,7 +903,7 @@ mod tests {
             relocatable!(1, 0) + &mayberelocatable!(usize::MAX as i128 + 1),
             Err(MathError::RelocatableAddFelt252OffsetExceeded(Box::new((
                 relocatable!(1, 0),
-                Felt252::new(usize::MAX) + 1_usize
+                Felt252::from(usize::MAX) + 1_u64
             ))))
         );
     }
@@ -924,7 +940,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn maybe_relocatable_int_display() {
         assert_eq!(
-            format!("{}", MaybeRelocatable::from(Felt252::new(6))),
+            format!("{}", MaybeRelocatable::from(Felt252::from(6))),
             String::from("6")
         )
     }

@@ -36,8 +36,7 @@ pub fn memcpy_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let len: Box<dyn Any> =
-        Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?.into_owned());
+    let len: Box<dyn Any> = Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), len)]));
     Ok(())
 }
@@ -49,7 +48,7 @@ mod tests {
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
 
-    use felt::Felt252;
+    use crate::Felt252;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -75,7 +74,7 @@ mod tests {
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default())
                 .unwrap()
                 .as_ref(),
-            &Felt252::new(10)
+            &Felt252::from(10)
         );
     }
 
@@ -97,7 +96,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name(var_name, &vm, &ids_data, &ApTracking::default()),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == (var_name.to_string(), (1,0).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == var_name
         );
     }
 }

@@ -1,45 +1,34 @@
-use crate::math_utils::{ec_add, ec_double};
-use crate::stdlib::{borrow::Cow, prelude::*};
+use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
+use crate::stdlib::prelude::*;
 use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
-    EcOpInstanceDef, CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP,
+    CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP, SCALAR_HEIGHT,
 };
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use felt::Felt252;
-use num_bigint::BigInt;
+use crate::Felt252;
 use num_integer::{div_ceil, Integer};
-use num_traits::{Num, One, Pow, Zero};
-
-use super::EC_OP_BUILTIN_NAME;
+use starknet_types_core::curve::ProjectivePoint;
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
     ratio: Option<u32>,
     pub base: usize,
-    pub(crate) cells_per_instance: u32,
-    pub(crate) n_input_cells: u32,
-    ec_op_builtin: EcOpInstanceDef,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
-    pub(crate) instances_per_component: u32,
     cache: RefCell<HashMap<Relocatable, Felt252>>,
 }
 
 impl EcOpBuiltinRunner {
-    pub(crate) fn new(instance_def: &EcOpInstanceDef, included: bool) -> Self {
+    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
         EcOpBuiltinRunner {
             base: 0,
-            ratio: instance_def.ratio,
-            n_input_cells: INPUT_CELLS_PER_EC_OP,
-            cells_per_instance: CELLS_PER_EC_OP,
-            ec_op_builtin: instance_def.clone(),
+            ratio,
             stop_ptr: None,
             included,
-            instances_per_component: 1,
             cache: RefCell::new(HashMap::new()),
         }
     }
@@ -47,10 +36,9 @@ impl EcOpBuiltinRunner {
     ///y^2 = x^3 + alpha * x + beta (mod p)
     ///or False otherwise.
     fn point_on_curve(x: &Felt252, y: &Felt252, alpha: &Felt252, beta: &Felt252) -> bool {
-        y.pow(2) == &(x.pow(3) + alpha * x) + beta
+        y.pow(2_u32) == (x.pow(3_u32) + alpha * x) + beta
     }
 
-    #[allow(deprecated)]
     ///Returns the result of the EC operation P + m * Q.
     /// where P = (p_x, p_y), Q = (q_x, q_y) are points on the elliptic curve defined as
     /// y^2 = x^3 + alpha * x + beta (mod prime).
@@ -61,28 +49,29 @@ impl EcOpBuiltinRunner {
         partial_sum: (Felt252, Felt252),
         doubled_point: (Felt252, Felt252),
         m: &Felt252,
-        alpha: &BigInt,
-        prime: &BigInt,
         height: u32,
-    ) -> Result<(BigInt, BigInt), RunnerError> {
-        let mut slope = m.to_bigint();
-        let mut partial_sum_b = (partial_sum.0.to_bigint(), partial_sum.1.to_bigint());
-        let mut doubled_point_b = (doubled_point.0.to_bigint(), doubled_point.1.to_bigint());
-        for _ in 0..height {
-            if (doubled_point_b.0.clone() - partial_sum_b.0.clone()).is_zero() {
-                #[allow(deprecated)]
+    ) -> Result<(Felt252, Felt252), RunnerError> {
+        let slope = m.to_biguint();
+        let mut partial_sum_b = ProjectivePoint::from_affine(partial_sum.0, partial_sum.1)
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(partial_sum)))?;
+        let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
+            .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
+        for i in 0..(height as u64).min(slope.bits()) {
+            if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
                 return Err(RunnerError::EcOpSameXCoordinate(
-                    Self::format_ec_op_error(partial_sum_b, m.clone().to_bigint(), doubled_point_b)
+                    Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
                         .into_boxed_str(),
                 ));
             };
-            if !(slope.clone() & &BigInt::one()).is_zero() {
-                partial_sum_b = ec_add(partial_sum_b, doubled_point_b.clone(), prime)?;
+            if slope.bit(i) {
+                partial_sum_b += &doubled_point_b;
             }
-            doubled_point_b = ec_double(doubled_point_b, alpha, prime)?;
-            slope = slope.clone() >> 1_u32;
+            doubled_point_b = doubled_point_b.double();
         }
-        Ok(partial_sum_b)
+        partial_sum_b
+            .to_affine()
+            .map(|p| (p.x(), p.y()))
+            .map_err(|_| RunnerError::InvalidPoint)
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
@@ -105,8 +94,6 @@ impl EcOpBuiltinRunner {
         self.ratio
     }
 
-    pub fn add_validation_rule(&self, _memory: &mut Memory) {}
-
     pub fn deduce_memory_cell(
         &self,
         address: Relocatable,
@@ -115,20 +102,18 @@ impl EcOpBuiltinRunner {
         //Constant values declared here
         const EC_POINT_INDICES: [(usize, usize); 3] = [(0, 1), (2, 3), (5, 6)];
         const OUTPUT_INDICES: (usize, usize) = EC_POINT_INDICES[2];
-        let alpha: Felt252 = Felt252::one();
-        let beta_low: Felt252 = Felt252::new(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
-        let beta_high: Felt252 = Felt252::new(0x6f21413efbe40de150e596d72f7a8c5_u128);
-        let beta: Felt252 = (beta_high << 128_usize) + beta_low;
+        let alpha: Felt252 = Felt252::ONE;
+        let beta_low: Felt252 = Felt252::from(0x609ad26c15c915c1f4cdfcb99cee9e89_u128);
+        let beta_high: Felt252 = Felt252::from(0x6f21413efbe40de150e596d72f7a8c5_u128);
+        let beta: Felt252 = (beta_high * (Felt252::ONE + Felt252::from(u128::MAX))) + beta_low;
 
-        let index = address
-            .offset
-            .mod_floor(&(self.cells_per_instance as usize));
+        let index = address.offset.mod_floor(&(CELLS_PER_EC_OP as usize));
         //Index should be an output cell
         if index != OUTPUT_INDICES.0 && index != OUTPUT_INDICES.1 {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
-        let x_addr = (instance + (&Felt252::new(INPUT_CELLS_PER_EC_OP)))
+        let x_addr = (instance + (&Felt252::from(INPUT_CELLS_PER_EC_OP)))
             .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
@@ -137,14 +122,13 @@ impl EcOpBuiltinRunner {
 
         //All input cells should be filled, and be integer values
         //If an input cell is not filled, return None
-        let mut input_cells = Vec::<&Felt252>::with_capacity(self.n_input_cells as usize);
-        for i in 0..self.n_input_cells as usize {
+        let mut input_cells = Vec::<Felt252>::with_capacity(INPUT_CELLS_PER_EC_OP as usize);
+        for i in 0..INPUT_CELLS_PER_EC_OP as usize {
             match memory.get(&(instance + i)?) {
                 None => return Ok(None),
                 Some(addr) => {
-                    input_cells.push(match addr {
-                        // Only relocatable values can be owned
-                        Cow::Borrowed(MaybeRelocatable::Int(ref num)) => num,
+                    input_cells.push(match addr.as_ref() {
+                        MaybeRelocatable::Int(num) => *num,
                         _ => {
                             return Err(RunnerError::Memory(MemoryError::ExpectedInteger(
                                 Box::new((instance + i)?),
@@ -164,45 +148,34 @@ impl EcOpBuiltinRunner {
         // Assert that if the current address is part of a point, the point is on the curve
         for pair in &EC_POINT_INDICES[0..2] {
             if !EcOpBuiltinRunner::point_on_curve(
-                input_cells[pair.0],
-                input_cells[pair.1],
+                &input_cells[pair.0],
+                &input_cells[pair.1],
                 &alpha,
                 &beta,
             ) {
                 return Err(RunnerError::PointNotOnCurve(Box::new((
-                    input_cells[pair.0].clone(),
-                    input_cells[pair.1].clone(),
+                    input_cells[pair.0],
+                    input_cells[pair.1],
                 ))));
             };
         }
-        let prime = BigInt::from_str_radix(&felt::PRIME_STR[2..], 16)
-            .map_err(|_| RunnerError::CouldntParsePrime)?;
         let result = EcOpBuiltinRunner::ec_op_impl(
             (input_cells[0].to_owned(), input_cells[1].to_owned()),
             (input_cells[2].to_owned(), input_cells[3].to_owned()),
-            input_cells[4],
-            #[allow(deprecated)]
-            &alpha.to_bigint(),
-            &prime,
-            self.ec_op_builtin.scalar_height,
+            &input_cells[4],
+            SCALAR_HEIGHT,
         )?;
-        self.cache
-            .borrow_mut()
-            .insert(x_addr, result.0.clone().into());
+        self.cache.borrow_mut().insert(x_addr, result.0);
         self.cache.borrow_mut().insert(
             (x_addr + 1usize)
                 .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(x_addr))))?,
-            result.1.clone().into(),
+            result.1,
         );
-        match index - self.n_input_cells as usize {
-            0 => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.0)))),
-            _ => Ok(Some(MaybeRelocatable::Int(Felt252::new(result.1)))),
+        match index - INPUT_CELLS_PER_EC_OP as usize {
+            0 => Ok(Some(MaybeRelocatable::Int(result.0))),
+            _ => Ok(Some(MaybeRelocatable::Int(result.1))),
             //Default case corresponds to 1, as there are no other possible cases
         }
-    }
-
-    pub fn get_memory_segment_addresses(&self) -> (usize, Option<usize>) {
-        (self.base, self.stop_ptr)
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
@@ -216,56 +189,51 @@ impl EcOpBuiltinRunner {
         segments: &MemorySegmentManager,
     ) -> Result<usize, MemoryError> {
         let used_cells = self.get_used_cells(segments)?;
-        Ok(div_ceil(used_cells, self.cells_per_instance as usize))
-    }
-
-    pub fn final_stack(
-        &mut self,
-        segments: &MemorySegmentManager,
-        pointer: Relocatable,
-    ) -> Result<Relocatable, RunnerError> {
-        if self.included {
-            let stop_pointer_addr = (pointer - 1)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
-            let stop_pointer = segments
-                .memory
-                .get_relocatable(stop_pointer_addr)
-                .map_err(|_| RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))?;
-            if self.base as isize != stop_pointer.segment_index {
-                return Err(RunnerError::InvalidStopPointerIndex(Box::new((
-                    EC_OP_BUILTIN_NAME,
-                    stop_pointer,
-                    self.base,
-                ))));
-            }
-            let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
-            let used = num_instances * self.cells_per_instance as usize;
-            if stop_ptr != used {
-                return Err(RunnerError::InvalidStopPointer(Box::new((
-                    EC_OP_BUILTIN_NAME,
-                    Relocatable::from((self.base as isize, used)),
-                    Relocatable::from((self.base as isize, stop_ptr)),
-                ))));
-            }
-            self.stop_ptr = Some(stop_ptr);
-            Ok(stop_pointer_addr)
-        } else {
-            self.stop_ptr = Some(0);
-            Ok(pointer)
-        }
+        Ok(div_ceil(used_cells, CELLS_PER_EC_OP as usize))
     }
 
     pub fn format_ec_op_error(
-        p: (num_bigint::BigInt, num_bigint::BigInt),
-        m: num_bigint::BigInt,
-        q: (num_bigint::BigInt, num_bigint::BigInt),
+        p: ProjectivePoint,
+        m: num_bigint::BigUint,
+        q: ProjectivePoint,
     ) -> String {
+        let p = p.to_affine().map(|p| (p.x(), p.y())).unwrap_or_default();
+        let q = q.to_affine().map(|q| (q.x(), q.y())).unwrap_or_default();
         format!("Cannot apply EC operation: computation reached two points with the same x coordinate. \n
     Attempting to compute P + m * Q where:\n
     P = {p:?} \n
     m = {m:?}\n
     Q = {q:?}.")
+    }
+
+    pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
+        let mut private_inputs = vec![];
+        if let Some(segment) = memory.data.get(self.base) {
+            let segment_len = segment.len();
+            for (index, off) in (0..segment_len)
+                .step_by(CELLS_PER_EC_OP as usize)
+                .enumerate()
+            {
+                // Add the input cells of each ec_op instance to the private inputs
+                if let (Ok(p_x), Ok(p_y), Ok(q_x), Ok(q_y), Ok(m)) = (
+                    memory.get_integer((self.base as isize, off).into()),
+                    memory.get_integer((self.base as isize, off + 1).into()),
+                    memory.get_integer((self.base as isize, off + 2).into()),
+                    memory.get_integer((self.base as isize, off + 3).into()),
+                    memory.get_integer((self.base as isize, off + 4).into()),
+                ) {
+                    private_inputs.push(PrivateInput::EcOp(PrivateInputEcOp {
+                        index,
+                        p_x: *p_x,
+                        p_y: *p_y,
+                        m: *m,
+                        q_x: *q_x,
+                        q_y: *q_y,
+                    }))
+                }
+            }
+        }
+        private_inputs
     }
 }
 
@@ -273,21 +241,20 @@ impl EcOpBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
-    use crate::stdlib::collections::HashMap;
+    use crate::types::builtin_name::BuiltinName;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
-    use crate::utils::{test_utils::*, CAIRO_PRIME};
+    use crate::utils::test_utils::*;
     use crate::vm::errors::cairo_run_errors::CairoRunError;
     use crate::vm::errors::vm_errors::VirtualMachineError;
     use crate::vm::runners::cairo_runner::CairoRunner;
+    use crate::{felt_hex, felt_str, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
         vm_core::VirtualMachine,
     };
-    use felt::felt_str;
     use EcOpBuiltinRunner;
 
     #[cfg(target_arch = "wasm32")]
@@ -296,7 +263,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let builtin = EcOpBuiltinRunner::new(Some(10), true);
 
         let mut vm = vm!();
         vm.segments.segment_used_sizes = Some(vec![1]);
@@ -307,7 +274,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -331,7 +298,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -349,7 +316,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                EC_OP_BUILTIN_NAME,
+                BuiltinName::ec_op,
                 relocatable!(0, 994),
                 relocatable!(0, 0)
             ))))
@@ -359,7 +326,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), false);
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), false).into();
 
         let mut vm = vm!();
 
@@ -383,7 +350,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
-        let mut builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true);
+        let mut builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -400,15 +367,14 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(EC_OP_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::ec_op)))
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -441,7 +407,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -453,8 +419,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
-        let builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::new(Some(10)), true).into();
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(10), true).into();
 
         let mut vm = vm!();
 
@@ -486,7 +451,7 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm).unwrap();
+        let address = cairo_runner.initialize(&mut vm, false).unwrap();
 
         cairo_runner
             .run_until_pc(address, &mut vm, &mut hint_processor)
@@ -498,64 +463,40 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_a() {
-        let x = felt_str!(
-            "874739451078007766457464989774322083649278607533249481151382481072868806602"
-        );
-        let y = felt_str!(
-            "152666792071518830868575557812948353041420400780739481342941381225525861407"
-        );
-        let alpha = Felt252::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
+        let x = felt_hex!("0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca");
+        let y = felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f");
+        let alpha = Felt252::ONE;
+        let beta = felt_hex!("0x6f21413efbe40de150e596d72f7a8c5609ad26c15c915c1f4cdfcb99cee9e89");
         assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_on_curve_b() {
-        let x = felt_str!(
-            "3139037544796708144595053687182055617920475701120786241351436619796497072089"
-        );
-        let y = felt_str!(
-            "2119589567875935397690285099786081818522144748339117565577200220779667999801"
-        );
-        let alpha = Felt252::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
+        let x = felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9");
+        let y = felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39");
+        let alpha = Felt252::ONE;
+        let beta = felt_hex!("0x6f21413efbe40de150e596d72f7a8c5609ad26c15c915c1f4cdfcb99cee9e89");
         assert!(EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_a() {
-        let x = felt_str!(
-            "874739454078007766457464989774322083649278607533249481151382481072868806602"
-        );
-        let y = felt_str!(
-            "152666792071518830868575557812948353041420400780739481342941381225525861407"
-        );
-        let alpha = Felt252::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
+        let x = felt_hex!("0x1ef15c1a2162fb0d2e5d83196a6fb0509632fab5d746f0c3d723d8bc943cfca");
+        let y = felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f");
+        let alpha = Felt252::ONE;
+        let beta = felt_hex!("0x6f21413efbe40de150e596d72f7a8c5609ad26c15c915c1f4cdfcb99cee9e89");
         assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn point_is_not_on_curve_b() {
-        let x = felt_str!(
-            "3139037544756708144595053687182055617927475701120786241351436619796497072089"
-        );
-        let y = felt_str!(
-            "2119589567875935397690885099786081818522144748339117565577200220779667999801"
-        );
-        let alpha = Felt252::one();
-        let beta = felt_str!(
-            "3141592653589793238462643383279502884197169399375105820974944592307816406665"
-        );
+        let x = felt_hex!("0x6f0a1ddaeb88837dcc8ac9a48f894deed706bc3e8998e63535e2c91a8d87fd9");
+        let y = felt_hex!("0x4afa52a9ef8c023d33ea3865fb4e0e49abfc50dd50ccea867539b526d474c39");
+        let alpha = Felt252::ONE;
+        let beta = felt_hex!("0x6f21413efbe40de150e596d72f7a8c5609ad26c15c915c1f4cdfcb99cee9e89");
         assert!(!EcOpBuiltinRunner::point_on_curve(&x, &y, &alpha, &beta));
     }
 
@@ -563,34 +504,23 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_a() {
         let partial_sum = (
-            felt_str!(
-                "3139037544796708144595053687182055617920475701120786241351436619796497072089"
-            ),
-            felt_str!(
-                "2119589567875935397690285099786081818522144748339117565577200220779667999801"
-            ),
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
         );
         let doubled_point = (
-            felt_str!(
-                "874739451078007766457464989774322083649278607533249481151382481072868806602"
-            ),
-            felt_str!(
-                "152666792071518830868575557812948353041420400780739481342941381225525861407"
-            ),
+            felt_hex!("0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca"),
+            felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
-        let m = Felt252::new(34);
-        let alpha = bigint!(1);
+        let m = Felt252::from(34);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "1977874238339000383330315148209250828062304908491266318460063803060754089297"
                 ),
-                bigint_str!(
+                felt_str!(
                     "2969386888251099938335087541720168257053975603483053253007176033556822156706"
                 )
             ))
@@ -601,34 +531,23 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_ec_op_impl_valid_b() {
         let partial_sum = (
-            felt_str!(
-                "2962412995502985605007699495352191122971573493113767820301112397466445942584"
-            ),
-            felt_str!(
-                "214950771763870898744428659242275426967582168179217139798831865603966154129"
-            ),
+            felt_hex!("0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38"),
+            felt_hex!("0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591"),
         );
         let doubled_point = (
-            felt_str!(
-                "874739451078007766457464989774322083649278607533249481151382481072868806602"
-            ),
-            felt_str!(
-                "152666792071518830868575557812948353041420400780739481342941381225525861407"
-            ),
+            felt_hex!("0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca"),
+            felt_hex!("0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f"),
         );
-        let m = Felt252::new(34);
-        let alpha = bigint!(1);
+        let m = Felt252::from(34);
         let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result =
-            EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, &alpha, &prime, height);
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Ok((
-                bigint_str!(
+                felt_str!(
                     "2778063437308421278851140253538604815869848682781135193774472480292420096757"
                 ),
-                bigint_str!(
+                felt_str!(
                     "3598390311618116577316045819420613574162151407434885460365915347732568210029"
                 )
             ))
@@ -637,29 +556,25 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    #[allow(deprecated)]
     fn compute_ec_op_invalid_same_x_coordinate() {
-        let partial_sum = (Felt252::one(), Felt252::new(9));
-        let doubled_point = (Felt252::one(), Felt252::new(12));
-        let m = Felt252::new(34);
-        let alpha = bigint!(1);
-        let height = 256;
-        let prime = (*CAIRO_PRIME).clone().into();
-        let result = EcOpBuiltinRunner::ec_op_impl(
-            partial_sum.clone(),
-            doubled_point.clone(),
-            &m,
-            &alpha,
-            &prime,
-            height,
+        let partial_sum = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
         );
+        let doubled_point = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
+        let m = Felt252::from(34);
+        let height = 256;
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
             result,
             Err(RunnerError::EcOpSameXCoordinate(
                 EcOpBuiltinRunner::format_ec_op_error(
-                    (partial_sum.0.to_bigint(), partial_sum.1.to_bigint()),
-                    m.to_bigint(),
-                    (doubled_point.0.to_bigint(), doubled_point.1.to_bigint())
+                    ProjectivePoint::from_affine(partial_sum.0, partial_sum.1).unwrap(),
+                    m.to_biguint(),
+                    ProjectivePoint::from_affine(doubled_point.0, doubled_point.1).unwrap(),
                 )
                 .into_boxed_str()
             ))
@@ -689,29 +604,29 @@ mod tests {
             (
                 (3, 0),
                 (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
                 )
             ),
             (
                 (3, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (3, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             (
                 (3, 3),
                 (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
                 )
             ),
             ((3, 4), 34),
@@ -723,7 +638,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
@@ -741,22 +656,22 @@ mod tests {
             (
                 (3, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (3, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             (
                 (3, 3),
                 (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
                 )
             ),
             ((3, 4), 34),
@@ -769,7 +684,7 @@ mod tests {
             )
         ];
 
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(result, Ok(None));
     }
@@ -781,29 +696,29 @@ mod tests {
             (
                 (3, 0),
                 (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
                 )
             ),
             (
                 (3, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (3, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             (
                 (3, 3),
                 (
-                    "152666792071518830868575557812948353041420400780739481342941381225525861407",
-                    10
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
                 )
             ),
             ((3, 4), 34),
@@ -815,7 +730,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 3)), &memory);
         assert_eq!(result, Ok(None));
@@ -828,22 +743,22 @@ mod tests {
             (
                 (3, 0),
                 (
-                    "2962412995502985605007699495352191122971573493113767820301112397466445942584",
-                    10
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
                 )
             ),
             (
                 (3, 1),
                 (
-                    "214950771763870898744428659242275426967582168179217139798831865603966154129",
-                    10
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
                 )
             ),
             (
                 (3, 2),
                 (
-                    "874739451078007766457464989774322083649278607533249481151382481072868806602",
-                    10
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
                 )
             ),
             ((3, 3), (1, 2)),
@@ -856,7 +771,7 @@ mod tests {
                 )
             )
         ];
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
+        let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
         assert_eq!(
             builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory),
@@ -868,60 +783,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_segment_addresses() {
-        let builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true);
-
-        assert_eq!(builtin.get_memory_segment_addresses(), (0, None));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_missing_segment_used_sizes() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
-        let vm = vm!();
-
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Err(MemoryError::MissingSegmentUsedSizes),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses_empty() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-        assert_eq!(builtin.get_memory_accesses(&vm), Ok(vec![]));
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_memory_accesses() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![4]);
-        assert_eq!(
-            builtin.get_memory_accesses(&vm),
-            Ok(vec![
-                (builtin.base() as isize, 0).into(),
-                (builtin.base() as isize, 1).into(),
-                (builtin.base() as isize, 2).into(),
-                (builtin.base() as isize, 3).into(),
-            ]),
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let vm = vm!();
 
         assert_eq!(
@@ -933,8 +796,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![0]);
@@ -944,8 +806,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
-        let builtin =
-            BuiltinRunner::EcOp(EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true));
+        let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
 
         vm.segments.segment_used_sizes = Some(vec![4]);
@@ -955,15 +816,14 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stackincluded_test() {
-        let ec_op_builtin: BuiltinRunner =
-            EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), true).into();
+        let ec_op_builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
         assert_eq!(ec_op_builtin.initial_stack(), vec![mayberelocatable!(0, 0)])
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_notincluded_test() {
-        let ec_op_builtin = EcOpBuiltinRunner::new(&EcOpInstanceDef::default(), false);
+        let ec_op_builtin = EcOpBuiltinRunner::new(Some(256), false);
         assert_eq!(ec_op_builtin.initial_stack(), Vec::new())
     }
 
@@ -973,7 +833,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_same_x.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
@@ -998,7 +858,7 @@ mod tests {
         let program =
             include_bytes!("../../../../../cairo_programs/bad_programs/ec_op_not_in_curve.json");
         let cairo_run_config = crate::cairo_run::CairoRunConfig {
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..crate::cairo_run::CairoRunConfig::default()
         };
         let result = crate::cairo_run::cairo_run(
@@ -1016,5 +876,30 @@ mod tests {
             Err(_) => panic!("Wrong error returned, expected RunnerError::EcOpSameXCoordinate"),
             Ok(_) => panic!("Expected run to fail"),
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_air_private_input() {
+        let builtin: BuiltinRunner = EcOpBuiltinRunner::new(Some(256), true).into();
+
+        let segments = segments![
+            ((0, 0), 0),
+            ((0, 1), 1),
+            ((0, 2), 2),
+            ((0, 3), 3),
+            ((0, 4), 4)
+        ];
+        assert_eq!(
+            builtin.air_private_input(&segments),
+            (vec![PrivateInput::EcOp(PrivateInputEcOp {
+                index: 0,
+                p_x: 0.into(),
+                p_y: 1.into(),
+                m: 4.into(),
+                q_x: 2.into(),
+                q_y: 3.into(),
+            })])
+        );
     }
 }
