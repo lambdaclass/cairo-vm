@@ -218,12 +218,7 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
     let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
     let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-    load_arguments(
-        &mut vm,
-        &runner,
-        &cairo_run_config,
-        main_func,
-    )?;
+    load_arguments(&mut vm, &runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
@@ -409,11 +404,13 @@ fn load_arguments(
 ) -> Result<(), Error> {
     if cairo_run_config.args.is_empty() {
         // Nothing to be done
-        return Ok(())
+        return Ok(());
     }
-    let got_segment_arena = main_func.signature.param_types.iter().any(|ty| {
-        ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena")
-    });
+    let got_segment_arena = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
     let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
     // These include:
