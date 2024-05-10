@@ -22,6 +22,6 @@ pub enum CairoRunError {
     MemoryError(#[from] MemoryError),
     #[error(transparent)]
     VmException(#[from] VmException),
-    #[error("Cairo Pie validation failed: {0}")]
+    #[error(transparent)]
     CairoPieValidation(#[from] CairoPieValidationError),
 }
