@@ -1337,8 +1337,8 @@ mod tests {
             ],
             ..Default::default()
         };
-        let runner_a = cairo_run_program(&sierra_program, config_a).unwrap();
-        let runner_b = cairo_run_program(&sierra_program, config_b).unwrap();
+        let runner_a = cairo_run_program(&sierra_program, config_a).unwrap().0;
+        let runner_b = cairo_run_program(&sierra_program, config_b).unwrap().0;
         let hash_a =
             compute_program_hash_chain(&runner_a.get_program().get_stripped_program().unwrap(), 0)
                 .unwrap();
