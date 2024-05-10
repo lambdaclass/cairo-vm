@@ -109,19 +109,11 @@ impl Default for Cairo1RunConfig<'_> {
 }
 
 // Runs a Cairo 1 program
-// Returns the runner & VM after execution + the return values + the serialized return values (if serialize_output is enabled)
+// Returns the runner after execution + the return values + the serialized return values (if serialize_output is enabled)
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
-) -> Result<
-    (
-        CairoRunner,
-        VirtualMachine,
-        Vec<MaybeRelocatable>,
-        Option<String>,
-    ),
-    Error,
-> {
+) -> Result<(CairoRunner, Vec<MaybeRelocatable>, Option<String>), Error> {
     let metadata = calc_metadata_ap_change_only(sierra_program)
         .map_err(|_| VirtualMachineError::Unexpected)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
@@ -215,25 +207,29 @@ pub fn cairo_run_program(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-    load_arguments(&mut vm, &runner, &cairo_run_config, main_func)?;
+    let mut runner = CairoRunner::new_v2(
+        &program,
+        cairo_run_config.layout,
+        runner_mode,
+        cairo_run_config.trace_enabled,
+    )?;
+    let end = runner.initialize(cairo_run_config.proof_mode)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    runner.run_until_pc(end, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
-        runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
+        runner.run_for_steps(1, &mut hint_processor)?;
     }
 
-    runner.end_run(false, false, &mut vm, &mut hint_processor)?;
+    runner.end_run(false, false, &mut hint_processor)?;
 
     let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
     // Fetch return values
     let return_values = fetch_return_values(
         return_type_size,
         return_type_id,
-        &vm,
+        &runner.vm,
         builtin_count,
         skip_output,
     )?;
@@ -241,7 +237,7 @@ pub fn cairo_run_program(
     let serialized_output = if cairo_run_config.serialize_output {
         Some(serialize_output(
             &return_values,
-            &mut vm,
+            &mut runner.vm,
             return_type_id,
             &sierra_program_registry,
             &type_sizes,
@@ -254,12 +250,15 @@ pub fn cairo_run_program(
     if cairo_run_config.finalize_builtins {
         if skip_output {
             // Set stop pointer for each builtin
-            vm.builtins_final_stack_from_stack_pointer_dict(
+            runner.vm.builtins_final_stack_from_stack_pointer_dict(
                 &builtins
                     .iter()
                     .enumerate()
                     .map(|(i, builtin)| {
-                        (*builtin, (vm.get_ap() - (builtins.len() - 1 - i)).unwrap())
+                        (
+                            *builtin,
+                            (runner.vm.get_ap() - (builtins.len() - 1 - i)).unwrap(),
+                        )
                     })
                     .collect(),
                 false,
@@ -268,20 +267,20 @@ pub fn cairo_run_program(
             finalize_builtins(
                 &main_func.signature.ret_types,
                 &type_sizes,
-                &mut vm,
+                &mut runner.vm,
                 builtin_count,
             )?;
         }
 
         // Build execution public memory
         if cairo_run_config.proof_mode {
-            runner.finalize_segments(&mut vm)?;
+            runner.finalize_segments()?;
         }
     }
 
-    runner.relocate(&mut vm, true)?;
+    runner.relocate(true)?;
 
-    Ok((runner, vm, return_values, serialized_output))
+    Ok((runner, return_values, serialized_output))
 }
 
 #[allow(clippy::type_complexity)]
@@ -397,8 +396,7 @@ After the entry_code (up until calling main) has been ran by the VM:
 (*3) if args are used
 */
 fn load_arguments(
-    vm: &mut VirtualMachine,
-    runner: &CairoRunner,
+    runner: &mut CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
@@ -433,25 +431,25 @@ fn load_arguments(
     for arg in cairo_run_config.args {
         match arg {
             FuncArg::Array(args) => {
-                let array_start = vm.add_memory_segment();
-                let array_end = vm.load_data(
+                let array_start = runner.vm.add_memory_segment();
+                let array_end = runner.vm.load_data(
                     array_start,
                     &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
                 )?;
-                vm.insert_value(
-                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
                     array_start,
                 )?;
                 ap_offset += 1;
-                vm.insert_value(
-                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
                     array_end,
                 )?;
                 ap_offset += 1;
             }
             FuncArg::Single(arg) => {
-                vm.insert_value(
-                    (vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
                     arg,
                 )?;
                 ap_offset += 1;
@@ -1288,7 +1286,7 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (_, vm, return_values, _) =
+        let (runner, return_values, _) =
             cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
@@ -1301,14 +1299,16 @@ mod tests {
         };
         // Check that the output segment contains the return values
         // The output builtin will always be the first builtin, so we know it's segment is 2
-        let output_builtin_segment = vm
+        let output_builtin_segment = runner
+            .vm
             .get_continuous_range((2, 0).into(), return_values.len())
             .unwrap();
         // While this test can make sure that the return values are the same as the output segment values, as the code that fetches return values
         // takes them from the output segment we can't be sure that these return values are correct, for this we use the integration tests in the main.rs file
         assert_eq!(output_builtin_segment, return_values, "{}", filename);
         // Just for consistency, we will check that there are no values in the output segment after the return values
-        assert!(vm
+        assert!(runner
+            .vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
     }

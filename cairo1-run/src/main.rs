@@ -180,10 +180,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         }
     };
 
-    let (runner, vm, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
+    let (runner, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
 
     if let Some(file_path) = args.air_public_input {
-        let json = runner.get_air_public_input(&vm)?.serialize_json()?;
+        let json = runner.get_air_public_input()?.serialize_json()?;
         std::fs::write(file_path, json)?;
     }
 
@@ -207,7 +207,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             .to_string();
 
         let json = runner
-            .get_air_private_input(&vm)
+            .get_air_private_input()
             .to_serializable(trace_path, memory_path)
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
@@ -215,7 +215,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     }
 
     if let Some(ref file_path) = args.cairo_pie_output {
-        runner.get_cairo_pie(&vm)?.write_zip_file(file_path)?
+        runner.get_cairo_pie()?.write_zip_file(file_path)?
     }
 
     if let Some(trace_path) = args.trace_file {

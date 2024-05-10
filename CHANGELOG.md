@@ -4,6 +4,56 @@
 
 * feat: Load arguments into VM instead of creating them via instructions in cairo1-run [#1759](https://github.com/lambdaclass/cairo-vm/pull/1759)
 
+* refactor(BREAKING): Move the VM back to the CairoRunner [#1743](https://github.com/lambdaclass/cairo-vm/pull/1743)
+  * `CairoRunner` has a new public field `vm: VirtualMachine`
+  * `CairoRunner` no longer derives `Debug`
+  * `CairoRunner` methods `new_v2` & `new` take an extra boolean argument `trace_enabled`.
+  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now retun only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
+  * `CairoRunner` methods no longer take a reference to `VirtualMachine`. Methods that took an immutable reference to self and a mutable reference to the VM now take a mutable reference to self. Affected methods:
+    * `initialize`
+    * `initialize_builtins`
+    * `initialize_all_builtins`
+    * `initialize_segments`
+    * `initialize_state`
+    * `initialize_function_entrypoint`
+    * `initialize_state`
+    * `initialize_main_entrypoint`
+    * `initialize_vm`
+    * `run_until_pc`
+    * `run_for_steps`
+    * `run_until_steps`
+    * `run_until_power_of_2`
+    * `get_perm_range_check_limits`
+    * `check_range_check_usage`
+    * `get_memory_holes`
+    * `check_diluted_check_usage`
+    * `end_run`
+    * `relocate_trace`
+    * `relocate_memory`
+    * `relocate`
+    * `get_builtin_segments_info`
+    * `get_builtin_segments_info_for_pie`
+    * `get_execution_resources`
+    * `finalize_segments`
+    * `run_from_entrypoint`
+    * `check_used_cells`
+    * `check_memory_usage`
+    * `initialize_function_runner_cairo_1`
+    * `initialize_function_runner`
+    * `read_return_values`
+    * `get_builtins_final_stack`
+    * `get_cairo_pie`
+    * `get_air_public_input`
+    * `get_air_private_input`
+    * `get_memory_segment_addresses`
+  * Functions & methods taking a reference to `CairoRunner` & `VirtualMachine` now only take a reference to `CairoRunner`:
+    * `start_tracer`
+    * `VmException::from_vm_error`
+    * `get_error_attr_value`
+    * `get_traceback`
+    * `verify_secure_runner`
+  * [hooks feature] `BeforeFirstStepHookFunc` dyn Fn no longer takes a mutable reference to `CairoRunner`, along with `VirtualMachine::execute_before_first_step`.
+
 * fix: add support for arrays shorter than 2 as arguments for cairo1-run [#1737](https://github.com/lambdaclass/cairo-vm/pull/1737)
 
 * bugfix: Fix BuiltinRunner::final_stack for SegmentArena[#1747](https://github.com/lambdaclass/cairo-vm/pull/1747)
