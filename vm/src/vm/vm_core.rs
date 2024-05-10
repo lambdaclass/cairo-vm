@@ -90,7 +90,7 @@ pub struct VirtualMachine {
     skip_instruction_execution: bool,
     run_finished: bool,
     instruction_cache: Vec<Option<Instruction>>,
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "test_utils")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
@@ -119,7 +119,7 @@ impl VirtualMachine {
             rc_limits: None,
             run_finished: false,
             instruction_cache: Vec::new(),
-            #[cfg(feature = "hooks")]
+            #[cfg(feature = "test_utils")]
             hooks: Default::default(),
             relocation_table: None,
         }
@@ -562,10 +562,10 @@ impl VirtualMachine {
             constants,
         )?;
 
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         self.execute_pre_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
         self.step_instruction()?;
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
 
         Ok(())
@@ -695,12 +695,12 @@ impl VirtualMachine {
                     )
                     .map_err(VirtualMachineError::RunnerError)?
                 {
-                    let value = value.as_ref().map(|x| x.get_value());
-                    if Some(&deduced_memory_cell) != value && value.is_some() {
+                    let value = value.get_value();
+                    if Some(&deduced_memory_cell) != value.as_ref() && value.is_some() {
                         return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new((
                             builtin.name(),
                             deduced_memory_cell,
-                            value.cloned(),
+                            value,
                         ))));
                     }
                 }
@@ -1165,7 +1165,7 @@ pub struct VirtualMachineBuilder {
     pub(crate) current_step: usize,
     skip_instruction_execution: bool,
     run_finished: bool,
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "test_utils")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
 
@@ -1185,7 +1185,7 @@ impl Default for VirtualMachineBuilder {
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             run_finished: false,
-            #[cfg(feature = "hooks")]
+            #[cfg(feature = "test_utils")]
             hooks: Default::default(),
         }
     }
@@ -1230,7 +1230,7 @@ impl VirtualMachineBuilder {
         self
     }
 
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "test_utils")]
     pub fn hooks(mut self, hooks: crate::vm::hooks::Hooks) -> VirtualMachineBuilder {
         self.hooks = hooks;
         self
@@ -1247,7 +1247,7 @@ impl VirtualMachineBuilder {
             rc_limits: None,
             run_finished: self.run_finished,
             instruction_cache: Vec::new(),
-            #[cfg(feature = "hooks")]
+            #[cfg(feature = "test_utils")]
             hooks: self.hooks,
             relocation_table: None,
         }
@@ -3039,8 +3039,8 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = vm.segments.memory.data;
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
     }
 
     #[test]
@@ -3137,15 +3137,15 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[0][1].as_ref().unwrap().is_accessed());
-        assert!(mem[0][4].as_ref().unwrap().is_accessed());
-        assert!(mem[0][6].as_ref().unwrap().is_accessed());
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
-        assert!(mem[1][2].as_ref().unwrap().is_accessed());
-        assert!(mem[1][3].as_ref().unwrap().is_accessed());
-        assert!(mem[1][4].as_ref().unwrap().is_accessed());
-        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert!(mem[0][1].is_accessed());
+        assert!(mem[0][4].is_accessed());
+        assert!(mem[0][6].is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
+        assert!(mem[1][2].is_accessed());
+        assert!(mem[1][3].is_accessed());
+        assert!(mem[1][4].is_accessed());
+        assert!(mem[1][5].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
@@ -4273,11 +4273,11 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[0][0].as_ref().unwrap().is_accessed());
-        assert!(mem[0][1].as_ref().unwrap().is_accessed());
-        assert!(mem[0][2].as_ref().unwrap().is_accessed());
-        assert!(mem[0][10].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[0][0].is_accessed());
+        assert!(mem[0][1].is_accessed());
+        assert!(mem[0][2].is_accessed());
+        assert!(mem[0][10].is_accessed());
+        assert!(mem[1][1].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
@@ -4384,7 +4384,7 @@ mod tests {
                 fp: 1,
             }]));
 
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
             _runner: &mut CairoRunner,
@@ -4392,7 +4392,7 @@ mod tests {
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
         }
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         let virtual_machine_builder = virtual_machine_builder.hooks(crate::vm::hooks::Hooks::new(
             Some(std::sync::Arc::new(before_first_step_hook)),
             None,
@@ -4426,7 +4426,7 @@ mod tests {
                 fp: 1,
             }])
         );
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "test_utils")]
         {
             let program = crate::types::program::Program::from_bytes(
                 include_bytes!("../../../cairo_programs/sqrt.json"),
@@ -4499,8 +4499,8 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = vm.segments.memory.data;
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
     }
 
     #[test]
@@ -4600,15 +4600,15 @@ mod tests {
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
-        assert!(mem[4][1].as_ref().unwrap().is_accessed());
-        assert!(mem[4][4].as_ref().unwrap().is_accessed());
-        assert!(mem[4][6].as_ref().unwrap().is_accessed());
-        assert!(mem[1][0].as_ref().unwrap().is_accessed());
-        assert!(mem[1][1].as_ref().unwrap().is_accessed());
-        assert!(mem[1][2].as_ref().unwrap().is_accessed());
-        assert!(mem[1][3].as_ref().unwrap().is_accessed());
-        assert!(mem[1][4].as_ref().unwrap().is_accessed());
-        assert!(mem[1][5].as_ref().unwrap().is_accessed());
+        assert!(mem[4][1].is_accessed());
+        assert!(mem[4][4].is_accessed());
+        assert!(mem[4][6].is_accessed());
+        assert!(mem[1][0].is_accessed());
+        assert!(mem[1][1].is_accessed());
+        assert!(mem[1][2].is_accessed());
+        assert!(mem[1][3].is_accessed());
+        assert!(mem[1][4].is_accessed());
+        assert!(mem[1][5].is_accessed());
         assert_eq!(
             vm.segments
                 .memory
