@@ -668,18 +668,45 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
-// Returns the size of the T type in PanicResult::Ok(T) if applicable
-// Returns None if the return_type_id is not a PanicResult
-fn result_inner_type_size(
+// Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
+fn check_only_array_felt_return_type(
     return_type_id: Option<&ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
-    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
-) -> Option<i16> {
+) -> bool {
+    if return_type_id.is_none() {
+        return false;
+    };
+    // Remove PanicResult
+    let return_type =
+        if let Some(return_type) = result_inner_type(return_type_id, sierra_program_registry) {
+            return_type
+        } else {
+            return_type_id.unwrap()
+        };
+    let return_type = sierra_program_registry.get_type(return_type).unwrap();
+    match return_type {
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
+            let inner_ty = sierra_program_registry.get_type(&info.ty).unwrap();
+            matches!(
+                inner_ty,
+                cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+            )
+        }
+        _ => false,
+    }
+}
+
+// Returns the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type<'a>(
+    return_type_id: Option<&'a ConcreteTypeId>,
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+) -> Option<&'a ConcreteTypeId> {
     if return_type_id
-        .and_then(|id| {
+        .map(|id| {
             id.debug_name
                 .as_ref()
-                .map(|name| name.starts_with("core::panics::PanicResult::"))
+                .is_some_and(|name| name.starts_with("core::panics::PanicResult::"))
         })
         .unwrap_or_default()
     {
@@ -691,10 +718,21 @@ fn result_inner_type_size(
             GenericArg::Type(type_id) => type_id,
             _ => unreachable!(),
         };
-        type_sizes.get(inner_type).copied()
+        Some(inner_type)
     } else {
         None
     }
+}
+
+// Returns the size of the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type_size(
+    return_type_id: Option<&ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> Option<i16> {
+    result_inner_type(return_type_id, sierra_program_registry)
+        .and_then(|ty| type_sizes.get(ty).copied())
 }
 
 fn fetch_return_values(
