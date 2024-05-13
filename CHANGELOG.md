@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* bugifix: Fix handling of return values wrapped in `PanicResult` in cairo1-run crate [#1763](https://github.com/lambdaclass/cairo-vm/pull/1763)
+* bugfix: Fix handling of return values wrapped in `PanicResult` in cairo1-run crate [#1763](https://github.com/lambdaclass/cairo-vm/pull/1763)
 
 * refactor(BREAKING): Move the VM back to the CairoRunner [#1743](https://github.com/lambdaclass/cairo-vm/pull/1743)
   * `CairoRunner` has a new public field `vm: VirtualMachine`
