@@ -224,15 +224,16 @@ pub fn cairo_run_program(
     runner.end_run(false, false, &mut hint_processor)?;
 
     let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
+
+    let result_inner_type_size =
+        result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
     // Fetch return values
     let return_values = fetch_return_values(
         return_type_size,
-        return_type_id,
+        result_inner_type_size,
         &runner.vm,
         builtin_count,
         skip_output,
-        &sierra_program_registry,
-        &type_sizes,
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
@@ -667,14 +668,46 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+// Returns the size of the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type_size(
+    return_type_id: Option<&ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> Option<i16> {
+    if return_type_id
+        .and_then(|id| {
+            id.debug_name
+                .as_ref()
+                .map(|name| name.starts_with("core::panics::PanicResult::"))
+        })
+        .unwrap_or_default()
+    {
+        let return_type_info = get_info(&sierra_program_registry, return_type_id.as_ref().unwrap());
+        let inner_type_size = *match return_type_info {
+            Some(info) => {
+                // We already know info.long_id.generic_args[0] contains the Panic variant
+                let inner_args = &info.long_id.generic_args[1];
+                let inner_type = match inner_args {
+                    GenericArg::Type(type_id) => type_id,
+                    _ => unreachable!(),
+                };
+                type_sizes.get(inner_type).unwrap()
+            }
+            _ => unreachable!(),
+        };
+        Some(inner_type_size)
+    } else {
+        None
+    }
+}
+
 fn fetch_return_values(
     return_type_size: i16,
-    return_type_id: Option<&ConcreteTypeId>,
+    result_inner_type_size: Option<i16>,
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
-    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
-    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
     let mut return_values = if fetch_from_output {
         let output_builtin_end = vm
@@ -688,15 +721,8 @@ fn fetch_return_values(
             return_type_size as usize,
         )?
     };
-    // Check if this result is a Panic result
-    if return_type_id
-        .and_then(|id| {
-            id.debug_name
-                .as_ref()
-                .map(|name| name.starts_with("core::panics::PanicResult::"))
-        })
-        .unwrap_or_default()
-    {
+    // Handle PanicResult (we already checked if the type is a PanicResult when fetching the inner type size)
+    if let Some(inner_type_size) = result_inner_type_size {
         // Check the failure flag (aka first return value)
         if return_values.first() != Some(&MaybeRelocatable::from(0)) {
             // In case of failure, extract the error from the return values (aka last two values)
@@ -718,24 +744,11 @@ fn fetch_return_values(
                 panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
-            let return_type_info =
-                get_info(sierra_program_registry, return_type_id.as_ref().unwrap());
-            let inner_type_size = *match return_type_info {
-                Some(info) => {
-                    // We already know info.long_id.generic_args[0] contains the Panic variant
-                    let inner_args = &info.long_id.generic_args[1];
-                    let inner_type = match inner_args {
-                        GenericArg::Type(type_id) => type_id,
-                        _ => unreachable!(),
-                    };
-                    type_sizes.get(inner_type).unwrap()
-                }
-                _ => unreachable!(),
-            } as usize;
-            if return_values.len() < inner_type_size {
+            if return_values.len() < inner_type_size as usize {
                 return Err(Error::FailedToExtractReturnValues);
             }
-            return_values = return_values[(return_type_size as usize - inner_type_size)..].to_vec()
+            return_values =
+                return_values[((return_type_size - inner_type_size).into_or_panic())..].to_vec()
         }
     }
     Ok(return_values)
