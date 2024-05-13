@@ -231,6 +231,8 @@ pub fn cairo_run_program(
         &runner.vm,
         builtin_count,
         skip_output,
+        &sierra_program_registry,
+        &type_sizes,
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
@@ -671,6 +673,8 @@ fn fetch_return_values(
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
     let mut return_values = if fetch_from_output {
         let output_builtin_end = vm
@@ -714,10 +718,24 @@ fn fetch_return_values(
                 panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
-            if return_values.len() < 3 {
+            let return_type_info =
+                get_info(sierra_program_registry, return_type_id.as_ref().unwrap());
+            let inner_type_size = *match return_type_info {
+                Some(info) => {
+                    // We already know info.long_id.generic_args[0] contains the Panic variant
+                    let inner_args = &info.long_id.generic_args[1];
+                    let inner_type = match inner_args {
+                        GenericArg::Type(type_id) => type_id,
+                        _ => unreachable!(),
+                    };
+                    type_sizes.get(inner_type).unwrap()
+                }
+                _ => unreachable!(),
+            } as usize;
+            if return_values.len() < inner_type_size {
                 return Err(Error::FailedToExtractReturnValues);
             }
-            return_values = return_values[2..].to_vec()
+            return_values = return_values[(return_type_size as usize - inner_type_size)..].to_vec()
         }
     }
     Ok(return_values)
@@ -811,15 +829,13 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Array start_ptr not Relocatable");
-            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
-            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
-                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
-                    // Pop the value we just peeked
-                    return_values_iter.next();
-                    (array_start, (array_end - array_start).unwrap())
-                }
-                _ => ((array_start.segment_index, 0).into(), array_start.offset),
-            };
+            let array_end = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array end_ptr not Relocatable");
+            let array_size = (array_end - array_start).unwrap();
+
             let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
             let mut array_data_iter = array_data.iter().peekable();
             let array_elem_id = &info.ty;
