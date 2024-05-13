@@ -683,20 +683,15 @@ fn result_inner_type_size(
         })
         .unwrap_or_default()
     {
-        let return_type_info = get_info(sierra_program_registry, return_type_id.as_ref().unwrap());
-        let inner_type_size = *match return_type_info {
-            Some(info) => {
-                // We already know info.long_id.generic_args[0] contains the Panic variant
-                let inner_args = &info.long_id.generic_args[1];
-                let inner_type = match inner_args {
-                    GenericArg::Type(type_id) => type_id,
-                    _ => unreachable!(),
-                };
-                type_sizes.get(inner_type).unwrap()
-            }
+        let return_type_info =
+            get_info(sierra_program_registry, return_type_id.as_ref().unwrap()).unwrap();
+        // We already know info.long_id.generic_args[0] contains the Panic variant
+        let inner_args = &return_type_info.long_id.generic_args[1];
+        let inner_type = match inner_args {
+            GenericArg::Type(type_id) => type_id,
             _ => unreachable!(),
         };
-        Some(inner_type_size)
+        type_sizes.get(inner_type).copied()
     } else {
         None
     }
