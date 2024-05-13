@@ -144,6 +144,13 @@ pub fn cairo_run_program(
     // Fetch return type data
 
     let return_type_id = main_func.signature.ret_types.last();
+
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
+    {
+        return Err(Error::IlegalReturnValue);
+    };
+
     let return_type_size = return_type_id
         .and_then(|id| type_sizes.get(id).cloned())
         .unwrap_or_default();
@@ -676,7 +683,7 @@ fn check_only_array_felt_return_type(
     if return_type_id.is_none() {
         return false;
     };
-    // Remove PanicResult
+    // Unwrap PanicResult (if appicable)
     let return_type =
         if let Some(return_type) = result_inner_type(return_type_id, sierra_program_registry) {
             return_type
@@ -684,6 +691,7 @@ fn check_only_array_felt_return_type(
             return_type_id.unwrap()
         };
     let return_type = sierra_program_registry.get_type(return_type).unwrap();
+    // Check that the resulting type is an Array<Felt252>
     match return_type {
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
             let inner_ty = sierra_program_registry.get_type(&info.ty).unwrap();
