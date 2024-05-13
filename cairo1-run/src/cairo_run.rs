@@ -683,7 +683,7 @@ fn result_inner_type_size(
         })
         .unwrap_or_default()
     {
-        let return_type_info = get_info(&sierra_program_registry, return_type_id.as_ref().unwrap());
+        let return_type_info = get_info(sierra_program_registry, return_type_id.as_ref().unwrap());
         let inner_type_size = *match return_type_info {
             Some(info) => {
                 // We already know info.long_id.generic_args[0] contains the Panic variant
