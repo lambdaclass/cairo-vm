@@ -224,10 +224,13 @@ pub fn cairo_run_program(
     runner.end_run(false, false, &mut hint_processor)?;
 
     let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
+
+    let result_inner_type_size =
+        result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
     // Fetch return values
     let return_values = fetch_return_values(
         return_type_size,
-        return_type_id,
+        result_inner_type_size,
         &runner.vm,
         builtin_count,
         skip_output,
@@ -665,9 +668,38 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+// Returns the size of the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type_size(
+    return_type_id: Option<&ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> Option<i16> {
+    if return_type_id
+        .and_then(|id| {
+            id.debug_name
+                .as_ref()
+                .map(|name| name.starts_with("core::panics::PanicResult::"))
+        })
+        .unwrap_or_default()
+    {
+        let return_type_info =
+            get_info(sierra_program_registry, return_type_id.as_ref().unwrap()).unwrap();
+        // We already know info.long_id.generic_args[0] contains the Panic variant
+        let inner_args = &return_type_info.long_id.generic_args[1];
+        let inner_type = match inner_args {
+            GenericArg::Type(type_id) => type_id,
+            _ => unreachable!(),
+        };
+        type_sizes.get(inner_type).copied()
+    } else {
+        None
+    }
+}
+
 fn fetch_return_values(
     return_type_size: i16,
-    return_type_id: Option<&ConcreteTypeId>,
+    result_inner_type_size: Option<i16>,
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
@@ -684,15 +716,8 @@ fn fetch_return_values(
             return_type_size as usize,
         )?
     };
-    // Check if this result is a Panic result
-    if return_type_id
-        .and_then(|id| {
-            id.debug_name
-                .as_ref()
-                .map(|name| name.starts_with("core::panics::PanicResult::"))
-        })
-        .unwrap_or_default()
-    {
+    // Handle PanicResult (we already checked if the type is a PanicResult when fetching the inner type size)
+    if let Some(inner_type_size) = result_inner_type_size {
         // Check the failure flag (aka first return value)
         if return_values.first() != Some(&MaybeRelocatable::from(0)) {
             // In case of failure, extract the error from the return values (aka last two values)
@@ -714,10 +739,11 @@ fn fetch_return_values(
                 panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
-            if return_values.len() < 3 {
+            if return_values.len() < inner_type_size as usize {
                 return Err(Error::FailedToExtractReturnValues);
             }
-            return_values = return_values[2..].to_vec()
+            return_values =
+                return_values[((return_type_size - inner_type_size).into_or_panic())..].to_vec()
         }
     }
     Ok(return_values)
@@ -811,15 +837,13 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Array start_ptr not Relocatable");
-            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
-            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
-                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
-                    // Pop the value we just peeked
-                    return_values_iter.next();
-                    (array_start, (array_end - array_start).unwrap())
-                }
-                _ => ((array_start.segment_index, 0).into(), array_start.offset),
-            };
+            let array_end = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array end_ptr not Relocatable");
+            let array_size = (array_end - array_start).unwrap();
+
             let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
             let mut array_data_iter = array_data.iter().peekable();
             let array_elem_id = &info.ty;
