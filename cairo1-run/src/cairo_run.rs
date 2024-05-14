@@ -223,7 +223,10 @@ pub fn cairo_run_program(
     let end = runner.initialize(cairo_run_config.proof_mode)?;
 
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut hint_processor)?;
+    println!("Running VM");
+    let err = runner.run_until_pc(end, &mut hint_processor);
+    println!("{}", runner.vm.segments);
+    err?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut hint_processor)?;
     }
@@ -528,33 +531,81 @@ fn create_entry_code(
         // Write array_size
         let array_start_ptr = outputs[0];
         let array_end_ptr = outputs[1];
-        casm_build_extend!(ctx,
-            // Obtain size of return array
-            tempvar array_size = array_end_ptr - array_start_ptr;
-            // Write size into output segment
-            assert array_size = *(output_ptr++);
-            // Call main loop
-            tempvar remaining_elements = array_size;
-            rescope{remaining_elements = remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
-            LOOP_START:
-            jump COPY_LOOP if remaining_elements != 0;
-            rescope{};
-            jump DONE_COPY;
+        // casm_build_extend!(ctx,
+        //     // Obtain size of return array
+        //     tempvar array_size = array_end_ptr - array_start_ptr;
+        //     // Write size into output segment
+        //     //assert array_size = *(output_ptr++);
+        //     // Call main loop
+        //     tempvar remaining_elements = array_size;
+        //     rescope{remaining_elements = remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
+        //     LOOP_START:
+        //     jump COPY_LOOP if remaining_elements != 0;
+        //     rescope{};
+        //     jump DONE_COPY;
 
-            COPY_LOOP:
-            tempvar val = *(array_start_ptr++);
-            assert val = *(output_ptr++);
+        //     COPY_LOOP:
+        //     tempvar val = *(array_start_ptr++);
+        //     assert val = *(output_ptr++);
+        //     const one = 1;
+        //     tempvar next_output_ptr = output_ptr;
+        //     tempvar next_array_ptr = array_start_ptr;
+        //     tempvar new_remaining_elements = remaining_elements - one;
+        //     rescope{remaining_elements=new_remaining_elements, array_start_ptr=next_array_ptr, output_ptr=next_output_ptr};
+        //     #{ steps = 0; }
+        //     jump COPY_LOOP if remaining_elements != 0;
+        //     rescope{};
+        //     jump DONE_COPY;
+
+        //     DONE_COPY:
+        // );
+        // casm_build_extend!(ctx,
+        //     tempvar array_size = array_end_ptr - array_start_ptr;
+        //     assert array_size = *(output_ptr++);
+
+        //     tempvar remaining_elements = array_size;
+        //     rescope{remaining_elements = remaining_elements};
+
+        //     jump COPY_LOOP if remaining_elements != 0;
+        //     rescope{};
+        //     jump DONE_COPY;
+
+        //     COPY_LOOP:
+        //     const one = 1;
+        //     tempvar next_remaining_elements = remaining_elements - one;
+
+        //     rescope{remaining_elements = next_remaining_elements};
+        //     #{ steps = 0; }
+        //     jump COPY_LOOP if remaining_elements != 0;
+        //     rescope{};
+
+        //     DONE_COPY:
+        //);
+        casm_build_extend! {ctx,
+            jump Start;
+            Start:
             const one = 1;
-            tempvar new_remaining_elements = remaining_elements - one;
-            rescope{remaining_elements=new_remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
-            #{ steps = 0; }
-            jump COPY_LOOP if remaining_elements != 0;
+            tempvar array_size = array_end_ptr - array_start_ptr;
+            tempvar remaining_elements = array_size;
+            // We CANNOT rescope here, or else we will loose all previously allocated variables
+            // Solutions: Can we do this without rescoping? Probably not. Maybe we can do what got_segment_arena & output do by default
+            // And copy the builtin final ptrs relative to FP so we can safely rescope here
+            rescope{remaining_elements = remaining_elements};
+            jump CopyArray if remaining_elements != 0;
             rescope{};
-            jump DONE_COPY;
+            jump End;
 
-            DONE_COPY:
-        );
-    }
+            CopyArray:
+            // tempvar new_remaining_elements = remaining_elements - one;
+            // rescope{remaining_elements = new_remaining_elements};
+            // jump CopyArray if remaining_elements != 0;
+            // rescope{};
+            // jump End;
+
+            End:
+        };
+
+}
     // Helper to get a variable for a given builtin.
     // Fails for builtins that will never be present.
     let get_var = |name: &BuiltinName| match name {
