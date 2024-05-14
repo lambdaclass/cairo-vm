@@ -525,9 +525,35 @@ fn create_entry_code(
             .rev()
             .map(|i| ctx.add_var(CellExpression::Deref(deref!([ap - i]))))
             .collect_vec();
-        for output in outputs {
-            casm_build_extend!(ctx, assert output = *(output_ptr++););
-        }
+        // Write array_size
+        let array_start_ptr = outputs[0];
+        let array_end_ptr = outputs[1];
+        casm_build_extend!(ctx,
+            // Obtain size of return array
+            tempvar array_size = array_end_ptr - array_start_ptr;
+            // Write size into output segment
+            assert array_size = *(output_ptr++);
+            // Call main loop
+            tempvar remaining_elements = array_size;
+            rescope{remaining_elements = remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
+            LOOP_START:
+            jump COPY_LOOP if remaining_elements != 0;
+            rescope{};
+            jump DONE_COPY;
+
+            COPY_LOOP:
+            tempvar val = *(array_start_ptr++);
+            assert val = *(output_ptr++);
+            const one = 1;
+            tempvar new_remaining_elements = remaining_elements - one;
+            rescope{remaining_elements=new_remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
+            #{ steps = 0; }
+            jump COPY_LOOP if remaining_elements != 0;
+            rescope{};
+            jump DONE_COPY;
+
+            DONE_COPY:
+        );
     }
     // Helper to get a variable for a given builtin.
     // Fails for builtins that will never be present.
