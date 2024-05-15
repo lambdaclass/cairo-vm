@@ -579,7 +579,7 @@ fn create_entry_code(
             tempvar new_array_ptr = array_ptr;
             tempvar new_write_ptr = write_ptr;
             // Continue the loop
-            rescope{remaining_elements = new_remaining_elements, array_ptr = array_ptr, write_ptr = new_write_ptr};
+            rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
             jump CopyArray if remaining_elements != 0;
 
             End:
