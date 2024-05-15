@@ -373,7 +373,7 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    if got_segment_arena {
+    if copy_to_output_builtin {
         // Allocating local vars to save the builtins for the validations.
         for _ in 0..builtins.len() {
             casm_build_extend!(ctx, tempvar _local;);
@@ -535,44 +535,46 @@ fn create_entry_code(
         | BuiltinName::add_mod
         | BuiltinName::mul_mod => unreachable!(),
     };
-    if copy_to_output_builtin && got_segment_arena {
+    if copy_to_output_builtin {
         // Copying the final builtins into a local variables.
         for (i, builtin) in builtins.iter().enumerate() {
             let var = get_var(builtin);
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i.to_i16().unwrap()])));
             casm_build_extend!(ctx, assert local = var;);
         }
-        let segment_arena_ptr = get_var(&BuiltinName::segment_arena);
-        // Validating the segment arena's segments are one after the other.
-        casm_build_extend! {ctx,
-            tempvar n_segments = segment_arena_ptr[-2];
-            tempvar n_finalized = segment_arena_ptr[-1];
-            assert n_segments = n_finalized;
-            jump STILL_LEFT_PRE if n_segments != 0;
-            rescope{};
-            jump DONE_VALIDATION;
-            STILL_LEFT_PRE:
-            const one = 1;
-            tempvar infos = segment_arena_ptr[-3];
-            tempvar remaining_segments = n_segments - one;
-            rescope{infos = infos, remaining_segments = remaining_segments};
-            LOOP_START:
-            jump STILL_LEFT_LOOP if remaining_segments != 0;
-            rescope{};
-            jump DONE_VALIDATION;
-            STILL_LEFT_LOOP:
-            const one = 1;
-            const three = 3;
-            tempvar prev_end = infos[1];
-            tempvar curr_start = infos[3];
-            assert curr_start = prev_end + one;
-            tempvar next_infos = infos + three;
-            tempvar next_remaining_segments = remaining_segments - one;
-            rescope{infos = next_infos, remaining_segments = next_remaining_segments};
-            #{ steps = 0; }
-            jump LOOP_START;
-            DONE_VALIDATION:
-        };
+        if got_segment_arena {
+            let segment_arena_ptr = get_var(&BuiltinName::segment_arena);
+            // Validating the segment arena's segments are one after the other.
+            casm_build_extend! {ctx,
+                tempvar n_segments = segment_arena_ptr[-2];
+                tempvar n_finalized = segment_arena_ptr[-1];
+                assert n_segments = n_finalized;
+                jump STILL_LEFT_PRE if n_segments != 0;
+                rescope{};
+                jump DONE_VALIDATION;
+                STILL_LEFT_PRE:
+                const one = 1;
+                tempvar infos = segment_arena_ptr[-3];
+                tempvar remaining_segments = n_segments - one;
+                rescope{infos = infos, remaining_segments = remaining_segments};
+                LOOP_START:
+                jump STILL_LEFT_LOOP if remaining_segments != 0;
+                rescope{};
+                jump DONE_VALIDATION;
+                STILL_LEFT_LOOP:
+                const one = 1;
+                const three = 3;
+                tempvar prev_end = infos[1];
+                tempvar curr_start = infos[3];
+                assert curr_start = prev_end + one;
+                tempvar next_infos = infos + three;
+                tempvar next_remaining_segments = remaining_segments - one;
+                rescope{infos = next_infos, remaining_segments = next_remaining_segments};
+                #{ steps = 0; }
+                jump LOOP_START;
+                DONE_VALIDATION:
+            };
+        }
         // Copying the final builtins from locals into the top of the stack.
         for i in 0..builtins.len().to_i16().unwrap() {
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i])));
