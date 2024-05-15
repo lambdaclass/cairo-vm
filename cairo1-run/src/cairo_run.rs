@@ -551,9 +551,17 @@ fn create_entry_code(
             .rev()
             .map(|i| ctx.add_var(CellExpression::Deref(deref!([ap - i]))))
             .collect_vec();
-        // Write array_size
-        let array_start_ptr = outputs[0];
-        let array_end_ptr = outputs[1];
+        let (array_start_ptr, array_end_ptr) = if is_panic_result(signature.ret_types.last()) {
+            // Write panic flag value
+            let panic_flag = outputs[0];
+            casm_build_extend! {ctx,
+                assert panic_flag = *(output_ptr++);
+            };
+            // If the run did panic, these will point to the panic data
+            (outputs[1], outputs[2])
+        } else {
+            (outputs[0], outputs[1])
+        };
         casm_build_extend! {ctx,
             // Calculate size of array and write it into the output segment
             tempvar array_size = array_end_ptr - array_start_ptr;
@@ -738,28 +746,40 @@ fn check_only_array_felt_return_type(
     }
 }
 
-// Returns the T type in PanicResult::Ok(T) if applicable
-// Returns None if the return_type_id is not a PanicResult
-fn result_inner_type<'a>(
-    return_type_id: Option<&'a ConcreteTypeId>,
-    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
-) -> Option<&'a ConcreteTypeId> {
-    if return_type_id
+fn is_panic_result(return_type_id: Option<&ConcreteTypeId>) -> bool {
+    return_type_id
         .map(|id| {
             id.debug_name
                 .as_ref()
                 .is_some_and(|name| name.starts_with("core::panics::PanicResult::"))
         })
         .unwrap_or_default()
-    {
+}
+
+// Returns the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type<'a>(
+    return_type_id: Option<&'a ConcreteTypeId>,
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+) -> Option<&'a ConcreteTypeId> {
+    if is_panic_result(return_type_id) {
         let return_type_info =
             get_info(sierra_program_registry, return_type_id.as_ref().unwrap()).unwrap();
         // We already know info.long_id.generic_args[0] contains the Panic variant
         let inner_args = &return_type_info.long_id.generic_args[1];
-        let inner_type = match inner_args {
-            GenericArg::Type(type_id) => type_id,
-            _ => unreachable!(),
+        let inner_type = {
+            let inner_type = match inner_args {
+                GenericArg::Type(type_id) => type_id,
+                _ => unreachable!(),
+            };
+            // The inner type contains a single-element tuple so we ned to get rid of it too
+            let inner_type_info = get_info(sierra_program_registry, inner_type).unwrap();
+            match &inner_type_info.long_id.generic_args[1] {
+                GenericArg::Type(type_id) => type_id,
+                _ => unreachable!(),
+            }
         };
+
         Some(inner_type)
     } else {
         None
