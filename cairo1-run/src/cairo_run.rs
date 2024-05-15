@@ -554,59 +554,7 @@ fn create_entry_code(
         // Write array_size
         let array_start_ptr = outputs[0];
         let array_end_ptr = outputs[1];
-        // casm_build_extend!(ctx,
-        //     // Obtain size of return array
-        //     tempvar array_size = array_end_ptr - array_start_ptr;
-        //     // Write size into output segment
-        //     //assert array_size = *(output_ptr++);
-        //     // Call main loop
-        //     tempvar remaining_elements = array_size;
-        //     rescope{remaining_elements = remaining_elements, array_start_ptr=array_start_ptr, output_ptr=output_ptr};
-        //     LOOP_START:
-        //     jump COPY_LOOP if remaining_elements != 0;
-        //     rescope{};
-        //     jump DONE_COPY;
-
-        //     COPY_LOOP:
-        //     tempvar val = *(array_start_ptr++);
-        //     assert val = *(output_ptr++);
-        //     const one = 1;
-        //     tempvar next_output_ptr = output_ptr;
-        //     tempvar next_array_ptr = array_start_ptr;
-        //     tempvar new_remaining_elements = remaining_elements - one;
-        //     rescope{remaining_elements=new_remaining_elements, array_start_ptr=next_array_ptr, output_ptr=next_output_ptr};
-        //     #{ steps = 0; }
-        //     jump COPY_LOOP if remaining_elements != 0;
-        //     rescope{};
-        //     jump DONE_COPY;
-
-        //     DONE_COPY:
-        // );
-        // casm_build_extend!(ctx,
-        //     tempvar array_size = array_end_ptr - array_start_ptr;
-        //     assert array_size = *(output_ptr++);
-
-        //     tempvar remaining_elements = array_size;
-        //     rescope{remaining_elements = remaining_elements};
-
-        //     jump COPY_LOOP if remaining_elements != 0;
-        //     rescope{};
-        //     jump DONE_COPY;
-
-        //     COPY_LOOP:
-        //     const one = 1;
-        //     tempvar next_remaining_elements = remaining_elements - one;
-
-        //     rescope{remaining_elements = next_remaining_elements};
-        //     #{ steps = 0; }
-        //     jump COPY_LOOP if remaining_elements != 0;
-        //     rescope{};
-
-        //     DONE_COPY:
-        //);
         casm_build_extend! {ctx,
-            jump Start;
-            Start:
             // Calculate size of array and write it into the output segment
             tempvar array_size = array_end_ptr - array_start_ptr;
             assert array_size = *(output_ptr++);
@@ -614,10 +562,12 @@ fn create_entry_code(
             tempvar remaining_elements = array_size;
             tempvar array_ptr = array_start_ptr;
             tempvar write_ptr = output_ptr;
+            // Enter copying loop
             rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
             jump CopyArray if remaining_elements != 0;
             jump End;
 
+            // Main Loop
             CopyArray:
             #{steps = 0;}
             // Write array value into output segment
@@ -628,7 +578,8 @@ fn create_entry_code(
             tempvar new_remaining_elements = remaining_elements - one;
             tempvar new_array_ptr = array_ptr;
             tempvar new_write_ptr = write_ptr;
-            rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
+            // Continue the loop
+            rescope{remaining_elements = new_remaining_elements, array_ptr = array_ptr, write_ptr = new_write_ptr};
             jump CopyArray if remaining_elements != 0;
 
             End:
