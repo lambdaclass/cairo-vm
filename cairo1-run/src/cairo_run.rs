@@ -607,22 +607,24 @@ fn create_entry_code(
         casm_build_extend! {ctx,
             jump Start;
             Start:
+            // Calculate size of array and write it into the output segment
             tempvar array_size = array_end_ptr - array_start_ptr;
             assert array_size = *(output_ptr++);
+            // Create loop variables
             tempvar remaining_elements = array_size;
             tempvar array_ptr = array_start_ptr;
             tempvar write_ptr = output_ptr;
-            // We CANNOT rescope here, or else we will loose all previously allocated variables
-            // Solutions: Can we do this without rescoping? Probably not. Maybe we can do what got_segment_arena & output do by default
-            // And copy the builtin final ptrs relative to FP so we can safely rescope here
             rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
             jump CopyArray if remaining_elements != 0;
             jump End;
 
             CopyArray:
             #{steps = 0;}
-            assert remaining_elements = *(write_ptr++);
+            // Write array value into output segment
+            tempvar val = *(array_ptr++);
+            assert val = *(write_ptr++);
             const one = 1;
+            // Create loop variables
             tempvar new_remaining_elements = remaining_elements - one;
             tempvar new_array_ptr = array_ptr;
             tempvar new_write_ptr = write_ptr;
