@@ -539,22 +539,21 @@ fn create_entry_code(
     // Helper to get a variable for a given builtin.
     // Fails for builtins that will never be present.
     let get_var = |name: &BuiltinName| match name {
-        BuiltinName::output => output_ptr.unwrap(),
         BuiltinName::range_check => builtin_vars[&RangeCheckType::ID],
         BuiltinName::pedersen => builtin_vars[&PedersenType::ID],
         BuiltinName::bitwise => builtin_vars[&BitwiseType::ID],
         BuiltinName::ec_op => builtin_vars[&EcOpType::ID],
         BuiltinName::poseidon => builtin_vars[&PoseidonType::ID],
         BuiltinName::segment_arena => builtin_vars[&SegmentArenaType::ID],
-        BuiltinName::keccak
-        | BuiltinName::ecdsa
-        | BuiltinName::range_check96
-        | BuiltinName::add_mod
-        | BuiltinName::mul_mod => unreachable!(),
+        _ => unreachable!(),
     };
     if copy_to_output_builtin {
         // Copying the final builtins into a local variables.
         for (i, builtin) in builtins.iter().enumerate() {
+            // Skip output_ptr as we still haven't written into it and this will lead to the wrong size being written
+            if matches!(builtin, BuiltinName::output) {
+                continue;
+            }
             let var = get_var(builtin);
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i.to_i16().unwrap()])));
             casm_build_extend!(ctx, assert local = var;);
@@ -606,6 +605,12 @@ fn create_entry_code(
 
             End:
         };
+        // After we are done writing into the output segment, we can write the final output_ptr into locals:
+        // The last instruction will write the final output ptr so we can find it in [ap - 1]
+        let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
+        let local = ctx.add_var(CellExpression::Deref(deref!([fp])));
+        casm_build_extend!(ctx, assert local = output_ptr;);
+
         if got_segment_arena {
             let segment_arena_ptr = get_var(&BuiltinName::segment_arena);
             // Validating the segment arena's segments are one after the other.
