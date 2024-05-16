@@ -132,6 +132,16 @@ pub fn cairo_run_program(
 
     let initial_gas = 9999999999999_usize;
 
+    // Fetch return type data
+
+    let return_type_id = main_func.signature.ret_types.last();
+
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
+    {
+        return Err(Error::IlegalReturnValue);
+    };
+
     // Modified entry code to be compatible with custom cairo1 Proof Mode.
     // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
     let (entry_code, builtins) = create_entry_code(
@@ -142,16 +152,6 @@ pub fn cairo_run_program(
         initial_gas,
         &cairo_run_config,
     )?;
-
-    // Fetch return type data
-
-    let return_type_id = main_func.signature.ret_types.last();
-
-    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
-        && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
-    {
-        return Err(Error::IlegalReturnValue);
-    };
 
     let return_type_size = return_type_id
         .and_then(|id| type_sizes.get(id).cloned())
