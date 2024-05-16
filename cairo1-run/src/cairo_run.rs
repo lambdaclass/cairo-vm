@@ -110,6 +110,8 @@ impl Default for Cairo1RunConfig<'_> {
 
 // Runs a Cairo 1 program
 // Returns the runner after execution + the return values + the serialized return values (if serialize_output is enabled)
+// The return values will contain the memory values just as they appear in the VM, after removing the PanicResult enum (if present).
+// Except if either the flag append_return_values or proof_mode are enabled, in which case the return values will consist of its serialized form: [array_len, array[0], array[1], ..., array[array_len -1]]
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
