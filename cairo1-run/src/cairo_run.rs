@@ -804,18 +804,33 @@ fn fetch_return_values(
     builtin_count: i16,
     fetch_from_output: bool,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
-    let mut return_values = if fetch_from_output {
-        let output_builtin_end = vm
-            .get_relocatable((vm.get_ap() + (-builtin_count as i32)).unwrap())
-            .unwrap();
-        let output_builtin_base = (output_builtin_end + (-return_type_size as i32)).unwrap();
-        vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
-    } else {
-        vm.get_continuous_range(
-            (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
-            return_type_size as usize,
-        )?
-    };
+    if fetch_from_output {
+    // In this case we will find the serialized return value in the format:
+    // [*panic_flag, array_len, array[0], array[1],..., array[array_len-1]]
+    // *: If the return value is a PanicResult
+
+    // Output Builtin will always be on segment 2
+     let return_values = vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
+     // This means that the return value is not a PanicResult
+     return if result_inner_type_size.is_none() {
+        Ok(return_values)
+    // The return value is a PanicResult so we need to check the panic_flag
+     } else {
+        // PanicResult::Err
+        if return_values.first() != Some(&MaybeRelocatable::from(0)) {
+            return Err(Error::RunPanic(
+                return_values[1..].iter().map(|mr| mr.get_int().unwrap_or_default()).collect_vec()
+            ));
+        // PanicResult::Ok
+        } else {
+            Ok(return_values[1..].to_vec())
+        }
+     };
+    }
+    let mut return_values = vm.get_continuous_range(
+        (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
+        return_type_size as usize,
+    )?;
     // Handle PanicResult (we already checked if the type is a PanicResult when fetching the inner type size)
     if let Some(inner_type_size) = result_inner_type_size {
         // Check the failure flag (aka first return value)
