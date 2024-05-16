@@ -249,13 +249,25 @@ pub fn cairo_run_program(
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
-        Some(serialize_output(
-            &return_values,
-            &mut runner.vm,
-            return_type_id,
-            &sierra_program_registry,
-            &type_sizes,
-        ))
+        if cairo_run_config.append_return_values || cairo_run_config.proof_mode {
+            // The return value is already serialized, so we can just print the array values
+            let mut output_string = String::from("[");
+            // Skip array_len
+            for elem in return_values[1..].iter() {
+                maybe_add_whitespace(&mut output_string);
+                output_string.push_str(&elem.to_string());
+            }
+            output_string.push(']');
+            Some(output_string)
+        } else {
+            Some(serialize_output(
+                &return_values,
+                &mut runner.vm,
+                return_type_id,
+                &sierra_program_registry,
+                &type_sizes,
+            ))
+        }
     } else {
         None
     };
@@ -807,27 +819,31 @@ fn fetch_return_values(
     fetch_from_output: bool,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
     if fetch_from_output {
-    // In this case we will find the serialized return value in the format:
-    // [*panic_flag, array_len, array[0], array[1],..., array[array_len-1]]
-    // *: If the return value is a PanicResult
+        // In this case we will find the serialized return value in the format:
+        // [*panic_flag, array_len, array[0], array[1],..., array[array_len-1]]
+        // *: If the return value is a PanicResult
 
-    // Output Builtin will always be on segment 2
-     let return_values = vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
-     // This means that the return value is not a PanicResult
-     return if result_inner_type_size.is_none() {
-        Ok(return_values)
-    // The return value is a PanicResult so we need to check the panic_flag
-     } else {
-        // PanicResult::Err
-        if return_values.first() != Some(&MaybeRelocatable::from(0)) {
-            return Err(Error::RunPanic(
-                return_values[1..].iter().map(|mr| mr.get_int().unwrap_or_default()).collect_vec()
-            ));
-        // PanicResult::Ok
+        // Output Builtin will always be on segment 2
+        let return_values =
+            vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
+        // This means that the return value is not a PanicResult
+        return if result_inner_type_size.is_none() {
+            Ok(return_values)
+        // The return value is a PanicResult so we need to check the panic_flag
         } else {
-            Ok(return_values[1..].to_vec())
-        }
-     };
+            // PanicResult::Err
+            if return_values.first() != Some(&MaybeRelocatable::from(0)) {
+                return Err(Error::RunPanic(
+                    return_values[1..]
+                        .iter()
+                        .map(|mr| mr.get_int().unwrap_or_default())
+                        .collect_vec(),
+                ));
+            // PanicResult::Ok
+            } else {
+                Ok(return_values[1..].to_vec())
+            }
+        };
     }
     let mut return_values = vm.get_continuous_range(
         (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
