@@ -612,7 +612,10 @@ fn create_entry_code(
         casm_build_extend!(ctx, assert local = output_ptr;);
 
         if got_segment_arena {
-            let segment_arena_ptr = get_var(&BuiltinName::segment_arena);
+            // We re-scoped when serializing the output so we have to create a var for the segment arena
+            // len(builtins) + len(builtins - output) + segment_arena_ptr + info_segment + 0
+            let off = 2 * builtins.len() + 2;
+            let segment_arena_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + off as i16])));
             // Validating the segment arena's segments are one after the other.
             casm_build_extend! {ctx,
                 tempvar n_segments = segment_arena_ptr[-2];
