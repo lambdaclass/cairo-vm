@@ -565,6 +565,7 @@ fn create_entry_code(
             .map(|i| ctx.add_var(CellExpression::Deref(deref!([ap - i]))))
             .collect_vec();
         let (array_start_ptr, array_end_ptr) = if is_panic_result(signature.ret_types.last()) {
+            // TODO: Handle PanicResult padding
             // Write panic flag value
             let panic_flag = outputs[0];
             casm_build_extend! {ctx,
