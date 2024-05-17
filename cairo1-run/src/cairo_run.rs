@@ -1347,23 +1347,23 @@ mod tests {
     }
 
     #[rstest]
-    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/array_get.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/enum_flow.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/enum_match.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/factorial.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/fibonacci.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/hello.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/pedersen_example.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/poseidon.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/print.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/recursion.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/sample.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_get.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/dictionaries.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/enum_flow.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/enum_match.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/factorial.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/fibonacci.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/hello.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/pedersen_example.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/poseidon.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/print.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/recursion.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/sample.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/simple_struct.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/simple.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/struct_span_return.cairo")]
     fn check_append_ret_values_to_output_segment(
         #[case] filename: &str,
         #[values(true, false)] proof_mode: bool,
@@ -1384,7 +1384,7 @@ mod tests {
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
         let return_values = if main_hash_panic_result(&sierra_program) {
-            let mut rv = vec![Felt252::ZERO.into(), Felt252::ZERO.into()];
+            let mut rv = vec![Felt252::ZERO.into()];
             rv.extend_from_slice(&return_values);
             rv
         } else {
