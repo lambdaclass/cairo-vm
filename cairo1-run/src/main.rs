@@ -302,13 +302,13 @@ mod tests {
     #[case(
         "dict_with_struct.cairo",
         "{0: 1 true 1: 1 false 2: 1 true}",
-        "[]", // No serialization for nullables
+        "[0 1 1 1 1 0 2 1 1]",
         None
     )]
     #[case(
         "nullable_box_vec.cairo",
         "{0: 10 1: 20 2: 30} 3",
-        "[]", // No serialization for nullables
+        "[]",//"[0 10 1 20 2 30]",
         None
     )]
     #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None)]
@@ -428,7 +428,7 @@ mod tests {
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo", "--cairo_pie_output", "/dev/null"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/serialized_output/branching.cairo", "--layout", "all_cairo", "--proof_mode"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/serialized_output/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode"].as_slice())]
     fn test_run_branching_no_args(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 0);
@@ -436,7 +436,7 @@ mod tests {
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo","--args", "1 2 3"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/serialized_output/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1 2 3"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/serialized_output/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1 2 3"].as_slice())]
     fn test_run_branching_too_many_args(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 3);
