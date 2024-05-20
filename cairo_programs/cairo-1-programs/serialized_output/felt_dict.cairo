@@ -25,7 +25,5 @@ fn main() -> Array<felt252> {
     key_b.serialize(ref output);
     let array_b = d.get(key_b).deref();
     array_b.serialize(ref output);
-    // Squash after serializing
-    d.squash();
     output
 }

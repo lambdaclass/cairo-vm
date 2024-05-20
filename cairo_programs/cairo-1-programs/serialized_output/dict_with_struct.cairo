@@ -40,6 +40,6 @@ fn main() -> Array<felt252> {
     output
 }
 
-// TODO: remove this temporary fixed once fixed in cairo
+// TODO: remove this temporary fix once fixed in cairo
 #[inline(never)]
 fn identity<T>(t: T) -> T { t }

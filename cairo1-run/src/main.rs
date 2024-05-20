@@ -308,7 +308,7 @@ mod tests {
     #[case(
         "nullable_box_vec.cairo",
         "{0: 10 1: 20 2: 30} 3",
-        "[]",//"[0 10 1 20 2 30]",
+        "[0 10 1 20 2 30 3]",
         None
     )]
     #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None)]
