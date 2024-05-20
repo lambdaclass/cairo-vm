@@ -25,7 +25,7 @@ fn main() -> Array<felt252> {
     let mut output: Array<felt252> = ArrayTrait::new();
    // Nullable doesn't implement Serde
    ().serialize(ref output);
-   output 
+   output
 }
 
 // TODO: remove this temporary fixed once fixed in cairo

@@ -287,8 +287,8 @@ mod tests {
     )]
     #[case(
         "tensor_new.cairo",
-        "[1 2] [1 false 1 true]",
-        "[2 1 2 2 1 0 1 1]",
+        "[1 2] [1 false 1 true]", // Struct { span [1 2] span [struct {1 false} struct {1 true}]}
+        "[2 1 2 2 1 0 1 1]", // len: 2 [1 2] len 2: [{1 0} {1 0}]
         None
     )]
     #[case("bytes31_ret.cairo", "123", "[123]", None)]
