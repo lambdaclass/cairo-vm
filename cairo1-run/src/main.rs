@@ -400,8 +400,7 @@ mod tests {
         let mut args = vec!["cairo1-run"];
         let has_serialized_output = extra_flags
             .iter()
-            .find(|flag| flag == &&"--append_return_values" || flag == &&"--proof_mode")
-            .is_some();
+            .any(|flag| flag == &"--append_return_values" || flag == &"--proof_mode");
         let filename = if has_serialized_output {
             format!(
                 "../cairo_programs/cairo-1-programs/serialized_output/{}",
