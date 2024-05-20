@@ -4,6 +4,10 @@ struct Tensor {
     data: Span<u32>
 }
 
-fn main(tensor: Tensor) -> u32 {
-    *tensor.data.at(0)
+fn main(tensor: Tensor) -> Array<felt252> {
+    let res = *tensor.data.at(0);
+
+    let mut output: Array<felt252> = ArrayTrait::new();
+    res.serialize(ref output);
+    output
 }

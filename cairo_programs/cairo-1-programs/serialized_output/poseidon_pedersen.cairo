@@ -13,7 +13,10 @@ fn main() -> Array<felt252> {
     data.append(4);
     
     let res = poseidon_hash_span(data.span());
-    pedersen(res, 0)
+    let res = pedersen(res, 0);
+    let mut output: Array<felt252> = ArrayTrait::new();
+    res.serialize(ref output);
+    output
 }
 
 // Modified version of poseidon_hash_span that doesn't require builtin gas costs
