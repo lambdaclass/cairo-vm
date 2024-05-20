@@ -1,5 +1,3 @@
-
-
 // Custom Serde impl
 use core::array::{array_new, serialize_array_helper};
 

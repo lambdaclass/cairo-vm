@@ -11,10 +11,21 @@ fn main() -> Array<felt252> {
     // Insert it as a `Span`
     d.insert(66675, nullable_from_box(BoxTrait::new(a.span())));
     d.insert(66676, nullable_from_box(BoxTrait::new(b.span())));
-    d.squash();
-
+    
+    // We can't implement Serde for a Felt252Dict due to mutability requirements
+    // So we will serialize the dict explicitely
     let mut output: Array<felt252> = ArrayTrait::new();
-   // Nullable doesn't implement Serde
-   ().serialize(ref output);
-   output
+    // Serialize entry A
+    let key_a = 66675;
+    key_a.serialize(ref output);
+    let array_a = d.get(key_a).deref();
+    array_a.serialize(ref output);
+    // Serialize entry B
+    let key_b = 66676;
+    key_b.serialize(ref output);
+    let array_b = d.get(key_b).deref();
+    array_b.serialize(ref output);
+    // Squash after serializing
+    d.squash();
+    output
 }

@@ -296,7 +296,7 @@ mod tests {
     #[case(
         "felt_dict_squash.cairo",
         "{66675: [4 5 6] 66676: [1 2 3]}",
-        "[]", // No serialization for nullables
+        "[66675 3 4 5 6 66676 3 1 2 3]",
         None
     )]
     #[case(
@@ -315,7 +315,7 @@ mod tests {
     #[case(
         "felt_dict.cairo",
         "{66675: [8 9 10 11] 66676: [1 2 3]}",
-        "[]", // No serialization for nullables
+        "[66675 4 8 9 10 11 66676 3 1 2 3]",
         None
     )]
     #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None)]
