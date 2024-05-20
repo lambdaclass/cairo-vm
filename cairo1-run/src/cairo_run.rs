@@ -226,10 +226,7 @@ pub fn cairo_run_program(
     load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
-    println!("Running VM");
-    let err = runner.run_until_pc(end, &mut hint_processor);
-    println!("{}", runner.vm.segments);
-    err?;
+    runner.run_until_pc(end, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut hint_processor)?;
     }
