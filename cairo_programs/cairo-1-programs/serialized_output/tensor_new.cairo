@@ -1,3 +1,23 @@
+
+
+// Custom Serde impl
+use core::array::{array_new, serialize_array_helper};
+
+impl TensorFP16x16Serde of Serde<Tensor<FP16x16>> {
+    fn serialize(self: @Tensor<FP16x16>, ref output: Array<felt252>) {
+        // Serialize shape
+        (*self).shape.len().serialize(ref output);
+        serialize_array_helper((*self).shape, ref output);
+        // Serialize data
+        (*self).data.len().serialize(ref output);
+        serialize_array_helper((*self).data, ref output);
+    }
+
+    fn deserialize(ref serialized: Span<felt252>) -> Option<Tensor<FP16x16>> {
+        Option::None // Unused
+    }
+}
+
 // FP16x16
 #[derive(Serde, Copy, Drop)]
 struct FP16x16 {
@@ -55,15 +75,14 @@ fn len_from_shape(mut shape: Span<usize>) -> usize {
 }
 
 fn main() -> Array<felt252> {
-    let res = TensorTrait::new(
+    let res: Tensor<FP16x16> =  TensorTrait::new(
         array![1, 2].span(),
         array![
             FixedTrait::new(1, false), 
             FixedTrait::new(1, true)
         ].span()
     );
-
-    let mut output: Array<felt252> = ArrayTrait::new();
+    let mut output = ArrayTrait::new();
     res.serialize(ref output);
     output
 }
