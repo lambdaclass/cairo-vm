@@ -1,6 +1,7 @@
 fn main() -> Array<felt252> {
-   let res = null();
+   let _res: Nullable<u32> = null();
    let mut output: Array<felt252> = ArrayTrait::new();
-   res.serialize(ref output);
+   // Nullable doesn't implement Serde
+   ().serialize(ref output);
    output 
 }

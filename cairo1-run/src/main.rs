@@ -292,36 +292,36 @@ mod tests {
         None
     )]
     #[case("bytes31_ret.cairo", "123", "[123]", None)]
-    #[case("null_ret.cairo", "null", "[0]", None)]
+    #[case("null_ret.cairo", "null", "[]", None)]
     #[case(
         "felt_dict_squash.cairo",
         "{66675: [4 5 6] 66676: [1 2 3]}",
-        "[66675 3 2 4 6 66676 3 1 2 3]",
+        "[]", // No serialization for nullables
         None
     )]
     #[case(
         "dict_with_struct.cairo",
         "{0: 1 true 1: 1 false 2: 1 true}",
-        "[0 1 1 1 1 0 2 1 1]",
+        "[]", // No serialization for nullables
         None
     )]
     #[case(
         "nullable_box_vec.cairo",
         "{0: 10 1: 20 2: 30} 3",
-        "[0 10 1 20 2 30 3]",
+        "[]", // No serialization for nullables
         None
     )]
     #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None)]
     #[case(
         "felt_dict.cairo",
         "{66675: [8 9 10 11] 66676: [1 2 3]}",
-        "[66675 4 8 9 10 11 66676 3 1 2 3]",
+        "[]", // No serialization for nullables
         None
     )]
     #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None)]
-    #[case("nullable_dict.cairo", "", "[0]", None)]
+    #[case("nullable_dict.cairo", "", "[]", None)]
     #[case("struct_span_return.cairo", "[[4 3] [2 1]]", "[2 2 4 3 2 2 1]", None)]
-    #[case("null_ret.cairo", "null", "[0]", None)]
+    #[case("null_ret.cairo", "null", "[]", None)]
     #[case("with_input/tensor.cairo", "1", "[1]", Some("[2 2] [1 2 3 4]"))]
     #[case(
         "with_input/array_input_sum.cairo",

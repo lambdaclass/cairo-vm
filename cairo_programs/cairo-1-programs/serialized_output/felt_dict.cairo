@@ -11,9 +11,10 @@ fn main() -> Array<felt252> {
     // Insert it as a `Span`
     d.insert(66675, nullable_from_box(BoxTrait::new(a.span())));
     d.insert(66676, nullable_from_box(BoxTrait::new(b.span())));
-    let res = d.squash();
+    d.squash();
 
     let mut output: Array<felt252> = ArrayTrait::new();
-    res.serialize(ref output);
-    output
+   // Nullable doesn't implement Serde
+   ().serialize(ref output);
+   output 
 }

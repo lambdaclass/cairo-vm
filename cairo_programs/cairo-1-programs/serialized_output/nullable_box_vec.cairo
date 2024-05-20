@@ -1,3 +1,4 @@
+#[derive(Drop)]
 struct NullableVec<T> {
     items: SquashedFelt252Dict<Nullable<Box<T>>>,
     len: usize,
@@ -12,13 +13,14 @@ fn main() -> Array<felt252> {
     d.insert(2, nullable_from_box(BoxTrait::new(BoxTrait::new(identity(30)))));
 
     // Return NullableVec
-    let res = NullableVec {
+    let _res = NullableVec {
         items: d.squash(),
         len: 3,
     };
 
-    let mut output: Array<felt252> = ArrayTrait::new();
-   res.serialize(ref output);
+   let mut output: Array<felt252> = ArrayTrait::new();
+   // SquashedDict doesn't implement Serde
+   ().serialize(ref output);
    output 
 }
 

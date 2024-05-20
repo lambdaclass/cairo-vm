@@ -20,11 +20,12 @@ fn main() -> Array<felt252> {
     d.insert(1, nullable_from_box(box_a));
     d.insert(2, nullable_from_box(box_b));
 
-    d.squash()
+    d.squash();
 
     let mut output: Array<felt252> = ArrayTrait::new();
-    d.serialize(ref output);
-    output
+   // Nullable doesn't implement Serde
+   ().serialize(ref output);
+   output 
 }
 
 // TODO: remove this temporary fixed once fixed in cairo
