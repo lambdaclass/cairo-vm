@@ -61,7 +61,7 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--memory_file <MEMORY_FILE>`: Receives the name of a file and outputs the relocated memory into it
 
-* `--proof_mode`: Runs the program in proof_mode
+* `--proof_mode`: Runs the program in proof_mode. Only allows `Array<felt252>` as return value.
 
 * `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
 
@@ -69,7 +69,7 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
-* `--append_return_values`: Adds extra instructions to the program in order to append the return values to the output builtin's segment. This is the default behaviour for proof_mode.
+* `--append_return_values`: Adds extra instructions to the program in order to append the return values to the output builtin's segment. This is the default behaviour for proof_mode. Only allows `Array<felt252>` as return value.
 
 # Running scarb projects
 
