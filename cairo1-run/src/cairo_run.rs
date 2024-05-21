@@ -670,44 +670,46 @@ fn create_entry_code(
 
             EndOutputCopy:
         };
-        // Serialize the input values into the output segment
-        // We lost the output_ptr var after re-scoping, so we need to create it again
-        // The last instruction will write the last output ptr so we can find it in [ap - 1]
-        let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
-        // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
-        let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
-        let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
-        let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
-        casm_build_extend! {ctx,
-            // Calculate size of array and write it into the output segment
-            tempvar array_size = array_end_ptr - array_start_ptr;
-            assert array_size = *(output_ptr++);
-            // Create loop variables
-            tempvar remaining_elements = array_size;
-            tempvar array_ptr = array_start_ptr;
-            tempvar write_ptr = output_ptr;
-            // Enter copying loop
-            rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
-            jump CopyInputArray if remaining_elements != 0;
-            jump EndInputCopy;
+        if !actual_args_size.is_zero() {
+            // Serialize the input values into the output segment
+            // We lost the output_ptr var after re-scoping, so we need to create it again
+            // The last instruction will write the last output ptr so we can find it in [ap - 1]
+            let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
+            let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
+            let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
+            let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
+            casm_build_extend! {ctx,
+                // Calculate size of array and write it into the output segment
+                tempvar array_size = array_end_ptr - array_start_ptr;
+                assert array_size = *(output_ptr++);
+                // Create loop variables
+                tempvar remaining_elements = array_size;
+                tempvar array_ptr = array_start_ptr;
+                tempvar write_ptr = output_ptr;
+                // Enter copying loop
+                rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
+                jump EndInputCopy;
 
-            // Main Loop
-            CopyInputArray:
-            #{steps = 0;}
-            // Write array value into output segment
-            tempvar val = *(array_ptr++);
-            assert val = *(write_ptr++);
-            const one = 1;
-            // Create loop variables
-            tempvar new_remaining_elements = remaining_elements - one;
-            tempvar new_array_ptr = array_ptr;
-            tempvar new_write_ptr = write_ptr;
-            // Continue the loop
-            rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
-            jump CopyInputArray if remaining_elements != 0;
+                // Main Loop
+                CopyInputArray:
+                #{steps = 0;}
+                // Write array value into output segment
+                tempvar val = *(array_ptr++);
+                assert val = *(write_ptr++);
+                const one = 1;
+                // Create loop variables
+                tempvar new_remaining_elements = remaining_elements - one;
+                tempvar new_array_ptr = array_ptr;
+                tempvar new_write_ptr = write_ptr;
+                // Continue the loop
+                rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
 
-            EndInputCopy:
-        };
+                EndInputCopy:
+            };
+        }
         // After we are done writing into the output segment, we can write the final output_ptr into locals:
         // The last instruction will write the final output ptr so we can find it in [ap - 1]
         let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
