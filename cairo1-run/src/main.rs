@@ -352,14 +352,14 @@ mod tests {
         "5",
         "[5]",
         Some("[1 2 3 4] [1]"),
-        Some("[4 1 2 3 1 1")
+        Some("[4 1 2 3 1 1]")
     )]
     #[case(
         "with_input/array_length.cairo",
         "4",
         "[4]",
         Some("[1 2 3 4] []"),
-        Some("[4 1 2 3 4 0")
+        Some("[4 1 2 3 4 0]")
     )]
     #[case("with_input/branching.cairo", "0", "[0]", Some("17"), Some("[17]"))]
     #[case("with_input/branching.cairo", "1", "[1]", Some("0"), Some("[0]"))]
