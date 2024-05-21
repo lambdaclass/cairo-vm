@@ -352,7 +352,7 @@ mod tests {
         "5",
         "[5]",
         Some("[1 2 3 4] [1]"),
-        Some("[4 1 2 3 1 1]")
+        Some("[4 1 2 3 4 1 1]")
     )]
     #[case(
         "with_input/array_length.cairo",
