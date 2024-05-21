@@ -4,7 +4,7 @@ use cairo_lang_casm::{
     casm, casm_build_extend,
     cell_expression::CellExpression,
     deref, deref_or_immediate,
-    hints::Hint,
+    hints::{Hint, StarknetHint},
     inline::CasmContext,
     instructions::{Instruction, InstructionBody},
 };
@@ -31,7 +31,9 @@ use cairo_lang_sierra_to_casm::{
     metadata::calc_metadata_ap_change_only,
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
+use cairo_lang_utils::{
+    bigint::BigIntAsHex, casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap,
+};
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
@@ -48,6 +50,7 @@ use cairo_vm::{
     Felt252,
 };
 use itertools::{chain, Itertools};
+use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
@@ -214,7 +217,6 @@ pub fn cairo_run_program(
         cairo_run_config.trace_enabled,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -608,6 +610,25 @@ fn create_entry_code(
         | BuiltinName::add_mod
         | BuiltinName::mul_mod => unreachable!(),
     };
+    if got_segment_arena {
+        let ptr = get_var(&BuiltinName::segment_arena);
+        ctx.add_hint(
+            |[ignored_in], [ignored_out]| StarknetHint::Cheatcode {
+                selector: BigIntAsHex {
+                    value: BigInt::from_bytes_be(
+                        Sign::Plus,
+                        "FinalizeDictionarySegments".as_bytes(),
+                    ),
+                },
+                input_start: ignored_in.clone(),
+                input_end: ignored_in,
+                output_start: ignored_out,
+                output_end: ignored_out,
+            },
+            [ptr],
+            [ptr],
+        );
+    }
     if copy_to_output_builtin && got_segment_arena {
         // Copying the final builtins into a local variables.
         for (i, builtin) in builtins.iter().enumerate() {

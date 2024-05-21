@@ -17,7 +17,7 @@ use crate::{
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
-use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint};
+use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint, StarknetHint};
 use cairo_lang_casm::{
     hints::{CoreHint, Hint},
     operand::{CellRef, ResOperand},
@@ -266,6 +266,20 @@ impl Cairo1HintProcessor {
                 t_or_k0,
                 t_or_k1,
             ),
+            Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
+                let selector = &selector.value.to_bytes_be().1;
+                let selector = std::str::from_utf8(selector).map_err(|_| {
+                    HintError::CustomHint(Box::from("failed to parse selector".to_string()))
+                })?;
+                match selector {
+                    "FinalizeDictionarySegments" => {
+                        let dict_manager_exec_scope = exec_scopes
+                            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
+                        dict_manager_exec_scope.finalize_all_segments(vm)
+                    }
+                    _ => Err(HintError::UnknownHint(selector.into())),
+                }
+            }
 
             hint => Err(HintError::UnknownHint(
                 format!("{:?}", hint).into_boxed_str(),
@@ -418,7 +432,7 @@ impl Cairo1HintProcessor {
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
             .map_err(HintError::from)?;
         // The hint is only for dictionary finalization, so can be called.
-        dict_manager_exec_scope.finalize_segment(vm, dict_address)
+        dict_manager_exec_scope.finalize_segment(dict_address)
     }
 
     #[allow(clippy::too_many_arguments)]
