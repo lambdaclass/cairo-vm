@@ -268,7 +268,7 @@ impl Cairo1HintProcessor {
             ),
             Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
                 let selector = &selector.value.to_bytes_be().1;
-                let selector = std::str::from_utf8(selector).map_err(|_| {
+                let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
                     HintError::CustomHint(Box::from("failed to parse selector".to_string()))
                 })?;
                 match selector {
