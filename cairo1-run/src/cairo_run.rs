@@ -957,6 +957,7 @@ fn serialize_output_inner<'a>(
             unimplemented!("Not supported in the current version")
         },
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_)
         // Only unsigned integer values implement Into<Bytes31>
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
