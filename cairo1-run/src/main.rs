@@ -283,104 +283,140 @@ mod tests {
         "ecdsa_recover.cairo",
         "3490001189944926769628658346285649224182856084131963744896357527096042836716",
         "[3490001189944926769628658346285649224182856084131963744896357527096042836716]",
+        None,
         None
     )]
     #[case(
         "tensor_new.cairo",
         "[1 2] [1 false 1 true]", // Struct { span [1 2] span [struct {1 false} struct {1 true}]}
         "[2 1 2 2 1 0 1 1]", // len: 2 [1 2] len 2: [{1 0} {1 0}]
-        None
+        None, None
     )]
-    #[case("bytes31_ret.cairo", "123", "[123]", None)]
-    #[case("null_ret.cairo", "null", "[]", None)]
+    #[case("bytes31_ret.cairo", "123", "[123]", None, None)]
+    #[case("null_ret.cairo", "null", "[]", None, None)]
     #[case(
         "felt_dict_squash.cairo",
         "{66675: [4 5 6] 66676: [1 2 3]}",
         "[66675 3 4 5 6 66676 3 1 2 3]",
+        None,
         None
     )]
     #[case(
         "dict_with_struct.cairo",
         "{0: 1 true 1: 1 false 2: 1 true}",
         "[0 1 1 1 1 0 2 1 1]",
+        None,
         None
     )]
     #[case(
         "nullable_box_vec.cairo",
         "{0: 10 1: 20 2: 30} 3",
         "[0 10 1 20 2 30 3]",
+        None,
         None
     )]
-    #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None)]
+    #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None, None)]
     #[case(
         "felt_dict.cairo",
         "{66675: [8 9 10 11] 66676: [1 2 3]}",
         "[66675 4 8 9 10 11 66676 3 1 2 3]",
+        None,
         None
     )]
-    #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None)]
-    #[case("nullable_dict.cairo", "", "[]", None)]
-    #[case("struct_span_return.cairo", "[[4 3] [2 1]]", "[2 2 4 3 2 2 1]", None)]
-    #[case("null_ret.cairo", "null", "[]", None)]
-    #[case("with_input/tensor.cairo", "1", "[1]", Some("[2 2] [1 2 3 4]"))]
+    #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None, None)]
+    #[case("nullable_dict.cairo", "", "[]", None, None)]
+    #[case(
+        "struct_span_return.cairo",
+        "[[4 3] [2 1]]",
+        "[2 2 4 3 2 2 1]",
+        None,
+        None
+    )]
+    #[case("null_ret.cairo", "null", "[]", None, None)]
+    #[case(
+        "with_input/tensor.cairo",
+        "1",
+        "[1]",
+        Some("[2 2] [1 2 3 4]"),
+        Some("2 2 2 4 1 2 3 4")
+    )]
     #[case(
         "with_input/array_input_sum.cairo",
         "12",
         "[12]",
-        Some("2 [1 2 3 4] 0 [9 8]")
+        Some("2 [1 2 3 4] 0 [9 8]"),
+        Some("2 4 1 2 3 4 0 2 9 8")
     )]
-    #[case("with_input/array_length.cairo", "5", "[5]", Some("[1 2 3 4] [1]"))]
-    #[case("with_input/array_length.cairo", "4", "[4]", Some("[1 2 3 4] []"))]
-    #[case("with_input/branching.cairo", "0", "[0]", Some("17"))]
-    #[case("with_input/branching.cairo", "1", "[1]", Some("0"))]
-    #[case("dictionaries.cairo", "1024", "[1024]", None)]
-    #[case("simple_struct.cairo", "100", "[100]", None)]
-    #[case("simple.cairo", "true", "[1]", None)]
+    #[case(
+        "with_input/array_length.cairo",
+        "5",
+        "[5]",
+        Some("[1 2 3 4] [1]"),
+        Some("[4 1 2 3 1 1")
+    )]
+    #[case(
+        "with_input/array_length.cairo",
+        "4",
+        "[4]",
+        Some("[1 2 3 4] []"),
+        Some("[4 1 2 3 4 0")
+    )]
+    #[case("with_input/branching.cairo", "0", "[0]", Some("17"), Some("[17]"))]
+    #[case("with_input/branching.cairo", "1", "[1]", Some("0"), Some("[0]"))]
+    #[case("dictionaries.cairo", "1024", "[1024]", None, None)]
+    #[case("simple_struct.cairo", "100", "[100]", None, None)]
+    #[case("simple.cairo", "true", "[1]", None, None)]
     #[case(
         "pedersen_example.cairo",
         "1089549915800264549621536909767699778745926517555586332772759280702396009108",
         "[1089549915800264549621536909767699778745926517555586332772759280702396009108]",
+        None,
         None
     )]
     #[case(
         "poseidon_pedersen.cairo",
         "1036257840396636296853154602823055519264738423488122322497453114874087006398",
         "[1036257840396636296853154602823055519264738423488122322497453114874087006398]",
+        None,
         None
     )]
     #[case(
         "poseidon.cairo",
         "1099385018355113290651252669115094675591288647745213771718157553170111442461",
         "[1099385018355113290651252669115094675591288647745213771718157553170111442461]",
+        None,
         None
     )]
-    #[case("sample.cairo", "5050", "[5050]", None)]
+    #[case("sample.cairo", "5050", "[5050]", None, None)]
     #[case(
         "recursion.cairo",
         "1154076154663935037074198317650845438095734251249125412074882362667803016453",
         "[1154076154663935037074198317650845438095734251249125412074882362667803016453]",
+        None,
         None
     )]
-    #[case("print.cairo", "", "[]", None)]
-    #[case("ops.cairo", "6", "[6]", None)]
-    #[case("hello.cairo", "1234", "[1 1234]", None)]
+    #[case("print.cairo", "", "[]", None, None)]
+    #[case("ops.cairo", "6", "[6]", None, None)]
+    #[case("hello.cairo", "1234", "[1 1234]", None, None)]
     #[case(
         "enum_match.cairo",
         "10 3618502788666131213697322783095070105623107215331596699973092056135872020471",
         "[10 3618502788666131213697322783095070105623107215331596699973092056135872020471]",
+        None,
         None
     )]
-    #[case("enum_flow.cairo", "300", "[300]", None)]
-    #[case("array_get.cairo", "3", "[3]", None)]
-    #[case("bitwise.cairo", "11772", "[11772]", None)]
-    #[case("factorial.cairo", "3628800", "[3628800]", None)]
-    #[case("fibonacci.cairo", "89", "[89]", None)]
+    #[case("enum_flow.cairo", "300", "[300]", None, None)]
+    #[case("array_get.cairo", "3", "[3]", None, None)]
+    #[case("bitwise.cairo", "11772", "[11772]", None, None)]
+    #[case("factorial.cairo", "3628800", "[3628800]", None, None)]
+    #[case("fibonacci.cairo", "89", "[89]", None, None)]
 
     fn test_run_progarm(
         #[case] program: &str,
         #[case] expected_output: &str,
         #[case] expected_serialized_output: &str,
         #[case] inputs: Option<&str>,
+        #[case] serialized_inputs: Option<&str>,
         #[values(
         &["--cairo_pie_output", "/dev/null"], // Non proof-mode
         &["--cairo_pie_output", "/dev/null", "--append_return_values"], // Non proof-mode & appending return values to ouput
@@ -413,7 +449,10 @@ mod tests {
         args.push(&filename);
         args.extend_from_slice(common_flags);
         args.extend_from_slice(extra_flags);
-        if let Some(inputs) = inputs {
+        if let (Some(inputs), false) = (inputs, has_serialized_output) {
+            args.extend_from_slice(&["--args", inputs])
+        }
+        if let (Some(inputs), true) = (serialized_inputs, has_serialized_output) {
             args.extend_from_slice(&["--args", inputs])
         }
         let args = args.iter().cloned().map(String::from);
