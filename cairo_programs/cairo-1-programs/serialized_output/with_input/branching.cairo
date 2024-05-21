@@ -1,5 +1,5 @@
 fn main(input: Array<felt252>) -> Array<felt252> {
-    let mut argc = input.span();
+    let mut input = input.span();
     let argc: u32 = Serde::deserialize(ref input).unwrap();
     let res = if argc == 0 {
         1_u8

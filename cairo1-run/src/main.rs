@@ -338,14 +338,14 @@ mod tests {
         "1",
         "[1]",
         Some("[2 2] [1 2 3 4]"),
-        Some("2 2 2 4 1 2 3 4")
+        Some("[2 2 2 4 1 2 3 4]")
     )]
     #[case(
         "with_input/array_input_sum.cairo",
         "12",
         "[12]",
         Some("2 [1 2 3 4] 0 [9 8]"),
-        Some("2 4 1 2 3 4 0 2 9 8")
+        Some("[2 4 1 2 3 4 0 2 9 8]")
     )]
     #[case(
         "with_input/array_length.cairo",
