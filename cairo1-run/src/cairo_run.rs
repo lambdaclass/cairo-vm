@@ -937,25 +937,33 @@ fn fetch_return_values(
         // Output Builtin will always be on segment 2
         let return_values =
             vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
-        // This means that the return value is not a PanicResult
-        return if result_inner_type_size.is_none() {
-            Ok(return_values)
-        // The return value is a PanicResult so we need to check the panic_flag
+        // Remove panic wrapper
+        let (return_values, panic_flag) = if result_inner_type_size.is_none() {
+            // return value is not a PanicResult
+            (&return_values[..], false)
         } else {
-            // PanicResult::Err
-            if return_values.first() != Some(&MaybeRelocatable::from(0)) {
-                return Err(Error::RunPanic(
-                    return_values[1..]
-                        .iter()
-                        .map(|mr| mr.get_int().unwrap_or_default())
-                        .collect_vec(),
-                ));
-            // PanicResult::Ok
-            } else {
-                Ok(return_values[1..].to_vec())
-            }
+            // return value is a PanicResult
+            (
+                &return_values[1..],
+                return_values[0] != MaybeRelocatable::from(0),
+            )
         };
+        // Take only the output (as the output segment will also contain the input)
+        let output_len = return_values[0].get_int().unwrap().to_usize().unwrap() + 1;
+        let return_values = &return_values[0..output_len];
+        // Return Ok or Err based on panic_flag
+        if panic_flag {
+            return Err(Error::RunPanic(
+                return_values
+                    .iter()
+                    .map(|mr| mr.get_int().unwrap_or_default())
+                    .collect_vec(),
+            ));
+        } else {
+            return Ok(return_values.to_vec());
+        }
     }
+
     let mut return_values = vm.get_continuous_range(
         (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
         return_type_size as usize,
