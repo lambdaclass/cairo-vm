@@ -217,6 +217,7 @@ pub fn cairo_run_program(
         cairo_run_config.trace_enabled,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
