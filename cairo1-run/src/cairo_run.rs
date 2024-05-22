@@ -851,7 +851,7 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
-// Checks that the program input is of type Array<Felt252>
+// Checks that the program input (if present) is of type Array<Felt252>
 fn check_only_array_felt_input_type(
     params: &Vec<ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
@@ -872,7 +872,10 @@ fn check_only_array_felt_input_type(
                 || generic_ty == &SystemType::ID)
         })
         .collect_vec();
-    if arg_types.len() == 1 {
+    if arg_types.is_empty() {
+        // No inputs
+        true
+    } else if arg_types.len() == 1 {
         arg_types[0]
             .debug_name
             .as_ref()
