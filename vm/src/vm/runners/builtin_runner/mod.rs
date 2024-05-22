@@ -48,7 +48,7 @@ pub use hash::HashBuiltinRunner;
 pub use keccak::KeccakBuiltinRunner;
 pub use modulo::ModBuiltinRunner;
 use num_integer::div_floor;
-pub use output::OutputBuiltinRunner;
+pub use output::{OutputBuiltinRunner, OutputBuiltinState};
 pub use poseidon::PoseidonBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
 pub use segment_arena::SegmentArenaBuiltinRunner;
