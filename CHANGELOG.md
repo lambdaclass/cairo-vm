@@ -12,6 +12,13 @@
     * `PanicResult<Array<Felt252>>` -> `[panic_flag, array_len, arr[0], arr[1],.., arr[n]]`
     * `<Array<Felt252>` -> `[array_len, arr[0], arr[1],.., arr[n]]`
 
+<<<<<<< HEAD
+=======
+* feat: Handle `BoundedInt` variant in `serialize_output`, `cairo1-run` crate  [#1768](https://github.com/lambdaclass/cairo-vm/pull/1768)
+
+* fix: make `OutputBuiltinState` public [#1769](https://github.com/lambdaclass/cairo-vm/pull/1769)
+
+>>>>>>> f4a22140018f62309ade09ecd517b40e915031b1
 * feat: Load arguments into VM instead of creating them via instructions in cairo1-run [#1759](https://github.com/lambdaclass/cairo-vm/pull/1759)
 
 #### [1.0.0-rc3] - 2024-05-14
