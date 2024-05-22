@@ -133,9 +133,16 @@ pub fn cairo_run_program(
     let initial_gas = 9999999999999_usize;
 
     // Fetch return type data
-
     let return_type_id = main_func.signature.ret_types.last();
 
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_input_type(
+            &main_func.signature.param_types,
+            &sierra_program_registry,
+        )
+    {
+        return Err(Error::IlegalInputValue);
+    };
     if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
         && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
     {
@@ -844,6 +851,36 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+// Checks that the program input is of type Array<Felt252>
+fn check_only_array_felt_input_type(
+    params: &Vec<ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> bool {
+    let arg_types = params
+        .iter()
+        .filter(|ty| {
+            let info = get_info(sierra_program_registry, ty).unwrap();
+            let generic_ty = &info.long_id.generic_id;
+            !(generic_ty == &SegmentArenaType::ID
+                || generic_ty == &GasBuiltinType::ID
+                || generic_ty == &BitwiseType::ID
+                || generic_ty == &EcOpType::ID
+                || generic_ty == &PedersenType::ID
+                || generic_ty == &PoseidonType::ID
+                || generic_ty == &RangeCheckType::ID
+                || generic_ty == &SegmentArenaType::ID
+                || generic_ty == &SystemType::ID)
+        })
+        .collect_vec();
+    if arg_types.len() == 1 {
+        arg_types[0]
+            .debug_name
+            .as_ref()
+            .is_some_and(|name| name == "Array<felt252>")
+    } else {
+        false
+    }
+}
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
     return_type_id: Option<&ConcreteTypeId>,
