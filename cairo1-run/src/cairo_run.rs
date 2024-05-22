@@ -859,7 +859,7 @@ fn result_inner_type<'a>(
                 GenericArg::Type(type_id) => type_id,
                 _ => unreachable!(),
             };
-            // The inner type contains a single-element tuple so we ned to get rid of it too
+            // The inner type contains a single-element tuple so we need to get rid of it too
             let inner_type_info = get_info(sierra_program_registry, inner_type).unwrap();
             match &inner_type_info.long_id.generic_args[1] {
                 GenericArg::Type(type_id) => type_id,

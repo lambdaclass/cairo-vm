@@ -59,6 +59,6 @@ pub enum Error {
         param_index: usize,
         arg_index: usize,
     },
-    #[error("Only programs returing `Array<Felt252>` can be currently proven. Try serializing the final values before returning them")]
+    #[error("Only programs returning `Array<Felt252>` can be currently proven. Try serializing the final values before returning them")]
     IlegalReturnValue,
 }
