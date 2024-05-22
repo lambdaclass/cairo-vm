@@ -1555,4 +1555,66 @@ mod tests {
                 .unwrap();
         assert_eq!(hash_a, hash_b)
     }
+
+    #[rstest]
+    fn check_output_segment_contains_program_ouput_and_input(
+        #[values(true, false)] proof_mode: bool,
+    ) {
+        // tensor.cairo
+        // inputs: [2 2 2 4 1 2 3 4]
+        // outputs: [1]
+        // Compile to sierra
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/serialized_output/with_input/tensor.cairo",
+        );
+        // Set proof_mode
+        let cairo_run_config = Cairo1RunConfig {
+            proof_mode,
+            layout: LayoutName::all_cairo,
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
+            finalize_builtins: true,
+            args: &[FuncArg::Array(vec![
+                2.into(),
+                2.into(),
+                2.into(),
+                4.into(),
+                1.into(),
+                2.into(),
+                3.into(),
+                4.into(),
+            ])],
+            ..Default::default()
+        };
+        // Run program
+        let (runner, _, _) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        // Check output segment
+        let expected_output_segment: Vec<Felt252> = vec![
+            // panic_flag
+            0.into(),
+            // output len
+            1.into(),
+            // output
+            1.into(),
+            // input len
+            8.into(),
+            // input
+            2.into(),
+            2.into(),
+            2.into(),
+            4.into(),
+            1.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+        ];
+        let output_segment_size = runner.vm.get_segment_size(2).unwrap_or_default();
+        let output_segment = runner
+            .vm
+            .get_integer_range((2, 0).into(), output_segment_size)
+            .unwrap()
+            .iter()
+            .map(|f| f.clone().into_owned())
+            .collect_vec();
+        assert_eq!(expected_output_segment, output_segment);
+    }
 }

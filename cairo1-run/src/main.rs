@@ -474,7 +474,7 @@ mod tests {
 
     #[rstest]
     #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/with_input/branching.cairo", "--layout", "all_cairo","--args", "1 2 3"].as_slice())]
-    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/serialized_output/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "1 2 3"].as_slice())]
+    #[case(["cairo1-run", "../cairo_programs/cairo-1-programs/serialized_output/with_input/branching.cairo", "--layout", "all_cairo", "--proof_mode", "--args", "[1 2 3]"].as_slice())]
     fn test_run_branching_too_many_args(#[case] args: &[&str]) {
         let args = args.iter().cloned().map(String::from);
         assert_matches!(run(args), Err(Error::ArgumentsSizeMismatch { expected, actual }) if expected == 1 && actual == 3);
