@@ -4,6 +4,8 @@
 
 * feat: Handle `BoundedInt` variant in `serialize_output`, `cairo1-run` crate  [#1768](https://github.com/lambdaclass/cairo-vm/pull/1768)
 
+* fix: make `OutputBuiltinState` public [#1769](https://github.com/lambdaclass/cairo-vm/pull/1769)
+
 * feat: Load arguments into VM instead of creating them via instructions in cairo1-run [#1759](https://github.com/lambdaclass/cairo-vm/pull/1759)
 
 #### [1.0.0-rc3] - 2024-05-14
