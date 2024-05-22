@@ -853,7 +853,7 @@ fn get_function_builtins(
 
 // Checks that the program input (if present) is of type Array<Felt252>
 fn check_only_array_felt_input_type(
-    params: &Vec<ConcreteTypeId>,
+    params: &[ConcreteTypeId],
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
 ) -> bool {
     // Filter implicit arguments (builtins, gas)
@@ -862,7 +862,7 @@ fn check_only_array_felt_input_type(
         .filter(|ty| {
             let info = get_info(sierra_program_registry, ty).unwrap();
             let generic_ty = &info.long_id.generic_id;
-            !(generic_ty == &SegmentArenaType::ID
+            !(generic_ty != &SegmentArenaType::ID
                 || generic_ty == &GasBuiltinType::ID
                 || generic_ty == &BitwiseType::ID
                 || generic_ty == &EcOpType::ID
