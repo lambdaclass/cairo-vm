@@ -856,6 +856,7 @@ fn check_only_array_felt_input_type(
     params: &Vec<ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
 ) -> bool {
+    // Filter implicit arguments (builtins, gas)
     let arg_types = params
         .iter()
         .filter(|ty| {
