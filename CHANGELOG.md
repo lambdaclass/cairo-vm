@@ -3,10 +3,14 @@
 #### Upcoming Changes
 
 * feat(BREAKING): Serialize `Array<Felt252>` return value into output segment in cairo1-run crate:
-  * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with with either `--proof_mode` or `--append_return_values`.
+  * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with either `--proof_mode` or `--append_return_values`.
   * Serializes return values into the output segment under the previous conditions following the format:
     * `PanicResult<Array<Felt252>>` -> `[panic_flag, array_len, arr[0], arr[1],.., arr[n]]`
     * `<Array<Felt252>` -> `[array_len, arr[0], arr[1],.., arr[n]]`
+
+* feat: Handle `BoundedInt` variant in `serialize_output`, `cairo1-run` crate  [#1768](https://github.com/lambdaclass/cairo-vm/pull/1768)
+
+* fix: make `OutputBuiltinState` public [#1769](https://github.com/lambdaclass/cairo-vm/pull/1769)
 
 * feat: Load arguments into VM instead of creating them via instructions in cairo1-run [#1759](https://github.com/lambdaclass/cairo-vm/pull/1759)
 
