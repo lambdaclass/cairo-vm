@@ -3,7 +3,7 @@
 #### Upcoming Changes
 
 * feat(BREAKING): Serialize `Array<Felt252>` return value into output segment in cairo1-run crate:
-  * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with with either `--proof_mode` or `--append_return_values`.
+  * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with either `--proof_mode` or `--append_return_values`.
   * Serializes return values into the output segment under the previous conditions following the format:
     * `PanicResult<Array<Felt252>>` -> `[panic_flag, array_len, arr[0], arr[1],.., arr[n]]`
     * `<Array<Felt252>` -> `[array_len, arr[0], arr[1],.., arr[n]]`
