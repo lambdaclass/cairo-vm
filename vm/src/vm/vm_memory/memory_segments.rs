@@ -270,7 +270,7 @@ impl MemorySegmentManager {
     // * size - The size of the segment (to be used in relocate_segments).
     // * public_memory - A list of offsets for memory cells that will be considered as public
     // memory.
-    pub(crate) fn finalize(
+    pub fn finalize(
         &mut self,
         size: Option<usize>,
         segment_index: usize,
