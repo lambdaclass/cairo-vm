@@ -37,3 +37,5 @@ pub mod uint384_extension;
 pub mod uint_utils;
 pub mod usort;
 pub mod vrf;
+#[allow(unused)]
+pub mod excess_balance;
