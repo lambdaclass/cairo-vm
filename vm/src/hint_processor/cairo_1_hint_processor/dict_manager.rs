@@ -84,20 +84,25 @@ impl DictManagerExecScope {
             })?)
     }
 
-    /// Finalizes a segment of a dictionary.
+    /// Finalizes a segment of a dictionary and attempts to relocate it.
+    /// Relocates the dictionary if the previous dictionary was also relocated, if not, assigns a temporary next_start to aid in a future relocation.
+    /// Relocates the next dictionary if it was already finalized but not relocated.
     pub fn finalize_segment(
         &mut self,
         vm: &mut VirtualMachine,
         dict_end: Relocatable,
     ) -> Result<(), HintError> {
         let tracker_idx = self.get_dict_infos_index(dict_end).unwrap();
-        if self.trackers[tracker_idx].start.segment_index > 0 {
-            // Finalize first dict
+        if self.trackers[tracker_idx].start.segment_index >= 0 {
+            // The dict is already on a real segment so we don't need to relocate it
+            // This is the case of the first dictionary
             self.trackers[tracker_idx].next_start = (dict_end + 1u32).ok();
         } else {
-            // We can only relocate if the previous dict has been relocated too
+            // Finalize & relocate the dictionary
+            // The first dictionary will always be on a real segment so we can be sure that a previous dictionary exists here
             match self.trackers[tracker_idx - 1].next_start {
-                Some(relocated_start) if relocated_start.segment_index > 0 => {
+                // We can only relocate if the previous dict has been relocated too
+                Some(relocated_start) if relocated_start.segment_index >= 0 => {
                     // Relocate this dictionary based on the previous segment's next_start
                     vm.add_relocation_rule(self.trackers[tracker_idx].start, relocated_start)?;
                     let next_start =
@@ -108,13 +113,14 @@ impl DictManagerExecScope {
                     if let Some(next_dict) = self.trackers.get(tracker_idx + 1) {
                         // Has been finalized but not relocated
                         if next_dict.next_start.is_some_and(|r| r.segment_index < 0) {
-                            // Finalize it properly
+                            // As the next dict has already been finalized and the current one has been relocated
+                            // we know that this call will relocate the next dict
                             self.finalize_segment(vm, next_dict.next_start.unwrap())?;
                         }
                     }
                 }
                 _ => {
-                    // Store the relocated next_start so we can properly finalize it later
+                    // Store the temporary next_start so we can properly finalize it later
                     self.trackers[tracker_idx].next_start = (dict_end + 1_u32).ok();
                 }
             }
