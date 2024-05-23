@@ -6,6 +6,8 @@
   * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
   * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
 
+* fix: make MemorySegmentManager.finalize() public [#1771](https://github.com/lambdaclass/cairo-vm/pull/1771)
+
 * feat(BREAKING): Serialize `Array<Felt252>` return value into output segment in cairo1-run crate:
   * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with either `--proof_mode` or `--append_return_values`.
   * Serializes return values into the output segment under the previous conditions following the format:
