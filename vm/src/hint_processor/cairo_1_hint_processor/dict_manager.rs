@@ -96,7 +96,7 @@ impl DictManagerExecScope {
         if self.trackers[tracker_idx].start.segment_index >= 0 {
             // The dict is already on a real segment so we don't need to relocate it
             // This is the case of the first dictionary
-            self.trackers[tracker_idx].next_start = (dict_end + 1u32).ok();
+            self.trackers[tracker_idx].next_start = Some(dict_end);
         } else {
             // Finalize & relocate the dictionary
             // The first dictionary will always be on a real segment so we can be sure that a previous dictionary exists here
