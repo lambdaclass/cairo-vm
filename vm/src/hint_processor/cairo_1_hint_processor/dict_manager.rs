@@ -25,8 +25,6 @@ pub struct DictManagerExecScope {
     segment_to_tracker: HashMap<isize, usize>,
     /// The actual trackers of the dictionaries, in the order of allocation.
     trackers: Vec<DictTrackerExecScope>,
-    // Dictionaries that havent been relocated after finalization
-    relocation_pending: Vec<usize>,
 }
 
 impl DictTrackerExecScope {
@@ -99,58 +97,28 @@ impl DictManagerExecScope {
         } else {
             // We can only relocate if the previous dict has been relocated too
             match self.trackers[tracker_idx - 1].next_start {
-                Some(relocated_start) if relocated_start.segment_index > 0  => {
-                // Relocate this dictionary based on the previous segment's next_start
-                vm.add_relocation_rule(self.trackers[tracker_idx].start, relocated_start)?;
-                let next_start =
-                    (relocated_start + (dict_end - self.trackers[tracker_idx].start)?)?;
-                self.trackers[tracker_idx].next_start = Some(next_start);
-                // Remove from pending if present
-                self.relocation_pending.retain(|i| *i != tracker_idx);
-            },
-            _ => {
-                // Add the tracker's idx to the finalization_pending
-                self.relocation_pending.push(tracker_idx);
-                self.relocation_pending.sort();
-                // Store the relocated next_start so we can finalize it later
-                self.trackers[tracker_idx].next_start = (dict_end + 1_u32).ok();
-            }
-            }
-        }
-        // Check if there are dicts that have pending finalization and finalize them
-        for tracker_idx in self.relocation_pending.clone() {
-            let dict_end = self.trackers[tracker_idx].next_start.unwrap();
-            // Finalize dict
-            match self.trackers[tracker_idx - 1].next_start {
-                Some(relocated_start) if relocated_start.segment_index > 0  => {
-                // Relocate this dictionary based on the previous segment's next_start
-                vm.add_relocation_rule(self.trackers[tracker_idx].start, relocated_start)?;
-                let next_start =
-                    (relocated_start + (dict_end - self.trackers[tracker_idx].start)?)?;
-                self.trackers[tracker_idx].next_start = Some(next_start);
-                // Remove from pending if present
-                self.relocation_pending.retain(|i| *i != tracker_idx);
-            },
-            _ => {},
-        }
-        }
+                Some(relocated_start) if relocated_start.segment_index > 0 => {
+                    // Relocate this dictionary based on the previous segment's next_start
+                    vm.add_relocation_rule(self.trackers[tracker_idx].start, relocated_start)?;
+                    let next_start =
+                        (relocated_start + (dict_end - self.trackers[tracker_idx].start)?)?;
+                    self.trackers[tracker_idx].next_start = Some(next_start);
 
-        // if let Some(prev) = tracker.next_start {
-        //     return Err(HintError::CustomHint(
-        //         format!(
-        //             "The segment is already finalized. \
-        //             Attempting to override next start {prev}, with: {next_start}.",
-        //         )
-        //         .into_boxed_str(),
-        //     ));
-        // }
-        // self.trackers[tracker_idx].next_start = Some(next_start);
-        // if let Some(prev) = self.trackers.get_mut(tracker_idx - 1) {
-        //     vm.add_relocation_rule(self.trackers[tracker_idx].start, prev.next_start.unwrap()).unwrap();
-        // // Updating the segment to point to tracker the next segment points to.
-        // let next_tracker_idx = self.segment_to_tracker[&next.start.segment_index];
-        // self.segment_to_tracker
-        //     .insert(dict_end.segment_index, next_tracker_idx);
+                    // Check if the next dict has been finalized but not relocated
+                    if let Some(next_dict) = self.trackers.get(tracker_idx + 1) {
+                        // Has been finalized but not relocated
+                        if next_dict.next_start.is_some_and(|r| r.segment_index < 0) {
+                            // Finalize it properly
+                            self.finalize_segment(vm, next_dict.next_start.unwrap())?;
+                        }
+                    }
+                }
+                _ => {
+                    // Store the relocated next_start so we can properly finalize it later
+                    self.trackers[tracker_idx].next_start = (dict_end + 1_u32).ok();
+                }
+            }
+        }
         Ok(())
     }
 
