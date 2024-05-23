@@ -52,7 +52,7 @@ impl DictManagerExecScope {
                 .next_start
                 .unwrap_or_else(|| vm.add_temporary_segment()),
         };
-        let tracker: DictTrackerExecScope = DictTrackerExecScope::new(dict_segment);
+        let tracker = DictTrackerExecScope::new(dict_segment);
         // Not checking if overriding - since overriding is allowed.
         self.segment_to_tracker
             .insert(dict_segment.segment_index, self.trackers.len());
