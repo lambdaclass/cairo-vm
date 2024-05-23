@@ -92,6 +92,9 @@ impl Cairo1HintProcessor {
                 dict_end_ptr,
                 dict_index,
             })) => self.get_segment_arena_index(vm, exec_scopes, dict_end_ptr, dict_index),
+            Hint::Core(CoreHintBase::Core(CoreHint::FinalizeDict { dict_end_ptr })) => {
+                self.finalize_dict(vm, exec_scopes, dict_end_ptr)
+            }
 
             Hint::Core(CoreHintBase::Core(CoreHint::DivMod {
                 lhs,
@@ -416,9 +419,20 @@ impl Cairo1HintProcessor {
 
         let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address)?;
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
-            .map_err(HintError::from)?;
-        // The hint is only for dictionary finalization, so can be called.
-        dict_manager_exec_scope.finalize_segment(vm, dict_address)
+            .map_err(HintError::from)
+    }
+
+    fn finalize_dict(
+        &self,
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        dict_end_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let (dict_base, dict_offset) = extract_buffer(dict_end_ptr)?;
+        let dict_end = get_ptr(vm, dict_base, &dict_offset)?;
+        let dict_manager_exec_scope =
+            exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
+        dict_manager_exec_scope.finalize_segment(vm, dict_end)
     }
 
     #[allow(clippy::too_many_arguments)]
