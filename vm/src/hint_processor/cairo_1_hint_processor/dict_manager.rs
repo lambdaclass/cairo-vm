@@ -97,6 +97,16 @@ impl DictManagerExecScope {
             // The dict is already on a real segment so we don't need to relocate it
             // This is the case of the first dictionary
             self.trackers[tracker_idx].next_start = Some(dict_end);
+
+            // Check if the next dict has been finalized but not relocated
+            if let Some(next_dict) = self.trackers.get(tracker_idx + 1) {
+                // Has been finalized but not relocated
+                if next_dict.next_start.is_some_and(|r| r.segment_index < 0) {
+                    // As the next dict has already been finalized and the current one has been relocated
+                    // we know that this call will relocate the next dict
+                    self.finalize_segment(vm, next_dict.next_start.unwrap())?;
+                }
+            }
         } else {
             // Finalize & relocate the dictionary
             // The first dictionary will always be on a real segment so we can be sure that a previous dictionary exists here
@@ -121,7 +131,7 @@ impl DictManagerExecScope {
                 }
                 _ => {
                     // Store the temporary next_start so we can properly finalize it later
-                    self.trackers[tracker_idx].next_start = (dict_end + 1_u32).ok();
+                    self.trackers[tracker_idx].next_start = Some(dict_end);
                 }
             }
         }
