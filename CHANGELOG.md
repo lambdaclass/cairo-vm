@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
+
 * feat(BREAKING): Serialize inputs into output segment in cairo1-run crate:
   * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
   * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
