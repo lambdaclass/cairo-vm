@@ -133,7 +133,16 @@ pub fn cairo_run_program(
     let initial_gas = 9999999999999_usize;
 
     // Fetch return type data
-    let return_type_id = main_func.signature.ret_types.last();
+    let return_type_id = match main_func.signature.ret_types.last() {
+        // We need to check if the last return type is indeed the function's return value and not an implicit return value
+        return_type @ Some(concrete_ty)
+            if get_info(&sierra_program_registry, concrete_ty)
+                .is_some_and(|info| is_implicit_generic_id(&info.long_id.generic_id)) =>
+        {
+            return_type
+        }
+        _ => None,
+    };
 
     if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
         && !check_only_array_felt_input_type(
@@ -862,15 +871,7 @@ fn check_only_array_felt_input_type(
         .filter(|ty| {
             let info = get_info(sierra_program_registry, ty).unwrap();
             let generic_ty = &info.long_id.generic_id;
-            !(generic_ty != &SegmentArenaType::ID
-                || generic_ty == &GasBuiltinType::ID
-                || generic_ty == &BitwiseType::ID
-                || generic_ty == &EcOpType::ID
-                || generic_ty == &PedersenType::ID
-                || generic_ty == &PoseidonType::ID
-                || generic_ty == &RangeCheckType::ID
-                || generic_ty == &SegmentArenaType::ID
-                || generic_ty == &SystemType::ID)
+            is_implicit_generic_id(generic_ty)
         })
         .collect_vec();
     if arg_types.is_empty() {
@@ -884,6 +885,19 @@ fn check_only_array_felt_input_type(
     } else {
         false
     }
+}
+
+// Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
+fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
+    !(generic_ty != &SegmentArenaType::ID
+        || generic_ty == &GasBuiltinType::ID
+        || generic_ty == &BitwiseType::ID
+        || generic_ty == &EcOpType::ID
+        || generic_ty == &PedersenType::ID
+        || generic_ty == &PoseidonType::ID
+        || generic_ty == &RangeCheckType::ID
+        || generic_ty == &SegmentArenaType::ID
+        || generic_ty == &SystemType::ID)
 }
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
