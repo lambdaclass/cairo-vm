@@ -39,6 +39,7 @@ struct MarginParams {
 
 impl Position {
     fn read_from_memory(
+        // TODO: Make this receive a MaybeRelocatable so we dont need to zip twice on iterator
         memory: &Memory,
         read_ptr: Relocatable,
     ) -> Result<Self, VirtualMachineError> {
