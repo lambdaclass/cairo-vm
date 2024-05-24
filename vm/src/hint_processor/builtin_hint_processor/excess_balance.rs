@@ -1,8 +1,12 @@
-use rust_decimal::Decimal;
-use starknet_types_core::felt::Felt as Felt252;
-use num_traits::Pow;
+use core::{cmp::max, str::FromStr};
 
-use crate::{math_utils::signed_felt, types::relocatable::Relocatable, vm::{errors::vm_errors::VirtualMachineError, vm_memory::memory::Memory}};
+use num_bigint::BigUint;
+use rust_decimal::{Decimal, MathematicalOps};
+use starknet_types_core::felt::Felt as Felt252;
+use num_traits::{Pow, Zero};
+
+use crate::{math_utils::{isqrt, signed_felt}, types::relocatable::Relocatable, vm::{errors::vm_errors::VirtualMachineError, vm_memory::memory::Memory}};
+use lazy_static::lazy_static;
 
 #[derive(Debug, PartialEq)]
 struct Position {
@@ -24,8 +28,9 @@ struct MarginParams {
 impl Position {
     fn read_from_memory(memory: &Memory, read_ptr: Relocatable) -> Result<Self, VirtualMachineError> {
         let felt_to_scaled_decimal = |f: Felt252| -> Decimal {
-            let d = Decimal::from_str_radix(&signed_felt(f).to_string(), 10).unwrap();
-            d * Decimal::from(10).pow(-8_i64)
+            let mut d = Decimal::from_str_radix(&signed_felt(f).to_string(), 10).unwrap();
+            d.set_scale(8);
+            d
         };
         Ok(Position {
             market: core::str::from_utf8(&memory.get_integer(read_ptr)?.to_bytes_be()).unwrap_or_default().trim_start_matches("\0").to_string(),
@@ -39,8 +44,9 @@ impl Position {
 impl MarginParams {
     fn read_from_memory(memory: &Memory, read_ptr: Relocatable) -> Result<Self, VirtualMachineError> {
         let felt_to_scaled_decimal = |f: Felt252| -> Decimal {
-            let d = Decimal::from_str_radix(&signed_felt(f).to_string(), 10).unwrap_or_default();
-            d * Decimal::from(10).pow(-8_i64)
+            let mut d = Decimal::from_str_radix(&signed_felt(f).to_string(), 10).unwrap_or_default();
+            d.rescale(8);
+            d
         };
         Ok(MarginParams {
             market: core::str::from_utf8(&memory.get_integer(read_ptr)?.to_bytes_be()).unwrap_or_default().trim_start_matches("\0").to_string(),
@@ -49,6 +55,17 @@ impl MarginParams {
             mmf_factor: felt_to_scaled_decimal(memory.get_integer((read_ptr + 6)?)?.into_owned()),
             imf_shift: felt_to_scaled_decimal(memory.get_integer((read_ptr + 7)?)?.into_owned()),
         })
+    }
+
+    fn imf(&self, abs_value: Decimal) -> Decimal {
+        let mut diff = (abs_value - self.imf_shift).trunc_with_scale(8);
+        diff.set_scale(8);
+        diff = diff.trunc();
+        let max = BigUint::from_str(&Decimal::ZERO.max(diff).to_string()).unwrap();
+        let part_sqrt = isqrt(&max).unwrap();
+        let mut part_sqrt = Decimal::from_str(&part_sqrt.to_string()).unwrap();
+        part_sqrt.set_scale(4);
+        self.imf_base.max(self.imf_factor * part_sqrt)
     }
 }
 
@@ -93,6 +110,21 @@ mod tests {
             imf_shift: Decimal::from_str("200000.00000000").unwrap()
         };
         assert_eq!(expected_position, MarginParams::read_from_memory(&memory, (0, 0).into()).unwrap())
+    }
+
+    #[test]
+    fn test_imf() {
+        let abs_value = Decimal::from_str("459000.0000000000000000").unwrap();
+        let margin_params = MarginParams {
+            market: String::from("BTC-USD-PERP"),
+            imf_base: Decimal::from_str("0.05000000").unwrap(),
+            imf_factor: Decimal::from_str("0.00020000").unwrap(),
+            mmf_factor: Decimal::from_str("0.50000000").unwrap(),
+            imf_shift: Decimal::from_str("200000.00000000").unwrap(),
+        };
+        let expected_res = Decimal::from_str("0.101784080000").unwrap();
+        assert_eq!(expected_res, margin_params.imf(abs_value));
+
     }
 }
 
