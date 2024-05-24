@@ -889,7 +889,7 @@ fn check_only_array_felt_input_type(
 
 // Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
 fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
-    generic_ty != &SegmentArenaType::ID
+    generic_ty == &SegmentArenaType::ID
         || generic_ty == &GasBuiltinType::ID
         || generic_ty == &BitwiseType::ID
         || generic_ty == &EcOpType::ID
