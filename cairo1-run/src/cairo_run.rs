@@ -137,7 +137,7 @@ pub fn cairo_run_program(
         // We need to check if the last return type is indeed the function's return value and not an implicit return value
         return_type @ Some(concrete_ty)
             if get_info(&sierra_program_registry, concrete_ty)
-                .is_some_and(|info| is_implicit_generic_id(&info.long_id.generic_id)) =>
+                .is_some_and(|info| !is_implicit_generic_id(&info.long_id.generic_id)) =>
         {
             return_type
         }
@@ -871,7 +871,7 @@ fn check_only_array_felt_input_type(
         .filter(|ty| {
             let info = get_info(sierra_program_registry, ty).unwrap();
             let generic_ty = &info.long_id.generic_id;
-            is_implicit_generic_id(generic_ty)
+            !is_implicit_generic_id(generic_ty)
         })
         .collect_vec();
     if arg_types.is_empty() {
@@ -889,7 +889,7 @@ fn check_only_array_felt_input_type(
 
 // Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
 fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
-    !(generic_ty != &SegmentArenaType::ID
+    generic_ty != &SegmentArenaType::ID
         || generic_ty == &GasBuiltinType::ID
         || generic_ty == &BitwiseType::ID
         || generic_ty == &EcOpType::ID
@@ -897,7 +897,7 @@ fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
         || generic_ty == &PoseidonType::ID
         || generic_ty == &RangeCheckType::ID
         || generic_ty == &SegmentArenaType::ID
-        || generic_ty == &SystemType::ID)
+        || generic_ty == &SystemType::ID
 }
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
