@@ -184,6 +184,8 @@ pub enum HintError {
     NPairBitsTooLowM,
     #[error("{0}")]
     SyscallError(Box<str>),
+    #[error("excess_balance_func: Found unexpected types in dictionary {0}")]
+    ExcessBalanceUnexpectedTypeInDict(Box<str>),
 }
 
 #[cfg(test)]
