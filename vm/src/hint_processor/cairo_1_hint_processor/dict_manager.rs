@@ -60,10 +60,15 @@ impl DictManagerExecScope {
             vm.add_memory_segment()
         };
         let tracker = DictTrackerExecScope::new(dict_segment);
-        assert!(self
+        if self
             .segment_to_tracker
             .insert(dict_segment.segment_index, self.trackers.len())
-            .is_none());
+            .is_some()
+        {
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
+                dict_segment.segment_index,
+            ));
+        }
 
         self.trackers.push(tracker);
         Ok(dict_segment)
