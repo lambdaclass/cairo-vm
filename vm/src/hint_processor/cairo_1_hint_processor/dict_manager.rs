@@ -124,7 +124,7 @@ impl DictManagerExecScope {
             let mut prev_end = vm.add_memory_segment();
             for tracker in &self.trackers {
                 vm.add_relocation_rule(tracker.start, prev_end)?;
-                prev_end += (tracker.end.unwrap() - tracker.start)?;
+                prev_end += (tracker.end.unwrap_or_default() - tracker.start)?;
                 prev_end += 1;
             }
         }
