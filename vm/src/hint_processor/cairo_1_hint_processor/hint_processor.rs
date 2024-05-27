@@ -60,7 +60,11 @@ pub struct Cairo1HintProcessor {
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources, segment_arena_validations: bool) -> Self {
+    pub fn new(
+        hints: &[(usize, Vec<Hint>)],
+        run_resources: RunResources,
+        segment_arena_validations: bool,
+    ) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
             run_resources,

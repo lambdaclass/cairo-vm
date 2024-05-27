@@ -25,7 +25,7 @@ pub struct DictManagerExecScope {
     segment_to_tracker: HashMap<isize, usize>,
     /// The actual trackers of the dictionaries, in the order of allocation.
     trackers: Vec<DictTrackerExecScope>,
-    // If set to true, dictionaries will be created on temporary segments and will then be relocated into a single segment by the end of the run
+    // If set to true, dictionaries will be created on temporary segments which can then be relocated into a single segment by the end of the run
     // If set to false, each dictionary will use a single real segment
     use_temporary_segments: bool,
 }
