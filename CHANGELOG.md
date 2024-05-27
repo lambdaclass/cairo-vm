@@ -2,6 +2,13 @@
 
 #### Upcoming Changes
 
+* feat(BREAKING): Use a cheatcode to relocate all dicts + Make temporary segment usage configurable [#1776](https://github.com/lambdaclass/cairo-vm/pull/1776)
+  * Add the flags `segment_arena_validation` & `use_temporary_segments` to the `Cairo1HintProcessor` & `DictManagerExecScope` respectively. These flags will determine if real segments or temporary segments will be used when creating dictionaries.
+  * `DictManagerExecScope::finalize_segment` no longer performs relocation and is ignored if `use_temporary_segments` is set to false.
+  * Add method `DictManagerExecScope::relocate_all_dictionaries` that adds relocation rules for all tracked dictionaries, relocating them one next to the other in a new segment.
+  * Add cheatcode `RelocateAllDictionaries` to the `Cairo1HintProcessor`, which calls the aforementioned method.
+  * Add casm instruction to call the aforementioned cheatcode in `create_entry_code` if either `proof_mode` or `append_return_values` are set to true, and segment arena is present.
+
 * feat(BREAKING): Serialize inputs into output segment in cairo1-run crate:
   * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
   * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
