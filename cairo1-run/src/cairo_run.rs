@@ -889,15 +889,17 @@ fn check_only_array_felt_input_type(
 
 // Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
 fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
-    generic_ty == &SegmentArenaType::ID
-        || generic_ty == &GasBuiltinType::ID
-        || generic_ty == &BitwiseType::ID
-        || generic_ty == &EcOpType::ID
-        || generic_ty == &PedersenType::ID
-        || generic_ty == &PoseidonType::ID
-        || generic_ty == &RangeCheckType::ID
-        || generic_ty == &SegmentArenaType::ID
-        || generic_ty == &SystemType::ID
+    [
+        SegmentArenaType::ID,
+        GasBuiltinType::ID,
+        BitwiseType::ID,
+        EcOpType::ID,
+        PedersenType::ID,
+        PoseidonType::ID,
+        RangeCheckType::ID,
+        SegmentArenaType::ID,
+        SystemType::ID,
+    ].contains(generic_ty)
 }
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
