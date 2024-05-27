@@ -726,10 +726,10 @@ fn create_entry_code(
         let local = ctx.add_var(CellExpression::Deref(deref!([fp])));
         casm_build_extend!(ctx, assert local = output_ptr;);
         if got_segment_arena {
-        // We re-scoped when serializing the output so we have to create a var for the segment arena
-        // len(builtins) + len(builtins - output) + segment_arena_ptr + info_segment + 0
-        let off = 2 * builtins.len() + 2;
-        let segment_arena_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + off as i16])));
+            // We re-scoped when serializing the output so we have to create a var for the segment arena
+            // len(builtins) + len(builtins - output) + segment_arena_ptr + info_segment + 0
+            let off = 2 * builtins.len() + 2;
+            let segment_arena_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + off as i16])));
             // Call the hint that will relocate all dictionaries
             ctx.add_hint(
                 |[ignored_in], [ignored_out]| StarknetHint::Cheatcode {

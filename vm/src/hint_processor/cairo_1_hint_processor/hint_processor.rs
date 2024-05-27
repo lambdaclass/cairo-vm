@@ -54,6 +54,7 @@ fn get_beta() -> Felt252 {
 pub struct Cairo1HintProcessor {
     hints: HashMap<usize, Vec<Hint>>,
     run_resources: RunResources,
+    segment_arena_validations: bool,
 }
 
 impl Cairo1HintProcessor {
@@ -61,6 +62,7 @@ impl Cairo1HintProcessor {
         Self {
             hints: hints.iter().cloned().collect(),
             run_resources,
+            segment_arena_validations: false,
         }
     }
     // Runs a single Hint
@@ -166,7 +168,7 @@ impl Cairo1HintProcessor {
             })) => self.linear_split(vm, value, scalar, max_x, x, y),
 
             Hint::Core(CoreHintBase::Core(CoreHint::AllocFelt252Dict { segment_arena_ptr })) => {
-                self.alloc_felt_256_dict(vm, segment_arena_ptr, exec_scopes)
+                self.alloc_felt_252_dict(vm, segment_arena_ptr, exec_scopes)
             }
 
             Hint::Core(CoreHintBase::Core(CoreHint::AssertLeFindSmallArcs {
@@ -562,7 +564,7 @@ impl Cairo1HintProcessor {
         Err(HintError::KeyNotFound)
     }
 
-    fn alloc_felt_256_dict(
+    fn alloc_felt_252_dict(
         &self,
         vm: &mut VirtualMachine,
         segment_arena_ptr: &ResOperand,
@@ -591,7 +593,7 @@ impl Cairo1HintProcessor {
                 Err(_) => {
                     exec_scopes.assign_or_update_variable(
                         "dict_manager_exec_scope",
-                        Box::<DictManagerExecScope>::default(),
+                        Box::new(DictManagerExecScope::new(self.segment_arena_validations)),
                     );
                     exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?
                 }
