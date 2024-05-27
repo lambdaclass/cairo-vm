@@ -181,7 +181,7 @@ pub fn cairo_run_program(
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
-    let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
+    let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default(), cairo_run_config.append_return_values || cairo_run_config.proof_mode);
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())

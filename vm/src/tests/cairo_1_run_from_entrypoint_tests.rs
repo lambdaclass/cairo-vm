@@ -604,7 +604,7 @@ fn fibonacci_with_run_resources_ok() {
     let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
-        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(621));
+        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(621), false);
     assert_matches!(
         run_cairo_1_entrypoint_with_run_resources(
             serde_json::from_slice(program_data.as_slice()).unwrap(),
@@ -625,7 +625,7 @@ fn fibonacci_with_run_resources_2_ok() {
     let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
-        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(1000));
+        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(1000), false);
     assert_matches!(
         run_cairo_1_entrypoint_with_run_resources(
             contract_class,
@@ -648,7 +648,7 @@ fn fibonacci_with_run_resources_error() {
     let contract_class: CasmContractClass = serde_json::from_slice(program_data).unwrap();
     // Program takes 621 steps
     let mut hint_processor =
-        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(100));
+        Cairo1HintProcessor::new(&contract_class.hints, RunResources::new(100), false);
     assert!(run_cairo_1_entrypoint_with_run_resources(
         contract_class,
         0,

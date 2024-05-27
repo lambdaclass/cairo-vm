@@ -54,15 +54,17 @@ fn get_beta() -> Felt252 {
 pub struct Cairo1HintProcessor {
     hints: HashMap<usize, Vec<Hint>>,
     run_resources: RunResources,
+    /// If set to true, uses a single segment for dictionaries to aid in segment arena validations
+    /// WARNING: The program must call the "RelocateAllDictionaries" Cheatcode if the flag is enabled
     segment_arena_validations: bool,
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources) -> Self {
+    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources, segment_arena_validations: bool) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
             run_resources,
-            segment_arena_validations: false,
+            segment_arena_validations,
         }
     }
     // Runs a single Hint
