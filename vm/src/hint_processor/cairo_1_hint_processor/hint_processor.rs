@@ -272,10 +272,10 @@ impl Cairo1HintProcessor {
                     HintError::CustomHint(Box::from("failed to parse selector".to_string()))
                 })?;
                 match selector {
-                    "FinalizeDictionarySegments" => {
+                    "RelocateAllDictionaries" => {
                         let dict_manager_exec_scope = exec_scopes
                             .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
-                        dict_manager_exec_scope.finalize_all_segments(vm)
+                        dict_manager_exec_scope.relocate_all_dictionaries(vm)
                     }
                     _ => Err(HintError::UnknownHint(selector.into())),
                 }

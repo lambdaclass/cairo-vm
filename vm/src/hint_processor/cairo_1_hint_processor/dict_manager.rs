@@ -79,7 +79,7 @@ impl DictManagerExecScope {
 
     /// Finalizes a segment of a dictionary.
     pub fn finalize_segment(&mut self, dict_end: Relocatable) -> Result<(), HintError> {
-        let tracker_idx = self.get_dict_infos_index(dict_end).unwrap();
+        let tracker_idx = self.get_dict_infos_index(dict_end)?;
         let tracker = &mut self.trackers[tracker_idx];
         if let Some(prev) = tracker.end {
             return Err(HintError::CustomHint(
@@ -94,8 +94,8 @@ impl DictManagerExecScope {
         Ok(())
     }
 
-    /// Finalizes all segments of dictionaries by adding relocation rules to merge them.
-    pub fn finalize_all_segments(&mut self, vm: &mut VirtualMachine) -> Result<(), HintError> {
+    /// Relocates all dictionaries into a single segment
+    pub fn relocate_all_dictionaries(&mut self, vm: &mut VirtualMachine) -> Result<(), HintError> {
         let mut prev_end = vm.add_memory_segment();
         for tracker in &self.trackers {
             vm.add_relocation_rule(tracker.start, prev_end)?;

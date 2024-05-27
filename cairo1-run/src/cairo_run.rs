@@ -736,7 +736,7 @@ fn create_entry_code(
                     selector: BigIntAsHex {
                         value: BigInt::from_bytes_be(
                             Sign::Plus,
-                            "FinalizeDictionarySegments".as_bytes(),
+                            "RelocateAllDictionaries".as_bytes(),
                         ),
                     },
                     input_start: ignored_in.clone(),
