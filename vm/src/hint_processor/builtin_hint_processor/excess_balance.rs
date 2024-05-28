@@ -378,6 +378,7 @@ fn excess_balance_func(
 
 #[cfg(test)]
 mod tests {
+    use crate::stdlib::{cell::RefCell, rc::Rc};
     use core::str::FromStr;
 
     use super::*;
@@ -649,6 +650,7 @@ mod tests {
                 ),
             ]),
         );
+        exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),      // ids.margin_check_type
@@ -737,7 +739,6 @@ mod tests {
             "account",
             "prices_cache_ptr",
             "indices_cache_ptr",
-            "perps_cache_ptr",
             "perps_cache_ptr",
             "fees_cache_ptr",
             "perps_balances_cache_ptr",
