@@ -899,7 +899,8 @@ fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
         RangeCheckType::ID,
         SegmentArenaType::ID,
         SystemType::ID,
-    ].contains(generic_ty)
+    ]
+    .contains(generic_ty)
 }
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
