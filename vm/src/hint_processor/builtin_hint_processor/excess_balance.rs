@@ -279,7 +279,7 @@ fn excess_balance_func(
 
     // Fetch settelement price
     let settlement_asset = String::from("USDC-USD");
-    let settlement_price = prices[&settlement_asset];
+    let settlement_price = prices.get(&settlement_asset).ok_or_else(|| HintError::ExcessBalanceKeyError("prices".into()))?;
 
     let mut unrealized_pnl = Decimal::ZERO;
     let mut unrealized_funding_pnl = Decimal::ZERO;
