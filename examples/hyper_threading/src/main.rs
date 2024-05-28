@@ -59,7 +59,7 @@ fn main() {
         let mut hint_executor = BuiltinHintProcessor::new_empty();
 
         // Execute each program in parallel
-        let _result = cairo_run_program(&program, &cairo_run_config, &mut hint_executor, None)
+        let _result = cairo_run_program(&program, &cairo_run_config, &mut hint_executor)
             .expect("Couldn't run program");
     });
     let elapsed = start_time.elapsed();
