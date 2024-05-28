@@ -104,7 +104,7 @@ impl MarginParams {
 
     fn imf(&self, abs_value: Decimal) -> Option<Decimal> {
         let mut diff = (abs_value - self.imf_shift);
-        diff *= Decimal::from_scientific("1e-8").unwrap();
+        diff *= Decimal::from_scientific("1e8").unwrap();
         let max = BigUint::from_str(&Decimal::ZERO.max(diff.trunc()).to_string()).ok()?;
         let part_sqrt = isqrt(&max).ok()?;
         let mut part_sqrt = Decimal::from_str(&part_sqrt.to_string()).ok()?;
