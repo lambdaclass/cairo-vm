@@ -8,6 +8,8 @@
   * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
   * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
 
+                  * feat: specify initial value for `exec_scopes` in `cairo_run_program` [1772](https://github.com/lambdaclass/cairo-vm/pull/1772)
+
 * fix: make MemorySegmentManager.finalize() public [#1771](https://github.com/lambdaclass/cairo-vm/pull/1771)
 
 * feat: load Cairo PIE from bytes [#1773](https://github.com/lambdaclass/cairo-vm/pull/1773)
