@@ -142,7 +142,8 @@ fn prices_dict(
     ap_tracking: &ApTracking,
 ) -> Option<HashMap<String, Decimal>> {
     // Fetch dictionary
-    let prices = dict_ref_from_var_name("prices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
+    let prices =
+        dict_ref_from_var_name("prices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
@@ -166,7 +167,8 @@ fn indices_dict(
     ap_tracking: &ApTracking,
 ) -> Option<HashMap<String, Decimal>> {
     // Fetch dictionary
-    let indices = dict_ref_from_var_name("indices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
+    let indices =
+        dict_ref_from_var_name("indices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
@@ -234,8 +236,13 @@ fn balances_list(
     ap_tracking: &ApTracking,
 ) -> Option<Vec<Position>> {
     // Fetch dictionary
-    let balances =
-        dict_ref_from_var_name("perps_balances_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
+    let balances = dict_ref_from_var_name(
+        "perps_balances_cache_ptr",
+        vm,
+        dict_manager,
+        ids_data,
+        ap_tracking,
+    )?;
 
     // Apply data type conversions
     let apply_conversion = |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<Position> {
@@ -279,7 +286,9 @@ fn excess_balance_func(
 
     // Fetch settelement price
     let settlement_asset = String::from("USDC-USD");
-    let settlement_price = prices.get(&settlement_asset).ok_or_else(|| HintError::ExcessBalanceKeyError("prices".into()))?;
+    let settlement_price = prices
+        .get(&settlement_asset)
+        .ok_or_else(|| HintError::ExcessBalanceKeyError("prices".into()))?;
 
     let mut unrealized_pnl = Decimal::ZERO;
     let mut unrealized_funding_pnl = Decimal::ZERO;
@@ -372,7 +381,7 @@ mod tests {
     use core::str::FromStr;
 
     use super::*;
-    use crate::utils::test_utils::*;
+    use crate::{felt_str, utils::test_utils::*};
 
     #[test]
     fn test_read_position() {
@@ -428,5 +437,343 @@ mod tests {
         };
         let expected_res = Decimal::from_str("0.101784080000").unwrap();
         assert_eq!(expected_res, margin_params.imf(abs_value).unwrap());
+    }
+
+    #[test]
+    fn run_excess_balance_hint() {
+        // TEST DATA
+
+        // INPUT VALUES
+        // ids.margin_check_type 1
+        // ids.MARGIN_CHECK_INITIAL 1
+        // ids.token_assets_value_d 0
+        // ids.account 200
+        // DICTIONARIES
+        // prices {6044027408028715819619898970704: 5100000000000, 25783120691025710696626475600: 5100000000000, 5176525270854594879110454268496: 5100000000000, 21456356293159021401772216912: 5100000000000, 20527877651862571847371805264: 5100000000000, 6148332971604923204: 100000000}
+        // indices {6044027408028715819619898970704: 0, 25783120691025710696626475600: 0, 5176525270854594879110454268496: 0, 21456356293159021401772216912: 0, 20527877651862571847371805264: 0}
+        // perps {6044027408028715819619898970704: RelocatableValue(segment_index=1, offset=3092), 25783120691025710696626475600: RelocatableValue(segment_index=1, offset=3467), 5176525270854594879110454268496: RelocatableValue(segment_index=1, offset=3842), 21456356293159021401772216912: RelocatableValue(segment_index=1, offset=4217), 20527877651862571847371805264: RelocatableValue(segment_index=1, offset=4592)}
+        // fees {100: 10000, 200: 10000}
+        // balances {6044027408028715819619898970704: RelocatableValue(segment_index=1, offset=6406), 25783120691025710696626475600: RelocatableValue(segment_index=1, offset=6625), 5176525270854594879110454268496: RelocatableValue(segment_index=1, offset=6844), 21456356293159021401772216912: RelocatableValue(segment_index=1, offset=7063), 20527877651862571847371805264: RelocatableValue(segment_index=1, offset=18230)}
+        // MEMORY VALUES REFERENCED BY DICTIONARIES
+        // 1:3092 6044027408028715819619898970704
+        // 1:3096 5000000
+        // 1:3097 20000
+        // 1:3098 50000000
+        // 1:3099 20000000000000
+        // 1:3467 25783120691025710696626475600
+        // 1:3471 5000000
+        // 1:3472 20000
+        // 1:3473 50000000
+        // 1:3474 20000000000000
+        // 1:3842 5176525270854594879110454268496
+        // 1:3846 5000000
+        // 1:3847 20000
+        // 1:3848 50000000
+        // 1:3849 20000000000000
+        // 1:4217 21456356293159021401772216912
+        // 1:4221 5000000
+        // 1:4222 20000
+        // 1:4223 50000000
+        // 1:4224 20000000000000
+        // 1:4592 20527877651862571847371805264
+        // 1:4596 5000000
+        // 1:4597 20000
+        // 1:4598 50000000
+        // 1:4599 20000000000000
+        // 1:6406 6044027408028715819619898970704
+        // 1:6407 1000000000
+        // 1:6408 20000
+        // 1:6409 0
+        // 1:6406 6044027408028715819619898970704
+        // 1:6407 1000000000
+        // 1:6408 20000
+        // 1:6409 0
+        // 1:6625 25783120691025710696626475600
+        // 1:6626 1000000000
+        // 1:6627 20000
+        // 1:6628 0
+        // 1:6625 25783120691025710696626475600
+        // 1:6626 1000000000
+        // 1:6627 20000
+        // 1:6628 0
+        // 1:6844 5176525270854594879110454268496
+        // 1:6845 1000000000
+        // 1:6846 20000
+        // 1:6847 0
+        // 1:6844 5176525270854594879110454268496
+        // 1:6845 1000000000
+        // 1:6846 20000
+        // 1:6847 0
+        // 1:7063 21456356293159021401772216912
+        // 1:7064 1000000000
+        // 1:7065 20000
+        // 1:7066 0
+        // 1:7063 21456356293159021401772216912
+        // 1:7064 1000000000
+        // 1:7065 20000
+        // 1:7066 0
+        // 1:18582 20527877651862571847371805264
+        // 1:18583 900000000
+        // 1:18584 18000
+        // 1:18585 0
+        // 1:18582 20527877651862571847371805264
+        // 1:18583 900000000
+        // 1:18584 18000
+        // 1:18585 0
+        // EXPECTED RESULTS
+        // ids.check_account_value 50000000000
+        // ids.check_excess_balance 3618502788666131213697322783095070105623107215331596699973092055930362020481
+        // ids.check_margin_requirement_d 255510000000
+        // ids.check_unrealized_pnl_d 50000000000
+
+        // SETUP
+        let mut vm = vm!();
+        // CONSTANTS
+        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        // DICTIONARIES
+        let mut exec_scopes = ExecutionScopes::new();
+        let mut dict_manager = DictManager::new();
+        // ids.prices_cache_ptr = (2, 0)
+        dict_manager.new_dict(
+            &mut vm,
+            HashMap::from([
+                (
+                    felt_str!("6044027408028715819619898970704").into(),
+                    felt_str!("5100000000000").into(),
+                ),
+                (
+                    felt_str!("25783120691025710696626475600").into(),
+                    felt_str!("5100000000000").into(),
+                ),
+                (
+                    felt_str!("5176525270854594879110454268496").into(),
+                    felt_str!("5100000000000").into(),
+                ),
+                (
+                    felt_str!("21456356293159021401772216912").into(),
+                    felt_str!("5100000000000").into(),
+                ),
+                (
+                    felt_str!("20527877651862571847371805264").into(),
+                    felt_str!("5100000000000").into(),
+                ),
+                (
+                    felt_str!("6148332971604923204").into(),
+                    felt_str!("100000000").into(),
+                ),
+            ]),
+        );
+        // ids.indices_cache_ptr = (3, 0)
+        dict_manager.new_dict(
+            &mut vm,
+            HashMap::from([
+                (
+                    felt_str!("6044027408028715819619898970704").into(),
+                    Felt252::ZERO.into(),
+                ),
+                (
+                    felt_str!("25783120691025710696626475600").into(),
+                    Felt252::ZERO.into(),
+                ),
+                (
+                    felt_str!("5176525270854594879110454268496").into(),
+                    Felt252::ZERO.into(),
+                ),
+                (
+                    felt_str!("21456356293159021401772216912").into(),
+                    Felt252::ZERO.into(),
+                ),
+                (
+                    felt_str!("20527877651862571847371805264").into(),
+                    Felt252::ZERO.into(),
+                ),
+            ]),
+        );
+        // ids.perps_cache_ptr = (4, 0)
+        dict_manager.new_dict(
+            &mut vm,
+            HashMap::from([
+                (
+                    felt_str!("6044027408028715819619898970704").into(),
+                    (1, 3092).into(),
+                ),
+                (
+                    felt_str!("25783120691025710696626475600").into(),
+                    (1, 3467).into(),
+                ),
+                (
+                    felt_str!("5176525270854594879110454268496").into(),
+                    (1, 3842).into(),
+                ),
+                (
+                    felt_str!("21456356293159021401772216912").into(),
+                    (1, 4217).into(),
+                ),
+                (
+                    felt_str!("20527877651862571847371805264").into(),
+                    (1, 4592).into(),
+                ),
+            ]),
+        );
+        // ids.fees_cache_ptr = (5, 0)
+        dict_manager.new_dict(
+            &mut vm,
+            HashMap::from([
+                (Felt252::from(100).into(), Felt252::from(10000).into()),
+                (Felt252::from(200).into(), Felt252::from(10000).into()),
+            ]),
+        );
+        // ids.perps_balances_cache_ptr = (6, 0)
+        dict_manager.new_dict(
+            &mut vm,
+            HashMap::from([
+                (
+                    felt_str!("6044027408028715819619898970704").into(),
+                    (1, 6406).into(),
+                ),
+                (
+                    felt_str!("25783120691025710696626475600").into(),
+                    (1, 6625).into(),
+                ),
+                (
+                    felt_str!("5176525270854594879110454268496").into(),
+                    (1, 6844).into(),
+                ),
+                (
+                    felt_str!("21456356293159021401772216912").into(),
+                    (1, 7063).into(),
+                ),
+                (
+                    felt_str!("20527877651862571847371805264").into(),
+                    (1, 1823).into(),
+                ),
+            ]),
+        );
+        // IDS
+        vm.segments = segments!(
+            ((1, 0), 1),      // ids.margin_check_type
+            ((1, 1), 0),      // ids.token_assets_value_d
+            ((1, 2), 200),    // ids.account
+            ((1, 3), (2, 0)), // ids.prices_cache_ptr
+            ((1, 4), (3, 0)), // ids.indices_cache_ptr
+            ((1, 5), (4, 0)), // ids.perps_cache_ptr
+            ((1, 6), (5, 0)), // ids.fees_cache_ptr
+            ((1, 7), (6, 0)), // ids.perps_balances_cache_ptr
+            //((1, 8), ids.check_account_value)
+            //((1, 9), ids.check_excess_balance)
+            //((1, 10), ids.check_margin_requirement_d)
+            //((1, 11), ids.check_unrealized_pnl_d)
+            // Memory values referenced by hints
+            ((1, 3092), 6044027408028715819619898970704),
+            ((1, 3096), 5000000),
+            ((1, 3097), 20000),
+            ((1, 3098), 50000000),
+            ((1, 3099), 20000000000000),
+            ((1, 3467), 25783120691025710696626475600),
+            ((1, 3471), 5000000),
+            ((1, 3472), 20000),
+            ((1, 3473), 50000000),
+            ((1, 3474), 20000000000000),
+            ((1, 3842), 5176525270854594879110454268496),
+            ((1, 3846), 5000000),
+            ((1, 3847), 20000),
+            ((1, 3848), 50000000),
+            ((1, 3849), 20000000000000),
+            ((1, 4217), 21456356293159021401772216912),
+            ((1, 4221), 5000000),
+            ((1, 4222), 20000),
+            ((1, 4223), 50000000),
+            ((1, 4224), 20000000000000),
+            ((1, 4592), 20527877651862571847371805264),
+            ((1, 4596), 5000000),
+            ((1, 4597), 20000),
+            ((1, 4598), 50000000),
+            ((1, 4599), 20000000000000),
+            ((1, 6406), 6044027408028715819619898970704),
+            ((1, 6407), 1000000000),
+            ((1, 6408), 20000),
+            ((1, 6409), 0),
+            ((1, 6406), 6044027408028715819619898970704),
+            ((1, 6407), 1000000000),
+            ((1, 6408), 20000),
+            ((1, 6409), 0),
+            ((1, 6625), 25783120691025710696626475600),
+            ((1, 6626), 1000000000),
+            ((1, 6627), 20000),
+            ((1, 6628), 0),
+            ((1, 6625), 25783120691025710696626475600),
+            ((1, 6626), 1000000000),
+            ((1, 6627), 20000),
+            ((1, 6628), 0),
+            ((1, 6844), 5176525270854594879110454268496),
+            ((1, 6845), 1000000000),
+            ((1, 6846), 20000),
+            ((1, 6847), 0),
+            ((1, 6844), 5176525270854594879110454268496),
+            ((1, 6845), 1000000000),
+            ((1, 6846), 20000),
+            ((1, 6847), 0),
+            ((1, 7063), 21456356293159021401772216912),
+            ((1, 7064), 1000000000),
+            ((1, 7065), 20000),
+            ((1, 7066), 0),
+            ((1, 7063), 21456356293159021401772216912),
+            ((1, 7064), 1000000000),
+            ((1, 7065), 20000),
+            ((1, 7066), 0),
+            ((1, 18582), 20527877651862571847371805264),
+            ((1, 18583), 900000000),
+            ((1, 18584), 18000),
+            ((1, 18585), 0),
+            ((1, 18582), 20527877651862571847371805264),
+            ((1, 18583), 900000000),
+            ((1, 18584), 18000),
+            ((1, 18585), 0)
+        );
+        vm.run_context.set_fp(12);
+        let ids = ids_data![
+            "margin_check_type",
+            "token_assets_value_d",
+            "account",
+            "prices_cache_ptr",
+            "indices_cache_ptr",
+            "perps_cache_ptr",
+            "perps_cache_ptr",
+            "fees_cache_ptr",
+            "perps_balances_cache_ptr",
+            "check_account_value",
+            "check_excess_balance",
+            "check_margin_requirement_d",
+            "check_unrealized_pnl_d"
+        ];
+
+        // EXECUTION
+        assert!(excess_balance_func(
+            &mut vm,
+            &ids,
+            &ApTracking::default(),
+            &constants,
+            &exec_scopes
+        )
+        .is_ok());
+
+        // CHECK MEMORY VALUES
+        check_memory![
+            vm.segments.memory,
+            // ids.check_account_value
+            ((1, 8), 50000000000),
+            // ids.check_excess_balance
+            (
+                (1, 9),
+                (
+                    "3618502788666131213697322783095070105623107215331596699973092055930362020481",
+                    10
+                )
+            ),
+            // ids.check_margin_requirement_d
+            ((1, 10), 255510000000),
+            // ids.check_unrealized_pnl_d
+            ((1, 11), 50000000000)
+        ];
     }
 }
