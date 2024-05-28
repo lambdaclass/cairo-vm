@@ -10,7 +10,7 @@ use crate::{
 };
 use core::{cmp::max, str::FromStr};
 
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint};
 use num_traits::{Pow, Zero};
 use rust_decimal::{Decimal, MathematicalOps};
 use starknet_types_core::felt::Felt as Felt252;
@@ -34,7 +34,7 @@ use super::{
 
 fn felt_to_scaled_decimal(f: &Felt252) -> Option<Decimal> {
     let mut d = Decimal::from_str_radix(&signed_felt(*f).to_string(), 10).ok()?;
-    d.set_scale(8).ok();
+    d *= Decimal::from_scientific("1e-8").unwrap();
     Some(d)
 }
 
@@ -104,11 +104,11 @@ impl MarginParams {
 
     fn imf(&self, abs_value: Decimal) -> Option<Decimal> {
         let mut diff = (abs_value - self.imf_shift);
-        diff.set_scale(8).ok()?;
+        diff *= Decimal::from_scientific("1e-8").unwrap();
         let max = BigUint::from_str(&Decimal::ZERO.max(diff.trunc()).to_string()).ok()?;
         let part_sqrt = isqrt(&max).ok()?;
         let mut part_sqrt = Decimal::from_str(&part_sqrt.to_string()).ok()?;
-        part_sqrt.set_scale(4).ok()?;
+        part_sqrt *= Decimal::from_scientific("1e-4").unwrap();
         Some(self.imf_base.max(self.imf_factor * part_sqrt))
     }
 
@@ -336,13 +336,11 @@ fn excess_balance_func(
             .get(&account)
             .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
     let margin_requirement = position_margin + fee_provision;
-    dbg!(margin_requirement);
     let excess_balance = account_value - margin_requirement;
-    dbg!(excess_balance);
 
     let felt_from_decimal = |d: Decimal| -> Felt252 {
         let mut d = d;
-        d.set_scale(8);
+        d *= Decimal::from_scientific("1e8").unwrap();
         // This shouldn't fail
         let b = BigInt::from_str(&d.trunc().to_string()).unwrap_or_default();
         Felt252::from(b)
