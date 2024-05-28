@@ -32,10 +32,14 @@ use super::{
 
 // General helper functions
 
+lazy_static! {
+    static ref DECIMAL_ADJUSTMENT_POSITIVE: Decimal = Decimal::from_scientific("1e8").unwrap();
+    static ref DECIMAL_ADJUSTMENT: Decimal = Decimal::from_scientific("1e-8").unwrap();
+    static ref DECIMAL_ADJUSTMENT_HALVED: Decimal = Decimal::from_scientific("1e-4").unwrap();
+}
+
 fn felt_to_scaled_decimal(f: &Felt252) -> Option<Decimal> {
-    let mut d = Decimal::from_str_radix(&signed_felt(*f).to_string(), 10).ok()?;
-    d *= Decimal::from_scientific("1e-8").unwrap();
-    Some(d)
+    Some(Decimal::from_str_radix(&signed_felt(*f).to_string(), 10).ok()? * *DECIMAL_ADJUSTMENT)
 }
 
 fn felt_to_trimmed_str(f: &Felt252) -> Option<String> {
@@ -103,12 +107,11 @@ impl MarginParams {
     }
 
     fn imf(&self, abs_value: Decimal) -> Option<Decimal> {
-        let mut diff = (abs_value - self.imf_shift);
-        diff *= Decimal::from_scientific("1e8").unwrap();
+        let diff = (abs_value - self.imf_shift) * *DECIMAL_ADJUSTMENT_POSITIVE;
         let max = BigUint::from_str(&Decimal::ZERO.max(diff.trunc()).to_string()).ok()?;
         let part_sqrt = isqrt(&max).ok()?;
-        let mut part_sqrt = Decimal::from_str(&part_sqrt.to_string()).ok()?;
-        part_sqrt *= Decimal::from_scientific("1e-4").unwrap();
+        let part_sqrt =
+            Decimal::from_str(&part_sqrt.to_string()).ok()? * *DECIMAL_ADJUSTMENT_HALVED;
         Some(self.imf_base.max(self.imf_factor * part_sqrt))
     }
 
@@ -339,11 +342,11 @@ fn excess_balance_func(
     let excess_balance = account_value - margin_requirement;
 
     let felt_from_decimal = |d: Decimal| -> Felt252 {
-        let mut d = d;
-        d *= Decimal::from_scientific("1e8").unwrap();
-        // This shouldn't fail
-        let b = BigInt::from_str(&d.trunc().to_string()).unwrap_or_default();
-        Felt252::from(b)
+        // Converting from truncated Decimal to BigInt shouldn't fail
+        Felt252::from(
+            BigInt::from_str(&(d * *DECIMAL_ADJUSTMENT_POSITIVE).trunc().to_string())
+                .unwrap_or_default(),
+        )
     };
 
     // Write results into memory
@@ -534,14 +537,14 @@ mod tests {
         let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
         // IDS
         vm.segments = segments!(
-            ((1, 0), 1),      // ids.margin_check_type
-            ((1, 1), 1005149999998000),      // ids.token_assets_value_d
-            ((1, 2), 200),    // ids.account
-            ((1, 3), (2, 0)), // ids.prices_cache_ptr
-            ((1, 4), (3, 0)), // ids.indices_cache_ptr
-            ((1, 5), (4, 0)), // ids.perps_cache_ptr
-            ((1, 6), (5, 0)), // ids.fees_cache_ptr
-            ((1, 7), (6, 0)), // ids.perps_balances_cache_ptr
+            ((1, 0), 1),                // ids.margin_check_type
+            ((1, 1), 1005149999998000), // ids.token_assets_value_d
+            ((1, 2), 200),              // ids.account
+            ((1, 3), (2, 0)),           // ids.prices_cache_ptr
+            ((1, 4), (3, 0)),           // ids.indices_cache_ptr
+            ((1, 5), (4, 0)),           // ids.perps_cache_ptr
+            ((1, 6), (5, 0)),           // ids.fees_cache_ptr
+            ((1, 7), (6, 0)),           // ids.perps_balances_cache_ptr
             //((1, 8), ids.check_account_value)
             //((1, 9), ids.check_excess_balance)
             //((1, 10), ids.check_margin_requirement_d)
