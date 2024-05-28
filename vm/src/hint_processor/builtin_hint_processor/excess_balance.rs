@@ -142,7 +142,7 @@ fn prices_dict(
     ap_tracking: &ApTracking,
 ) -> Option<HashMap<String, Decimal>> {
     // Fetch dictionary
-    let prices = dict_ref_from_var_name("prices_dict", vm, dict_manager, ids_data, ap_tracking)?;
+    let prices = dict_ref_from_var_name("prices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
@@ -166,7 +166,7 @@ fn indices_dict(
     ap_tracking: &ApTracking,
 ) -> Option<HashMap<String, Decimal>> {
     // Fetch dictionary
-    let indices = dict_ref_from_var_name("indices_dict", vm, dict_manager, ids_data, ap_tracking)?;
+    let indices = dict_ref_from_var_name("indices_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
@@ -214,7 +214,7 @@ fn fees_dict(
     ap_tracking: &ApTracking,
 ) -> Option<HashMap<Felt252, Decimal>> {
     // Fetch dictionary
-    let fees = dict_ref_from_var_name("fees_dict", vm, dict_manager, ids_data, ap_tracking)?;
+    let fees = dict_ref_from_var_name("fees_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
@@ -235,7 +235,7 @@ fn balances_list(
 ) -> Option<Vec<Position>> {
     // Fetch dictionary
     let balances =
-        dict_ref_from_var_name("balances_dict", vm, dict_manager, ids_data, ap_tracking)?;
+        dict_ref_from_var_name("perps_balances_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion = |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<Position> {
