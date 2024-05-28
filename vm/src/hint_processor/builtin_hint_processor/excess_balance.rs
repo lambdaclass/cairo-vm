@@ -753,22 +753,14 @@ mod tests {
         exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
 
         // EXECUTION
-        // assert!(excess_balance_func(
-        //     &mut vm,
-        //     &ids,
-        //     &ApTracking::default(),
-        //     &constants,
-        //     &exec_scopes
-        // )
-        // .is_ok());
-        excess_balance_func(
+        assert!(excess_balance_func(
             &mut vm,
             &ids,
             &ApTracking::default(),
             &constants,
-            &exec_scopes,
+            &exec_scopes
         )
-        .unwrap();
+        .is_ok());
 
         // CHECK MEMORY VALUES
         check_memory![
