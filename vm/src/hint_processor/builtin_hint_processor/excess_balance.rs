@@ -2,23 +2,19 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     stdlib::collections::HashMap,
-    types::{
-        exec_scope::{self, ExecutionScopes},
-        relocatable::MaybeRelocatable,
-    },
+    types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use core::{cmp::max, str::FromStr};
+use core::str::FromStr;
 
 use num_bigint::{BigInt, BigUint};
-use num_traits::{Pow, Zero};
-use rust_decimal::{Decimal, MathematicalOps};
+use rust_decimal::Decimal;
 use starknet_types_core::felt::Felt as Felt252;
 
 use crate::{
     math_utils::{isqrt, signed_felt},
     types::relocatable::Relocatable,
-    vm::{errors::vm_errors::VirtualMachineError, vm_memory::memory::Memory},
+    vm::vm_memory::memory::Memory,
 };
 use lazy_static::lazy_static;
 
@@ -248,7 +244,7 @@ fn balances_list(
     )?;
 
     // Apply data type conversions
-    let apply_conversion = |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<Position> {
+    let apply_conversion = |_, v: &MaybeRelocatable| -> Option<Position> {
         Position::read_from_memory(&vm.segments.memory, v.get_relocatable()?)
     };
 
@@ -258,7 +254,7 @@ fn balances_list(
         .collect::<Option<_>>()
 }
 
-fn excess_balance_func(
+pub fn excess_balance_hint(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
@@ -635,125 +631,135 @@ mod tests {
         let mut exec_scopes = ExecutionScopes::new();
         let mut dict_manager = DictManager::new();
         // ids.prices_cache_ptr = (2, 0)
-        dict_manager.new_dict(
-            &mut vm,
-            HashMap::from([
-                (
-                    felt_str!("6044027408028715819619898970704").into(),
-                    felt_str!("5100000000000").into(),
-                ),
-                (
-                    felt_str!("25783120691025710696626475600").into(),
-                    felt_str!("5100000000000").into(),
-                ),
-                (
-                    felt_str!("5176525270854594879110454268496").into(),
-                    felt_str!("5100000000000").into(),
-                ),
-                (
-                    felt_str!("21456356293159021401772216912").into(),
-                    felt_str!("5100000000000").into(),
-                ),
-                (
-                    felt_str!("20527877651862571847371805264").into(),
-                    felt_str!("5100000000000").into(),
-                ),
-                (
-                    felt_str!("6148332971604923204").into(),
-                    felt_str!("100000000").into(),
-                ),
-            ]),
-        );
+        dict_manager
+            .new_dict(
+                &mut vm,
+                HashMap::from([
+                    (
+                        felt_str!("6044027408028715819619898970704").into(),
+                        felt_str!("5100000000000").into(),
+                    ),
+                    (
+                        felt_str!("25783120691025710696626475600").into(),
+                        felt_str!("5100000000000").into(),
+                    ),
+                    (
+                        felt_str!("5176525270854594879110454268496").into(),
+                        felt_str!("5100000000000").into(),
+                    ),
+                    (
+                        felt_str!("21456356293159021401772216912").into(),
+                        felt_str!("5100000000000").into(),
+                    ),
+                    (
+                        felt_str!("20527877651862571847371805264").into(),
+                        felt_str!("5100000000000").into(),
+                    ),
+                    (
+                        felt_str!("6148332971604923204").into(),
+                        felt_str!("100000000").into(),
+                    ),
+                ]),
+            )
+            .unwrap();
         // ids.indices_cache_ptr = (3, 0)
-        dict_manager.new_dict(
-            &mut vm,
-            HashMap::from([
-                (
-                    felt_str!("6044027408028715819619898970704").into(),
-                    Felt252::ZERO.into(),
-                ),
-                (
-                    felt_str!("25783120691025710696626475600").into(),
-                    Felt252::ZERO.into(),
-                ),
-                (
-                    felt_str!("5176525270854594879110454268496").into(),
-                    Felt252::ZERO.into(),
-                ),
-                (
-                    felt_str!("21456356293159021401772216912").into(),
-                    Felt252::ZERO.into(),
-                ),
-                (
-                    felt_str!("20527877651862571847371805264").into(),
-                    Felt252::ZERO.into(),
-                ),
-            ]),
-        );
+        dict_manager
+            .new_dict(
+                &mut vm,
+                HashMap::from([
+                    (
+                        felt_str!("6044027408028715819619898970704").into(),
+                        Felt252::ZERO.into(),
+                    ),
+                    (
+                        felt_str!("25783120691025710696626475600").into(),
+                        Felt252::ZERO.into(),
+                    ),
+                    (
+                        felt_str!("5176525270854594879110454268496").into(),
+                        Felt252::ZERO.into(),
+                    ),
+                    (
+                        felt_str!("21456356293159021401772216912").into(),
+                        Felt252::ZERO.into(),
+                    ),
+                    (
+                        felt_str!("20527877651862571847371805264").into(),
+                        Felt252::ZERO.into(),
+                    ),
+                ]),
+            )
+            .unwrap();
         // ids.perps_cache_ptr = (4, 0)
-        dict_manager.new_dict(
-            &mut vm,
-            HashMap::from([
-                (
-                    felt_str!("6044027408028715819619898970704").into(),
-                    (1, 3092).into(),
-                ),
-                (
-                    felt_str!("25783120691025710696626475600").into(),
-                    (1, 3467).into(),
-                ),
-                (
-                    felt_str!("5176525270854594879110454268496").into(),
-                    (1, 3842).into(),
-                ),
-                (
-                    felt_str!("21456356293159021401772216912").into(),
-                    (1, 4217).into(),
-                ),
-                (
-                    felt_str!("20527877651862571847371805264").into(),
-                    (1, 4592).into(),
-                ),
-            ]),
-        );
+        dict_manager
+            .new_dict(
+                &mut vm,
+                HashMap::from([
+                    (
+                        felt_str!("6044027408028715819619898970704").into(),
+                        (1, 3092).into(),
+                    ),
+                    (
+                        felt_str!("25783120691025710696626475600").into(),
+                        (1, 3467).into(),
+                    ),
+                    (
+                        felt_str!("5176525270854594879110454268496").into(),
+                        (1, 3842).into(),
+                    ),
+                    (
+                        felt_str!("21456356293159021401772216912").into(),
+                        (1, 4217).into(),
+                    ),
+                    (
+                        felt_str!("20527877651862571847371805264").into(),
+                        (1, 4592).into(),
+                    ),
+                ]),
+            )
+            .unwrap();
         // ids.fees_cache_ptr = (5, 0)
-        dict_manager.new_dict(
-            &mut vm,
-            HashMap::from([
-                (Felt252::from(100).into(), Felt252::from(10000).into()),
-                (Felt252::from(200).into(), Felt252::from(10000).into()),
-            ]),
-        );
+        dict_manager
+            .new_dict(
+                &mut vm,
+                HashMap::from([
+                    (Felt252::from(100).into(), Felt252::from(10000).into()),
+                    (Felt252::from(200).into(), Felt252::from(10000).into()),
+                ]),
+            )
+            .unwrap();
         // ids.perps_balances_cache_ptr = (6, 0)
-        dict_manager.new_dict(
-            &mut vm,
-            HashMap::from([
-                (
-                    felt_str!("6044027408028715819619898970704").into(),
-                    (1, 6406).into(),
-                ),
-                (
-                    felt_str!("25783120691025710696626475600").into(),
-                    (1, 6625).into(),
-                ),
-                (
-                    felt_str!("5176525270854594879110454268496").into(),
-                    (1, 6844).into(),
-                ),
-                (
-                    felt_str!("21456356293159021401772216912").into(),
-                    (1, 7063).into(),
-                ),
-                (
-                    felt_str!("20527877651862571847371805264").into(),
-                    (1, 18582).into(),
-                ),
-            ]),
-        );
+        dict_manager
+            .new_dict(
+                &mut vm,
+                HashMap::from([
+                    (
+                        felt_str!("6044027408028715819619898970704").into(),
+                        (1, 6406).into(),
+                    ),
+                    (
+                        felt_str!("25783120691025710696626475600").into(),
+                        (1, 6625).into(),
+                    ),
+                    (
+                        felt_str!("5176525270854594879110454268496").into(),
+                        (1, 6844).into(),
+                    ),
+                    (
+                        felt_str!("21456356293159021401772216912").into(),
+                        (1, 7063).into(),
+                    ),
+                    (
+                        felt_str!("20527877651862571847371805264").into(),
+                        (1, 18582).into(),
+                    ),
+                ]),
+            )
+            .unwrap();
         exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
 
         // EXECUTION
-        assert!(excess_balance_func(
+        assert!(excess_balance_hint(
             &mut vm,
             &ids,
             &ApTracking::default(),

@@ -7,7 +7,6 @@ pub mod dict_hint_utils;
 pub mod dict_manager;
 pub mod ec_recover;
 pub mod ec_utils;
-#[allow(unused)]
 pub mod excess_balance;
 pub mod field_arithmetic;
 pub mod find_element_hint;
