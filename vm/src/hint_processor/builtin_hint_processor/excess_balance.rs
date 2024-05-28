@@ -336,13 +336,16 @@ fn excess_balance_func(
             .get(&account)
             .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
     let margin_requirement = position_margin + fee_provision;
+    dbg!(margin_requirement);
     let excess_balance = account_value - margin_requirement;
+    dbg!(excess_balance);
 
     let felt_from_decimal = |d: Decimal| -> Felt252 {
         let mut d = d;
         d.set_scale(8);
         // This shouldn't fail
-        Felt252::from_dec_str(&d.trunc().to_string()).unwrap_or_default()
+        let b = BigInt::from_str(&d.trunc().to_string()).unwrap_or_default();
+        Felt252::from(b)
     };
 
     // Write results into memory
