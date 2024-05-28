@@ -441,13 +441,13 @@ mod tests {
     }
 
     #[test]
-    fn run_excess_balance_hint() {
+    fn run_excess_balance_hint_succesful_trace() {
         // TEST DATA
 
         // INPUT VALUES
         // ids.margin_check_type 1
         // ids.MARGIN_CHECK_INITIAL 1
-        // ids.token_assets_value_d 0
+        // ids.token_assets_value_d 1005149999998000
         // ids.account 200
         // DICTIONARIES
         // prices {6044027408028715819619898970704: 5100000000000, 25783120691025710696626475600: 5100000000000, 5176525270854594879110454268496: 5100000000000, 21456356293159021401772216912: 5100000000000, 20527877651862571847371805264: 5100000000000, 6148332971604923204: 100000000}
@@ -522,10 +522,10 @@ mod tests {
         // 1:18584 18000
         // 1:18585 0
         // EXPECTED RESULTS
-        // ids.check_account_value 50000000000
-        // ids.check_excess_balance 3618502788666131213697322783095070105623107215331596699973092055930362020481
-        // ids.check_margin_requirement_d 255510000000
-        // ids.check_unrealized_pnl_d 50000000000
+        // ids.check_account_value 1255049999900000
+        // ids.check_excess_balance 1227636643508000
+        // ids.check_margin_requirement_d 27413356392000
+        // ids.check_unrealized_pnl_d 249899999902000
 
         // SETUP
         let mut vm = vm!();
@@ -534,7 +534,7 @@ mod tests {
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),      // ids.margin_check_type
-            ((1, 1), 0),      // ids.token_assets_value_d
+            ((1, 1), 1005149999998000),      // ids.token_assets_value_d
             ((1, 2), 200),    // ids.account
             ((1, 3), (2, 0)), // ids.prices_cache_ptr
             ((1, 4), (3, 0)), // ids.indices_cache_ptr
@@ -770,19 +770,13 @@ mod tests {
         check_memory![
             vm.segments.memory,
             // ids.check_account_value
-            ((1, 8), 50000000000),
+            ((1, 8), 1255049999900000),
             // ids.check_excess_balance
-            (
-                (1, 9),
-                (
-                    "3618502788666131213697322783095070105623107215331596699973092055930362020481",
-                    10
-                )
-            ),
+            ((1, 9), 1227636643508000),
             // ids.check_margin_requirement_d
-            ((1, 10), 255510000000),
+            ((1, 10), 27413356392000),
             // ids.check_unrealized_pnl_d
-            ((1, 11), 50000000000)
+            ((1, 11), 249899999902000)
         ];
     }
 }
