@@ -2,7 +2,10 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     stdlib::collections::HashMap,
-    types::relocatable::MaybeRelocatable,
+    types::{
+        exec_scope::{self, ExecutionScopes},
+        relocatable::MaybeRelocatable,
+    },
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use core::{cmp::max, str::FromStr};
@@ -19,7 +22,13 @@ use crate::{
 };
 use lazy_static::lazy_static;
 
-use super::{dict_manager::DictManager, hint_utils::get_ptr_from_var_name};
+use super::{
+    dict_manager::DictManager,
+    hint_utils::{
+        get_constant_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
+        insert_value_from_var_name,
+    },
+};
 
 // General helper functions
 
@@ -103,7 +112,7 @@ impl MarginParams {
         Some(self.imf_base.max(self.imf_factor * part_sqrt))
     }
 
-    fn mmf(self, abs_value: Decimal) -> Option<Decimal> {
+    fn mmf(&self, abs_value: Decimal) -> Option<Decimal> {
         Some(self.mmf_factor * self.imf(abs_value)?)
     }
 }
@@ -203,17 +212,14 @@ fn fees_dict(
     dict_manager: &DictManager,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Option<HashMap<Decimal, Decimal>> {
+) -> Option<HashMap<Felt252, Decimal>> {
     // Fetch dictionary
     let fees = dict_ref_from_var_name("fees_dict", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
-        |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<(Decimal, Decimal)> {
-            Some((
-                felt_to_scaled_decimal(k.get_int_ref()?)?,
-                felt_to_scaled_decimal(v.get_int_ref()?)?,
-            ))
+        |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<(Felt252, Decimal)> {
+            Some((k.get_int()?, felt_to_scaled_decimal(v.get_int_ref()?)?))
         };
 
     fees.iter()
@@ -221,24 +227,20 @@ fn fees_dict(
         .collect::<Option<_>>()
 }
 
-fn balances_dict(
+fn balances_list(
     vm: &VirtualMachine,
     dict_manager: &DictManager,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Option<HashMap<Position, Position>> {
+) -> Option<Vec<Position>> {
     // Fetch dictionary
     let balances =
         dict_ref_from_var_name("balances_dict", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
-    let apply_conversion =
-        |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<(Position, Position)> {
-            Some((
-                Position::read_from_memory(&vm.segments.memory, k.get_relocatable()?)?,
-                Position::read_from_memory(&vm.segments.memory, v.get_relocatable()?)?,
-            ))
-        };
+    let apply_conversion = |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<Position> {
+        Position::read_from_memory(&vm.segments.memory, v.get_relocatable()?)
+    };
 
     balances
         .iter()
@@ -247,28 +249,122 @@ fn balances_dict(
 }
 
 fn excess_balance_func(
-    vm: &VirtualMachine,
-    dict_manager: &DictManager,
+    vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    constants: &HashMap<String, Felt252>,
+    exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
+    // Fetch constants & variables
+    let margin_check_type =
+        get_integer_from_var_name("margin_check_type", vm, ids_data, ap_tracking)?;
+    let margin_check_initial = get_constant_from_var_name("MARGIN_CHECK_INITIAL", constants)?;
+    let token_assets_value_d =
+        get_integer_from_var_name("token_assets_value_d", vm, ids_data, ap_tracking)?;
+    let account = get_integer_from_var_name("account", vm, ids_data, ap_tracking)?;
+    // Fetch DictManager
+    let dict_manager_rc = exec_scopes.get_dict_manager()?;
+    let dict_manager = dict_manager_rc.borrow();
     // Fetch dictionaries
-    let prices = prices_dict(vm, dict_manager, ids_data, ap_tracking)
+    let prices = prices_dict(vm, &dict_manager, ids_data, ap_tracking)
         .ok_or_else(|| HintError::ExcessBalanceFailedToFecthDict("prices".into()))?;
-    let indices = indices_dict(vm, dict_manager, ids_data, ap_tracking)
+    let indices = indices_dict(vm, &dict_manager, ids_data, ap_tracking)
         .ok_or_else(|| HintError::ExcessBalanceFailedToFecthDict("indices".into()))?;
-    let perps = perps_dict(vm, dict_manager, ids_data, ap_tracking)
+    let perps = perps_dict(vm, &dict_manager, ids_data, ap_tracking)
         .ok_or_else(|| HintError::ExcessBalanceFailedToFecthDict("perps".into()))?;
-    let fees = fees_dict(vm, dict_manager, ids_data, ap_tracking)
+    let fees = fees_dict(vm, &dict_manager, ids_data, ap_tracking)
         .ok_or_else(|| HintError::ExcessBalanceFailedToFecthDict("fees".into()))?;
-    let balances = balances_dict(vm, dict_manager, ids_data, ap_tracking)
+    let balances = balances_list(vm, &dict_manager, ids_data, ap_tracking)
         .ok_or_else(|| HintError::ExcessBalanceFailedToFecthDict("balances".into()))?;
 
     // Fetch settelement price
     let settlement_asset = String::from("USDC-USD");
     let settlement_price = prices[&settlement_asset];
 
-    Ok(())
+    let mut unrealized_pnl = Decimal::ZERO;
+    let mut unrealized_funding_pnl = Decimal::ZERO;
+    let mut abs_balance_value = Decimal::ZERO;
+    let mut position_margin = Decimal::ZERO;
+
+    for position in balances {
+        if position.market == settlement_asset {
+            continue;
+        }
+
+        let price = prices
+            .get(&position.market)
+            .ok_or_else(|| HintError::ExcessBalanceKeyError("prices".into()))?;
+        let funding_index = indices
+            .get(&position.market)
+            .ok_or_else(|| HintError::ExcessBalanceKeyError("indices".into()))?;
+        let position_value = position.amount * price;
+        let position_value_abs = position_value.abs();
+        abs_balance_value += position_value_abs;
+
+        let market_perps = perps
+            .get(&position.market)
+            .ok_or_else(|| HintError::ExcessBalanceKeyError("perps".into()))?;
+        let margin_fraction = if &margin_check_type == margin_check_initial {
+            market_perps.imf(position_value_abs)
+        } else {
+            market_perps.mmf(position_value_abs)
+        }
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("margin_fraction".into()))?;
+
+        position_margin += margin_fraction * position_value_abs;
+        unrealized_pnl += position_value - position.cost * settlement_price;
+        unrealized_funding_pnl +=
+            (position.cached_funding - funding_index) * position.amount * settlement_price;
+    }
+
+    // Calculate final results
+    let account_value = unrealized_pnl
+        + unrealized_funding_pnl
+        + felt_to_scaled_decimal(&token_assets_value_d)
+            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
+    let fee_provision = abs_balance_value
+        * fees
+            .get(&account)
+            .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
+    let margin_requirement = position_margin + fee_provision;
+    let excess_balance = account_value - margin_requirement;
+
+    let felt_from_decimal = |d: Decimal| -> Felt252 {
+        let mut d = d;
+        d.set_scale(8);
+        // This shouldn't fail
+        Felt252::from_dec_str(&d.trunc().to_string()).unwrap_or_default()
+    };
+
+    // Write results into memory
+    insert_value_from_var_name(
+        "check_account_value",
+        felt_from_decimal(account_value),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "check_excess_balance",
+        felt_from_decimal(excess_balance),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "check_margin_requirement_d",
+        felt_from_decimal(margin_requirement),
+        vm,
+        ids_data,
+        ap_tracking,
+    )?;
+    insert_value_from_var_name(
+        "check_unrealized_pnl_d",
+        felt_from_decimal(unrealized_pnl),
+        vm,
+        ids_data,
+        ap_tracking,
+    )
 }
 
 #[cfg(test)]

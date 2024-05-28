@@ -186,6 +186,10 @@ pub enum HintError {
     SyscallError(Box<str>),
     #[error("excess_balance_func: Failed to fetch {0} dictionary. It is either missing or has unexpected data types")]
     ExcessBalanceFailedToFecthDict(Box<str>),
+    #[error("excess_balance_func: Key not found in {0} dictionary")]
+    ExcessBalanceKeyError(Box<str>),
+    #[error("excess_balance_func: Failed to calculate {0}")]
+    ExcessBalanceCalculationFailed(Box<str>),
 }
 
 #[cfg(test)]
