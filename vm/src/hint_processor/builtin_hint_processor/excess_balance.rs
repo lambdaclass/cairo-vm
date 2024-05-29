@@ -15,7 +15,7 @@ use crate::{
     math_utils::{isqrt, signed_felt},
     types::relocatable::Relocatable,
     vm::vm_memory::memory::Memory,
-    stdlib::prelude::{String, Vec},
+    stdlib::prelude::{String, Vec, ToString},
 };
 use lazy_static::lazy_static;
 
