@@ -15,6 +15,7 @@ use bincode::enc::write::Writer;
 
 use thiserror_no_std::Error;
 
+use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 
@@ -46,10 +47,12 @@ impl<'a> Default for CairoRunConfig<'a> {
     }
 }
 
-pub fn cairo_run_program(
+/// Runs a program with a customized execution scope.
+pub fn cairo_run_program_with_initial_scope(
     program: &Program,
     cairo_run_config: &CairoRunConfig,
     hint_processor: &mut dyn HintProcessor,
+    exec_scopes: ExecutionScopes,
 ) -> Result<CairoRunner, CairoRunError> {
     let secure_run = cairo_run_config
         .secure_run
@@ -65,6 +68,8 @@ pub fn cairo_run_program(
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
     )?;
+
+    cairo_runner.exec_scopes = exec_scopes;
 
     let end = cairo_runner.initialize(allow_missing_builtins)?;
     // check step calculation
@@ -93,6 +98,19 @@ pub fn cairo_run_program(
     cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
     Ok(cairo_runner)
+}
+
+pub fn cairo_run_program(
+    program: &Program,
+    cairo_run_config: &CairoRunConfig,
+    hint_processor: &mut dyn HintProcessor,
+) -> Result<CairoRunner, CairoRunError> {
+    cairo_run_program_with_initial_scope(
+        program,
+        cairo_run_config,
+        hint_processor,
+        ExecutionScopes::new(),
+    )
 }
 
 pub fn cairo_run(

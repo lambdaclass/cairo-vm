@@ -133,9 +133,25 @@ pub fn cairo_run_program(
     let initial_gas = 9999999999999_usize;
 
     // Fetch return type data
+    let return_type_id = match main_func.signature.ret_types.last() {
+        // We need to check if the last return type is indeed the function's return value and not an implicit return value
+        return_type @ Some(concrete_ty)
+            if get_info(&sierra_program_registry, concrete_ty)
+                .is_some_and(|info| !is_implicit_generic_id(&info.long_id.generic_id)) =>
+        {
+            return_type
+        }
+        _ => None,
+    };
 
-    let return_type_id = main_func.signature.ret_types.last();
-
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_input_type(
+            &main_func.signature.param_types,
+            &sierra_program_registry,
+        )
+    {
+        return Err(Error::IlegalInputValue);
+    };
     if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
         && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
     {
@@ -623,7 +639,7 @@ fn create_entry_code(
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i.to_i16().unwrap()])));
             casm_build_extend!(ctx, assert local = var;);
         }
-        // Deserialize return values into output segment
+        // Serialize return values into output segment
         let output_ptr = output_ptr.unwrap();
         let outputs = (1..(return_type_size + 1))
             .rev()
@@ -650,11 +666,11 @@ fn create_entry_code(
             tempvar write_ptr = output_ptr;
             // Enter copying loop
             rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
-            jump CopyArray if remaining_elements != 0;
-            jump End;
+            jump CopyOutputArray if remaining_elements != 0;
+            jump EndOutputCopy;
 
             // Main Loop
-            CopyArray:
+            CopyOutputArray:
             #{steps = 0;}
             // Write array value into output segment
             tempvar val = *(array_ptr++);
@@ -666,10 +682,50 @@ fn create_entry_code(
             tempvar new_write_ptr = write_ptr;
             // Continue the loop
             rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
-            jump CopyArray if remaining_elements != 0;
+            jump CopyOutputArray if remaining_elements != 0;
 
-            End:
+            EndOutputCopy:
         };
+        if !actual_args_size.is_zero() {
+            // Serialize the input values into the output segment
+            // We lost the output_ptr var after re-scoping, so we need to create it again
+            // The last instruction will write the last output ptr so we can find it in [ap - 1]
+            let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
+            let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
+            let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
+            let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
+            casm_build_extend! {ctx,
+                // Calculate size of array and write it into the output segment
+                tempvar array_size = array_end_ptr - array_start_ptr;
+                assert array_size = *(output_ptr++);
+                // Create loop variables
+                tempvar remaining_elements = array_size;
+                tempvar array_ptr = array_start_ptr;
+                tempvar write_ptr = output_ptr;
+                // Enter copying loop
+                rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
+                jump EndInputCopy;
+
+                // Main Loop
+                CopyInputArray:
+                #{steps = 0;}
+                // Write array value into output segment
+                tempvar val = *(array_ptr++);
+                assert val = *(write_ptr++);
+                const one = 1;
+                // Create loop variables
+                tempvar new_remaining_elements = remaining_elements - one;
+                tempvar new_array_ptr = array_ptr;
+                tempvar new_write_ptr = write_ptr;
+                // Continue the loop
+                rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
+
+                EndInputCopy:
+            };
+        }
         // After we are done writing into the output segment, we can write the final output_ptr into locals:
         // The last instruction will write the final output ptr so we can find it in [ap - 1]
         let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
@@ -804,6 +860,48 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+// Checks that the program input (if present) is of type Array<Felt252>
+fn check_only_array_felt_input_type(
+    params: &[ConcreteTypeId],
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> bool {
+    // Filter implicit arguments (builtins, gas)
+    let arg_types = params
+        .iter()
+        .filter(|ty| {
+            let info = get_info(sierra_program_registry, ty).unwrap();
+            let generic_ty = &info.long_id.generic_id;
+            !is_implicit_generic_id(generic_ty)
+        })
+        .collect_vec();
+    if arg_types.is_empty() {
+        // No inputs
+        true
+    } else if arg_types.len() == 1 {
+        arg_types[0]
+            .debug_name
+            .as_ref()
+            .is_some_and(|name| name == "Array<felt252>")
+    } else {
+        false
+    }
+}
+
+// Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
+fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
+    [
+        SegmentArenaType::ID,
+        GasBuiltinType::ID,
+        BitwiseType::ID,
+        EcOpType::ID,
+        PedersenType::ID,
+        PoseidonType::ID,
+        RangeCheckType::ID,
+        SegmentArenaType::ID,
+        SystemType::ID,
+    ]
+    .contains(generic_ty)
+}
 // Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
 fn check_only_array_felt_return_type(
     return_type_id: Option<&ConcreteTypeId>,
@@ -899,25 +997,33 @@ fn fetch_return_values(
         // Output Builtin will always be on segment 2
         let return_values =
             vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
-        // This means that the return value is not a PanicResult
-        return if result_inner_type_size.is_none() {
-            Ok(return_values)
-        // The return value is a PanicResult so we need to check the panic_flag
+        // Remove panic wrapper
+        let (return_values, panic_flag) = if result_inner_type_size.is_none() {
+            // return value is not a PanicResult
+            (&return_values[..], false)
         } else {
-            // PanicResult::Err
-            if return_values.first() != Some(&MaybeRelocatable::from(0)) {
-                return Err(Error::RunPanic(
-                    return_values[1..]
-                        .iter()
-                        .map(|mr| mr.get_int().unwrap_or_default())
-                        .collect_vec(),
-                ));
-            // PanicResult::Ok
-            } else {
-                Ok(return_values[1..].to_vec())
-            }
+            // return value is a PanicResult
+            (
+                &return_values[1..],
+                return_values[0] != MaybeRelocatable::from(0),
+            )
         };
+        // Take only the output (as the output segment will also contain the input)
+        let output_len = return_values[0].get_int().unwrap().to_usize().unwrap() + 1;
+        let return_values = &return_values[0..output_len];
+        // Return Ok or Err based on panic_flag
+        if panic_flag {
+            return Err(Error::RunPanic(
+                return_values
+                    .iter()
+                    .map(|mr| mr.get_int().unwrap_or_default())
+                    .collect_vec(),
+            ));
+        } else {
+            return Ok(return_values.to_vec());
+        }
     }
+
     let mut return_values = vm.get_continuous_range(
         (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
         return_type_size as usize,
@@ -1507,5 +1613,67 @@ mod tests {
             compute_program_hash_chain(&runner_b.get_program().get_stripped_program().unwrap(), 0)
                 .unwrap();
         assert_eq!(hash_a, hash_b)
+    }
+
+    #[rstest]
+    fn check_output_segment_contains_program_ouput_and_input(
+        #[values(true, false)] proof_mode: bool,
+    ) {
+        // tensor.cairo
+        // inputs: [2 2 2 4 1 2 3 4]
+        // outputs: [1]
+        // Compile to sierra
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/serialized_output/with_input/tensor.cairo",
+        );
+        // Set proof_mode
+        let cairo_run_config = Cairo1RunConfig {
+            proof_mode,
+            layout: LayoutName::all_cairo,
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
+            finalize_builtins: true,
+            args: &[FuncArg::Array(vec![
+                2.into(),
+                2.into(),
+                2.into(),
+                4.into(),
+                1.into(),
+                2.into(),
+                3.into(),
+                4.into(),
+            ])],
+            ..Default::default()
+        };
+        // Run program
+        let (runner, _, _) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        // Check output segment
+        let expected_output_segment: Vec<Felt252> = vec![
+            // panic_flag
+            0.into(),
+            // output len
+            1.into(),
+            // output
+            1.into(),
+            // input len
+            8.into(),
+            // input
+            2.into(),
+            2.into(),
+            2.into(),
+            4.into(),
+            1.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+        ];
+        let output_segment_size = runner.vm.get_segment_size(2).unwrap_or_default();
+        let output_segment = runner
+            .vm
+            .get_integer_range((2, 0).into(), output_segment_size)
+            .unwrap()
+            .iter()
+            .map(|f| f.clone().into_owned())
+            .collect_vec();
+        assert_eq!(expected_output_segment, output_segment);
     }
 }
