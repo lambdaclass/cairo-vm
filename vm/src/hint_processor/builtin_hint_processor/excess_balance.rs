@@ -104,16 +104,19 @@ impl MarginParams {
     }
 
     fn imf(&self, abs_value: Decimal) -> Option<Decimal> {
-        let diff = (abs_value - self.imf_shift) * *DECIMAL_ADJUSTMENT_POSITIVE;
+        let diff = abs_value
+            .checked_sub(self.imf_shift)?
+            .checked_mul(*DECIMAL_ADJUSTMENT_POSITIVE)?;
         let max = BigUint::from_str(&Decimal::ZERO.max(diff.trunc()).to_string()).ok()?;
         let part_sqrt = isqrt(&max).ok()?;
-        let part_sqrt =
-            Decimal::from_str(&part_sqrt.to_string()).ok()? * *DECIMAL_ADJUSTMENT_HALVED;
-        Some(self.imf_base.max(self.imf_factor * part_sqrt))
+        let part_sqrt = Decimal::from_str(&part_sqrt.to_string())
+            .ok()?
+            .checked_mul(*DECIMAL_ADJUSTMENT_HALVED)?;
+        Some(self.imf_base.max(self.imf_factor.checked_mul(part_sqrt)?))
     }
 
     fn mmf(&self, abs_value: Decimal) -> Option<Decimal> {
-        Some(self.mmf_factor * self.imf(abs_value)?)
+        self.mmf_factor.checked_mul(self.imf(abs_value)?)
     }
 }
 
@@ -306,9 +309,15 @@ pub fn excess_balance_hint(
         let funding_index = indices
             .get(&position.market)
             .ok_or_else(|| HintError::ExcessBalanceKeyError("indices".into()))?;
-        let position_value = position.amount * price;
+        let position_value = position
+            .amount
+            .checked_mul(*price)
+            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("position_value".into()))?;
         let position_value_abs = position_value.abs();
-        abs_balance_value += position_value_abs;
+
+        abs_balance_value = abs_balance_value
+            .checked_add(position_value_abs)
+            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("abs_balance_value".into()))?;
 
         let market_perps = perps
             .get(&position.market)
@@ -319,58 +328,111 @@ pub fn excess_balance_hint(
             market_perps.mmf(position_value_abs)
         }
         .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("margin_fraction".into()))?;
-
-        position_margin += margin_fraction * position_value_abs;
-        unrealized_pnl += position_value - position.cost * settlement_price;
-        unrealized_funding_pnl +=
-            (position.cached_funding - funding_index) * position.amount * settlement_price;
+        // position_margin += margin_fraction * position_value_abs
+        position_margin = margin_fraction
+            .checked_mul(position_value_abs)
+            .and_then(|mul| position_margin.checked_add(mul))
+            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("position_margin".into()))?;
+        // unrealized_pnl += position_value - position.cost * settlement_price
+        let calc_unrealized_pnl = |unrealized_pnl: Decimal,
+                                   position: &Position,
+                                   settlement_price: Decimal|
+         -> Option<Decimal> {
+            unrealized_pnl.checked_add(
+                position_value.checked_sub(position.cost.checked_mul(settlement_price)?)?,
+            )
+        };
+        unrealized_pnl = calc_unrealized_pnl(unrealized_pnl, &position, *settlement_price)
+            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("unrealized_pnl".into()))?;
+        // unrealized_funding_pnl += (position.cached_funding - funding_index) * position.amount*settlement_price
+        let calc_unrealized_funding_pnl = |unrealized_funding_pnl: Decimal,
+                                           position: &Position,
+                                           funding_index: Decimal,
+                                           settlement_price: Decimal|
+         -> Option<Decimal> {
+            unrealized_funding_pnl.checked_add(
+                position
+                    .cached_funding
+                    .checked_sub(funding_index)?
+                    .checked_mul(position.amount)?
+                    .checked_mul(settlement_price)?,
+            )
+        };
+        unrealized_funding_pnl = calc_unrealized_funding_pnl(
+            unrealized_funding_pnl,
+            &position,
+            *funding_index,
+            *settlement_price,
+        )
+        .ok_or_else(|| {
+            HintError::ExcessBalanceCalculationFailed("unrealized_funding_pnl".into())
+        })?;
     }
 
     // Calculate final results
+    let token_assets_value_d = felt_to_scaled_decimal(&token_assets_value_d)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
     let account_value = unrealized_pnl
-        + unrealized_funding_pnl
-        + felt_to_scaled_decimal(&token_assets_value_d)
-            .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
-    let fee_provision = abs_balance_value
-        * fees
-            .get(&account)
-            .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
-    let margin_requirement = position_margin + fee_provision;
-    let excess_balance = account_value - margin_requirement;
+        .checked_add(unrealized_funding_pnl)
+        .and_then(|sum| sum.checked_add(token_assets_value_d))
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
+    let fee_provision = fees
+        .get(&account)
+        .and_then(|fee| abs_balance_value.checked_mul(*fee))
+        .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
+    let margin_requirement = position_margin
+        .checked_add(fee_provision)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("margin_requirements".into()))?;
+    let excess_balance = account_value
+        .checked_sub(margin_requirement)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("excess_balance".into()))?;
 
-    let felt_from_decimal = |d: Decimal| -> Felt252 {
-        // Converting from truncated Decimal to BigInt shouldn't fail
-        Felt252::from(
-            BigInt::from_str(&(d * *DECIMAL_ADJUSTMENT_POSITIVE).trunc().to_string())
-                .unwrap_or_default(),
-        )
+    // Convert final results to Felt
+    let felt_from_decimal = |d: Decimal| -> Option<Felt252> {
+        Some(Felt252::from(
+            BigInt::from_str(
+                &(d.checked_mul(*DECIMAL_ADJUSTMENT_POSITIVE)?)
+                    .trunc()
+                    .to_string(),
+            )
+            .ok()?,
+        ))
     };
+
+    let account_value = felt_from_decimal(account_value)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
+    let excess_balance = felt_from_decimal(excess_balance)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("excess_balance".into()))?;
+    let margin_requirement = felt_from_decimal(margin_requirement)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("margin_requirement_d".into()))?;
+    let unrealized_pnl = felt_from_decimal(unrealized_pnl)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("unrealized_pnl_d".into()))?;
 
     // Write results into memory
     insert_value_from_var_name(
         "check_account_value",
-        felt_from_decimal(account_value),
+        account_value,
         vm,
         ids_data,
         ap_tracking,
     )?;
     insert_value_from_var_name(
         "check_excess_balance",
-        felt_from_decimal(excess_balance),
+        excess_balance,
         vm,
         ids_data,
         ap_tracking,
     )?;
     insert_value_from_var_name(
         "check_margin_requirement_d",
-        felt_from_decimal(margin_requirement),
+        margin_requirement,
         vm,
         ids_data,
         ap_tracking,
     )?;
     insert_value_from_var_name(
         "check_unrealized_pnl_d",
-        felt_from_decimal(unrealized_pnl),
+        unrealized_pnl,
         vm,
         ids_data,
         ap_tracking,
