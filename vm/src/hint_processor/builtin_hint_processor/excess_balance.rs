@@ -13,9 +13,9 @@ use starknet_types_core::felt::Felt as Felt252;
 
 use crate::{
     math_utils::{isqrt, signed_felt},
+    stdlib::prelude::{String, ToString, Vec},
     types::relocatable::Relocatable,
     vm::vm_memory::memory::Memory,
-    stdlib::prelude::{String, Vec, ToString},
 };
 use lazy_static::lazy_static;
 
