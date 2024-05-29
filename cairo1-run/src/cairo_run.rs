@@ -108,6 +108,12 @@ impl Default for Cairo1RunConfig<'_> {
     }
 }
 
+impl Cairo1RunConfig<'_> {
+    fn copy_to_output(&self) -> bool {
+        self.append_return_values || self.proof_mode
+    }
+}
+
 // Runs a Cairo 1 program
 // Returns the runner after execution + the return values + the serialized return values (if serialize_output is enabled)
 // The return values will contain the memory values just as they appear in the VM, after removing the PanicResult enum (if present).
@@ -144,7 +150,7 @@ pub fn cairo_run_program(
         _ => None,
     };
 
-    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+    if cairo_run_config.copy_to_output()
         && !check_only_array_felt_input_type(
             &main_func.signature.param_types,
             &sierra_program_registry,
@@ -152,7 +158,7 @@ pub fn cairo_run_program(
     {
         return Err(Error::IlegalInputValue);
     };
-    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+    if cairo_run_config.copy_to_output()
         && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
     {
         return Err(Error::IlegalReturnValue);
@@ -249,8 +255,6 @@ pub fn cairo_run_program(
 
     runner.end_run(false, false, &mut hint_processor)?;
 
-    let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
-
     let result_inner_type_size =
         result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
     // Fetch return values
@@ -259,11 +263,11 @@ pub fn cairo_run_program(
         result_inner_type_size,
         &runner.vm,
         builtin_count,
-        skip_output,
+        cairo_run_config.copy_to_output(),
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
-        if cairo_run_config.append_return_values || cairo_run_config.proof_mode {
+        if cairo_run_config.copy_to_output() {
             // The return value is already serialized, so we can just print the array values
             let mut output_string = String::from("[");
             // Skip array_len
@@ -288,7 +292,7 @@ pub fn cairo_run_program(
 
     // Set stop pointers for builtins so we can obtain the air public input
     if cairo_run_config.finalize_builtins {
-        if skip_output {
+        if cairo_run_config.copy_to_output() {
             // Set stop pointer for each builtin
             runner.vm.builtins_final_stack_from_stack_pointer_dict(
                 &builtins
@@ -449,7 +453,6 @@ fn load_arguments(
         .param_types
         .iter()
         .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
-    let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
     // These include:
     // * The builtin bases (not including output)
@@ -459,7 +462,7 @@ fn load_arguments(
     //  * info_segment_ptr
     //  * 0
     let mut ap_offset = runner.get_program().builtins_len();
-    if append_output {
+    if cairo_run_config.copy_to_output() {
         ap_offset += runner.get_program().builtins_len() - 1;
     }
     if got_segment_arena {
@@ -507,7 +510,7 @@ fn create_entry_code(
     initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
-    let copy_to_output_builtin = config.proof_mode || config.append_return_values;
+    let copy_to_output_builtin = config.copy_to_output();
     let signature = &func.signature;
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
