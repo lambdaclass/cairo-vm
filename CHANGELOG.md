@@ -9,9 +9,13 @@
   * Add cheatcode `RelocateAllDictionaries` to the `Cairo1HintProcessor`, which calls the aforementioned method.
   * Add casm instruction to call the aforementioned cheatcode in `create_entry_code` if either `proof_mode` or `append_return_values` are set to true, and segment arena is present.
 
+* feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
+
 * feat(BREAKING): Serialize inputs into output segment in cairo1-run crate:
   * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
   * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
+
+                  * feat: specify initial value for `exec_scopes` in `cairo_run_program` [1772](https://github.com/lambdaclass/cairo-vm/pull/1772)
 
 * fix: make MemorySegmentManager.finalize() public [#1771](https://github.com/lambdaclass/cairo-vm/pull/1771)
 
