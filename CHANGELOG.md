@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: Add boolean method Cairo1RunConfig::copy_to_output + Update Doc [#1778](https://github.com/lambdaclass/cairo-vm/pull/1778)
+
 * feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
 
 * feat(BREAKING): Serialize inputs into output segment in cairo1-run crate:
