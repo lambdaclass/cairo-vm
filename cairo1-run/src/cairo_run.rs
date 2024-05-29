@@ -89,7 +89,7 @@ pub struct Cairo1RunConfig<'a> {
     /// Should be true if either air_public_input or cairo_pie_output are needed
     /// Sets builtins stop_ptr by calling `final_stack` on each builtin
     pub finalize_builtins: bool,
-    /// Appends return values to the output segment. This is performed by default when running in proof_mode
+    /// Appends the return and input values to the output segment. This is performed by default when running in proof_mode
     pub append_return_values: bool,
 }
 
