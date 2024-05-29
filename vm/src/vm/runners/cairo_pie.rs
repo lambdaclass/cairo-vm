@@ -268,12 +268,10 @@ impl CairoPie {
     }
 
     #[cfg(feature = "std")]
-    pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
+    pub fn from_zip_archive<R: std::io::Read + std::io::Seek>(
+        mut zip_reader: zip::ZipArchive<R>,
+    ) -> Result<CairoPie, std::io::Error> {
         use std::io::Read;
-        use zip::ZipArchive;
-
-        let file = File::open(file_path)?;
-        let mut zip_reader = ZipArchive::new(file)?;
 
         let reader = std::io::BufReader::new(zip_reader.by_name("version.json")?);
         let version: CairoPieVersion = serde_json::from_reader(reader)?;
@@ -299,6 +297,22 @@ impl CairoPie {
             additional_data,
             version,
         })
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, std::io::Error> {
+        let reader = std::io::Cursor::new(bytes);
+        let zip_archive = zip::ZipArchive::new(reader)?;
+
+        Self::from_zip_archive(zip_archive)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn read_zip_file(path: &Path) -> Result<Self, std::io::Error> {
+        let file = File::open(path)?;
+        let zip = zip::ZipArchive::new(file)?;
+
+        Self::from_zip_archive(zip)
     }
 }
 
