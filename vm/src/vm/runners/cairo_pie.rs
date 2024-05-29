@@ -254,27 +254,24 @@ impl CairoPie {
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         zip_writer.start_file("version.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.version)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.version)?;
         zip_writer.start_file("metadata.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.metadata)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.metadata)?;
         zip_writer.start_file("memory.bin", options)?;
         zip_writer.write_all(&self.memory.to_bytes())?;
         zip_writer.start_file("additional_data.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.additional_data)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
-        zip_writer.write_all(serde_json::to_string(&self.execution_resources)?.as_bytes())?;
+        serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
         zip_writer.finish()?;
         Ok(())
     }
 
     #[cfg(feature = "std")]
-    pub fn read_zip_file(file_path: &Path) -> Result<CairoPie, std::io::Error> {
+    pub fn from_zip_archive<R: std::io::Read + std::io::Seek>(
+        mut zip_reader: zip::ZipArchive<R>,
+    ) -> Result<CairoPie, std::io::Error> {
         use std::io::Read;
-
-        use zip::ZipArchive;
-
-        let file = File::open(file_path)?;
-        let mut zip_reader = ZipArchive::new(file)?;
 
         let reader = std::io::BufReader::new(zip_reader.by_name("version.json")?);
         let version: CairoPieVersion = serde_json::from_reader(reader)?;
@@ -300,6 +297,22 @@ impl CairoPie {
             additional_data,
             version,
         })
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, std::io::Error> {
+        let reader = std::io::Cursor::new(bytes);
+        let zip_archive = zip::ZipArchive::new(reader)?;
+
+        Self::from_zip_archive(zip_archive)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn read_zip_file(path: &Path) -> Result<Self, std::io::Error> {
+        let file = File::open(path)?;
+        let zip = zip::ZipArchive::new(file)?;
+
+        Self::from_zip_archive(zip)
     }
 }
 
@@ -753,13 +766,13 @@ mod test {
                 layout: LayoutName::starknet_with_keccak,
                 ..Default::default()
             };
-            let (runner, vm) = crate::cairo_run::cairo_run(
+            let runner = crate::cairo_run::cairo_run(
                 program_content,
                 &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),
             )
             .unwrap();
-            runner.get_cairo_pie(&vm).unwrap()
+            runner.get_cairo_pie().unwrap()
         };
         // Serialize the CairoPie into a zip file
         let filename = format!("temp_file_{}", identifier); // Identifier used to avoid name clashes

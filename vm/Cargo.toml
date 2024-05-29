@@ -23,6 +23,7 @@ std = [
 cairo-1-hints = [
     "dep:cairo-lang-starknet",
     "dep:cairo-lang-casm",
+    "dep:cairo-lang-starknet-classes",
     "dep:ark-ff",
     "dep:ark-std",
 ]
@@ -30,18 +31,10 @@ tracer = []
 mod_builtin = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
-test_utils = [
-    "skip_next_instruction_hint",
-    "hooks",
-    "print",
-] # This feature will reference every test-oriented feature
-skip_next_instruction_hint = []
-hooks = []
-arbitrary = ["dep:arbitrary", "std", "starknet-types-core/arbitrary", "starknet-types-core/std"]
+test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
 # Allows extending the set of hints for the current vm run from within a hint.
 # For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
 extensive_hints = []
-print = ["std"]
 
 [dependencies]
 zip = {version = "0.6.6", optional = true }
@@ -71,6 +64,7 @@ bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature
 cairo-lang-starknet = { workspace = true, optional = true }
+cairo-lang-starknet-classes = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
 
 # TODO: check these dependencies for wasm compatibility

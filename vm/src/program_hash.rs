@@ -36,11 +36,8 @@ pub enum ProgramHashError {
 
 /// Computes a hash chain over the data, in the following order:
 ///     h(data[0], h(data[1], h(..., h(data[n-2], data[n-1])))).
-///
-/// Reimplements this Python function:
-/// def compute_hash_chain(data, hash_func=pedersen_hash):
-///     assert len(data) >= 1, f"len(data) for hash chain computation must be >= 1; got: {len(data)}."
-///     return functools.reduce(lambda x, y: hash_func(y, x), data[::-1])
+/// [cairo_lang reference](https://github.com/starkware-libs/cairo-lang/blob/efa9648f57568aad8f8a13fbf027d2de7c63c2c0/src/starkware/cairo/common/hash_chain.py#L6)
+
 fn compute_hash_chain<'a, I>(
     data: I,
     hash_func: HashFunction,
@@ -88,15 +85,7 @@ fn maybe_relocatable_to_field_element(
 }
 
 /// Computes the Pedersen hash of a program.
-///
-/// Reimplements this Python function:
-/// def compute_program_hash_chain(program: ProgramBase, bootloader_version=0):
-///     builtin_list = [from_bytes(builtin.encode("ascii")) for builtin in program.builtins]
-///     # The program header below is missing the data length, which is later added to the data_chain.
-///     program_header = [bootloader_version, program.main, len(program.builtins)] + builtin_list
-///     data_chain = program_header + program.data
-///
-///     return compute_hash_chain([len(data_chain)] + data_chain)
+/// [(cairo_lang reference)](https://github.com/starkware-libs/cairo-lang/blob/efa9648f57568aad8f8a13fbf027d2de7c63c2c0/src/starkware/cairo/bootloaders/hash_program.py#L11)
 pub fn compute_program_hash_chain(
     program: &StrippedProgram,
     bootloader_version: usize,

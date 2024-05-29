@@ -122,8 +122,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
         // Split value into n_parts parts of less than _INNER_RC_BOUND size.
         for value in range_check_segment {
             rc_bounds = value
-                .as_ref()?
-                .get_value()
+                .get_value()?
                 .get_int_ref()?
                 .to_le_digits()
                 // TODO: maybe skip leading zeros
@@ -151,8 +150,8 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
-            for (index, val) in segment.iter().enumerate() {
-                if let Some(value) = val.as_ref().and_then(|cell| cell.get_value().get_int()) {
+            for (index, cell) in segment.iter().enumerate() {
+                if let Some(value) = cell.get_value().and_then(|value| value.get_int()) {
                     private_inputs.push(PrivateInput::Value(PrivateInputValue { index, value }))
                 }
             }
@@ -170,12 +169,7 @@ mod tests {
     use crate::vm::vm_memory::memory::Memory;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::program::Program,
-        utils::test_utils::*,
-        vm::{
-            runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
-            vm_core::VirtualMachine,
-        },
+        types::program::Program, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner,
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -304,10 +298,6 @@ mod tests {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-
         let program = program!(
             builtins = vec![BuiltinName::range_check],
             data = vec_data!(
@@ -334,15 +324,20 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
+
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 1)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 1))
+        );
     }
 
     #[test]
@@ -351,8 +346,6 @@ mod tests {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
         let program = program!(
             builtins = vec![BuiltinName::range_check],
             data = vec_data!(
@@ -381,13 +374,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(1));
     }
 
     #[test]

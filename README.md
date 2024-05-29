@@ -1,5 +1,7 @@
 <div align="center">
-<img src="./bonaparte.webp" height="150">
+<img src="./docs/images/cairovm.png#gh-light-mode-only" height="150">
+<img src="./docs/images/cairovm_white.png#gh-dark-mode-only" height="150">
+
 
 ### ⚡ Cairo-vm ⚡
 
@@ -138,7 +140,7 @@ To run a compiled .json program through the VM, call the executable giving it th
 target/release/cairo-vm-cli cairo_programs/abs_value_array_compiled.json --layout all_cairo
 ```
 
-The flag `--layout` determines which builtins can be used. More info about layouts [here](https://www.cairo-lang.org/docs/how_cairo_works/builtins.html#layouts).
+The flag `--layout` determines which builtins can be used. More info about layouts [here](https://docs.cairo-lang.org/how_cairo_works/builtins.html#layouts).
 
 To sum up, the following code will get you from zero to running a Cairo program:
 
@@ -174,9 +176,11 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `--air_private_input <AIR_PRIVATE_INPUT>`: Receives the name of a file and outputs the AIR private inputs into it. Can only be used if proof_mode, trace_file & memory_file are also enabled.
 
-- `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
+- `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode is not enabled.
 
 - `--allow_missing_builtins`: Disables the check that all builtins used by the program need to be included in the selected layout. Enabled by default when in proof_mode.
+
+- `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
@@ -207,9 +211,7 @@ When running a Cairo program directly using the Cairo-vm repository you would fi
 2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 
   ```rust
-  let mut vm = VirtualMachine::new(false);
-
-  let mut cairo_runner = CairoRunner::new(&program, LayoutName::all_cairo, false);
+  let mut cairo_runner = CairoRunner::new(&program, LayoutName::all_cairo, false, false);
 
   let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -222,8 +224,8 @@ When running a Cairo program directly using the Cairo-vm repository you would fi
 3. Lastly, initialize the builtins and segments.
 
   ```rust
-  cairo_runner.initialize_builtins(&mut vm)?;
-  cairo_runner.initialize_segments(&mut vm, None);
+  cairo_runner.initialize_builtins(false)?;
+  cairo_runner.initialize_segments(None);
   ```
 
 When using cairo-vm with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
@@ -236,7 +238,6 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
                 &MaybeRelocatable::from((2,0)).into() //this would be the output_ptr for example if our cairo function uses it
                 ],
             false,
-            &mut vm,
             &mut hint_processor,
         );
 ```
@@ -330,7 +331,7 @@ You can find more detailed instructions in the [CONTRIBUTING.md](CONTRIBUTING.md
 
 ### Cairo
 
-- From Cairo Documentation: [How Cairo Works](https://www.cairo-lang.org/docs/how_cairo_works/index.html#how-cairo-works)
+- From Cairo Documentation: [How Cairo Works](https://docs.cairo-lang.org/how_cairo_works/index.html)
 - [Cairo – a Turing-complete STARK-friendly CPU architecture](https://eprint.iacr.org/2021/1063)
 - [A Verified Algebraic Representation of Cairo Program Execution](https://arxiv.org/pdf/2109.14534.pdf)
 - [Cairo Verifier](https://github.com/patrickbiel01/Cairo_Verifier) in Rust

@@ -4,6 +4,108 @@
 
 * Bump `starknet-types-core` version + Use the lib's pedersen hash [#1734](https://github.com/lambdaclass/cairo-vm/pull/1734)
 
+* feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
+
+* feat(BREAKING): Serialize inputs into output segment in cairo1-run crate:
+  * Checks that only `Array<Felt252>` can be received by the program main function when running with with either `--proof_mode` or `--append_return_values`.
+  * Copies the input value to the output segment right after the output in the format `[array_len, arr[0], arr[1],.., arr[n]]`.
+
+                  * feat: specify initial value for `exec_scopes` in `cairo_run_program` [1772](https://github.com/lambdaclass/cairo-vm/pull/1772)
+
+* fix: make MemorySegmentManager.finalize() public [#1771](https://github.com/lambdaclass/cairo-vm/pull/1771)
+
+* feat: load Cairo PIE from bytes [#1773](https://github.com/lambdaclass/cairo-vm/pull/1773)
+
+* feat(BREAKING): Serialize `Array<Felt252>` return value into output segment in cairo1-run crate:
+  * Checks that only `PanicResult<Array<Felt252>>` or `Array<Felt252>` can be returned by the program when running with either `--proof_mode` or `--append_return_values`.
+  * Serializes return values into the output segment under the previous conditions following the format:
+    * `PanicResult<Array<Felt252>>` -> `[panic_flag, array_len, arr[0], arr[1],.., arr[n]]`
+    * `<Array<Felt252>` -> `[array_len, arr[0], arr[1],.., arr[n]]`
+
+* feat: Handle `BoundedInt` variant in `serialize_output`, `cairo1-run` crate  [#1768](https://github.com/lambdaclass/cairo-vm/pull/1768)
+
+* fix: make `OutputBuiltinState` public [#1769](https://github.com/lambdaclass/cairo-vm/pull/1769)
+
+* feat: Load arguments into VM instead of creating them via instructions in cairo1-run [#1759](https://github.com/lambdaclass/cairo-vm/pull/1759)
+
+#### [1.0.0-rc3] - 2024-05-14
+
+* bugfix: Fix handling of return values wrapped in `PanicResult` in cairo1-run crate [#1763](https://github.com/lambdaclass/cairo-vm/pull/1763)
+
+* refactor(BREAKING): Move the VM back to the CairoRunner [#1743](https://github.com/lambdaclass/cairo-vm/pull/1743)
+  * `CairoRunner` has a new public field `vm: VirtualMachine`
+  * `CairoRunner` no longer derives `Debug`
+  * `CairoRunner` methods `new_v2` & `new` take an extra boolean argument `trace_enabled`.
+  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now retun only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
+  * `CairoRunner` methods no longer take a reference to `VirtualMachine`. Methods that took an immutable reference to self and a mutable reference to the VM now take a mutable reference to self. Affected methods:
+    * `initialize`
+    * `initialize_builtins`
+    * `initialize_all_builtins`
+    * `initialize_segments`
+    * `initialize_state`
+    * `initialize_function_entrypoint`
+    * `initialize_state`
+    * `initialize_main_entrypoint`
+    * `initialize_vm`
+    * `run_until_pc`
+    * `run_for_steps`
+    * `run_until_steps`
+    * `run_until_power_of_2`
+    * `get_perm_range_check_limits`
+    * `check_range_check_usage`
+    * `get_memory_holes`
+    * `check_diluted_check_usage`
+    * `end_run`
+    * `relocate_trace`
+    * `relocate_memory`
+    * `relocate`
+    * `get_builtin_segments_info`
+    * `get_builtin_segments_info_for_pie`
+    * `get_execution_resources`
+    * `finalize_segments`
+    * `run_from_entrypoint`
+    * `check_used_cells`
+    * `check_memory_usage`
+    * `initialize_function_runner_cairo_1`
+    * `initialize_function_runner`
+    * `read_return_values`
+    * `get_builtins_final_stack`
+    * `get_cairo_pie`
+    * `get_air_public_input`
+    * `get_air_private_input`
+    * `get_memory_segment_addresses`
+  * Functions & methods taking a reference to `CairoRunner` & `VirtualMachine` now only take a reference to `CairoRunner`:
+    * `start_tracer`
+    * `VmException::from_vm_error`
+    * `get_error_attr_value`
+    * `get_traceback`
+    * `verify_secure_runner`
+  * [hooks feature] `BeforeFirstStepHookFunc` dyn Fn no longer takes a mutable reference to `CairoRunner`, along with `VirtualMachine::execute_before_first_step`.
+
+* fix: add support for arrays shorter than 2 as arguments for cairo1-run [#1737](https://github.com/lambdaclass/cairo-vm/pull/1737)
+
+* bugfix: Fix BuiltinRunner::final_stack for SegmentArena[#1747](https://github.com/lambdaclass/cairo-vm/pull/1747)
+
+* feat: unify `arbitrary`, `hooks`, `print` and `skip_next_instruction_hint` features as a single `test_utils` feature [#1755](https://github.com/lambdaclass/cairo-vm/pull/1755)
+  * BREAKING: removed the above features
+
+* bugfix: cairo1-run CLI: Set finalize_builtins to true when using --air_public_input flag [#1744](https://github.com/lambdaclass/cairo-vm/pull/1752)
+
+* feat: Add hint `U256InvModN` to `Cairo1HintProcessor` [#1744](https://github.com/lambdaclass/cairo-vm/pull/1744)
+
+* perf: use a more compact representation for `MemoryCell` [#1672](https://github.com/lambdaclass/cairo-vm/pull/1672)
+  * BREAKING: `Memory::get_value` will now always return `Cow::Owned` variants, code that relied on `Cow::Borrowed` may break
+
+#### [1.0.0-rc2] - 2024-05-02
+
+* `cairo1-run` CLI: Allow loading arguments from file[#1739](https://github.com/lambdaclass/cairo-vm/pull/1739)
+
+* BREAKING: Remove unused `CairoRunner` field `original_steps`[#1742](https://github.com/lambdaclass/cairo-vm/pull/1742)
+
+* feat: Add `--run_from_cairo_pie` to `cairo-vm-cli` + workflow [#1730](https://github.com/lambdaclass/cairo-vm/pull/1730)
+
+* Serialize directly into writer in `CairoPie::write_zip_file`[#1736](https://github.com/lambdaclass/cairo-vm/pull/1736)
+
 * feat: Add support for cairo1 run with segements arena validation.
   * Refactored the runner CASM code generation to user a more high level builder.
   * Added segment merging of the dictionary segments.
@@ -13,10 +115,17 @@
 
 * feat: Implement `CairoPie::read_zip_file`[#1729](https://github.com/lambdaclass/cairo-vm/pull/1729)
 
+* feat: Bump to 2.6.3 + Remove gas checks[#1709](https://github.com/lambdaclass/cairo-vm/pull/1709)
+  * Bump cairo_lang crates & corelib to v2.6.3
+  * Disable gas checks when compiling to sierra & casm
+  * Add `Known bugs & issues` segment to README, poining out issues derived from the removal of gas checks and cairo v2.6.3
+
 * feat: Implement running from `CairoPie`[#1720](https://github.com/lambdaclass/cairo-vm/pull/1720)
   * Add function `cairo_run_pie`
   * Add `CairoPie` methods `run_validity_checks` & `check_pie_compatibility`
   * Add `Program` method `from_stripped_program`
+
+* bugfix: Don't assume outer deref when fetching integer values from references[#1732](https://github.com/lambdaclass/cairo-vm/pull/1732)
 
 * feat: Implement `extend_additional_data` for `BuiltinRunner`[#1726](https://github.com/lambdaclass/cairo-vm/pull/1726)
 

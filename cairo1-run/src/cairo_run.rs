@@ -13,7 +13,7 @@ use cairo_lang_sierra::{
         bitwise::BitwiseType,
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
-        gas::{CostTokenType, GasBuiltinType},
+        gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
         range_check::RangeCheckType,
@@ -25,11 +25,10 @@ use cairo_lang_sierra::{
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
-use cairo_lang_sierra_ap_change::calc_ap_changes;
-use cairo_lang_sierra_gas::{gas_info::GasInfo, objects::CostInfoProvider};
+use cairo_lang_sierra_gas::objects::CostInfoProvider;
 use cairo_lang_sierra_to_casm::{
-    compiler::CairoProgram,
-    metadata::{calc_metadata, Metadata, MetadataComputationConfig, MetadataError},
+    compiler::{CairoProgram, SierraToCasmConfig},
+    metadata::calc_metadata_ap_change_only,
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
 use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
@@ -110,29 +109,54 @@ impl Default for Cairo1RunConfig<'_> {
 }
 
 // Runs a Cairo 1 program
-// Returns the runner & VM after execution + the return values + the serialized return values (if serialize_output is enabled)
+// Returns the runner after execution + the return values + the serialized return values (if serialize_output is enabled)
+// The return values will contain the memory values just as they appear in the VM, after removing the PanicResult enum (if present).
+// Except if either the flag append_return_values or proof_mode are enabled, in which case the return values will consist of its serialized form: [array_len, array[0], array[1], ..., array[array_len -1]]
 pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
-) -> Result<
-    (
-        CairoRunner,
-        VirtualMachine,
-        Vec<MaybeRelocatable>,
-        Option<String>,
-    ),
-    Error,
-> {
-    let metadata = create_metadata(sierra_program, Some(Default::default()))?;
+) -> Result<(CairoRunner, Vec<MaybeRelocatable>, Option<String>), Error> {
+    let metadata = calc_metadata_ap_change_only(sierra_program)
+        .map_err(|_| VirtualMachineError::Unexpected)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
         get_type_size_map(sierra_program, &sierra_program_registry).unwrap_or_default();
+    let config = SierraToCasmConfig {
+        gas_usage_check: false,
+        max_bytecode_size: usize::MAX,
+    };
     let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, true)?;
+        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, config)?;
 
     let main_func = find_function(sierra_program, "::main")?;
 
     let initial_gas = 9999999999999_usize;
+
+    // Fetch return type data
+    let return_type_id = match main_func.signature.ret_types.last() {
+        // We need to check if the last return type is indeed the function's return value and not an implicit return value
+        return_type @ Some(concrete_ty)
+            if get_info(&sierra_program_registry, concrete_ty)
+                .is_some_and(|info| !is_implicit_generic_id(&info.long_id.generic_id)) =>
+        {
+            return_type
+        }
+        _ => None,
+    };
+
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_input_type(
+            &main_func.signature.param_types,
+            &sierra_program_registry,
+        )
+    {
+        return Err(Error::IlegalInputValue);
+    };
+    if (cairo_run_config.proof_mode || cairo_run_config.append_return_values)
+        && !check_only_array_felt_return_type(return_type_id, &sierra_program_registry)
+    {
+        return Err(Error::IlegalReturnValue);
+    };
 
     // Modified entry code to be compatible with custom cairo1 Proof Mode.
     // This adds code that's needed for dictionaries, adjusts ap for builtin pointers, adds initial gas for the gas builtin if needed, and sets up other necessary code for cairo1
@@ -145,16 +169,9 @@ pub fn cairo_run_program(
         &cairo_run_config,
     )?;
 
-    // Fetch return type data
-    let return_type_id = main_func
-        .signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
 
     // This footer is used by lib funcs
     let libfunc_footer = create_code_footer();
@@ -177,8 +194,6 @@ pub fn cairo_run_program(
         .map(|x| Felt252::from(&x))
         .map(MaybeRelocatable::from)
         .collect();
-
-    let data_len = data.len();
 
     let program = if cairo_run_config.proof_mode {
         Program::new_for_proof(
@@ -217,38 +232,56 @@ pub fn cairo_run_program(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(&program, cairo_run_config.layout, runner_mode)?;
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = runner.initialize(&mut vm, cairo_run_config.proof_mode)?;
-
-    additional_initialization(&mut vm, data_len)?;
+    let mut runner = CairoRunner::new_v2(
+        &program,
+        cairo_run_config.layout,
+        runner_mode,
+        cairo_run_config.trace_enabled,
+    )?;
+    let end = runner.initialize(cairo_run_config.proof_mode)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut vm, &mut hint_processor)?;
+    runner.run_until_pc(end, &mut hint_processor)?;
     if cairo_run_config.proof_mode {
-        runner.run_for_steps(1, &mut vm, &mut hint_processor)?;
+        runner.run_for_steps(1, &mut hint_processor)?;
     }
 
-    runner.end_run(false, false, &mut vm, &mut hint_processor)?;
+    runner.end_run(false, false, &mut hint_processor)?;
 
     let skip_output = cairo_run_config.proof_mode || cairo_run_config.append_return_values;
+
+    let result_inner_type_size =
+        result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
     // Fetch return values
     let return_values = fetch_return_values(
         return_type_size,
-        return_type_id,
-        &vm,
+        result_inner_type_size,
+        &runner.vm,
         builtin_count,
         skip_output,
     )?;
 
     let serialized_output = if cairo_run_config.serialize_output {
-        Some(serialize_output(
-            &return_values,
-            &mut vm,
-            return_type_id,
-            &sierra_program_registry,
-            &type_sizes,
-        ))
+        if cairo_run_config.append_return_values || cairo_run_config.proof_mode {
+            // The return value is already serialized, so we can just print the array values
+            let mut output_string = String::from("[");
+            // Skip array_len
+            for elem in return_values[1..].iter() {
+                maybe_add_whitespace(&mut output_string);
+                output_string.push_str(&elem.to_string());
+            }
+            output_string.push(']');
+            Some(output_string)
+        } else {
+            Some(serialize_output(
+                &return_values,
+                &mut runner.vm,
+                return_type_id,
+                &sierra_program_registry,
+                &type_sizes,
+            ))
+        }
     } else {
         None
     };
@@ -257,12 +290,15 @@ pub fn cairo_run_program(
     if cairo_run_config.finalize_builtins {
         if skip_output {
             // Set stop pointer for each builtin
-            vm.builtins_final_stack_from_stack_pointer_dict(
+            runner.vm.builtins_final_stack_from_stack_pointer_dict(
                 &builtins
                     .iter()
                     .enumerate()
                     .map(|(i, builtin)| {
-                        (*builtin, (vm.get_ap() - (builtins.len() - 1 - i)).unwrap())
+                        (
+                            *builtin,
+                            (runner.vm.get_ap() - (builtins.len() - 1 - i)).unwrap(),
+                        )
                     })
                     .collect(),
                 false,
@@ -271,40 +307,20 @@ pub fn cairo_run_program(
             finalize_builtins(
                 &main_func.signature.ret_types,
                 &type_sizes,
-                &mut vm,
+                &mut runner.vm,
                 builtin_count,
             )?;
         }
 
         // Build execution public memory
         if cairo_run_config.proof_mode {
-            runner.finalize_segments(&mut vm)?;
+            runner.finalize_segments()?;
         }
     }
 
-    runner.relocate(&mut vm, true)?;
+    runner.relocate(true)?;
 
-    Ok((runner, vm, return_values, serialized_output))
-}
-
-fn additional_initialization(vm: &mut VirtualMachine, data_len: usize) -> Result<(), Error> {
-    // Create the builtin cost segment
-    let builtin_cost_segment = vm.add_memory_segment();
-    for token_type in CostTokenType::iter_precost() {
-        vm.insert_value(
-            (builtin_cost_segment + (token_type.offset_in_builtin_costs() as usize))
-                .map_err(VirtualMachineError::Math)?,
-            Felt252::default(),
-        )?
-    }
-    // Put a pointer to the builtin cost segment at the end of the program (after the
-    // additional `ret` statement).
-    vm.insert_value(
-        (vm.get_pc() + data_len).map_err(VirtualMachineError::Math)?,
-        builtin_cost_segment,
-    )?;
-
-    Ok(())
+    Ok((runner, return_values, serialized_output))
 }
 
 #[allow(clippy::type_complexity)]
@@ -364,6 +380,123 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
+// Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by
+// the instructions in the entry_code (produced by `create_entry_code`)
+
+/* Example of execution segment before running the main function:
+Before calling this function (after runner.initialize):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+]
+After calling this function (before running the VM):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1+2+3) gap
+    (*1+2) gap
+    (*1+2) gap
+    (*2) gap
+    (*2) gap
+    (*2) gap
+    gap
+    gap
+    (*2) gap
+    (*3) arg_0
+    (*3) arg_1
+]
+
+After the entry_code (up until calling main) has been ran by the VM:
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1) gap (for output_builtin final ptr)
+    (*1) gap (for builtin_0 final ptr)
+    (*1) gap (for builtin_1 final ptr)
+    (*2) segment_arena_ptr
+    (*2) infos_ptr
+    (*2) 0
+    builtin_base_0
+    builtin_base_1
+    (*2) segment_arena_ptr + 3 (segment_arena base)
+    (*3) arg_0
+    (*3) arg_1
+]
+(*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
+(*2) if segment arena is present
+(*3) if args are used
+*/
+fn load_arguments(
+    runner: &mut CairoRunner,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+) -> Result<(), Error> {
+    if cairo_run_config.args.is_empty() {
+        // Nothing to be done
+        return Ok(());
+    }
+    let got_segment_arena = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
+    let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
+    // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
+    // These include:
+    // * The builtin bases (not including output)
+    // * (Only if the output builtin is added) A gap for each builtin's final pointer
+    // * The segment arena values (if present), including:
+    //  * segment_arena_ptr
+    //  * info_segment_ptr
+    //  * 0
+    let mut ap_offset = runner.get_program().builtins_len();
+    if append_output {
+        ap_offset += runner.get_program().builtins_len() - 1;
+    }
+    if got_segment_arena {
+        ap_offset += 3;
+    }
+    for arg in cairo_run_config.args {
+        match arg {
+            FuncArg::Array(args) => {
+                let array_start = runner.vm.add_memory_segment();
+                let array_end = runner.vm.load_data(
+                    array_start,
+                    &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
+                )?;
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_start,
+                )?;
+                ap_offset += 1;
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_end,
+                )?;
+                ap_offset += 1;
+            }
+            FuncArg::Single(arg) => {
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    arg,
+                )?;
+                ap_offset += 1;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -398,37 +531,14 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
             .unwrap_or_default()
     });
-    if got_segment_arena {
-        // Allocating local vars to save the builtins for the validations.
+    if copy_to_output_builtin {
+        // Leave a gap to write the builtin final pointers
+        // We write them on a fixed cells relative to the starting FP pointer so we don't lose them after serializing outputs
         for _ in 0..builtins.len() {
             casm_build_extend!(ctx, tempvar _local;);
         }
         casm_build_extend!(ctx, ap += builtins.len(););
     }
-    // Load all vecs to memory.
-    // Load all array args content to memory.
-    let mut array_args_data = vec![];
-    for arg in config.args {
-        let FuncArg::Array(values) = arg else {
-            continue;
-        };
-        casm_build_extend! {ctx,
-            tempvar arr;
-            hint AllocSegment {} into {dst: arr};
-            ap += 1;
-        };
-        array_args_data.push(arr);
-        for (i, v) in values.iter().enumerate() {
-            casm_build_extend! {ctx,
-                const cvalue = v.to_bigint();
-                tempvar value = cvalue;
-                assert value = arr[i.to_i16().unwrap()];
-            };
-        }
-    }
-    let mut array_args_data_iter = array_args_data.into_iter();
-    let mut arg_iter = config.args.iter().enumerate();
-    let mut param_index = 0;
     let mut expected_arguments_size = 0;
     if got_segment_arena {
         // Allocating the segment arena and initializing it.
@@ -467,39 +577,12 @@ fn create_entry_code(
             };
         } else {
             let ty_size = type_sizes[ty];
-            let mut param_accum_size = 0;
+            // We already loaded these arguments, so we just advance AP
+            casm_build_extend!(ctx,
+                ap+=ty_size as usize;
+            );
             expected_arguments_size += ty_size;
-            while param_accum_size < ty_size {
-                let Some((arg_index, arg)) = arg_iter.next() else {
-                    break;
-                };
-                match arg {
-                    FuncArg::Single(value) => {
-                        casm_build_extend! {ctx,
-                            const value = value.to_bigint();
-                            tempvar _value = value;
-                        };
-                        param_accum_size += 1;
-                    }
-                    FuncArg::Array(values) => {
-                        let var = array_args_data_iter.next().unwrap();
-                        casm_build_extend! {ctx,
-                            const length = values.len();
-                            tempvar start = var;
-                            tempvar end = var + length;
-                        };
-                        param_accum_size += 2;
-                        if param_accum_size > ty_size {
-                            return Err(Error::ArgumentUnaligned {
-                                param_index,
-                                arg_index,
-                            });
-                        }
-                    }
-                }
-            }
-            param_index += 1;
-        };
+        }
     }
     let actual_args_size = config
         .args
@@ -518,14 +601,10 @@ fn create_entry_code(
 
     casm_build_extend!(ctx, let () = call FUNCTION;);
 
-    let return_type_id = signature
-        .ret_types
-        .last()
-        .ok_or(Error::NoRetTypesInSignature)?;
-    let return_type_size = type_sizes
-        .get(return_type_id)
-        .cloned()
-        .ok_or_else(|| Error::NoTypeSizeForId(return_type_id.clone()))?;
+    let return_type_id = signature.ret_types.last();
+    let return_type_size = return_type_id
+        .and_then(|id| type_sizes.get(id).cloned())
+        .unwrap_or_default();
     let mut offset: i16 = 0;
     for ty in signature.ret_types.iter().rev() {
         let info = get_info(sierra_program_registry, ty)
@@ -538,70 +617,157 @@ fn create_entry_code(
         *var = ctx.add_var(CellExpression::Deref(deref!([ap - offset])));
     }
 
-    if copy_to_output_builtin {
-        let output_ptr = output_ptr.unwrap();
-        let outputs = (1..(return_type_size + 1))
-            .rev()
-            .map(|i| ctx.add_var(CellExpression::Deref(deref!([ap - i]))))
-            .collect_vec();
-        for output in outputs {
-            casm_build_extend!(ctx, assert output = *(output_ptr++););
-        }
-    }
     // Helper to get a variable for a given builtin.
     // Fails for builtins that will never be present.
     let get_var = |name: &BuiltinName| match name {
-        BuiltinName::output => output_ptr.unwrap(),
         BuiltinName::range_check => builtin_vars[&RangeCheckType::ID],
         BuiltinName::pedersen => builtin_vars[&PedersenType::ID],
         BuiltinName::bitwise => builtin_vars[&BitwiseType::ID],
         BuiltinName::ec_op => builtin_vars[&EcOpType::ID],
         BuiltinName::poseidon => builtin_vars[&PoseidonType::ID],
         BuiltinName::segment_arena => builtin_vars[&SegmentArenaType::ID],
-        BuiltinName::keccak
-        | BuiltinName::ecdsa
-        | BuiltinName::range_check96
-        | BuiltinName::add_mod
-        | BuiltinName::mul_mod => unreachable!(),
+        _ => unreachable!(),
     };
-    if copy_to_output_builtin && got_segment_arena {
+    if copy_to_output_builtin {
         // Copying the final builtins into a local variables.
         for (i, builtin) in builtins.iter().enumerate() {
+            // Skip output_ptr as we still haven't written into it and this will lead to the wrong size being written
+            if matches!(builtin, BuiltinName::output) {
+                continue;
+            }
             let var = get_var(builtin);
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i.to_i16().unwrap()])));
             casm_build_extend!(ctx, assert local = var;);
         }
-        let segment_arena_ptr = get_var(&BuiltinName::segment_arena);
-        // Validating the segment arena's segments are one after the other.
-        casm_build_extend! {ctx,
-            tempvar n_segments = segment_arena_ptr[-2];
-            tempvar n_finalized = segment_arena_ptr[-1];
-            assert n_segments = n_finalized;
-            jump STILL_LEFT_PRE if n_segments != 0;
-            rescope{};
-            jump DONE_VALIDATION;
-            STILL_LEFT_PRE:
-            const one = 1;
-            tempvar infos = segment_arena_ptr[-3];
-            tempvar remaining_segments = n_segments - one;
-            rescope{infos = infos, remaining_segments = remaining_segments};
-            LOOP_START:
-            jump STILL_LEFT_LOOP if remaining_segments != 0;
-            rescope{};
-            jump DONE_VALIDATION;
-            STILL_LEFT_LOOP:
-            const one = 1;
-            const three = 3;
-            tempvar prev_end = infos[1];
-            tempvar curr_start = infos[3];
-            assert curr_start = prev_end + one;
-            tempvar next_infos = infos + three;
-            tempvar next_remaining_segments = remaining_segments - one;
-            rescope{infos = next_infos, remaining_segments = next_remaining_segments};
-            #{ steps = 0; }
-            jump LOOP_START;
-            DONE_VALIDATION:
+        // Serialize return values into output segment
+        let output_ptr = output_ptr.unwrap();
+        let outputs = (1..(return_type_size + 1))
+            .rev()
+            .map(|i| ctx.add_var(CellExpression::Deref(deref!([ap - i]))))
+            .collect_vec();
+        let (array_start_ptr, array_end_ptr) = if is_panic_result(signature.ret_types.last()) {
+            // Write panic flag value
+            let panic_flag = outputs[0];
+            casm_build_extend! {ctx,
+                assert panic_flag = *(output_ptr++);
+            };
+            // If the run did panic, these will point to the panic data
+            (outputs[1], outputs[2])
+        } else {
+            (outputs[0], outputs[1])
         };
+        casm_build_extend! {ctx,
+            // Calculate size of array and write it into the output segment
+            tempvar array_size = array_end_ptr - array_start_ptr;
+            assert array_size = *(output_ptr++);
+            // Create loop variables
+            tempvar remaining_elements = array_size;
+            tempvar array_ptr = array_start_ptr;
+            tempvar write_ptr = output_ptr;
+            // Enter copying loop
+            rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
+            jump CopyOutputArray if remaining_elements != 0;
+            jump EndOutputCopy;
+
+            // Main Loop
+            CopyOutputArray:
+            #{steps = 0;}
+            // Write array value into output segment
+            tempvar val = *(array_ptr++);
+            assert val = *(write_ptr++);
+            const one = 1;
+            // Create loop variables
+            tempvar new_remaining_elements = remaining_elements - one;
+            tempvar new_array_ptr = array_ptr;
+            tempvar new_write_ptr = write_ptr;
+            // Continue the loop
+            rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
+            jump CopyOutputArray if remaining_elements != 0;
+
+            EndOutputCopy:
+        };
+        if !actual_args_size.is_zero() {
+            // Serialize the input values into the output segment
+            // We lost the output_ptr var after re-scoping, so we need to create it again
+            // The last instruction will write the last output ptr so we can find it in [ap - 1]
+            let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
+            let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
+            let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
+            let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
+            casm_build_extend! {ctx,
+                // Calculate size of array and write it into the output segment
+                tempvar array_size = array_end_ptr - array_start_ptr;
+                assert array_size = *(output_ptr++);
+                // Create loop variables
+                tempvar remaining_elements = array_size;
+                tempvar array_ptr = array_start_ptr;
+                tempvar write_ptr = output_ptr;
+                // Enter copying loop
+                rescope{remaining_elements = remaining_elements, array_ptr = array_ptr, write_ptr = write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
+                jump EndInputCopy;
+
+                // Main Loop
+                CopyInputArray:
+                #{steps = 0;}
+                // Write array value into output segment
+                tempvar val = *(array_ptr++);
+                assert val = *(write_ptr++);
+                const one = 1;
+                // Create loop variables
+                tempvar new_remaining_elements = remaining_elements - one;
+                tempvar new_array_ptr = array_ptr;
+                tempvar new_write_ptr = write_ptr;
+                // Continue the loop
+                rescope{remaining_elements = new_remaining_elements, array_ptr = new_array_ptr, write_ptr = new_write_ptr};
+                jump CopyInputArray if remaining_elements != 0;
+
+                EndInputCopy:
+            };
+        }
+        // After we are done writing into the output segment, we can write the final output_ptr into locals:
+        // The last instruction will write the final output ptr so we can find it in [ap - 1]
+        let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
+        let local = ctx.add_var(CellExpression::Deref(deref!([fp])));
+        casm_build_extend!(ctx, assert local = output_ptr;);
+
+        if got_segment_arena {
+            // We re-scoped when serializing the output so we have to create a var for the segment arena
+            // len(builtins) + len(builtins - output) + segment_arena_ptr + info_segment + 0
+            let off = 2 * builtins.len() + 2;
+            let segment_arena_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + off as i16])));
+            // Validating the segment arena's segments are one after the other.
+            casm_build_extend! {ctx,
+                tempvar n_segments = segment_arena_ptr[-2];
+                tempvar n_finalized = segment_arena_ptr[-1];
+                assert n_segments = n_finalized;
+                jump STILL_LEFT_PRE if n_segments != 0;
+                rescope{};
+                jump DONE_VALIDATION;
+                STILL_LEFT_PRE:
+                const one = 1;
+                tempvar infos = segment_arena_ptr[-3];
+                tempvar remaining_segments = n_segments - one;
+                rescope{infos = infos, remaining_segments = remaining_segments};
+                LOOP_START:
+                jump STILL_LEFT_LOOP if remaining_segments != 0;
+                rescope{};
+                jump DONE_VALIDATION;
+                STILL_LEFT_LOOP:
+                const one = 1;
+                const three = 3;
+                tempvar prev_end = infos[1];
+                tempvar curr_start = infos[3];
+                assert curr_start = prev_end + one;
+                tempvar next_infos = infos + three;
+                tempvar next_remaining_segments = remaining_segments - one;
+                rescope{infos = next_infos, remaining_segments = next_remaining_segments};
+                #{ steps = 0; }
+                jump LOOP_START;
+                DONE_VALIDATION:
+            };
+        }
         // Copying the final builtins from locals into the top of the stack.
         for i in 0..builtins.len().to_i16().unwrap() {
             let local = ctx.add_var(CellExpression::Deref(deref!([fp + i])));
@@ -660,28 +826,6 @@ fn get_info<'a>(
         .map(|ctc| ctc.info())
 }
 
-/// Creates the metadata required for a Sierra program lowering to casm.
-fn create_metadata(
-    sierra_program: &cairo_lang_sierra::program::Program,
-    metadata_config: Option<MetadataComputationConfig>,
-) -> Result<Metadata, VirtualMachineError> {
-    if let Some(metadata_config) = metadata_config {
-        calc_metadata(sierra_program, metadata_config).map_err(|err| match err {
-            MetadataError::ApChangeError(_) => VirtualMachineError::Unexpected,
-            MetadataError::CostError(_) => VirtualMachineError::Unexpected,
-        })
-    } else {
-        Ok(Metadata {
-            ap_change_info: calc_ap_changes(sierra_program, |_, _| 0)
-                .map_err(|_| VirtualMachineError::Unexpected)?,
-            gas_info: GasInfo {
-                variable_values: Default::default(),
-                function_costs: Default::default(),
-            },
-        })
-    }
-}
-
 fn get_function_builtins(
     params: &[cairo_lang_sierra::ids::ConcreteTypeId],
     append_output: bool,
@@ -716,32 +860,176 @@ fn get_function_builtins(
     (builtins, builtin_offset)
 }
 
+// Checks that the program input (if present) is of type Array<Felt252>
+fn check_only_array_felt_input_type(
+    params: &[ConcreteTypeId],
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> bool {
+    // Filter implicit arguments (builtins, gas)
+    let arg_types = params
+        .iter()
+        .filter(|ty| {
+            let info = get_info(sierra_program_registry, ty).unwrap();
+            let generic_ty = &info.long_id.generic_id;
+            !is_implicit_generic_id(generic_ty)
+        })
+        .collect_vec();
+    if arg_types.is_empty() {
+        // No inputs
+        true
+    } else if arg_types.len() == 1 {
+        arg_types[0]
+            .debug_name
+            .as_ref()
+            .is_some_and(|name| name == "Array<felt252>")
+    } else {
+        false
+    }
+}
+
+// Returns true if the generic id corresponds to an implicit argument (aka a builtin, gas, or system type)
+fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
+    [
+        SegmentArenaType::ID,
+        GasBuiltinType::ID,
+        BitwiseType::ID,
+        EcOpType::ID,
+        PedersenType::ID,
+        PoseidonType::ID,
+        RangeCheckType::ID,
+        SegmentArenaType::ID,
+        SystemType::ID,
+    ]
+    .contains(generic_ty)
+}
+// Checks that the return type is either an Array<Felt252> or a PanicResult<Array<Felt252>> type
+fn check_only_array_felt_return_type(
+    return_type_id: Option<&ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+) -> bool {
+    if return_type_id.is_none() {
+        return false;
+    };
+    // Unwrap PanicResult (if appicable)
+    let return_type =
+        if let Some(return_type) = result_inner_type(return_type_id, sierra_program_registry) {
+            return_type
+        } else {
+            return_type_id.unwrap()
+        };
+    let return_type = sierra_program_registry.get_type(return_type).unwrap();
+    // Check that the resulting type is an Array<Felt252>
+    match return_type {
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::Array(info) => {
+            let inner_ty = sierra_program_registry.get_type(&info.ty).unwrap();
+            matches!(
+                inner_ty,
+                cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+            )
+        }
+        _ => false,
+    }
+}
+
+fn is_panic_result(return_type_id: Option<&ConcreteTypeId>) -> bool {
+    return_type_id
+        .map(|id| {
+            id.debug_name
+                .as_ref()
+                .is_some_and(|name| name.starts_with("core::panics::PanicResult::"))
+        })
+        .unwrap_or_default()
+}
+
+// Returns the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type<'a>(
+    return_type_id: Option<&'a ConcreteTypeId>,
+    sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
+) -> Option<&'a ConcreteTypeId> {
+    if is_panic_result(return_type_id) {
+        let return_type_info =
+            get_info(sierra_program_registry, return_type_id.as_ref().unwrap()).unwrap();
+        // We already know info.long_id.generic_args[0] contains the Panic variant
+        let inner_args = &return_type_info.long_id.generic_args[1];
+        let inner_type = {
+            let inner_type = match inner_args {
+                GenericArg::Type(type_id) => type_id,
+                _ => unreachable!(),
+            };
+            // The inner type contains a single-element tuple so we need to get rid of it too
+            let inner_type_info = get_info(sierra_program_registry, inner_type).unwrap();
+            match &inner_type_info.long_id.generic_args[1] {
+                GenericArg::Type(type_id) => type_id,
+                _ => unreachable!(),
+            }
+        };
+
+        Some(inner_type)
+    } else {
+        None
+    }
+}
+
+// Returns the size of the T type in PanicResult::Ok(T) if applicable
+// Returns None if the return_type_id is not a PanicResult
+fn result_inner_type_size(
+    return_type_id: Option<&ConcreteTypeId>,
+    sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
+    type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
+) -> Option<i16> {
+    result_inner_type(return_type_id, sierra_program_registry)
+        .and_then(|ty| type_sizes.get(ty).copied())
+}
+
 fn fetch_return_values(
     return_type_size: i16,
-    return_type_id: &ConcreteTypeId,
+    result_inner_type_size: Option<i16>,
     vm: &VirtualMachine,
     builtin_count: i16,
     fetch_from_output: bool,
 ) -> Result<Vec<MaybeRelocatable>, Error> {
-    let mut return_values = if fetch_from_output {
-        let output_builtin_end = vm
-            .get_relocatable((vm.get_ap() + (-builtin_count as i32)).unwrap())
-            .unwrap();
-        let output_builtin_base = (output_builtin_end + (-return_type_size as i32)).unwrap();
-        vm.get_continuous_range(output_builtin_base, return_type_size.into_or_panic())?
-    } else {
-        vm.get_continuous_range(
-            (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
-            return_type_size as usize,
-        )?
-    };
-    // Check if this result is a Panic result
-    if return_type_id
-        .debug_name
-        .as_ref()
-        .ok_or_else(|| Error::TypeIdNoDebugName(return_type_id.clone()))?
-        .starts_with("core::panics::PanicResult::")
-    {
+    if fetch_from_output {
+        // In this case we will find the serialized return value in the format:
+        // [*panic_flag, array_len, array[0], array[1],..., array[array_len-1]]
+        // *: If the return value is a PanicResult
+
+        // Output Builtin will always be on segment 2
+        let return_values =
+            vm.get_continuous_range((2, 0).into(), vm.get_segment_size(2).unwrap())?;
+        // Remove panic wrapper
+        let (return_values, panic_flag) = if result_inner_type_size.is_none() {
+            // return value is not a PanicResult
+            (&return_values[..], false)
+        } else {
+            // return value is a PanicResult
+            (
+                &return_values[1..],
+                return_values[0] != MaybeRelocatable::from(0),
+            )
+        };
+        // Take only the output (as the output segment will also contain the input)
+        let output_len = return_values[0].get_int().unwrap().to_usize().unwrap() + 1;
+        let return_values = &return_values[0..output_len];
+        // Return Ok or Err based on panic_flag
+        if panic_flag {
+            return Err(Error::RunPanic(
+                return_values
+                    .iter()
+                    .map(|mr| mr.get_int().unwrap_or_default())
+                    .collect_vec(),
+            ));
+        } else {
+            return Ok(return_values.to_vec());
+        }
+    }
+
+    let mut return_values = vm.get_continuous_range(
+        (vm.get_ap() - (return_type_size + builtin_count) as usize).unwrap(),
+        return_type_size as usize,
+    )?;
+    // Handle PanicResult (we already checked if the type is a PanicResult when fetching the inner type size)
+    if let Some(inner_type_size) = result_inner_type_size {
         // Check the failure flag (aka first return value)
         if return_values.first() != Some(&MaybeRelocatable::from(0)) {
             // In case of failure, extract the error from the return values (aka last two values)
@@ -763,10 +1051,11 @@ fn fetch_return_values(
                 panic_data.iter().map(|c| *c.as_ref()).collect(),
             ));
         } else {
-            if return_values.len() < 3 {
+            if return_values.len() < inner_type_size as usize {
                 return Err(Error::FailedToExtractReturnValues);
             }
-            return_values = return_values[2..].to_vec()
+            return_values =
+                return_values[((return_type_size - inner_type_size).into_or_panic())..].to_vec()
         }
     }
     Ok(return_values)
@@ -822,11 +1111,16 @@ fn finalize_builtins(
 fn serialize_output(
     return_values: &[MaybeRelocatable],
     vm: &mut VirtualMachine,
-    return_type_id: &ConcreteTypeId,
+    return_type_id: Option<&ConcreteTypeId>,
     sierra_program_registry: &ProgramRegistry<CoreType, CoreLibfunc>,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
 ) -> String {
     let mut output_string = String::new();
+    let return_type_id = if let Some(id) = return_type_id {
+        id
+    } else {
+        return output_string;
+    };
     let mut return_values_iter = return_values.iter().peekable();
     serialize_output_inner(
         &mut return_values_iter,
@@ -855,15 +1149,13 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Array start_ptr not Relocatable");
-            // Arrays can come in two formats: either [start_ptr, end_ptr] or [end_ptr], with the start_ptr being implicit (base of the end_ptr's segment)
-            let (array_start, array_size ) = match return_values_iter.peek().and_then(|mr| mr.get_relocatable()) {
-                Some(array_end) if array_end.segment_index == array_start.segment_index && array_end.offset >= array_start.offset  => {
-                    // Pop the value we just peeked
-                    return_values_iter.next();
-                    (array_start, (array_end - array_start).unwrap())
-                }
-                _ => ((array_start.segment_index, 0).into(), array_start.offset),
-            };
+            let array_end = return_values_iter
+                .next()
+                .expect("Missing return value")
+                .get_relocatable()
+                .expect("Array end_ptr not Relocatable");
+            let array_size = (array_end - array_start).unwrap();
+
             let array_data = vm.get_continuous_range(array_start, array_size).unwrap();
             let mut array_data_iter = array_data.iter().peekable();
             let array_elem_id = &info.ty;
@@ -907,6 +1199,7 @@ fn serialize_output_inner<'a>(
             unimplemented!("Not supported in the current version")
         },
         cairo_lang_sierra::extensions::core::CoreTypeConcrete::Felt252(_)
+        | cairo_lang_sierra::extensions::core::CoreTypeConcrete::BoundedInt(_)
         // Only unsigned integer values implement Into<Bytes31>
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Bytes31(_)
         | cairo_lang_sierra::extensions::core::CoreTypeConcrete::Uint8(_)
@@ -1174,6 +1467,10 @@ fn serialize_output_inner<'a>(
                 type_sizes,
             )
         }
+        cairo_lang_sierra::extensions::core::CoreTypeConcrete::GasBuiltin(_info) => {
+            // Ignore it
+            let _ = return_values_iter.next();
+        },
         _ => panic!("Unexpected return type")
     }
 }
@@ -1189,8 +1486,10 @@ mod tests {
     use std::path::Path;
 
     use super::*;
-    use cairo_lang_compiler::{compile_cairo_project_at_path, CompilerConfig};
-    use cairo_vm::types::relocatable::Relocatable;
+    use cairo_lang_compiler::{
+        compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
+    };
+    use cairo_vm::{program_hash::compute_program_hash_chain, types::relocatable::Relocatable};
     use rstest::rstest;
 
     fn compile_to_sierra(filename: &str) -> SierraProgram {
@@ -1198,8 +1497,13 @@ mod tests {
             replace_ids: true,
             ..CompilerConfig::default()
         };
-
-        compile_cairo_project_at_path(Path::new(filename), compiler_config).unwrap()
+        let mut db = RootDatabase::builder()
+            .detect_corelib()
+            .skip_auto_withdraw_gas()
+            .build()
+            .unwrap();
+        let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
+        compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
     }
 
     fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
@@ -1217,23 +1521,23 @@ mod tests {
     }
 
     #[rstest]
-    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/array_get.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/dictionaries.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/enum_flow.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/enum_match.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/factorial.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/fibonacci.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/hello.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/pedersen_example.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/poseidon.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/print.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/array_append.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/recursion.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/sample.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/simple_struct.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/simple.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/struct_span_return.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_get.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/dictionaries.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/enum_flow.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/enum_match.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/factorial.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/fibonacci.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/hello.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/pedersen_example.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/poseidon.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/print.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_append.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/recursion.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/sample.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/simple_struct.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/simple.cairo")]
+    #[case("../cairo_programs/cairo-1-programs/serialized_output/struct_span_return.cairo")]
     fn check_append_ret_values_to_output_segment(
         #[case] filename: &str,
         #[values(true, false)] proof_mode: bool,
@@ -1249,12 +1553,12 @@ mod tests {
             ..Default::default()
         };
         // Run program
-        let (runner, vm, return_values, _) =
+        let (runner, return_values, _) =
             cairo_run_program(&sierra_program, cairo_run_config).unwrap();
         // When the return type is a PanicResult, we remove the panic wrapper when returning the ret values
         // And handle the panics returning an error, so we need to add it here
         let return_values = if main_hash_panic_result(&sierra_program) {
-            let mut rv = vec![Felt252::ZERO.into(), Felt252::ZERO.into()];
+            let mut rv = vec![Felt252::ZERO.into()];
             rv.extend_from_slice(&return_values);
             rv
         } else {
@@ -1262,18 +1566,114 @@ mod tests {
         };
         // Check that the output segment contains the return values
         // The output builtin will always be the first builtin, so we know it's segment is 2
-        let output_builtin_segment = vm
+        let output_builtin_segment = runner
+            .vm
             .get_continuous_range((2, 0).into(), return_values.len())
             .unwrap();
+        // While this test can make sure that the return values are the same as the output segment values, as the code that fetches return values
+        // takes them from the output segment we can't be sure that these return values are correct, for this we use the integration tests in the main.rs file
         assert_eq!(output_builtin_segment, return_values, "{}", filename);
         // Just for consistency, we will check that there are no values in the output segment after the return values
-        assert!(vm
+        assert!(runner
+            .vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
+    }
+    #[test]
+    fn check_program_hash_doesnt_change_based_on_arguments() {
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo",
+        );
+        let config_a = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[
+                FuncArg::Single(Felt252::ONE),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+                FuncArg::Single(Felt252::TWO),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+            ],
+            ..Default::default()
+        };
+        let config_b = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[
+                FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::THREE]),
+                FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::TWO]),
+            ],
+            ..Default::default()
+        };
+        let runner_a = cairo_run_program(&sierra_program, config_a).unwrap().0;
+        let runner_b = cairo_run_program(&sierra_program, config_b).unwrap().0;
+        let hash_a =
+            compute_program_hash_chain(&runner_a.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        let hash_b =
+            compute_program_hash_chain(&runner_b.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        assert_eq!(hash_a, hash_b)
+    }
 
-        // Check that cairo_pie can be outputted when not running in proof_mode
-        if !proof_mode {
-            assert!(runner.get_cairo_pie(&vm).is_ok())
-        }
+    #[rstest]
+    fn check_output_segment_contains_program_ouput_and_input(
+        #[values(true, false)] proof_mode: bool,
+    ) {
+        // tensor.cairo
+        // inputs: [2 2 2 4 1 2 3 4]
+        // outputs: [1]
+        // Compile to sierra
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/serialized_output/with_input/tensor.cairo",
+        );
+        // Set proof_mode
+        let cairo_run_config = Cairo1RunConfig {
+            proof_mode,
+            layout: LayoutName::all_cairo,
+            append_return_values: !proof_mode, // This is so we can test appending return values when not running in proof_mode
+            finalize_builtins: true,
+            args: &[FuncArg::Array(vec![
+                2.into(),
+                2.into(),
+                2.into(),
+                4.into(),
+                1.into(),
+                2.into(),
+                3.into(),
+                4.into(),
+            ])],
+            ..Default::default()
+        };
+        // Run program
+        let (runner, _, _) = cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        // Check output segment
+        let expected_output_segment: Vec<Felt252> = vec![
+            // panic_flag
+            0.into(),
+            // output len
+            1.into(),
+            // output
+            1.into(),
+            // input len
+            8.into(),
+            // input
+            2.into(),
+            2.into(),
+            2.into(),
+            4.into(),
+            1.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+        ];
+        let output_segment_size = runner.vm.get_segment_size(2).unwrap_or_default();
+        let output_segment = runner
+            .vm
+            .get_integer_range((2, 0).into(), output_segment_size)
+            .unwrap()
+            .iter()
+            .map(|f| f.clone().into_owned())
+            .collect_vec();
+        assert_eq!(expected_output_segment, output_segment);
     }
 }
