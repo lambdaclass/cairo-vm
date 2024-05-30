@@ -3069,12 +3069,11 @@ dependencies = [
 
 [[package]]
 name = "starknet-types-core"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1051b4f4af0bb9b546388a404873ee1e6b9787b9d5b0b3319ecbfadf315ef276"
+checksum = "b537ba94c95a6c320065653f2a784a395750650c86ef14779be91a233380e9b3"
 dependencies = [
  "arbitrary",
- "bitvec",
  "lambdaworks-crypto",
  "lambdaworks-math",
  "num-bigint",

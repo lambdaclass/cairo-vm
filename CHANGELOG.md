@@ -9,6 +9,8 @@
   * Add cheatcode `RelocateAllDictionaries` to the `Cairo1HintProcessor`, which calls the aforementioned method.
   * Add casm instruction to call the aforementioned cheatcode in `create_entry_code` if either `proof_mode` or `append_return_values` are set to true, and segment arena is present.
 
+* Bump `starknet-types-core` version + Use the lib's pedersen hash [#1734](https://github.com/lambdaclass/cairo-vm/pull/1734)
+
 * refactor: Add boolean method Cairo1RunConfig::copy_to_output + Update Doc [#1778](https://github.com/lambdaclass/cairo-vm/pull/1778)
 
 * feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
