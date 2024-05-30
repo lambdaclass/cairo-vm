@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `EXCESS_BALANCE` hint [#1777](https://github.com/lambdaclass/cairo-vm/pull/1777)
+
 * feat(BREAKING): Use a cheatcode to relocate all dicts + Make temporary segment usage configurable [#1776](https://github.com/lambdaclass/cairo-vm/pull/1776)
   * Add the flags `segment_arena_validation` & `use_temporary_segments` to the `Cairo1HintProcessor` & `DictManagerExecScope` respectively. These flags will determine if real segments or temporary segments will be used when creating dictionaries.
   * `DictManagerExecScope::finalize_segment` no longer performs relocation and is ignored if `use_temporary_segments` is set to false.
