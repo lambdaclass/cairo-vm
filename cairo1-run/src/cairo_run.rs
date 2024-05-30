@@ -4,7 +4,7 @@ use cairo_lang_casm::{
     casm, casm_build_extend,
     cell_expression::CellExpression,
     deref, deref_or_immediate,
-    hints::Hint,
+    hints::{Hint, StarknetHint},
     inline::CasmContext,
     instructions::{Instruction, InstructionBody},
 };
@@ -31,7 +31,9 @@ use cairo_lang_sierra_to_casm::{
     metadata::calc_metadata_ap_change_only,
 };
 use cairo_lang_sierra_type_size::get_type_size_map;
-use cairo_lang_utils::{casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap};
+use cairo_lang_utils::{
+    bigint::BigIntAsHex, casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap,
+};
 use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
@@ -48,6 +50,7 @@ use cairo_vm::{
     Felt252,
 };
 use itertools::{chain, Itertools};
+use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
@@ -195,7 +198,11 @@ pub fn cairo_run_program(
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
-    let mut hint_processor = Cairo1HintProcessor::new(&processor_hints, RunResources::default());
+    let mut hint_processor = Cairo1HintProcessor::new(
+        &processor_hints,
+        RunResources::default(),
+        cairo_run_config.copy_to_output(),
+    );
 
     let data: Vec<MaybeRelocatable> = instructions
         .flat_map(|inst| inst.assemble().encode())
@@ -742,6 +749,23 @@ fn create_entry_code(
             // len(builtins) + len(builtins - output) + segment_arena_ptr + info_segment + 0
             let off = 2 * builtins.len() + 2;
             let segment_arena_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + off as i16])));
+            // Call the hint that will relocate all dictionaries
+            ctx.add_hint(
+                |[ignored_in], [ignored_out]| StarknetHint::Cheatcode {
+                    selector: BigIntAsHex {
+                        value: BigInt::from_bytes_be(
+                            Sign::Plus,
+                            "RelocateAllDictionaries".as_bytes(),
+                        ),
+                    },
+                    input_start: ignored_in.clone(),
+                    input_end: ignored_in,
+                    output_start: ignored_out,
+                    output_end: ignored_out,
+                },
+                [segment_arena_ptr],
+                [segment_arena_ptr],
+            );
             // Validating the segment arena's segments are one after the other.
             casm_build_extend! {ctx,
                 tempvar n_segments = segment_arena_ptr[-2];
