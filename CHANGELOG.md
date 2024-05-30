@@ -4,6 +4,13 @@
 
 * feat: Add `EXCESS_BALANCE` hint [#1777](https://github.com/lambdaclass/cairo-vm/pull/1777)
 
+* feat(BREAKING): Use a cheatcode to relocate all dicts + Make temporary segment usage configurable [#1776](https://github.com/lambdaclass/cairo-vm/pull/1776)
+  * Add the flags `segment_arena_validation` & `use_temporary_segments` to the `Cairo1HintProcessor` & `DictManagerExecScope` respectively. These flags will determine if real segments or temporary segments will be used when creating dictionaries.
+  * `DictManagerExecScope::finalize_segment` no longer performs relocation and is ignored if `use_temporary_segments` is set to false.
+  * Add method `DictManagerExecScope::relocate_all_dictionaries` that adds relocation rules for all tracked dictionaries, relocating them one next to the other in a new segment.
+  * Add cheatcode `RelocateAllDictionaries` to the `Cairo1HintProcessor`, which calls the aforementioned method.
+  * Add casm instruction to call the aforementioned cheatcode in `create_entry_code` if either `proof_mode` or `append_return_values` are set to true, and segment arena is present.
+
 * Bump `starknet-types-core` version + Use the lib's pedersen hash [#1734](https://github.com/lambdaclass/cairo-vm/pull/1734)
 
 * refactor: Add boolean method Cairo1RunConfig::copy_to_output + Update Doc [#1778](https://github.com/lambdaclass/cairo-vm/pull/1778)

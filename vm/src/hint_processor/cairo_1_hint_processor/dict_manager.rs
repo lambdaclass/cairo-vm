@@ -14,8 +14,8 @@ pub struct DictTrackerExecScope {
     data: HashMap<Felt252, MaybeRelocatable>,
     /// The start of the segment of the dictionary.
     start: Relocatable,
-    /// The start of the next segment in the segment arena, if finalized.
-    next_start: Option<Relocatable>,
+    /// The end of this segment, if finalized.
+    end: Option<Relocatable>,
 }
 
 /// Helper object to allocate, track and destruct all dictionaries in the run.
@@ -25,6 +25,9 @@ pub struct DictManagerExecScope {
     segment_to_tracker: HashMap<isize, usize>,
     /// The actual trackers of the dictionaries, in the order of allocation.
     trackers: Vec<DictTrackerExecScope>,
+    // If set to true, dictionaries will be created on temporary segments which can then be relocated into a single segment by the end of the run
+    // If set to false, each dictionary will use a single real segment
+    use_temporary_segments: bool,
 }
 
 impl DictTrackerExecScope {
@@ -33,7 +36,7 @@ impl DictTrackerExecScope {
         Self {
             data: HashMap::default(),
             start,
-            next_start: None,
+            end: None,
         }
     }
 }
@@ -41,21 +44,31 @@ impl DictTrackerExecScope {
 impl DictManagerExecScope {
     pub const DICT_DEFAULT_VALUE: usize = 0;
 
+    // Creates a new DictManagerExecScope
+    pub fn new(use_temporary_segments: bool) -> Self {
+        Self {
+            use_temporary_segments,
+            ..Default::default()
+        }
+    }
+
     /// Allocates a new segment for a new dictionary and return the start of the segment.
     pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, HintError> {
-        let dict_segment = match self.trackers.last() {
-            // This is the first dict - a totally new segment is required.
-            None => vm.add_memory_segment(),
-            // New dict segment should be appended to the last segment.
-            // Appending by a temporary segment, if the last segment is not finalized.
-            Some(last) => last
-                .next_start
-                .unwrap_or_else(|| vm.add_temporary_segment()),
+        let dict_segment = if self.use_temporary_segments {
+            vm.add_temporary_segment()
+        } else {
+            vm.add_memory_segment()
         };
         let tracker = DictTrackerExecScope::new(dict_segment);
-        // Not checking if overriding - since overriding is allowed.
-        self.segment_to_tracker
-            .insert(dict_segment.segment_index, self.trackers.len());
+        if self
+            .segment_to_tracker
+            .insert(dict_segment.segment_index, self.trackers.len())
+            .is_some()
+        {
+            return Err(HintError::CantCreateDictionaryOnTakenSegment(
+                dict_segment.segment_index,
+            ));
+        }
 
         self.trackers.push(tracker);
         Ok(dict_segment)
@@ -85,31 +98,35 @@ impl DictManagerExecScope {
     }
 
     /// Finalizes a segment of a dictionary.
-    pub fn finalize_segment(
-        &mut self,
-        vm: &mut VirtualMachine,
-        dict_end: Relocatable,
-    ) -> Result<(), HintError> {
-        let tracker_idx = self.get_dict_infos_index(dict_end).unwrap();
-        let tracker = &mut self.trackers[tracker_idx];
-        let next_start = (dict_end + 1u32).unwrap();
-        if let Some(prev) = tracker.next_start {
-            return Err(HintError::CustomHint(
-                format!(
-                    "The segment is already finalized. \
-                    Attempting to override next start {prev}, with: {next_start}.",
-                )
-                .into_boxed_str(),
-            ));
+    /// Does nothing if use_temporary_segments is set to false
+    pub fn finalize_segment(&mut self, dict_end: Relocatable) -> Result<(), HintError> {
+        if self.use_temporary_segments {
+            let tracker_idx = self.get_dict_infos_index(dict_end)?;
+            let tracker = &mut self.trackers[tracker_idx];
+            if let Some(prev) = tracker.end {
+                return Err(HintError::CustomHint(
+                    format!(
+                        "The segment is already finalized. \
+                    Attempting to override next start {prev}, with: {dict_end}.",
+                    )
+                    .into_boxed_str(),
+                ));
+            }
+            tracker.end = Some(dict_end);
         }
-        tracker.next_start = Some(next_start);
-        if let Some(next) = self.trackers.get(tracker_idx + 1) {
-            // Merging the next temporary segment with the closed segment.
-            vm.add_relocation_rule(next.start, next_start).unwrap();
-            // Updating the segment to point to tracker the next segment points to.
-            let next_tracker_idx = self.segment_to_tracker[&next.start.segment_index];
-            self.segment_to_tracker
-                .insert(dict_end.segment_index, next_tracker_idx);
+        Ok(())
+    }
+
+    /// Relocates all dictionaries into a single segment
+    /// Does nothing if use_temporary_segments is set to false
+    pub fn relocate_all_dictionaries(&mut self, vm: &mut VirtualMachine) -> Result<(), HintError> {
+        if self.use_temporary_segments {
+            let mut prev_end = vm.add_memory_segment();
+            for tracker in &self.trackers {
+                vm.add_relocation_rule(tracker.start, prev_end)?;
+                prev_end += (tracker.end.unwrap_or_default() - tracker.start)?;
+                prev_end += 1;
+            }
         }
         Ok(())
     }
