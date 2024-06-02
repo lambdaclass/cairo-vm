@@ -35,11 +35,26 @@ impl From<(isize, usize)> for SegmentInfo {
 // A simplified version of Memory, without any additional data besides its elements
 // Contains all addr-value pairs, ordered by index and offset
 // Allows practical serialization + conversion between CairoPieMemory & Memory
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct CairoPieMemory(
     #[serde(serialize_with = "serde_impl::serialize_memory")]
     pub  Vec<((usize, usize), MaybeRelocatable)>,
 );
+
+impl PartialEq for CairoPieMemory {
+    fn eq(&self, other: &Self) -> bool {
+        fn as_hashmap(
+            cairo_pie_memory: &CairoPieMemory,
+        ) -> HashMap<&(usize, usize), &MaybeRelocatable> {
+            cairo_pie_memory
+                .0
+                .iter()
+                .map(|tuple| (&tuple.0, &tuple.1))
+                .collect::<HashMap<&(usize, usize), &MaybeRelocatable>>()
+        }
+        as_hashmap(self) == as_hashmap(other)
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PublicMemoryPage {
