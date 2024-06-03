@@ -63,49 +63,30 @@ struct Args {
 #[derive(Debug, Clone, Default)]
 struct FuncArgs(Vec<FuncArg>);
 
+fn process_array<'a>(iter:&mut impl Iterator<Item = &'a str>) -> FuncArg {
+    let mut array = vec![];
+    while let Some(value) = iter.next() {
+        match value {
+            "]" => break,
+            _ => array.push(Felt252::from_dec_str(value).unwrap()),
+        }
+    }
+    FuncArg::Array(array)
+}
+
 fn process_args(value: &str) -> Result<FuncArgs, String> {
     if value.is_empty() {
         return Ok(FuncArgs::default());
     }
     let mut args = Vec::new();
-    let mut input = value.split(' ');
+    let mut input = value.split_inclusive(|c| c == '[' || c == ']' || c == ' ').skip_while(|c| c == &" ");
+
     while let Some(value) = input.next() {
-        // First argument in an array
-        if value.starts_with('[') {
-            if value.ends_with(']') {
-                if value.len() == 2 {
-                    args.push(FuncArg::Array(Vec::new()));
-                } else {
-                    args.push(FuncArg::Array(vec![Felt252::from_dec_str(
-                        value.strip_prefix('[').unwrap().strip_suffix(']').unwrap(),
-                    )
-                    .unwrap()]));
-                }
-            } else {
-                let mut array_arg =
-                    vec![Felt252::from_dec_str(value.strip_prefix('[').unwrap()).unwrap()];
-                // Process following args in array
-                let mut array_end = false;
-                while !array_end {
-                    if let Some(value) = input.next() {
-                        // Last arg in array
-                        if value.ends_with(']') {
-                            array_arg.push(
-                                Felt252::from_dec_str(value.strip_suffix(']').unwrap()).unwrap(),
-                            );
-                            array_end = true;
-                        } else {
-                            array_arg.push(Felt252::from_dec_str(value).unwrap())
-                        }
-                    }
-                }
-                // Finalize array
-                args.push(FuncArg::Array(array_arg))
-            }
-        } else {
-            // Single argument
-            args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap()))
+        match value {
+            "[" => args.push(process_array(&mut input)),
+            _ => args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap())),
         }
+
     }
     Ok(FuncArgs(args))
 }
