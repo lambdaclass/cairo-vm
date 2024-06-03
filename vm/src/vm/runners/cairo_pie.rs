@@ -62,12 +62,22 @@ pub struct PublicMemoryPage {
     pub size: usize,
 }
 
+impl From<&Vec<usize>> for PublicMemoryPage {
+    fn from(vec: &Vec<usize>) -> Self {
+        Self {
+            start: vec[0],
+            size: vec[1],
+        }
+    }
+}
+
 // HashMap value based on starknet/core/os/output.cairo usage
 pub type Attributes = HashMap<String, Vec<usize>>;
 pub type Pages = HashMap<usize, PublicMemoryPage>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OutputBuiltinAdditionalData {
+    #[serde(with = "serde_impl::pages")]
     pub pages: Pages,
     pub attributes: Attributes,
 }
@@ -338,7 +348,7 @@ pub(super) mod serde_impl {
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
-    use super::{CairoPieMemory, SegmentInfo};
+    use super::{CairoPieMemory, Pages, PublicMemoryPage, SegmentInfo};
     #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
     use crate::alloc::string::ToString;
     use crate::stdlib::prelude::{String, Vec};
@@ -508,6 +518,47 @@ pub(super) mod serde_impl {
             .fold(String::new(), |string, b| string + &format!("{:02x}", b));
 
         serializer.serialize_str(&string)
+    }
+
+    pub mod pages {
+        use super::*;
+
+        pub fn serialize<S>(pages: &Pages, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(Some(pages.len()))?;
+            for (k, v) in pages {
+                map.serialize_entry(&k.to_string(), &vec![v.start, v.size])?;
+            }
+            map.end()
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Pages, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            Ok(HashMap::<String, Vec<usize>>::deserialize(deserializer)?
+                .iter()
+                .map(|(k, v)| {
+                    if v.len() == 2 {
+                        Ok((
+                            k.parse::<usize>().map_err(|_| {
+                                D::Error::custom("Failed to deserialize page index.")
+                            })?,
+                            PublicMemoryPage::from(v),
+                        ))
+                    } else {
+                        Err(D::Error::custom(
+                            "Memory page description must be of length 2.",
+                        ))
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| D::Error::custom("PublicMemoryPage deserialization failed."))?
+                .into_iter()
+                .collect::<Pages>())
+        }
     }
 
     impl CairoPieMemory {
