@@ -67,7 +67,7 @@ struct FuncArgs(Vec<FuncArg>);
 // and returning the array [f1, f2,.., fn] where fi = Felt::from_dec_str(si)
 fn process_array<'a>(iter:&mut impl Iterator<Item = &'a str>) -> FuncArg {
     let mut array = vec![];
-    while let Some(value) = iter.next() {
+    for value in iter {
         match value {
             "]" => break,
             _ => array.push(Felt252::from_dec_str(value).unwrap()),
@@ -79,9 +79,6 @@ fn process_array<'a>(iter:&mut impl Iterator<Item = &'a str>) -> FuncArg {
 // Parses a string of ascii whitespace separated values, containing either numbers or series of numbers wrapped in brackets
 // Returns an array of felts and felt arrays
 fn process_args(value: &str) -> Result<FuncArgs, String> {
-    if value.is_empty() {
-        return Ok(FuncArgs::default());
-    }
     let mut args = Vec::new();
     // Split input string into numbers and array delimiters
     let mut input = value.split_ascii_whitespace().flat_map(|mut x| {
@@ -96,10 +93,8 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
                 res.push(val)
             }
             res.push("]")
-        } else {
-            if !x.is_empty() {
-                res.push(x)
-            }
+        } else if !x.is_empty() {
+            res.push(x)
         }
         res
     });
