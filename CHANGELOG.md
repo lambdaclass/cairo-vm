@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Ignore memory order when comparing instances of `CairoPieMemory` [#1780](https://github.com/lambdaclass/cairo-vm/pull/1780)
+
 * feat: Add `EXCESS_BALANCE` hint [#1777](https://github.com/lambdaclass/cairo-vm/pull/1777)
 
 * feat(BREAKING): Use a cheatcode to relocate all dicts + Make temporary segment usage configurable [#1776](https://github.com/lambdaclass/cairo-vm/pull/1776)
