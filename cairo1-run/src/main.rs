@@ -63,8 +63,8 @@ struct Args {
 #[derive(Debug, Clone, Default)]
 struct FuncArgs(Vec<FuncArg>);
 
-// Processes an iterator of format [s1, s2,.., sn, "]", ...], stopping at the first "]" string
-// and returning the array [f1, f2,.., fn] where fi = Felt::from_dec_str(si)
+/// Processes an iterator of format [s1, s2,.., sn, "]", ...], stopping at the first "]" string
+/// and returning the array [f1, f2,.., fn] where fi = Felt::from_dec_str(si)
 fn process_array<'a>(iter: &mut impl Iterator<Item = &'a str>) -> Result<FuncArg, String> {
     let mut array = vec![];
     for value in iter {
@@ -79,8 +79,8 @@ fn process_array<'a>(iter: &mut impl Iterator<Item = &'a str>) -> Result<FuncArg
     Ok(FuncArg::Array(array))
 }
 
-// Parses a string of ascii whitespace separated values, containing either numbers or series of numbers wrapped in brackets
-// Returns an array of felts and felt arrays
+/// Parses a string of ascii whitespace separated values, containing either numbers or series of numbers wrapped in brackets
+/// Returns an array of felts and felt arrays
 fn process_args(value: &str) -> Result<FuncArgs, String> {
     let mut args = Vec::new();
     // Split input string into numbers and array delimiters
