@@ -264,11 +264,8 @@ impl CairoPie {
             Ok(())
         };
 
-        for ((si, so), value) in self.memory.0.iter() {
+        for ((si, so), _) in self.memory.0.iter() {
             validate_addr((*si as isize, *so).into())?;
-            if let MaybeRelocatable::RelocatableValue(val) = value {
-                validate_addr(*val)?;
-            }
         }
         Ok(())
     }
@@ -847,6 +844,7 @@ mod test {
     #[case(include_bytes!("../../../../cairo_programs/relocate_segments.json"), "relocate")]
     #[case(include_bytes!("../../../../cairo_programs/ec_op.json"), "ec_op")]
     #[case(include_bytes!("../../../../cairo_programs/bitwise_output.json"), "bitwise")]
+    #[case(include_bytes!("../../../../cairo_programs/value_beyond_segment.json"), "relocate_beyond")]
     fn read_write_pie_zip(#[case] program_content: &[u8], #[case] identifier: &str) {
         use crate::{
             cairo_run::CairoRunConfig,

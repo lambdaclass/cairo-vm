@@ -1016,6 +1016,13 @@ fn fibonacci_proof_mode_disable_trace_padding() {
 }
 
 #[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn value_beyond_segment() {
+    let program_data = include_bytes!("../../../cairo_programs/value_beyond_segment.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
 fn cairo_run_overflowing_dict() {
     let program_data =
         include_bytes!("../../../cairo_programs/manually_compiled/overflowing_dict.json");
