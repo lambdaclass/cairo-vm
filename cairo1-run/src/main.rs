@@ -65,15 +65,18 @@ struct FuncArgs(Vec<FuncArg>);
 
 // Processes an iterator of format [s1, s2,.., sn, "]", ...], stopping at the first "]" string
 // and returning the array [f1, f2,.., fn] where fi = Felt::from_dec_str(si)
-fn process_array<'a>(iter:&mut impl Iterator<Item = &'a str>) -> FuncArg {
+fn process_array<'a>(iter: &mut impl Iterator<Item = &'a str>) -> Result<FuncArg, String> {
     let mut array = vec![];
     for value in iter {
         match value {
             "]" => break,
-            _ => array.push(Felt252::from_dec_str(value).unwrap()),
+            _ => array.push(
+                Felt252::from_dec_str(value)
+                    .map_err(|_| format!("\"{}\" is not a valid felt", value))?,
+            ),
         }
     }
-    FuncArg::Array(array)
+    Ok(FuncArg::Array(array))
 }
 
 // Parses a string of ascii whitespace separated values, containing either numbers or series of numbers wrapped in brackets
@@ -101,10 +104,12 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
     // Process iterator of numbers & array delimiters
     while let Some(value) = input.next() {
         match value {
-            "[" => args.push(process_array(&mut input)),
-            _ => args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap())),
+            "[" => args.push(process_array(&mut input)?),
+            _ => args.push(FuncArg::Single(
+                Felt252::from_dec_str(value)
+                    .map_err(|_| format!("\"{}\" is not a valid felt", value))?,
+            )),
         }
-
     }
     Ok(FuncArgs(args))
 }
