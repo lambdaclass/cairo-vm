@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* refactor + bugfix: Improve arg handling for cairo1-run [#1782](https://github.com/lambdaclass/cairo-vm/pull/1782)
+  * Now uses ascii whitespace as separator, preventing errors when using newlines in args file
+  * No longer gets stuck on improperly-formatted arrays
+  * Returns an informative clap error upon invalid felt strings instead of unwrapping
+
 * fix: Ignore memory order when comparing instances of `CairoPieMemory` [#1780](https://github.com/lambdaclass/cairo-vm/pull/1780)
 
 * feat: Add `EXCESS_BALANCE` hint [#1777](https://github.com/lambdaclass/cairo-vm/pull/1777)

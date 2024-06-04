@@ -63,48 +63,52 @@ struct Args {
 #[derive(Debug, Clone, Default)]
 struct FuncArgs(Vec<FuncArg>);
 
-fn process_args(value: &str) -> Result<FuncArgs, String> {
-    if value.is_empty() {
-        return Ok(FuncArgs::default());
+/// Processes an iterator of format [s1, s2,.., sn, "]", ...], stopping at the first "]" string
+/// and returning the array [f1, f2,.., fn] where fi = Felt::from_dec_str(si)
+fn process_array<'a>(iter: &mut impl Iterator<Item = &'a str>) -> Result<FuncArg, String> {
+    let mut array = vec![];
+    for value in iter {
+        match value {
+            "]" => break,
+            _ => array.push(
+                Felt252::from_dec_str(value)
+                    .map_err(|_| format!("\"{}\" is not a valid felt", value))?,
+            ),
+        }
     }
+    Ok(FuncArg::Array(array))
+}
+
+/// Parses a string of ascii whitespace separated values, containing either numbers or series of numbers wrapped in brackets
+/// Returns an array of felts and felt arrays
+fn process_args(value: &str) -> Result<FuncArgs, String> {
     let mut args = Vec::new();
-    let mut input = value.split(' ');
-    while let Some(value) = input.next() {
-        // First argument in an array
-        if value.starts_with('[') {
-            if value.ends_with(']') {
-                if value.len() == 2 {
-                    args.push(FuncArg::Array(Vec::new()));
-                } else {
-                    args.push(FuncArg::Array(vec![Felt252::from_dec_str(
-                        value.strip_prefix('[').unwrap().strip_suffix(']').unwrap(),
-                    )
-                    .unwrap()]));
-                }
-            } else {
-                let mut array_arg =
-                    vec![Felt252::from_dec_str(value.strip_prefix('[').unwrap()).unwrap()];
-                // Process following args in array
-                let mut array_end = false;
-                while !array_end {
-                    if let Some(value) = input.next() {
-                        // Last arg in array
-                        if value.ends_with(']') {
-                            array_arg.push(
-                                Felt252::from_dec_str(value.strip_suffix(']').unwrap()).unwrap(),
-                            );
-                            array_end = true;
-                        } else {
-                            array_arg.push(Felt252::from_dec_str(value).unwrap())
-                        }
-                    }
-                }
-                // Finalize array
-                args.push(FuncArg::Array(array_arg))
+    // Split input string into numbers and array delimiters
+    let mut input = value.split_ascii_whitespace().flat_map(|mut x| {
+        // We don't have a way to split and keep the separate delimiters so we do it manually
+        let mut res = vec![];
+        if let Some(val) = x.strip_prefix('[') {
+            res.push("[");
+            x = val;
+        }
+        if let Some(val) = x.strip_suffix(']') {
+            if !val.is_empty() {
+                res.push(val)
             }
-        } else {
-            // Single argument
-            args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap()))
+            res.push("]")
+        } else if !x.is_empty() {
+            res.push(x)
+        }
+        res
+    });
+    // Process iterator of numbers & array delimiters
+    while let Some(value) = input.next() {
+        match value {
+            "[" => args.push(process_array(&mut input)?),
+            _ => args.push(FuncArg::Single(
+                Felt252::from_dec_str(value)
+                    .map_err(|_| format!("\"{}\" is not a valid felt", value))?,
+            )),
         }
     }
     Ok(FuncArgs(args))
