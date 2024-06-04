@@ -2,6 +2,11 @@
 
 #### Upcoming Changes
 
+* refactor + bugfix: Improve arg handling for cairo1-run [#1782](https://github.com/lambdaclass/cairo-vm/pull/1782)
+  * Now uses ascii whitespace as separator, preventing errors when using newlines in args file
+  * No longer gets stuck on improperly-formatted arrays
+  * Returns an informative clap error upon invalid felt strings instead of unwrapping
+
 * refactor: Add boolean method Cairo1RunConfig::copy_to_output + Update Doc [#1778](https://github.com/lambdaclass/cairo-vm/pull/1778)
 
 * feat: Filter implicit arguments from return value in cairo1-run crate [#1775](https://github.com/lambdaclass/cairo-vm/pull/1775)
