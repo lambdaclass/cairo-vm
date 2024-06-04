@@ -1453,3 +1453,12 @@ pub const NONDET_ELEMENTS_OVER_TEN: &str =
     "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 10)";
 pub const NONDET_ELEMENTS_OVER_TWO: &str =
     "memory[ap] = to_felt_or_relocatable(ids.elements_end - ids.elements >= 2)";
+
+pub const EXCESS_BALANCE: &str = r#"from excess_balance import excess_balance_func
+
+res = excess_balance_func(ids, memory, __dict_manager)
+
+ids.check_account_value = res["account_value"]
+ids.check_excess_balance = res["excess_balance"]
+ids.check_margin_requirement_d = res["margin_requirement"]
+ids.check_unrealized_pnl_d = res["unrealized_pnl"]"#;

@@ -17,7 +17,7 @@ use crate::{
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
-use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint};
+use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint, StarknetHint};
 use cairo_lang_casm::{
     hints::{CoreHint, Hint},
     operand::{CellRef, ResOperand},
@@ -54,13 +54,21 @@ fn get_beta() -> Felt252 {
 pub struct Cairo1HintProcessor {
     hints: HashMap<usize, Vec<Hint>>,
     run_resources: RunResources,
+    /// If set to true, uses a single segment for dictionaries to aid in segment arena validations
+    /// WARNING: The program must call the "RelocateAllDictionaries" Cheatcode if the flag is enabled
+    segment_arena_validations: bool,
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources) -> Self {
+    pub fn new(
+        hints: &[(usize, Vec<Hint>)],
+        run_resources: RunResources,
+        segment_arena_validations: bool,
+    ) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
             run_resources,
+            segment_arena_validations,
         }
     }
     // Runs a single Hint
@@ -166,7 +174,7 @@ impl Cairo1HintProcessor {
             })) => self.linear_split(vm, value, scalar, max_x, x, y),
 
             Hint::Core(CoreHintBase::Core(CoreHint::AllocFelt252Dict { segment_arena_ptr })) => {
-                self.alloc_felt_256_dict(vm, segment_arena_ptr, exec_scopes)
+                self.alloc_felt_252_dict(vm, segment_arena_ptr, exec_scopes)
             }
 
             Hint::Core(CoreHintBase::Core(CoreHint::AssertLeFindSmallArcs {
@@ -266,6 +274,20 @@ impl Cairo1HintProcessor {
                 t_or_k0,
                 t_or_k1,
             ),
+            Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
+                let selector = &selector.value.to_bytes_be().1;
+                let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
+                    HintError::CustomHint(Box::from("failed to parse selector".to_string()))
+                })?;
+                match selector {
+                    "RelocateAllDictionaries" => {
+                        let dict_manager_exec_scope = exec_scopes
+                            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
+                        dict_manager_exec_scope.relocate_all_dictionaries(vm)
+                    }
+                    _ => Err(HintError::UnknownHint(selector.into())),
+                }
+            }
 
             hint => Err(HintError::UnknownHint(
                 format!("{:?}", hint).into_boxed_str(),
@@ -418,7 +440,7 @@ impl Cairo1HintProcessor {
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
             .map_err(HintError::from)?;
         // The hint is only for dictionary finalization, so can be called.
-        dict_manager_exec_scope.finalize_segment(vm, dict_address)
+        dict_manager_exec_scope.finalize_segment(dict_address)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -548,7 +570,7 @@ impl Cairo1HintProcessor {
         Err(HintError::KeyNotFound)
     }
 
-    fn alloc_felt_256_dict(
+    fn alloc_felt_252_dict(
         &self,
         vm: &mut VirtualMachine,
         segment_arena_ptr: &ResOperand,
@@ -577,7 +599,7 @@ impl Cairo1HintProcessor {
                 Err(_) => {
                     exec_scopes.assign_or_update_variable(
                         "dict_manager_exec_scope",
-                        Box::<DictManagerExecScope>::default(),
+                        Box::new(DictManagerExecScope::new(self.segment_arena_validations)),
                     );
                     exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?
                 }

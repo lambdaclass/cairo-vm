@@ -931,6 +931,7 @@ dependencies = [
  "proptest",
  "rand",
  "rstest",
+ "rust_decimal",
  "serde",
  "serde_json",
  "sha2",
@@ -995,6 +996,7 @@ dependencies = [
  "clap",
  "itertools 0.11.0",
  "mimalloc",
+ "num-bigint",
  "num-traits 0.2.18",
  "rstest",
  "serde_json",
@@ -2705,6 +2707,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust_decimal"
+version = "1.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1790d1c4c0ca81211399e0e0af16333276f375209e71a37b67698a373db5b47a"
+dependencies = [
+ "arrayvec",
+ "num-traits 0.2.18",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3068,12 +3080,11 @@ dependencies = [
 
 [[package]]
 name = "starknet-types-core"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1051b4f4af0bb9b546388a404873ee1e6b9787b9d5b0b3319ecbfadf315ef276"
+checksum = "b537ba94c95a6c320065653f2a784a395750650c86ef14779be91a233380e9b3"
 dependencies = [
  "arbitrary",
- "bitvec",
  "lambdaworks-crypto",
  "lambdaworks-math",
  "num-bigint",
