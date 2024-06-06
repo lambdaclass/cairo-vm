@@ -380,7 +380,7 @@ pub fn excess_balance_hint(
         .and_then(|sum| sum.checked_add(token_assets_value_d))
         .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
     let fee_provision = fees
-        .get(&account)
+        .get(account.as_ref())
         .and_then(|fee| abs_balance_value.checked_mul(*fee))
         .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
     let margin_requirement = position_margin
