@@ -72,9 +72,11 @@ pub struct OutputBuiltinAdditionalData {
     pub attributes: Attributes,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 #[serde(untagged)]
 pub enum BuiltinAdditionalData {
+    // Catch empty lists under the `Empty` variant.
+    Empty([(); 0]),
     // Contains verified addresses as contiguous index, value pairs
     #[serde(with = "serde_impl::hash_additional_data")]
     Hash(Vec<Relocatable>),
@@ -83,6 +85,31 @@ pub enum BuiltinAdditionalData {
     #[serde(with = "serde_impl::signature_additional_data")]
     Signature(HashMap<Relocatable, (Felt252, Felt252)>),
     None,
+}
+
+impl BuiltinAdditionalData {
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Empty(_) => true,
+            Self::Hash(data) => data.is_empty(),
+            Self::Signature(data) => data.is_empty(),
+            Self::Output(_) => false,
+            Self::None => false,
+        }
+    }
+}
+
+impl PartialEq for BuiltinAdditionalData {
+    fn eq(&self, other: &BuiltinAdditionalData) -> bool {
+        match (self, other) {
+            (Self::Hash(data), Self::Hash(other_data)) => data == other_data,
+            (Self::Signature(data), Self::Signature(other_data)) => data == other_data,
+            (Self::Output(data), Self::Output(other_data)) => data == other_data,
+            (Self::None, Self::None) => true,
+            (Self::Empty(_), x) | (x, Self::Empty(_)) => x.is_empty(),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

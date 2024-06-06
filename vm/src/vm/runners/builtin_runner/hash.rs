@@ -125,6 +125,7 @@ impl HashBuiltinRunner {
     ) -> Result<(), RunnerError> {
         let additional_data = match additional_data {
             BuiltinAdditionalData::Hash(d) => d,
+            BuiltinAdditionalData::Empty(_) => return Ok(()),
             _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen)),
         };
         let mut verified_addresses = self.verified_addresses.borrow_mut();
