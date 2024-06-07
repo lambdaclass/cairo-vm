@@ -188,6 +188,7 @@ impl SignatureBuiltinRunner {
     ) -> Result<(), RunnerError> {
         let additional_data = match additional_data {
             BuiltinAdditionalData::Signature(d) => d,
+            BuiltinAdditionalData::Empty(_) => return Ok(()),
             _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa)),
         };
         for (addr, (r, s)) in additional_data {
