@@ -327,7 +327,7 @@ impl<'de> de::Visitor<'de> for Felt252Visitor {
             let no_prefix_hex = deserialize_utils::maybe_add_padding(no_prefix_hex.to_string());
             Ok(Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?)
         } else {
-            Err(String::from("hex prefix error")).map_err(de::Error::custom)
+            Err(de::Error::custom(String::from("hex prefix error")))
         }
     }
 }
@@ -355,7 +355,7 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
                     Felt252::from_str_radix(&no_prefix_hex, 16).map_err(de::Error::custom)?,
                 ));
             } else {
-                return Err(String::from("hex prefix error")).map_err(de::Error::custom);
+                return Err(de::Error::custom(String::from("hex prefix error")));
             };
         }
         Ok(data)
