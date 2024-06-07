@@ -45,26 +45,26 @@ mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
- fn run_program_simple(data: &[u8]) {
+fn run_program_simple(data: &[u8]) {
     run_program(data, Some("all_cairo"), None, None, Some(0))
 }
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes
- fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
+fn run_program_simple_with_memory_holes(data: &[u8], holes: usize) {
     run_program(data, Some("all_cairo"), None, None, Some(holes))
 }
 
 //For simple programs that should just succeed but using small layout.
- fn run_program_small(data: &[u8]) {
+fn run_program_small(data: &[u8]) {
     run_program(data, Some("small"), None, None, None)
 }
 
- fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
+fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
     run_program(data, Some("all_cairo"), Some(trace), None, None)
 }
 
- fn run_program_with_error(data: &[u8], error: &str) {
+fn run_program_with_error(data: &[u8], error: &str) {
     run_program(data, Some("all_cairo"), None, Some(error), None)
 }
 
