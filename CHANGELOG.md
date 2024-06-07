@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `EXCESS_BALANCE` hint [#1777](https://github.com/lambdaclass/cairo-vm/pull/1777)
+
 #### [0.9.2] - 2024-01-3
 
 * Change ec_op_impl() to use ProjectivePoint [#1534](https://github.com/lambdaclass/cairo-vm/pull/1534)

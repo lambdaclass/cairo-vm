@@ -147,6 +147,7 @@ mod serde_impl {
         seq_serializer.end()
     }
 
+    #[allow(clippy::format_collect)]
     pub fn serialize_memory<S>(
         values: &[((usize, usize), MaybeRelocatable)],
         serializer: S,

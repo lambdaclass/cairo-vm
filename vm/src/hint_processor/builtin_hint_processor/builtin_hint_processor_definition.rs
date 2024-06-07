@@ -4,6 +4,7 @@ use super::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
     },
+    excess_balance::excess_balance_hint,
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     secp::{
         ec_utils::{
@@ -815,6 +816,13 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::SPLIT_XX => split_xx(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             #[cfg(feature = "skip_next_instruction_hint")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
+            hint_code::EXCESS_BALANCE => excess_balance_hint(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                exec_scopes,
+            ),
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }

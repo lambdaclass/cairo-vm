@@ -1409,3 +1409,12 @@ ids.x.low = x & ((1<<128)-1)
 ids.x.high = x >> 128";
 #[cfg(feature = "skip_next_instruction_hint")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
+
+pub const EXCESS_BALANCE: &str = r#"from excess_balance import excess_balance_func
+
+res = excess_balance_func(ids, memory, __dict_manager)
+
+ids.check_account_value = res["account_value"]
+ids.check_excess_balance = res["excess_balance"]
+ids.check_margin_requirement_d = res["margin_requirement"]
+ids.check_unrealized_pnl_d = res["unrealized_pnl"]"#;
