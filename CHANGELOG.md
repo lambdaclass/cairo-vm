@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Change (de)serialization of CairoPie's `OutputBuiltinAdditionalData`'s `PublicMemoryPage` to vectors of length 2. [#1781](https://github.com/lambdaclass/cairo-vm/pull/1781)
+
 * fix: Fixed deserialization issue when signature additional data is empty, and the name of the builtin range_check96 [#1785](https://github.com/lambdaclass/cairo-vm/pull/1785)
 
 * refactor + bugfix: Improve arg handling for cairo1-run [#1782](https://github.com/lambdaclass/cairo-vm/pull/1782)
