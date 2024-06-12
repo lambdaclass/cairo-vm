@@ -176,7 +176,6 @@ pub fn cairo_run_program(
         &casm_program,
         &type_sizes,
         main_func,
-        initial_gas,
         &cairo_run_config,
     )?;
 
@@ -535,7 +534,6 @@ fn create_entry_code(
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
-    initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.copy_to_output();
