@@ -538,6 +538,16 @@ fn create_entry_code(
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.copy_to_output();
     let signature = &func.signature;
+    let got_segment_arena = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    });
+    let got_gas_builtin = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == GasBuiltinType::ID)
+            .unwrap_or_default()
+    });
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
@@ -554,11 +564,6 @@ fn create_entry_code(
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
-    });
-    let got_segment_arena = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
     });
     if copy_to_output_builtin {
         // Leave a gap to write the builtin final pointers
@@ -720,8 +725,10 @@ fn create_entry_code(
             // We lost the output_ptr var after re-scoping, so we need to create it again
             // The last instruction will write the last output ptr so we can find it in [ap - 1]
             let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
-            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
-            let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin)
+            let offset = (2 * builtins.len() - 1
+                + 4 * got_segment_arena as usize
+                + got_gas_builtin as usize) as i16;
             let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
             let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
             casm_build_extend! {ctx,
