@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* fix: Handle `GasBuiltin` in cairo1-run crate [#1789](https://github.com/lambdaclass/cairo-vm/pull/1789)
+  * Load `initial_gas` into vm instead of creating it via instructions.
+  * Fix bug affecting programs with input arguments and gas builtin.
+
 * fix: Change (de)serialization of CairoPie's `OutputBuiltinAdditionalData`'s `PublicMemoryPage` to vectors of length 2. [#1781](https://github.com/lambdaclass/cairo-vm/pull/1781)
 
 * fix: Fixed deserialization issue when signature additional data is empty, and the name of the builtin range_check96 [#1785](https://github.com/lambdaclass/cairo-vm/pull/1785)

@@ -176,7 +176,6 @@ pub fn cairo_run_program(
         &casm_program,
         &type_sizes,
         main_func,
-        initial_gas,
         &cairo_run_config,
     )?;
 
@@ -254,7 +253,7 @@ pub fn cairo_run_program(
         cairo_run_config.trace_enabled,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func, initial_gas)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -394,7 +393,7 @@ fn create_code_footer() -> Vec<Instruction> {
 }
 
 // Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by
-// the instructions in the entry_code (produced by `create_entry_code`)
+// the instructions in the entry_code (produced by `create_entry_code`). Also loads the initial gas if the GasBuiltin is present
 
 /* Example of execution segment before running the main function:
 Before calling this function (after runner.initialize):
@@ -441,19 +440,27 @@ After the entry_code (up until calling main) has been ran by the VM:
     builtin_base_0
     builtin_base_1
     (*2) segment_arena_ptr + 3 (segment_arena base)
+    (*4) initial_gas
     (*3) arg_0
     (*3) arg_1
 ]
 (*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
 (*2) if segment arena is present
 (*3) if args are used
+(*4) if gas builtin is present
 */
 fn load_arguments(
     runner: &mut CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
+    initial_gas: usize,
 ) -> Result<(), Error> {
-    if cairo_run_config.args.is_empty() {
+    let got_gas_builtin = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
+    if cairo_run_config.args.is_empty() && !got_gas_builtin {
         // Nothing to be done
         return Ok(());
     }
@@ -470,12 +477,21 @@ fn load_arguments(
     //  * segment_arena_ptr
     //  * info_segment_ptr
     //  * 0
+    //  * segment_arena_ptr + 3
     let mut ap_offset = runner.get_program().builtins_len();
     if cairo_run_config.copy_to_output() {
         ap_offset += runner.get_program().builtins_len() - 1;
     }
     if got_segment_arena {
-        ap_offset += 3;
+        ap_offset += 4;
+    }
+    // Load initial gas if GasBuiltin is present
+    if got_gas_builtin {
+        runner.vm.insert_value(
+            (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+            Felt252::from(initial_gas),
+        )?;
+        ap_offset += 1;
     }
     for arg in cairo_run_config.args {
         match arg {
@@ -516,11 +532,20 @@ fn create_entry_code(
     casm_program: &CairoProgram,
     type_sizes: &UnorderedHashMap<ConcreteTypeId, i16>,
     func: &Function,
-    initial_gas: usize,
     config: &Cairo1RunConfig,
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.copy_to_output();
     let signature = &func.signature;
+    let got_segment_arena = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
+            .unwrap_or_default()
+    });
+    let got_gas_builtin = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == GasBuiltinType::ID)
+            .unwrap_or_default()
+    });
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
@@ -537,11 +562,6 @@ fn create_entry_code(
     let output_ptr = copy_to_output_builtin.then(|| {
         let offset: i16 = 2 + builtins.len().into_or_panic::<i16>();
         ctx.add_var(CellExpression::Deref(deref!([fp - offset])))
-    });
-    let got_segment_arena = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
     });
     if copy_to_output_builtin {
         // Leave a gap to write the builtin final pointers
@@ -583,9 +603,9 @@ fn create_entry_code(
                 ap += 1;
             };
         } else if generic_ty == &GasBuiltinType::ID {
+            // We already loaded the inital gas so we just advance AP
             casm_build_extend! {ctx,
-                const initial_gas = initial_gas;
-                tempvar _gas = initial_gas;
+                ap += 1;
             };
         } else {
             let ty_size = type_sizes[ty];
@@ -703,8 +723,10 @@ fn create_entry_code(
             // We lost the output_ptr var after re-scoping, so we need to create it again
             // The last instruction will write the last output ptr so we can find it in [ap - 1]
             let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
-            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3)
-            let offset = (2 * builtins.len() - 1 + 4 * got_segment_arena as usize) as i16;
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin)
+            let offset = (2 * builtins.len() - 1
+                + 4 * got_segment_arena as usize
+                + got_gas_builtin as usize) as i16;
             let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
             let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
             casm_build_extend! {ctx,
