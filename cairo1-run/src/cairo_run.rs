@@ -254,10 +254,12 @@ pub fn cairo_run_program(
         cairo_run_config.trace_enabled,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func, initial_gas)?;
 
     // Run it until the end / infinite loop in proof_mode
-    runner.run_until_pc(end, &mut hint_processor)?;
+    let err = runner.run_until_pc(end, &mut hint_processor);
+    println!("{}", runner.vm.segments);
+    err?;
     if cairo_run_config.proof_mode {
         runner.run_for_steps(1, &mut hint_processor)?;
     }
@@ -394,7 +396,7 @@ fn create_code_footer() -> Vec<Instruction> {
 }
 
 // Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by
-// the instructions in the entry_code (produced by `create_entry_code`)
+// the instructions in the entry_code (produced by `create_entry_code`). Also loads the initial gas if the GasBuiltin is present
 
 /* Example of execution segment before running the main function:
 Before calling this function (after runner.initialize):
@@ -441,17 +443,20 @@ After the entry_code (up until calling main) has been ran by the VM:
     builtin_base_0
     builtin_base_1
     (*2) segment_arena_ptr + 3 (segment_arena base)
+    (*4) initial_gas
     (*3) arg_0
     (*3) arg_1
 ]
 (*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
 (*2) if segment arena is present
 (*3) if args are used
+(*4) if gas builtin is used
 */
 fn load_arguments(
     runner: &mut CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
+    initial_gas: usize,
 ) -> Result<(), Error> {
     if cairo_run_config.args.is_empty() {
         // Nothing to be done
@@ -470,12 +475,26 @@ fn load_arguments(
     //  * segment_arena_ptr
     //  * info_segment_ptr
     //  * 0
+    //  * segment_arena_ptr + 3
     let mut ap_offset = runner.get_program().builtins_len();
     if cairo_run_config.copy_to_output() {
         ap_offset += runner.get_program().builtins_len() - 1;
     }
     if got_segment_arena {
-        ap_offset += 3;
+        ap_offset += 4;
+    }
+    // Load initial gas if GasBuiltin is present
+    let got_gas_builtin = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
+    if got_gas_builtin {
+        runner.vm.insert_value(
+            (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+            Felt252::from(initial_gas),
+        )?;
+        ap_offset += 1;
     }
     for arg in cairo_run_config.args {
         match arg {
@@ -583,9 +602,9 @@ fn create_entry_code(
                 ap += 1;
             };
         } else if generic_ty == &GasBuiltinType::ID {
+            // We already loaded the inital gas so we just advance AP
             casm_build_extend! {ctx,
-                const initial_gas = initial_gas;
-                tempvar _gas = initial_gas;
+                ap += 1;
             };
         } else {
             let ty_size = type_sizes[ty];
