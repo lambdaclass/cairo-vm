@@ -447,7 +447,7 @@ After the entry_code (up until calling main) has been ran by the VM:
 (*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
 (*2) if segment arena is present
 (*3) if args are used
-(*4) if gas builtin is used
+(*4) if gas builtin is present
 */
 fn load_arguments(
     runner: &mut CairoRunner,
