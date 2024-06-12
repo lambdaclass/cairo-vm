@@ -457,7 +457,12 @@ fn load_arguments(
     main_func: &Function,
     initial_gas: usize,
 ) -> Result<(), Error> {
-    if cairo_run_config.args.is_empty() {
+    let got_gas_builtin = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
+    if cairo_run_config.args.is_empty() && !got_gas_builtin {
         // Nothing to be done
         return Ok(());
     }
@@ -483,11 +488,6 @@ fn load_arguments(
         ap_offset += 4;
     }
     // Load initial gas if GasBuiltin is present
-    let got_gas_builtin = main_func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
     if got_gas_builtin {
         runner.vm.insert_value(
             (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
