@@ -414,6 +414,13 @@ mod tests {
     #[case("bitwise.cairo", "11772", "[11772]", None, None)]
     #[case("factorial.cairo", "3628800", "[3628800]", None, None)]
     #[case("fibonacci.cairo", "89", "[89]", None, None)]
+    #[case(
+        "with_input/dict_with_input.cairo",
+        "[17 18]",
+        "[17 18]",
+        Some("[17 18]"),
+        Some("[17 18]")
+    )]
 
     fn test_run_progarm(
         #[case] program: &str,
