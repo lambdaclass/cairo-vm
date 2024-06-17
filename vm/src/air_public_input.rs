@@ -34,7 +34,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("{:x}", value))
+            serializer.serialize_str(&format!("0x{:x}", value))
         } else {
             serializer.serialize_none()
         }
@@ -66,6 +66,7 @@ mod mem_value_serde {
         where
             E: de::Error,
         {
+            let value = value.strip_prefix("0x").unwrap_or(value);
             Felt252::from_hex(value)
                 .map_err(de::Error::custom)
                 .map(Some)
