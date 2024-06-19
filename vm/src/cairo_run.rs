@@ -470,6 +470,7 @@ mod tests {
     #[case(include_bytes!("../../cairo_programs/relocate_segments.json"))]
     #[case(include_bytes!("../../cairo_programs/ec_op.json"))]
     #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
+    #[case(include_bytes!("../../cairo_programs/value_beyond_segment.json"))]
     fn get_and_run_cairo_pie(#[case] program_content: &[u8]) {
         let cairo_run_config = CairoRunConfig {
             layout: LayoutName::starknet_with_keccak,
