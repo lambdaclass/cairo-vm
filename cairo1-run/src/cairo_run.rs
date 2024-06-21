@@ -141,6 +141,10 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
+    #[cfg(target_pointer_width = "32")]
+    let initial_gas = 999999999_usize;
+
+    #[cfg(not(target_pointer_width = "32"))]
     let initial_gas = 9999999999999_usize;
 
     // Fetch return type data
