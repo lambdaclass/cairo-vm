@@ -275,7 +275,7 @@ clippy:
 	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
 coverage:
-	cargo llvm-cov report --lcov --output-path lcov.info
+	cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints"
 
 coverage-clean:
 	cargo llvm-cov clean
