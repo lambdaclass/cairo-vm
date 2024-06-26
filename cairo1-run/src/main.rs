@@ -320,13 +320,6 @@ mod tests {
         None
     )]
     #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None, None)]
-    #[case(
-        "felt_dict.cairo",
-        "{66675: [8 9 10 11] 66676: [1 2 3]}",
-        "[66675 4 8 9 10 11 66676 3 1 2 3]",
-        None,
-        None
-    )]
     #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None, None)]
     #[case("nullable_dict.cairo", "", "[]", None, None)]
     #[case(
@@ -472,6 +465,68 @@ mod tests {
         } else {
             expected_output
         };
+        assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
+    }
+
+    #[rstest]
+    #[case(
+        "dict_with_struct_non_squash.cairo",
+        "{0: 1 true 1: 1 false 2: 1 true}",
+        //"[0 1 1 1 1 0 2 1 1]",
+        None,
+        //None
+    )]
+    #[case(
+        "nullable_box_vec_non_squash.cairo",
+        "{0: 10 1: 20 2: 30} 3",
+        //"[0 10 1 20 2 30 3]",
+        None,
+        //None
+    )]
+    #[case(
+        "felt_dict_non_squash.cairo",
+        "{66675: [8 9 10 11] 66676: [1 2 3]}",
+        //"[66675 4 8 9 10 11 66676 3 1 2 3]",
+        None,
+        //None
+    )]
+    fn test_run_progarm_non_proof(
+        #[case] program: &str,
+        #[case] expected_output: &str,
+        //#[case] expected_serialized_output: &str,
+        #[case] inputs: Option<&str>,
+        //#[case] serialized_inputs: Option<&str>,
+        #[values(
+        &["--cairo_pie_output", "/dev/null"], // Non proof-mode
+        //&["--cairo_pie_output", "/dev/null", "--append_return_values"], // Non proof-mode & appending return values to ouput
+        //&["--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"], // Proof mode
+    )]
+        extra_flags: &[&str],
+    ) {
+        let common_flags = &[
+            "--print_output",
+            "--trace_file",
+            "/dev/null",
+            "--memory_file",
+            "/dev/null",
+            "--layout",
+            "all_cairo",
+        ];
+        let mut args = vec!["cairo1-run"];
+        // let has_serialized_output = extra_flags
+        //     .iter()
+        //     .any(|flag| flag == &"--append_return_values" || flag == &"--proof_mode");
+        let filename = 
+            format!("../cairo_programs/cairo-1-programs/{}", program);
+
+        args.push(&filename);
+        args.extend_from_slice(common_flags);
+        args.extend_from_slice(extra_flags);
+        if let Some(inputs) = inputs {
+            args.extend_from_slice(&["--args", inputs])
+        }
+        let args = args.iter().cloned().map(String::from);
+        let expected_output = expected_output;
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
     }
 
