@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* test: Add tests for felt using `Felt252` instead of `SquashedFelt252`
+* test: Add tests for felt using `Felt252Dict` instead of `SquashedFelt252Dict`
 
 * fix: Remove validation of CairoPie memory values [#1783](https://github.com/lambdaclass/cairo-vm/pull/1783)
 
