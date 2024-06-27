@@ -34,7 +34,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("{:x}", value))
+            serializer.serialize_str(&format!("0x{:x}", value))
         } else {
             serializer.serialize_none()
         }
