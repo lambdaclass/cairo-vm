@@ -472,34 +472,20 @@ mod tests {
     #[case(
         "dict_with_struct_non_squash.cairo",
         "{0: 1 true 1: 1 false 2: 1 true}",
-        //"[0 1 1 1 1 0 2 1 1]",
-        None,
-        //None
+        None
     )]
-    #[case(
-        "nullable_box_vec_non_squash.cairo",
-        "{0: 10 1: 20 2: 30} 3",
-        //"[0 10 1 20 2 30 3]",
-        None,
-        //None
-    )]
+    #[case("nullable_box_vec_non_squash.cairo", "{0: 10 1: 20 2: 30} 3", None)]
     #[case(
         "felt_dict_non_squash.cairo",
         "{66675: [8 9 10 11] 66676: [1 2 3]}",
-        //"[66675 4 8 9 10 11 66676 3 1 2 3]",
-        None,
-        //None
+        None
     )]
     fn test_run_progarm_non_proof(
         #[case] program: &str,
         #[case] expected_output: &str,
-        //#[case] expected_serialized_output: &str,
         #[case] inputs: Option<&str>,
-        //#[case] serialized_inputs: Option<&str>,
         #[values(
         &["--cairo_pie_output", "/dev/null"], // Non proof-mode
-        //&["--cairo_pie_output", "/dev/null", "--append_return_values"], // Non proof-mode & appending return values to ouput
-        //&["--proof_mode", "--air_public_input", "/dev/null", "--air_private_input", "/dev/null"], // Proof mode
     )]
         extra_flags: &[&str],
     ) {
@@ -513,11 +499,7 @@ mod tests {
             "all_cairo",
         ];
         let mut args = vec!["cairo1-run"];
-        // let has_serialized_output = extra_flags
-        //     .iter()
-        //     .any(|flag| flag == &"--append_return_values" || flag == &"--proof_mode");
-        let filename = 
-            format!("../cairo_programs/cairo-1-programs/{}", program);
+        let filename = format!("../cairo_programs/cairo-1-programs/{}", program);
 
         args.push(&filename);
         args.extend_from_slice(common_flags);
