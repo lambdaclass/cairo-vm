@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* fix: change make coverage to execute cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints" [#1797](https://github.com/lambdaclass/cairo-vm/pull/1797)
-
 * fix: Remove validation of CairoPie memory values [#1783](https://github.com/lambdaclass/cairo-vm/pull/1783)
 
 * fix: Handle `GasBuiltin` in cairo1-run crate [#1789](https://github.com/lambdaclass/cairo-vm/pull/1789)
