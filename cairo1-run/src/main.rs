@@ -475,7 +475,7 @@ mod tests {
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
     }
 
-    // these tests a separated so as to run them without --append_return_values and --proof_mode options
+    // these tests are separated so as to run them without --append_return_values and --proof_mode options
     #[rstest]
     #[case(
         "dict_non_squashed/dict_with_struct_non_squash.cairo",
