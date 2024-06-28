@@ -320,6 +320,13 @@ mod tests {
         None
     )]
     #[case("array_integer_tuple.cairo", "[1] 1", "[1 1 1]", None, None)]
+    #[case(
+        "felt_dict.cairo",
+        "{66675: [8 9 10 11] 66676: [1 2 3]}",
+        "[66675 4 8 9 10 11 66676 3 1 2 3]",
+        None,
+        None
+    )]
     #[case("felt_span.cairo", "[8 9 10 11]", "[4 8 9 10 11]", None, None)]
     #[case("nullable_dict.cairo", "", "[]", None, None)]
     #[case(
@@ -468,15 +475,20 @@ mod tests {
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
     }
 
+    // these tests a separated so as to run them without --append_return_values and --proof_mode options
     #[rstest]
     #[case(
-        "dict_with_struct_non_squash.cairo",
+        "dict_non_squashed/dict_with_struct_non_squash.cairo",
         "{0: 1 true 1: 1 false 2: 1 true}",
         None
     )]
-    #[case("nullable_box_vec_non_squash.cairo", "{0: 10 1: 20 2: 30} 3", None)]
     #[case(
-        "felt_dict_non_squash.cairo",
+        "dict_non_squashed/nullable_box_vec_non_squash.cairo",
+        "{0: 10 1: 20 2: 30} 3",
+        None
+    )]
+    #[case(
+        "dict_non_squashed/felt_dict_non_squash.cairo",
         "{66675: [8 9 10 11] 66676: [1 2 3]}",
         None
     )]
