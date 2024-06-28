@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* chore: bump `cairo-lang-` dependencies to 2.5.3 [#1799](https://github.com/lambdaclass/cairo-vm/pull/1799)
+* chore: bump `cairo-lang-` dependencies to 2.6.4 [#1799](https://github.com/lambdaclass/cairo-vm/pull/1799)
   * fix: revert breaking change on public input serialization
 
 * fix: Remove validation of CairoPie memory values [#1783](https://github.com/lambdaclass/cairo-vm/pull/1783)
