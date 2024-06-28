@@ -520,7 +520,6 @@ mod tests {
             args.extend_from_slice(&["--args", inputs])
         }
         let args = args.iter().cloned().map(String::from);
-        let expected_output = expected_output;
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
     }
 
