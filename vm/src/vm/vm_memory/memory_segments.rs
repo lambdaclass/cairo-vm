@@ -283,11 +283,15 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
+    pub fn has_zero_segment(&self) -> bool {
+        self.zero_segment_index.is_zero()
+    }
+
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
     pub(crate) fn add_zero_segment(&mut self, size: usize) -> usize {
-        if self.zero_segment_index.is_zero() {
+        if self.has_zero_segment() {
             self.zero_segment_index = self.add().segment_index as usize;
         }
         // Fil zero segment with zero values until size is reached
