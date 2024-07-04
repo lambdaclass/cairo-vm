@@ -476,6 +476,7 @@ mod tests {
     }
 
     // these tests are separated so as to run them without --append_return_values and --proof_mode options
+    // since they requiere to use the squashed version of felt252
     #[rstest]
     #[case(
         "dict_non_squashed/dict_with_struct_non_squash.cairo",
