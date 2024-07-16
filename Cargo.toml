@@ -70,7 +70,7 @@ cairo-lang-starknet = { version = "2.7.0-rc.2", default-features = false }
 cairo-lang-casm = { version = "2.7.0-rc.2", default-features = false }
 
 cairo-lang-starknet-classes = { version = "2.7.0-rc.2", default-features = false }
-cairo-lang-compiler = { version = "2.7.0-rc.2", default-features = false }
+cairo-lang-compiler = { version = "=2.7.0-rc.2", default-features = false }
 cairo-lang-sierra-to-casm = { version = "2.7.0-rc.2", default-features = false }
 cairo-lang-sierra = { version = "2.7.0-rc.2", default-features = false }
 cairo-lang-runner = { version = "2.7.0-rc.2", default-features = false }

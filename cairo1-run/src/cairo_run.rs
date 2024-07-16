@@ -855,7 +855,7 @@ fn create_entry_code(
     };
     inst.target = deref_or_immediate!(
         post_call_size
-            + casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset
+            + casm_program.debug_info.sierra_statement_info[func.entry_point.0].start_offset
     );
     Ok((
         CasmContext {
@@ -1554,7 +1554,9 @@ mod tests {
             .build()
             .unwrap();
         let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
-        compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap()
+        compile_prepared_db(&mut db, main_crate_ids, compiler_config)
+            .unwrap()
+            .program
     }
 
     fn main_hash_panic_result(sierra_program: &SierraProgram) -> bool {
