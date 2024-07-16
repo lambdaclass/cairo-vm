@@ -1232,7 +1232,7 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Box Pointer is not Relocatable");
-            let type_size = type_sizes.type_size(&info.ty);
+            let type_size = type_sizes[&info.ty].into_or_panic();
             let data = vm
                 .get_continuous_range(ptr, type_size)
                 .expect("Failed to extract value from nullable ptr");
@@ -1301,7 +1301,7 @@ fn serialize_output_inner<'a>(
                 }
                 _ => panic!("Invalid Nullable"),
             };
-            let type_size = type_sizes.type_size(&info.ty);
+            let type_size = type_sizes[&info.ty].into_or_panic();
             let data = vm
                 .get_continuous_range(ptr, type_size)
                 .expect("Failed to extract value from nullable ptr");
