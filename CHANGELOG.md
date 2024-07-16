@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+#### [1.0.0-rc5] - 2024-07-13
+
+* fix: Fixed deserialization of negative numbers in scientific notation [#1804](https://github.com/lambdaclass/cairo-vm/pull/1804)
+
+#### [1.0.0-rc4] - 2024-07-05
+
 * chore: bump `cairo-lang-` dependencies to 2.6.4 [#1799](https://github.com/lambdaclass/cairo-vm/pull/1799)
   * fix: revert breaking change on public input serialization
 

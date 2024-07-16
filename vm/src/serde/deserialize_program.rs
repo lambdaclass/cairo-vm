@@ -28,7 +28,7 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use num_bigint::BigUint;
+use num_bigint::BigInt;
 use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -235,15 +235,20 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
             let exponent = list[1].parse::<u128>().ok()?;
+
             // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
-            let base_biguint = BigUint::from_str_radix(list[0], 10).ok()? % CAIRO_PRIME.clone();
-            let base = Felt252::from_dec_str(&base_biguint.to_string()).ok()?;
+            let prime_bigint = BigInt::from_biguint(num_bigint::Sign::Plus, CAIRO_PRIME.clone());
+            let base_bigint = BigInt::from_str_radix(list[0], 10).ok()? % prime_bigint;
+            let base = Felt252::from_dec_str(&base_bigint.to_string()).ok()?;
+
             Some(base * Felt252::from(10).pow(exponent))
         }
         Some(float) => {
-            let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
             // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
-            Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
+            let prime_bigint = BigInt::from_biguint(num_bigint::Sign::Plus, CAIRO_PRIME.clone());
+            let number = BigInt::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?
+                % prime_bigint;
+            Felt252::from_dec_str(&number.to_string()).ok()
         }
     }
 }
@@ -1539,6 +1544,17 @@ mod tests {
             )
             .unwrap()
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_negative() {
+        let n = Number::deserialize(serde_json::Value::from(-1e27)).unwrap();
+        assert_eq!(n.to_string(), "-1e27".to_owned());
+
+        let felt = felt_from_number(n).unwrap().unwrap();
+
+        assert_eq!(felt, Felt252::from(-1) * Felt252::from(10).pow(27_u32));
     }
 
     #[test]
