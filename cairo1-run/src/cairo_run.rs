@@ -25,7 +25,6 @@ use cairo_lang_sierra::{
     program::{Function, GenericArg, Program as SierraProgram},
     program_registry::ProgramRegistry,
 };
-use cairo_lang_sierra_gas::objects::CostInfoProvider;
 use cairo_lang_sierra_to_casm::{
     compiler::{CairoProgram, SierraToCasmConfig},
     metadata::calc_metadata_ap_change_only,
