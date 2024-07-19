@@ -89,6 +89,7 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
     }
 }
 
+#[allow(clippy::manual_non_exhaustive)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PublicInput<'a> {
     pub layout: &'a str,
@@ -97,8 +98,8 @@ pub struct PublicInput<'a> {
     pub n_steps: usize,
     pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     pub public_memory: Vec<PublicMemoryEntry>,
-    // #[serde(skip_deserializing)] // This is set to None by default so we can skip it
-    // dynamic_params: (),
+    #[serde(skip_deserializing)] // This is set to None by default so we can skip it
+    dynamic_params: (),
 }
 
 impl<'a> PublicInput<'a> {
@@ -133,7 +134,7 @@ impl<'a> PublicInput<'a> {
 
         Ok(PublicInput {
             layout,
-            //dynamic_params: (),
+            dynamic_params: (),
             rc_min,
             rc_max,
             n_steps: trace.len(),
