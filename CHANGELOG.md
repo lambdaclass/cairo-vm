@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [1.0.0-rc6] - 2024-07-22
+
 * chore: bump `cairo-lang-` dependencies to 2.7.0-rc.3 [#1807](https://github.com/lambdaclass/cairo-vm/pull/1807)
   * chore: update Rust required version to 1.76.0
 
