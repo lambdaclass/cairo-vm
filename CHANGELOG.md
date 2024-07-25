@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: ambiguous keccak module name use on external contexts
+
 #### [1.0.0-rc6] - 2024-07-22
 
 * chore: bump `cairo-lang-` dependencies to 2.7.0-rc.3 [#1807](https://github.com/lambdaclass/cairo-vm/pull/1807)
@@ -258,7 +260,7 @@
 * BREAKING: Remove `CairoRunner::add_additional_hash_builtin` & `VirtualMachine::disable_trace`[#1658](https://github.com/lambdaclass/cairo-vm/pull/1658)
 
 * feat: output builtin add_attribute method [#1691](https://github.com/lambdaclass/cairo-vm/pull/1691)
- 
+
 * feat: add a method to retrieve the output builtin from the VM [#1690](https://github.com/lambdaclass/cairo-vm/pull/1690)
 
 * feat: Add zero segment [#1668](https://github.com/lambdaclass/cairo-vm/pull/1668)
