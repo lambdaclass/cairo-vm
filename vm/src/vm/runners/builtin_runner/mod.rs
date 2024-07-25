@@ -40,12 +40,12 @@ mod range_check;
 mod segment_arena;
 mod signature;
 
+pub use self::keccak::KeccakBuiltinRunner;
 pub(crate) use self::range_check::{RC_N_PARTS_96, RC_N_PARTS_STANDARD};
 use self::segment_arena::ARENA_BUILTIN_SIZE;
 pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
-pub use keccak::KeccakBuiltinRunner;
 pub use modulo::ModBuiltinRunner;
 use num_integer::div_floor;
 pub use output::{OutputBuiltinRunner, OutputBuiltinState};
