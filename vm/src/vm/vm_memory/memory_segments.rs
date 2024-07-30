@@ -199,6 +199,8 @@ impl MemorySegmentManager {
         }
     }
 
+    /// Counts the memory holes (aka unaccessed memory cells) in memory
+    /// Receives the amount of builtins in the vm and the position of the output builtin within the builtins list if present
     pub fn get_memory_holes(
         &self,
         builtin_count: usize,
@@ -208,6 +210,8 @@ impl MemorySegmentManager {
         let mut memory_holes = 0;
         let builtin_segments_start = 1; // program segment + execution segment
         let builtin_segments_end = builtin_segments_start + builtin_count;
+        let output_segment_index =
+            output_builtin_index.map(|i| i + 2 /*program segment + execution segment*/);
         // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
         // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
@@ -215,7 +219,7 @@ impl MemorySegmentManager {
             // Output builtin is extempt from this behaviour
             if i > builtin_segments_start
                 && i <= builtin_segments_end
-                && !output_builtin_index.is_some_and(|output_index| output_index == i)
+                && !output_segment_index.is_some_and(|output_index| output_index == i)
             {
                 continue;
             }
