@@ -817,10 +817,14 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
-        self.vm.segments.get_memory_holes(
-            self.vm.builtin_runners.len(),
-            self.program.builtins.contains(&BuiltinName::output),
-        )
+        let output_builtin_index = self
+            .vm
+            .builtin_runners
+            .iter()
+            .position(|b| b.name() == BuiltinName::output);
+        self.vm
+            .segments
+            .get_memory_holes(self.vm.builtin_runners.len(), output_builtin_index)
     }
 
     /// Check if there are enough trace cells to fill the entire diluted checks.
