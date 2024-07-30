@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix(BREAKING): Don't asume output builtin is first when counting memory holes
+* fix(BREAKING): Don't assume output builtin is first when counting memory holes
 
   * Logic change: Memory hole counting no longer asumes that the output builtin ocuppies the first builtin segment if present
   * Signature change: `MemorySegmentManager` method `get_memory_holes` now receives the index of the output builtin (as an `Option<usize>`) instead of the boolean argument `has_output_builtin`[#1807](https://github.com/lambdaclass/cairo-vm/pull/1811)
