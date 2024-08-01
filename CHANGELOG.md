@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [1.0.0] - 2024-08-01
+
 * chore: bump `cairo-lang-` dependencies to 2.7.0 [#1813](https://github.com/lambdaclass/cairo-vm/pull/1813)
 
 * fix(BREAKING): Don't assume output builtin is first when counting memory holes
