@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [1.0.0] - 2024-08-01
+
 * fix(BREAKING): Don't assume output builtin is first when counting memory holes
 
   * Logic change: Memory hole counting no longer asumes that the output builtin ocuppies the first builtin segment if present
