@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(BREAKING): Only initialize program builtins instead of a preset list
+
 #### [1.0.0] - 2024-08-01
 
 * chore: bump `cairo-lang-` dependencies to 2.7.0 [#1813](https://github.com/lambdaclass/cairo-vm/pull/1813)
