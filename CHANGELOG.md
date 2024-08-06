@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix(BREAKING): Only initialize program builtins instead of a preset list
+* fix(BREAKING): Replace `CairoRunner` method `initialize_all_builtins` with `initialize_program_builtins`. Now it only initializes program builtins instead of all of them
 
 #### [1.0.0] - 2024-08-01
 
