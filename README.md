@@ -2,7 +2,7 @@
 <img src="./docs/images/cairovm.png#gh-light-mode-only" height="150">
 <img src="./docs/images/cairovm_white.png#gh-dark-mode-only" height="150">
 
-
+[TEST]
 ### ⚡ Cairo-vm ⚡
 
 A faster and safer implementation of the Cairo VM in Rust
