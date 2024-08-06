@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(BREAKING): Replace `CairoRunner` method `initialize_all_builtins` with `initialize_program_builtins`. Now it only initializes program builtins instead of all of them
+
 #### [1.0.0] - 2024-08-01
 
 * chore: bump `cairo-lang-` dependencies to 2.7.0 [#1813](https://github.com/lambdaclass/cairo-vm/pull/1813)

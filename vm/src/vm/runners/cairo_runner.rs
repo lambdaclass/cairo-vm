@@ -377,28 +377,10 @@ impl CairoRunner {
             || self.runner_mode == RunnerMode::ProofModeCairo1
     }
 
-    // Initialize all the builtins. Values used are the original one from the CairoFunctionRunner
+    // Initialize all program builtins. Values used are the original one from the CairoFunctionRunner
     // Values extracted from here: https://github.com/starkware-libs/cairo-lang/blob/4fb83010ab77aa7ead0c9df4b0c05e030bc70b87/src/starkware/cairo/common/cairo_function_runner.py#L28
-    fn initialize_all_builtins(
-        &mut self,
-        add_segment_arena_builtin: bool,
-    ) -> Result<(), RunnerError> {
-        let starknet_preset_builtins = vec![
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::output,
-            BuiltinName::ecdsa,
-            BuiltinName::bitwise,
-            BuiltinName::ec_op,
-            BuiltinName::keccak,
-            BuiltinName::poseidon,
-        ];
-
-        fn initialize_builtin(
-            name: BuiltinName,
-            vm: &mut VirtualMachine,
-            add_segment_arena_builtin: bool,
-        ) {
+    pub fn initialize_program_builtins(&mut self) -> Result<(), RunnerError> {
+        fn initialize_builtin(name: BuiltinName, vm: &mut VirtualMachine) {
             match name {
                 BuiltinName::pedersen => vm
                     .builtin_runners
@@ -424,12 +406,9 @@ impl CairoRunner {
                 BuiltinName::poseidon => vm
                     .builtin_runners
                     .push(PoseidonBuiltinRunner::new(Some(1), true).into()),
-                BuiltinName::segment_arena => {
-                    if add_segment_arena_builtin {
-                        vm.builtin_runners
-                            .push(SegmentArenaBuiltinRunner::new(true).into())
-                    }
-                }
+                BuiltinName::segment_arena => vm
+                    .builtin_runners
+                    .push(SegmentArenaBuiltinRunner::new(true).into()),
                 BuiltinName::range_check96 => vm
                     .builtin_runners
                     .push(RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(Some(1), true).into()),
@@ -445,12 +424,7 @@ impl CairoRunner {
         }
 
         for builtin_name in &self.program.builtins {
-            initialize_builtin(*builtin_name, &mut self.vm, add_segment_arena_builtin);
-        }
-        for builtin_name in starknet_preset_builtins {
-            if !self.program.builtins.contains(&builtin_name) {
-                initialize_builtin(builtin_name, &mut self.vm, add_segment_arena_builtin)
-            }
+            initialize_builtin(*builtin_name, &mut self.vm);
         }
         Ok(())
     }
@@ -1204,25 +1178,22 @@ impl CairoRunner {
     }
 
     /// Intitializes the runner in order to run cairo 1 contract entrypoints
-    /// Initializes builtins & segments
-    /// All builtins are initialized regardless of use
     /// Swaps the program's builtins field with program_builtins
-    /// Adds the segment_arena builtin if present in the program_builtins
+    /// Initializes program builtins & segments
     pub fn initialize_function_runner_cairo_1(
         &mut self,
         program_builtins: &[BuiltinName],
     ) -> Result<(), RunnerError> {
         self.program.builtins = program_builtins.to_vec();
-        self.initialize_all_builtins(true)?;
+        self.initialize_program_builtins()?;
         self.initialize_segments(self.program_base);
         Ok(())
     }
 
     /// Intitializes the runner in order to run cairo 0 contract entrypoints
-    /// Initializes builtins & segments
-    /// All builtins are initialized regardless of use
+    /// Initializes program builtins & segments
     pub fn initialize_function_runner(&mut self) -> Result<(), RunnerError> {
-        self.initialize_all_builtins(false)?;
+        self.initialize_program_builtins()?;
         self.initialize_segments(self.program_base);
         Ok(())
     }
@@ -4282,13 +4253,25 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn initialize_all_builtins() {
-        let program = program!();
+    fn initialize_all_program_builtins() {
+        let mut program = program!();
+
+        // we manually add the builtins and check that they exist later
+        program.builtins = vec![
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::output,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
+        ];
 
         let mut cairo_runner = cairo_runner!(program);
 
         cairo_runner
-            .initialize_all_builtins(false)
+            .initialize_program_builtins()
             .expect("Builtin initialization failed.");
 
         let given_output = cairo_runner.vm.get_builtin_runners();
@@ -4305,62 +4288,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn initialize_all_builtins_maintain_program_order() {
-        let program = program![
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::ecdsa
-        ];
-
-        let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner
-            .initialize_all_builtins(false)
-            .expect("Builtin initialization failed.");
-
-        let given_output = cairo_runner.vm.get_builtin_runners();
-
-        assert_eq!(given_output[0].name(), BuiltinName::pedersen);
-        assert_eq!(given_output[1].name(), BuiltinName::range_check);
-        assert_eq!(given_output[2].name(), BuiltinName::ecdsa);
-        assert_eq!(given_output[3].name(), BuiltinName::output);
-        assert_eq!(given_output[4].name(), BuiltinName::bitwise);
-        assert_eq!(given_output[5].name(), BuiltinName::ec_op);
-        assert_eq!(given_output[6].name(), BuiltinName::keccak);
-        assert_eq!(given_output[7].name(), BuiltinName::poseidon);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn initialize_all_builtins_maintain_program_order_add_segment_arena() {
-        let program = program![
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::ecdsa,
-            BuiltinName::segment_arena
-        ];
-
-        let mut cairo_runner = cairo_runner!(program);
-
-        cairo_runner
-            .initialize_all_builtins(true)
-            .expect("Builtin initialization failed.");
-
-        let given_output = cairo_runner.vm.get_builtin_runners();
-
-        assert_eq!(given_output[0].name(), BuiltinName::pedersen);
-        assert_eq!(given_output[1].name(), BuiltinName::range_check);
-        assert_eq!(given_output[2].name(), BuiltinName::ecdsa);
-        assert_eq!(given_output[3].name(), BuiltinName::segment_arena);
-        assert_eq!(given_output[4].name(), BuiltinName::output);
-        assert_eq!(given_output[5].name(), BuiltinName::bitwise);
-        assert_eq!(given_output[6].name(), BuiltinName::ec_op);
-        assert_eq!(given_output[7].name(), BuiltinName::keccak);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn initialize_function_runner() {
+    fn initialize_function_runner_without_builtins() {
         let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
@@ -4368,17 +4296,6 @@ mod tests {
         cairo_runner
             .initialize_function_runner()
             .expect("initialize_function_runner failed.");
-
-        let builtin_runners = cairo_runner.vm.get_builtin_runners();
-
-        assert_eq!(builtin_runners[0].name(), BuiltinName::pedersen);
-        assert_eq!(builtin_runners[1].name(), BuiltinName::range_check);
-        assert_eq!(builtin_runners[2].name(), BuiltinName::output);
-        assert_eq!(builtin_runners[3].name(), BuiltinName::ecdsa);
-        assert_eq!(builtin_runners[4].name(), BuiltinName::bitwise);
-        assert_eq!(builtin_runners[5].name(), BuiltinName::ec_op);
-        assert_eq!(builtin_runners[6].name(), BuiltinName::keccak);
-        assert_eq!(builtin_runners[7].name(), BuiltinName::poseidon);
 
         assert_eq!(
             cairo_runner.program_base,
@@ -4394,12 +4311,12 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(cairo_runner.vm.segments.num_segments(), 10);
+        assert_eq!(cairo_runner.vm.segments.num_segments(), 2);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn initialize_function_runner_add_segment_arena_builtin() {
+    fn initialize_function_runner_with_segment_arena_builtin() {
         let program = program!();
 
         let mut cairo_runner = cairo_runner!(program);
@@ -4411,14 +4328,6 @@ mod tests {
         let builtin_runners = cairo_runner.vm.get_builtin_runners();
 
         assert_eq!(builtin_runners[0].name(), BuiltinName::segment_arena);
-        assert_eq!(builtin_runners[1].name(), BuiltinName::pedersen);
-        assert_eq!(builtin_runners[2].name(), BuiltinName::range_check);
-        assert_eq!(builtin_runners[3].name(), BuiltinName::output);
-        assert_eq!(builtin_runners[4].name(), BuiltinName::ecdsa);
-        assert_eq!(builtin_runners[5].name(), BuiltinName::bitwise);
-        assert_eq!(builtin_runners[6].name(), BuiltinName::ec_op);
-        assert_eq!(builtin_runners[7].name(), BuiltinName::keccak);
-        assert_eq!(builtin_runners[8].name(), BuiltinName::poseidon);
 
         assert_eq!(
             cairo_runner.program_base,
@@ -4434,7 +4343,8 @@ mod tests {
                 offset: 0,
             })
         );
-        assert_eq!(cairo_runner.vm.segments.num_segments(), 12);
+        // segment arena builtin adds 2 segments
+        assert_eq!(cairo_runner.vm.segments.num_segments(), 4);
     }
 
     #[test]
