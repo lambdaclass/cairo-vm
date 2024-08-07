@@ -1,6 +1,6 @@
+use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
-use std::collections::HashSet;
 
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
