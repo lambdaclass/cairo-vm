@@ -225,14 +225,11 @@ impl MemorySegmentManager {
             }
             let accessed_amount =
                 // Instead of marking the values in the zero segment until zero_segment_size as accessed we use zero_segment_size as accessed_amount
-                if !self.zero_segment_index.is_zero() && i == self.zero_segment_index {
-                    self.zero_segment_size
-                } else {
                     match self.memory.get_amount_of_accessed_addresses_for_segment(i) {
                         Some(accessed_amount) if accessed_amount > 0 => accessed_amount,
                         _ => continue,
-                    }
-                };
+                    };
+
             let segment_size = self
                 .get_segment_size(i)
                 .ok_or(MemoryError::MissingSegmentUsedSizes)?;
