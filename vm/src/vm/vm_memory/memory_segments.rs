@@ -293,13 +293,18 @@ impl MemorySegmentManager {
         if self.zero_segment_index.is_zero() {
             self.zero_segment_index = self.add().segment_index as usize;
         }
+
+        let updated_zero_segment_size = max(self.zero_segment_size, size);
         // Fil zero segment with zero values until size is reached
-        for _ in 0..self.zero_segment_size.saturating_sub(size) {
+        for _ in 0..self
+            .zero_segment_size
+            .saturating_sub(updated_zero_segment_size - self.zero_segment_size)
+        {
             // As zero_segment_index is only accessible to the segment manager
             // we can asume that it is always valid and index direcly into it
             self.memory.data[self.zero_segment_index].push(MemoryCell::new(Felt252::ZERO.into()))
         }
-        self.zero_segment_size = max(self.zero_segment_size, size);
+        self.zero_segment_size = updated_zero_segment_size;
         self.zero_segment_index
     }
 
