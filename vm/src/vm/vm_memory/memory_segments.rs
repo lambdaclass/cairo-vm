@@ -1,5 +1,6 @@
 use core::cmp::max;
 use core::fmt;
+use std::collections::HashSet;
 
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
@@ -203,24 +204,14 @@ impl MemorySegmentManager {
     /// Receives the amount of builtins in the vm and the position of the output builtin within the builtins list if present
     pub fn get_memory_holes(
         &self,
-        builtin_count: usize,
-        output_builtin_index: Option<usize>,
+        builtin_segment_indexes: HashSet<usize>,
     ) -> Result<usize, MemoryError> {
         let data = &self.memory.data;
         let mut memory_holes = 0;
-        let builtin_segments_start = 1; // program segment + execution segment
-        let builtin_segments_end = builtin_segments_start + builtin_count;
-        let output_segment_index =
-            output_builtin_index.map(|i| i + 2 /*program segment + execution segment*/);
-        // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
-        // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
             // Instead of marking all of the builtin segment's address as accessed, we just skip them when counting memory holes
             // Output builtin is extempt from this behaviour
-            if i > builtin_segments_start
-                && i <= builtin_segments_end
-                && !output_segment_index.is_some_and(|output_index| output_index == i)
-            {
+            if builtin_segment_indexes.contains(&i) {
                 continue;
             }
             let accessed_amount =
@@ -692,7 +683,7 @@ mod tests {
             .memory
             .mark_as_accessed((0, 0).into());
         assert_eq!(
-            memory_segment_manager.get_memory_holes(0, None),
+            memory_segment_manager.get_memory_holes(HashSet::new()),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
@@ -709,7 +700,7 @@ mod tests {
                 .mark_as_accessed((0, i).into());
         }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(0, None),
+            memory_segment_manager.get_memory_holes(HashSet::new()),
             Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
                 Box::new((0, 3, 2))
             )),
@@ -721,7 +712,10 @@ mod tests {
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-        assert_eq!(memory_segment_manager.get_memory_holes(0, None), Ok(0),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(0),
+        );
     }
 
     #[test]
@@ -729,7 +723,10 @@ mod tests {
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-        assert_eq!(memory_segment_manager.get_memory_holes(0, None), Ok(0),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(0),
+        );
     }
 
     #[test]
@@ -752,7 +749,10 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(0, None), Ok(2),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(2),
+        );
     }
 
     #[test]
@@ -777,7 +777,10 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(0, None), Ok(7),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(7),
+        );
     }
 
     #[test]
