@@ -1005,4 +1005,42 @@ mod tests {
             Ok(x) if x == mayberelocatable!(2, 0)
         );
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_add_zero_segment() {
+        // Create MemorySegmentManager with program and execution segments
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.add();
+        memory_segment_manager.add();
+
+        // Add zero segment
+        memory_segment_manager.add_zero_segment(3);
+        assert_eq!(memory_segment_manager.zero_segment_index, 2);
+        assert_eq!(memory_segment_manager.zero_segment_size, 3);
+        assert_eq!(
+            &memory_segment_manager.memory.data[2],
+            &Vec::from([
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0))
+            ])
+        );
+
+        // Resize zero segment
+        memory_segment_manager.add_zero_segment(5);
+        assert_eq!(memory_segment_manager.zero_segment_index, 2);
+        assert_eq!(memory_segment_manager.zero_segment_size, 5);
+
+        assert_eq!(
+            &memory_segment_manager.memory.data[2],
+            &Vec::from([
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0))
+            ])
+        );
+    }
 }
