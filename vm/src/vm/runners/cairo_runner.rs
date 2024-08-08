@@ -791,6 +791,7 @@ impl CairoRunner {
 
     /// Count the number of holes present in the segments.
     pub fn get_memory_holes(&self) -> Result<usize, MemoryError> {
+        // Grab builtin segment indexes, except for the output builtin
         let builtin_segment_indexes: HashSet<usize> = self
             .vm
             .builtin_runners

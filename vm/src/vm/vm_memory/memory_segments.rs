@@ -201,7 +201,8 @@ impl MemorySegmentManager {
     }
 
     /// Counts the memory holes (aka unaccessed memory cells) in memory
-    /// Receives the amount of builtins in the vm and the position of the output builtin within the builtins list if present
+    /// # Parameters
+    /// - `builtin_segment_indexes`: Set representing the segments indexes of the builtins initialized in the VM, except for the output builtin.
     pub fn get_memory_holes(
         &self,
         builtin_segment_indexes: HashSet<usize>,
