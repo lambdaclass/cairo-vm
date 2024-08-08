@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
+    * Fix `MemorySegmentManager::add_zero_segment` function when resizing a segment
+    * Signature change(BREAKING): `MemorySegmentManager::get_memory_holes` now receives `builtin_segment_indexes: HashSet<usize>`
+
 * fix(BREAKING): Replace `CairoRunner` method `initialize_all_builtins` with `initialize_program_builtins`. Now it only initializes program builtins instead of all of them
 
 #### [1.0.0] - 2024-08-01
