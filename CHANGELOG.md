@@ -2,7 +2,22 @@
 
 #### Upcoming Changes
 
-* fix: ambiguous keccak module name use on external contexts
+* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
+    * Fix `MemorySegmentManager::add_zero_segment` function when resizing a segment
+    * Signature change(BREAKING): `MemorySegmentManager::get_memory_holes` now receives `builtin_segment_indexes: HashSet<usize>`
+
+* fix(BREAKING): Replace `CairoRunner` method `initialize_all_builtins` with `initialize_program_builtins`. Now it only initializes program builtins instead of all of them
+
+#### [1.0.0] - 2024-08-01
+
+* chore: bump `cairo-lang-` dependencies to 2.7.0 [#1813](https://github.com/lambdaclass/cairo-vm/pull/1813)
+
+* fix(BREAKING): Don't assume output builtin is first when counting memory holes
+
+  * Logic change: Memory hole counting no longer asumes that the output builtin ocuppies the first builtin segment if present
+  * Signature change: `MemorySegmentManager` method `get_memory_holes` now receives the index of the output builtin (as an `Option<usize>`) instead of the boolean argument `has_output_builtin`[#1811](https://github.com/lambdaclass/cairo-vm/pull/1811)
+
+* fix: ambiguous keccak module name use on external contexts [#1809](https://github.com/lambdaclass/cairo-vm/pull/1809)
 
 #### [1.0.0-rc6] - 2024-07-22
 
