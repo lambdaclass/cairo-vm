@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* fix: Added the following VM fixes: [#1820](https://github.com/lambdaclass/cairo-vm/pull/1820)
+  * Fix zero segment location.
+  * Fix has_zero_segment naming.
+  * Fix prover input.
+  * Fix version reading when no version is supplied.
+
 #### [1.0.1] - 2024-08-12
 
 * fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
