@@ -233,6 +233,10 @@ mod tests {
                 index: 10000,
                 value: Felt252::from(8000),
             })]),
+            range_check96: Some(vec![PrivateInput::Value(PrivateInputValue {
+                index: 10000,
+                value: Felt252::from(8000),
+            })]),
             ecdsa: Some(vec![PrivateInput::Signature(PrivateInputSignature {
                 index: 0,
                 pubkey: Felt252::from(123),
