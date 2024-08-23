@@ -1,3 +1,5 @@
+use crate::types::layout::CairoLayoutParams;
+
 use super::mod_instance_def::ModInstanceDef;
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
@@ -192,25 +194,94 @@ impl BuiltinsInstanceDef {
         }
     }
 
-    pub(crate) fn dynamic() -> BuiltinsInstanceDef {
+    pub(crate) fn dynamic(params: CairoLayoutParams) -> BuiltinsInstanceDef {
+        let pedersen = if params.uses_pedersen_builtin {
+            Some(PedersenInstanceDef {
+                ratio: Some(params.pedersen_ratio),
+            })
+        } else {
+            None
+        };
+        let range_check = if params.uses_range_check_builtin {
+            Some(RangeCheckInstanceDef {
+                ratio: Some(params.range_check_ratio),
+            })
+        } else {
+            None
+        };
+        let ecdsa = if params.uses_ecdsa_builtin {
+            Some(EcdsaInstanceDef {
+                ratio: Some(params.ecdsa_ratio),
+            })
+        } else {
+            None
+        };
+        let bitwise = if params.uses_bitwise_builtin {
+            Some(BitwiseInstanceDef {
+                ratio: Some(params.bitwise_ratio),
+            })
+        } else {
+            None
+        };
+        let ec_op = if params.uses_ec_op_builtin {
+            Some(EcOpInstanceDef {
+                ratio: Some(params.ec_op_ratio),
+            })
+        } else {
+            None
+        };
+        let keccak = if params.uses_keccak_builtin {
+            Some(KeccakInstanceDef {
+                ratio: Some(params.keccak_ratio),
+            })
+        } else {
+            None
+        };
+        let poseidon = if params.uses_poseidon_builtin {
+            Some(PoseidonInstanceDef {
+                ratio: Some(params.poseidon_ratio),
+            })
+        } else {
+            None
+        };
+        let range_check96 = if params.uses_range_check96_builtin {
+            Some(RangeCheckInstanceDef {
+                ratio: Some(params.range_check96_ratio),
+            })
+        } else {
+            None
+        };
+        let add_mod = if params.uses_add_mod_builtin {
+            Some(ModInstanceDef {
+                ratio: Some(params.add_mod_ratio),
+                word_bit_len: 1,
+                batch_size: 96,
+            })
+        } else {
+            None
+        };
+        let mul_mod = if params.uses_mul_mod_builtin {
+            Some(ModInstanceDef {
+                ratio: Some(params.mul_mod_ratio),
+                word_bit_len: 1,
+                batch_size: 96,
+            })
+        } else {
+            None
+        };
+
         BuiltinsInstanceDef {
             output: true,
-            pedersen: Some(PedersenInstanceDef::new(None)),
-            range_check: Some(RangeCheckInstanceDef::new(None)),
-            ecdsa: Some(EcdsaInstanceDef::new(None)),
-            bitwise: Some(BitwiseInstanceDef::new(None)),
-            ec_op: Some(EcOpInstanceDef::new(None)),
-            keccak: None,
-            poseidon: None,
-            range_check96: None,
-            #[cfg(feature = "mod_builtin")]
-            add_mod: Some(ModInstanceDef::new(None, 1, 96)),
-            #[cfg(feature = "mod_builtin")]
-            mul_mod: Some(ModInstanceDef::new(None, 1, 96)),
-            #[cfg(not(feature = "mod_builtin"))]
-            add_mod: None,
-            #[cfg(not(feature = "mod_builtin"))]
-            mul_mod: None,
+            pedersen,
+            range_check,
+            ecdsa,
+            bitwise,
+            ec_op,
+            keccak,
+            poseidon,
+            range_check96,
+            add_mod,
+            mul_mod,
         }
     }
 }
@@ -333,19 +404,6 @@ mod tests {
     #[test]
     fn get_builtins_all_solidity() {
         let builtins = BuiltinsInstanceDef::all_solidity();
-        assert!(builtins.output);
-        assert!(builtins.pedersen.is_some());
-        assert!(builtins.range_check.is_some());
-        assert!(builtins.ecdsa.is_some());
-        assert!(builtins.bitwise.is_some());
-        assert!(builtins.ec_op.is_some());
-        assert!(builtins.keccak.is_none());
-        assert!(builtins.poseidon.is_none());
-    }
-
-    #[test]
-    fn get_builtins_dynamic() {
-        let builtins = BuiltinsInstanceDef::dynamic();
         assert!(builtins.output);
         assert!(builtins.pedersen.is_some());
         assert!(builtins.range_check.is_some());

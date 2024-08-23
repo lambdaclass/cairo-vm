@@ -119,13 +119,16 @@ impl CairoLayout {
         }
     }
 
-    pub(crate) fn dynamic_instance(_params: CairoLayoutParams) -> CairoLayout {
+    pub(crate) fn dynamic_instance(params: CairoLayoutParams) -> CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
-            rc_units: 16,
-            builtins: BuiltinsInstanceDef::dynamic(),
+            rc_units: params.rc_units,
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
+                units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
+                ..DilutedPoolInstanceDef::default()
+            }),
+            builtins: BuiltinsInstanceDef::dynamic(params),
         }
     }
 
@@ -137,12 +140,10 @@ impl CairoLayout {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct CairoLayoutParams {
     pub rc_units: u32,
     pub log_diluted_units_per_step: u32,
-    pub cpu_component_step: u32,
-    pub memory_units_per_step: u32,
     pub uses_pedersen_builtin: bool,
     pub pedersen_ratio: u32,
     pub uses_range_check_builtin: bool,
@@ -159,17 +160,27 @@ pub struct CairoLayoutParams {
     pub poseidon_ratio: u32,
     pub uses_range_check96_builtin: bool,
     pub range_check96_ratio: u32,
-    pub range_check96_ratio_den: u32,
     pub uses_add_mod_builtin: bool,
     pub add_mod_ratio: u32,
-    pub add_mod_ratio_den: u32,
     pub uses_mul_mod_builtin: bool,
     pub mul_mod_ratio: u32,
+    // the following are not used right now
+    pub cpu_component_step: u32,
+    pub memory_units_per_step: u32,
+    pub range_check96_ratio_den: u32,
     pub mul_mod_ratio_den: u32,
+    pub add_mod_ratio_den: u32,
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::types::instance_definitions::{
+        bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
+        ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
+        mod_instance_def::ModInstanceDef, pedersen_instance_def::PedersenInstanceDef,
+        range_check_instance_def::RangeCheckInstanceDef,
+    };
+
     use super::*;
 
     #[cfg(target_arch = "wasm32")]
@@ -297,6 +308,83 @@ mod tests {
 
     #[test]
     fn get_dynamic_instance() {
-        let _params: CairoLayoutParams = todo!();
+        // dummy cairo layout params
+        let params = CairoLayoutParams {
+            rc_units: 32,
+            log_diluted_units_per_step: 5,
+            uses_pedersen_builtin: true,
+            pedersen_ratio: 32,
+            uses_range_check_builtin: true,
+            range_check_ratio: 32,
+            uses_ecdsa_builtin: true,
+            ecdsa_ratio: 32,
+            uses_bitwise_builtin: true,
+            bitwise_ratio: 32,
+            uses_ec_op_builtin: true,
+            ec_op_ratio: 32,
+            uses_keccak_builtin: true,
+            keccak_ratio: 32,
+            uses_poseidon_builtin: false,
+            uses_range_check96_builtin: false,
+            uses_add_mod_builtin: false,
+            uses_mul_mod_builtin: true,
+            mul_mod_ratio: 32,
+            ..Default::default() //
+                                 // cpu_component_step: todo!(),
+                                 // memory_units_per_step: todo!(),
+                                 // range_check96_ratio_den: todo!(),
+                                 // add_mod_ratio_den: todo!(),
+                                 // mul_mod_ratio_den: todo!(),
+        };
+
+        let layout = CairoLayout::dynamic_instance(params);
+
+        assert_eq!(layout.name, LayoutName::dynamic);
+        assert_eq!(layout.rc_units, 32);
+        assert_eq!(layout.public_memory_fraction, 8); // hardcoded
+        assert_eq!(
+            layout.diluted_pool_instance_def,
+            Some(DilutedPoolInstanceDef {
+                units_per_step: 32,
+                ..DilutedPoolInstanceDef::default() // hardcoded
+            })
+        );
+
+        assert!(layout.builtins.output);
+        assert_eq!(
+            layout.builtins.pedersen,
+            Some(PedersenInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(
+            layout.builtins.range_check,
+            Some(RangeCheckInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(
+            layout.builtins.ecdsa,
+            Some(EcdsaInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(
+            layout.builtins.bitwise,
+            Some(BitwiseInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(
+            layout.builtins.ec_op,
+            Some(EcOpInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(
+            layout.builtins.keccak,
+            Some(KeccakInstanceDef { ratio: Some(32) })
+        );
+        assert_eq!(layout.builtins.poseidon, None,);
+        assert_eq!(layout.builtins.range_check96, None,);
+        assert_eq!(layout.builtins.add_mod, None);
+        assert_eq!(
+            layout.builtins.mul_mod,
+            Some(ModInstanceDef {
+                ratio: Some(32),
+                word_bit_len: 1, // hardcoded
+                batch_size: 96   // hardcoded
+            })
+        );
     }
 }
