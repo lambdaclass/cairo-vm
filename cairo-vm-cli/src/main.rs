@@ -43,8 +43,13 @@ struct Args {
     entrypoint: String,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
+    /// When using dynamic layout, it's parameters must be specified through a layout params file.
     #[clap(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
+    /// Required when using with dynamic layout.
+    /// Ignored otherwise.
+    #[clap(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
+    cairo_layout_params_file: Option<PathBuf>,
     #[structopt(long = "proof_mode")]
     proof_mode: bool,
     #[structopt(long = "secure_run")]
