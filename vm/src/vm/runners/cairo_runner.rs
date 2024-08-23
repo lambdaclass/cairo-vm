@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -9,7 +7,11 @@ use crate::{
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::{builtin_name::BuiltinName, layout::MEMORY_UNITS_PER_STEP, layout_name::LayoutName},
+    types::{
+        builtin_name::BuiltinName,
+        layout::{CairoLayoutParams, MEMORY_UNITS_PER_STEP},
+        layout_name::LayoutName,
+    },
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -170,12 +172,12 @@ pub enum RunnerMode {
 }
 
 impl CairoRunner {
-    /// The `cairo_layout_params_file` argument should only be used with dynamic layout.
+    /// The `cairo_layout_params` argument should only be used with dynamic layout.
     /// It is ignored otherwise.
     pub fn new_v2(
         program: &Program,
         layout: LayoutName,
-        cairo_layout_params_file: Option<PathBuf>,
+        cairo_layout_params: Option<CairoLayoutParams>,
         mode: RunnerMode,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -192,17 +194,15 @@ impl CairoRunner {
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
                 debug_assert!(
-                    cairo_layout_params_file.is_some(),
-                    "cairo layout params is missing with dynamic layout"
+                    cairo_layout_params.is_some(),
+                    "cairo layout params is missing while using dynamic layout"
                 );
 
-                let params_file =
-                    cairo_layout_params_file.ok_or(RunnerError::BadDynamicLayoutParams(
-                        "cairo layout param file is missing".to_string(),
-                    ))?;
+                let params = cairo_layout_params.ok_or(RunnerError::BadDynamicLayoutParams(
+                    "cairo layout param is missing".to_string(),
+                ))?;
 
-                CairoLayout::dynamic_instance_from_file(&params_file)
-                    .map_err(|err| RunnerError::BadDynamicLayoutParams(err.to_string()))?
+                CairoLayout::dynamic_instance(params)
             }
         };
         Ok(CairoRunner {
@@ -233,7 +233,7 @@ impl CairoRunner {
     pub fn new(
         program: &Program,
         layout: LayoutName,
-        cairo_layout_params_file: Option<PathBuf>,
+        cairo_layout_params: Option<CairoLayoutParams>,
         proof_mode: bool,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -241,7 +241,7 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
-                cairo_layout_params_file,
+                cairo_layout_params,
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
             )
@@ -249,7 +249,7 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
-                cairo_layout_params_file,
+                cairo_layout_params,
                 RunnerMode::ExecutionMode,
                 trace_enabled,
             )

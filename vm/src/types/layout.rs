@@ -1,5 +1,3 @@
-use std::{fs::File, io, path::Path};
-
 use crate::types::layout_name::LayoutName;
 
 use super::instance_definitions::{
@@ -131,16 +129,13 @@ impl CairoLayout {
             builtins: BuiltinsInstanceDef::dynamic(params),
         }
     }
-
-    pub(crate) fn dynamic_instance_from_file(params_file: &Path) -> io::Result<CairoLayout> {
-        let params_file = File::open(params_file)?;
-        let params: CairoLayoutParams = serde_json::from_reader(params_file)?;
-
-        Ok(Self::dynamic_instance(params))
-    }
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[cfg(feature = "test_utils")]
+use arbitrary::{self, Arbitrary};
+
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub struct CairoLayoutParams {
     pub rc_units: u32,
     pub log_diluted_units_per_step: u32,
@@ -170,6 +165,15 @@ pub struct CairoLayoutParams {
     pub range_check96_ratio_den: u32,
     pub mul_mod_ratio_den: u32,
     pub add_mod_ratio_den: u32,
+}
+
+impl CairoLayoutParams {
+    #[cfg(feature = "std")]
+    pub fn from_file(params_path: &std::path::Path) -> std::io::Result<Self> {
+        let params_file = std::fs::File::open(params_path)?;
+        let params = serde_json::from_reader(params_file)?;
+        Ok(params)
+    }
 }
 
 #[cfg(test)]

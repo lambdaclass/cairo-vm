@@ -4,6 +4,7 @@ use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
+use cairo_vm::types::layout::CairoLayoutParams;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -158,6 +159,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         args.args = process_args(&std::fs::read_to_string(filename)?).unwrap();
     }
 
+    let cairo_layout_params = match args.cairo_layout_params_file {
+        Some(file) => Some(CairoLayoutParams::from_file(&file)?),
+        None => None,
+    };
+
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
         serialize_output: args.print_output,
@@ -167,7 +173,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         args: &args.args.0,
         finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
-        cairo_layout_params_file: args.cairo_layout_params_file,
+        cairo_layout_params,
     };
 
     // Try to parse the file as a sierra program
