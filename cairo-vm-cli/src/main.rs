@@ -175,6 +175,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
+        cairo_layout_params_file: args.cairo_layout_params_file,
         ..Default::default()
     };
 

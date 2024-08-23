@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{builtin_name::BuiltinName, layout_name::LayoutName, program::Program},
@@ -26,6 +28,7 @@ pub struct CairoRunConfig<'a> {
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: LayoutName,
+    pub cairo_layout_params_file: Option<PathBuf>,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
     pub disable_trace_padding: bool,
@@ -43,6 +46,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             secure_run: None,
             disable_trace_padding: false,
             allow_missing_builtins: None,
+            cairo_layout_params_file: None,
         }
     }
 }
@@ -65,6 +69,7 @@ pub fn cairo_run_program_with_initial_scope(
     let mut cairo_runner = CairoRunner::new(
         program,
         cairo_run_config.layout,
+        cairo_run_config.cairo_layout_params_file.clone(),
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
     )?;
@@ -151,6 +156,7 @@ pub fn cairo_run_pie(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.cairo_layout_params_file.clone(),
         false,
         cairo_run_config.trace_enabled,
     )?;
@@ -222,6 +228,7 @@ pub fn cairo_run_fuzzed_program(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.cairo_layout_params_file.clone(),
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
     )?;

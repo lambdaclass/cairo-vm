@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -168,9 +170,12 @@ pub enum RunnerMode {
 }
 
 impl CairoRunner {
+    /// The `cairo_layout_params_file` argument should only be used with dynamic layout.
+    /// It is ignored otherwise.
     pub fn new_v2(
         program: &Program,
         layout: LayoutName,
+        cairo_layout_params_file: Option<PathBuf>,
         mode: RunnerMode,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -185,7 +190,20 @@ impl CairoRunner {
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
-            LayoutName::dynamic => CairoLayout::dynamic_instance(),
+            LayoutName::dynamic => {
+                debug_assert!(
+                    cairo_layout_params_file.is_some(),
+                    "cairo layout params is missing with dynamic layout"
+                );
+
+                let params_file =
+                    cairo_layout_params_file.ok_or(RunnerError::BadDynamicLayoutParams(
+                        "cairo layout param file is missing".to_string(),
+                    ))?;
+
+                CairoLayout::dynamic_instance_from_file(&params_file)
+                    .map_err(|err| RunnerError::BadDynamicLayoutParams(err.to_string()))?
+            }
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -215,6 +233,7 @@ impl CairoRunner {
     pub fn new(
         program: &Program,
         layout: LayoutName,
+        cairo_layout_params_file: Option<PathBuf>,
         proof_mode: bool,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -222,11 +241,18 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
+                cairo_layout_params_file,
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
             )
         } else {
-            Self::new_v2(program, layout, RunnerMode::ExecutionMode, trace_enabled)
+            Self::new_v2(
+                program,
+                layout,
+                cairo_layout_params_file,
+                RunnerMode::ExecutionMode,
+                trace_enabled,
+            )
         }
     }
 

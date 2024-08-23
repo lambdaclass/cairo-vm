@@ -1,3 +1,5 @@
+use std::{fs::File, io, path::Path};
+
 use crate::types::layout_name::LayoutName;
 
 use super::instance_definitions::{
@@ -6,7 +8,7 @@ use super::instance_definitions::{
 
 pub(crate) const MEMORY_UNITS_PER_STEP: u32 = 8;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
@@ -117,7 +119,7 @@ impl CairoLayout {
         }
     }
 
-    pub(crate) fn dynamic_instance() -> CairoLayout {
+    pub(crate) fn dynamic_instance(_params: CairoLayoutParams) -> CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: 16,
@@ -126,6 +128,44 @@ impl CairoLayout {
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
         }
     }
+
+    pub(crate) fn dynamic_instance_from_file(params_file: &Path) -> io::Result<CairoLayout> {
+        let params_file = File::open(params_file)?;
+        let params: CairoLayoutParams = serde_json::from_reader(params_file)?;
+
+        Ok(Self::dynamic_instance(params))
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CairoLayoutParams {
+    pub rc_units: u32,
+    pub log_diluted_units_per_step: u32,
+    pub cpu_component_step: u32,
+    pub memory_units_per_step: u32,
+    pub uses_pedersen_builtin: bool,
+    pub pedersen_ratio: u32,
+    pub uses_range_check_builtin: bool,
+    pub range_check_ratio: u32,
+    pub uses_ecdsa_builtin: bool,
+    pub ecdsa_ratio: u32,
+    pub uses_bitwise_builtin: bool,
+    pub bitwise_ratio: u32,
+    pub uses_ec_op_builtin: bool,
+    pub ec_op_ratio: u32,
+    pub uses_keccak_builtin: bool,
+    pub keccak_ratio: u32,
+    pub uses_poseidon_builtin: bool,
+    pub poseidon_ratio: u32,
+    pub uses_range_check96_builtin: bool,
+    pub range_check96_ratio: u32,
+    pub range_check96_ratio_den: u32,
+    pub uses_add_mod_builtin: bool,
+    pub add_mod_ratio: u32,
+    pub add_mod_ratio_den: u32,
+    pub uses_mul_mod_builtin: bool,
+    pub mul_mod_ratio: u32,
+    pub mul_mod_ratio_den: u32,
 }
 
 #[cfg(test)]
@@ -257,15 +297,6 @@ mod tests {
 
     #[test]
     fn get_dynamic_instance() {
-        let layout = CairoLayout::dynamic_instance();
-        let builtins = BuiltinsInstanceDef::dynamic();
-        assert_eq!(layout.name, LayoutName::dynamic);
-        assert_eq!(layout.rc_units, 16);
-        assert_eq!(layout.builtins, builtins);
-        assert_eq!(layout.public_memory_fraction, 8);
-        assert_eq!(
-            layout.diluted_pool_instance_def,
-            Some(DilutedPoolInstanceDef::default())
-        );
+        let _params: CairoLayoutParams = todo!();
     }
 }

@@ -248,6 +248,7 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(
         &program,
         cairo_run_config.layout,
+        None,
         runner_mode,
         cairo_run_config.trace_enabled,
     )?;
