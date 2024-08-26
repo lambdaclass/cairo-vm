@@ -2,9 +2,6 @@
 
 #### Upcoming Changes
 
-* Fix CI: [#1825](https://github.com/lambdaclass/cairo-vm/pull/1825):
-    * Pins wasm-bindgen version to fix CI
-
 #### [1.0.1] - 2024-08-12
 
 * fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
