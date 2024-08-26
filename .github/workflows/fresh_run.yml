@@ -17,7 +17,7 @@ jobs:
           - os: ubuntu-22.04
             deps_suffix: ''
             os_name: ubuntu-22.04
-          - os: [self-hosted, macOS]
+          - os: macos-latest
             deps_suffix: '-macos' 
             os_name: macos
     runs-on: ${{ matrix.os_name }}
