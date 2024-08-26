@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* dummy change
+
 #### [1.0.1] - 2024-08-12
 
 * fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
