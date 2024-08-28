@@ -121,7 +121,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
-            public_memory_fraction: 8,
+            public_memory_fraction: 4,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
                 units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
                 ..DilutedPoolInstanceDef::default()
@@ -345,7 +345,7 @@ mod tests {
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);
-        assert_eq!(layout.public_memory_fraction, 8); // hardcoded
+        assert_eq!(layout.public_memory_fraction, 4); // hardcoded
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef {
