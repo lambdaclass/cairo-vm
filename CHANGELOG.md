@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: bump pip `cairo-lang` 0.13.2 [#1827](https://github.com/lambdaclass/cairo-vm/pull/1827)
+
 * chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
 
 #### [1.0.1] - 2024-08-12
