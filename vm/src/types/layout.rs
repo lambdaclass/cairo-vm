@@ -6,7 +6,7 @@ use super::instance_definitions::{
 
 pub(crate) const MEMORY_UNITS_PER_STEP: u32 = 8;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
@@ -139,24 +139,34 @@ use arbitrary::{self, Arbitrary};
 pub struct CairoLayoutParams {
     pub rc_units: u32,
     pub log_diluted_units_per_step: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_pedersen_builtin: bool,
     pub pedersen_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_range_check_builtin: bool,
     pub range_check_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_ecdsa_builtin: bool,
     pub ecdsa_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_bitwise_builtin: bool,
     pub bitwise_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_ec_op_builtin: bool,
     pub ec_op_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_keccak_builtin: bool,
     pub keccak_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_poseidon_builtin: bool,
     pub poseidon_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_range_check96_builtin: bool,
     pub range_check96_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_add_mod_builtin: bool,
     pub add_mod_ratio: u32,
+    #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_mul_mod_builtin: bool,
     pub mul_mod_ratio: u32,
     // the following are not used right now
@@ -173,6 +183,24 @@ impl CairoLayoutParams {
         let params_file = std::fs::File::open(params_path)?;
         let params = serde_json::from_reader(params_file)?;
         Ok(params)
+    }
+}
+
+fn bool_from_int_or_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum IntOrBool {
+        Int(i64),
+        Boolean(bool),
+    }
+
+    match IntOrBool::deserialize(deserializer)? {
+        IntOrBool::Int(0) => Ok(false),
+        IntOrBool::Int(_) => Ok(true),
+        IntOrBool::Boolean(v) => Ok(v),
     }
 }
 
