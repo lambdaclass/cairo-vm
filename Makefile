@@ -123,6 +123,34 @@ $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
 $(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
 	cairo-compile $< --output $@
 
+# =======================
+# Run with dynamic layout
+# =======================
+
+CAIRO_DYN_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.dyn.memory, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.dyn.trace, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.dyn.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_AIR_PRIVATE_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.dyn.air_private_input, $(COMPILED_PROOF_TESTS))
+
+CAIRO_DYN_RS_MEM_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.memory, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.trace, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_RS_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.air_public_input, $(COMPILED_PROOF_TESTS))
+CAIRO_DYN_RS_AIR_PRIVATE_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.air_private_input, $(COMPILED_PROOF_TESTS))
+
+PROOF_BENCH_DIR=cairo_programs/benchmarks
+PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
+PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR)/%.json, $(PROOF_BENCH_FILES))
+
+MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
+MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
+COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
+
+$(TEST_PROOF_DIR)/%.rs.dyn.trace $(TEST_PROOF_DIR)/%.rs.dyn.memory $(TEST_PROOF_DIR)/%.rs.dyn.air_public_input $(TEST_PROOF_DIR)/%.rs.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json
+	cargo run -p cairo-vm-cli --release -- --layout dynamic --proof_mode $< --trace_file $(@D)/$(*F).rs.dyn.trace --memory_file $(@D)/$(*F).rs.dyn.memory --air_public_input $(@D)/$(*F).rs.dyn.air_public_input --air_private_input $(@D)/$(*F).rs.dyn.air_private_input --cairo_layout_params_file cairo_layout_params_file.json
+
+$(TEST_PROOF_DIR)/%.dyn.trace $(TEST_PROOF_DIR)/%.dyn.memory $(TEST_PROOF_DIR)/%.dyn.air_public_input $(TEST_PROOF_DIR)/%.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json
+	cairo-run --layout dynamic --proof_mode --program $< --trace_file $(@D)/$(*F).dyn.trace  --air_public_input $(@D)/$(*F).dyn.air_public_input --memory_file $(@D)/$(*F).dyn.memory --air_private_input $(@D)/$(*F).dyn.air_private_input --cairo_layout_params_file cairo_layout_params_file.json
+
 # ======================
 # Test Cairo 1 Contracts
 # ======================
@@ -331,6 +359,9 @@ compare_pie: $(CAIRO_RS_PIE) $(CAIRO_PIE)
 
 compare_all_pie_outputs: $(CAIRO_RS_PIE)
 	cd vm/src/tests; ./compare_all_pie_outputs.sh
+
+compare_all_proof_dyn: $(COMPILED_DYN_PROOF_TESTS) $(CAIRO_DYN_RS_TRACE_PROOF) $(CAIRO_DYN_TRACE_PROOF) $(CAIRO_DYN_RS_MEM_PROOF) $(CAIRO_DYN_MEM_PROOF) $(CAIRO_DYN_RS_AIR_PUBLIC_INPUT) $(CAIRO_DYN_AIR_PUBLIC_INPUT) $(CAIRO_DYN_RS_AIR_PRIVATE_INPUT) $(CAIRO_DYN_AIR_PRIVATE_INPUT)
+	cd vm/src/tests; ./compare_vm_state_dyn.sh trace memory proof_mode air_public_input air_private_input
 
 # Run with nightly enable the `doc_cfg` feature wich let us provide clear explaination about which parts of the code are behind a feature flag
 docs:
