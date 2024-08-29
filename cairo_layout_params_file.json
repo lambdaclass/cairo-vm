@@ -1,7 +1,7 @@
 {
     "rc_units": 4,
     "log_diluted_units_per_step": 4,
-    "cpu_component_step": 4,
+    "cpu_component_step": 1,
     "memory_units_per_step": 8,
     "uses_pedersen_builtin": true,
     "pedersen_ratio": 32,
