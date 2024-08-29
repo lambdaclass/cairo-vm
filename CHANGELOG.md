@@ -8,6 +8,8 @@
   * Fix prover input.
   * Fix version reading when no version is supplied.
 
+* chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
+
 #### [1.0.1] - 2024-08-12
 
 * fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
