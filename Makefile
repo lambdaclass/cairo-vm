@@ -148,7 +148,7 @@ COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cai
 $(TEST_PROOF_DIR)/%.rs.dyn.trace $(TEST_PROOF_DIR)/%.rs.dyn.memory $(TEST_PROOF_DIR)/%.rs.dyn.air_public_input $(TEST_PROOF_DIR)/%.rs.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
 	cargo run -p cairo-vm-cli --release -- --layout dynamic --proof_mode $< --trace_file $(@D)/$(*F).rs.dyn.trace --memory_file $(@D)/$(*F).rs.dyn.memory --air_public_input $(@D)/$(*F).rs.dyn.air_public_input --air_private_input $(@D)/$(*F).rs.dyn.air_private_input --cairo_layout_params_file cairo_layout_params_file.json
 
-$(TEST_PROOF_DIR)/%.dyn.trace $(TEST_PROOF_DIR)/%.dyn.memory $(TEST_PROOF_DIR)/%.dyn.air_public_input $(TEST_PROOF_DIR)/%.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json
+$(TEST_PROOF_DIR)/%.dyn.trace $(TEST_PROOF_DIR)/%.dyn.memory $(TEST_PROOF_DIR)/%.dyn.air_public_input $(TEST_PROOF_DIR)/%.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json cairo_layout_params_file.json
 	cairo-run --layout dynamic --proof_mode --program $< --trace_file $(@D)/$(*F).dyn.trace  --air_public_input $(@D)/$(*F).dyn.air_public_input --memory_file $(@D)/$(*F).dyn.memory --air_private_input $(@D)/$(*F).dyn.air_private_input --cairo_layout_params_file cairo_layout_params_file.json
 
 # ======================
