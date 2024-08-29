@@ -195,80 +195,40 @@ impl BuiltinsInstanceDef {
     }
 
     pub(crate) fn dynamic(params: CairoLayoutParams) -> BuiltinsInstanceDef {
-        let pedersen = if params.uses_pedersen_builtin {
-            Some(PedersenInstanceDef {
-                ratio: Some(params.pedersen_ratio),
-            })
-        } else {
-            None
-        };
-        let range_check = if params.uses_range_check_builtin {
-            Some(RangeCheckInstanceDef {
-                ratio: Some(params.range_check_ratio),
-            })
-        } else {
-            None
-        };
-        let ecdsa = if params.uses_ecdsa_builtin {
-            Some(EcdsaInstanceDef {
-                ratio: Some(params.ecdsa_ratio),
-            })
-        } else {
-            None
-        };
-        let bitwise = if params.uses_bitwise_builtin {
-            Some(BitwiseInstanceDef {
-                ratio: Some(params.bitwise_ratio),
-            })
-        } else {
-            None
-        };
-        let ec_op = if params.uses_ec_op_builtin {
-            Some(EcOpInstanceDef {
-                ratio: Some(params.ec_op_ratio),
-            })
-        } else {
-            None
-        };
-        let keccak = if params.uses_keccak_builtin {
-            Some(KeccakInstanceDef {
-                ratio: Some(params.keccak_ratio),
-            })
-        } else {
-            None
-        };
-        let poseidon = if params.uses_poseidon_builtin {
-            Some(PoseidonInstanceDef {
-                ratio: Some(params.poseidon_ratio),
-            })
-        } else {
-            None
-        };
-        let range_check96 = if params.uses_range_check96_builtin {
-            Some(RangeCheckInstanceDef {
-                ratio: Some(params.range_check96_ratio),
-            })
-        } else {
-            None
-        };
-        let add_mod = if params.uses_add_mod_builtin {
-            Some(ModInstanceDef {
-                ratio: Some(params.add_mod_ratio),
-                word_bit_len: 1,
-                batch_size: 96,
-            })
-        } else {
-            None
-        };
-        let mul_mod = if params.uses_mul_mod_builtin {
-            Some(ModInstanceDef {
-                ratio: Some(params.mul_mod_ratio),
-                word_bit_len: 1,
-                batch_size: 96,
-            })
-        } else {
-            None
-        };
+        let pedersen = Some(PedersenInstanceDef {
+            ratio: non_zero(params.pedersen_ratio),
+        });
+        let range_check = Some(RangeCheckInstanceDef {
+            ratio: non_zero(params.range_check_ratio),
+        });
+        let ecdsa = Some(EcdsaInstanceDef {
+            ratio: non_zero(params.ecdsa_ratio),
+        });
+        let bitwise = Some(BitwiseInstanceDef {
+            ratio: non_zero(params.bitwise_ratio),
+        });
+        let ec_op = Some(EcOpInstanceDef {
+            ratio: non_zero(params.ec_op_ratio),
+        });
+        let keccak = Some(KeccakInstanceDef {
+            ratio: non_zero(params.keccak_ratio),
+        });
+        let poseidon = Some(PoseidonInstanceDef {
+            ratio: non_zero(params.poseidon_ratio),
+        });
+        let range_check96 = Some(RangeCheckInstanceDef {
+            ratio: non_zero(params.range_check96_ratio),
+        });
+        let add_mod = Some(ModInstanceDef {
+            ratio: non_zero(params.add_mod_ratio),
+            word_bit_len: 1,
+            batch_size: 96,
+        });
+        let mul_mod = Some(ModInstanceDef {
+            ratio: non_zero(params.mul_mod_ratio),
+            word_bit_len: 1,
+            batch_size: 96,
+        });
 
         BuiltinsInstanceDef {
             output: true,
@@ -283,6 +243,14 @@ impl BuiltinsInstanceDef {
             add_mod,
             mul_mod,
         }
+    }
+}
+
+fn non_zero(n: u32) -> Option<u32> {
+    if n == 0 {
+        None
+    } else {
+        Some(n)
     }
 }
 

@@ -135,8 +135,44 @@ impl CairoLayout {
 use arbitrary::{self, Arbitrary};
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
-#[derive(Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Clone, Default)]
+#[serde(try_from = "RawCairoLayoutParams")]
 pub struct CairoLayoutParams {
+    pub rc_units: u32,
+    pub log_diluted_units_per_step: u32,
+    pub pedersen_ratio: u32,
+    pub range_check_ratio: u32,
+    pub ecdsa_ratio: u32,
+    pub bitwise_ratio: u32,
+    pub ec_op_ratio: u32,
+    pub keccak_ratio: u32,
+    pub poseidon_ratio: u32,
+    pub range_check96_ratio: u32,
+    pub add_mod_ratio: u32,
+    pub mul_mod_ratio: u32,
+    // the following are not used right now
+    pub cpu_component_step: u32,
+    pub memory_units_per_step: u32,
+    pub range_check96_ratio_den: u32,
+    pub mul_mod_ratio_den: u32,
+    pub add_mod_ratio_den: u32,
+}
+
+impl CairoLayoutParams {
+    #[cfg(feature = "std")]
+    pub fn from_file(params_path: &std::path::Path) -> std::io::Result<Self> {
+        let params_file = std::fs::File::open(params_path)?;
+        let params = serde_json::from_reader(params_file)?;
+        Ok(params)
+    }
+}
+
+// The CairoLayoutParams contains aditional constraints that can't be validated by serde alone.
+// To work around this. we use an aditional structure `RawCairoLayoutParams` that gets deserialized by serde
+// and then its tranformed into `CairoLayoutParams`.
+
+#[derive(Deserialize, Debug, Default, Clone)]
+pub struct RawCairoLayoutParams {
     pub rc_units: u32,
     pub log_diluted_units_per_step: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
@@ -177,12 +213,60 @@ pub struct CairoLayoutParams {
     pub add_mod_ratio_den: u32,
 }
 
-impl CairoLayoutParams {
-    #[cfg(feature = "std")]
-    pub fn from_file(params_path: &std::path::Path) -> std::io::Result<Self> {
-        let params_file = std::fs::File::open(params_path)?;
-        let params = serde_json::from_reader(params_file)?;
-        Ok(params)
+impl TryFrom<RawCairoLayoutParams> for CairoLayoutParams {
+    type Error = &'static str;
+
+    fn try_from(value: RawCairoLayoutParams) -> Result<Self, Self::Error> {
+        if !value.uses_pedersen_builtin && value.pedersen_ratio != 0 {
+            return Err("pedersen ratio should be 0 when disabled");
+        }
+        if !value.uses_range_check_builtin && value.range_check_ratio != 0 {
+            return Err("range_check ratio should be 0 when disabled");
+        }
+        if !value.uses_ecdsa_builtin && value.ecdsa_ratio != 0 {
+            return Err("ecdsa ratio should be 0 when disabled");
+        }
+        if !value.uses_bitwise_builtin && value.bitwise_ratio != 0 {
+            return Err("bitwise ratio should be 0 when disabled");
+        }
+        if !value.uses_ec_op_builtin && value.ec_op_ratio != 0 {
+            return Err("ec_op ratio should be 0 when disabled");
+        }
+        if !value.uses_keccak_builtin && value.keccak_ratio != 0 {
+            return Err("keccak ratio should be 0 when disabled");
+        }
+        if !value.uses_poseidon_builtin && value.poseidon_ratio != 0 {
+            return Err("poseidon ratio should be 0 when disabled");
+        }
+        if !value.uses_range_check96_builtin && value.range_check96_ratio != 0 {
+            return Err("range_check96 ratio should be 0 when disabled");
+        }
+        if !value.uses_add_mod_builtin && value.add_mod_ratio != 0 {
+            return Err("add_mod ratio should be 0 when disabled");
+        }
+        if !value.uses_mul_mod_builtin && value.mul_mod_ratio != 0 {
+            return Err("mul_mod ratio should be 0 when disabled");
+        }
+
+        Ok(CairoLayoutParams {
+            rc_units: value.rc_units,
+            log_diluted_units_per_step: value.log_diluted_units_per_step,
+            cpu_component_step: value.cpu_component_step,
+            memory_units_per_step: value.memory_units_per_step,
+            range_check96_ratio_den: value.range_check96_ratio_den,
+            mul_mod_ratio_den: value.mul_mod_ratio_den,
+            add_mod_ratio_den: value.add_mod_ratio_den,
+            pedersen_ratio: value.pedersen_ratio,
+            range_check_ratio: value.range_check_ratio,
+            ecdsa_ratio: value.ecdsa_ratio,
+            bitwise_ratio: value.bitwise_ratio,
+            ec_op_ratio: value.ec_op_ratio,
+            keccak_ratio: value.keccak_ratio,
+            poseidon_ratio: value.poseidon_ratio,
+            range_check96_ratio: value.range_check96_ratio,
+            add_mod_ratio: value.add_mod_ratio,
+            mul_mod_ratio: value.mul_mod_ratio,
+        })
     }
 }
 
@@ -210,6 +294,7 @@ mod tests {
         bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
         mod_instance_def::ModInstanceDef, pedersen_instance_def::PedersenInstanceDef,
+        poseidon_instance_def::PoseidonInstanceDef,
         range_check_instance_def::RangeCheckInstanceDef,
     };
 
@@ -344,22 +429,12 @@ mod tests {
         let params = CairoLayoutParams {
             rc_units: 32,
             log_diluted_units_per_step: 5,
-            uses_pedersen_builtin: true,
             pedersen_ratio: 32,
-            uses_range_check_builtin: true,
             range_check_ratio: 32,
-            uses_ecdsa_builtin: true,
             ecdsa_ratio: 32,
-            uses_bitwise_builtin: true,
             bitwise_ratio: 32,
-            uses_ec_op_builtin: true,
             ec_op_ratio: 32,
-            uses_keccak_builtin: true,
             keccak_ratio: 32,
-            uses_poseidon_builtin: false,
-            uses_range_check96_builtin: false,
-            uses_add_mod_builtin: false,
-            uses_mul_mod_builtin: true,
             mul_mod_ratio: 32,
             ..Default::default() //
                                  // cpu_component_step: todo!(),
@@ -407,13 +482,26 @@ mod tests {
             layout.builtins.keccak,
             Some(KeccakInstanceDef { ratio: Some(32) })
         );
-        assert_eq!(layout.builtins.poseidon, None,);
-        assert_eq!(layout.builtins.range_check96, None,);
-        assert_eq!(layout.builtins.add_mod, None);
+        assert_eq!(
+            layout.builtins.poseidon,
+            Some(PoseidonInstanceDef { ratio: Some(0) }),
+        );
+        assert_eq!(
+            layout.builtins.range_check96,
+            Some(RangeCheckInstanceDef { ratio: Some(0) })
+        );
         assert_eq!(
             layout.builtins.mul_mod,
             Some(ModInstanceDef {
                 ratio: Some(32),
+                word_bit_len: 1, // hardcoded
+                batch_size: 96   // hardcoded
+            })
+        );
+        assert_eq!(
+            layout.builtins.add_mod,
+            Some(ModInstanceDef {
+                ratio: Some(0),
                 word_bit_len: 1, // hardcoded
                 batch_size: 96   // hardcoded
             })
