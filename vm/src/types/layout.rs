@@ -121,7 +121,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
-            public_memory_fraction: 4,
+            public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
                 units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
                 ..DilutedPoolInstanceDef::default()
