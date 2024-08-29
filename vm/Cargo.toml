@@ -18,7 +18,7 @@ std = [
     "starknet-crypto/std",
     "dep:num-prime",
     "thiserror-no-std/std",
-    "dep:zip",
+    "dep:zip"
 ]
 cairo-1-hints = [
     "dep:cairo-lang-starknet",

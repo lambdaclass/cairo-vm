@@ -47,11 +47,11 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
     Felt252,
+    stdlib::{collections::HashMap, iter::Peekable, cmp, prelude::*}
 };
 use itertools::{chain, Itertools};
 use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
-use std::{collections::HashMap, iter::Peekable};
 
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
@@ -140,7 +140,7 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let initial_gas = 9999999999999_usize;
+    let initial_gas = 9_usize;//9999999999999_usize;
 
     // Fetch return type data
     let return_type_id = match main_func.signature.ret_types.last() {
@@ -1384,7 +1384,7 @@ fn serialize_output_inner<'a>(
             let mut max_variant_size = 0;
             for variant in &info.variants {
                 let variant_size = type_sizes.get(variant).unwrap();
-                max_variant_size = std::cmp::max(max_variant_size, *variant_size)
+                max_variant_size = cmp::max(max_variant_size, *variant_size)
             }
             for _ in 0..max_variant_size - type_sizes.get(variant_type_id).unwrap() {
                 // Remove padding

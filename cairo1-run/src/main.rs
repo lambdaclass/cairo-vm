@@ -10,6 +10,7 @@ use cairo_vm::{
 };
 use clap::{Parser, ValueHint};
 use itertools::Itertools;
+use cairo_vm::stdlib::prelude::*;
 use std::{
     io::{self, Write},
     path::PathBuf,

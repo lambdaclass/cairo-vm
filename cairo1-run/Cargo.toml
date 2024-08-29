@@ -23,7 +23,8 @@ cairo-lang-utils.workspace = true
 cairo-lang-casm.workspace = true
 itertools = "0.11.0"
 clap = { version = "4.3.10", features = ["derive"] }
-thiserror = { version = "1.0.40" }
+thiserror = { version = "1.0.40", optional = true }
+thiserror-no-std = { workspace = true }
 bincode.workspace = true
 assert_matches = "1.5.0"
 rstest = "0.17.0"
@@ -32,5 +33,11 @@ num-traits = { version = "0.2", default-features = false }
 num-bigint.workspace = true
 
 [features]
-default = ["with_mimalloc"]
+default = ["with_mimalloc", "cli"]
 with_mimalloc = ["dep:mimalloc"]
+cli = ["dep:thiserror"]
+
+[[bin]]
+name = "cairo1-run"
+path = "./src/main.rs"
+required-features = ["cli"]
