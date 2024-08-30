@@ -276,7 +276,10 @@ mod tests {
             )]),
             add_mod: None,
             mul_mod: None,
-            range_check96: None,
+            range_check96: Some(vec![PrivateInput::Value(PrivateInputValue {
+                index: 10000,
+                value: Felt252::from(8000),
+            })]),
         };
 
         let private_input = AirPrivateInput::from(serializable_private_input.clone());
