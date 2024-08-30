@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* chore: make cairo 1.0 compatible with wasm
+* chore: make cairo 1.0 compatible with wasm [#1830](https://github.com/lambdaclass/cairo-vm/pull/1830)
 
 * chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
 
