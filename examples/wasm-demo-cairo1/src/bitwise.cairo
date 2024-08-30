@@ -1,4 +1,4 @@
-fn main() {
+fn main() -> u128 {
     let a = 1234_u128;
     let b = 5678_u128;
 
@@ -7,7 +7,6 @@ fn main() {
     let c2 = a | b;
 
     let c3 = c0 + c1 + c2;
-    println!("{}", c3);
 
-    return c3;
+    c3
 }

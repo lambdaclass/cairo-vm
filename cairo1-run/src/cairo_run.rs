@@ -37,6 +37,7 @@ use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
+    stdlib::{cmp, collections::HashMap, iter::Peekable},
     types::{
         builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
         relocatable::MaybeRelocatable,
@@ -47,7 +48,6 @@ use cairo_vm::{
         vm_core::VirtualMachine,
     },
     Felt252,
-    stdlib::{collections::HashMap, iter::Peekable, cmp, prelude::*}
 };
 use itertools::{chain, Itertools};
 use num_bigint::{BigInt, Sign};
@@ -140,7 +140,7 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let initial_gas = 9_usize;//9999999999999_usize;
+    let initial_gas = u32::MAX as usize;
 
     // Fetch return type data
     let return_type_id = match main_func.signature.ret_types.last() {
@@ -1231,7 +1231,7 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Box Pointer is not Relocatable");
-            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize"); 
+            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize");
             let data = vm
                 .get_continuous_range(ptr, type_size)
                 .expect("Failed to extract value from nullable ptr");

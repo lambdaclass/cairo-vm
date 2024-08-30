@@ -1,6 +1,7 @@
 mod utils;
 
 use cairo1_run::{cairo_run_program, Cairo1RunConfig};
+use cairo_lang_sierra::ProgramParser;
 use cairo_vm::types::layout_name::LayoutName;
 use wasm_bindgen::prelude::*;
 
@@ -25,27 +26,31 @@ macro_rules! wrap_error {
 
 #[wasm_bindgen(js_name = runCairoProgram)]
 pub fn run_cairo_program() -> Result<String, JsError> {
-    const PROGRAM: &[u8] = include_bytes!("../bitwise.sierra");
-
     let cairo_run_config = Cairo1RunConfig {
         layout: LayoutName::all_cairo,
         relocate_mem: true,
         trace_enabled: true,
+        serialize_output: true,
         ..Default::default()
     };
+    let sierra_program = match serde_json::from_slice(include_bytes!("../bitwise.sierra")) {
+        Ok(sierra) => sierra,
+        Err(_) => {
+            let program_str = include_str!("../bitwise.sierra");
 
-    let sierra_program = serde_json::from_slice(PROGRAM)?;
+            let parser = ProgramParser::new();
+            parser
+                .parse(&program_str)
+                .map_err(|e| e.map_token(|t| t.to_string()))?
+        }
+    };
 
-    let (mut runner, _, _) = wrap_error!(cairo_run_program(
-        &sierra_program,
-        cairo_run_config,
-    ))?;
+    let (_, _, serielized_output_option) =
+        cairo_run_program(&sierra_program, cairo_run_config).unwrap();
 
-    let mut buffer = String::new();
+    let output = serielized_output_option.unwrap();
 
-    wrap_error!(runner.vm.write_output(&mut buffer))?;
+    log(&output);
 
-    log(buffer.as_str());
-
-    Ok(buffer)
+    Ok(output)
 }
