@@ -108,6 +108,9 @@ $(BENCH_DIR)/%.json: $(BENCH_DIR)/%.cairo
 $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
+$(TEST_DIR)/cairo-1-programs/bitwise.sierra: $(TEST_DIR)/cairo-1-programs/bitwise.cairo
+	cairo1/bin/cairo-compile -r $< $@
+
 $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory $(TEST_DIR)/%.rs.pie.zip: $(TEST_DIR)/%.json $(RELBIN)
 	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
 
@@ -244,6 +247,7 @@ cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
+cairo_1_wasm_example: $(TEST_DIR)/cairo-1-programs/bitwise.sierra
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
 cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT)
@@ -256,11 +260,11 @@ ifdef TEST_COLLECT_COVERAGE
 	TEST_COMMAND:=cargo llvm-cov nextest --no-report
 endif
 
-test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+test: cairo_proof_programs cairo_1_wasm_example cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
-test-no_std: cairo_proof_programs cairo_test_programs
+test-no_std: cairo_proof_programs cairo_1_wasm_example cairo_test_programs
 	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
-test-wasm: cairo_proof_programs cairo_test_programs
+test-wasm: cairo_proof_programs cairo_1_wasm_example cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 test-extensive_hints: cairo_proof_programs cairo_test_programs
@@ -350,6 +354,7 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.cairo
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(TEST_DIR)/cairo-1-programs/bitwise.sierra
 	rm -f $(TEST_PROOF_DIR)/*.json
 	rm -f $(TEST_PROOF_DIR)/*.memory
 	rm -f $(TEST_PROOF_DIR)/*.trace

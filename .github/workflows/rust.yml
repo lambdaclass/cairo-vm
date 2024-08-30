@@ -48,6 +48,7 @@ jobs:
             cairo_test_programs,
             cairo_1_test_contracts,
             cairo_2_test_contracts,
+            cairo_1_wasm_example,
           ]
     name: Build Cairo programs
     runs-on: ubuntu-22.04
@@ -692,7 +693,7 @@ jobs:
           wasm-pack build --target=web
 
   wasm-demo-cairo1:
-    name: Build the wasm-demo-cairoo
+    name: Build the wasm-demo-cairo1
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -711,7 +712,7 @@ jobs:
           pip install -r requirements.txt
           npm install -g wasm-pack
 
-      - name: Build wasm-demo-cairo
+      - name: Build wasm-demo-cairo1
         run: |
           cairo1/bin/cairo-compile cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
           cd examples/wasm-demo-cairo1
