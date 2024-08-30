@@ -692,6 +692,32 @@ jobs:
           cd examples/wasm-demo
           wasm-pack build --target=web
 
+  wasm-demo-cairo1:
+    name: Build the wasm demo
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+        fetch-depth: 0
+
+      - name: Python3 Build
+        uses: actions/setup-python@v4
+        with:
+        python-version: "3.9"
+        cache: "pip"
+
+      - name: Install cairo-lang and deps
+        run: |
+          pip install -r requirements.txt
+          npm install -g wasm-pack
+
+      - name: Build wasm-demo
+        run: |
+          cairo1/bin/cairo-compile cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
+          cd examples/wasm-demo-cairo1
+          wasm-pack build --target=web
+
   compare-factorial-outputs-all-layouts:
     name: Compare factorial outputs for all layouts
     needs: [build-programs, build-release]
