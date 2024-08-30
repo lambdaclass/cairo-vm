@@ -36,7 +36,8 @@ pub fn run_cairo_program() -> Result<String, JsError> {
     let sierra_program = match serde_json::from_slice(include_bytes!("../bitwise.sierra")) {
         Ok(sierra) => sierra,
         Err(_) => {
-            let program_str = include_str!("../bitwise.sierra");
+            let program_str =
+                include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
 
             let parser = ProgramParser::new();
             parser
@@ -46,7 +47,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
     };
 
     let (_, _, serielized_output_option) =
-        cairo_run_program(&sierra_program, cairo_run_config).unwrap();
+        wrap_error!(cairo_run_program(&sierra_program, cairo_run_config))?;
 
     let output = serielized_output_option.unwrap();
 

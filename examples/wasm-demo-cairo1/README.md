@@ -23,8 +23,9 @@ To compile and run the example you need:
 To build the example, first compile your Cairo program:
 
 ```sh
-cairo-compile ../../cairo_programs/array_sum.cairo --no_debug_info --output ../../cairo_programs/array_sum.json
+cairo1/bin/cairo-compile -r ./bitwise.cairo  bitwise.sierra
 ```
+> It's important to use the `-r` flag. If not, the `main`function won't be recognized.
 
 And then the WebAssembly package:
 
