@@ -7,7 +7,7 @@ Once you are inside the `./cairo1-run` folder, use the CLI with the following co
 To install the required dependencies(cairo corelib) run
 
 ```bash
-make deps 
+make deps
 ```
 
 Now that you have the dependencies necessary to run the tests, you can run:
@@ -19,14 +19,15 @@ make test
 To execute a Cairo 1 program (either as Cairo 1 source file or Sierra)
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo 
+cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
 ```
 
 Arguments to generate the trace and memory files
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
+cargo run --features cli ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
 ```
+> In order to use cairo1-run as a binary, the `cli` feature needs to be enabled
 
 To pass arguments to `main`
 
@@ -44,7 +45,7 @@ cargo run ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --
 To execute all the cairo 1 programs inside `../cairo_programs/cairo-1-programs/` and generate the corresponding trace and the memory files
 
 ```bash
-make run 
+make run
 ```
 
 ## CLI argument list
@@ -86,7 +87,7 @@ Then run the compiled project's sierra file located at `project_name/target/proj
 
 Example:
 ```bash
-  cargo run path-to-project/target/project_name.sierra.json 
+  cargo run path-to-project/target/project_name.sierra.json
 ```
 
 # Known bugs & issues

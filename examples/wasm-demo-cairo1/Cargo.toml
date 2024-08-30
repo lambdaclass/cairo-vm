@@ -27,7 +27,7 @@ cairo-lang-sierra = { workspace = true }
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
 cairo1-run = { workspace = true }
-cairo-vm = { workspace = true }
+cairo-vm = { workspace = true, default_features = false }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
