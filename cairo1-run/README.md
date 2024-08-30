@@ -25,10 +25,8 @@ cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
 Arguments to generate the trace and memory files
 
 ```bash
-cargo run --features cli ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
+cargo run ./cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
 ```
-> In order to use cairo1-run as a binary, the `cli` feature needs to be enabled
-
 To pass arguments to `main`
 
 * Separate arguments with a whitespace inbetween
