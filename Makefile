@@ -359,7 +359,7 @@ clean:
 	rm -f $(TEST_PROOF_DIR)/*.trace
 	rm -f $(TEST_PROOF_DIR)/*.air_public_input
 	rm -f $(TEST_PROOF_DIR)/*.air_private_input
-	rm -f $(TEST_DIR)/bitwise.sierra
+	rm -f $(TEST_DIR)/cairo-1-programs/bitwise.sierra
 	rm -rf cairo-vm-env
 	rm -rf cairo-vm-pypy-env
 	rm -rf cairo
