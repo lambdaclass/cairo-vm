@@ -196,38 +196,38 @@ impl BuiltinsInstanceDef {
 
     pub(crate) fn dynamic(params: CairoLayoutParams) -> BuiltinsInstanceDef {
         let pedersen = Some(PedersenInstanceDef {
-            ratio: non_zero(params.pedersen_ratio),
+            ratio: Some(params.pedersen_ratio),
         });
         let range_check = Some(RangeCheckInstanceDef {
-            ratio: non_zero(params.range_check_ratio),
+            ratio: Some(params.range_check_ratio),
         });
         let ecdsa = Some(EcdsaInstanceDef {
-            ratio: non_zero(params.ecdsa_ratio),
+            ratio: Some(params.ecdsa_ratio),
         });
         let bitwise = Some(BitwiseInstanceDef {
-            ratio: non_zero(params.bitwise_ratio),
+            ratio: Some(params.bitwise_ratio),
         });
         let ec_op = Some(EcOpInstanceDef {
-            ratio: non_zero(params.ec_op_ratio),
+            ratio: Some(params.ec_op_ratio),
         });
         let keccak = Some(KeccakInstanceDef {
-            ratio: non_zero(params.keccak_ratio),
+            ratio: Some(params.keccak_ratio),
         });
         let poseidon = Some(PoseidonInstanceDef {
-            ratio: non_zero(params.poseidon_ratio),
+            ratio: Some(params.poseidon_ratio),
         });
         let range_check96 = Some(RangeCheckInstanceDef {
-            ratio: non_zero(params.range_check96_ratio),
+            ratio: Some(params.range_check96_ratio),
         });
         let add_mod = Some(ModInstanceDef {
-            ratio: non_zero(params.add_mod_ratio),
-            word_bit_len: 1,
-            batch_size: 96,
+            ratio: Some(params.add_mod_ratio),
+            word_bit_len: 96,
+            batch_size: 1,
         });
         let mul_mod = Some(ModInstanceDef {
-            ratio: non_zero(params.mul_mod_ratio),
-            word_bit_len: 1,
-            batch_size: 96,
+            ratio: Some(params.mul_mod_ratio),
+            word_bit_len: 96,
+            batch_size: 1,
         });
 
         BuiltinsInstanceDef {
@@ -243,14 +243,6 @@ impl BuiltinsInstanceDef {
             add_mod,
             mul_mod,
         }
-    }
-}
-
-fn non_zero(n: u32) -> Option<u32> {
-    if n == 0 {
-        None
-    } else {
-        Some(n)
     }
 }
 

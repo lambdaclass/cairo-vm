@@ -171,6 +171,14 @@ impl BuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<usize, memory_errors::MemoryError> {
+        Ok(self.get_allocated_instances(vm)? * self.cells_per_instance() as usize)
+    }
+
+    ///Returns the builtin's allocated instances
+    pub fn get_allocated_instances(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, memory_errors::MemoryError> {
         match *self {
             BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => Ok(0),
             _ => {
@@ -179,12 +187,16 @@ impl BuiltinRunner {
                         // Dynamic layout has the exact number of instances it needs (up to a power of 2).
                         let instances: usize =
                             self.get_used_cells(&vm.segments)? / self.cells_per_instance() as usize;
-                        let components = (instances / self.instances_per_component() as usize)
-                            .next_power_of_two();
-                        Ok(self.cells_per_instance() as usize
-                            * self.instances_per_component() as usize
-                            * components)
+                        let needed_components = instances / self.instances_per_component() as usize;
+
+                        let components = if needed_components > 0 {
+                            needed_components.next_power_of_two()
+                        } else {
+                            0
+                        };
+                        Ok(self.instances_per_component() as usize * components)
                     }
+                    Some(0) => Ok(0),
                     Some(ratio) => {
                         let min_step = (ratio * self.instances_per_component()) as usize;
                         if vm.current_step < min_step {
@@ -195,7 +207,7 @@ impl BuiltinRunner {
                         };
                         let value = safe_div_usize(vm.current_step, ratio as usize)
                             .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                        Ok(self.cells_per_instance() as usize * value)
+                        Ok(value)
                     }
                 }
             }

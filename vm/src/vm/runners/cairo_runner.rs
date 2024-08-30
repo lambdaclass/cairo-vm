@@ -21,7 +21,6 @@ use crate::{
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    math_utils::safe_div_usize,
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -848,10 +847,8 @@ impl CairoRunner {
                 diluted_pool_instance.n_bits,
             );
 
-            let multiplier = safe_div_usize(
-                self.vm.current_step,
-                builtin_runner.ratio().unwrap_or(1) as usize,
-            )?;
+            let multiplier = builtin_runner.get_allocated_instances(&self.vm)?;
+
             used_units_by_builtins += used_units * multiplier;
         }
 
