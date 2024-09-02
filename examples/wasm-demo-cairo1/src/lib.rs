@@ -33,13 +33,10 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         serialize_output: true,
         ..Default::default()
     };
-    let sierra_program = match serde_json::from_slice(include_bytes!(
-        "../bitwise.sierra"
-    )) {
+    let sierra_program = match serde_json::from_slice(include_bytes!("../bitwise.sierra")) {
         Ok(sierra) => sierra,
         Err(_) => {
-            let program_str =
-                include_str!("../bitwise.sierra");
+            let program_str = include_str!("../bitwise.sierra");
 
             let parser = ProgramParser::new();
             parser
