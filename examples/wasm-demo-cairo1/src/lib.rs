@@ -40,7 +40,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
             let parser = ProgramParser::new();
             parser
-                .parse(&program_str)
+                .parse(program_str)
                 .map_err(|e| e.map_token(|t| t.to_string()))?
         }
     };
