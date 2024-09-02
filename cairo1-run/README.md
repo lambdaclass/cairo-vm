@@ -25,7 +25,7 @@ cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
 Arguments to generate the trace and memory files
 
 ```bash
-cargo run ./cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
+cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
 ```
 To pass arguments to `main`
 

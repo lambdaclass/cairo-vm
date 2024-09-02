@@ -20,7 +20,7 @@ To compile and run the example you need:
 
 ## Building
 
-To build the example, first compile your Cairo program:
+To build the example, first compile your Cairo 1.x program:
 
 ```sh
 cairo1/bin/cairo-compile -r ./bitwise.cairo  bitwise.sierra
