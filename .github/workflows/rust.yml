@@ -98,8 +98,10 @@ jobs:
 
     - name: Install cairo 1 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' 
-        && matrix.program-target == 'cairo_1_test_contracts' 
-        && matrix.program-target == 'cairo_1_wasm_example'
+        && (
+          matrix.program-target == 'cairo_1_test_contracts' 
+          || matrix.program-target == 'cairo_1_wasm_example'
+        )
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
