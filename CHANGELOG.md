@@ -7,6 +7,8 @@
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
     * Signature change(BREAKING): Both `CairoRunner::new` and `CairoRunner::new_v2` now receive an `Option<CairoLayoutParams>`, used only with dynamic layout.
 
+* chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
+
 #### [1.0.1] - 2024-08-12
 
 * fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
