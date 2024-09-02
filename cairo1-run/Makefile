@@ -20,7 +20,7 @@ deps:
 run: $(TRACES) $(MEMORY)
 
 test:
-	cargo --features cli test
+	cargo test --features cli
 
 clean:
 	rm -rf corelib
