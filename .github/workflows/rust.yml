@@ -48,6 +48,7 @@ jobs:
           cairo_test_programs,
           cairo_1_test_contracts,
           cairo_2_test_contracts,
+          cairo_1_wasm_example
         ]
     name: Build Cairo programs
     runs-on: ubuntu-22.04
@@ -96,7 +97,9 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Install cairo 1 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
+      if: steps.cache-programs.outputs.cache-hit != 'true' 
+        && matrix.program-target == 'cairo_1_test_contracts' 
+        && matrix.program-target == 'cairo_1_wasm_example'
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
