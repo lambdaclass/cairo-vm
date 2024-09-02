@@ -448,7 +448,7 @@ mod tests {
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);
-        assert_eq!(layout.public_memory_fraction, 4); // hardcoded
+        assert_eq!(layout.public_memory_fraction, 8); // hardcoded
         assert_eq!(
             layout.diluted_pool_instance_def,
             Some(DilutedPoolInstanceDef {
@@ -494,16 +494,16 @@ mod tests {
             layout.builtins.mul_mod,
             Some(ModInstanceDef {
                 ratio: Some(32),
-                word_bit_len: 1, // hardcoded
-                batch_size: 96   // hardcoded
+                word_bit_len: 96, // hardcoded
+                batch_size: 1     // hardcoded
             })
         );
         assert_eq!(
             layout.builtins.add_mod,
             Some(ModInstanceDef {
                 ratio: Some(0),
-                word_bit_len: 1, // hardcoded
-                batch_size: 96   // hardcoded
+                word_bit_len: 96, // hardcoded
+                batch_size: 1     // hardcoded
             })
         );
     }
