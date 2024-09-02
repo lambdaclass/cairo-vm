@@ -16,7 +16,7 @@ Now that you have the dependencies necessary to run the tests, you can run:
 make test
 ```
 
-To execute a Cairo 1 program (either as Cairo 1 source file or Sierra)
+To execute a Cairo 1 program (either as Cairo 1 source file or Sierra). Make sure the `cli` feature is active in order to use `cairo1-run` as a binary.
 
 ```bash
 cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
