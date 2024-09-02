@@ -706,9 +706,9 @@ jobs:
         pip install -r requirements.txt
         npm install -g wasm-pack
 
-    - name: Build wasm-demo
+    - name: Build wasm-demo-cairo1
       run: |
-        cd examples/wasm-demo
+        cd examples/wasm-demo-cairo1
         wasm-pack build --target=web
         
   compare-factorial-outputs-all-layouts:
