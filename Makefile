@@ -137,14 +137,6 @@ CAIRO_DYN_RS_TRACE_PROOF:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)
 CAIRO_DYN_RS_AIR_PUBLIC_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.air_public_input, $(COMPILED_PROOF_TESTS))
 CAIRO_DYN_RS_AIR_PRIVATE_INPUT:=$(patsubst $(TEST_PROOF_DIR)/%.json, $(TEST_PROOF_DIR)/%.rs.dyn.air_private_input, $(COMPILED_PROOF_TESTS))
 
-PROOF_BENCH_DIR=cairo_programs/benchmarks
-PROOF_BENCH_FILES:=$(wildcard $(PROOF_BENCH_DIR)/*.cairo)
-PROOF_COMPILED_BENCHES:=$(patsubst $(PROOF_BENCH_DIR)/%.cairo, $(PROOF_BENCH_DIR)/%.json, $(PROOF_BENCH_FILES))
-
-MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
-MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
-COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
-
 $(TEST_PROOF_DIR)/%.rs.dyn.trace $(TEST_PROOF_DIR)/%.rs.dyn.memory $(TEST_PROOF_DIR)/%.rs.dyn.air_public_input $(TEST_PROOF_DIR)/%.rs.dyn.air_private_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
 	cargo run -p cairo-vm-cli --release -- --layout dynamic --proof_mode $< --trace_file $(@D)/$(*F).rs.dyn.trace --memory_file $(@D)/$(*F).rs.dyn.memory --air_public_input $(@D)/$(*F).rs.dyn.air_public_input --air_private_input $(@D)/$(*F).rs.dyn.air_private_input --cairo_layout_params_file cairo_layout_params_file.json
 
