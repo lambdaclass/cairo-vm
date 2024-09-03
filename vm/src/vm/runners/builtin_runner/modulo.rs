@@ -682,7 +682,7 @@ fn apply_op(lhs: &BigUint, rhs: &BigUint, op: &Operation) -> Result<BigUint, Mat
 mod tests {
     #[test]
     #[cfg(feature = "mod_builtin")]
-    fn test_air_private_input_small_batch_size() {
+    fn test_air_private_input_all_cairo() {
         use super::*;
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
