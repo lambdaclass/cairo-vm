@@ -710,6 +710,7 @@ mod tests {
         runner.read_return_values(false).unwrap();
         runner.finalize_segments().unwrap();
 
+        // We compare against the execution of python cairo-run with the same layout
         let air_private_input = runner.get_air_private_input();
         assert_eq!(
             air_private_input.0.get(&BuiltinName::add_mod).unwrap()[0],
