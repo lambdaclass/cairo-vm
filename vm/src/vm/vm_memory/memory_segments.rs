@@ -238,10 +238,6 @@ impl MemorySegmentManager {
         Ok(memory_holes)
     }
 
-    pub fn has_zero_segment(&self) -> bool {
-        !self.zero_segment_index.is_zero()
-    }
-
     /// Returns a list of addresses of memory cells that constitute the public memory.
     /// segment_offsets is the result of self.relocate_segments()
     pub fn get_public_memory_addresses(
