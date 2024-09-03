@@ -282,6 +282,10 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
+    pub fn has_zero_segment(&self) -> bool {
+        !self.zero_segment_index.is_zero()
+    }
+
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
