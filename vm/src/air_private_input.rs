@@ -31,8 +31,6 @@ pub struct AirPrivateInputSerializable {
     #[serde(skip_serializing_if = "Option::is_none")]
     poseidon: Option<Vec<PrivateInput>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    range_check96: Option<Vec<PrivateInput>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     add_mod: Option<PrivateInput>,
     #[serde(skip_serializing_if = "Option::is_none")]
     mul_mod: Option<PrivateInput>,
@@ -167,7 +165,6 @@ impl AirPrivateInput {
             ec_op: self.0.get(&BuiltinName::ec_op).cloned(),
             keccak: self.0.get(&BuiltinName::keccak).cloned(),
             poseidon: self.0.get(&BuiltinName::poseidon).cloned(),
-            range_check96: self.0.get(&BuiltinName::range_check96).cloned(),
             add_mod: self
                 .0
                 .get(&BuiltinName::add_mod)
@@ -283,10 +280,6 @@ mod tests {
             )]),
             add_mod: None,
             mul_mod: None,
-            range_check96: Some(vec![PrivateInput::Value(PrivateInputValue {
-                index: 10000,
-                value: Felt252::from(8000),
-            })]),
         };
 
         let private_input = AirPrivateInput::from(serializable_private_input.clone());
