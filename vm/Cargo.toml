@@ -9,7 +9,7 @@ readme.workspace = true
 keywords.workspace = true
 
 [features]
-#default = ["std"]
+default = ["std"]
 std = [
     "serde_json/std",
     "bincode/std",
