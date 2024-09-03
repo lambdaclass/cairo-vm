@@ -25,12 +25,6 @@ use crate::{
     },
 };
 
-#[cfg(not(feature = "std"))]
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
-
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn pedersen_test() {
