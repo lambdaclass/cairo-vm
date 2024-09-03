@@ -6,7 +6,7 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
+#[cfg(all(not(feature = "std")))]
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
+#[cfg(all(not(feature = "std")))]
 use alloc::{
     string::{String, ToString},
     vec::Vec,
