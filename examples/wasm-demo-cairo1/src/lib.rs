@@ -34,7 +34,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    // using cairo-lang 1.1.1 and ../caigo-programs/cairo-1-programs/bitwise.cairo
+    // using cairo-lang 1.1.1 and wasm-demo-cairo1/bitwise.sierra
     let sierra_program = match serde_json::from_slice(include_bytes!("../bitwise.sierra")) {
         Ok(sierra) => sierra,
         Err(_) => {
