@@ -1,7 +1,7 @@
 # Demo of `cairo-vm` on WebAssembly
 
 While cairo-vm is compatible with WebAssembly, it doesn't implement any bindings to it.
-Instead, create a new WebAssembly crate with cairo-vm as a dependency and implement the required functionality there.
+Instead, create a new WebAssembly crate with cairo-vm and cairo1-run as dependencies and implement the required functionality there.
 
 Since mimalloc is not automatically compilable to WebAssembly, the cairo-vm dependency should disable the default features, which will in turn disable mimalloc.
 
@@ -11,7 +11,7 @@ A working example is provided in this repository.
 
 To compile and run the example you need:
 
-- a Cairo 0 compiler
+- an either Cairo 1 or Cairo 2 compiler
 - the _wasm-pack_ crate
 - some HTTP server (for example: the `live-server` npm module)
 
@@ -20,10 +20,18 @@ To compile and run the example you need:
 
 ## Building
 
-To build the example, first compile your Cairo 1.x program:
+To build the example, first compile your Cairo 1 / 2 program:
+
+Cairo 1
 
 ```sh
 ../../cairo1/bin/cairo-compile -r ./bitwise.cairo  bitwise.sierra
+```
+
+Cairo 2
+
+```sh
+../../cairo2/bin/cairo-compile -r ./bitwise.cairo  bitwise.sierra
 ```
 
 > It's important to use the `-r` flag. If not, the `main` function won't be recognized.
@@ -42,7 +50,7 @@ To run the example webpage, you need to run an HTTP server.
 For example, using the _live-server_ npm module:
 
 ```sh
-# while in <repo>/examples/wasm-demo
+# while in <repo>/examples/wasm-demo-cairo1
 npx live-server
 ```
 
