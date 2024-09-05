@@ -96,7 +96,6 @@ lto = "fat"
 opt-level = "s"
 
 [profile.release.package.wasm-demo-cairo1]
-# Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
 [profile.test.package.proptest]

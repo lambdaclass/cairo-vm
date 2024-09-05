@@ -19,13 +19,13 @@ make test
 To execute a Cairo 1 program (either as Cairo 1 source file or Sierra). Make sure the `cli` feature is active in order to use `cairo1-run` as a binary.
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
+cargo run --features cli ../cairo_programs/cairo-1-programs/fibonacci.cairo
 ```
 
 Arguments to generate the trace and memory files
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
+cargo run --features cli ../cairo_programs/cairo-1-programs/fibonacci.cairo --trace_file ../cairo_programs/cairo-1-programs/fibonacci.trace --memory_file ../cairo_programs/cairo-1-programs/fibonacci.memory
 ```
 To pass arguments to `main`
 
@@ -36,7 +36,7 @@ Example:
 
 ```bash
 
-cargo run ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --layout all_cairo --args '2 [1 2 3 4] 0 [9 8]'
+cargo run --features cli ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --layout all_cairo --args '2 [1 2 3 4] 0 [9 8]'
 
 ```
 
@@ -85,7 +85,7 @@ Then run the compiled project's sierra file located at `project_name/target/proj
 
 Example:
 ```bash
-  cargo run path-to-project/target/project_name.sierra.json
+  cargo run --features cli path-to-project/target/project_name.sierra.json
 ```
 
 # Known bugs & issues

@@ -687,19 +687,13 @@ jobs:
         wasm-pack build --target=web
   
   wasm-demo-cairo1:
-    name: Build the wasm demo
+    name: Build the wasm demo cairo1
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-      
-    - name: Python3 Build
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.9"
-        cache: "pip"
       
     - name: Install cairo-lang and deps
       run: |

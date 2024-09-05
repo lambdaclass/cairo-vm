@@ -8,7 +8,7 @@
 
 #### [1.0.1] - 2024-08-12
 
-* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818):
+* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
     * Fix `MemorySegmentManager::add_zero_segment` function when resizing a segment
     * Signature change(BREAKING): `MemorySegmentManager::get_memory_holes` now receives `builtin_segment_indexes: HashSet<usize>`
 

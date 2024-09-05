@@ -32,7 +32,7 @@ struct Args {
     air_public_input: Option<PathBuf>,
     #[clap(
         long = "air_private_input",
-        requires_all = ["proof_mode", "trace_file", "memory_file"]
+        requires_all = ["proof_mode", "trace_file", "memory_file"] 
     )]
     air_private_input: Option<PathBuf>,
     #[clap(
