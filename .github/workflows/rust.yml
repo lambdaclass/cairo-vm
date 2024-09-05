@@ -697,7 +697,6 @@ jobs:
       
     - name: Install cairo-lang and deps
       run: |
-        pip install -r requirements.txt
         npm install -g wasm-pack
     - name: Build wasm-demo-cairo1
       run: |
