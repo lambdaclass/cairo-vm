@@ -5,6 +5,12 @@
 * chore: bump `cairo-lang-` dependencies to 2.8.0 [#1833](https://github.com/lambdaclass/cairo-vm/pull/1833/files)
   * chore: update Rust required version to 1.80.0
 
+* fix: Added the following VM fixes: [#1820](https://github.com/lambdaclass/cairo-vm/pull/1820)
+  * Fix zero segment location.
+  * Fix has_zero_segment naming.
+  * Fix prover input.
+  * Fix version reading when no version is supplied.
+
 * chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
 
 #### [1.0.1] - 2024-08-12
