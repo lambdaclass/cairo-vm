@@ -306,7 +306,7 @@ mod tests {
         ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
         mod_instance_def::ModInstanceDef, pedersen_instance_def::PedersenInstanceDef,
         poseidon_instance_def::PoseidonInstanceDef,
-        range_check_instance_def::RangeCheckInstanceDef,
+        range_check_instance_def::RangeCheckInstanceDef, LowRatio,
     };
 
     use super::*;
@@ -475,7 +475,9 @@ mod tests {
         );
         assert_eq!(
             layout.builtins.range_check,
-            Some(RangeCheckInstanceDef { ratio: Some(32) })
+            Some(RangeCheckInstanceDef {
+                ratio: Some(LowRatio::new_int(32))
+            })
         );
         assert_eq!(
             layout.builtins.ecdsa,
@@ -499,12 +501,14 @@ mod tests {
         );
         assert_eq!(
             layout.builtins.range_check96,
-            Some(RangeCheckInstanceDef { ratio: Some(0) })
+            Some(RangeCheckInstanceDef {
+                ratio: Some(LowRatio::new_int(0))
+            })
         );
         assert_eq!(
             layout.builtins.mul_mod,
             Some(ModInstanceDef {
-                ratio: Some(32),
+                ratio: Some(LowRatio::new_int(32)),
                 word_bit_len: 96, // hardcoded
                 batch_size: 1     // hardcoded
             })
@@ -512,7 +516,7 @@ mod tests {
         assert_eq!(
             layout.builtins.add_mod,
             Some(ModInstanceDef {
-                ratio: Some(0),
+                ratio: Some(LowRatio::new_int(0)),
                 word_bit_len: 96, // hardcoded
                 batch_size: 1     // hardcoded
             })

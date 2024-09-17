@@ -310,7 +310,7 @@ impl CairoRunner {
             let included = program_builtins.remove(&BuiltinName::range_check);
             if included || self.is_proof_mode() {
                 self.vm.builtin_runners.push(
-                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new_with_low_ratio(
                         instance_def.ratio,
                         included,
                     )
@@ -368,8 +368,11 @@ impl CairoRunner {
             let included = program_builtins.remove(&BuiltinName::range_check96);
             if included || self.is_proof_mode() {
                 self.vm.builtin_runners.push(
-                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(instance_def.ratio, included)
-                        .into(),
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new_with_low_ratio(
+                        instance_def.ratio,
+                        included,
+                    )
+                    .into(),
                 );
             }
         }
