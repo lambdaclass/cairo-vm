@@ -198,16 +198,28 @@ impl BuiltinRunner {
                     }
                     Some(0) => Ok(0),
                     Some(ratio) => {
-                        let min_step = (ratio * self.instances_per_component()) as usize;
+                        let min_step_num = (ratio * self.instances_per_component()) as usize;
+                        let min_step = if let Some(ratio_den) = self.ratio_den() {
+                            safe_div_usize(min_step_num, ratio_den as usize)?
+                        } else {
+                            min_step_num
+                        };
+
                         if vm.current_step < min_step {
                             return Err(InsufficientAllocatedCellsError::MinStepNotReached(
                                 Box::new((min_step, self.name())),
                             )
                             .into());
                         };
-                        let value = safe_div_usize(vm.current_step, ratio as usize)
-                            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                        Ok(value)
+
+                        let allocated_instances = if let Some(ratio_den) = self.ratio_den() {
+                            safe_div_usize(vm.current_step * ratio_den as usize, ratio as usize)
+                                .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
+                        } else {
+                            safe_div_usize(vm.current_step, ratio as usize)
+                                .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
+                        };
+                        Ok(allocated_instances)
                     }
                 }
             }
@@ -261,6 +273,15 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
             BuiltinRunner::Mod(ref modulo) => modulo.ratio(),
+        }
+    }
+
+    pub fn ratio_den(&self) -> Option<u32> {
+        match self {
+            BuiltinRunner::RangeCheck(range_check) => range_check.ratio_den(),
+            BuiltinRunner::RangeCheck96(range_check) => range_check.ratio_den(),
+            BuiltinRunner::Mod(ref modulo) => modulo.ratio_den(),
+            _ => None,
         }
     }
 
