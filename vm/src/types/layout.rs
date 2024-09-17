@@ -4,7 +4,7 @@ use super::instance_definitions::{
     builtins_instance_def::BuiltinsInstanceDef, diluted_pool_instance_def::DilutedPoolInstanceDef,
 };
 
-pub(crate) const MEMORY_UNITS_PER_STEP: u32 = 8;
+pub(crate) const DEFAULT_MEMORY_UNITS_PER_STEP: u32 = 8;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -12,6 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub struct CairoLayout {
     pub(crate) name: LayoutName,
     pub(crate) rc_units: u32,
+    pub(crate) memory_units_per_step: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
     pub(crate) public_memory_fraction: u32,
     pub(crate) diluted_pool_instance_def: Option<DilutedPoolInstanceDef>,
@@ -22,6 +23,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::plain,
             rc_units: 16,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::plain(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -32,6 +34,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::small,
             rc_units: 16,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::small(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -42,6 +45,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dex,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::dex(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -52,6 +56,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -62,6 +67,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
@@ -72,6 +78,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet_with_keccak,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -82,6 +89,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_large_output,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -91,6 +99,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_with_poseidon,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_with_poseidon(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(8, 4, 16)),
@@ -101,6 +110,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_cairo,
             rc_units: 4,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_cairo(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -111,6 +121,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_solidity,
             rc_units: 8,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_solidity(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -121,6 +132,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
+            memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
                 units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
@@ -139,6 +151,7 @@ use arbitrary::{self, Arbitrary};
 #[serde(try_from = "RawCairoLayoutParams")]
 pub struct CairoLayoutParams {
     pub rc_units: u32,
+    pub memory_units_per_step: u32,
     pub log_diluted_units_per_step: u32,
     pub pedersen_ratio: u32,
     pub range_check_ratio: u32,
@@ -152,7 +165,6 @@ pub struct CairoLayoutParams {
     pub mul_mod_ratio: u32,
     // the following are not used right now
     pub cpu_component_step: u32,
-    pub memory_units_per_step: u32,
     pub range_check96_ratio_den: u32,
     pub mul_mod_ratio_den: u32,
     pub add_mod_ratio_den: u32,
@@ -174,6 +186,7 @@ impl CairoLayoutParams {
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct RawCairoLayoutParams {
     pub rc_units: u32,
+    pub memory_units_per_step: u32,
     pub log_diluted_units_per_step: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_pedersen_builtin: bool,
@@ -207,7 +220,6 @@ pub struct RawCairoLayoutParams {
     pub mul_mod_ratio: u32,
     // the following are not used right now
     pub cpu_component_step: u32,
-    pub memory_units_per_step: u32,
     pub range_check96_ratio_den: u32,
     pub mul_mod_ratio_den: u32,
     pub add_mod_ratio_den: u32,

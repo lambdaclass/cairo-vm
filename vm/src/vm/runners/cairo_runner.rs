@@ -7,11 +7,7 @@ use crate::{
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::{
-        builtin_name::BuiltinName,
-        layout::{CairoLayoutParams, MEMORY_UNITS_PER_STEP},
-        layout_name::LayoutName,
-    },
+    types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -1180,7 +1176,7 @@ impl CairoRunner {
 
         // Out of the memory units available per step, a fraction is used for public memory, and
         // four are used for the instruction.
-        let total_memory_units = MEMORY_UNITS_PER_STEP * vm_current_step_u32;
+        let total_memory_units = instance.memory_units_per_step * vm_current_step_u32;
         let (public_memory_units, rem) =
             div_rem(total_memory_units, instance.public_memory_fraction);
         if rem != 0 {
