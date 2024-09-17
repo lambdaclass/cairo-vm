@@ -196,6 +196,7 @@ impl BuiltinRunner {
                         };
                         Ok(self.instances_per_component() as usize * components)
                     }
+                    // Dynamic layout allows for builtins with ratio 0
                     Some(0) => Ok(0),
                     Some(ratio) => {
                         let min_step = (ratio * self.instances_per_component()) as usize;
