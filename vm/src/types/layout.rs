@@ -439,6 +439,7 @@ mod tests {
         // dummy cairo layout params
         let params = CairoLayoutParams {
             rc_units: 32,
+            memory_units_per_step: 16,
             log_diluted_units_per_step: 5,
             pedersen_ratio: 32,
             range_check_ratio: 32,
@@ -446,19 +447,22 @@ mod tests {
             bitwise_ratio: 32,
             ec_op_ratio: 32,
             keccak_ratio: 32,
+            poseidon_ratio: 0,
+            range_check96_ratio: 8,
+            range_check96_ratio_den: 16,
+            add_mod_ratio: 8,
+            add_mod_ratio_den: 16,
             mul_mod_ratio: 32,
-            ..Default::default() //
-                                 // cpu_component_step: todo!(),
-                                 // memory_units_per_step: todo!(),
-                                 // range_check96_ratio_den: todo!(),
-                                 // add_mod_ratio_den: todo!(),
-                                 // mul_mod_ratio_den: todo!(),
+            mul_mod_ratio_den: 16,
+            // unused
+            cpu_component_step: 8,
         };
 
         let layout = CairoLayout::dynamic_instance(params);
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);
+        assert_eq!(layout.memory_units_per_step, 16);
         assert_eq!(layout.public_memory_fraction, 8); // hardcoded
         assert_eq!(
             layout.diluted_pool_instance_def,
@@ -502,13 +506,13 @@ mod tests {
         assert_eq!(
             layout.builtins.range_check96,
             Some(RangeCheckInstanceDef {
-                ratio: Some(LowRatio::new_int(0))
+                ratio: Some(LowRatio::new(8, 16))
             })
         );
         assert_eq!(
             layout.builtins.mul_mod,
             Some(ModInstanceDef {
-                ratio: Some(LowRatio::new_int(32)),
+                ratio: Some(LowRatio::new(32, 16)),
                 word_bit_len: 96, // hardcoded
                 batch_size: 1     // hardcoded
             })
@@ -516,7 +520,7 @@ mod tests {
         assert_eq!(
             layout.builtins.add_mod,
             Some(ModInstanceDef {
-                ratio: Some(LowRatio::new_int(0)),
+                ratio: Some(LowRatio::new(8, 16)),
                 word_bit_len: 96, // hardcoded
                 batch_size: 1     // hardcoded
             })
