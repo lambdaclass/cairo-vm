@@ -134,10 +134,9 @@ impl CairoLayout {
             rc_units: params.rc_units,
             memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
-                units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
-                ..DilutedPoolInstanceDef::default()
-            }),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::from_log_units_per_step(
+                params.log_diluted_units_per_step,
+            )),
             builtins: BuiltinsInstanceDef::dynamic(params),
         }
     }
@@ -152,7 +151,7 @@ use arbitrary::{self, Arbitrary};
 pub struct CairoLayoutParams {
     pub rc_units: u32,
     pub memory_units_per_step: u32,
-    pub log_diluted_units_per_step: u32,
+    pub log_diluted_units_per_step: i32,
     pub pedersen_ratio: u32,
     pub range_check_ratio: u32,
     pub ecdsa_ratio: u32,
@@ -187,7 +186,7 @@ impl CairoLayoutParams {
 pub struct RawCairoLayoutParams {
     pub rc_units: u32,
     pub memory_units_per_step: u32,
-    pub log_diluted_units_per_step: u32,
+    pub log_diluted_units_per_step: i32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_pedersen_builtin: bool,
     pub pedersen_ratio: u32,

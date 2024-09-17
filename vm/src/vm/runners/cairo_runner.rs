@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
+    math_utils::safe_div_usize,
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -848,7 +849,15 @@ impl CairoRunner {
             used_units_by_builtins += used_units * multiplier;
         }
 
-        let diluted_units = diluted_pool_instance.units_per_step as usize * self.vm.current_step;
+        let diluted_units = if !diluted_pool_instance.fractional_units_per_step {
+            diluted_pool_instance.units_per_step as usize * self.vm.current_step
+        } else {
+            safe_div_usize(
+                self.vm.current_step,
+                diluted_pool_instance.units_per_step as usize,
+            )?
+        };
+
         let unused_diluted_units = diluted_units.saturating_sub(used_units_by_builtins);
 
         let diluted_usage_upper_bound = 1usize << diluted_pool_instance.n_bits;
