@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* feat: [#1838](https://github.com/lambdaclass/cairo-vm/pull/1824):
+    * Add support for missing dynamic layout features
+
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
