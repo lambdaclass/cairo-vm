@@ -696,6 +696,8 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::types::builtin_name::BuiltinName;
+    use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+    use crate::types::instance_definitions::LowRatio;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
@@ -1595,6 +1597,30 @@ mod tests {
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
         let keccak_builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_ratio_den_tests() {
+        let rangecheck_builtin: BuiltinRunner =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new_with_low_ratio(
+                Some(LowRatio::new(1, 2)),
+                true,
+            )
+            .into();
+        assert_eq!(rangecheck_builtin.ratio_den(), (Some(2)),);
+
+        let rangecheck96_builtin: BuiltinRunner =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new_with_low_ratio(
+                Some(LowRatio::new(1, 4)),
+                true,
+            )
+            .into();
+        assert_eq!(rangecheck96_builtin.ratio_den(), (Some(4)),);
+
+        let mod_builtin: BuiltinRunner =
+            ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(5), 3, 3), true).into();
+        assert_eq!(mod_builtin.ratio_den(), (Some(1)),);
     }
 
     #[test]
