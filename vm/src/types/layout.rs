@@ -160,13 +160,13 @@ pub struct CairoLayoutParams {
     pub keccak_ratio: u32,
     pub poseidon_ratio: u32,
     pub range_check96_ratio: u32,
+    pub range_check96_ratio_den: u32,
     pub add_mod_ratio: u32,
+    pub add_mod_ratio_den: u32,
     pub mul_mod_ratio: u32,
+    pub mul_mod_ratio_den: u32,
     // the following are not used right now
     pub cpu_component_step: u32,
-    pub range_check96_ratio_den: u32,
-    pub mul_mod_ratio_den: u32,
-    pub add_mod_ratio_den: u32,
 }
 
 impl CairoLayoutParams {
@@ -211,17 +211,17 @@ pub struct RawCairoLayoutParams {
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_range_check96_builtin: bool,
     pub range_check96_ratio: u32,
+    pub range_check96_ratio_den: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_add_mod_builtin: bool,
     pub add_mod_ratio: u32,
+    pub add_mod_ratio_den: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_mul_mod_builtin: bool,
     pub mul_mod_ratio: u32,
+    pub mul_mod_ratio_den: u32,
     // the following are not used right now
     pub cpu_component_step: u32,
-    pub range_check96_ratio_den: u32,
-    pub mul_mod_ratio_den: u32,
-    pub add_mod_ratio_den: u32,
 }
 
 impl TryFrom<RawCairoLayoutParams> for CairoLayoutParams {
