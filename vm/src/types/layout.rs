@@ -526,4 +526,40 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn parse_dynamic_instance() {
+        let cairo_layout_params_json = "{\n\
+            \"rc_units\": 4,\n\
+            \"log_diluted_units_per_step\": 4,\n\
+            \"cpu_component_step\": 8,\n\
+            \"memory_units_per_step\": 8,\n\
+            \"uses_pedersen_builtin\": true,\n\
+            \"pedersen_ratio\": 256,\n\
+            \"uses_range_check_builtin\": true,\n\
+            \"range_check_ratio\": 8,\n\
+            \"uses_ecdsa_builtin\": true,\n\
+            \"ecdsa_ratio\": 2048,\n\
+            \"uses_bitwise_builtin\": true,\n\
+            \"bitwise_ratio\": 16,\n\
+            \"uses_ec_op_builtin\": true,\n\
+            \"ec_op_ratio\": 1024,\n\
+            \"uses_keccak_builtin\": true,\n\
+            \"keccak_ratio\": 2048,\n\
+            \"uses_poseidon_builtin\": true,\n\
+            \"poseidon_ratio\": 256,\n\
+            \"uses_range_check96_builtin\": true,\n\
+            \"range_check96_ratio\": 8,\n\
+            \"range_check96_ratio_den\": 1,\n\
+            \"uses_add_mod_builtin\": true,\n\
+            \"add_mod_ratio\": 128,\n\
+            \"add_mod_ratio_den\": 1,\n\
+            \"uses_mul_mod_builtin\": true,\n\
+            \"mul_mod_ratio\": 256,\n\
+            \"mul_mod_ratio_den\": 1\n\
+        }\n\
+        ";
+
+        serde_json::from_str::<CairoLayoutParams>(cairo_layout_params_json).unwrap();
+    }
 }

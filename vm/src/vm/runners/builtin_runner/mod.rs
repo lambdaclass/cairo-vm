@@ -1089,6 +1089,26 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_allocated_memory_units_zero_ratio() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(0), true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_allocated_memory_units_none_ratio() {
+        let mut builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(None, true));
+        let mut vm = vm!();
+
+        builtin.initialize_segments(&mut vm.segments);
+        vm.compute_segments_effective_sizes();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_range_check() {
         let builtin = BuiltinRunner::RangeCheck(
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true),
