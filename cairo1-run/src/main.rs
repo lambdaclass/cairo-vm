@@ -490,6 +490,19 @@ mod tests {
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
     }
 
+    #[test]
+    fn test_run_dynamic_params() {
+        let mut args = vec!["cairo1-run".to_string()];
+        args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
+        args.extend_from_slice(&[
+            "--cairo_layout_params_file".to_string(),
+            "../cairo_layout_params_file.json".to_string(),
+        ]);
+        args.push("../cairo_programs/cairo-1-programs/fibonacci.cairo".to_string());
+
+        assert_matches!(run(args.into_iter()), Ok(_));
+    }
+
     // these tests are separated so as to run them without --append_return_values and --proof_mode options
     // since they require to use the squashed version of felt252
     #[rstest]

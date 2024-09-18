@@ -417,6 +417,19 @@ mod tests {
         assert_matches!(run(args), Err(Error::Runner(_)));
     }
 
+    #[test]
+    fn test_run_dynamic_params() {
+        let mut args = vec!["cairo-vm-cli".to_string()];
+        args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
+        args.extend_from_slice(&[
+            "--cairo_layout_params_file".to_string(),
+            "../cairo_layout_params_file.json".to_string(),
+        ]);
+        args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
+
+        assert_matches!(run(args.into_iter()), Ok(_));
+    }
+
     //Since the functionality here is trivial, I just call the function
     //to fool Codecov.
     #[test]
