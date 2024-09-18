@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* test: [#1840](https://github.com/lambdaclass/cairo-vm/pull/1840/files):
+  * Adds scripts and recipes to compare dynamic layout features with the Python VM
+
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
