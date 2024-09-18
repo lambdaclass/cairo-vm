@@ -2,11 +2,9 @@
 #
 # Compares programs with different dynamic layouts against cairo-lang
 
-# Setup constants
-COMPILED_PROGRAMS_DIR="cairo_programs/proof_programs"
-TEMP_FOLDER=$(mktemp -d)
 
 # Build temporary dynamic layout params files
+TEMP_FOLDER=$(mktemp -d)
 cat <<EOF > "$TEMP_FOLDER/all_cairo.json"
 {
     "rc_units": 4,
@@ -72,10 +70,13 @@ EOF
 
 # Build cases to execute
 CASES=(
-    "factorial.json;all_cairo"
-    "fibonacci.json;all_cairo"
-    "factorial.json;double_all_cairo"
-    "fibonacci.json;double_all_cairo"
+    "cairo_programs/proof_programs/factorial.json;all_cairo"
+    "cairo_programs/proof_programs/fibonacci.json;all_cairo"
+    "cairo_programs/proof_programs/factorial.json;double_all_cairo"
+    "cairo_programs/proof_programs/fibonacci.json;double_all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/mod_builtin.json;all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/mod_builtin_failure.json;all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/apply_poly.json;all_cairo" 
 )
 
 passed_tests=0
@@ -85,7 +86,7 @@ exit_code=0
 for case in "${CASES[@]}"; do
     IFS=";" read -r program layout <<< "$case"
     
-    full_program="$COMPILED_PROGRAMS_DIR/$program"
+    full_program="$program"
     full_layout="$TEMP_FOLDER/$layout.json"
 
     # Run cairo-vm
