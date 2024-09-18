@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
+    math_utils::safe_div_usize,
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
@@ -847,7 +848,10 @@ impl CairoRunner {
                 diluted_pool_instance.n_bits,
             );
 
-            let multiplier = builtin_runner.get_allocated_instances(&self.vm)?;
+            let multiplier = safe_div_usize(
+                self.vm.current_step,
+                builtin_runner.ratio().unwrap_or(1) as usize,
+            )?;
 
             used_units_by_builtins += used_units * multiplier;
         }
