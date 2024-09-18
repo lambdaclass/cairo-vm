@@ -281,7 +281,7 @@ impl BuiltinRunner {
         match self {
             BuiltinRunner::RangeCheck(range_check) => range_check.ratio_den(),
             BuiltinRunner::RangeCheck96(range_check) => range_check.ratio_den(),
-            BuiltinRunner::Mod(ref modulo) => modulo.ratio_den(),
+            BuiltinRunner::Mod(modulo) => modulo.ratio_den(),
             _ => None,
         }
     }
