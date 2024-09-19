@@ -725,8 +725,8 @@ jobs:
     - name: Run script
       run: ./vm/src/tests/compare_factorial_outputs_all_layouts.sh
 
-  compare-outputs-dynamic-layout:
-    name: Compare factorial outputs for all layouts
+  compare-outputs-dynamic-layouts:
+    name: Compare outputs with dynamic layouts
     needs: [ build-programs, build-release ]
     runs-on: ubuntu-22.04
     steps:
@@ -762,7 +762,7 @@ jobs:
         fail-on-cache-miss: true
 
     - name: Run script
-      run: ./vm/src/tests/compare_outputs_dynamic_layout.sh
+      run: ./vm/src/tests/compare_outputs_dynamic_layouts.sh
 
   compare-run-from-cairo-pie-all-outputs:
     name: Compare all outputs from running Cairo PIEs
