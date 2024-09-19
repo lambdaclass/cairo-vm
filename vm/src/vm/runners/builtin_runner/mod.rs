@@ -47,7 +47,7 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 pub use modulo::ModBuiltinRunner;
-use num_integer::div_floor;
+use num_integer::{div_ceil, div_floor};
 pub use output::{OutputBuiltinRunner, OutputBuiltinState};
 pub use poseidon::PoseidonBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -201,7 +201,7 @@ impl BuiltinRunner {
                     Some(ratio) => {
                         let min_step_num = (ratio * self.instances_per_component()) as usize;
                         let min_step = if let Some(ratio_den) = self.ratio_den() {
-                            safe_div_usize(min_step_num, ratio_den as usize)?
+                            div_ceil(min_step_num, ratio_den as usize)
                         } else {
                             min_step_num
                         };
