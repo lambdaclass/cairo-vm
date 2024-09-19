@@ -108,7 +108,6 @@ impl ModBuiltinRunner {
         let shift_powers = core::array::from_fn(|i| shift.pow(i as u32));
         let zero_segment_size = core::cmp::max(N_WORDS, instance_def.batch_size * 3);
         let int_lim = BigUint::from(2_u32).pow(N_WORDS as u32 * instance_def.word_bit_len);
-        dbg!(&int_lim);
         Self {
             builtin_type,
             base: 0,
@@ -691,11 +690,6 @@ fn apply_op(
     p: &BigUint,
     k_bound: &BigUint,
 ) -> Result<BigUint, MathError> {
-    println!("== GATE ==");
-    println!("op = {:?}", op);
-    println!("lhs = {:?}", lhs);
-    println!("rhs = {:?}", rhs);
-    println!("k_bound = {:?}", k_bound);
     let value = match op {
         Operation::Mul => {
             let value = lhs * rhs;
@@ -722,7 +716,6 @@ fn apply_op(
         }
         Operation::DivMod => div_mod_unsigned(lhs, rhs, p)?,
     };
-    println!("value = {:?}", value);
     Ok(value)
 }
 
