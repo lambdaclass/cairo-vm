@@ -56,6 +56,15 @@ pub enum ModBuiltinType {
     Add,
 }
 
+impl ModBuiltinType {
+    pub(crate) fn operation_string(&self) -> &'static str {
+        match self {
+            ModBuiltinType::Mul => "*",
+            ModBuiltinType::Add => "+",
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 struct Inputs {
     p: BigUint,
@@ -612,8 +621,8 @@ impl ModBuiltinRunner {
                 if a_op_b.mod_floor(&inputs.p) != c.mod_floor(&inputs.p) {
                     // Build error string
                     let p = inputs.p;
-                    let op = &self.builtin_type;
-                    let error_string = format!("Expected a {op:?} b == c (mod p). Got: instance={instance}, batch={index_in_batch}, p={p}, a={a}, b={b}, c={c}.");
+                    let op = self.builtin_type.operation_string();
+                    let error_string = format!("Expected a {op} b == c (mod p). Got: instance={instance}, batch={index_in_batch}, p={p}, a={a}, b={b}, c={c}.");
                     return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((
                         self.name(),
                         error_string,
