@@ -651,7 +651,7 @@ impl ModBuiltinRunner {
     // Calculates the result of `lhs OP rhs`
     //
     // The builtin type (add or mul) determines the OP
-    fn apply_operation(
+    pub(crate) fn apply_operation(
         &self,
         lhs: &BigUint,
         rhs: &BigUint,
@@ -674,7 +674,7 @@ impl ModBuiltinRunner {
     // Given `known OP unknown = result (mod p)`, it deduces `unknown`
     //
     // The builtin type (add or mul) determines the OP
-    fn deduce_operand(
+    pub(crate) fn deduce_operand(
         &self,
         known: &BigUint,
         result: &BigUint,
@@ -696,10 +696,96 @@ impl ModBuiltinRunner {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn apply_operation_add() {
+        let builtin = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(2u32),
+                    &BigUint::from(3u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(5u32)
+        );
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(5u32),
+                    &BigUint::from(5u32),
+                    &BigUint::from(5u32)
+                )
+                .unwrap(),
+            BigUint::from(5u32)
+        );
+    }
+
+    #[test]
+    fn apply_operation_mul() {
+        let builtin = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(2u32),
+                    &BigUint::from(3u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(6u32)
+        );
+    }
+
+    #[test]
+    fn deduce_operand_add() {
+        let builtin = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(2u32),
+                    &BigUint::from(5u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(3u32)
+        );
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(5u32),
+                    &BigUint::from(2u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(4u32)
+        );
+    }
+
+    #[test]
+    fn deduce_operand_mul() {
+        let builtin = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(2u32),
+                    &BigUint::from(1u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(4u32)
+        );
+    }
+
     #[test]
     #[cfg(feature = "mod_builtin")]
     fn test_air_private_input_all_cairo() {
-        use super::*;
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
