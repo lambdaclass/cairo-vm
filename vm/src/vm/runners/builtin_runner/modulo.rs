@@ -21,7 +21,7 @@ use crate::{
     },
     Felt252,
 };
-use core::{fmt::Display, ops::Shl};
+use core::ops::Shl;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
 use num_integer::Integer;
@@ -56,21 +56,11 @@ pub enum ModBuiltinType {
     Add,
 }
 
-#[derive(Debug)]
-pub enum Operation {
-    Mul,
-    Add,
-    Sub,
-    DivMod,
-}
-
-impl Display for Operation {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl ModBuiltinType {
+    pub(crate) fn operation_string(&self) -> &'static str {
         match self {
-            Operation::Mul => "*".fmt(f),
-            Operation::Add => "+".fmt(f),
-            Operation::Sub => "-".fmt(f),
-            Operation::DivMod => "/".fmt(f),
+            ModBuiltinType::Mul => "*",
+            ModBuiltinType::Add => "+",
         }
     }
 }
@@ -452,13 +442,13 @@ impl ModBuiltinRunner {
 
     // Fills a value in the values table, if exactly one value is missing.
     // Returns true on success or if all values are already known.
+    //
+    // The builtin type (add or mul) determines which operation to perform
     fn fill_value(
         &self,
         memory: &mut Memory,
         inputs: &Inputs,
         index: usize,
-        op: &Operation,
-        inv_op: &Operation,
     ) -> Result<bool, RunnerError> {
         let mut addresses = Vec::new();
         let mut values = Vec::new();
@@ -475,19 +465,19 @@ impl ModBuiltinRunner {
         match (a, b, c) {
             // Deduce c from a and b and write it to memory.
             (Some(a), Some(b), None) => {
-                let value = apply_op(op, a, b, &inputs.p, &self.k_bound)?;
+                let value = self.apply_operation(a, b, &inputs.p)?;
                 self.write_n_words_value(memory, addresses[2], value)?;
                 Ok(true)
             }
             // Deduce b from a and c and write it to memory.
             (Some(a), None, Some(c)) => {
-                let value = apply_op(inv_op, c, a, &inputs.p, &self.k_bound)?;
+                let value = self.deduce_operand(a, c, &inputs.p)?;
                 self.write_n_words_value(memory, addresses[1], value)?;
                 Ok(true)
             }
             // Deduce a from b and c and write it to memory.
             (None, Some(b), Some(c)) => {
-                let value = apply_op(inv_op, c, b, &inputs.p, &self.k_bound)?;
+                let value = self.deduce_operand(b, c, &inputs.p)?;
                 self.write_n_words_value(memory, addresses[0], value)?;
                 Ok(true)
             }
@@ -563,13 +553,7 @@ impl ModBuiltinRunner {
         while add_mod_index < add_mod_n || mul_mod_index < mul_mod_n {
             if add_mod_index < add_mod_n {
                 if let Some((_, add_mod_runner, _)) = add_mod {
-                    if add_mod_runner.fill_value(
-                        memory,
-                        &add_mod_inputs,
-                        add_mod_index,
-                        &Operation::Add,
-                        &Operation::Sub,
-                    )? {
+                    if add_mod_runner.fill_value(memory, &add_mod_inputs, add_mod_index)? {
                         add_mod_index += 1;
                         continue;
                     }
@@ -578,13 +562,7 @@ impl ModBuiltinRunner {
 
             if mul_mod_index < mul_mod_n {
                 if let Some((_, mul_mod_runner, _)) = mul_mod {
-                    if mul_mod_runner.fill_value(
-                        memory,
-                        &mul_mod_inputs,
-                        mul_mod_index,
-                        &Operation::Mul,
-                        &Operation::DivMod,
-                    )? {
+                    if mul_mod_runner.fill_value(memory, &mul_mod_inputs, mul_mod_index)? {
                         mul_mod_index += 1;
                     }
                     continue;
@@ -643,14 +621,11 @@ impl ModBuiltinRunner {
                     inputs.offsets_ptr,
                     index_in_batch,
                 )?;
-                let op = match self.builtin_type {
-                    ModBuiltinType::Add => Operation::Add,
-                    ModBuiltinType::Mul => Operation::Mul,
-                };
-                let a_op_b = apply_op(&op, &a, &b, &inputs.p, &self.k_bound)?;
-                if a_op_b != c.mod_floor(&inputs.p) {
+                let a_op_b = self.apply_operation(&a, &b, &inputs.p)?;
+                if a_op_b.mod_floor(&inputs.p) != c.mod_floor(&inputs.p) {
                     // Build error string
                     let p = inputs.p;
+                    let op = self.builtin_type.operation_string();
                     let error_string = format!("Expected a {op} b == c (mod p). Got: instance={instance}, batch={index_in_batch}, p={p}, a={a}, b={b}, c={c}.");
                     return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((
                         self.name(),
@@ -685,50 +660,145 @@ impl ModBuiltinRunner {
         self.shift_powers = core::array::from_fn(|i| self.shift.pow(i as u32));
         self.zero_segment_size = core::cmp::max(N_WORDS, batch_size * 3);
     }
-}
 
-fn apply_op(
-    op: &Operation,
-    lhs: &BigUint,
-    rhs: &BigUint,
-    p: &BigUint,
-    k_bound: &BigUint,
-) -> Result<BigUint, MathError> {
-    let value = match op {
-        Operation::Mul => {
-            let value = lhs * rhs;
-            if value < k_bound * p {
-                value.mod_floor(p)
-            } else {
-                value - (k_bound - 1u32) * p
+    // Calculates the result of `lhs OP rhs`
+    //
+    // The builtin type (add or mul) determines the OP
+    pub(crate) fn apply_operation(
+        &self,
+        lhs: &BigUint,
+        rhs: &BigUint,
+        prime: &BigUint,
+    ) -> Result<BigUint, MathError> {
+        let full_value = match self.builtin_type {
+            ModBuiltinType::Mul => lhs * rhs,
+            ModBuiltinType::Add => lhs + rhs,
+        };
+
+        let value = if full_value < &self.k_bound * prime {
+            full_value.mod_floor(prime)
+        } else {
+            full_value - (&self.k_bound - 1u32) * prime
+        };
+
+        Ok(value)
+    }
+
+    // Given `known OP unknown = result (mod p)`, it deduces `unknown`
+    //
+    // The builtin type (add or mul) determines the OP
+    pub(crate) fn deduce_operand(
+        &self,
+        known: &BigUint,
+        result: &BigUint,
+        prime: &BigUint,
+    ) -> Result<BigUint, MathError> {
+        let value = match self.builtin_type {
+            ModBuiltinType::Add => {
+                if known <= result {
+                    result - known
+                } else {
+                    result + prime - known
+                }
             }
-        }
-        Operation::Add => {
-            let value = lhs + rhs;
-            if value < k_bound * p {
-                value.mod_floor(p)
-            } else {
-                value - (k_bound - 1u32) * p
-            }
-        }
-        Operation::Sub => {
-            if rhs <= lhs {
-                lhs - rhs
-            } else {
-                lhs + p - rhs
-            }
-        }
-        Operation::DivMod => div_mod_unsigned(lhs, rhs, p)?,
-    };
-    Ok(value)
+            ModBuiltinType::Mul => div_mod_unsigned(result, known, prime)?,
+        };
+        Ok(value)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn apply_operation_add() {
+        let builtin = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(2u32),
+                    &BigUint::from(3u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(5u32)
+        );
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(5u32),
+                    &BigUint::from(5u32),
+                    &BigUint::from(5u32)
+                )
+                .unwrap(),
+            BigUint::from(5u32)
+        );
+    }
+
+    #[test]
+    fn apply_operation_mul() {
+        let builtin = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .apply_operation(
+                    &BigUint::from(2u32),
+                    &BigUint::from(3u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(6u32)
+        );
+    }
+
+    #[test]
+    fn deduce_operand_add() {
+        let builtin = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(2u32),
+                    &BigUint::from(5u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(3u32)
+        );
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(5u32),
+                    &BigUint::from(2u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(4u32)
+        );
+    }
+
+    #[test]
+    fn deduce_operand_mul() {
+        let builtin = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(8), 8, 8), true);
+
+        assert_eq!(
+            builtin
+                .deduce_operand(
+                    &BigUint::from(2u32),
+                    &BigUint::from(1u32),
+                    &BigUint::from(7u32)
+                )
+                .unwrap(),
+            BigUint::from(4u32)
+        );
+    }
+
     #[test]
     #[cfg(feature = "mod_builtin")]
     fn test_air_private_input_all_cairo() {
-        use super::*;
         use crate::{
             air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,

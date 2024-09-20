@@ -275,7 +275,7 @@ clippy:
 	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
 coverage: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
-	cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints"
+	cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints, mod_builtin"
 
 coverage-clean:
 	cargo llvm-cov clean
