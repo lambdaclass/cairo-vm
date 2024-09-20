@@ -8,24 +8,24 @@ No output when running a differ script implies that there are no differences.
 
 To compare the public inputs, run:
 ```bash
-scripts/air_public_inputs_differ.bash file1 file2
+scripts/air_public_inputs_differ.bash <AIR-PUBLIC-INPUTS-1> <AIR-PUBLIC-INPUTS-2>
 ```
 
 To compare the private inputs, run:
 ```bash
-scripts/air_private_inputs_differ.bash file1 file2
+scripts/air_private_inputs_differ.bash <AIR-PRIVATE-INPUTS-1> <AIR-PRIVATE-INPUTS-2>
 ```
 
 If you just want to visualize the memory, run:
 ```bash
-scripts/memory_viewer.bash file
+scripts/memory_viewer.bash <MEMORY-FILE>
 ```
 It will output the memory in two columns: address and value
 
 
 To compare the memory, run:
 ```bash
-scripts/memory_differ.bash file1 file2
+scripts/memory_differ.bash <TRACE-1> <TRACE-2>
 ```
 
 
