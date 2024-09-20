@@ -34,3 +34,4 @@ num-bigint.workspace = true
 [features]
 default = ["with_mimalloc"]
 with_mimalloc = ["dep:mimalloc"]
+mod_builtin = ["cairo-vm/mod_builtin"]

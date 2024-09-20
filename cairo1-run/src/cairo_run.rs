@@ -11,12 +11,13 @@ use cairo_lang_casm::{
 use cairo_lang_sierra::{
     extensions::{
         bitwise::BitwiseType,
+        circuit::{AddModType, MulModType},
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
         gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
-        range_check::RangeCheckType,
+        range_check::{RangeCheck96Type, RangeCheckType},
         segment_arena::SegmentArenaType,
         starknet::syscalls::SystemType,
         ConcreteType, NamedType,
@@ -657,6 +658,9 @@ fn create_entry_code(
         BuiltinName::ec_op => builtin_vars[&EcOpType::ID],
         BuiltinName::poseidon => builtin_vars[&PoseidonType::ID],
         BuiltinName::segment_arena => builtin_vars[&SegmentArenaType::ID],
+        BuiltinName::add_mod => builtin_vars[&AddModType::ID],
+        BuiltinName::mul_mod => builtin_vars[&MulModType::ID],
+        BuiltinName::range_check96 => builtin_vars[&RangeCheck96Type::ID],
         _ => unreachable!(),
     };
     if copy_to_output_builtin {
@@ -887,6 +891,13 @@ fn get_function_builtins(
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
     for (debug_name, builtin_name, sierra_id) in [
+        ("MulMod", BuiltinName::mul_mod, MulModType::ID),
+        ("AddMod", BuiltinName::add_mod, AddModType::ID),
+        (
+            "RangeCheck96",
+            BuiltinName::range_check96,
+            RangeCheck96Type::ID,
+        ),
         ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
         ("EcOp", BuiltinName::ec_op, EcOpType::ID),
         ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
