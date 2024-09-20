@@ -27,5 +27,3 @@ To compare the memory, run:
 ```bash
 scripts/memory_differ.bash <TRACE-1> <TRACE-2>
 ```
-
-
