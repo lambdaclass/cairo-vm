@@ -228,6 +228,65 @@ mod mod_input_instance_batch_serde {
 
         Ok(value.into_iter().enumerate().collect())
     }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_serde() {
+        let input_value = vec![
+            (
+                0,
+                ModInputMemoryVars {
+                    a_offset: 5,
+                    b_offset: 5,
+                    c_offset: 5,
+                    a0: Felt252::from(5u32),
+                    a1: Felt252::from(5u32),
+                    a2: Felt252::from(5u32),
+                    a3: Felt252::from(5u32),
+                    b0: Felt252::from(5u32),
+                    b1: Felt252::from(5u32),
+                    b2: Felt252::from(5u32),
+                    b3: Felt252::from(5u32),
+                    c0: Felt252::from(5u32),
+                    c1: Felt252::from(5u32),
+                    c2: Felt252::from(5u32),
+                    c3: Felt252::from(5u32),
+                },
+            ),
+            (
+                1,
+                ModInputMemoryVars {
+                    a_offset: 7,
+                    b_offset: 7,
+                    c_offset: 7,
+                    a0: Felt252::from(7u32),
+                    a1: Felt252::from(7u32),
+                    a2: Felt252::from(7u32),
+                    a3: Felt252::from(7u32),
+                    b0: Felt252::from(7u32),
+                    b1: Felt252::from(7u32),
+                    b2: Felt252::from(7u32),
+                    b3: Felt252::from(7u32),
+                    c0: Felt252::from(7u32),
+                    c1: Felt252::from(7u32),
+                    c2: Felt252::from(7u32),
+                    c3: Felt252::from(7u32),
+                },
+            ),
+        ]
+        .into_iter()
+        .collect::<BTreeMap<usize, _>>();
+
+        let bytes = Vec::new();
+        let mut serializer = serde_json::Serializer::new(bytes);
+        serialize(&input_value, &mut serializer).unwrap();
+        let bytes = serializer.into_inner();
+
+        let mut deserializer = serde_json::Deserializer::from_slice(&bytes);
+        let output_value = deserialize(&mut deserializer).unwrap();
+
+        assert_eq!(input_value, output_value);
+    }
 }
 
 #[cfg(test)]
