@@ -193,11 +193,6 @@ impl CairoRunner {
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
-                debug_assert!(
-                    dynamic_layout_params.is_some(),
-                    "cairo layout params is missing while using dynamic layout"
-                );
-
                 let params = dynamic_layout_params.ok_or(RunnerError::BadDynamicLayoutParams(
                     "cairo layout param is missing".to_string(),
                 ))?;
