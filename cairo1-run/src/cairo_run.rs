@@ -188,8 +188,7 @@ pub fn cairo_run_program(
     let builtin_count: i16 = builtins.len().into_or_panic();
 
     // This is the program we are actually running/proving
-    // With (embedded proof mode), cairo1 header and the libfunc foote
-
+    // With (embedded proof mode), cairo1 header and the libfunc footer
     let instructions = chain!(
         entry_code.instructions.iter(),
         casm_program.instructions.iter(),
@@ -197,7 +196,7 @@ pub fn cairo_run_program(
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
-    // This is the instructions + the segment's value up to this point appended after the footr
+    // These the instructions' bytecode + the segment's value up to this point appended after the footer
     let bytecode = casm_program
         .assemble_ex(&entry_code.instructions, &libfunc_footer)
         .bytecode;
