@@ -71,9 +71,17 @@ EOF
 # Build cases to execute
 CASES=(
     "cairo_programs/proof_programs/factorial.json;all_cairo"
-    "cairo_programs/proof_programs/fibonacci.json;all_cairo"
     "cairo_programs/proof_programs/factorial.json;double_all_cairo"
+    "cairo_programs/proof_programs/fibonacci.json;all_cairo"
     "cairo_programs/proof_programs/fibonacci.json;double_all_cairo"
+    "cairo_programs/proof_programs/bigint.json;all_cairo"
+    "cairo_programs/proof_programs/bigint.json;double_all_cairo"
+    "cairo_programs/proof_programs/dict.json;all_cairo"
+    "cairo_programs/proof_programs/dict.json;double_all_cairo"
+    "cairo_programs/proof_programs/sha256.json;all_cairo"
+    "cairo_programs/proof_programs/sha256.json;double_all_cairo"
+    "cairo_programs/proof_programs/keccak.json;all_cairo"
+    "cairo_programs/proof_programs/keccak.json;double_all_cairo"
 )
 
 passed_tests=0
