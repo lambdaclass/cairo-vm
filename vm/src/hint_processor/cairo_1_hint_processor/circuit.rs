@@ -228,6 +228,7 @@ pub fn eval_circuit(
     n_mul_mods: usize,
     mul_mod_builtin_address: Relocatable,
 ) -> Result<(), HintError> {
+    println!("Memory: {}", &vm.segments);
     let modulus_ptr = mul_mod_builtin_address;
     // The offset of the values pointer inside the mul_mod_builtin
     let values_offset = 4;
@@ -255,8 +256,22 @@ pub fn eval_circuit(
     let modulus: [Felt; 4] =
         array::from_fn(|l| *vm.get_integer((modulus_ptr + l).unwrap()).unwrap().deref());
 
-    fill_instances(vm, add_mod_builtin_address, n_add_mods, modulus, values_ptr, add_mod_offsets)?;
-    fill_instances(vm, mul_mod_builtin_address, n_computed_gates, modulus, values_ptr, mul_mod_offsets)?;
+    fill_instances(
+        vm,
+        add_mod_builtin_address,
+        n_add_mods,
+        modulus,
+        values_ptr,
+        add_mod_offsets,
+    )?;
+    fill_instances(
+        vm,
+        mul_mod_builtin_address,
+        n_computed_gates,
+        modulus,
+        values_ptr,
+        mul_mod_offsets,
+    )?;
 
     Ok(())
 }

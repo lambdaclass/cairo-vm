@@ -188,7 +188,8 @@ pub fn cairo_run_program(
     let builtin_count: i16 = builtins.len().into_or_panic();
 
     // This is the program we are actually running/proving
-    // With (embedded proof mode), cairo1 header and the libfunc footer
+    // With (embedded proof mode), cairo1 header and the libfunc foote
+
     let instructions = chain!(
         entry_code.instructions.iter(),
         casm_program.instructions.iter(),
@@ -196,15 +197,17 @@ pub fn cairo_run_program(
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
-
+    // This is the instructions + the segment's value up to this point appended after the footr
+    let bytecode = casm_program
+        .assemble_ex(&entry_code.instructions, &libfunc_footer)
+        .bytecode;
     let mut hint_processor = Cairo1HintProcessor::new(
         &processor_hints,
         RunResources::default(),
         cairo_run_config.copy_to_output(),
     );
-
-    let data: Vec<MaybeRelocatable> = instructions
-        .flat_map(|inst| inst.assemble().encode())
+    let data: Vec<MaybeRelocatable> = bytecode
+        .into_iter()
         .map(|x| Felt252::from(&x))
         .map(MaybeRelocatable::from)
         .collect();
@@ -1242,7 +1245,7 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Box Pointer is not Relocatable");
-            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize"); 
+            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize");
             let data = vm
                 .get_continuous_range(ptr, type_size)
                 .expect("Failed to extract value from nullable ptr");
