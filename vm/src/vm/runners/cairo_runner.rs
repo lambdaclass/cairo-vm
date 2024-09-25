@@ -914,7 +914,7 @@ impl CairoRunner {
     }
 
     /// Relocates the VM's memory, turning bidimensional indexes into contiguous numbers, and values
-    /// into Felt252s. Uses the relocation_table to asign each index a number according to the value
+    /// into Felt252s. Uses the relocation_table to assign each index a number according to the value
     /// on its segment number.
     fn relocate_memory(&mut self, relocation_table: &[usize]) -> Result<(), MemoryError> {
         if !(self.relocated_memory.is_empty()) {
