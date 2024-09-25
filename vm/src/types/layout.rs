@@ -1,7 +1,11 @@
-use crate::types::layout_name::LayoutName;
+use crate::{types::layout_name::LayoutName, vm::errors::runner_errors::RunnerError};
 
-use super::instance_definitions::{
-    builtins_instance_def::BuiltinsInstanceDef, diluted_pool_instance_def::DilutedPoolInstanceDef,
+use super::{
+    builtin_name::BuiltinName,
+    instance_definitions::{
+        builtins_instance_def::BuiltinsInstanceDef,
+        diluted_pool_instance_def::DilutedPoolInstanceDef,
+    },
 };
 
 pub(crate) const MEMORY_UNITS_PER_STEP: u32 = 8;
@@ -214,38 +218,58 @@ pub struct RawCairoLayoutParams {
 }
 
 impl TryFrom<RawCairoLayoutParams> for CairoLayoutParams {
-    type Error = &'static str;
+    type Error = RunnerError;
 
     fn try_from(value: RawCairoLayoutParams) -> Result<Self, Self::Error> {
         if !value.uses_pedersen_builtin && value.pedersen_ratio != 0 {
-            return Err("pedersen ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::pedersen,
+            ));
         }
         if !value.uses_range_check_builtin && value.range_check_ratio != 0 {
-            return Err("range_check ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::range_check,
+            ));
         }
         if !value.uses_ecdsa_builtin && value.ecdsa_ratio != 0 {
-            return Err("ecdsa ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::ecdsa,
+            ));
         }
         if !value.uses_bitwise_builtin && value.bitwise_ratio != 0 {
-            return Err("bitwise ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::bitwise,
+            ));
         }
         if !value.uses_ec_op_builtin && value.ec_op_ratio != 0 {
-            return Err("ec_op ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::ec_op,
+            ));
         }
         if !value.uses_keccak_builtin && value.keccak_ratio != 0 {
-            return Err("keccak ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::keccak,
+            ));
         }
         if !value.uses_poseidon_builtin && value.poseidon_ratio != 0 {
-            return Err("poseidon ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::poseidon,
+            ));
         }
         if !value.uses_range_check96_builtin && value.range_check96_ratio != 0 {
-            return Err("range_check96 ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::range_check96,
+            ));
         }
         if !value.uses_add_mod_builtin && value.add_mod_ratio != 0 {
-            return Err("add_mod ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::add_mod,
+            ));
         }
         if !value.uses_mul_mod_builtin && value.mul_mod_ratio != 0 {
-            return Err("mul_mod ratio should be 0 when disabled");
+            return Err(RunnerError::BadDynamicLayoutBuiltinRatio(
+                BuiltinName::mul_mod,
+            ));
         }
 
         Ok(CairoLayoutParams {
