@@ -1156,6 +1156,9 @@ fn finalize_builtins(
                 "Pedersen" => BuiltinName::pedersen,
                 "Output" => BuiltinName::output,
                 "Ecdsa" => BuiltinName::ecdsa,
+                "RangeCheck96" => BuiltinName::range_check96,
+                "AddMod" => BuiltinName::add_mod,
+                "MulMod" => BuiltinName::mul_mod,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
