@@ -1,13 +1,18 @@
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
+    math_utils::safe_div_usize,
     stdlib::{
         any::Any,
         collections::{HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
-    types::{builtin_name::BuiltinName, layout::MEMORY_UNITS_PER_STEP, layout_name::LayoutName},
+    types::{
+        builtin_name::BuiltinName,
+        layout::{CairoLayoutParams, MEMORY_UNITS_PER_STEP},
+        layout_name::LayoutName,
+    },
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
@@ -17,7 +22,6 @@ use crate::{
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    math_utils::safe_div_usize,
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -168,9 +172,12 @@ pub enum RunnerMode {
 }
 
 impl CairoRunner {
+    /// The `dynamic_layout_params` argument should only be used with dynamic layout.
+    /// It is ignored otherwise.
     pub fn new_v2(
         program: &Program,
         layout: LayoutName,
+        dynamic_layout_params: Option<CairoLayoutParams>,
         mode: RunnerMode,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -185,7 +192,12 @@ impl CairoRunner {
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
-            LayoutName::dynamic => CairoLayout::dynamic_instance(),
+            LayoutName::dynamic => {
+                let params =
+                    dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
+
+                CairoLayout::dynamic_instance(params)
+            }
         };
         Ok(CairoRunner {
             program: program.clone(),
@@ -215,6 +227,7 @@ impl CairoRunner {
     pub fn new(
         program: &Program,
         layout: LayoutName,
+        dynamic_layout_params: Option<CairoLayoutParams>,
         proof_mode: bool,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -222,11 +235,18 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
+                dynamic_layout_params,
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
             )
         } else {
-            Self::new_v2(program, layout, RunnerMode::ExecutionMode, trace_enabled)
+            Self::new_v2(
+                program,
+                layout,
+                dynamic_layout_params,
+                RunnerMode::ExecutionMode,
+                trace_enabled,
+            )
         }
     }
 
@@ -826,6 +846,7 @@ impl CairoRunner {
                 self.vm.current_step,
                 builtin_runner.ratio().unwrap_or(1) as usize,
             )?;
+
             used_units_by_builtins += used_units * multiplier;
         }
 

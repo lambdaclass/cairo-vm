@@ -182,6 +182,8 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
+- `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
+
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
 ```bash
