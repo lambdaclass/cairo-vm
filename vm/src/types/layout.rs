@@ -514,22 +514,30 @@ mod tests {
             layout.builtins.range_check96,
             Some(RangeCheckInstanceDef { ratio: Some(0) })
         );
-        assert_eq!(
-            layout.builtins.mul_mod,
-            Some(ModInstanceDef {
-                ratio: Some(32),
-                word_bit_len: 96, // hardcoded
-                batch_size: 1     // hardcoded
-            })
-        );
-        assert_eq!(
-            layout.builtins.add_mod,
-            Some(ModInstanceDef {
-                ratio: Some(0),
-                word_bit_len: 96, // hardcoded
-                batch_size: 1     // hardcoded
-            })
-        );
+        #[cfg(feature = "mod_builtin")]
+        {
+            assert_eq!(
+                layout.builtins.mul_mod,
+                Some(ModInstanceDef {
+                    ratio: Some(32),
+                    word_bit_len: 96, // hardcoded
+                    batch_size: 1     // hardcoded
+                }),
+            );
+            assert_eq!(
+                layout.builtins.add_mod,
+                Some(ModInstanceDef {
+                    ratio: Some(0),
+                    word_bit_len: 96, // hardcoded
+                    batch_size: 1     // hardcoded
+                })
+            );
+        }
+        #[cfg(not(feature = "mod_builtin"))]
+        {
+            assert_eq!(layout.builtins.mul_mod, None,);
+            assert_eq!(layout.builtins.add_mod, None,);
+        }
     }
 
     #[test]
