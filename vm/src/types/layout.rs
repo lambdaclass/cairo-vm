@@ -314,15 +314,15 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    #[cfg(feature = "mod_builtin")]
+    use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
     use crate::types::instance_definitions::{
         bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
-        mod_instance_def::ModInstanceDef, pedersen_instance_def::PedersenInstanceDef,
-        poseidon_instance_def::PoseidonInstanceDef,
+        pedersen_instance_def::PedersenInstanceDef, poseidon_instance_def::PoseidonInstanceDef,
         range_check_instance_def::RangeCheckInstanceDef,
     };
-
-    use super::*;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
