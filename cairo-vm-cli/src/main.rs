@@ -423,7 +423,7 @@ mod tests {
         args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
         args.extend_from_slice(&[
             "--cairo_layout_params_file".to_string(),
-            "../cairo_layout_params_file.json".to_string(),
+            "../vm/src/tests/cairo_layout_params_file.json".to_string(),
         ]);
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
 
