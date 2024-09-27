@@ -96,7 +96,7 @@ for case in "${CASES[@]}"; do
 
     # Run cairo-vm
     echo "Running cairo-vm with case: $case"
-    cargo run -p cairo-vm-cli --release -- "$full_program" \
+    cargo run -p cairo-vm-cli --features mod_builtin --release -- "$full_program" \
         --layout "dynamic" --cairo_layout_params_file "$full_layout" --proof_mode \
         --trace_file program_rs.trace --memory_file program_rs.memory --air_public_input program_rs.air_public_input --air_private_input program_rs.air_private_input
 
