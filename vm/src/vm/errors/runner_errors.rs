@@ -132,8 +132,10 @@ pub enum RunnerError {
     CairoPieProofMode,
     #[error("{0}: Invalid additional data")]
     InvalidAdditionalData(BuiltinName),
-    #[error("Bad dynamic layout params: {0}")]
-    BadDynamicLayoutParams(String),
+    #[error("dynamic layout params is missing")]
+    MissingDynamicLayoutParams,
+    #[error("dynamic layout {0} ratio should be 0 when disabled")]
+    BadDynamicLayoutBuiltinRatio(BuiltinName),
 }
 
 #[cfg(test)]

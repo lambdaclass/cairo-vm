@@ -173,7 +173,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         args: &args.args.0,
         finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
-        cairo_layout_params,
+        dynamic_layout_params: cairo_layout_params,
     };
 
     // Try to parse the file as a sierra program
@@ -496,7 +496,7 @@ mod tests {
         args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
         args.extend_from_slice(&[
             "--cairo_layout_params_file".to_string(),
-            "../cairo_layout_params_file.json".to_string(),
+            "../vm/src/tests/cairo_layout_params_file.json".to_string(),
         ]);
         args.push("../cairo_programs/cairo-1-programs/fibonacci.cairo".to_string());
 

@@ -1182,7 +1182,7 @@ fn run_program_with_custom_mod_builtin_params(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
-        cairo_run_config.cairo_layout_params,
+        cairo_run_config.dynamic_layout_params,
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
     )

@@ -172,12 +172,12 @@ pub enum RunnerMode {
 }
 
 impl CairoRunner {
-    /// The `cairo_layout_params` argument should only be used with dynamic layout.
+    /// The `dynamic_layout_params` argument should only be used with dynamic layout.
     /// It is ignored otherwise.
     pub fn new_v2(
         program: &Program,
         layout: LayoutName,
-        cairo_layout_params: Option<CairoLayoutParams>,
+        dynamic_layout_params: Option<CairoLayoutParams>,
         mode: RunnerMode,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -193,14 +193,8 @@ impl CairoRunner {
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
-                debug_assert!(
-                    cairo_layout_params.is_some(),
-                    "cairo layout params is missing while using dynamic layout"
-                );
-
-                let params = cairo_layout_params.ok_or(RunnerError::BadDynamicLayoutParams(
-                    "cairo layout param is missing".to_string(),
-                ))?;
+                let params =
+                    dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
 
                 CairoLayout::dynamic_instance(params)
             }
@@ -233,7 +227,7 @@ impl CairoRunner {
     pub fn new(
         program: &Program,
         layout: LayoutName,
-        cairo_layout_params: Option<CairoLayoutParams>,
+        dynamic_layout_params: Option<CairoLayoutParams>,
         proof_mode: bool,
         trace_enabled: bool,
     ) -> Result<CairoRunner, RunnerError> {
@@ -241,7 +235,7 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
-                cairo_layout_params,
+                dynamic_layout_params,
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
             )
@@ -249,7 +243,7 @@ impl CairoRunner {
             Self::new_v2(
                 program,
                 layout,
-                cairo_layout_params,
+                dynamic_layout_params,
                 RunnerMode::ExecutionMode,
                 trace_enabled,
             )

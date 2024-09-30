@@ -86,7 +86,7 @@ pub struct Cairo1RunConfig<'a> {
     pub relocate_mem: bool,
     /// Cairo layout chosen for the run
     pub layout: LayoutName,
-    pub cairo_layout_params: Option<CairoLayoutParams>,
+    pub dynamic_layout_params: Option<CairoLayoutParams>,
     /// Run in proof_mode
     pub proof_mode: bool,
     /// Should be true if either air_public_input or cairo_pie_output are needed
@@ -107,7 +107,7 @@ impl Default for Cairo1RunConfig<'_> {
             proof_mode: false,
             finalize_builtins: false,
             append_return_values: false,
-            cairo_layout_params: None,
+            dynamic_layout_params: None,
         }
     }
 }
@@ -250,7 +250,7 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(
         &program,
         cairo_run_config.layout,
-        cairo_run_config.cairo_layout_params.clone(),
+        cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
         cairo_run_config.trace_enabled,
     )?;

@@ -219,16 +219,22 @@ impl BuiltinsInstanceDef {
         let range_check96 = Some(RangeCheckInstanceDef {
             ratio: Some(params.range_check96_ratio),
         });
+        #[cfg(feature = "mod_builtin")]
         let add_mod = Some(ModInstanceDef {
             ratio: Some(params.add_mod_ratio),
             word_bit_len: 96,
             batch_size: 1,
         });
+        #[cfg(feature = "mod_builtin")]
         let mul_mod = Some(ModInstanceDef {
             ratio: Some(params.mul_mod_ratio),
             word_bit_len: 96,
             batch_size: 1,
         });
+        #[cfg(not(feature = "mod_builtin"))]
+        let add_mod = None;
+        #[cfg(not(feature = "mod_builtin"))]
+        let mul_mod = None;
 
         BuiltinsInstanceDef {
             output: true,

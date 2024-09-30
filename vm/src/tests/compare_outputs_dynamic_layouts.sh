@@ -71,9 +71,17 @@ EOF
 # Build cases to execute
 CASES=(
     "cairo_programs/proof_programs/factorial.json;all_cairo"
-    "cairo_programs/proof_programs/fibonacci.json;all_cairo"
     "cairo_programs/proof_programs/factorial.json;double_all_cairo"
+    "cairo_programs/proof_programs/fibonacci.json;all_cairo"
     "cairo_programs/proof_programs/fibonacci.json;double_all_cairo"
+    "cairo_programs/proof_programs/bigint.json;all_cairo"
+    "cairo_programs/proof_programs/bigint.json;double_all_cairo"
+    "cairo_programs/proof_programs/dict.json;all_cairo"
+    "cairo_programs/proof_programs/dict.json;double_all_cairo"
+    "cairo_programs/proof_programs/sha256.json;all_cairo"
+    "cairo_programs/proof_programs/sha256.json;double_all_cairo"
+    "cairo_programs/proof_programs/keccak.json;all_cairo"
+    "cairo_programs/proof_programs/keccak.json;double_all_cairo"
     "cairo_programs/mod_builtin_feature/proof/mod_builtin.json;all_cairo"
     "cairo_programs/mod_builtin_feature/proof/mod_builtin_failure.json;all_cairo"
     "cairo_programs/mod_builtin_feature/proof/apply_poly.json;all_cairo"
@@ -91,7 +99,7 @@ for case in "${CASES[@]}"; do
 
     # Run cairo-vm
     echo "Running cairo-vm with case: $case"
-    cargo run -p cairo-vm-cli --release -- "$full_program" \
+    cargo run -p cairo-vm-cli --features mod_builtin --release -- "$full_program" \
         --layout "dynamic" --cairo_layout_params_file "$full_layout" --proof_mode \
         --trace_file program_rs.trace --memory_file program_rs.memory --air_public_input program_rs.air_public_input --air_private_input program_rs.air_private_input
 
