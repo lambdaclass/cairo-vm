@@ -228,7 +228,6 @@ pub fn eval_circuit(
     n_mul_mods: usize,
     mul_mod_builtin_address: Relocatable,
 ) -> Result<(), HintError> {
-    println!("Memory: {}", &vm.segments);
     let modulus_ptr = mul_mod_builtin_address;
     // The offset of the values pointer inside the mul_mod_builtin
     let values_offset = 4;

@@ -28,16 +28,13 @@ fn main() -> Array<felt252> {
         .unwrap();
 
     let circuit_output = outputs.get_output(add2);
-    let mut limbs_output = ArrayTrait::new();
-
-    limbs_output.append(circuit_output.limb0);
-    limbs_output.append(circuit_output.limb1);
-    limbs_output.append(circuit_output.limb2);
-    limbs_output.append(circuit_output.limb3);
 
     let mut output: Array<felt252> = ArrayTrait::new();
 
-    limbs_output.serialize(ref output);
+    circuit_output.limb0.serialize(ref output);
+    circuit_output.limb1.serialize(ref output);
+    circuit_output.limb2.serialize(ref output);
+    circuit_output.limb3.serialize(ref output);
 
     output
 }
