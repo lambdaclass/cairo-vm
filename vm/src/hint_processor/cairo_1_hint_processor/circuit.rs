@@ -4,8 +4,9 @@ use core::{
 };
 
 use ark_ff::{One, Zero};
-use num_bigint::BigUint;
-use num_integer::Integer;
+use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_integer::{ExtendedGcd, Integer};
+use num_traits::Signed;
 use starknet_types_core::felt::Felt;
 
 use crate::{
@@ -105,14 +106,9 @@ impl CircuitInstance<'_> {
             }
             // inverse gate: lhs * rhs = 1 => lhs = 1 / rhs
             (None, Some(r)) => {
-                let res = match r.modinv(&self.modulus) {
-                    Some(inv) => inv,
-                    None => {
-                        return false;
-                    }
-                };
+                let (success, res) = invert_or_nullify(r, &self.modulus);
                 self.write_mul_mod_value(index, res);
-                true
+                success
             }
             _ => unreachable!("Unexpected None value while filling mul_mod gate"),
         }
@@ -143,6 +139,25 @@ fn write_circuit_value(vm: &mut VirtualMachine, add: Relocatable, mut value: Big
             .unwrap();
         value = new_value;
     }
+}
+
+fn invert_or_nullify(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
+    let ExtendedGcd::<_> { gcd, x, y: _ } =
+            value.to_bigint().unwrap().extended_gcd(&modulus.to_bigint().unwrap());
+
+        let gcd = gcd.to_biguint().unwrap();
+        if gcd.is_one() {
+            return (true, positive_modulus(&x, modulus));
+        }
+        let nullifier = modulus / gcd;
+        // Note that gcd divides the value, so value * nullifier = value * (modulus / gcd) =
+        // (value // gcd) * modulus = 0 (mod modulus)
+        (false, nullifier)
+}
+
+fn positive_modulus(value: &BigInt, modulus: &BigUint) -> BigUint {
+    let value_magnitud = value.magnitude().mod_floor(modulus);
+    if value.is_negative() { modulus - value_magnitud } else { value_magnitud }
 }
 
 /// Fills the values for a circuit
