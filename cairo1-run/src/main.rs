@@ -431,13 +431,6 @@ mod tests {
         None,
         None
     )]
-    // #[case(
-    //     "circuit_failure.cairo",
-    //     "",
-    //     "",
-    //     None,
-    //     None
-    // )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,

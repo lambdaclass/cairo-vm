@@ -142,22 +142,28 @@ fn write_circuit_value(vm: &mut VirtualMachine, add: Relocatable, mut value: Big
 }
 
 fn invert_or_nullify(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
-    let ExtendedGcd::<_> { gcd, x, y: _ } =
-            value.to_bigint().unwrap().extended_gcd(&modulus.to_bigint().unwrap());
+    let ExtendedGcd::<_> { gcd, x, y: _ } = value
+        .to_bigint()
+        .unwrap()
+        .extended_gcd(&modulus.to_bigint().unwrap());
 
-        let gcd = gcd.to_biguint().unwrap();
-        if gcd.is_one() {
-            return (true, positive_modulus(&x, modulus));
-        }
-        let nullifier = modulus / gcd;
-        // Note that gcd divides the value, so value * nullifier = value * (modulus / gcd) =
-        // (value // gcd) * modulus = 0 (mod modulus)
-        (false, nullifier)
+    let gcd = gcd.to_biguint().unwrap();
+    if gcd.is_one() {
+        return (true, positive_modulus(&x, modulus));
+    }
+    let nullifier = modulus / gcd;
+    // Note that gcd divides the value, so value * nullifier = value * (modulus / gcd) =
+    // (value // gcd) * modulus = 0 (mod modulus)
+    (false, nullifier)
 }
 
 fn positive_modulus(value: &BigInt, modulus: &BigUint) -> BigUint {
     let value_magnitud = value.magnitude().mod_floor(modulus);
-    if value.is_negative() { modulus - value_magnitud } else { value_magnitud }
+    if value.is_negative() {
+        modulus - value_magnitud
+    } else {
+        value_magnitud
+    }
 }
 
 /// Fills the values for a circuit
