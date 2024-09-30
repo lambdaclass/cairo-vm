@@ -82,6 +82,9 @@ CASES=(
     "cairo_programs/proof_programs/sha256.json;double_all_cairo"
     "cairo_programs/proof_programs/keccak.json;all_cairo"
     "cairo_programs/proof_programs/keccak.json;double_all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/mod_builtin.json;all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/mod_builtin_failure.json;all_cairo"
+    "cairo_programs/mod_builtin_feature/proof/apply_poly.json;all_cairo"
 )
 
 passed_tests=0

@@ -600,6 +600,36 @@ jobs:
         key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
 
+    - name: Fetch results for tests with stdlib (w/mod_builtin; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-mod_builtin.info
+        key: codecov-cache-test#1-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/mod_builtin; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-mod_builtin.info
+        key: codecov-cache-test#2-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/mod_builtin; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-mod_builtin.info
+        key: codecov-cache-test#3-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/mod_builtin; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-mod_builtin.info
+        key: codecov-cache-test#4-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-no_std-mod_builtin.info
+        key: codecov-cache-test-no_std-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
