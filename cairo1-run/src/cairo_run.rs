@@ -960,8 +960,11 @@ fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
         PedersenType::ID,
         PoseidonType::ID,
         RangeCheckType::ID,
+        RangeCheck96Type::ID,
         SegmentArenaType::ID,
         SystemType::ID,
+        MulModType::ID,
+        AddModType::ID,
     ]
     .contains(generic_ty)
 }
@@ -1156,9 +1159,9 @@ fn finalize_builtins(
                 "Pedersen" => BuiltinName::pedersen,
                 "Output" => BuiltinName::output,
                 "Ecdsa" => BuiltinName::ecdsa,
-                "RangeCheck96" => BuiltinName::range_check96,
                 "AddMod" => BuiltinName::add_mod,
                 "MulMod" => BuiltinName::mul_mod,
+                "RangeCheck96" => BuiltinName::range_check96,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
