@@ -198,7 +198,8 @@ pub fn cairo_run_program(
     );
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
-    // These the instructions' bytecode + the segment's values up to this point, appended after the footer
+
+    // These are the instructions' bytecode + the segment's values up to this point
     let bytecode = casm_program
         .assemble_ex(&entry_code.instructions, &libfunc_footer)
         .bytecode;

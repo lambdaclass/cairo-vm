@@ -443,6 +443,14 @@ mod tests {
         None,
         None
     ))]
+    #[should_panic]
+    #[cfg_attr(feature = "mod_builtin", case(
+        "circuit_failure.cairo",
+        "",
+        "",
+        None,
+        None
+    ))]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
