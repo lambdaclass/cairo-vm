@@ -436,13 +436,13 @@ mod tests {
         Some("[17 18]"),
         Some("[17 18]")
     )]
-    #[case(
+    #[cfg_attr(feature = "mod_builtin", case(
         "circuit.cairo",
         "36699840570117848377038274035 72042528776886984408017100026 54251667697617050795983757117 7",
         "[36699840570117848377038274035 72042528776886984408017100026 54251667697617050795983757117 7]",
         None,
         None
-    )]
+    ))]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
