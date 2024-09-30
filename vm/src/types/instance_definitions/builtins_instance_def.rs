@@ -223,6 +223,7 @@ impl BuiltinsInstanceDef {
                 params.range_check96_ratio_den,
             )),
         });
+        #[cfg(feature = "mod_builtin")]
         let add_mod = Some(ModInstanceDef {
             ratio: Some(LowRatio::new(
                 params.add_mod_ratio,
@@ -231,6 +232,7 @@ impl BuiltinsInstanceDef {
             word_bit_len: 96,
             batch_size: 1,
         });
+        #[cfg(feature = "mod_builtin")]
         let mul_mod = Some(ModInstanceDef {
             ratio: Some(LowRatio::new(
                 params.mul_mod_ratio,
@@ -239,6 +241,10 @@ impl BuiltinsInstanceDef {
             word_bit_len: 96,
             batch_size: 1,
         });
+        #[cfg(not(feature = "mod_builtin"))]
+        let add_mod = None;
+        #[cfg(not(feature = "mod_builtin"))]
+        let mul_mod = None;
 
         BuiltinsInstanceDef {
             output: true,
