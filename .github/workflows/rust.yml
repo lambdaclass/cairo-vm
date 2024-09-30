@@ -725,6 +725,45 @@ jobs:
     - name: Run script
       run: ./vm/src/tests/compare_factorial_outputs_all_layouts.sh
 
+  compare-outputs-dynamic-layouts:
+    name: Compare outputs with dynamic layouts
+    needs: [ build-programs, build-release ]
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Python3 Build
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Install cairo-lang and deps
+      run: pip install -r requirements.txt
+
+    - name: Fetch release binary
+      uses: actions/cache/restore@v3
+      with:
+        key: cli-bin-rel-${{ github.sha }}
+        path: target/release/cairo-vm-cli
+        fail-on-cache-miss: true
+
+    - uses: actions/download-artifact@master
+      with:
+        name: proof_programs
+        path: cairo_programs/proof_programs/
+
+    - name: Fetch programs
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Run script
+      run: ./vm/src/tests/compare_outputs_dynamic_layouts.sh
+
   compare-run-from-cairo-pie-all-outputs:
     name: Compare all outputs from running Cairo PIEs
     needs: [ build-programs, build-release, run-cairo-release ]
