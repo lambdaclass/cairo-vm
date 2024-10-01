@@ -161,18 +161,18 @@ CASES=(
 
 # Build pie cases to execute
 PIE_CASES=(
-    "cairo_programs/fibonacci.pie.zip;all_cairo"
-    "cairo_programs/fibonacci.pie.zip;double_all_cairo"
-    "cairo_programs/factorial.pie.zip;all_cairo"
-    "cairo_programs/factorial.pie.zip;double_all_cairo"
-    "cairo_programs/bigint.pie.zip;all_cairo"
-    "cairo_programs/bigint.pie.zip;double_all_cairo"
-    "cairo_programs/dict.pie.zip;all_cairo"
-    "cairo_programs/dict.pie.zip;double_all_cairo"
-    "cairo_programs/sha256.pie.zip;all_cairo"
-    "cairo_programs/sha256.pie.zip;double_all_cairo"
-    "cairo_programs/keccak.pie.zip;all_cairo"
-    "cairo_programs/keccak.pie.zip;double_all_cairo"
+    "cairo_programs/fibonacci.rs.pie.zip;all_cairo"
+    "cairo_programs/fibonacci.rs.pie.zip;double_all_cairo"
+    "cairo_programs/factorial.rs.pie.zip;all_cairo"
+    "cairo_programs/factorial.rs.pie.zip;double_all_cairo"
+    "cairo_programs/bigint.rs.pie.zip;all_cairo"
+    "cairo_programs/bigint.rs.pie.zip;double_all_cairo"
+    "cairo_programs/dict.rs.pie.zip;all_cairo"
+    "cairo_programs/dict.rs.pie.zip;double_all_cairo"
+    "cairo_programs/sha256.rs.pie.zip;all_cairo"
+    "cairo_programs/sha256.rs.pie.zip;double_all_cairo"
+    "cairo_programs/keccak.rs.pie.zip;all_cairo"
+    "cairo_programs/keccak.rs.pie.zip;double_all_cairo"
 )
 
 passed_tests=0
