@@ -146,11 +146,14 @@ CASES=(
     "cairo_programs/proof_programs/sha256.json;double_all_cairo"
     "cairo_programs/proof_programs/keccak.json;all_cairo"
     "cairo_programs/proof_programs/keccak.json;double_all_cairo"
+    # Mod builtin feature
     "cairo_programs/mod_builtin_feature/proof/mod_builtin.json;all_cairo"
     "cairo_programs/mod_builtin_feature/proof/mod_builtin_failure.json;all_cairo"
     "cairo_programs/mod_builtin_feature/proof/apply_poly.json;all_cairo"
+    # Fractional units per step
     "cairo_programs/proof_programs/factorial.json;fractional_units_per_step"
     "cairo_programs/proof_programs/fibonacci.json;fractional_units_per_step"
+    # Ratio den
     "cairo_programs/mod_builtin_feature/proof/mod_builtin.json;ratio_den"
     "cairo_programs/mod_builtin_feature/proof/mod_builtin_failure.json;ratio_den"
     "cairo_programs/mod_builtin_feature/proof/apply_poly.json;ratio_den"
