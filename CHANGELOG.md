@@ -2,8 +2,10 @@
 
 #### Upcoming Changes
 
-
 * feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
+
+* fix: [#1841](https://github.com/lambdaclass/cairo-vm/pull/1841):
+  * Fix modulo builtin to comply with prover constraints
 
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824):
     * Add support for dynamic layout
