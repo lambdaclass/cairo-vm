@@ -11,12 +11,13 @@ use cairo_lang_casm::{
 use cairo_lang_sierra::{
     extensions::{
         bitwise::BitwiseType,
+        circuit::{AddModType, MulModType},
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
         gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
-        range_check::RangeCheckType,
+        range_check::{RangeCheck96Type, RangeCheckType},
         segment_arena::SegmentArenaType,
         starknet::syscalls::SystemType,
         ConcreteType, NamedType,
@@ -198,14 +199,17 @@ pub fn cairo_run_program(
 
     let (processor_hints, program_hints) = build_hints_vec(instructions.clone());
 
+    // These are the instructions' bytecode + the segment's values up to this point
+    let bytecode = casm_program
+        .assemble_ex(&entry_code.instructions, &libfunc_footer)
+        .bytecode;
     let mut hint_processor = Cairo1HintProcessor::new(
         &processor_hints,
         RunResources::default(),
         cairo_run_config.copy_to_output(),
     );
-
-    let data: Vec<MaybeRelocatable> = instructions
-        .flat_map(|inst| inst.assemble().encode())
+    let data: Vec<MaybeRelocatable> = bytecode
+        .into_iter()
         .map(|x| Felt252::from(&x))
         .map(MaybeRelocatable::from)
         .collect();
@@ -660,6 +664,9 @@ fn create_entry_code(
         BuiltinName::ec_op => builtin_vars[&EcOpType::ID],
         BuiltinName::poseidon => builtin_vars[&PoseidonType::ID],
         BuiltinName::segment_arena => builtin_vars[&SegmentArenaType::ID],
+        BuiltinName::add_mod => builtin_vars[&AddModType::ID],
+        BuiltinName::mul_mod => builtin_vars[&MulModType::ID],
+        BuiltinName::range_check96 => builtin_vars[&RangeCheck96Type::ID],
         _ => unreachable!(),
     };
     if copy_to_output_builtin {
@@ -890,6 +897,13 @@ fn get_function_builtins(
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
     for (debug_name, builtin_name, sierra_id) in [
+        ("MulMod", BuiltinName::mul_mod, MulModType::ID),
+        ("AddMod", BuiltinName::add_mod, AddModType::ID),
+        (
+            "RangeCheck96",
+            BuiltinName::range_check96,
+            RangeCheck96Type::ID,
+        ),
         ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
         ("EcOp", BuiltinName::ec_op, EcOpType::ID),
         ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
@@ -950,8 +964,11 @@ fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
         PedersenType::ID,
         PoseidonType::ID,
         RangeCheckType::ID,
+        RangeCheck96Type::ID,
         SegmentArenaType::ID,
         SystemType::ID,
+        MulModType::ID,
+        AddModType::ID,
     ]
     .contains(generic_ty)
 }
@@ -1146,6 +1163,9 @@ fn finalize_builtins(
                 "Pedersen" => BuiltinName::pedersen,
                 "Output" => BuiltinName::output,
                 "Ecdsa" => BuiltinName::ecdsa,
+                "AddMod" => BuiltinName::add_mod,
+                "MulMod" => BuiltinName::mul_mod,
+                "RangeCheck96" => BuiltinName::range_check96,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
@@ -1234,7 +1254,7 @@ fn serialize_output_inner<'a>(
                 .expect("Missing return value")
                 .get_relocatable()
                 .expect("Box Pointer is not Relocatable");
-            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize"); 
+            let type_size = type_sizes[&info.ty].try_into().expect("could not parse to usize");
             let data = vm
                 .get_continuous_range(ptr, type_size)
                 .expect("Failed to extract value from nullable ptr");
