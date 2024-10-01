@@ -39,8 +39,8 @@ use cairo_vm::{
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
     stdlib::{cmp, collections::HashMap, iter::Peekable},
     types::{
-        builtin_name::BuiltinName, layout_name::LayoutName, program::Program,
-        relocatable::MaybeRelocatable,
+        builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
+        program::Program, relocatable::MaybeRelocatable,
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
@@ -86,6 +86,7 @@ pub struct Cairo1RunConfig<'a> {
     pub relocate_mem: bool,
     /// Cairo layout chosen for the run
     pub layout: LayoutName,
+    pub dynamic_layout_params: Option<CairoLayoutParams>,
     /// Run in proof_mode
     pub proof_mode: bool,
     /// Should be true if either air_public_input or cairo_pie_output are needed
@@ -106,6 +107,7 @@ impl Default for Cairo1RunConfig<'_> {
             proof_mode: false,
             finalize_builtins: false,
             append_return_values: false,
+            dynamic_layout_params: None,
         }
     }
 }
@@ -248,6 +250,7 @@ pub fn cairo_run_program(
     let mut runner = CairoRunner::new_v2(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
         cairo_run_config.trace_enabled,
     )?;
@@ -1447,7 +1450,7 @@ fn serialize_output_inner<'a>(
                 output_string.push(':');
                 // Serialize the value
                 // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                let value_vec = vec![value.clone()];
+                let value_vec = [value.clone()];
                 let mut value_iter = value_vec.iter().peekable();
                 serialize_output_inner(
                     &mut value_iter,
@@ -1493,7 +1496,7 @@ fn serialize_output_inner<'a>(
                 output_string.push(':');
                 // Serialize the value
                 // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                let value_vec = vec![value.clone()];
+                let value_vec = [value.clone()];
                 let mut value_iter = value_vec.iter().peekable();
                 serialize_output_inner(
                     &mut value_iter,
@@ -1553,7 +1556,7 @@ mod tests {
             .build()
             .unwrap();
         let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
-        compile_prepared_db(&mut db, main_crate_ids, compiler_config)
+        compile_prepared_db(&db, main_crate_ids, compiler_config)
             .unwrap()
             .program
     }

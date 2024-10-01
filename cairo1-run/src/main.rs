@@ -4,6 +4,7 @@ use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
+use cairo_vm::types::layout::CairoLayoutParams;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -24,8 +25,13 @@ struct Args {
     trace_file: Option<PathBuf>,
     #[structopt(long = "memory_file")]
     memory_file: Option<PathBuf>,
+    /// When using dynamic layout, it's parameters must be specified through a layout params file.
     #[clap(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
+    /// Required when using with dynamic layout.
+    /// Ignored otherwise.
+    #[clap(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
+    cairo_layout_params_file: Option<PathBuf>,
     #[clap(long = "proof_mode", value_parser)]
     proof_mode: bool,
     #[clap(long = "air_public_input", requires = "proof_mode")]
@@ -153,6 +159,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         args.args = process_args(&std::fs::read_to_string(filename)?).unwrap();
     }
 
+    let cairo_layout_params = match args.cairo_layout_params_file {
+        Some(file) => Some(CairoLayoutParams::from_file(&file)?),
+        None => None,
+    };
+
     let cairo_run_config = Cairo1RunConfig {
         proof_mode: args.proof_mode,
         serialize_output: args.print_output,
@@ -162,6 +173,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         args: &args.args.0,
         finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
+        dynamic_layout_params: cairo_layout_params,
     };
 
     // Try to parse the file as a sierra program
@@ -181,7 +193,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
                 .unwrap();
             let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
             let sierra_program_with_dbg =
-                compile_prepared_db(&mut db, main_crate_ids, compiler_config).unwrap();
+                compile_prepared_db(&db, main_crate_ids, compiler_config).unwrap();
 
             sierra_program_with_dbg.program
         }
@@ -476,6 +488,19 @@ mod tests {
             expected_output
         };
         assert_matches!(run(args), Ok(Some(res)) if res == expected_output, "Program {} failed with flags {}", program, extra_flags.concat());
+    }
+
+    #[test]
+    fn test_run_dynamic_params() {
+        let mut args = vec!["cairo1-run".to_string()];
+        args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
+        args.extend_from_slice(&[
+            "--cairo_layout_params_file".to_string(),
+            "../vm/src/tests/cairo_layout_params_file.json".to_string(),
+        ]);
+        args.push("../cairo_programs/cairo-1-programs/fibonacci.cairo".to_string());
+
+        assert_matches!(run(args.into_iter()), Ok(_));
     }
 
     // these tests are separated so as to run them without --append_return_values and --proof_mode options

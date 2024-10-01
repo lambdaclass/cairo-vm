@@ -77,7 +77,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 These are needed in order to compile and use the project.
 
-- [Rust 1.76.0 or newer](https://www.rust-lang.org/tools/install)
+- [Rust 1.80.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
 #### Optional
@@ -181,6 +181,8 @@ The cairo-vm-cli supports the following optional arguments:
 - `--allow_missing_builtins`: Disables the check that all builtins used by the program need to be included in the selected layout. Enabled by default when in proof_mode.
 
 - `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
+
+- `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
 
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 

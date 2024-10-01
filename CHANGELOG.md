@@ -2,6 +2,19 @@
 
 #### Upcoming Changes
 
+* fix: [#1841](https://github.com/lambdaclass/cairo-vm/pull/1841):
+  * Fix modulo builtin to comply with prover constraints
+
+* feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824):
+    * Add support for dynamic layout
+    * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
+    * Signature change(BREAKING): Both `CairoRunner::new` and `CairoRunner::new_v2` now receive an `Option<CairoLayoutParams>`, used only with dynamic layout.
+
+* chore: bump pip `cairo-lang` 0.13.2 [#1827](https://github.com/lambdaclass/cairo-vm/pull/1827)
+
+* chore: bump `cairo-lang-` dependencies to 2.8.0 [#1833](https://github.com/lambdaclass/cairo-vm/pull/1833/files)
+  * chore: update Rust required version to 1.80.0
+
 * chore: make cairo 1.0 compatible with wasm [#1830](https://github.com/lambdaclass/cairo-vm/pull/1830)
 
 * fix: Added the following VM fixes: [#1820](https://github.com/lambdaclass/cairo-vm/pull/1820)
@@ -10,13 +23,14 @@
   * Fix prover input.
   * Fix version reading when no version is supplied.
 
+
 * chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
 
 #### [1.0.1] - 2024-08-12
 
-* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818): 
-    * Fix `MemorySegmentManager::add_zero_segment` function when resizing a segment
-    * Signature change(BREAKING): `MemorySegmentManager::get_memory_holes` now receives `builtin_segment_indexes: HashSet<usize>`
+* fix(BREAKING): [#1818](https://github.com/lambdaclass/cairo-vm/pull/1818):
+  * Fix `MemorySegmentManager::add_zero_segment` function when resizing a segment
+  * Signature change(BREAKING): `MemorySegmentManager::get_memory_holes` now receives `builtin_segment_indexes: HashSet<usize>`
 
 * fix(BREAKING): Replace `CairoRunner` method `initialize_all_builtins` with `initialize_program_builtins`. Now it only initializes program builtins instead of all of them
 
