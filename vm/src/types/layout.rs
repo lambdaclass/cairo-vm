@@ -9,12 +9,14 @@ use super::{
 };
 
 pub(crate) const DEFAULT_MEMORY_UNITS_PER_STEP: u32 = 8;
+pub(crate) const DEFAULT_CPU_COMPONENT_STEP: u32 = 1;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
     pub(crate) name: LayoutName,
+    pub(crate) cpu_component_step: u32,
     pub(crate) rc_units: u32,
     pub(crate) memory_units_per_step: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
@@ -27,6 +29,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::plain,
             rc_units: 16,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::plain(),
             public_memory_fraction: 4,
@@ -38,6 +41,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::small,
             rc_units: 16,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::small(),
             public_memory_fraction: 4,
@@ -49,6 +53,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dex,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::dex(),
             public_memory_fraction: 4,
@@ -60,6 +65,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive(),
             public_memory_fraction: 8,
@@ -71,6 +77,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet(),
             public_memory_fraction: 8,
@@ -82,6 +89,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet_with_keccak,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
             public_memory_fraction: 8,
@@ -93,6 +101,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_large_output,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
             public_memory_fraction: 8,
@@ -103,6 +112,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_with_poseidon,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_with_poseidon(),
             public_memory_fraction: 8,
@@ -114,6 +124,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_cairo,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_cairo(),
             public_memory_fraction: 8,
@@ -125,6 +136,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_solidity,
             rc_units: 8,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
             memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_solidity(),
             public_memory_fraction: 8,
@@ -136,6 +148,7 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
+            cpu_component_step: params.cpu_component_step,
             memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::from_log_units_per_step(
@@ -154,6 +167,7 @@ use arbitrary::{self, Arbitrary};
 #[serde(try_from = "RawCairoLayoutParams")]
 pub struct CairoLayoutParams {
     pub rc_units: u32,
+    pub cpu_component_step: u32,
     pub memory_units_per_step: u32,
     pub log_diluted_units_per_step: i32,
     pub pedersen_ratio: u32,
@@ -169,8 +183,6 @@ pub struct CairoLayoutParams {
     pub add_mod_ratio_den: u32,
     pub mul_mod_ratio: u32,
     pub mul_mod_ratio_den: u32,
-    // the following are not used right now
-    pub cpu_component_step: u32,
 }
 
 impl CairoLayoutParams {
@@ -189,6 +201,7 @@ impl CairoLayoutParams {
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct RawCairoLayoutParams {
     pub rc_units: u32,
+    pub cpu_component_step: u32,
     pub memory_units_per_step: u32,
     pub log_diluted_units_per_step: i32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
@@ -224,8 +237,6 @@ pub struct RawCairoLayoutParams {
     pub uses_mul_mod_builtin: bool,
     pub mul_mod_ratio: u32,
     pub mul_mod_ratio_den: u32,
-    // the following are not used right now
-    pub cpu_component_step: u32,
 }
 
 impl TryFrom<RawCairoLayoutParams> for CairoLayoutParams {
@@ -464,6 +475,7 @@ mod tests {
         // dummy cairo layout params
         let params = CairoLayoutParams {
             rc_units: 32,
+            cpu_component_step: 8,
             memory_units_per_step: 16,
             log_diluted_units_per_step: 5,
             pedersen_ratio: 32,
@@ -479,14 +491,13 @@ mod tests {
             add_mod_ratio_den: 16,
             mul_mod_ratio: 32,
             mul_mod_ratio_den: 16,
-            // unused
-            cpu_component_step: 8,
         };
 
         let layout = CairoLayout::dynamic_instance(params);
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);
+        assert_eq!(layout.cpu_component_step, 8);
         assert_eq!(layout.memory_units_per_step, 16);
         assert_eq!(layout.public_memory_fraction, 8); // hardcoded
         assert_eq!(
