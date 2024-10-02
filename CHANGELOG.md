@@ -2,16 +2,13 @@
 
 #### Upcoming Changes
 
-* feat: [#1838](https://github.com/lambdaclass/cairo-vm/pull/1824):
-    * Add support for missing dynamic layout features
-
-* fix: [#1841](https://github.com/lambdaclass/cairo-vm/pull/1841):
-  * Fix modulo builtin to comply with prover constraints
-
-* feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824):
+* feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1824):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
     * Signature change(BREAKING): Both `CairoRunner::new` and `CairoRunner::new_v2` now receive an `Option<CairoLayoutParams>`, used only with dynamic layout.
+
+* fix: [#1841](https://github.com/lambdaclass/cairo-vm/pull/1841):
+  * Fix modulo builtin to comply with prover constraints
 
 * chore: bump pip `cairo-lang` 0.13.2 [#1827](https://github.com/lambdaclass/cairo-vm/pull/1827)
 
