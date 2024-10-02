@@ -266,6 +266,15 @@ Now that you have the dependencies necessary to run the test suite you can run:
 make test
 ```
 
+### Using a Dynamic Layout
+
+A dynamic layout must be specified with a dynamic params file. You can find an example in: `vm/src/tests/cairo_layout_params_file.json`.
+
+To run cairo 0 or 1 programs with a dynamic layout, you must use `--layout dynamic` and the `--cairo_layout_params_file` flag pointing a dynamic params file. For example, run:
+```bash
+cargo run --bin cairo-vm-cli cairo_programs/fibonacci.json --layout dynamic --cairo_layout_params_file vm/src/tests/cairo_layout_params_file.json
+```
+
 ### Tracer
 
 Cairo-vm offers a tracer which gives you a visualization of how your memory and registers change line after line as the VM executes the code. You can read more about it [here](./docs/tracer/README.md)
