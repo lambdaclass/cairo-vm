@@ -757,7 +757,7 @@ jobs:
 
   compare-outputs-dynamic-layouts:
     name: Compare outputs with dynamic layouts
-    needs: [ build-programs, build-release ]
+    needs: [ build-programs, build-release, run-cairo-release ]
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
@@ -789,6 +789,18 @@ jobs:
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
         key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        fail-on-cache-miss: true
+
+    - name: Fetch pie
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          cairo_programs/**/*.memory
+          cairo_programs/**/*.trace
+          cairo_programs/**/*.air_public_input
+          cairo_programs/**/*.air_private_input
+          cairo_programs/**/*.pie.zip
+        key: cairo_test_programs-release-trace-cache-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Run script
