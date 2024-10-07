@@ -90,8 +90,6 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 # Used to derive clap traits for CLIs
 clap = { version = "4.3.10", features = ["derive"], optional = true }
 
-wasm-bindgen = { version = "0.2.92" }
-
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
