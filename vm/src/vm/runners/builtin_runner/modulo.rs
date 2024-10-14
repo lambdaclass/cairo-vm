@@ -263,6 +263,8 @@ impl ModBuiltinRunner {
             });
         }
 
+        instances.sort_by_key(|input| input.index);
+
         vec![PrivateInput::Mod(ModInput {
             instances,
             zero_value_address: relocation_table
