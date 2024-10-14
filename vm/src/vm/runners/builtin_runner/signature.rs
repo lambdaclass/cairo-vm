@@ -238,6 +238,10 @@ impl SignatureBuiltinRunner {
                 }))
             }
         }
+        private_inputs.sort_by_key(|input| match input {
+            PrivateInput::Signature(sig) => sig.index,
+            _ => unreachable!(),
+        });
         private_inputs
     }
 }
