@@ -133,36 +133,21 @@ pub(crate) fn res_operand_get_val(
     }
 }
 
-#[cfg(feature = "std")]
-pub(crate) fn as_cairo_short_string(value: &Felt252) -> Option<String> {
-    let mut as_string = String::default();
-    let mut is_end = false;
-    for byte in value
-        .to_bytes_be()
-        .into_iter()
-        .skip_while(num_traits::Zero::is_zero)
-    {
-        if byte == 0 {
-            is_end = true;
-        } else if is_end || !byte.is_ascii() {
-            return None;
-        } else {
-            as_string.push(byte as char);
-        }
-    }
-    Some(as_string)
-}
+/// Reads a range of `Felt252`s from the VM.
+pub(crate) fn read_felts(
+    vm: &mut VirtualMachine,
+    start: &ResOperand,
+    end: &ResOperand,
+) -> Result<Vec<Felt252>, HintError> {
+    let mut curr = as_relocatable(vm, start)?;
+    let end = as_relocatable(vm, end)?;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn simple_as_cairo_short_string() {
-        // Values extracted from cairo book example
-        let s = "Hello, Scarb!";
-        let x = Felt252::from(5735816763073854913753904210465_u128);
-        assert!(s.is_ascii());
-        let cairo_string = as_cairo_short_string(&x).expect("call to as_cairo_short_string failed");
-        assert_eq!(cairo_string, s);
+    let mut felts = Vec::new();
+    while curr != end {
+        let value = *vm.get_integer(curr)?;
+        felts.push(value);
+        curr = (curr + 1)?;
     }
+
+    Ok(felts)
 }
