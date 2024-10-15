@@ -134,6 +134,7 @@ pub(crate) fn res_operand_get_val(
 }
 
 /// Reads a range of `Felt252`s from the VM.
+#[cfg(feature = "std")]
 pub(crate) fn read_felts(
     vm: &mut VirtualMachine,
     start: &ResOperand,

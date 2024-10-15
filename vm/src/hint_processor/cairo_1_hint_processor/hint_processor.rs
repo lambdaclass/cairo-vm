@@ -1,7 +1,6 @@
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
-use crate::hint_processor::cairo_1_hint_processor::debug_print::format_for_debug;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
@@ -108,11 +107,17 @@ impl Cairo1HintProcessor {
                 quotient,
                 remainder,
             })) => self.div_mod(vm, lhs, rhs, quotient, remainder),
+
+            #[allow(unused_variables)]
             Hint::Core(CoreHintBase::Core(CoreHint::DebugPrint { start, end })) => {
-                print!(
-                    "{}",
-                    format_for_debug(read_felts(vm, start, end)?.into_iter())
-                );
+                #[cfg(feature = "std")]
+                {
+                    use crate::hint_processor::cairo_1_hint_processor::debug_print::format_for_debug;
+                    print!(
+                        "{}",
+                        format_for_debug(read_felts(vm, start, end)?.into_iter())
+                    );
+                }
                 Ok(())
             }
             Hint::Core(CoreHintBase::Core(CoreHint::Uint256SquareRoot {
