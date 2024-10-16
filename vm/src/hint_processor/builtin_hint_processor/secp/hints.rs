@@ -292,7 +292,7 @@ pub fn generate_nibbles(
     insert_value_from_var_name("first_nibble", first_nibble, vm, ids_data, ap_tracking)?;
 
     // ids.last_nibble = nibbles[0]
-    let last_nibble = *nibbles.get(0).ok_or(HintError::EmptyNibbles)?;
+    let last_nibble = *nibbles.first().ok_or(HintError::EmptyNibbles)?;
     insert_value_from_var_name("last_nibble", last_nibble, vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("nibbles", nibbles);
     Ok(())
@@ -389,11 +389,13 @@ pub fn write_div_mod_segment(
     let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
 
-    let q_arg: Vec<MaybeRelocatable> = bls_split(&q).ok_or(HintError::BlsSplitFail)?
+    let q_arg: Vec<MaybeRelocatable> = bls_split(&q)
+        .ok_or(HintError::BlsSplitFail)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
-    let res_arg: Vec<MaybeRelocatable> = bls_split(&r).ok_or(HintError::BlsSplitFail)?
+    let res_arg: Vec<MaybeRelocatable> = bls_split(&r)
+        .ok_or(HintError::BlsSplitFail)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
