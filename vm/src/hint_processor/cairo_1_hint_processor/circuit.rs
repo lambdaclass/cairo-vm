@@ -186,7 +186,7 @@ fn compute_gates(
             }
             _ => {
                 unreachable!("Unexpected None value while filling mul_mod gate")
-            },
+            }
         }
 
         mulmod_idx += 1;
