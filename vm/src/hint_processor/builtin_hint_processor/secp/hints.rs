@@ -282,17 +282,17 @@ pub fn generate_nibbles(
     // Generate nibbles
     let mut nibbles: Vec<Felt252> = (0..256)
         .step_by(4)
-        .map(|i| ((&num >> i) & BigUint::from_u8(0xf).unwrap()))
+        .map(|i| ((&num >> i) & BigUint::from(0xfu8)))
         .map(|s: BigUint| s.into())
         .collect();
 
     // ids.first_nibble = nibbles.pop()
-    let first_nibble = nibbles.pop().unwrap();
+    let first_nibble = nibbles.pop().ok_or(HintError::EmptyNibbles)?;
 
     insert_value_from_var_name("first_nibble", first_nibble, vm, ids_data, ap_tracking)?;
 
     // ids.last_nibble = nibbles[0]
-    let last_nibble = *nibbles.get(0).unwrap();
+    let last_nibble = *nibbles.get(0).ok_or(HintError::EmptyNibbles)?;
     insert_value_from_var_name("last_nibble", last_nibble, vm, ids_data, ap_tracking)?;
     exec_scopes.insert_value("nibbles", nibbles);
     Ok(())
@@ -332,7 +332,7 @@ pub fn write_nibbles_to_mem(
     _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let nibbles: &mut Vec<Felt252> = exec_scopes.get_mut_list_ref("nibbles")?;
-    let nibble = nibbles.pop().unwrap();
+    let nibble = nibbles.pop().ok_or(HintError::EmptyNibbles)?;
     vm.insert_value((vm.get_fp() + 0)?, nibble)?;
 
     Ok(())
@@ -389,11 +389,11 @@ pub fn write_div_mod_segment(
     let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
 
-    let q_arg: Vec<MaybeRelocatable> = bls_split(&q)
+    let q_arg: Vec<MaybeRelocatable> = bls_split(&q).ok_or(HintError::BlsSplitFail)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
-    let res_arg: Vec<MaybeRelocatable> = bls_split(&r)
+    let res_arg: Vec<MaybeRelocatable> = bls_split(&r).ok_or(HintError::BlsSplitFail)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
@@ -403,7 +403,7 @@ pub fn write_div_mod_segment(
     Ok(())
 }
 
-fn bls_split(num: &BigInt) -> Vec<BigInt> {
+fn bls_split(num: &BigInt) -> Option<Vec<BigInt>> {
     use num_traits::Signed;
     let mut num = num.clone();
     let mut a = Vec::new();
@@ -413,8 +413,8 @@ fn bls_split(num: &BigInt) -> Vec<BigInt> {
         a.push(residue);
     }
     a.push(num.clone());
-    assert!(num.abs() < BigInt::from_u128(1 << 127).unwrap());
-    a
+    assert!(num.abs() < BigInt::from_u128(1 << 127)?);
+    Some(a)
 }
 
 fn as_int(value: &BigInt, prime: &BigInt) -> BigInt {
