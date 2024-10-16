@@ -182,6 +182,8 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
+- `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
+
 For example, to obtain the air public inputs from a fibonacci program run, we can run :
 
 ```bash
@@ -262,6 +264,15 @@ Now that you have the dependencies necessary to run the test suite you can run:
 
 ```bash
 make test
+```
+
+### Using a Dynamic Layout
+
+A dynamic layout must be specified with a dynamic params file. You can find an example in: `vm/src/tests/cairo_layout_params_file.json`.
+
+To run cairo 0 or 1 programs with a dynamic layout, you must use `--layout dynamic` and the `--cairo_layout_params_file` flag pointing a dynamic params file. For example, run:
+```bash
+cargo run --bin cairo-vm-cli cairo_programs/fibonacci.json --layout dynamic --cairo_layout_params_file vm/src/tests/cairo_layout_params_file.json
 ```
 
 ### Tracer
