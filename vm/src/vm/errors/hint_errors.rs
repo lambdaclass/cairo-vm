@@ -190,6 +190,10 @@ pub enum HintError {
     ExcessBalanceKeyError(Box<str>),
     #[error("excess_balance_func: Failed to calculate {0}")]
     ExcessBalanceCalculationFailed(Box<str>),
+    #[error("generate_nibbles fail: tried to read from an empty list of nibbles")]
+    EmptyNibbles,
+    #[error("bls_split failed: BigInt could not be split")]
+    BlsSplitFail,
 }
 
 #[cfg(test)]
