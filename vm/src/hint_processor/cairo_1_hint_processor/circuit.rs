@@ -1,11 +1,8 @@
-use core::{
-    array,
-    ops::Deref,
-};
+use core::{array, ops::Deref};
 
 use ark_ff::{One, Zero};
 use num_bigint::{BigInt, BigUint, ToBigInt};
-use num_integer::{ExtendedGcd, Integer};
+use num_integer::Integer;
 use num_traits::Signed;
 use starknet_types_core::felt::Felt;
 
