@@ -1,6 +1,6 @@
 use core::{
     array,
-    ops::{Deref, Shl},
+    ops::Deref,
 };
 
 use ark_ff::{One, Zero};
@@ -61,7 +61,6 @@ impl Circuit<'_> {
     }
 }
 
-/// Reads a circuit value from memory
 fn read_circuit_value(vm: &mut VirtualMachine, add: Relocatable) -> Option<BigUint> {
     let mut res = BigUint::zero();
 
@@ -76,30 +75,31 @@ fn read_circuit_value(vm: &mut VirtualMachine, add: Relocatable) -> Option<BigUi
     Some(res)
 }
 
-// Writes a circuit value in memory
 fn write_circuit_value(vm: &mut VirtualMachine, add: Relocatable, mut value: BigUint) {
     for l in 0..LIMBS_COUNT {
         // get the nth limb from a circuit value
-        let (new_value, rem) = value.div_rem(&BigUint::one().shl(96));
+        let (new_value, rem) = value.div_rem(&(BigUint::one() << 96u8));
         vm.insert_value((add + l).unwrap(), Felt::from(rem))
             .unwrap();
         value = new_value;
     }
 }
 
+// Finds the inverse of a value.
+//
+// If the value has no inverse, find a nullifier so that:
+// value * nullifier = 0 (mod modulus)
 fn find_inverse(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
-    let ExtendedGcd::<_> { gcd, x, y: _ } = value
+    let ex_gcd = value
         .to_bigint()
         .unwrap()
         .extended_gcd(&modulus.to_bigint().unwrap());
 
-    let gcd = gcd.to_biguint().unwrap();
+    let gcd = ex_gcd.gcd.to_biguint().unwrap();
     if gcd.is_one() {
-        return (true, get_modulus(&x, modulus));
+        return (true, get_modulus(&ex_gcd.x, modulus));
     }
 
-    // if the value has no inverse, find a nullifier so that:
-    // value * nullifier = 0 (mod modulus)
     let nullifier = modulus / gcd;
 
     (false, nullifier)
@@ -218,10 +218,10 @@ fn fill_instances(
     Ok(())
 }
 
-/// Evaluates a circuit and fills the builtin instances and the values buffer.
+/// Computes the circuit.
 ///
-/// Returns the first mul gate index that failed to fill its values
-/// or `n_mul_mods` if all gates were filled successfully.
+/// If theres a failure, it returs the index of the gate in which the failure occurred, else
+/// returns the total amount of mul gates.
 pub fn eval_circuit(
     vm: &mut VirtualMachine,
     n_add_mods: usize,
@@ -230,17 +230,15 @@ pub fn eval_circuit(
     mul_mod_builtin_address: Relocatable,
 ) -> Result<(), HintError> {
     let modulus_ptr = mul_mod_builtin_address;
-    // The offset of the values pointer inside the mul_mod_builtin
-    let values_offset = 4;
-    // The offset of the offsets pointer inside the mul_mod_builtin
-    let offsets_offset = 5;
+    let mul_mod_values_offset = 4;
+    let mul_mod_offset = 5;
 
-    let values_ptr = vm.get_relocatable((mul_mod_builtin_address + values_offset)?)?;
-    let mul_mod_offsets = vm.get_relocatable((mul_mod_builtin_address + offsets_offset)?)?;
+    let values_ptr = vm.get_relocatable((mul_mod_builtin_address + mul_mod_values_offset)?)?;
+    let mul_mod_offsets = vm.get_relocatable((mul_mod_builtin_address + mul_mod_offset)?)?;
     let add_mod_offsets = if n_add_mods == 0 {
         mul_mod_offsets
     } else {
-        vm.get_relocatable((add_mod_builtin_address + offsets_offset)?)?
+        vm.get_relocatable((add_mod_builtin_address + mul_mod_offset)?)?
     };
 
     let n_computed_gates = compute_gates(
