@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
+
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.

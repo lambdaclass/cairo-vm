@@ -1,3 +1,4 @@
+use super::circuit;
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
@@ -85,9 +86,12 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHintBase::Core(CoreHint::TestLessThan { lhs, rhs, dst })) => {
                 self.test_less_than(vm, lhs, rhs, dst)
             }
-            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst })) => {
-                self.test_less_than_or_equal(vm, lhs, rhs, dst)
-            }
+            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst }))
+            | Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqualAddress {
+                lhs,
+                rhs,
+                dst,
+            })) => self.test_less_than_or_equal(vm, lhs, rhs, dst),
             Hint::Core(CoreHintBase::Deprecated(DeprecatedHint::Felt252DictRead {
                 dict_ptr,
                 key,
@@ -274,6 +278,12 @@ impl Cairo1HintProcessor {
                 t_or_k0,
                 t_or_k1,
             ),
+            Hint::Core(CoreHintBase::Core(CoreHint::EvalCircuit {
+                n_add_mods,
+                add_mod_builtin,
+                n_mul_mods,
+                mul_mod_builtin,
+            })) => self.eval_circuit(vm, n_add_mods, add_mod_builtin, n_mul_mods, mul_mod_builtin),
             Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
                 let selector = &selector.value.to_bytes_be().1;
                 let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
@@ -1190,6 +1200,33 @@ impl Cairo1HintProcessor {
             vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
             vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(0))?;
         }
+        Ok(())
+    }
+    fn eval_circuit(
+        &self,
+        vm: &mut VirtualMachine,
+        n_add_mods: &ResOperand,
+        add_mod_builtin_ptr: &ResOperand,
+        n_mul_mods: &ResOperand,
+        mul_mod_builtin_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let n_add_mods = get_val(vm, n_add_mods)?.to_usize().unwrap();
+        let n_mul_mods = get_val(vm, n_mul_mods)?.to_usize().unwrap();
+
+        let (add_mod_builtin_base, add_mod_builtin_offset) = extract_buffer(add_mod_builtin_ptr)?;
+        let (mul_mod_builtin_base, mul_mod_builtin_offset) = extract_buffer(mul_mod_builtin_ptr)?;
+
+        let add_mod_builtin_address = get_ptr(vm, add_mod_builtin_base, &add_mod_builtin_offset)?;
+        let mul_mod_builtin_address = get_ptr(vm, mul_mod_builtin_base, &mul_mod_builtin_offset)?;
+
+        circuit::eval_circuit(
+            vm,
+            n_add_mods,
+            add_mod_builtin_address,
+            n_mul_mods,
+            mul_mod_builtin_address,
+        )?;
+
         Ok(())
     }
 }
