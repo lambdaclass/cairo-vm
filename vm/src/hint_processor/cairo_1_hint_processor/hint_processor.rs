@@ -1,6 +1,3 @@
-// The majority of the `CoreHint` implementations are derived from the `cairo-lang-runner` crate.
-// https://github.com/starkware-libs/cairo/blob/main/crates/cairo-lang-runner/src/casm_run/mod.rs
-
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
@@ -74,7 +71,9 @@ impl Cairo1HintProcessor {
             segment_arena_validations,
         }
     }
-    // Runs a single Hint
+    // Most of the Hints implementations are derived from the `cairo-lang-runner` crate.
+    // https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/casm_run/mod.rs#L1681
+    /// Runs a single Hint
     pub fn execute(
         &self,
         vm: &mut VirtualMachine,
