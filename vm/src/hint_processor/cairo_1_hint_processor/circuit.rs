@@ -21,7 +21,7 @@ const LIMBS_COUNT: usize = 4;
 // Representes the size of a MulMod and AddMod instance
 const MOD_BUILTIN_INSTACE_SIZE: usize = 7;
 
-struct CircuitInstance<'a> {
+struct Circuit<'a> {
     vm: &'a mut VirtualMachine,
     values_ptr: Relocatable,
     add_mod_offsets: Relocatable,
@@ -29,7 +29,7 @@ struct CircuitInstance<'a> {
     modulus: BigUint,
 }
 
-impl CircuitInstance<'_> {
+impl Circuit<'_> {
     fn read_add_mod_value(&mut self, offset: usize) -> Option<BigUint> {
         self.read_circuit_value((self.add_mod_offsets + offset).unwrap())
     }
@@ -59,60 +59,6 @@ impl CircuitInstance<'_> {
     fn get_value_ptr(&self, address: Relocatable) -> Relocatable {
         (self.values_ptr + self.vm.get_integer(address).unwrap().as_ref()).unwrap()
     }
-
-    /// Fills an `add_mod` gate
-    ///
-    /// Returns `true` if all the inputs of the gate are filled up and so the operation can be performed,
-    /// `false` otherwise.
-    fn fill_add_gate(&mut self, index: usize) -> bool {
-        let lhs = self.read_add_mod_value(index);
-        let rhs = self.read_add_mod_value(index + 1);
-
-        match (lhs, rhs) {
-            (Some(l), Some(r)) => {
-                let res = (l + r) % &self.modulus;
-                self.write_add_mod_value(index + 2, res);
-                true
-            }
-            // sub gate: lhs + rhs = res => lhs = res - rhs
-            (None, Some(r)) => {
-                let Some(res) = self.read_add_mod_value(index + 2) else {
-                    return false;
-                };
-                let value = (res + &self.modulus - r) % &self.modulus;
-                self.write_add_mod_value(index, value);
-                true
-            }
-            _ => false,
-        }
-    }
-
-    /// Fills the a `mul_mod` gate
-    ///
-    /// Returns `true` if all the inputs of the gates are filled up and so the operation can be performed,
-    /// false if it is an inverse opeartion with a non invertible input.
-    ///
-    /// This operation implies that all the gate's inputs are filled up,
-    /// and will panic if that is not the case.
-    fn fill_mul_gate(&mut self, index: usize) -> bool {
-        let lhs = self.read_mul_mod_value(index);
-        let rhs = self.read_mul_mod_value(index + 1);
-
-        match (lhs, rhs) {
-            (Some(l), Some(r)) => {
-                let res = (l * r) % &self.modulus;
-                self.write_mul_mod_value(index + 2, res);
-                true
-            }
-            // inverse gate: lhs * rhs = 1 => lhs = 1 / rhs
-            (None, Some(r)) => {
-                let (success, res) = invert_or_nullify(r, &self.modulus);
-                self.write_mul_mod_value(index, res);
-                success
-            }
-            _ => unreachable!("Unexpected None value while filling mul_mod gate"),
-        }
-    }
 }
 
 /// Reads a circuit value from memory
@@ -141,7 +87,7 @@ fn write_circuit_value(vm: &mut VirtualMachine, add: Relocatable, mut value: Big
     }
 }
 
-fn invert_or_nullify(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
+fn find_inverse(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
     let ExtendedGcd::<_> { gcd, x, y: _ } = value
         .to_bigint()
         .unwrap()
@@ -149,15 +95,17 @@ fn invert_or_nullify(value: BigUint, modulus: &BigUint) -> (bool, BigUint) {
 
     let gcd = gcd.to_biguint().unwrap();
     if gcd.is_one() {
-        return (true, positive_modulus(&x, modulus));
+        return (true, get_modulus(&x, modulus));
     }
+
+    // if the value has no inverse, find a nullifier so that:
+    // value * nullifier = 0 (mod modulus)
     let nullifier = modulus / gcd;
-    // Note that gcd divides the value, so value * nullifier = value * (modulus / gcd) =
-    // (value // gcd) * modulus = 0 (mod modulus)
+
     (false, nullifier)
 }
 
-fn positive_modulus(value: &BigInt, modulus: &BigUint) -> BigUint {
+fn get_modulus(value: &BigInt, modulus: &BigUint) -> BigUint {
     let value_magnitud = value.magnitude().mod_floor(modulus);
     if value.is_negative() {
         modulus - value_magnitud
@@ -166,11 +114,7 @@ fn positive_modulus(value: &BigInt, modulus: &BigUint) -> BigUint {
     }
 }
 
-/// Fills the values for a circuit
-///
-/// Returns the first mul gate index that failed to fill its values or
-/// `n_mul_mods` if all gates were filled successfully
-fn fill_values(
+fn compute_gates(
     vm: &mut VirtualMachine,
     values_ptr: Relocatable,
     add_mod_offsets: Relocatable,
@@ -180,7 +124,7 @@ fn fill_values(
     modulus_ptr: Relocatable,
 ) -> usize {
     let modulus = read_circuit_value(vm, modulus_ptr).unwrap();
-    let mut circuit = CircuitInstance {
+    let mut circuit = Circuit {
         vm,
         values_ptr,
         add_mod_offsets,
@@ -191,14 +135,30 @@ fn fill_values(
     let mut addmod_idx = 0;
     let mut mulmod_idx = 0;
 
-    // A circuit evaluation can only fail through a mulmod operation
+    // Only mul gates can make the evaluation fail
     let mut first_failure_idx = n_mul_mods;
 
     loop {
         while addmod_idx < n_add_mods {
-            if !circuit.fill_add_gate(3 * addmod_idx) {
-                break;
+            let lhs = circuit.read_add_mod_value(3 * addmod_idx);
+            let rhs = circuit.read_add_mod_value(3 * addmod_idx + 1);
+
+            match (lhs, rhs) {
+                (Some(l), Some(r)) => {
+                    let res = (l + r) % &circuit.modulus;
+                    circuit.write_add_mod_value(3 * addmod_idx + 2, res);
+                }
+                // sub gate: lhs = res - rhs
+                (None, Some(r)) => {
+                    let Some(res) = circuit.read_add_mod_value(3 * addmod_idx + 2) else {
+                        break;
+                    };
+                    let value = (res + &circuit.modulus - r) % &circuit.modulus;
+                    circuit.write_add_mod_value(3 * addmod_idx, value);
+                }
+                _ => break,
             }
+
             addmod_idx += 1;
         }
 
@@ -206,9 +166,29 @@ fn fill_values(
             break;
         }
 
-        if !circuit.fill_mul_gate(3 * mulmod_idx) && first_failure_idx == n_mul_mods {
-            first_failure_idx = mulmod_idx;
+        let lhs = circuit.read_mul_mod_value(3 * mulmod_idx);
+        let rhs = circuit.read_mul_mod_value(3 * mulmod_idx + 1);
+
+        match (lhs, rhs) {
+            (Some(l), Some(r)) => {
+                let res = (l * r) % &circuit.modulus;
+                circuit.write_mul_mod_value(3 * mulmod_idx + 2, res);
+            }
+            // inverse gate: lhs = 1 / rhs
+            (None, Some(r)) => {
+                let (success, res) = find_inverse(r, &circuit.modulus);
+                circuit.write_mul_mod_value(3 * mulmod_idx, res);
+
+                if !success {
+                    first_failure_idx = mulmod_idx;
+                    break;
+                }
+            }
+            _ => {
+                unreachable!("Unexpected None value while filling mul_mod gate")
+            },
         }
+
         mulmod_idx += 1;
     }
 
@@ -263,7 +243,7 @@ pub fn eval_circuit(
         vm.get_relocatable((add_mod_builtin_address + offsets_offset)?)?
     };
 
-    let n_computed_gates = fill_values(
+    let n_computed_gates = compute_gates(
         vm,
         values_ptr,
         add_mod_offsets,
