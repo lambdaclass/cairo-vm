@@ -1,6 +1,7 @@
 use crate::types::layout::CairoLayoutParams;
 
 use super::mod_instance_def::ModInstanceDef;
+use super::LowRatio;
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
     ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
@@ -199,7 +200,7 @@ impl BuiltinsInstanceDef {
             ratio: Some(params.pedersen_ratio),
         });
         let range_check = Some(RangeCheckInstanceDef {
-            ratio: Some(params.range_check_ratio),
+            ratio: Some(LowRatio::new_int(params.range_check_ratio)),
         });
         let ecdsa = Some(EcdsaInstanceDef {
             ratio: Some(params.ecdsa_ratio),
@@ -217,17 +218,26 @@ impl BuiltinsInstanceDef {
             ratio: Some(params.poseidon_ratio),
         });
         let range_check96 = Some(RangeCheckInstanceDef {
-            ratio: Some(params.range_check96_ratio),
+            ratio: Some(LowRatio::new(
+                params.range_check96_ratio,
+                params.range_check96_ratio_den,
+            )),
         });
         #[cfg(feature = "mod_builtin")]
         let add_mod = Some(ModInstanceDef {
-            ratio: Some(params.add_mod_ratio),
+            ratio: Some(LowRatio::new(
+                params.add_mod_ratio,
+                params.add_mod_ratio_den,
+            )),
             word_bit_len: 96,
             batch_size: 1,
         });
         #[cfg(feature = "mod_builtin")]
         let mul_mod = Some(ModInstanceDef {
-            ratio: Some(params.mul_mod_ratio),
+            ratio: Some(LowRatio::new(
+                params.mul_mod_ratio,
+                params.mul_mod_ratio_den,
+            )),
             word_bit_len: 96,
             batch_size: 1,
         });
