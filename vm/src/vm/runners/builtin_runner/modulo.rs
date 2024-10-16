@@ -140,7 +140,11 @@ impl ModBuiltinRunner {
     }
 
     pub fn ratio(&self) -> Option<u32> {
-        self.instance_def.ratio
+        self.instance_def.ratio.map(|ratio| ratio.numerator)
+    }
+
+    pub fn ratio_den(&self) -> Option<u32> {
+        self.instance_def.ratio.map(|ratio| ratio.denominator)
     }
 
     pub fn batch_size(&self) -> usize {
