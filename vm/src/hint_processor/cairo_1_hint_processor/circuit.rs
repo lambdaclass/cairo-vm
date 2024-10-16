@@ -1,3 +1,6 @@
+// Most of the `EvalCircuit` implementation is derived from the `cairo-lang-runner` crate.
+// https://github.com/starkware-libs/cairo/blob/main/crates/cairo-lang-runner/src/casm_run/circuit.rs
+
 use core::{array, ops::Deref};
 
 use ark_ff::{One, Zero};
