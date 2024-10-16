@@ -1,4 +1,4 @@
-// Most of the `HintCore` implementation is derived from the cairo-lang-runner crate.
+// The majority of the `CoreHint` implementations are derived from the `cairo-lang-runner` crate.
 // https://github.com/starkware-libs/cairo/blob/main/crates/cairo-lang-runner/src/casm_run/mod.rs
 
 use super::dict_manager::DictManagerExecScope;
