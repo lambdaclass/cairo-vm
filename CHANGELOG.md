@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
 
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
