@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-* chore: bump `cairo-lang-` dependencies to 2.8.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
+* chore: bump `cairo-lang-` dependencies to 2.9.0-dev.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
+
+* chore: update Rust required version to 1.81.0 [#1857](https://github.com/lambdaclass/cairo-vm/pull/1857)
 
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
