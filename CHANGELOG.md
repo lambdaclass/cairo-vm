@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: update Rust required version to 1.81.0 [#1857](https://github.com/lambdaclass/cairo-vm/pull/1857)
+
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
