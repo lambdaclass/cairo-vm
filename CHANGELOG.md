@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: bump `cairo-lang-` dependencies to 2.8.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
+
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
     * CLI change(BREAKING): The flag `cairo_layout_params_file` must be specified when using dynamic layout.
