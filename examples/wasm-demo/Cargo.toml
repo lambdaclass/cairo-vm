@@ -17,7 +17,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 serde_json.workspace = true
-wasm-bindgen = { version = "0.2.93", default-features = false }
+wasm-bindgen = { version = "0.2.95"}
 
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
