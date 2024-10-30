@@ -720,6 +720,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -732,6 +733,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -773,6 +775,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -785,6 +788,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -934,6 +938,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -946,6 +951,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1059,6 +1065,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1071,6 +1078,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1123,6 +1131,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1135,6 +1144,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1182,6 +1192,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1193,6 +1204,7 @@ mod tests {
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1204,6 +1216,7 @@ mod tests {
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1215,6 +1228,7 @@ mod tests {
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1226,6 +1240,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1281,6 +1296,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1292,6 +1308,7 @@ mod tests {
                 full_name: Some("__main__.main.Args".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1303,6 +1320,7 @@ mod tests {
                 full_name: Some("__main__.main.ImplicitArgs".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1314,6 +1332,7 @@ mod tests {
                 full_name: Some("__main__.main.Return".to_string()),
                 members: Some(HashMap::new()),
                 cairo_type: None,
+                size: Some(0),
             },
         );
         identifiers.insert(
@@ -1325,6 +1344,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
