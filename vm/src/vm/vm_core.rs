@@ -1012,6 +1012,20 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
+    /// Add a new relocation rule.
+    ///
+    /// Will return an error if any of the following conditions are not met:
+    ///   - Source address's segment must be negative (temporary).
+    ///   - Source address's offset must be zero.
+    ///   - There shouldn't already be relocation at the source segment.
+    pub fn add_relocation_rule_maybe_relocatable(
+        &mut self,
+        src_ptr: Relocatable,
+        dst: MaybeRelocatable,
+    ) -> Result<(), MemoryError> {
+        self.segments.memory.add_relocation_rule_maybe_relocatable(src_ptr, dst)
+    }
+
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
         self.segments.gen_arg(arg)
     }

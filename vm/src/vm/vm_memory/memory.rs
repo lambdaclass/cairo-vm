@@ -161,7 +161,7 @@ pub struct Memory {
     pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
-    pub(crate) relocation_rules: HashMap<usize, Relocatable>,
+    pub(crate) relocation_rules: HashMap<usize, MaybeRelocatable>,
     pub validated_addresses: AddressSet,
     validation_rules: Vec<Option<ValidationRule>>,
 }
@@ -249,13 +249,16 @@ impl Memory {
     // Version of Memory.relocate_value() that doesn't require a self reference
     fn relocate_address(
         addr: Relocatable,
-        relocation_rules: &HashMap<usize, Relocatable>,
+        relocation_rules: &HashMap<usize, MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, MemoryError> {
         if addr.segment_index < 0 {
             // Adjust the segment index to begin at zero, as per the struct field's
             // comment.
             if let Some(x) = relocation_rules.get(&(-(addr.segment_index + 1) as usize)) {
-                return Ok((*x + addr.offset)?.into());
+                return Ok(match x {
+                    MaybeRelocatable::RelocatableValue(r) => (*r + addr.offset)?.into(),
+                    MaybeRelocatable::Int(i) => i.into(),
+                });
             }
         }
         Ok(addr.into())
@@ -289,6 +292,14 @@ impl Memory {
         for index in (0..self.temp_data.len()).rev() {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
                 let data_segment = self.temp_data.remove(index);
+
+                let base_addr = match base_addr {
+                    MaybeRelocatable::RelocatableValue(addr) => addr,
+                    MaybeRelocatable::Int(_) => {
+                        continue;
+                    },
+                };
+
                 // Insert the to-be relocated segment into the real memory
                 let mut addr = *base_addr;
                 if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
@@ -310,7 +321,6 @@ impl Memory {
         self.relocation_rules.clear();
         Ok(())
     }
-
     /// Add a new relocation rule.
     ///
     /// Will return an error if any of the following conditions are not met:
@@ -321,6 +331,20 @@ impl Memory {
         &mut self,
         src_ptr: Relocatable,
         dst_ptr: Relocatable,
+    ) -> Result<(), MemoryError> {
+        self.add_relocation_rule_maybe_relocatable(src_ptr, MaybeRelocatable::RelocatableValue(dst_ptr))
+    }
+
+    /// Add a new relocation rule.
+    ///
+    /// Will return an error if any of the following conditions are not met:
+    ///   - Source address's segment must be negative (temporary).
+    ///   - Source address's offset must be zero.
+    ///   - There shouldn't already be relocation at the source segment.
+    pub(crate) fn add_relocation_rule_maybe_relocatable(
+        &mut self,
+        src_ptr: Relocatable,
+        dst: MaybeRelocatable,
     ) -> Result<(), MemoryError> {
         if src_ptr.segment_index >= 0 {
             return Err(MemoryError::AddressNotInTemporarySegment(
@@ -338,7 +362,7 @@ impl Memory {
             return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
         }
 
-        self.relocation_rules.insert(segment_index, dst_ptr);
+        self.relocation_rules.insert(segment_index, dst);
         Ok(())
     }
 
@@ -646,8 +670,8 @@ pub(crate) trait RelocateValue<'a, Input: 'a, Output: 'a> {
     fn relocate_value(&self, value: Input) -> Result<Output, MemoryError>;
 }
 
-impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
-    fn relocate_value(&self, addr: Relocatable) -> Result<Relocatable, MemoryError> {
+impl RelocateValue<'_, Relocatable, MaybeRelocatable> for Memory {
+    fn relocate_value(&self, addr: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
         if addr.segment_index < 0 {
             // Adjust the segment index to begin at zero, as per the struct field's
             // comment.
@@ -655,10 +679,15 @@ impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
                 .relocation_rules
                 .get(&(-(addr.segment_index + 1) as usize))
             {
-                return (*x + addr.offset).map_err(MemoryError::Math);
+                return Ok(match x {
+                    MaybeRelocatable::RelocatableValue(r) => {
+                        (*r + addr.offset).map_err(MemoryError::Math)?.into()
+                    },
+                    MaybeRelocatable::Int(i) => i.into(),
+                });
             }
         }
-        Ok(addr)
+        Ok(addr.into())
     }
 }
 
