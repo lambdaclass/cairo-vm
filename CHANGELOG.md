@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* serde: add `size` field to `Identifier` [#1861]https://github.com/lambdaclass/cairo-vm/pull/1861
+
 #### [2.0.0-rc0] - 2024-10-22
 
 * chore: bump `cairo-lang-` dependencies to 2.9.0-dev.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
