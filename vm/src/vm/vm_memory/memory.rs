@@ -337,6 +337,10 @@ impl Memory {
 
     /// Add a new relocation rule.
     ///
+    /// Relocating memory to anything other than a `Relocatable` is generally not useful, but it
+    /// does make the implementation consistent with the pythonic version. In most cases it is
+    /// advisable to use `add_relocation_rule()`, which only accepts a Relocatable.
+    ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.

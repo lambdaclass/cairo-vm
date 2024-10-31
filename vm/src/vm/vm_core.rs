@@ -1012,7 +1012,11 @@ impl VirtualMachine {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
 
-    /// Add a new relocation rule.
+    /// Add a new relocation rule, allowing for dst to be a `MaybeRelocatable`.
+    ///
+    /// Relocating memory to anything other than a `Relocatable` is generally not useful, but it
+    /// does make the implementation consistent with the pythonic version. In most cases it is
+    /// advisable to use `add_relocation_rule()`, which only accepts a Relocatable.
     ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
