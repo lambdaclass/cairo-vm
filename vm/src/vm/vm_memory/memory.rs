@@ -1651,6 +1651,62 @@ mod memory_tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn relocate_address_to_integer() {
+        let mut memory = Memory::new();
+        memory
+            .add_relocation_rule_maybe_relocatable((-1, 0).into(), 0.into())
+            .unwrap();
+        memory
+            .add_relocation_rule_maybe_relocatable((-2, 0).into(), 42.into())
+            .unwrap();
+
+        assert_eq!(
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(0.into()),
+        );
+        assert_eq!(
+            Memory::relocate_address((-2, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(42.into()),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn relocate_address_integer_no_duplicates() {
+        let mut memory = Memory::new();
+        memory
+            .add_relocation_rule_maybe_relocatable((-1, 0).into(), 1.into())
+            .unwrap();
+        assert_eq!(
+            memory.add_relocation_rule_maybe_relocatable((-1, 0).into(), 42.into()),
+            Err(MemoryError::DuplicatedRelocation(-1))
+        );
+        assert_eq!(
+            memory.add_relocation_rule_maybe_relocatable((-1, 0).into(), (2, 0).into()),
+            Err(MemoryError::DuplicatedRelocation(-1))
+        );
+
+        assert_eq!(
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(1.into()),
+        );
+
+        memory
+            .add_relocation_rule_maybe_relocatable((-2, 0).into(), (3, 0).into())
+            .unwrap();
+        assert_eq!(
+            memory.add_relocation_rule_maybe_relocatable((-2, 0).into(), 1.into()),
+            Err(MemoryError::DuplicatedRelocation(-2))
+        );
+
+        assert_eq!(
+            Memory::relocate_address((-2, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::RelocatableValue((3, 0).into()),
+        );
+    }
+
+    #[test]
     fn mark_address_as_accessed() {
         let mut memory = memory![((0, 0), 0)];
         assert!(!memory.data[0][0].is_accessed());
