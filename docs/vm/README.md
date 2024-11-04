@@ -125,9 +125,28 @@ There are only three registers in the Cairo VM:
 - The allocation pointer `ap`, pointing to the next unused memory cell.
 - The frame pointer `fp`, pointing to the base of the current stack frame. When a new function is called, `fp` is set to the current `ap`. When the function returns, `fp` goes back to its previous value. The VM creates new segments whenever dynamic allocation is needed, so for example the cairo analog to a Rust `Vec` will have its own segment. Relocation at the end meshes everything together.
 
-### Instruction Decoding/Execution
+### Instruction Format
 
-TODO: explain the components of an instruction (`dst_reg`, `op0_reg`, etc), what each one is used for and how they're encoded/decoded.
+CASM instruction have the following format. If the instruction uses an immediate operand, it's value is taken from the cell of the program segment.
+
+```
+//  Structure of the 63-bit that form the first word of each instruction.
+//  See Cairo whitepaper, page 32 - https://eprint.iacr.org/2021/1063.pdf.
+// ┌─────────────────────────────────────────────────────────────────────────┐
+// │                     off_dst (biased representation)                     │
+// ├─────────────────────────────────────────────────────────────────────────┤
+// │                     off_op0 (biased representation)                     │
+// ├─────────────────────────────────────────────────────────────────────────┤
+// │                     off_op1 (biased representation)                     │
+// ├─────┬─────┬───────┬───────┬───────────┬────────┬───────────────────┬────┤
+// │ dst │ op0 │  op1  │  res  │    pc     │   ap   │      opcode       │ 0  │
+// │ reg │ reg │  src  │ logic │  update   │ update │                   │    │
+// ├─────┼─────┼───┬───┼───┬───┼───┬───┬───┼───┬────┼────┬────┬────┬────┼────┤
+// │  0  │  1  │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │
+// └─────┴─────┴───┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┘
+```
+
+TODO: Explain the meaning of each element
 
 ### Operations
 
