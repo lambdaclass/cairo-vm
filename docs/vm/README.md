@@ -150,10 +150,6 @@ CASM instruction have the following format. If the instruction uses an immediate
 
 TODO: Explain the meaning of each element
 
-### Operations
-
-TODO: Explain primitive operations and how they affect the registers
-
 ## Hints
 
 So far we have been thinking about the VM mostly abstracted from the prover and verifier it's meant to feed its results to. The last main feature we need to talk about, however, requires keeping this proving/verifying logic in mind.
