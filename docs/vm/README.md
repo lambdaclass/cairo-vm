@@ -140,7 +140,7 @@ Step 3: Convert relocatables to integers
 
 ### Program parsing
 
-The input of the Virtual Machine is a compiled Cairo program in Json format. The main part of the file are listed below:
+The input of the Virtual Machine is a compiled Cairo program in Json format. The main parts of the file are listed below:
 
 - **data:** List of hexadecimal values that represent the instructions and immediate values defined in the cairo program. Each hexadecimal value is stored as a maybe_relocatable element in memory, but they can only be felts because the decoder has to be able to get the instruction fields in its bit representation.
 - **debug_info:** This field provides information about the instructions defined in the data list. Each one is identified with its index inside the data list. For each one it contains information about the cairo variables in scope, the hints executed before that instruction if any, and its location inside the cairo program.
