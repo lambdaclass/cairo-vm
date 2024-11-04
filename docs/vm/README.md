@@ -1,3 +1,5 @@
+<!-- This documentation was taken from the https://github.com/lambdaclass/cairo-vm_in_go repository -->
+
 # How does the Cairo VM work?
 
 ## High Level Overview
