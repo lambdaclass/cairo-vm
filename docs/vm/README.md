@@ -129,7 +129,7 @@ There are only three registers in the Cairo VM:
 
 ### Instruction Format
 
-CASM instruction have the following format. If the instruction uses an immediate operand, it's value is taken from the cell of the program segment.
+CASM instruction have the following format. If the instruction uses an immediate operand, it's value is taken from the next cell of the program segment.
 
 ```
 //  Structure of the 63-bit that form the first word of each instruction.
