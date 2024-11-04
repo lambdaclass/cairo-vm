@@ -11,8 +11,8 @@
 
 ## Tooling
 
-* [cairo1-run](/cairo1-run)
-* [cairo-vm-cli](/cairo-vm-cli)
+* [cairo1-run](/cairo1-run): Execute Cairo 1 programs
+* [cairo-vm-cli](/cairo-vm-cli): Execute Cairo 0 programs
 * [cairo-vm-tracer](/cairo-vm-tracer)
 * [fuzzer](/fuzzer)
 * [hint_accountant](/hint_accountant)
