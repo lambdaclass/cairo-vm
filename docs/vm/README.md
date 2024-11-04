@@ -16,7 +16,7 @@ The main three components of this flow are:
 
 - A Cairo compiler to turn a program written in the [Cairo programming language](https://www.cairo-lang.org/) into bytecode.
 - A Cairo VM to then execute it and generate a trace.
-- [A STARK prover and verifier](https://github.com/lambdaclass/starknet_stack_prover_lambdaworks) so one party can prove correct execution, while another can verify it.
+- [A STARK prover and verifier](https://github.com/starkware-libs/stone-prover/tree/main) so one party can prove correct execution, while another can verify it.
 
 While this repo is only concerned with the second component, it's important to keep in mind the other two; especially important are the prover and verifier that this VM feeds its trace to, as a lot of its design decisions come from them. This virtual machine is designed to make proving and verifying both feasible and fast, and that makes it quite different from most other VMs you are probably used to.
 
