@@ -152,6 +152,14 @@ TODO: Explain the meaning of each element
 
 TODO: Explain primitive operations and how they affect the registers
 
+## Hints
+
+TODO:
+
+## Builtins
+
+TODO:
+
 ## Program parsing
 
 The input of the Virtual Machine is a compiled Cairo program in Json format. The main parts of the file are listed below:
