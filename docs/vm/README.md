@@ -29,7 +29,7 @@ Our virtual machine has a very simple flow:
 
 Barring some simplifications we made, this is all the Cairo VM does. The two main things that stand out as radically different are the memory model and the use of `Field Elements` to perform arithmetic. Below we go into more detail on each step, and in the process explain the ommisions we made.
 
-## Architecture
+## Memory
 
 The Cairo virtual machine uses a Von Neumann architecture with a Non-deterministic read-only memory. What this means, roughly, is that memory is immutable after you've written to it (i.e. you can only write to it once); this is to make the STARK proving easier, but we won't go into that here.
 
@@ -43,57 +43,35 @@ Memory `cells` (i.e. values in memory) are identified by the index of the segmen
 
 Even though this segment model is extremely convenient for the VM's execution, the STARK prover needs to have the memory as just one contiguous region. Because of this, once execution of a Cairo program finishes, all the memory segments are collapsed into one; this process is called `Relocation`. We will go into more detail on all of this below.
 
-### Registers
+The first segment (index 0) is the program segment, which stores the instructions of a cairo program. The following segment (index 1) is the execution segment, which holds the values that are created along the execution of the vm, for example, when we call a function, a pointer to the next instruction after the call instruction will be stored in the execution segment which will then be used to find the next instruction after the function returns.
 
-There are only three registers in the Cairo VM:
+The following group of segments are the builtin segments, one for each builtin used by the program, and which hold values used by the builtin runners.
 
-- The program counter `pc`, which points to the next instruction to be executed.
-- The allocation pointer `ap`, pointing to the next unused memory cell.
-- The frame pointer `fp`, pointing to the base of the current stack frame. When a new function is called, `fp` is set to the current `ap`. When the function returns, `fp` goes back to its previous value. The VM creates new segments whenever dynamic allocation is needed, so for example the cairo analog to a Rust `Vec` will have its own segment. Relocation at the end meshes everything together.
+The last group of segments are the user segments, which represent data structures created by the user, for example, when creating an array on a cairo program, that array will be represented in memory as its own segment.
 
-### Instruction Decoding/Execution
-
-TODO: explain the components of an instruction (`dst_reg`, `op0_reg`, etc), what each one is used for and how they're encoded/decoded.
-
-### Felts
-
-Felts, or Field Elements, are cairo's basic integer type. Every variable in a cairo vm that is not a pointer is a felt. From our point of view we could say a felt in cairo is an unsigned integer in the range [0, CAIRO_PRIME). This means that all operations are done modulo CAIRO_PRIME. The CAIRO_PRIME is 0x800000000000011000000000000000000000000000000000000000000000001, which means felts can be quite big (up to 252 bits), luckily, we have the [Lambdaworks](https://github.com/lambdaclass/lambdaworks) library to help with handling these big integer values and providing fast and efficient modular arithmetic.
-
-### More on memory
-
-The cairo memory is made up of contiguous segments of variable length identified by their index. The first segment (index 0) is the program segment, which stores the instructions of a cairo program. The following segment (index 1) is the execution segment, which holds the values that are created along the execution of the vm, for example, when we call a function, a pointer to the next instruction after the call instruction will be stored in the execution segment which will then be used to find the next instruction after the function returns. The following group of segments are the builtin segments, one for each builtin used by the program, and which hold values used by the builtin runners. The last group of segments are the user segments, which represent data structures created by the user, for example, when creating an array on a cairo program, that array will be represented in memory as its own segment.
-
-An address (or pointer) in cairo is represented as a `relocatable` value, which is made up of a `segment_index` and an `offset`, the `segment_index` tells us which segment the value is stored in and the `offset` tells us how many values exist between the start of the segment and the value.
-
-As the cairo memory can hold both felts and pointers, the basic memory unit is a `maybe_relocatable`, a variable that can be either a `relocatable` or a `felt`.
-
-While memory is continous, some gaps may be present. These gaps can be created on purpose by the user, for example by running:
+While memory is continous, some gaps may be present. These gaps can be created on purpose by the user, for example by executing the following CASM:
 
 ```text
 [ap + 1] = 2;
 ```
 
-Where a gap is created at ap. But they may also be created indireclty by diverging branches, as for example one branch may declare a variable that the other branch doesn't, as memory needs to be allocated for both cases if the second case is ran then a gap is left where the variable should have been written.
+These gaps may also be created indireclty by diverging branches, as for example one branch may declare a variable that the other branch doesn't, as memory needs to be allocated for both cases if the second case is ran then a gap is left where the variable should have been written.
 
-#### Memory API
+### Felts
 
-The memory can perform the following basic operations:
+Felts, or Field Elements, are cairo's basic integer type. Every variable in a cairo vm that is not a pointer is a felt. From our point of view we could say a felt in cairo is an unsigned integer in the range [0, P), where P is a very large prime currently equal to `2^251+17*2^192+1`. This means that all operations are done modulo P.
 
-- `memory_add_segment`: Creates a new, empty segment in memory and returns a pointer to its start. Values cannot be inserted into a memory segment that hasn't been previously created.
+### Relocatable
 
-- `memory_insert`: Inserts a `maybe_relocatable` value at an address indicated by a `relocatable` pointer. For this operation to succeed, the pointer's segment_index must be an existing segment (created using `memory_add_segment`), and there mustn't be a value stored at that address, as the memory is immutable after its been written once. If there is a value already stored at that address but it is equal to the value to be inserted then the operation will be successful.
+An address (or pointer) in cairo is represented as a `Relocatable` value, which is made up of a `segment_index` and an `offset`, the `segment_index` tells us which segment the value is stored in and the `offset` tells us how many values exist between the start of the segment and the value.
 
-- `memory_get`: Fetches a `maybe_relocatable` value from a memory address indicated by a `relocatable` pointer.
+As the cairo memory can hold both felts and pointers, the basic memory unit is a `MaybeRelocatable`, a variable that can be either a `Relocatable` or a `Felt`.
 
-Other operations:
-
-- `memory_load_data`: This is a convenience method, which takes an array of `maybe_relocatable` and inserts them contiguosuly in memory by calling `memory_insert` and advancing the pointer by one after each insertion. Returns a pointer to the next free memory slot after the inserted data.
-
-#### Memory Relocation
+### Memory Relocation
 
 During execution, the memory consists of segments of varying length, and they can be accessed by indicating their segment index, and the offset within that segment. When the run is finished, a relocation process takes place, which transforms this segmented memory into a contiguous list of values. The relocation process works as follows:
 
-1. The size of each segment is calculated (The size is equal to the highest offset within the segment + 1, and not the amount of `maybe_relocatable` values, as there can be gaps)
+1. The size of each segment is calculated as the highest offset within the segment + 1.
 2. A base is assigned to each segment by accumulating the size of the previous segment. The first segment's base is set to 1.
 3. All `relocatable` values are converted into a single integer by adding their `offset` value to their segment's base calculated in the previous step
 
@@ -109,36 +87,53 @@ For example, if we have this memory represented by address, value pairs:
     2:0 -> 1
 ```
 
-Step 1: Calculate segment sizes:
+Then, to relocate:
 
-```text
-    0 --(has size)--> 3
-    1 --(has size)--> 5
-    2 --(has size)--> 1
-```
+1. Calculate segment sizes:
+   ```text
+       0 --(has size)--> 3
+       1 --(has size)--> 5
+       2 --(has size)--> 1
+   ```
 
-Step 2: Assign a base to each segment:
+2. Assign a base to each segment:
+   ```text
+       0 --(has base value)--> 1
+       1 --(has base value)--> 4 (that is: 1 + 3)
+       2 --(has base value)--> 9 (that is: 4 + 5)
+   ```
 
-```text
-    0 --(has base value)--> 1
-    1 --(has base value)--> 4 (that is: 1 + 3)
-    2 --(has base value)--> 9 (that is: 4 + 5)
-```
+3. Convert relocatables to integers
+   ```text
+       1 (base[0] + 0) -> 1
+       2 (base[0] + 1) -> 4
+       3 (base[0] + 2) -> 7
+       4 (base[1] + 0) -> 8
+       5 (base[1] + 1) -> 3 (that is: base[0] + 2)
+       .... (memory gaps)
+       8 (base[1] + 4) -> 2 (that is: base[0] + 1)
+       9 (base[2] + 0) -> 1
+   ```
 
-Step 3: Convert relocatables to integers
+## Instruction Set
 
-```text
-    1 (base[0] + 0) -> 1
-    2 (base[0] + 1) -> 4
-    3 (base[0] + 2) -> 7
-    4 (base[1] + 0) -> 8
-    5 (base[1] + 1) -> 3 (that is: base[0] + 2)
-    .... (memory gaps)
-    8 (base[1] + 4) -> 2 (that is: base[0] + 1)
-    9 (base[2] + 0) -> 1
-```
+### Registers
 
-### Program parsing
+There are only three registers in the Cairo VM:
+
+- The program counter `pc`, which points to the next instruction to be executed.
+- The allocation pointer `ap`, pointing to the next unused memory cell.
+- The frame pointer `fp`, pointing to the base of the current stack frame. When a new function is called, `fp` is set to the current `ap`. When the function returns, `fp` goes back to its previous value. The VM creates new segments whenever dynamic allocation is needed, so for example the cairo analog to a Rust `Vec` will have its own segment. Relocation at the end meshes everything together.
+
+### Instruction Decoding/Execution
+
+TODO: explain the components of an instruction (`dst_reg`, `op0_reg`, etc), what each one is used for and how they're encoded/decoded.
+
+### Operations
+
+TODO: Explain primitive operations and how they affect the registers
+
+## Program parsing
 
 The input of the Virtual Machine is a compiled Cairo program in Json format. The main parts of the file are listed below:
 
