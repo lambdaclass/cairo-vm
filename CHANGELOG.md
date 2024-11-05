@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to include the 3 new builtins in `builtin_segments` when serializing the output cairo pie's metadata.
+
 * fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
   * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
 
