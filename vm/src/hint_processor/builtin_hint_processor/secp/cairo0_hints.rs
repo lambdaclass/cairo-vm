@@ -6,8 +6,7 @@ use crate::stdlib::{
 };
 
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, get_relocatable_from_var_name,
-    insert_value_from_var_name,
+    get_constant_from_var_name, get_integer_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -15,18 +14,17 @@ use crate::math_utils::{div_mod, signed_felt};
 use crate::serde::deserialize_program::ApTracking;
 use crate::types::errors::math_errors::MathError;
 use crate::types::exec_scope::ExecutionScopes;
-use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
+use num_traits::One;
 use num_traits::Zero;
-use num_traits::{FromPrimitive, One};
 
 use super::bigint_utils::{BigInt3, Uint384};
 use super::ec_utils::EcPoint;
-use super::secp_utils::{BLS_BASE, BLS_PRIME, SECP256R1_ALPHA, SECP256R1_B, SECP256R1_P, SECP_P};
+use super::secp_utils::{SECP256R1_ALPHA, SECP256R1_B, SECP256R1_P};
 
 pub const SECP_REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
 from starkware.cairo.common.cairo_secp.secp_utils import pack
@@ -91,14 +89,16 @@ assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**165).'
 ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 pub fn compute_ids_high_low(
     vm: &mut VirtualMachine,
-    _exec_scopes: &mut ExecutionScopes,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
+
     const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
     const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
-    //Declare constant values
+
     let upper_bound = constants
         .get(UPPER_BOUND)
         .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
@@ -237,7 +237,7 @@ y = pack(ids.point.y, SECP256R1_P)
 
 value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#;
 
-pub fn double_assign_new_x(
+pub fn secp_double_assign_new_x(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
@@ -355,88 +355,6 @@ pub fn compute_value_div_mod(
     exec_scopes.insert_value("value", value);
 
     Ok(())
-}
-
-pub const WRITE_DIVMOD_SEGMENT: &str = r#"from starkware.starknet.core.os.data_availability.bls_utils import BLS_PRIME, pack, split
-
-a = pack(ids.a, PRIME)
-b = pack(ids.b, PRIME)
-
-q, r = divmod(a * b, BLS_PRIME)
-
-# By the assumption: |a|, |b| < 2**104 * ((2**86) ** 2 + 2**86 + 1) < 2**276.001.
-# Therefore |q| <= |ab| / BLS_PRIME < 2**299.
-# Hence the absolute value of the high limb of split(q) < 2**127.
-segments.write_arg(ids.q.address_, split(q))
-segments.write_arg(ids.res.address_, split(r))"#;
-
-pub fn write_div_mod_segment(
-    vm: &mut VirtualMachine,
-    _exec_scopes: &mut ExecutionScopes,
-    ids_data: &HashMap<String, HintReference>,
-    ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
-) -> Result<(), HintError> {
-    let a = bls_pack(
-        &BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?,
-        &SECP_P,
-    );
-    let b = bls_pack(
-        &BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?,
-        &SECP_P,
-    );
-    let (q, r) = (a * b).div_mod_floor(&BLS_PRIME);
-    let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
-    let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
-
-    let q_arg: Vec<MaybeRelocatable> = bls_split(&q)
-        .ok_or(HintError::BlsSplitFail)?
-        .into_iter()
-        .map(|ref n| Felt252::from(n).into())
-        .collect::<Vec<MaybeRelocatable>>();
-    let res_arg: Vec<MaybeRelocatable> = bls_split(&r)
-        .ok_or(HintError::BlsSplitFail)?
-        .into_iter()
-        .map(|ref n| Felt252::from(n).into())
-        .collect::<Vec<MaybeRelocatable>>();
-    vm.write_arg(q_reloc, &q_arg).map_err(HintError::Memory)?;
-    vm.write_arg(res_reloc, &res_arg)
-        .map_err(HintError::Memory)?;
-    Ok(())
-}
-
-fn bls_split(num: &BigInt) -> Option<Vec<BigInt>> {
-    use num_traits::Signed;
-    let mut num = num.clone();
-    let mut a = Vec::new();
-    for _ in 0..2 {
-        let residue = num.clone() % BLS_BASE.deref();
-        num /= BLS_BASE.deref();
-        a.push(residue);
-    }
-    a.push(num.clone());
-    assert!(num.abs() < BigInt::from_u128(1 << 127)?);
-    Some(a)
-}
-
-fn as_int(value: &BigInt, prime: &BigInt) -> BigInt {
-    let half_prime = prime.clone() / 2u32;
-    if value > &half_prime {
-        value - prime
-    } else {
-        value.clone()
-    }
-}
-
-fn bls_pack(z: &BigInt3, prime: &BigInt) -> BigInt {
-    let limbs = &z.limbs;
-    limbs
-        .iter()
-        .enumerate()
-        .fold(BigInt::zero(), |acc, (i, limb)| {
-            let limb_as_int = as_int(&limb.to_bigint(), prime);
-            acc + limb_as_int * &BLS_BASE.pow(i as u32)
-        })
 }
 
 #[cfg(test)]
@@ -582,7 +500,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_calculate_value() {
+    fn test_r1_get_point_from_x() {
         let mut vm = VirtualMachine::new(false);
         vm.set_fp(10);
 
@@ -641,7 +559,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_pack_x_prime() {
+    fn test_reduce_value() {
         let mut vm = VirtualMachine::new(false);
 
         //Initialize fp
@@ -651,9 +569,27 @@ mod tests {
         let ids_data = non_continuous_ids_data![("x", -5)];
 
         vm.segments = segments![
-            ((1, 5), ("132181232131231239112312312313213083892150", 10)),
-            ((1, 6), 10),
-            ((1, 7), 10)
+            (
+                (1, 5),
+                (
+                    "1113660525233188137217661511617697775365785011829423399545361443",
+                    10
+                )
+            ),
+            (
+                (1, 6),
+                (
+                    "1243997169368861650657124871657865626433458458266748922940703512",
+                    10
+                )
+            ),
+            (
+                (1, 7),
+                (
+                    "1484456708474143440067316914074363277495967516029110959982060577",
+                    10
+                )
+            )
         ];
 
         let ap_tracking = ApTracking::default();
@@ -667,12 +603,68 @@ mod tests {
             &ap_tracking,
             &Default::default(),
         )
-        .expect("pack_x_prime() failed");
+        .expect("reduce_value() failed");
 
         assert_matches!(
             exec_scopes.get::<BigInt>("value"),
             Ok(x) if x == bigint_str!(
-                "59863107065205964761754162760883789350782881856141750"
+                "78544963828434122936060793808853327022047551513756524908970552805092599079793"
+            )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_reduce_x() {
+        let mut vm = VirtualMachine::new(false);
+
+        //Initialize fp
+        vm.run_context.fp = 10;
+
+        //Create hint data
+        let ids_data = non_continuous_ids_data![("x", -5)];
+
+        vm.segments = segments![
+            (
+                (1, 5),
+                (
+                    "1113660525233188137217661511617697775365785011829423399545361443",
+                    10
+                )
+            ),
+            (
+                (1, 6),
+                (
+                    "1243997169368861650657124871657865626433458458266748922940703512",
+                    10
+                )
+            ),
+            (
+                (1, 7),
+                (
+                    "1484456708474143440067316914074363277495967516029110959982060577",
+                    10
+                )
+            )
+        ];
+
+        let ap_tracking = ApTracking::default();
+
+        let mut exec_scopes = ExecutionScopes::new();
+
+        reduce_x(
+            &mut vm,
+            &mut exec_scopes,
+            &ids_data,
+            &ap_tracking,
+            &Default::default(),
+        )
+        .expect("x() failed");
+
+        assert_matches!(
+            exec_scopes.get::<BigInt>("x"),
+            Ok(x) if x == bigint_str!(
+                "78544963828434122936060793808853327022047551513756524908970552805092599079793"
             )
         );
     }
