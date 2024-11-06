@@ -366,6 +366,8 @@ fn build_hints_vec<'b>(
     (hints, program_hints)
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L551-L552
 /// Finds first function ending with `name_suffix`.
 fn find_function<'a>(
     sierra_program: &'a SierraProgram,
@@ -384,6 +386,8 @@ fn find_function<'a>(
         .ok_or_else(|| RunnerError::MissingMain)
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L750
 /// Creates a list of instructions that will be appended to the program's bytecode.
 fn create_code_footer() -> Vec<Instruction> {
     casm! {
@@ -527,6 +531,8 @@ fn load_arguments(
     Ok(())
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L703
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -869,6 +875,8 @@ fn create_entry_code(
     ))
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L577
 fn get_info<'a>(
     sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
     ty: &'a cairo_lang_sierra::ids::ConcreteTypeId,
