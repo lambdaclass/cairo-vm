@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
 
 #### [2.0.0-rc0] - 2024-10-22
 
