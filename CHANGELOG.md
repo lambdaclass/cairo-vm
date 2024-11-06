@@ -1,6 +1,14 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
+
+#### [2.0.0-rc0] - 2024-10-22
+
+* chore: bump `cairo-lang-` dependencies to 2.9.0-dev.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
+
+* chore: update Rust required version to 1.81.0 [#1857](https://github.com/lambdaclass/cairo-vm/pull/1857)
 
 * fix: [#1851](https://github.com/lambdaclass/cairo-vm/pull/1851):
   * Fix unsorted signature and mod builtin outputs in air_private_input.
