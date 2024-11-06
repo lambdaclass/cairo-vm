@@ -240,7 +240,11 @@ impl SignatureBuiltinRunner {
         }
         private_inputs.sort_by_key(|input| match input {
             PrivateInput::Signature(sig) => sig.index,
-            _ => unreachable!(),
+            _ => unreachable!(
+                "Unexpected variant in private_inputs: {:?}.
+            This private input of the signature builtin is always a Signature variant.",
+                input
+            ),
         });
         private_inputs
     }
@@ -557,5 +561,68 @@ mod tests {
             assert_eq!(signature_a.r, signature_b.r);
             assert_eq!(signature_a.s, signature_b.s);
         }
+    }
+    #[test]
+    fn get_air_private_input() {
+        let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
+
+        builtin.base = 0;
+
+        let signature1_r = Felt252::from(1234);
+        let signature1_s = Felt252::from(5678);
+        let signature2_r = Felt252::from(8765);
+        let signature2_s = Felt252::from(4321);
+
+        let sig1_addr = Relocatable::from((builtin.base as isize, 0));
+        let sig2_addr = Relocatable::from((builtin.base as isize, CELLS_PER_SIGNATURE as usize));
+
+        builtin
+            .add_signature(sig1_addr, &(signature1_r, signature1_s))
+            .unwrap();
+        builtin
+            .add_signature(sig2_addr, &(signature2_r, signature2_s))
+            .unwrap();
+
+        let pubkey1 = Felt252::from(1111);
+        let msg1 = Felt252::from(2222);
+        let pubkey2 = Felt252::from(3333);
+        let msg2 = Felt252::from(4444);
+
+        let segments = segments![
+            ((0, 0), 1111),
+            ((0, 1), 2222),
+            ((0, 2), 3333),
+            ((0, 3), 4444)
+        ];
+        let w1 =
+            Felt252::from(&div_mod(&BigInt::one(), &signature1_s.to_bigint(), &EC_ORDER).unwrap());
+
+        let w2 =
+            Felt252::from(&div_mod(&BigInt::one(), &signature2_s.to_bigint(), &EC_ORDER).unwrap());
+
+        let expected_private_inputs = vec![
+            PrivateInput::Signature(PrivateInputSignature {
+                index: 0,
+                pubkey: pubkey1,
+                msg: msg1,
+                signature_input: SignatureInput {
+                    r: signature1_r,
+                    w: w1,
+                },
+            }),
+            PrivateInput::Signature(PrivateInputSignature {
+                index: 1,
+                pubkey: pubkey2,
+                msg: msg2,
+                signature_input: SignatureInput {
+                    r: signature2_r,
+                    w: w2,
+                },
+            }),
+        ];
+
+        let private_inputs = builtin.air_private_input(&segments.memory);
+
+        assert_eq!(private_inputs, expected_private_inputs);
     }
 }
