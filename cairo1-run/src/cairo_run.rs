@@ -204,10 +204,14 @@ pub fn cairo_run_program(
         cairo_run_config.copy_to_output(),
     );
 
-    let data: Vec<MaybeRelocatable> = instructions
-        .flat_map(|inst| inst.assemble().encode())
-        .map(|x| Felt252::from(&x))
-        .map(MaybeRelocatable::from)
+    // The bytecode includes all program instructions plus entry/footer,
+    // plus data from the constants segments.
+    let data: Vec<MaybeRelocatable> = casm_program
+        .assemble_ex(&entry_code.instructions, &libfunc_footer)
+        .bytecode
+        .into_iter()
+        .map(Into::<Felt252>::into)
+        .map(Into::<MaybeRelocatable>::into)
         .collect();
 
     let program = if cairo_run_config.proof_mode {
