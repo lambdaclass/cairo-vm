@@ -161,6 +161,9 @@ pub struct Memory {
     pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
+    #[cfg(not(feature = "extensive_hints"))]
+    pub(crate) relocation_rules: HashMap<usize, Relocatable>,
+    #[cfg(feature = "extensive_hints")]
     pub(crate) relocation_rules: HashMap<usize, MaybeRelocatable>,
     pub validated_addresses: AddressSet,
     validation_rules: Vec<Option<ValidationRule>>,
@@ -247,6 +250,21 @@ impl Memory {
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
+    #[cfg(not(feature = "extensive_hints"))]
+    fn relocate_address(
+        addr: Relocatable,
+        relocation_rules: &HashMap<usize, Relocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        if addr.segment_index < 0 {
+            // Adjust the segment index to begin at zero, as per the struct field's
+            // comment.
+            if let Some(x) = relocation_rules.get(&(-(addr.segment_index + 1) as usize)) {
+                return Ok((*x + addr.offset)?.into());
+            }
+        }
+        Ok(addr.into())
+    }
+    #[cfg(feature = "extensive_hints")]
     fn relocate_address(
         addr: Relocatable,
         relocation_rules: &HashMap<usize, MaybeRelocatable>,
@@ -293,6 +311,7 @@ impl Memory {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
                 let data_segment = self.temp_data.remove(index);
 
+                #[cfg(feature = "extensive_hints")]
                 let base_addr = match base_addr {
                     MaybeRelocatable::RelocatableValue(addr) => addr,
                     MaybeRelocatable::Int(_) => {
@@ -323,29 +342,41 @@ impl Memory {
     }
     /// Add a new relocation rule.
     ///
+    /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
+    /// MaybeRelocatable). Relocating memory to anything other than a `Relocatable` is generally
+    /// not useful, but it does make the implementation consistent with the pythonic version.
+    ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
     ///   - There shouldn't already be relocation at the source segment.
+    #[cfg(not(feature = "extensive_hints"))]
     pub(crate) fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
         dst_ptr: Relocatable,
     ) -> Result<(), MemoryError> {
-        self.add_relocation_rule_maybe_relocatable(src_ptr, MaybeRelocatable::RelocatableValue(dst_ptr))
-    }
+        if src_ptr.segment_index >= 0 {
+            return Err(MemoryError::AddressNotInTemporarySegment(
+                src_ptr.segment_index,
+            ));
+        }
+        if src_ptr.offset != 0 {
+            return Err(MemoryError::NonZeroOffset(src_ptr.offset));
+        }
 
-    /// Add a new relocation rule.
-    ///
-    /// Relocating memory to anything other than a `Relocatable` is generally not useful, but it
-    /// does make the implementation consistent with the pythonic version. In most cases it is
-    /// advisable to use `add_relocation_rule()`, which only accepts a Relocatable.
-    ///
-    /// Will return an error if any of the following conditions are not met:
-    ///   - Source address's segment must be negative (temporary).
-    ///   - Source address's offset must be zero.
-    ///   - There shouldn't already be relocation at the source segment.
-    pub(crate) fn add_relocation_rule_maybe_relocatable(
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        let segment_index = -(src_ptr.segment_index + 1) as usize;
+        if self.relocation_rules.contains_key(&segment_index) {
+            return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
+        }
+
+        self.relocation_rules.insert(segment_index, dst_ptr);
+        Ok(())
+    }
+    #[cfg(feature = "extensive_hints")]
+    pub(crate) fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
         dst: MaybeRelocatable,
@@ -674,6 +705,23 @@ pub(crate) trait RelocateValue<'a, Input: 'a, Output: 'a> {
     fn relocate_value(&self, value: Input) -> Result<Output, MemoryError>;
 }
 
+#[cfg(not(feature = "extensive_hints"))]
+impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
+    fn relocate_value(&self, addr: Relocatable) -> Result<Relocatable, MemoryError> {
+        if addr.segment_index < 0 {
+            // Adjust the segment index to begin at zero, as per the struct field's
+            // comment.
+            if let Some(x) = self
+                .relocation_rules
+                .get(&(-(addr.segment_index + 1) as usize))
+            {
+                return (*x + addr.offset).map_err(MemoryError::Math);
+            }
+        }
+        Ok(addr)
+    }
+}
+#[cfg(feature = "extensive_hints")]
 impl RelocateValue<'_, Relocatable, MaybeRelocatable> for Memory {
     fn relocate_value(&self, addr: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
         if addr.segment_index < 0 {

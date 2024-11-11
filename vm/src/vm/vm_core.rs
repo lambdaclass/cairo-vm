@@ -1000,6 +1000,10 @@ impl VirtualMachine {
 
     /// Add a new relocation rule.
     ///
+    /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
+    /// MaybeRelocatable). Relocating memory to anything other than a `Relocatable` is generally
+    /// not useful, but it does make the implementation consistent with the pythonic version.
+    ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
@@ -1007,27 +1011,12 @@ impl VirtualMachine {
     pub fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
+        #[cfg(not(feature = "extensive_hints"))]
         dst_ptr: Relocatable,
+        #[cfg(feature = "extensive_hints")]
+        dst_ptr: MaybeRelocatable,
     ) -> Result<(), MemoryError> {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
-    }
-
-    /// Add a new relocation rule, allowing for dst to be a `MaybeRelocatable`.
-    ///
-    /// Relocating memory to anything other than a `Relocatable` is generally not useful, but it
-    /// does make the implementation consistent with the pythonic version. In most cases it is
-    /// advisable to use `add_relocation_rule()`, which only accepts a Relocatable.
-    ///
-    /// Will return an error if any of the following conditions are not met:
-    ///   - Source address's segment must be negative (temporary).
-    ///   - Source address's offset must be zero.
-    ///   - There shouldn't already be relocation at the source segment.
-    pub fn add_relocation_rule_maybe_relocatable(
-        &mut self,
-        src_ptr: Relocatable,
-        dst: MaybeRelocatable,
-    ) -> Result<(), MemoryError> {
-        self.segments.memory.add_relocation_rule_maybe_relocatable(src_ptr, dst)
     }
 
     pub fn gen_arg(&mut self, arg: &dyn Any) -> Result<MaybeRelocatable, MemoryError> {
