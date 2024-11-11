@@ -210,7 +210,17 @@ impl SignatureBuiltinRunner {
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
         let mut private_inputs = vec![];
-        for (addr, signature) in self.signatures.borrow().iter() {
+
+        // Collect and sort the signatures by their index before the loop
+        let binding = self.signatures.borrow();
+        let mut sorted_signatures: Vec<_> = binding.iter().collect();
+        sorted_signatures.sort_by_key(|(addr, _)| {
+            addr.offset
+                .checked_div(CELLS_PER_SIGNATURE as usize)
+                .unwrap_or_default()
+        });
+
+        for (addr, signature) in sorted_signatures {
             if let (Ok(pubkey), Some(msg)) = (
                 memory.get_integer(*addr),
                 (*addr + 1_usize)
@@ -238,14 +248,6 @@ impl SignatureBuiltinRunner {
                 }))
             }
         }
-        private_inputs.sort_by_key(|input| match input {
-            PrivateInput::Signature(sig) => sig.index,
-            _ => unreachable!(
-                "Unexpected variant in private_inputs: {:?}.
-            This private input of the signature builtin is always a Signature variant.",
-                input
-            ),
-        });
         private_inputs
     }
 }
