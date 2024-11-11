@@ -7,6 +7,8 @@
 * fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
   * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
 
+* serde: add `size` field to `Identifier` [#1861]https://github.com/lambdaclass/cairo-vm/pull/1861
+
 #### [2.0.0-rc0] - 2024-10-22
 
 * fix: [#1864](https://github.com/lambdaclass/cairo-vm/pull/1864):
