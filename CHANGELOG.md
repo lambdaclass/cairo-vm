@@ -1,6 +1,25 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to include the 3 new builtins in `builtin_segments` when serializing the output cairo pie's metadata.
+
+* fix: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1855):
+  * Adds logic to skip pedersen additional data comparison when checking pie compatibility.
+
+* serde: add `size` field to `Identifier` [#1861]https://github.com/lambdaclass/cairo-vm/pull/1861
+
+#### [2.0.0-rc0] - 2024-10-22
+
+* fix: [#1864](https://github.com/lambdaclass/cairo-vm/pull/1864):
+    * Runner: include data from constants segment to the bytecode when assembling program
+
+* chore: bump `cairo-lang-` dependencies to 2.9.0-dev.0 [#1858](https://github.com/lambdaclass/cairo-vm/pull/1858/files)
+
+* chore: update Rust required version to 1.81.0 [#1857](https://github.com/lambdaclass/cairo-vm/pull/1857)
+
+* fix: [#1851](https://github.com/lambdaclass/cairo-vm/pull/1851):
+  * Fix unsorted signature and mod builtin outputs in air_private_input.
 
 * feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
 
