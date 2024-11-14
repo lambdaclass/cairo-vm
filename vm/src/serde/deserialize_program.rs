@@ -1492,9 +1492,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation() {
-        let n = Number::deserialize(serde_json::Value::from(1000000000000000000000000000_u128))
+        let n = Number::deserialize(serde_json::Value::from(1e27))
             .unwrap();
-        assert_eq!(n.to_string(), "1000000000000000000000000000".to_owned());
+        assert_eq!(n.to_string(), "1e27".to_owned());
 
         assert_matches!(
             felt_from_number(n),
