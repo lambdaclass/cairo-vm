@@ -1,6 +1,10 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* fix: [#1872](https://github.com/lambdaclass/cairo-vm/pull/1872)
+  * Fix a trait error with the num-primes crate and update dependencies.
+
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
   * Adds logic to include the 3 new builtins in `builtin_segments` when serializing the output cairo pie's metadata.
 
