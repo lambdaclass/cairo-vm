@@ -1243,6 +1243,7 @@ fn cairo_run_apply_poly_proof() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_reduce_value() {
     let program_data = include_bytes!("../../../cairo_programs/secp_cairo0_reduce_value.json");
     run_program_simple(program_data.as_slice());
@@ -1250,6 +1251,7 @@ fn cairo_run_secp_cairo0_reduce_value() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_ec() {
     let program_data = include_bytes!("../../../cairo_programs/secp_cairo0_ec.json");
     run_program_simple(program_data.as_slice());
@@ -1257,6 +1259,7 @@ fn cairo_run_secp_cairo0_ec() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_reduce_x() {
     let program_data = include_bytes!("../../../cairo_programs/secp_cairo0_reduce_x.json");
     run_program_simple(program_data.as_slice());
@@ -1264,6 +1267,7 @@ fn cairo_run_secp_cairo0_reduce_x() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_get_point_from_x() {
     let program_data = include_bytes!("../../../cairo_programs/secp_cairo0_get_point_from_x.json");
     run_program_simple(program_data.as_slice());
@@ -1271,6 +1275,7 @@ fn cairo_run_secp_cairo0_get_point_from_x() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_compute_q_mod_prime() {
     let program_data =
         include_bytes!("../../../cairo_programs/secp_cairo0_compute_q_mod_prime.json");
@@ -1279,6 +1284,7 @@ fn cairo_run_secp_cairo0_compute_q_mod_prime() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_ec_double_assign_new_x() {
     let program_data =
         include_bytes!("../../../cairo_programs/secp_cairo0_ec_double_assign_new_x.json");
@@ -1287,6 +1293,7 @@ fn cairo_run_secp_cairo0_ec_double_assign_new_x() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
 fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
     let program_data = include_bytes!("../../../cairo_programs/secp_cairo0_ec_mul_by_uint256.json");
     run_program_simple(program_data.as_slice());
