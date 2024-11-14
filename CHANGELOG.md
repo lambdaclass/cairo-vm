@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
+  * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
   * Adds logic to include the 3 new builtins in `builtin_segments` when serializing the output cairo pie's metadata.
 
