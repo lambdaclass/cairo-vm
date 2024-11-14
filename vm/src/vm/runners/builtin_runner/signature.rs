@@ -518,8 +518,8 @@ mod tests {
         let signatures = HashMap::from([(
             Relocatable::from((4, 0)),
             Signature {
-                r: FieldElement::from_dec_str("45678").unwrap(),
-                s: FieldElement::from_dec_str("1239").unwrap(),
+                r: Felt252::from_dec_str("45678").unwrap(),
+                s: Felt252::from_dec_str("1239").unwrap(),
             },
         )]);
         builtin.signatures = Rc::new(RefCell::new(signatures));
@@ -539,8 +539,8 @@ mod tests {
         let signatures = HashMap::from([(
             Relocatable::from((0, 0)),
             Signature {
-                r: FieldElement::from_dec_str("45678").unwrap(),
-                s: FieldElement::from_dec_str("1239").unwrap(),
+                r: Felt252::from_dec_str("45678").unwrap(),
+                s: Felt252::from_dec_str("1239").unwrap(),
             },
         )]);
         builtin_a.signatures = Rc::new(RefCell::new(signatures));
