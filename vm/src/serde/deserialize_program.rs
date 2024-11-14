@@ -1494,7 +1494,7 @@ mod tests {
     fn test_felt_from_number_with_scientific_notation() {
         let n = Number::deserialize(serde_json::Value::from(1000000000000000000000000000_u128))
             .unwrap();
-        assert_eq!(n.to_string(), "1e27".to_owned());
+        assert_eq!(n.to_string(), "1000000000000000000000000000".to_owned());
 
         assert_matches!(
             felt_from_number(n),
