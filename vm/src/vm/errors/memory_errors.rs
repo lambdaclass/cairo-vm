@@ -4,7 +4,7 @@
 use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::Felt252;
 
@@ -56,7 +56,7 @@ pub enum MemoryError {
     #[error("ErrorInitializing Verifying Key from public key: {0:?}")]
     InitializingVerifyingKey(Box<Vec<u8>>),
     #[error(
-        "Signature {}, is invalid, with respect to the public key {}, 
+        "Signature {}, is invalid, with respect to the public key {},
     and the message hash {}.", (*.0).0, (*.0).1, (*.0).2
     )]
     InvalidSignature(Box<(String, Felt252, Felt252)>),

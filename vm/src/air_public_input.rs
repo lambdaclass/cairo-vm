@@ -1,6 +1,6 @@
 use crate::Felt252;
 use serde::{Deserialize, Serialize};
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::{
     stdlib::{
