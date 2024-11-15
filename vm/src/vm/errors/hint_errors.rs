@@ -190,6 +190,8 @@ pub enum HintError {
     ExcessBalanceKeyError(Box<str>),
     #[error("excess_balance_func: Failed to calculate {0}")]
     ExcessBalanceCalculationFailed(Box<str>),
+    #[error("circuit evalution: {0}")]
+    CircuitEvaluationFailed(Box<str>),
 }
 
 #[cfg(test)]

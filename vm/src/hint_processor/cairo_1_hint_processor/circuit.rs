@@ -7,6 +7,7 @@ use ark_ff::{One, Zero};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Signed;
+use proptest::prelude::Strategy;
 use starknet_types_core::felt::Felt;
 
 use crate::{
@@ -122,7 +123,7 @@ fn compute_gates(
     mul_mod_offsets: Relocatable,
     n_mul_mods: usize,
     modulus_ptr: Relocatable,
-) -> usize {
+) -> Result<usize, HintError> {
     let modulus = read_circuit_value(vm, modulus_ptr).unwrap();
     let mut circuit = Circuit {
         vm,
@@ -185,14 +186,16 @@ fn compute_gates(
                 }
             }
             _ => {
-                unreachable!("Unexpected None value while filling mul_mod gate")
+                return Err(HintError::CircuitEvaluationFailed(Box::from(
+                    "Unexpected None value while filling mul_mod gate",
+                )))
             }
         }
 
         mulmod_idx += 1;
     }
 
-    first_failure_idx
+    Ok(first_failure_idx)
 }
 
 fn fill_instances(
@@ -249,7 +252,7 @@ pub fn eval_circuit(
         mul_mod_offsets,
         n_mul_mods,
         modulus_ptr,
-    );
+    )?;
 
     let modulus: [Felt; 4] =
         array::from_fn(|l| *vm.get_integer((modulus_ptr + l).unwrap()).unwrap().deref());
