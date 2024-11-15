@@ -44,7 +44,7 @@ impl Circuit<'_> {
 
     fn read_circuit_value(&mut self, offset: Relocatable) -> Result<Option<BigUint>, MemoryError> {
         let value_ptr = self.get_value_ptr(offset)?;
-        Ok(read_circuit_value(self.vm, value_ptr)?)
+        read_circuit_value(self.vm, value_ptr)
     }
 
     fn write_add_mod_value(&mut self, offset: usize, value: BigUint) -> Result<(), MemoryError> {
@@ -71,7 +71,7 @@ impl Circuit<'_> {
     }
 
     fn get_value_ptr(&self, address: Relocatable) -> Result<Relocatable, MemoryError> {
-        (self.values_ptr + self.vm.get_integer(address)?.as_ref()).map_err(|e| MemoryError::Math(e))
+        (self.values_ptr + self.vm.get_integer(address)?.as_ref()).map_err(MemoryError::Math)
     }
 }
 
