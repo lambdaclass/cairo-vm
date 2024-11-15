@@ -117,7 +117,10 @@ fn find_inverse(value: BigUint, modulus: &BigUint) -> Result<(bool, BigUint), Hi
         .ok_or(HintError::BigUintToBigIntFail)?
         .extended_gcd(&modulus.to_bigint().ok_or(HintError::BigUintToBigIntFail)?);
 
-    let gcd = ex_gcd.gcd.to_biguint().unwrap();
+    let gcd = ex_gcd
+        .gcd
+        .to_biguint()
+        .ok_or(HintError::BigIntToBigUintFail)?;
     if gcd.is_one() {
         return Ok((true, get_modulus(&ex_gcd.x, modulus)));
     }
@@ -145,7 +148,10 @@ fn compute_gates(
     n_mul_mods: usize,
     modulus_ptr: Relocatable,
 ) -> Result<usize, HintError> {
-    let modulus = read_circuit_value(vm, modulus_ptr)?.unwrap();
+    let modulus = read_circuit_value(vm, modulus_ptr)?.ok_or(HintError::Memory(
+        MemoryError::ExpectedInteger(Box::from(modulus_ptr)),
+    ))?;
+
     let mut circuit = Circuit {
         vm,
         values_ptr,
