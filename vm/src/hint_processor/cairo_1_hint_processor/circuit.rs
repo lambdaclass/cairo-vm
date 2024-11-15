@@ -7,7 +7,6 @@ use ark_ff::{One, Zero};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_integer::Integer;
 use num_traits::Signed;
-use proptest::prelude::Strategy;
 use starknet_types_core::felt::Felt;
 
 use crate::{
@@ -259,7 +258,7 @@ pub fn eval_circuit(
     let modulus: [Felt; 4] =
         array::from_fn(|l| *vm.get_integer((modulus_ptr + l).unwrap()).unwrap().deref());
 
-    fill_inst(
+    fill_instances(
         vm,
         add_mod_builtin_address,
         n_add_mods,
