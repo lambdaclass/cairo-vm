@@ -11,7 +11,7 @@ use crate::vm::runners::cairo_runner::RunResources;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessorLogic,
-    types::exec_scope::ExecutionScopes,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::errors::vm_errors::VirtualMachineError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -1212,8 +1212,20 @@ impl Cairo1HintProcessor {
         n_mul_mods: &ResOperand,
         mul_mod_builtin_ptr: &ResOperand,
     ) -> Result<(), HintError> {
-        let n_add_mods = get_val(vm, n_add_mods)?.to_usize().unwrap();
-        let n_mul_mods = get_val(vm, n_mul_mods)?.to_usize().unwrap();
+        let n_add_mods = get_val(vm, n_add_mods)?;
+        let n_add_mods =
+            n_add_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_add_mods),
+                )))?;
+        let n_mul_mods = get_val(vm, n_mul_mods)?;
+        let n_mul_mods =
+            n_mul_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_mul_mods),
+                )))?;
 
         let (add_mod_builtin_base, add_mod_builtin_offset) = extract_buffer(add_mod_builtin_ptr)?;
         let (mul_mod_builtin_base, mul_mod_builtin_offset) = extract_buffer(mul_mod_builtin_ptr)?;
