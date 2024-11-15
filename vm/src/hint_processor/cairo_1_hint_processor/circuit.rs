@@ -186,9 +186,11 @@ fn compute_gates(
                 }
             }
             _ => {
+                // this should be unreachable as it would mean that the
+                //circuit being evaluated is not complete and therefore invalid
                 return Err(HintError::CircuitEvaluationFailed(Box::from(
                     "Unexpected None value while filling mul_mod gate",
-                )))
+                )));
             }
         }
 
@@ -257,7 +259,7 @@ pub fn eval_circuit(
     let modulus: [Felt; 4] =
         array::from_fn(|l| *vm.get_integer((modulus_ptr + l).unwrap()).unwrap().deref());
 
-    fill_instances(
+    fill_inst(
         vm,
         add_mod_builtin_address,
         n_add_mods,
