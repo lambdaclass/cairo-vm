@@ -154,6 +154,8 @@ pub enum HintError {
     BigintToU32Fail,
     #[error("BigInt to BigUint failed, BigInt is negative")]
     BigIntToBigUintFail,
+    #[error("BigUint to BigInt failed")]
+    BigUintToBigIntFail,
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
     ValueOutOfRange(Box<Felt252>),
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
