@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
+
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
   * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
@@ -22,8 +24,6 @@
 
 * fix: [#1851](https://github.com/lambdaclass/cairo-vm/pull/1851):
   * Fix unsorted signature and mod builtin outputs in air_private_input.
-
-* feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
 
 * feat(BREAKING): [#1824](https://github.com/lambdaclass/cairo-vm/pull/1824)[#1838](https://github.com/lambdaclass/cairo-vm/pull/1838):
     * Add support for dynamic layout
