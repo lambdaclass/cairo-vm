@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
+
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
   * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
