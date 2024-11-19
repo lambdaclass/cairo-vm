@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+#### [2.0.0-rc1] - 2024-11-19
+
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
   * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
