@@ -109,10 +109,19 @@ impl Cairo1HintProcessor {
                 quotient,
                 remainder,
             })) => self.div_mod(vm, lhs, rhs, quotient, remainder),
-            Hint::Core(CoreHintBase::Core(CoreHint::DebugPrint { start, end })) => {
-                self.debug_print(vm, start, end)
-            }
 
+            #[allow(unused_variables)]
+            Hint::Core(CoreHintBase::Core(CoreHint::DebugPrint { start, end })) => {
+                #[cfg(feature = "std")]
+                {
+                    use crate::hint_processor::cairo_1_hint_processor::debug_print::format_for_debug;
+                    print!(
+                        "{}",
+                        format_for_debug(read_felts(vm, start, end)?.into_iter())
+                    );
+                }
+                Ok(())
+            }
             Hint::Core(CoreHintBase::Core(CoreHint::Uint256SquareRoot {
                 value_low,
                 value_high,
@@ -788,31 +797,6 @@ impl Cairo1HintProcessor {
 
         vm.insert_value((dict_address + 1)?, prev_value)
             .map_err(HintError::from)
-    }
-
-    #[allow(unused_variables)]
-    fn debug_print(
-        &self,
-        vm: &mut VirtualMachine,
-        start: &ResOperand,
-        end: &ResOperand,
-    ) -> Result<(), HintError> {
-        #[cfg(feature = "std")]
-        {
-            let mut curr = as_relocatable(vm, start)?;
-            let end = as_relocatable(vm, end)?;
-            while curr != end {
-                let value = vm.get_integer(curr)?;
-                if let Some(shortstring) = as_cairo_short_string(&value) {
-                    println!("[DEBUG]\t{shortstring: <31}\t(raw: {value: <31})");
-                } else {
-                    println!("[DEBUG]\t{0: <31}\t(raw: {value: <31}) ", ' ');
-                }
-                curr += 1;
-            }
-            println!();
-        }
-        Ok(())
     }
 
     fn assert_all_accesses_used(

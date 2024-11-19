@@ -42,6 +42,8 @@
   * Fix prover input.
   * Fix version reading when no version is supplied.
 
+* feat: Add support for ByteArray in DebugPrint: [#1853](https://github.com/lambdaclass/cairo-vm/pull/1853)
+  * Debug print handler is swapped with the implementation from cairo-lang-runner 
 
 * chore: bump `cairo-lang-` dependencies to 2.7.1 [#1823](https://github.com/lambdaclass/cairo-vm/pull/1823)
 
