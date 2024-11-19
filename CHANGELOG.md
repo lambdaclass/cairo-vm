@@ -1,8 +1,6 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
-* fix: [#1878](https://github.com/lambdaclass/cairo-vm/pull/1878)
-  * Fix test `test_felt_from_number_with_scientific_notation`
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
   * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
