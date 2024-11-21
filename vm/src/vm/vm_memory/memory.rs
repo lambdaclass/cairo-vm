@@ -1700,13 +1700,14 @@ mod memory_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg(feature = "extensive_hints")]
     fn relocate_address_to_integer() {
         let mut memory = Memory::new();
         memory
-            .add_relocation_rule_maybe_relocatable((-1, 0).into(), 0.into())
+            .add_relocation_rule((-1, 0).into(), 0.into())
             .unwrap();
         memory
-            .add_relocation_rule_maybe_relocatable((-2, 0).into(), 42.into())
+            .add_relocation_rule((-2, 0).into(), 42.into())
             .unwrap();
 
         assert_eq!(
@@ -1721,17 +1722,18 @@ mod memory_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg(feature = "extensive_hints")]
     fn relocate_address_integer_no_duplicates() {
         let mut memory = Memory::new();
         memory
-            .add_relocation_rule_maybe_relocatable((-1, 0).into(), 1.into())
+            .add_relocation_rule((-1, 0).into(), 1.into())
             .unwrap();
         assert_eq!(
-            memory.add_relocation_rule_maybe_relocatable((-1, 0).into(), 42.into()),
+            memory.add_relocation_rule((-1, 0).into(), 42.into()),
             Err(MemoryError::DuplicatedRelocation(-1))
         );
         assert_eq!(
-            memory.add_relocation_rule_maybe_relocatable((-1, 0).into(), (2, 0).into()),
+            memory.add_relocation_rule((-1, 0).into(), (2, 0).into()),
             Err(MemoryError::DuplicatedRelocation(-1))
         );
 
@@ -1741,10 +1743,10 @@ mod memory_tests {
         );
 
         memory
-            .add_relocation_rule_maybe_relocatable((-2, 0).into(), (3, 0).into())
+            .add_relocation_rule((-2, 0).into(), (3, 0).into())
             .unwrap();
         assert_eq!(
-            memory.add_relocation_rule_maybe_relocatable((-2, 0).into(), 1.into()),
+            memory.add_relocation_rule((-2, 0).into(), 1.into()),
             Err(MemoryError::DuplicatedRelocation(-2))
         );
 
