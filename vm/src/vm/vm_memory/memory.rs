@@ -316,7 +316,7 @@ impl Memory {
                     MaybeRelocatable::RelocatableValue(addr) => addr,
                     MaybeRelocatable::Int(_) => {
                         continue;
-                    },
+                    }
                 };
 
                 // Insert the to-be relocated segment into the real memory
@@ -734,7 +734,7 @@ impl RelocateValue<'_, Relocatable, MaybeRelocatable> for Memory {
                 return Ok(match x {
                     MaybeRelocatable::RelocatableValue(r) => {
                         (*r + addr.offset).map_err(MemoryError::Math)?.into()
-                    },
+                    }
                     MaybeRelocatable::Int(i) => i.into(),
                 });
             }

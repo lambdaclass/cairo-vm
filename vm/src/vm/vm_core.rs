@@ -1011,10 +1011,8 @@ impl VirtualMachine {
     pub fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
-        #[cfg(not(feature = "extensive_hints"))]
-        dst_ptr: Relocatable,
-        #[cfg(feature = "extensive_hints")]
-        dst_ptr: MaybeRelocatable,
+        #[cfg(not(feature = "extensive_hints"))] dst_ptr: Relocatable,
+        #[cfg(feature = "extensive_hints")] dst_ptr: MaybeRelocatable,
     ) -> Result<(), MemoryError> {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
