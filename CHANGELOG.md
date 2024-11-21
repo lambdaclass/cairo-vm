@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+#### [2.0.0-rc1] - 2024-11-20
+
 * feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
 
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
