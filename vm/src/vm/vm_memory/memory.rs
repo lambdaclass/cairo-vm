@@ -757,8 +757,12 @@ impl<'a> RelocateValue<'a, &'a MaybeRelocatable, Cow<'a, MaybeRelocatable>> for 
         Ok(match value {
             MaybeRelocatable::Int(_) => Cow::Borrowed(value),
             MaybeRelocatable::RelocatableValue(addr) => {
-                #[allow(clippy::useless_conversion)]
-                Cow::Owned(self.relocate_value(*addr)?.into())
+                #[cfg(not(feature = "extensive_hints"))]
+                let v = self.relocate_value(*addr)?.into();
+                #[cfg(feature = "extensive_hints")]
+                let v = self.relocate_value(*addr)?;
+
+                Cow::Owned(v)
             }
         })
     }
