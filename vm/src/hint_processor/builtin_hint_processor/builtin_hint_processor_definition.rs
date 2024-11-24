@@ -180,6 +180,9 @@ impl BuiltinHintProcessor {
 }
 
 impl HintProcessorLogic for BuiltinHintProcessor {
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn execute_hint(
         &mut self,
         vm: &mut VirtualMachine,

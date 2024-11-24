@@ -51,6 +51,7 @@ pub trait HintProcessorLogic {
         }))
     }
 
+    fn as_any_mut(&mut self) -> &mut dyn Any;
     #[cfg(feature = "extensive_hints")]
     // Executes the hint which's data is provided by a dynamic structure previously created by compile_hint
     // Also returns a map of hints to be loaded after the current hint is executed

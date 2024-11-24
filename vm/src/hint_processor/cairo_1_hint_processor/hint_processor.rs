@@ -1286,6 +1286,10 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         }
         Ok(())
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 impl ResourceTracker for Cairo1HintProcessor {
