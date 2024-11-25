@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: replace `div_rem` with `div_mod_floor` in `verify_zero` hints [#1881](https://github.com/lambdaclass/cairo-vm/pull/1881)
+
 * feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
 
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
