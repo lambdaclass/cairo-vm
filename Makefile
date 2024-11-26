@@ -53,10 +53,6 @@ MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
 MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
 COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
 
-SECP_CAIRO0_HINTS_TEST_PROOF_DIR=cairo_programs/cairo-0-secp-hints-feature/proof
-SECP_CAIRO0_HINTS_TEST_PROOF_FILES:=$(wildcard $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/*.cairo)
-SECP_CAIRO0_HINTS_PROOF_TESTS:=$(patsubst $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.cairo, $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.json, $(SECP_CAIRO0_HINTS_TEST_PROOF_FILES))
-
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
@@ -71,12 +67,6 @@ $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 
 $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json: $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(MOD_BUILTIN_TEST_PROOF_DIR):$(MOD_BUILTIN_TEST_PROOF_DIR)" $< --output $@ --proof_mode
-
-$(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.json: $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.cairo
-	cairo-compile --cairo_path="$(SECP_CAIRO0_HINTS_TEST_PROOF_DIR):$(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)" $< --output $@ --proof_mode
-
-$(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.trace $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.memory $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.air_public_input $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.air_private_input: $(SECP_CAIRO0_HINTS_TEST_PROOF_DIR)/%.json
-	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory --air_private_input $(@D)/$(*F).air_private_input
 
 # ======================
 # Run without proof mode
@@ -132,9 +122,6 @@ $(NORETROCOMPAT_DIR)/%.json: $(NORETROCOMPAT_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR):$(NORETROCOMPAT_DIR)" $< --output $@
 
 $(BAD_TEST_DIR)/%.json: $(BAD_TEST_DIR)/%.cairo
-	cairo-compile $< --output $@
-
-$(SECP_CAIRO0_HINTS_DIR)/%.json: $(SECP_CAIRO0_HINTS_DIR)/%.cairo
 	cairo-compile $< --output $@
 
 $(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
@@ -274,7 +261,7 @@ ifdef TEST_COLLECT_COVERAGE
 endif
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
-	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, cairo-0-secp-hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
 	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
 test-wasm: cairo_proof_programs cairo_test_programs
