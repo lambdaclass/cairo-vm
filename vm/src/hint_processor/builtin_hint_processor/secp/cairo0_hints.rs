@@ -115,7 +115,7 @@ pub fn compute_ids_high_low(
         return Err(HintError::ValueOutside250BitRange(Box::new(value)));
     }
 
-    let (high, low) = value.div_rem(&shift.try_into().map_err(|_| MathError::DividedByZero)?);
+    let (high, low) = value.div_mod_floor(&shift.try_into().map_err(|_| MathError::DividedByZero)?);
     insert_value_from_var_name("high", high, vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
     Ok(())
