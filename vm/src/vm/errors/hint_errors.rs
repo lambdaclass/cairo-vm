@@ -194,8 +194,6 @@ pub enum HintError {
     ExcessBalanceCalculationFailed(Box<str>),
     #[error("generate_nibbles fail: tried to read from an empty list of nibbles")]
     EmptyNibbles,
-    #[error("bls_split failed: BigInt could not be split")]
-    BlsSplitFail,
     #[error("circuit evalution: {0}")]
     CircuitEvaluationFailed(Box<str>),
 }
