@@ -16,7 +16,6 @@
 */
 use crate::stdlib::{collections::HashMap, prelude::*};
 
-use crate::stdlib::any::Any;
 use crate::Felt252;
 use num_traits::Zero;
 #[cfg(target_arch = "wasm32")]
@@ -123,10 +122,6 @@ impl HintProcessorLogic for SimplifiedOsHintProcessor {
             HELLO_WORLD => hello_world(),
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
     }
 }
 
