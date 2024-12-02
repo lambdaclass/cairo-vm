@@ -4,9 +4,10 @@
 
 * chore: bump pip `cairo-lang` 0.13.3 [#1884](https://github.com/lambdaclass/cairo-vm/pull/1884)
 
-#### [2.0.0-rc1] - 2024-11-20
-* chore: [#1855](https://github.com/lambdaclass/cairo-vm/pull/1880):
+* chore: [#1880](https://github.com/lambdaclass/cairo-vm/pull/1880):
   * Refactor vm crate to make it possible to use hint extension feature for nested programs with hints.
+
+#### [2.0.0-rc1] - 2024-11-20
 
 * feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
 
