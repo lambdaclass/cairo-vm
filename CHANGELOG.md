@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* fix: [#1862](https://github.com/lambdaclass/cairo-vm/pull/1862):
+  * Use MaybeRelocatable for relocation table
+
 * chore: bump pip `cairo-lang` 0.13.3 [#1884](https://github.com/lambdaclass/cairo-vm/pull/1884)
 
 * chore: [#1880](https://github.com/lambdaclass/cairo-vm/pull/1880):
