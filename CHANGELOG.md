@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Implement `SECP related` hints [#1829](https://github.com/lambdaclass/cairo-vm/pull/1829)
+
 * fix: [#1862](https://github.com/lambdaclass/cairo-vm/pull/1862):
   * Use MaybeRelocatable for relocation table
 
