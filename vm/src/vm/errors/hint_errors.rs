@@ -192,6 +192,8 @@ pub enum HintError {
     ExcessBalanceKeyError(Box<str>),
     #[error("excess_balance_func: Failed to calculate {0}")]
     ExcessBalanceCalculationFailed(Box<str>),
+    #[error("generate_nibbles fail: tried to read from an empty list of nibbles")]
+    EmptyNibbles,
     #[error("circuit evalution: {0}")]
     CircuitEvaluationFailed(Box<str>),
 }
