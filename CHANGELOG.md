@@ -4,7 +4,13 @@
 
 * feat: Implement `SECP related` hints [#1829](https://github.com/lambdaclass/cairo-vm/pull/1829)
 
+* fix: [#1862](https://github.com/lambdaclass/cairo-vm/pull/1862):
+  * Use MaybeRelocatable for relocation table
+
 * chore: bump pip `cairo-lang` 0.13.3 [#1884](https://github.com/lambdaclass/cairo-vm/pull/1884)
+
+* chore: [#1880](https://github.com/lambdaclass/cairo-vm/pull/1880):
+  * Refactor vm crate to make it possible to use hint extension feature for nested programs with hints.
 
 #### [2.0.0-rc1] - 2024-11-20
 
