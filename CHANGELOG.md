@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)
+
 * fix: replace `div_rem` with `div_mod_floor` in `verify_zero` hints [#1881](https://github.com/lambdaclass/cairo-vm/pull/1881)
 
 * feat: Implement `SECP related` hints [#1829](https://github.com/lambdaclass/cairo-vm/pull/1829)
