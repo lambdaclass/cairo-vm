@@ -73,7 +73,7 @@ The cairo1-run cli supports the following optional arguments:
 
 ## Running circuits
 
-Circuits in cairo 1 require the `mod_builtin` feature to be active in order for the `AddMod`, `MulMod` and `RangeCheck96` builtins to be taken into account.
+Circuits in cairo 1 require to enable the `mod_builtin` feature in order for the `AddMod`, `MulMod` and `RangeCheck96` builtins to be taken into account.
 
 # Running scarb projects
 
