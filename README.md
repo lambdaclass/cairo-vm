@@ -110,7 +110,7 @@ You can then activate this environment by running
 You can add the following to your rust project's `Cargo.toml`:
 
 ```toml
-cairo-vm = { version = '0.7.0'}
+cairo-vm = { version = '1.0.1'}
 ```
 
 ### Running cairo-vm from CLI
@@ -243,7 +243,7 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
             &mut hint_processor,
         );
 ```
-### Running cairo 1 programs 
+### Running cairo 1 programs
 
 To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
 
