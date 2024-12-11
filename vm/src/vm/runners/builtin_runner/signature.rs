@@ -3,7 +3,6 @@ use crate::math_utils::div_mod;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::types::builtin_name::BuiltinName;
-use crate::types::errors::math_errors::MathError;
 use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
 use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
@@ -22,7 +21,7 @@ use lazy_static::lazy_static;
 use num_bigint::{BigInt, Sign};
 use num_integer::div_ceil;
 use num_traits::{Num, One};
-use starknet_crypto::{verify, FieldElement, Signature};
+use starknet_crypto::{verify, Signature};
 
 lazy_static! {
     static ref EC_ORDER: BigInt = BigInt::from_str_radix(
@@ -60,8 +59,8 @@ impl SignatureBuiltinRunner {
         let r_be_bytes = r.to_bytes_be();
         let s_be_bytes = s.to_bytes_be();
         let (r_felt, s_felt) = (
-            FieldElement::from_bytes_be(&r_be_bytes).map_err(|_| MathError::ByteConversionError)?,
-            FieldElement::from_bytes_be(&s_be_bytes).map_err(|_| MathError::ByteConversionError)?,
+            Felt252::from_bytes_be(&r_be_bytes),
+            Felt252::from_bytes_be(&s_be_bytes),
         );
 
         let signature = Signature {
@@ -127,11 +126,9 @@ impl SignatureBuiltinRunner {
                     .get(&pubkey_addr)
                     .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key = FieldElement::from_bytes_be(&pubkey.to_bytes_be())
-                    .map_err(|_| MathError::ByteConversionError)?;
+                let public_key = Felt252::from_bytes_be(&pubkey.to_bytes_be());
                 let (r, s) = (signature.r, signature.s);
-                let message = FieldElement::from_bytes_be(&msg.to_bytes_be())
-                    .map_err(|_| MathError::ByteConversionError)?;
+                let message = Felt252::from_bytes_be(&msg.to_bytes_be());
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
@@ -198,10 +195,8 @@ impl SignatureBuiltinRunner {
             self.signatures.borrow_mut().insert(
                 *addr,
                 Signature {
-                    r: FieldElement::from_bytes_be(&r.to_bytes_be())
-                        .map_err(|_| MathError::ByteConversionError)?,
-                    s: FieldElement::from_bytes_be(&s.to_bytes_be())
-                        .map_err(|_| MathError::ByteConversionError)?,
+                    r: Felt252::from_bytes_be(&r.to_bytes_be()),
+                    s: Felt252::from_bytes_be(&s.to_bytes_be()),
                 },
             );
         }
@@ -523,8 +518,8 @@ mod tests {
         let signatures = HashMap::from([(
             Relocatable::from((4, 0)),
             Signature {
-                r: FieldElement::from_dec_str("45678").unwrap(),
-                s: FieldElement::from_dec_str("1239").unwrap(),
+                r: Felt252::from_dec_str("45678").unwrap(),
+                s: Felt252::from_dec_str("1239").unwrap(),
             },
         )]);
         builtin.signatures = Rc::new(RefCell::new(signatures));
@@ -544,8 +539,8 @@ mod tests {
         let signatures = HashMap::from([(
             Relocatable::from((0, 0)),
             Signature {
-                r: FieldElement::from_dec_str("45678").unwrap(),
-                s: FieldElement::from_dec_str("1239").unwrap(),
+                r: Felt252::from_dec_str("45678").unwrap(),
+                s: Felt252::from_dec_str("1239").unwrap(),
             },
         )]);
         builtin_a.signatures = Rc::new(RefCell::new(signatures));
