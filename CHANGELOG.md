@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Update starknet-crypto to 0.7.3, removing the old FieldElement completly in favour of the new Felt (that is Copy).
+
 * fix: replace `div_rem` with `div_mod_floor` in `verify_zero` hints [#1881](https://github.com/lambdaclass/cairo-vm/pull/1881)
 
 * feat: Implement `SECP related` hints [#1829](https://github.com/lambdaclass/cairo-vm/pull/1829)
