@@ -4,6 +4,8 @@
 
 #### [2.0.0-rc2] - 2024-12-12
 
+* fix: Change wildcard getrandom dependency.
+
 * Update starknet-crypto to 0.7.3, removing the old FieldElement completly in favour of the new Felt (that is Copy).
 
 * chore: update the cairo-vm version used in the readme
