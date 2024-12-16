@@ -60,11 +60,11 @@ pub fn write_div_mod_segment(
     let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
 
-    let q_arg: Vec<MaybeRelocatable> = bls_split(&q)
+    let q_arg: Vec<MaybeRelocatable> = bls_split(q)
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
-    let res_arg: Vec<MaybeRelocatable> = bls_split(&r)
+    let res_arg: Vec<MaybeRelocatable> = bls_split(r)
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
@@ -74,26 +74,25 @@ pub fn write_div_mod_segment(
     Ok(())
 }
 
-fn bls_split(num: &BigInt) -> Vec<BigInt> {
+fn bls_split(mut num: BigInt) -> Vec<BigInt> {
     use num_traits::Signed;
-    let mut num = num.clone();
     let mut a = Vec::new();
     for _ in 0..2 {
-        let residue = num.clone() % BLS_BASE.deref();
+        let residue = &num % BLS_BASE.deref();
         num /= BLS_BASE.deref();
         a.push(residue);
     }
-    a.push(num.clone());
     assert!(num.abs() < BigInt::from_u128(1 << 127).unwrap());
+    a.push(num);
     a
 }
 
-fn as_int(value: &BigInt, prime: &BigInt) -> BigInt {
-    let half_prime = prime.clone() / 2u32;
-    if value > &half_prime {
+fn as_int(value: BigInt, prime: &BigInt) -> BigInt {
+    let half_prime = prime / 2u32;
+    if value > half_prime {
         value - prime
     } else {
-        value.clone()
+        value
     }
 }
 
@@ -103,7 +102,7 @@ fn bls_pack(z: &BigInt3, prime: &BigInt) -> BigInt {
         .iter()
         .enumerate()
         .fold(BigInt::zero(), |acc, (i, limb)| {
-            let limb_as_int = as_int(&limb.to_bigint(), prime);
+            let limb_as_int = as_int(limb.to_bigint(), prime);
             acc + limb_as_int * &BLS_BASE.pow(i as u32)
         })
 }
