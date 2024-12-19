@@ -310,3 +310,7 @@ The input of the Virtual Machine is a compiled Cairo program in Json format. The
 - **main_scope:** Usually something like `__main__`. All the identifiers associated with main function will be identified as `__main__`.identifier_name. Useful to identify the entrypoint of the program.
 - **prime:** The cairo prime in hexadecimal format. As explained above, all arithmetic operations are done over a base field, modulo this primer number.
 - **reference_manager:** Contains information about cairo variables. This information is useful to access to variables when executing cairo hints.
+
+# Code Walkthrough
+
+If you want a step by step guide on how to implement your own VM you can read our [code walkthrough in Go](https://github.com/lambdaclass/cairo-vm_in_go?tab=readme-ov-file#code-walkthroughwrite-your-own-cairo-vm)
