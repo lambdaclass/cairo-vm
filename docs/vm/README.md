@@ -157,6 +157,44 @@ CASM instruction have the following format. If the instruction uses an immediate
 
 For an in-depth explanation, you can see Cairo whitepaper, page 33 - https://eprint.iacr.org/2021/1063.pdf, or checkout [our implementation](/vm/src/vm/vm_core.rs).
 
+Take, for example, the following instruction:
+
+```
+[ap + 1] = [fp + 2] + 3
+```
+
+The instruction (at `[pc]`) will be encoded as:
+
+```
+off_dst   = 1
+off_op0   = 2
+off_op1   = 1 # It's always 1 when op1 is an immediate
+dst_reg   = 0 # AP
+op0_reg   = 1 # FP
+op1_src   = 1 # Immediate
+res_logic = 1 # Add
+pc_update = 0 # Regular (advance)
+ap_update = 0 # Regular (no update)
+opcode    = 4 # Assert
+```
+
+The next instruction (at `[pc + 1]`) will be the immediate, and it will have a value of `3`.
+
+Given the following initial register values:
+```
+fp = 5
+ap = 10
+pc = 15
+```
+Then:
+- `op1` is `[fp + 2]`, which is resolved to `[7]`.
+- `op2` is `[pc + 1]`, which is resolved to `[16] == 3`.
+- `dst` is `[ap + 1]`, which is resolved to `[11]`
+- The result of `op1 + op2` is stored at `dst`
+- The register `pc` is increased by 2, we skip the next instruction because it was the immediate.
+- The register `fp` is not updated
+- The register `ap` is not updated
+
 ## Hints
 
 So far we have been thinking about the VM mostly abstracted from the prover and verifier it's meant to feed its results to. The last main feature we need to talk about, however, requires keeping this proving/verifying logic in mind.
