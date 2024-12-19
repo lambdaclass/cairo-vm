@@ -134,21 +134,28 @@ CASM instruction have the following format. If the instruction uses an immediate
 ```
 //  Structure of the 63-bit that form the first word of each instruction.
 //  See Cairo whitepaper, page 32 - https://eprint.iacr.org/2021/1063.pdf.
-// ┌─────────────────────────────────────────────────────────────────────────┐
-// │                     off_dst (biased representation)                     │
-// ├─────────────────────────────────────────────────────────────────────────┤
-// │                     off_op0 (biased representation)                     │
-// ├─────────────────────────────────────────────────────────────────────────┤
-// │                     off_op1 (biased representation)                     │
-// ├─────┬─────┬───────┬───────┬───────────┬────────┬───────────────────┬────┤
-// │ dst │ op0 │  op1  │  res  │    pc     │   ap   │      opcode       │ 0  │
-// │ reg │ reg │  src  │ logic │  update   │ update │                   │    │
-// ├─────┼─────┼───┬───┼───┬───┼───┬───┬───┼───┬────┼────┬────┬────┬────┼────┤
-// │  0  │  1  │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │
-// └─────┴─────┴───┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     off_dst (biased representation)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                     off_op0 (biased representation)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                     off_op1 (biased representation)                     │
+├─────┬─────┬───────┬───────┬───────────┬────────┬───────────────────┬────┤
+│ dst │ op0 │  op1  │  res  │    pc     │   ap   │      opcode       │ 0  │
+│ reg │ reg │  src  │ logic │  update   │ update │                   │    │
+├─────┼─────┼───┬───┼───┬───┼───┬───┬───┼───┬────┼────┬────┬────┬────┼────┤
+│  0  │  1  │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │
+└─────┴─────┴───┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┘
 ```
 
-TODO: Explain the meaning of each element
+- The first 6 fields: `off_dst`, `off_op0`, `off_op1`, `dst_reg`, `op0_reg`, `op1_src` determine the memory locations of the operands, and the destination of the result (which is not always used).
+  - `op1_src` occupies 2 bits, as it can also be an immediate, in which case the value will be taken from the next instruction (`[pc + 1]`).
+- The `res_logic` field determines how to compute the result (op1, sum, multiplication). The usage of the result depends on the following fields.
+- The `opcode` field describes which operation is been performed (noop, assert, call, ret). It modifies the meaning of the following fields.
+- The `pc_update` field determines how to update the program counter (advance, jump, branch, etc.).
+- The `ap_update` field determines how to update the allocation pointer.
+
+For an in-depth explanation, you can see Cairo whitepaper, page 33 - https://eprint.iacr.org/2021/1063.pdf, or checkout [our implementation](/vm/src/vm/vm_core.rs).
 
 ## Hints
 
