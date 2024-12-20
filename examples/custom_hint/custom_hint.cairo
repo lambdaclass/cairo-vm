@@ -1,6 +1,9 @@
 func main() {
-    let a = 17;
-    // Use custom hint to print the value of a
+    alloc_locals;
+    local tmp = 3;
+    let a = 17 - tmp;
+
     %{ print(ids.a) %}
+
     return ();
 }
