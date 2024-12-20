@@ -404,15 +404,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn parse_value_with_neg_inner_dereference_test() {
-        let value = "cast(17 - [fp], felt)";
-        let parsed = parse_value(value).unwrap();
-
-        dbg!(parsed);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_inner_dereference_test() {
         let value = "[cast([fp + (-1)] + 2, felt*)]";
         let parsed = parse_value(value);
@@ -430,6 +421,27 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn parse_value_with_neg_inner_dereference_test() {
+        let value = "cast(17 - [fp], felt)";
+        let parsed = parse_value(value).unwrap();
+
+        assert_eq!(
+            parsed,
+            (
+                "",
+                ValueAddress {
+                    offset1: OffsetValue::Immediate(Felt252::from(17)),
+                    offset2: OffsetValue::Reference(Register::FP, 0_i32, true, true),
+                    outer_dereference: true,
+                    inner_dereference: false,
+                    value_type: "felt".to_string()
+                }
+            )
+        )
     }
 
     #[test]
