@@ -121,7 +121,13 @@ impl HintReference {
         }
     }
 
-    pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool, is_positive: bool) -> Self {
+    pub fn new(
+        offset1: i32,
+        offset2: i32,
+        inner_dereference: bool,
+        dereference: bool,
+        is_positive: bool,
+    ) -> Self {
         HintReference {
             offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference, is_positive),
             offset2: OffsetValue::Value(offset2),

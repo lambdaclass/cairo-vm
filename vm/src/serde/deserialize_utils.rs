@@ -129,12 +129,12 @@ fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
     let (input, sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
 
     let is_positive = match sign {
-        Some(s) => match s {
+        Some(s) => match s.trim() {
             "+" => true,
             "-" => false,
-            _ => unreachable!()
+            a => unreachable!("{}", a),
         },
-        None => true
+        None => true,
     };
 
     map_res(
@@ -188,13 +188,17 @@ pub(crate) fn parse_value(input: &str) -> IResult<&str, ValueAddress> {
         let offset1 = match fst_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
             OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
-            OffsetValue::Reference(reg, val, refe, is_positive) => OffsetValue::Reference(reg, val, refe, is_positive),
+            OffsetValue::Reference(reg, val, refe, is_positive) => {
+                OffsetValue::Reference(reg, val, refe, is_positive)
+            }
         };
 
         let offset2 = match snd_offset {
             OffsetValue::Immediate(imm) => OffsetValue::Immediate(imm),
             OffsetValue::Value(val) => OffsetValue::Immediate(Felt252::from(val)),
-            OffsetValue::Reference(reg, val, refe, is_positive) => OffsetValue::Reference(reg, val, refe, is_positive),
+            OffsetValue::Reference(reg, val, refe, is_positive) => {
+                OffsetValue::Reference(reg, val, refe, is_positive)
+            }
         };
 
         (offset1, offset2)
@@ -379,7 +383,10 @@ mod tests {
 
         assert_eq!(
             parsed,
-            Ok((" + 2", OffsetValue::Reference(Register::FP, -1_i32, true, true)))
+            Ok((
+                " + 2",
+                OffsetValue::Reference(Register::FP, -1_i32, true, true)
+            ))
         );
     }
 

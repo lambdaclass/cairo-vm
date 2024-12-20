@@ -70,7 +70,12 @@ pub fn get_maybe_relocatable_from_reference(
         &hint_reference.ap_tracking_data,
         ap_tracking,
     )?;
-    let mut val = offset1.add(&offset2).ok()?;
+    let mut val = match hint_reference.offset2 {
+        OffsetValue::Reference(_, _, _, true)
+        | OffsetValue::Immediate(_)
+        | OffsetValue::Value(_) => offset1.add(&offset2).ok()?,
+        OffsetValue::Reference(_, _, _, false) => offset1.sub(&offset2).ok()?,
+    };
     if hint_reference.inner_dereference && hint_reference.outer_dereference {
         val = vm.get_maybe(&val)?;
     }
