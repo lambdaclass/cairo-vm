@@ -125,7 +125,6 @@ fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
     if input.is_empty() {
         return Ok(("", OffsetValue::Value(0)));
     }
-    println!("inner_dereference : {}", &input);
     let (input, sign) = opt(alt((tag(" + "), tag(" - "))))(input)?;
 
     let is_positive = match sign {
@@ -152,7 +151,6 @@ fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
 }
 
 fn no_inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
-    println!("no_inner_dereference : {}", &input);
     let (rem_input, (register, offset)) = register_and_offset(input)?;
     let offset_value = match register {
         None => OffsetValue::Value(offset),
@@ -435,8 +433,8 @@ mod tests {
                 "",
                 ValueAddress {
                     offset1: OffsetValue::Immediate(Felt252::from(17)),
-                    offset2: OffsetValue::Reference(Register::FP, 0_i32, true, true),
-                    outer_dereference: true,
+                    offset2: OffsetValue::Reference(Register::FP, 0_i32, true, false),
+                    outer_dereference: false,
                     inner_dereference: false,
                     value_type: "felt".to_string()
                 }
