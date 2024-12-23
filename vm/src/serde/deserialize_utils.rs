@@ -132,7 +132,7 @@ fn inner_dereference(input: &str) -> IResult<&str, OffsetValue> {
             "+" => true,
             "-" => false,
             // can't happen since the alt parser only takes "+" or "-"
-            _ => unreachable!()
+            _ => unreachable!(),
         },
         None => true,
     };
