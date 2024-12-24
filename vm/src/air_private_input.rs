@@ -12,8 +12,8 @@ use crate::Felt252;
 // Serializable format, matches the file output of the python implementation
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct AirPrivateInputSerializable {
-    trace_path: String,
-    memory_path: String,
+    pub trace_path: String,
+    pub memory_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pedersen: Option<Vec<PrivateInput>>,
     #[serde(skip_serializing_if = "Option::is_none")]
