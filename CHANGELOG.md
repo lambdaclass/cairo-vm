@@ -2,9 +2,11 @@
 
 #### Upcoming Changes
 
-#### [2.0.0-rc2] - 2024-12-12
+#### [2.0.0-rc3] - 2024-12-26
 
-* chore: update cairo-lang dependencies to 2.10.0-rc.0
+* chore: update cairo-lang dependencies to 2.10.0-rc.0 #[1901](https://github.com/lambdaclass/cairo-vm/pull/1901)
+
+#### [2.0.0-rc2] - 2024-12-12
 
 * fix: Change wildcard getrandom dependency.
 
