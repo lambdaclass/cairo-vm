@@ -2,9 +2,11 @@
 
 #### Upcoming Changes
 
-#### [2.0.0-rc2] - 2024-12-12
+#### [2.0.0-rc2] - 2024-12-26
 
 * chore: update cairo-lang dependencies to 2.10.0-rc.0
+
+#### [2.0.0-rc2] - 2024-12-12
 
 * fix: Change wildcard getrandom dependency.
 
