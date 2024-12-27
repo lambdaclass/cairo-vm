@@ -60,9 +60,9 @@ use arbitrary::{Arbitrary, Unstructured};
 // failures.
 // Fields in `Program` (other than `SharedProgramData` itself) are used by the main logic.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub(crate) struct SharedProgramData {
+pub struct SharedProgramData {
     pub(crate) data: Vec<MaybeRelocatable>,
-    pub(crate) hints_collection: HintsCollection,
+    pub hints_collection: HintsCollection,
     pub(crate) main: Option<usize>,
     //start and end labels will only be used in proof-mode
     pub(crate) start: Option<usize>,
@@ -70,7 +70,7 @@ pub(crate) struct SharedProgramData {
     pub(crate) error_message_attributes: Vec<Attribute>,
     pub(crate) instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     pub(crate) identifiers: HashMap<String, Identifier>,
-    pub(crate) reference_manager: Vec<HintReference>,
+    pub reference_manager: Vec<HintReference>,
 }
 
 #[cfg(feature = "test_utils")]
@@ -107,13 +107,13 @@ impl<'a> Arbitrary<'a> for SharedProgramData {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub(crate) struct HintsCollection {
-    hints: Vec<HintParams>,
+pub struct HintsCollection {
+    pub hints: Vec<HintParams>,
     /// This maps a PC to the range of hints in `hints` that correspond to it.
     #[cfg(not(feature = "extensive_hints"))]
     pub(crate) hints_ranges: Vec<HintRange>,
     #[cfg(feature = "extensive_hints")]
-    pub(crate) hints_ranges: HashMap<Relocatable, HintRange>,
+    pub hints_ranges: HashMap<Relocatable, HintRange>,
 }
 
 impl HintsCollection {
@@ -200,8 +200,8 @@ pub type HintRange = (usize, NonZeroUsize);
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
-    pub(crate) shared_program_data: Arc<SharedProgramData>,
-    pub(crate) constants: HashMap<String, Felt252>,
+    pub shared_program_data: Arc<SharedProgramData>,
+    pub constants: HashMap<String, Felt252>,
     pub(crate) builtins: Vec<BuiltinName>,
 }
 

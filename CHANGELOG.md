@@ -1,6 +1,39 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+#### [2.0.0-rc3] - 2024-12-26
+
+* chore: update cairo-lang dependencies to 2.10.0-rc.0 #[1901](https://github.com/lambdaclass/cairo-vm/pull/1901)
+
+#### [2.0.0-rc2] - 2024-12-12
+
+* fix: Change wildcard getrandom dependency.
+
+* Update starknet-crypto to 0.7.3, removing the old FieldElement completly in favour of the new Felt (that is Copy).
+
+* chore: update the cairo-vm version used in the readme
+
+* chore: update cairo-lang dependencies to 2.9.2
+
+* fix: replace `div_rem` with `div_mod_floor` in `verify_zero` hints [#1881](https://github.com/lambdaclass/cairo-vm/pull/1881)
+
+* feat: Implement `SECP related` hints [#1829](https://github.com/lambdaclass/cairo-vm/pull/1829)
+
+* chore: bump pip `cairo-lang` 0.13.3 [#1884](https://github.com/lambdaclass/cairo-vm/pull/1884)
+
+* fix: [#1862](https://github.com/lambdaclass/cairo-vm/pull/1862):
+  * Use MaybeRelocatable for relocation table
+
+* chore: bump pip `cairo-lang` 0.13.3 [#1884](https://github.com/lambdaclass/cairo-vm/pull/1884)
+
+* chore: [#1880](https://github.com/lambdaclass/cairo-vm/pull/1880):
+  * Refactor vm crate to make it possible to use hint extension feature for nested programs with hints.
+
+#### [2.0.0-rc1] - 2024-11-20
+
+* feat: add `EvalCircuit` and `TestLessThanOrEqualAddress` hints [#1843](https://github.com/lambdaclass/cairo-vm/pull/1843)
+
 * fix: [#1873](https://github.com/lambdaclass/cairo-vm/pull/1873)
   * Fix broken num-prime `is_prime` call
 * fix: [#1868](https://github.com/lambdaclass/cairo-vm/pull/1855):
