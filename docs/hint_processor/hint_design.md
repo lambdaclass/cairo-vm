@@ -129,7 +129,7 @@ We went through the code in the starknet folder looking for hints, seeing what t
 * **builtins.cairo**: There are no hints here but there is a dependency on builtins from the Cairo common library that we have not currently implemented:
     * EcOpBuiltin (it is implemented)
     * SignatureBuiltin
-* **state.cairo (4 hints)**: Uses the patricia module from the Cairo common library. Hints use a object `global_state_storage` and methods associated to it.
+* **state.cairo (4 hints)**: Uses the patricia module from the Cairo common library. Hints use an object `global_state_storage` and methods associated to it.
 * **block_context.cairo (5 hints)**: All hints are used with the `nondet` keyword. Also, the hints use the `sycall_handler` already mentioned and a new object, `os_input`.
 * **transactions.cairo (46 hints)**: Has a dependency with the `builtin_selection` module of the Cairo library, a module with hints that we didn´t implement. Lots of syscalls in the hints.
 * **output.cairo (1 hint)**: Just one big hint of regular Python code for the exception of the usage of the output_builtin as an object (I'm not sure if this appeared before)
