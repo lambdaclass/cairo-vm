@@ -101,7 +101,7 @@ These last two structures are used by helper functions to manage variables from 
 ### Helper functions
 There are many helper functions available [here](../../../src/hint_processor/builtin_hint_processor/hint_utils.rs), that will allow you to easily manage cairo variables:
 
-* **get_integer_from_var_name**: gets the value from memory of a integer variable.
+* **get_integer_from_var_name**: gets the value from memory of an integer variable.
 * **get_ptr_from_var_name**: gets the value from memory of a pointer variable. 
 * **compute_addr_from_var_name**: gets the address of a given variable.
 * **insert_value_from_var_name**: assigns a value to a Cairo variable. 
