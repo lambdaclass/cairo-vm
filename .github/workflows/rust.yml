@@ -323,7 +323,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        special_features: ["", "extensive_hints", "mod_builtin", "cairo-0-secp-hints"]
+        special_features: ["", "extensive_hints", "mod_builtin", "cairo-0-secp-hints", "cairo-0-data-availability-hints"]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
     runs-on: ubuntu-22.04
