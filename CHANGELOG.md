@@ -8,7 +8,7 @@
 
 #### [2.0.0-rc2] - 2024-12-12
 
-* feat: Add support for subtractions contenting references as right hand side operands [#1898](https://github.com/lambdaclass/cairo-vm/pull/1898)
+* feat: Add support for subtractions containing references as right hand side operands [#1898](https://github.com/lambdaclass/cairo-vm/pull/1898)
 
 * fix: Change wildcard getrandom dependency.
 
