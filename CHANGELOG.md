@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)
+
 #### [2.0.0-rc3] - 2024-12-26
 
 * chore: update cairo-lang dependencies to 2.10.0-rc.0 #[1901](https://github.com/lambdaclass/cairo-vm/pull/1901)
