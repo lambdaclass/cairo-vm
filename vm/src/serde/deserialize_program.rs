@@ -275,7 +275,7 @@ pub struct Reference {
 pub enum OffsetValue {
     Immediate(Felt252),
     Value(i32),
-    Reference(Register, i32, bool),
+    Reference(Register, i32, bool, bool),
 }
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
@@ -714,7 +714,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -4, false),
+                        offset1: OffsetValue::Reference(Register::FP, -4, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
@@ -728,7 +728,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -3, false),
+                        offset1: OffsetValue::Reference(Register::FP, -3, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
@@ -742,7 +742,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -3, true),
+                        offset1: OffsetValue::Reference(Register::FP, -3, true, true),
                         offset2: OffsetValue::Immediate(Felt252::from(2)),
                         outer_dereference: false,
                         inner_dereference: false,
@@ -756,7 +756,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, 0, false),
+                        offset1: OffsetValue::Reference(Register::FP, 0, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
