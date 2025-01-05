@@ -212,14 +212,19 @@ impl BuiltinRunner {
                             )
                             .into());
                         };
-
-                        let allocated_instances = if let Some(ratio_den) = self.ratio_den() {
-                            safe_div_usize(vm.current_step * ratio_den as usize, ratio as usize)
-                                .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
+                        let numerator = if let Some(ratio_den) = self.ratio_den() {
+                            vm.current_step * ratio_den as usize
                         } else {
-                            safe_div_usize(vm.current_step, ratio as usize)
+                            vm.current_step
+                        };
+
+                        let allocated_instances = if vm.disable_trace_padding {
+                            div_ceil(numerator, ratio as usize)
+                        } else {
+                            safe_div_usize(numerator, ratio as usize)
                                 .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
                         };
+
                         Ok(allocated_instances)
                     }
                 }
