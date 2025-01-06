@@ -4,7 +4,7 @@
 
 - [ ] Pull latest from `main` branch.
       `git checkout main && git pull origin main`
-- [ ] Determine release version string dependending on whether changes included
+- [ ] Determine release version string depending on whether changes included
       in changelog are API breaking, it's a release candidate, etc.
       The release string should have the format "vX.Y.Z", with a possible
       trailing "-rcN" and follow [semantic versioning](https://semver.org/).
