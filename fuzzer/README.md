@@ -15,4 +15,4 @@ We use nightly for this fuzzer because cargo fuzz runs with the -Z flag, which o
 To run the diff fuzzer on various cairo hints, go to the root of the project and run
 `make fuzzer-deps` if you haven't before, this should only be run once. Then, you can call
 `make fuzzer-run-hint-diff` to run the fuzzer.
-For more documentaion, check out the diff_fuzzer [README](diff_fuzzer/README.md)
+For more documentation, check out the diff_fuzzer [README](diff_fuzzer/README.md)
