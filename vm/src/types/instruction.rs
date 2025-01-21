@@ -74,6 +74,7 @@ pub enum Opcode {
     AssertEq,
     Call,
     Ret,
+    Blake2s,
 }
 
 impl Instruction {
