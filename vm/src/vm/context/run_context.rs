@@ -106,7 +106,7 @@ mod tests {
     use super::*;
     use crate::relocatable;
     use crate::stdlib::string::ToString;
-    use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, PcUpdate, Res};
+    use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, OpcodeExtension, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::Felt252;
@@ -130,6 +130,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -158,6 +159,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -187,6 +189,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -215,6 +218,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -243,6 +247,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -271,6 +276,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -299,6 +305,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -327,6 +334,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -358,6 +366,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -388,6 +397,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {
@@ -420,6 +430,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let run_context = RunContext {

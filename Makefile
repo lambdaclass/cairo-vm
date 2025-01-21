@@ -82,6 +82,10 @@ CAIRO_RS_MEM:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.memory, $(COMPILED
 CAIRO_RS_TRACE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.trace, $(COMPILED_TESTS))
 CAIRO_RS_PIE:=$(patsubst $(TEST_DIR)/%.json, $(TEST_DIR)/%.rs.pie.zip, $(COMPILED_TESTS))
 
+STWO_EXCLUSIVE_DIR=cairo_programs/stwo_exclusive_programs
+STWO_EXCLUSIVE_FILES:=$(wildcard $(STWO_EXCLUSIVE_DIR)/*.cairo)
+COMPILED_STWO_EXCLUSIVE_TESTS:=$(patsubst $(STWO_EXCLUSIVE_DIR)/%.cairo, $(STWO_EXCLUSIVE_DIR)/%.json, $(STWO_EXCLUSIVE_FILES))
+
 BENCH_DIR=cairo_programs/benchmarks
 BENCH_FILES:=$(wildcard $(BENCH_DIR)/*.cairo)
 COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_FILES))
@@ -249,6 +253,7 @@ check:
 
 cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS) $(COMPILED_SECP_CAIRO0_HINTS) $(COMPILED_KZG_DA_CAIRO0_HINTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS)
+cairo_stwo_exclusive_programs: $(COMPILED_STWO_EXCLUSIVE_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)

@@ -101,6 +101,8 @@ pub enum MemoryError {
     UnrelocatedMemory,
     #[error("Malformed public memory")]
     MalformedPublicMemory,
+    #[error("Expected u32 valued Felt252, found {0}")]
+    ExpectedU32(Box<Felt252>),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]
