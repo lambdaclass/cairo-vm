@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
+
 * feat: add the functions `get_u32_range` and `get_u32_from_felt252` to `impl VirtualMachine` [#1936](https://github.com/lambdaclass/cairo-vm/pull/1936)
 
 * feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)

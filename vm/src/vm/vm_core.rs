@@ -1,17 +1,24 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
+use crate::types::instruction::OpcodeExtension;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
-    hint_processor::hint_processor_definition::HintProcessor,
+    hint_processor::{
+        builtin_hint_processor::blake2s_hash::blake2s_compress,
+        hint_processor_definition::HintProcessor,
+    },
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
             is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
         },
-        relocatable::{MaybeRelocatable, MaybeRelocatable::RelocatableValue, Relocatable},
+        relocatable::{
+            MaybeRelocatable, MaybeRelocatable::Int, MaybeRelocatable::RelocatableValue,
+            Relocatable,
+        },
     },
     vm::{
         context::run_context::RunContext,
@@ -441,8 +448,54 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
+        if instruction.opcode_extension == OpcodeExtension::Blake {
+            self.handle_blake2s_instruction(&operands)?;
+        }
+
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
+
+        Ok(())
+    }
+
+    /// Executes a Blake2s instruction.
+    /// Expects operands to be RelocatableValue and to point to segments of memory.
+    /// op0 is expected to point to a sequence of 8 u32 values (state).
+    /// op1 is expected to point to a sequence of 16 u32 values (message).
+    /// dst is expected hold the u32 value of the counter.
+    /// ap is expected to point to a sequence of 8 cells each being either unitialised or
+    /// containing the Blake2s compression output at that index.
+    /// Deviation from the aforementioned expectations will result in an error.
+    /// The instruction will update the ap memory segment with the new state.
+    /// Note: the byte counter should count the number of message bytes processed so far including
+    /// the current portion of the message (i.e. it starts at 64, not 0).
+    fn handle_blake2s_instruction(
+        &mut self,
+        operands: &Operands,
+    ) -> Result<(), VirtualMachineError> {
+        let counter: u32 = match operands.dst {
+            Int(felt) => VirtualMachine::get_u32_from_felt252(felt)?,
+            _ => return Err(VirtualMachineError::Blake2sInvalidCounter),
+        };
+
+        let state: [u32; 8] = (self.get_u32_range(&operands.op0, 8)?)
+            .try_into()
+            .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(0, 8))?;
+        let message = (self.get_u32_range(&operands.op1, 16)?)
+            .try_into()
+            .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(1, 16))?;
+
+        let ap = self.run_context.get_ap();
+        let output_address = self.segments.memory.get_relocatable(ap)?;
+
+        let new_state = blake2s_compress(&state, &message, counter, 0, 0, 0);
+
+        for (i, &val) in new_state.iter().enumerate() {
+            self.segments.memory.insert_as_accessed(
+                (output_address + i)?,
+                MaybeRelocatable::Int(Felt252::from(val)),
+            )?;
+        }
 
         Ok(())
     }
@@ -4441,6 +4494,63 @@ mod tests {
         let x = (1_u64 << 32) - 1;
         let x_felt = Felt252::from(x);
         assert_eq!(VirtualMachine::get_u32_from_felt252(x_felt), Ok(x as u32));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_relocatable_counter() {
+        let mut vm = vm!();
+        let operands = Operands {
+            dst: MaybeRelocatable::RelocatableValue((0, 1).into()),
+            op0: MaybeRelocatable::Int(Felt252::from(0)),
+            op1: MaybeRelocatable::Int(Felt252::from(0)),
+            res: None,
+        };
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands),
+            Err(VirtualMachineError::Blake2sInvalidCounter)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_ap_points_to_unallocated() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((0, 5), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0),
+            ((0, 10), 0),
+            ((0, 11), 0),
+            ((0, 12), 0),
+            ((0, 13), 0),
+            ((0, 14), 0),
+            ((0, 15), 0),
+            ((1, 0), (2, 0))
+        ];
+        let operands = Operands {
+            dst: MaybeRelocatable::Int(Felt252::from(0)),
+            op0: MaybeRelocatable::RelocatableValue((0, 0).into()),
+            op1: MaybeRelocatable::RelocatableValue((0, 0).into()),
+            res: None,
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands),
+            Err(VirtualMachineError::Memory(MemoryError::UnallocatedSegment(bx))) if *bx == (2, 2)
+        );
     }
 
     #[test]
