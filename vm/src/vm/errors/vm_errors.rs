@@ -34,8 +34,6 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Instruction MSB should be 0")]
-    InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
@@ -76,6 +74,10 @@ pub enum VirtualMachineError {
     InvalidRes(u64),
     #[error("Invalid opcode value: {0}")]
     InvalidOpcode(u64),
+    #[error("Invalid opcode extension value: {0}")]
+    InvalidOpcodeExtension(u64),
+    #[error("Nonzero opcode value: {0} and nonzero opcode extension value: {1}")]
+    OpcodeExtensionClash(u64, u64),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
@@ -136,6 +138,12 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
+    Blake2sInvalidOperand(u8, u8),
+    #[error("Blake2s opcode invalid counter, value too large or not an integer.")]
+    Blake2sInvalidCounter,
+    #[error("Blake2s opcode invalid flags {0}")]
+    InvalidBlake2sFlags(u64),
 }
 
 #[cfg(test)]
