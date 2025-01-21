@@ -1,4 +1,7 @@
-use crate::math_utils::signed_felt;
+use crate::math_utils::{
+    blake2s_utils::{blake2s_last_block_raw, blake2s_non_last_block_raw},
+    signed_felt,
+};
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
@@ -11,14 +14,14 @@ use crate::{
         instruction::{
             is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
         },
-        relocatable::{MaybeRelocatable, Relocatable},
+        relocatable::{MaybeRelocatable, MaybeRelocatable::RelocatableValue, Relocatable},
     },
     vm::{
         context::run_context::RunContext,
         decoding::decoder::decode_instruction,
         errors::{
             exec_scope_errors::ExecScopeError, memory_errors::MemoryError,
-            vm_errors::VirtualMachineError,
+            memory_errors::MemoryError::AddressNotRelocatable, vm_errors::VirtualMachineError,
         },
         runners::builtin_runner::{
             BuiltinRunner, OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
@@ -404,7 +407,9 @@ impl VirtualMachine {
     fn run_instruction(&mut self, instruction: &Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
             self.compute_operands(instruction)?;
+
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
+
         self.opcode_assertions(instruction, &operands)?;
 
         if let Some(ref mut trace) = &mut self.trace {
@@ -438,8 +443,65 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
+        if instruction.opcode == Opcode::Blake2s || instruction.opcode == Opcode::Blake2sLastBlock {
+            self.handle_blake2s_instruction(
+                &operands,
+                instruction.opcode == Opcode::Blake2sLastBlock,
+            )?;
+        }
+
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
+
+        Ok(())
+    }
+
+    /// Executes a Blake2s or Blake2sLastBlock instruction.
+    /// Expects operands to be RelocatableValue and to point to segments of memory.
+    /// op0 is expected to point to a sequence of 9 u32 values (state and counter t0).
+    /// op1 is expected to point to a sequence of 16 u32 values (message).
+    /// dst is expected to point to a sequence of 9 cells, with the first 8 being each either
+    /// unitialised or containing the Blake2s compression output at that index and the 9th index
+    /// unitialised or containing the updated byte counter.
+    /// Deviation from the aforementioned expectations will result in an error.
+    /// The instruction will update the dst memory segment with the new state and counter.
+    /// Note: currently in Blake2sLastBlock it is assumed that [op1]!=0 and if 0<=j<=15 is the last
+    /// index for which [op1+j]!=0 then the final block of the message is only 4*(j+1) bytes long.
+    fn handle_blake2s_instruction(
+        &mut self,
+        operands: &Operands,
+        is_last_block: bool,
+    ) -> Result<(), VirtualMachineError> {
+        let dst: Relocatable = match operands.dst {
+            RelocatableValue(relocatable) => relocatable,
+            _ => return Err(VirtualMachineError::Memory(AddressNotRelocatable)),
+        };
+
+        let state_and_t0 = (self.get_u32_range(&operands.op0, 9)?).try_into().unwrap();
+        let message = (self.get_u32_range(&operands.op1, 16)?).try_into().unwrap();
+
+        let mut new_state = vec![];
+
+        if !is_last_block {
+            new_state.extend(blake2s_non_last_block_raw(state_and_t0, message));
+        } else {
+            // Assumptions:
+            // message[0]!=0.
+            // If message[i]!=0 yet message[i+1]=0 ... message[15]=0 then n_bytes = 4*(i+1).
+            // alternatively, n_bytes can be stored in state operand and verified.
+            let last_nonzero_index = message.iter().rposition(|&x| x != 0);
+            let n_bytes = match last_nonzero_index {
+                Some(index) => 4 * (index as u32 + 1),
+                None => return Err(VirtualMachineError::Blake2sLastBlockOpcodeZeroMessage),
+            };
+            new_state.extend(blake2s_last_block_raw(state_and_t0, message, n_bytes));
+        }
+
+        for (i, &val) in new_state.iter().enumerate() {
+            self.segments
+                .memory
+                .insert_as_accessed((dst + i)?, MaybeRelocatable::Int(Felt252::from(val)))?;
+        }
 
         Ok(())
     }
@@ -449,7 +511,7 @@ impl VirtualMachine {
             .segments
             .memory
             .get_integer(self.run_context.pc)?
-            .to_u64()
+            .to_u128()
             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
         decode_instruction(instruction)
     }
@@ -924,6 +986,33 @@ impl VirtualMachine {
         size: usize,
     ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
+    }
+
+    /// Gets n u32 values from memory starting from addr (n being size),
+    /// Verifies that addr is &RelocatableValue and that the values are u32.
+    pub fn get_u32_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<u32>, MemoryError> {
+        let addr_relocatable: Relocatable = match addr {
+            &RelocatableValue(relocatable) => relocatable,
+            _ => return Err(MemoryError::AddressNotRelocatable),
+        };
+        let res_cow = self.get_integer_range(addr_relocatable, size)?;
+        let mut res = vec![];
+        for (i, x) in res_cow.iter().enumerate() {
+            let le_digits = x.clone().into_owned().to_le_digits();
+            if le_digits[0] >= (1 << 32)
+                || le_digits[1] != 0
+                || le_digits[2] != 0
+                || le_digits[3] != 0
+            {
+                return Err(MemoryError::ExpectedU32(Box::new((addr_relocatable + i)?)));
+            }
+            res.push(le_digits[0] as u32);
+        }
+        Ok(res)
     }
 
     pub fn get_range_check_builtin(
@@ -4122,7 +4211,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)

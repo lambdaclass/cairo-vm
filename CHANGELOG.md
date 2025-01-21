@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `Blake2s` and `Blake2sLastBlock` opcodes in VM [#1922](https://github.com/lambdaclass/cairo-vm/pull/1922)
+
 #### [2.0.0-rc4] - 2025-01-23
 
 * feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)

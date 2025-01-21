@@ -1,3 +1,4 @@
+pub mod blake2s_utils;
 mod is_prime;
 
 pub use is_prime::is_prime;

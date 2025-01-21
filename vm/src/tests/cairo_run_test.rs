@@ -570,6 +570,21 @@ fn blake2s_integration_tests() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_test() {
+    let program_data = include_bytes!("../../../cairo_programs/blake2s_opcode_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_last_block_opcode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/blake2s_last_block_opcode_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn relocate_segments() {
     let program_data = include_bytes!("../../../cairo_programs/relocate_segments.json");
     run_program_simple(program_data.as_slice());
