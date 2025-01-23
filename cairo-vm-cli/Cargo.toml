@@ -13,7 +13,7 @@ cairo-vm-tracer = { workspace = true, optional = true }
 clap = { version = "4.3.10", features = ["derive"] }
 mimalloc = { version = "0.1.37", default-features = false, optional = true }
 nom = "7"
-thiserror = { version = "1.0.40" }
+thiserror = { workspace = true, features = ["std"]}
 bincode.workspace = true
 
 [dev-dependencies]
