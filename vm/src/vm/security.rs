@@ -4,9 +4,10 @@ use num_traits::ToPrimitive;
 
 use super::{
     errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-    runners::cairo_runner::CairoRunner,
+    runners::cairo_runner::{CairoRunner, RunnerMode},
 };
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
@@ -79,6 +80,46 @@ pub fn verify_secure_runner(
         builtin.run_security_checks(&runner.vm)?;
     }
 
+    // Validate ret FP.
+    let initial_fp = runner.get_initial_fp().ok_or_else(|| {
+        VirtualMachineError::Other(anyhow::anyhow!(
+            "Failed to retrieve the initial_fp: it is None. \
+                     The initial_fp field should be initialized after running the entry point."
+        ))
+    })?;
+    let ret_fp_addr = (initial_fp - 2).map_err(VirtualMachineError::Math)?;
+    let ret_fp = runner.vm.get_maybe(&ret_fp_addr).ok_or_else(|| {
+        VirtualMachineError::Other(anyhow::anyhow!(
+            "Ret FP address is not in memory: {ret_fp_addr}"
+        ))
+    })?;
+    let final_fp = runner.vm.get_fp();
+    if final_fp.segment_index != 1 {
+        return Err(VirtualMachineError::Other(anyhow::anyhow!(
+            "Final FP segment index is not 1: {final_fp}"
+        )));
+    }
+    match ret_fp {
+        MaybeRelocatable::RelocatableValue(value) => {
+            if runner.runner_mode == RunnerMode::ProofModeCanonical && value != final_fp {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP is not equal to final FP: ret_f={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+            if runner.runner_mode == RunnerMode::ExecutionMode && value.offset != final_fp.offset {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP offset is not equal to final FP offset: ret_f={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+        }
+        MaybeRelocatable::Int(value) => {
+            if Felt252::from(final_fp.offset) != value {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP offset is not equal to final FP offset: ret_fp={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -115,9 +156,13 @@ mod test {
     fn verify_secure_runner_empty_memory() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
-
         runner.initialize(false).unwrap();
-        runner.vm.segments.compute_effective_sizes();
+        // runner.vm.segments.compute_effective_sizes();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.end_run(false, false, &mut hint_processor).unwrap();
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
         assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
 
@@ -145,10 +190,12 @@ mod test {
         let mut runner = cairo_runner!(program);
 
         runner.initialize(false).unwrap();
-
-        runner.vm.segments = segments![((0, 0), 100)];
+        // We insert (1, 0) for ret_fp segment.
+        runner.vm.segments = segments![((0, 0), 100), ((1, 0), 0)];
         runner.vm.segments.segment_used_sizes = Some(vec![1]);
-
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
         assert_matches!(verify_secure_runner(&runner, true, Some(1)), Ok(()));
     }
 
@@ -179,8 +226,11 @@ mod test {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         runner.end_run(false, false, &mut hint_processor).unwrap();
         runner.vm.builtin_runners[0].set_stop_ptr(1);
-
-        runner.vm.segments.memory = memory![((2, 0), 1)];
+        // Adding ((1, 1), (3, 0)) to the memory segment to simulate the ret_fp_segment.
+        runner.vm.segments.memory = memory![((2, 0), 1), ((1, 1), (3, 0))];
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
         runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
         assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
@@ -202,13 +252,18 @@ mod test {
         let mut runner = cairo_runner!(program);
 
         runner.initialize(false).unwrap();
+        // We insert (1, 0) for ret_fp segment.
         runner.vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
             ((0, 2), (3, 2)),
-            ((0, 3), (4, 3))
+            ((0, 3), (4, 3)),
+            ((1, 0), 0)
         ];
         runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
 
         assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
@@ -228,14 +283,19 @@ mod test {
 
         let mut runner = cairo_runner!(program);
 
+        // We insert (1, 0) for ret_fp segment.
         runner.initialize(false).unwrap();
         runner.vm.segments.memory = memory![
             ((0, 1), (1, 0)),
             ((0, 2), (2, 1)),
             ((0, 3), (3, 2)),
-            ((-1, 0), (1, 2))
+            ((-1, 0), (1, 2)),
+            ((1, 0), 0)
         ];
         runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
 
         assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
@@ -256,12 +316,14 @@ mod test {
         let mut runner = cairo_runner!(program);
 
         runner.initialize(false).unwrap();
+        // We insert (1, 0) for ret_fp segment.
         runner.vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
             ((0, 2), (-3, 2)),
             ((0, 3), (4, 3)),
-            ((-1, 0), (1, 2))
+            ((-1, 0), (1, 2)),
+            ((1, 0), 0)
         ];
         runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
