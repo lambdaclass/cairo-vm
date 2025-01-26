@@ -82,11 +82,11 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
         _ => return Err(VirtualMachineError::InvalidPcUpdate(pc_update_num)),
     };
 
-    let res = match res_logic_num {
-        0 if matches!(pc_update, PcUpdate::Jnz) => Res::Unconstrained,
-        0 => Res::Op1,
-        1 => Res::Add,
-        2 => Res::Mul,
+    let res = match (res_logic_num, pc_update == PcUpdate::Jnz) {
+        (0, true) => Res::Unconstrained,
+        (0, false) => Res::Op1,
+        (1, false) => Res::Add,
+        (2, false) => Res::Mul,
         _ => return Err(VirtualMachineError::InvalidRes(res_logic_num)),
     };
 
@@ -98,17 +98,38 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
         _ => return Err(VirtualMachineError::InvalidOpcode(opcode_num)),
     };
 
-    let ap_update = match ap_update_num {
-        0 if matches!(opcode, Opcode::Call) => ApUpdate::Add2,
-        0 => ApUpdate::Regular,
-        1 => ApUpdate::Add,
-        2 => ApUpdate::Add1,
+    let ap_update = match (ap_update_num, opcode == Opcode::Call) {
+        (0, true) => ApUpdate::Add2,
+        (0, false) => ApUpdate::Regular,
+        (1, false) => ApUpdate::Add,
+        (2, false) => ApUpdate::Add1,
         _ => return Err(VirtualMachineError::InvalidApUpdate(ap_update_num)),
     };
 
     let fp_update = match opcode {
-        Opcode::Call => FpUpdate::APPlus2,
-        Opcode::Ret => FpUpdate::Dst,
+        Opcode::Call => {
+            if off0 != 0
+                || off1 != 1
+                || ap_update != ApUpdate::Add2
+                || dst_register != Register::AP
+                || op0_register != Register::AP
+            {
+                return Err(VirtualMachineError::InvalidOpcode(opcode_num));
+            };
+            FpUpdate::APPlus2
+        }
+        Opcode::Ret => {
+            if off0 != -2
+                || off2 != -1
+                || dst_register != Register::FP
+                || op1_addr != Op1Addr::FP
+                || res != Res::Op1
+                || pc_update != PcUpdate::Jump
+            {
+                return Err(VirtualMachineError::InvalidOpcode(opcode_num));
+            };
+            FpUpdate::Dst
+        }
         _ => FpUpdate::Regular,
     };
 

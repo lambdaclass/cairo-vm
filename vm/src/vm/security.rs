@@ -4,9 +4,10 @@ use num_traits::ToPrimitive;
 
 use super::{
     errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-    runners::cairo_runner::CairoRunner,
+    runners::cairo_runner::{CairoRunner, RunnerMode},
 };
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
@@ -79,6 +80,46 @@ pub fn verify_secure_runner(
         builtin.run_security_checks(&runner.vm)?;
     }
 
+    // Validate ret FP.
+    let initial_fp = runner.get_initial_fp().ok_or_else(|| {
+        VirtualMachineError::Other(anyhow::anyhow!(
+            "Failed to retrieve the initial_fp: it is None. \
+                     The initial_fp field should be initialized after running the entry point."
+        ))
+    })?;
+    let ret_fp_addr = (initial_fp - 2).map_err(VirtualMachineError::Math)?;
+    let ret_fp = runner.vm.get_maybe(&ret_fp_addr).ok_or_else(|| {
+        VirtualMachineError::Other(anyhow::anyhow!(
+            "Ret FP address is not in memory: {ret_fp_addr}"
+        ))
+    })?;
+    let final_fp = runner.vm.get_fp();
+    if final_fp.segment_index != 1 {
+        return Err(VirtualMachineError::Other(anyhow::anyhow!(
+            "Final FP segment index is not 1: {final_fp}"
+        )));
+    }
+    match ret_fp {
+        MaybeRelocatable::RelocatableValue(value) => {
+            if runner.runner_mode == RunnerMode::ProofModeCanonical && value != final_fp {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP is not equal to final FP: ret_f={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+            if runner.runner_mode == RunnerMode::ExecutionMode && value.offset != final_fp.offset {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP offset is not equal to final FP offset: ret_f={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+        }
+        MaybeRelocatable::Int(value) => {
+            if Felt252::from(final_fp.offset) != value {
+                return Err(VirtualMachineError::Other(anyhow::anyhow!(
+                    "Return FP offset is not equal to final FP offset: ret_fp={ret_fp}, final_fp={final_fp}"
+                )));
+            }
+        }
+    }
     Ok(())
 }
 
