@@ -181,7 +181,7 @@
   * `CairoRunner` has a new public field `vm: VirtualMachine`
   * `CairoRunner` no longer derives `Debug`
   * `CairoRunner` methods `new_v2` & `new` take an extra boolean argument `trace_enabled`.
-  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now retun only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
+  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now return only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
   * `CairoRunner` methods no longer take a reference to `VirtualMachine`. Methods that took an immutable reference to self and a mutable reference to the VM now take a mutable reference to self. Affected methods:
     * `initialize`
     * `initialize_builtins`
