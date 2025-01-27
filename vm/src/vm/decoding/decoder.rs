@@ -220,7 +220,7 @@ mod decoder_test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn decode_flags_call_add_jmp_add_imm_fp_fp() {
+    fn decode_flags_nop_add_jmp_add_imm_fp_fp() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
         //   |    NOp|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
@@ -239,7 +239,7 @@ mod decoder_test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn decode_flags_ret_add1_jmp_rel_mul_fp_ap_ap() {
+    fn decode_flags_nop_add1_jmp_rel_mul_fp_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
         //   |     NOp|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
@@ -258,7 +258,7 @@ mod decoder_test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn decode_flags_assrt_add_jnz_mul_ap_ap_ap() {
+    fn decode_flags_assrt_add_regular_mul_ap_ap_ap() {
         //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
         //   |ASSRT_EQ|      ADD|  REGULAR|      MUL|     AP|     AP|     AP
