@@ -154,7 +154,7 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    runner_mode: RunnerMode,
+    pub(crate) runner_mode: RunnerMode,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
