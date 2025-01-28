@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [1.0.2] - 2025-01-28
+
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
 
 #### [1.0.1] - 2024-08-12
