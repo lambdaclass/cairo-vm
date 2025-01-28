@@ -532,17 +532,29 @@ impl BuiltinRunner {
                 Ok((used, used))
             }
             _ => {
-                let used = self.get_used_cells(&vm.segments)?;
-                let size = self.get_allocated_memory_units(vm)?;
-                if used > size {
-                    return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
-                        self.name(),
-                        used,
-                        size,
-                    )))
-                    .into());
+                let used_cells = self.get_used_cells(&vm.segments)?;
+                if vm.disable_trace_padding {
+                    // If trace padding is disabled, we pad the used cells to still ensure that the
+                    // number of instances is a power of 2.
+                    let num_instances = self.get_used_instances(&vm.segments)?;
+                    let padded_used_cells = if num_instances > 0 {
+                        num_instances.next_power_of_two() * self.cells_per_instance() as usize
+                    } else {
+                        0
+                    };
+                    Ok((used_cells, padded_used_cells))
+                } else {
+                    let size = self.get_allocated_memory_units(vm)?;
+                    if used_cells > size {
+                        return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
+                            self.name(),
+                            used_cells,
+                            size,
+                        )))
+                        .into());
+                    }
+                    Ok((used_cells, size))
                 }
-                Ok((used, size))
             }
         }
     }
@@ -693,11 +705,13 @@ impl From<ModBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::types::builtin_name::BuiltinName;
     use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
     use crate::types::instance_definitions::LowRatio;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
@@ -875,6 +889,111 @@ mod tests {
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(5));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compare_proof_mode_with_and_without_disable_trace_padding() {
+        const PEDERSEN_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/pedersen_test.json");
+        const BIGINT_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/bigint.json");
+        const POSEIDON_HASH_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/poseidon_hash.json");
+
+        let program_files = vec![PEDERSEN_TEST, BIGINT_TEST, POSEIDON_HASH_TEST];
+
+        for program_data in program_files {
+            let config_false = CairoRunConfig {
+                disable_trace_padding: false,
+                proof_mode: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            };
+            let mut hint_processor_false = BuiltinHintProcessor::new_empty();
+            let runner_false =
+                cairo_run(program_data, &config_false, &mut hint_processor_false).unwrap();
+            let last_step_false = runner_false.vm.current_step;
+
+            assert!(last_step_false.is_power_of_two());
+
+            let config_true = CairoRunConfig {
+                disable_trace_padding: true,
+                proof_mode: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            };
+            let mut hint_processor_true = BuiltinHintProcessor::new_empty();
+            let runner_true =
+                cairo_run(program_data, &config_true, &mut hint_processor_true).unwrap();
+            let last_step_true = runner_true.vm.current_step;
+
+            // Ensure the last step is not a power of two - true for this specific program, not always.
+            assert!(!last_step_true.is_power_of_two());
+
+            assert!(last_step_true < last_step_false);
+
+            let builtin_runners_false = &runner_false.vm.builtin_runners;
+            let builtin_runners_true = &runner_true.vm.builtin_runners;
+            assert_eq!(builtin_runners_false.len(), builtin_runners_true.len());
+            // Compare allocated instances for each pair of builtin runners.
+            for (builtin_runner_false, builtin_runner_true) in builtin_runners_false
+                .iter()
+                .zip(builtin_runners_true.iter())
+            {
+                assert_eq!(builtin_runner_false.name(), builtin_runner_true.name());
+                match builtin_runner_false {
+                    BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => {
+                        continue;
+                    }
+                    _ => {}
+                }
+                let (_, allocated_size_false) = builtin_runner_false
+                    .get_used_cells_and_allocated_size(&runner_false.vm)
+                    .unwrap();
+                let (used_cells_true, allocated_size_true) = builtin_runner_true
+                    .get_used_cells_and_allocated_size(&runner_true.vm)
+                    .unwrap();
+                let n_allocated_instances_false = safe_div_usize(
+                    allocated_size_false,
+                    builtin_runner_false.cells_per_instance() as usize,
+                )
+                .unwrap();
+                let n_allocated_instances_true = safe_div_usize(
+                    allocated_size_true,
+                    builtin_runner_true.cells_per_instance() as usize,
+                )
+                .unwrap();
+                assert!(
+                    n_allocated_instances_false.is_power_of_two()
+                        || n_allocated_instances_false == 0
+                );
+                assert!(
+                    n_allocated_instances_true.is_power_of_two() || n_allocated_instances_true == 0
+                );
+                // Checks that the number of allocated instances is different when trace padding is
+                // enabled/disabled. Holds for this specific program, not always (that is, in other
+                // programs, padding may be of size 0, or the same).
+                assert!(
+                    n_allocated_instances_true == 0
+                        || n_allocated_instances_true != n_allocated_instances_false
+                );
+
+                // Since the last instance of the builtin isn't guaranteed to have a full output,
+                // the number of used_cells might not be a multiple of cells_per_instance, so we
+                // make sure that the discrepancy is up to the number of output cells.
+                // This is the same for both cases, so we only check one (true).
+                let n_output_cells = builtin_runner_true.cells_per_instance() as usize
+                    - builtin_runner_true.n_input_cells() as usize;
+                assert!(
+                    used_cells_true + n_output_cells
+                        >= (builtin_runner_true.cells_per_instance() as usize)
+                            * builtin_runner_true
+                                .get_used_instances(&runner_true.vm.segments)
+                                .unwrap()
+                );
+            }
+        }
     }
 
     #[test]
