@@ -348,6 +348,49 @@ mod decoder_test {
         assert_matches!(inst.fp_update, FpUpdate::Dst);
     }
 
+    //pub const FLAG_AP_UPDATE_ADD_INDEX: usize = 10;
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_ret_flag_ap_add() {
+        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //   |     RET|      ADD|     JUMP|      Op1|     FP|     FP|     FP
+        //  0  0  1  0      0  1   0  0  1      0  0 0  1  0       1       1
+        //  0010 0100 1000 1011 = 0x248b; off0 = -2, off1 = -1
+        let inst = decode_instruction(0x248b7fff7fff7ffe).unwrap();
+        assert_matches!(inst.opcode, Opcode::Ret);
+        assert_matches!(inst.off0, -2);
+        assert_matches!(inst.off1, -1);
+        assert_matches!(inst.dst_register, Register::FP);
+        assert_matches!(inst.op0_register, Register::FP);
+        assert_matches!(inst.op1_addr, Op1Addr::FP);
+        assert_matches!(inst.res, Res::Op1);
+        assert_matches!(inst.pc_update, PcUpdate::Jump);
+        assert_matches!(inst.ap_update, ApUpdate::Add);
+        assert_matches!(inst.fp_update, FpUpdate::Dst);
+    }
+    //pub const FLAG_AP_UPDATE_ADD_INDEX: usize = 10;
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_ret_flag_ap_add1() {
+        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //   |     RET|     ADD1|     JUMP|      Op1|     FP|     FP|     FP
+        //  0  0  1  0      1  0   0  0  1      0  0 0  1  0       1       1
+        //  0010 1000 1000 1011 = 0x288b; off0 = -2, off1 = -1
+        let inst = decode_instruction(0x288b7fff7fff7ffe).unwrap();
+        assert_matches!(inst.opcode, Opcode::Ret);
+        assert_matches!(inst.off0, -2);
+        assert_matches!(inst.off1, -1);
+        assert_matches!(inst.dst_register, Register::FP);
+        assert_matches!(inst.op0_register, Register::FP);
+        assert_matches!(inst.op1_addr, Op1Addr::FP);
+        assert_matches!(inst.res, Res::Op1);
+        assert_matches!(inst.pc_update, PcUpdate::Jump);
+        assert_matches!(inst.ap_update, ApUpdate::Add1);
+        assert_matches!(inst.fp_update, FpUpdate::Dst);
+    }
+
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_call_cairo_standard() {
