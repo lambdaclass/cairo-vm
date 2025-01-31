@@ -443,8 +443,13 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
-        if instruction.opcode_extension == OpcodeExtension::Blake {
-            self.handle_blake2s_instruction(&operands)?;
+        if instruction.opcode_extension == OpcodeExtension::Blake
+            || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
+        {
+            self.handle_blake2s_instruction(
+                &operands,
+                instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
+            )?;
         }
 
         self.update_registers(instruction, operands)?;
@@ -453,45 +458,56 @@ impl VirtualMachine {
         Ok(())
     }
 
-    /// Executes a Blake2s instruction.
+    /// Executes a Blake2s or Blake2sLastBlock instruction.
     /// Expects operands to be RelocatableValue and to point to segments of memory.
-    /// op0 is expected to point to a sequence of 9 u32 values (state and counter t0).
+    /// op0 is expected to point to a sequence of 9 u32 values (state and counter t0) in the case
+    /// of Blake2s and 10 u32 values (state, t0, t0+n_bytes) in the case of Blake2sLastBlock.
     /// op1 is expected to point to a sequence of 16 u32 values (message).
     /// dst is expected to point to a sequence of 9 cells with the first 8 cells each
     /// being either unitialised or containing the Blake2s compression output at that index
-    /// and the last cell being unitialised or containing .
+    /// and the last cell being unitialised or containing the updated counter in the case of
+    /// Blake2s and just 8 cells as described previously in the case of Blake2sLastBlock.
     /// Deviation from the aforementioned expectations will result in an error.
     /// The instruction will update the dst memory segment with the new state.
-    /// Note: the byte counter should count the number of message bytes processed so far including
-    /// the current portion of the message (i.e. it starts at 64, not 0).
+    ///
+    /// Note: the byte counter should count the number of message bytes processed so far not
+    /// including the current portion of the message. i.e. it starts at 0 and when running
+    /// Blake2sLastBlock the [op0+9] should be the total length of the entire message in bytes.
+    /// It is the cairo program's responsibility to ensure this and to pad the message with zeros.
     fn handle_blake2s_instruction(
         &mut self,
         operands: &Operands,
+        is_last_block: bool,
     ) -> Result<(), VirtualMachineError> {
         let dst: Relocatable = match operands.dst {
             RelocatableValue(relocatable) => relocatable,
             _ => return Err(VirtualMachineError::Memory(AddressNotRelocatable)),
         };
 
-        let state_and_t0: [u32; 9] = (self.get_u32_range(&operands.op0, 9)?)
-            .try_into()
-            .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(0, 9))?;
+        let op0_len = if is_last_block { 10 } else { 9 };
+
+        let state_and_t0 = self.get_u32_range(&operands.op0, op0_len)?;
         let message = (self.get_u32_range(&operands.op1, 16)?)
             .try_into()
             .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(1, 16))?;
 
-        let next_counter = state_and_t0[8] + BLAKE2S_BYTES_PER_BLOCK;
-        let mut new_state_and_t0 = blake2s_compress(
+        let mut output = blake2s_compress(
             state_and_t0[0..8].try_into().unwrap(),
             &message,
-            next_counter,
+            if !is_last_block {
+                state_and_t0[8] + BLAKE2S_BYTES_PER_BLOCK
+            } else {
+                state_and_t0[9]
+            },
             0,
-            0,
+            if !is_last_block { 0 } else { 0xffffffff },
             0,
         );
-        new_state_and_t0.push(next_counter);
+        if !is_last_block {
+            output.push(state_and_t0[8] + BLAKE2S_BYTES_PER_BLOCK);
+        }
 
-        for (i, &val) in new_state_and_t0.iter().enumerate() {
+        for (i, &val) in output.iter().enumerate() {
             self.segments
                 .memory
                 .insert_as_accessed((dst + i)?, MaybeRelocatable::Int(Felt252::from(val)))?;
@@ -505,7 +521,7 @@ impl VirtualMachine {
             .segments
             .memory
             .get_integer(self.run_context.pc)?
-            .to_u64()
+            .to_u128()
             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
         decode_instruction(instruction)
     }
@@ -4259,7 +4275,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -4483,7 +4499,7 @@ mod tests {
             op1: (0, 1).into(),
         };
         assert_matches!(
-            vm.handle_blake2s_instruction(&operands),
+            vm.handle_blake2s_instruction(&operands, false),
             Err(VirtualMachineError::Memory(AddressNotRelocatable))
         );
     }
