@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
+
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
 
 #### [2.0.0-rc4] - 2025-01-23

@@ -27,6 +27,7 @@ pub struct Instruction {
     pub ap_update: ApUpdate,
     pub fp_update: FpUpdate,
     pub opcode: Opcode,
+    pub opcode_extension: OpcodeExtension,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -74,6 +75,12 @@ pub enum Opcode {
     AssertEq,
     Call,
     Ret,
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+pub enum OpcodeExtension {
+    Stone,
+    Blake,
 }
 
 impl Instruction {
