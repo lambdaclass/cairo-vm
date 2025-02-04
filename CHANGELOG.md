@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add the functions `get_u32_range` and `get_u32_from_felt252` to `impl VirtualMachine` [#1936](https://github.com/lambdaclass/cairo-vm/pull/1936)
+
 * feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)
 
 * fix(BREAKING): Fix no trace padding flow in proof mode [#1909](https://github.com/lambdaclass/cairo-vm/pull/1909)
