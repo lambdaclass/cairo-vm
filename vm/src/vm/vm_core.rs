@@ -11,7 +11,7 @@ use crate::{
         instruction::{
             is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
         },
-        relocatable::{MaybeRelocatable, Relocatable},
+        relocatable::{MaybeRelocatable, MaybeRelocatable::RelocatableValue, Relocatable},
     },
     vm::{
         context::run_context::RunContext,
@@ -927,6 +927,33 @@ impl VirtualMachine {
         size: usize,
     ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
+    }
+
+    /// Gets n u32 values from memory starting from addr (n being size),
+    /// Verifies that addr is &RelocatableValue and that the values are u32.
+    pub fn get_u32_range(
+        &self,
+        addr: &MaybeRelocatable,
+        size: usize,
+    ) -> Result<Vec<u32>, MemoryError> {
+        let addr_relocatable: Relocatable = match addr {
+            &RelocatableValue(relocatable) => relocatable,
+            _ => return Err(MemoryError::AddressNotRelocatable),
+        };
+        let res_cow = self.get_integer_range(addr_relocatable, size)?;
+        res_cow
+            .iter()
+            .map(|x| VirtualMachine::get_u32_from_felt252(x.clone().into_owned()))
+            .collect()
+    }
+
+    fn get_u32_from_felt252(felt: Felt252) -> Result<u32, MemoryError> {
+        let le_digits = felt.to_le_digits();
+        if le_digits[0] >= (1 << 32) || le_digits[1] != 0 || le_digits[2] != 0 || le_digits[3] != 0
+        {
+            return Err(MemoryError::ExpectedU32(Box::new(felt)));
+        }
+        Ok(le_digits[0] as u32)
     }
 
     pub fn get_range_check_builtin(
@@ -4370,6 +4397,26 @@ mod tests {
         assert_matches!(
             vm.mark_address_range_as_accessed((0, 0).into(), 3),
             Err(VirtualMachineError::RunNotFinished)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_not_relocatable() {
+        let vm = vm!();
+        assert_matches!(
+            vm.get_u32_range(&MaybeRelocatable::Int(Felt252::from(1)), 1),
+            Err(MemoryError::AddressNotRelocatable)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_from_felt252_not_u32() {
+        let x = Felt252::from(1_u64 << 32);
+        assert_matches!(
+            VirtualMachine::get_u32_from_felt252(x),
+            Err(MemoryError::ExpectedU32(bx)) if *bx == x.into()
         );
     }
 
