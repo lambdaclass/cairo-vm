@@ -929,6 +929,11 @@ impl VirtualMachine {
         self.segments.memory.get_integer_range(addr, size)
     }
 
+    /// Gets n u32 values from memory starting from addr (n being size),
+    pub fn get_u32_range(&self, addr: Relocatable, size: usize) -> Result<Vec<u32>, MemoryError> {
+        self.segments.memory.get_u32_range(addr, size)
+    }
+
     pub fn get_range_check_builtin(
         &self,
     ) -> Result<&RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>, VirtualMachineError> {
@@ -4371,6 +4376,15 @@ mod tests {
             vm.mark_address_range_as_accessed((0, 0).into(), 3),
             Err(VirtualMachineError::RunNotFinished)
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_ok() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967295), ((0, 3), 3)];
+        let expected_vector = vec![1, 4294967295];
+        assert_eq!(vm.get_u32_range((0, 1).into(), 2), Ok(expected_vector));
     }
 
     #[test]
