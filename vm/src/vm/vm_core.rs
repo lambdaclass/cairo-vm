@@ -445,8 +445,13 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
-        if instruction.opcode_extension == OpcodeExtension::Blake {
-            self.handle_blake2s_instruction(&operands_addresses)?;
+        if instruction.opcode_extension == OpcodeExtension::Blake
+            || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
+        {
+            self.handle_blake2s_instruction(
+                &operands_addresses,
+                instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
+            )?;
         }
 
         self.update_registers(instruction, operands)?;
@@ -455,8 +460,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    /// Executes a Blake2s instruction.
-    /// Expects operands to be RelocatableValue and to point to segments of memory.
+    /// Executes a Blake2s or Blake2sLastBlock instruction.
     /// op0 is expected to point to a sequence of 8 u32 values (state).
     /// op1 is expected to point to a sequence of 16 u32 values (message).
     /// dst is expected hold the u32 value of the counter.
@@ -469,6 +473,7 @@ impl VirtualMachine {
     fn handle_blake2s_instruction(
         &mut self,
         operands_addresses: &OperandsAddresses,
+        is_last_block: bool,
     ) -> Result<(), VirtualMachineError> {
         let counter = self.segments.memory.get_u32(operands_addresses.dst_addr)?;
 
@@ -493,7 +498,14 @@ impl VirtualMachine {
         let ap = self.run_context.get_ap();
         let output_address = self.segments.memory.get_relocatable(ap)?;
 
-        let new_state = blake2s_compress(&state, &message, counter, 0, 0, 0);
+        let new_state = blake2s_compress(
+            &state,
+            &message,
+            counter,
+            0,
+            if !is_last_block { 0 } else { 0xffffffff },
+            0,
+        );
 
         for (i, &val) in new_state.iter().enumerate() {
             self.segments.memory.insert_as_accessed(
@@ -510,7 +522,7 @@ impl VirtualMachine {
             .segments
             .memory
             .get_integer(self.run_context.pc)?
-            .to_u64()
+            .to_u128()
             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
         decode_instruction(instruction)
     }
@@ -4244,7 +4256,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
