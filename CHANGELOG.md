@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: `mod_builtin_fill_memory` raises when `n=0` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
+
 * fix(BREAKING): Fix no trace padding flow in proof mode [#1909](https://github.com/lambdaclass/cairo-vm/pull/1909)
 
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
