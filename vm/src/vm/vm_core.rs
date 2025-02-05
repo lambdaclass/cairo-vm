@@ -1119,6 +1119,9 @@ impl VirtualMachine {
             VirtualMachineError,
         > {
             if let Some((ptr, n)) = mod_params {
+                if n == 0 {
+                    return Ok(None);
+                }
                 let mod_builtin = self
                     .builtin_runners
                     .iter()
