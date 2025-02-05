@@ -34,8 +34,6 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Instruction MSB should be 0")]
-    InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
@@ -138,6 +136,10 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
+    Blake2sInvalidOperand(u8, u8),
+    #[error("Blake2s opcode invalid flags {0}")]
+    InvalidBlake2sFlags(u64),
 }
 
 #[cfg(test)]

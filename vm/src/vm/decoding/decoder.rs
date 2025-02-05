@@ -100,6 +100,17 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
 
     let opcode_extension = match opcode_extension_num {
         0 => OpcodeExtension::Stone,
+        1 => {
+            if opcode != Opcode::NOp
+                || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
+                || res != Res::Op1
+                || pc_update != PcUpdate::Regular
+                || (ap_update_num != 0 && ap_update_num != 2)
+            {
+                return Err(VirtualMachineError::InvalidBlake2sFlags(flags));
+            };
+            OpcodeExtension::Blake
+        }
         _ => {
             return Err(VirtualMachineError::InvalidOpcodeExtension(
                 opcode_extension_num,
@@ -353,7 +364,7 @@ mod decoder_test {
     fn decode_call_cairo_standard() {
         // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         //           ... 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //            Stone|     CALL|     Add2|  JumpRel|      Op1|     FP|     FP|     FP
+        //            Stone|     CALL|  Regular|  JumpRel|      Op1|     FP|     FP|     FP
         //                0   0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
         //  0001 0001 0000 0100 = 0x1104; off0 = 0, off1 = 1
         let inst = decode_instruction(0x1104800180018000).unwrap();
@@ -386,10 +397,34 @@ mod decoder_test {
     fn decode_call_opcode_error() {
         // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
         //           ... 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //            Stone|     CALL|     Add2|  JumpRel|      Op1|     FP|     FP|     FP
+        //            Stone|     CALL|  REGULAR|  JumpRel|      Op1|    IMM|     AP|     AP
         //                0   0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
         //  0001 0001 0000 0100 = 0x1104; off0 = 1, off1 = 1
         let error = decode_instruction(0x1104800180018001);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_opcode_extension_clash() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //           ... 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Blake|     CALL|  REGULAR|  REGULAR|      Op1|     FP|     AP|     AP
+        //                1   0  0  1      0  0   0  0  0      0  0 0  1  0       0       0
+        //  1001 0000 0000 1000 = 0x9008; off0 = 1, off1 = 1
+        let error = decode_instruction(0x9008800180018001);
+        assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4104)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_blake_imm() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //           ... 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Blake|      NOP|  REGULAR|  REGULAR|      Op1|    IMM|     AP|     AP
+        //                1   0  0  0      0  0   0  0  0      0  0 0  0  1       0       0
+        //  1000 0000 0000 0100 = 0x8004; off0 = 1, off1 = 1
+        let error = decode_instruction(0x8004800180018001);
+        assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4)));
     }
 }
