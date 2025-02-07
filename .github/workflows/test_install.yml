@@ -51,7 +51,7 @@ jobs:
 
       # we don't use swatinem because rustc isn't installed yet
       - name: Cache Rust dependencies
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v3.4.0
         with:
           path: |
             ~/.cargo/
@@ -70,7 +70,7 @@ jobs:
 
       # NOTE: we don't use install-python because lsb_release isn't installed
       - name: Cache Python dependencies
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v3.4.0
         with:
           path: |
             ~/.cache/pip/wheels

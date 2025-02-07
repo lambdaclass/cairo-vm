@@ -13,7 +13,7 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.base.sha }}
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
-      uses: actions/cache@v4.2.0
+      uses: actions/cache@v3.4.0
       id: cache-iai-results
       with:
         path: |
@@ -66,7 +66,7 @@ jobs:
         cargo install --version 0.3.1 iai-callgrind-runner
 
     - name: Restore cache for ${{ github.event.pull_request.base.sha }}
-      uses: actions/cache/restore@v4.2.0
+      uses: actions/cache/restore@v3.4.0
       with:
         path: |
           */target/iai/iai_benchmark/
