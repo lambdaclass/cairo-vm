@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request[matrix.branch].sha }}
 
       - name: Fetch from cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.0
         id: cache
         with:
           path: ${{ matrix.branch }}_programs/*.json
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Populate cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.0
         id: cache
         with:
           path: bin/cairo-vm-cli-${{ matrix.branch }}
@@ -108,25 +108,25 @@ jobs:
         tool: hyperfine@1.16
 
     - name: Fetch base binary
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4.2.0
       with:
         path: bin/cairo-vm-cli-base
         key: binary-${{ github.event.pull_request.base.sha }}
 
     - name: Fetch HEAD binary
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4.2.0
       with:
         path: bin/cairo-vm-cli-head
         key: binary-${{ github.event.pull_request.head.sha }}
 
     - name: Fetch base programs
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4.2.0
       with:
         path: base_programs/*.json
         key: benchmarks-base-${{ needs.build-programs.outputs.benchmark-hashes-base }}
 
     - name: Fetch head programs
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4.2.0
       with:
         path: head_programs/*.json
         key: benchmarks-head-${{ needs.build-programs.outputs.benchmark-hashes-head }}
