@@ -414,6 +414,14 @@ impl Memory {
         }
     }
 
+    /// Gets a u32 value from memory address.
+    /// Returns an Error if the value at the memory address is missing or not a u32.
+    pub fn get_u32(&self, key: Relocatable) -> Result<u32, MemoryError> {
+        let felt = self.get_integer(key)?.into_owned();
+        felt.to_u32()
+            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToU32Conversion(Box::new(felt))))
+    }
+
     /// Gets the value from memory address as a usize.
     /// Returns an Error if the value at the memory address is missing not a Felt252, or can't be converted to usize.
     pub fn get_usize(&self, key: Relocatable) -> Result<usize, MemoryError> {
@@ -618,6 +626,18 @@ impl Memory {
 
         for i in 0..size {
             values.push(self.get_integer((addr + i)?)?);
+        }
+
+        Ok(values)
+    }
+
+    /// Gets a range of u32 memory values from addr to addr + size
+    /// Fails if there if any of the values inside the range is missing (memory gap) or is not a u32
+    pub fn get_u32_range(&self, addr: Relocatable, size: usize) -> Result<Vec<u32>, MemoryError> {
+        let mut values = Vec::new();
+
+        for i in 0..size {
+            values.push(self.get_u32((addr + i)?)?);
         }
 
         Ok(values)
@@ -1132,6 +1152,23 @@ mod memory_tests {
             Err(MemoryError::ExpectedInteger(
                 bx
             )) if *bx == Relocatable::from((0, 0))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_too_big() {
+        let mut segments = MemorySegmentManager::new();
+        segments.add();
+        segments
+            .memory
+            .insert(Relocatable::from((0, 0)), &Felt252::from(1_u64 << 32))
+            .unwrap();
+        assert_matches!(
+            segments.memory.get_u32(Relocatable::from((0, 0))),
+            Err(MemoryError::Math(MathError::Felt252ToU32Conversion(
+                bx
+            ))) if *bx == Felt252::from(1_u64 << 32)
         );
     }
 

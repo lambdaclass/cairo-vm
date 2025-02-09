@@ -8,7 +8,7 @@ use crate::{
 // opcode_extension|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
 //           ... 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-/// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
+/// Decodes an instruction. The encoding is little endian, so flags go from bit 64 to 48.
 pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
     const DST_REG_MASK: u64 = 0x0001;
     const DST_REG_OFF: u64 = 0;
