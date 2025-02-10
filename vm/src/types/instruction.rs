@@ -81,6 +81,7 @@ pub enum Opcode {
 pub enum OpcodeExtension {
     Stone,
     Blake,
+    BlakeFinalize,
 }
 
 impl Instruction {

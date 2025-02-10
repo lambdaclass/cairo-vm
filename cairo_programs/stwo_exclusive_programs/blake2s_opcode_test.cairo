@@ -1,6 +1,7 @@
 %builtins range_check bitwise
 
 from starkware.cairo.common.alloc import alloc
+from starkware.cairo.common.bool import FALSE, TRUE
 from starkware.cairo.common.cairo_blake2s.blake2s import STATE_SIZE_FELTS, INPUT_BLOCK_FELTS, _get_sigma
 from starkware.cairo.common.cairo_blake2s.packed_blake2s import N_PACKED_INSTANCES, blake2s_compress
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
@@ -8,11 +9,16 @@ from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 const COUNTER = 128;
 const U32_MASK = 0xffffffff;
 
-// Tests the Blake2s opcode runner using a preexisting implementation within the repo as reference.
-// The initial state, a random message of 64 bytes and counter are used as input.
-// Both the opcode and the reference implementation are run on the same inputs and then their outputs are compared.
+// Tests the Blake2s and Blake2sLastBlock opcode runners using a preexisting implementation within the repo as reference.
+// The initial state, a random message of 64 or 56 bytes respectively (the zeros are treated as padding) and counter are used as input.
+// Both the opcode and the reference implementation are run on the same inputs and outputs are compared.
 // Before comparing the outputs, it is verified that the opcode runner has written the output to the correct location.
 func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
+    run_blake_test(is_last_block=FALSE);
+    run_blake_test(is_last_block=TRUE);
+    return ();
+}
+func run_blake_test{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}(is_last_block: felt) {
     alloc_locals;
 
     let (local random_message) = alloc();
@@ -30,8 +36,8 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     assert random_message[11] =  860971754;
     assert random_message[12] =  1822893775;
     assert random_message[13] =  2008495810;
-    assert random_message[14] =  2958962335;
-    assert random_message[15] =  2340515744;
+    assert random_message[14] = 2958962335;
+    assert random_message[15] = 2340515744;
 
     let (local input_state) = alloc();
     // Set the initial state to IV (IV[0] is modified).
@@ -52,7 +58,7 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
         h=input_state,
         message=random_message,
         t0=COUNTER,
-        f0=0,
+        f0=is_last_block * U32_MASK,
         sigma=sigma,
         output=cairo_output,
     );
@@ -76,7 +82,8 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     assert bitwise_ptr[7].y = U32_MASK;
 
     // Run the blake2s opcode runner on the same inputs and store its output.
-    let vm_output = run_blake2s(
+    let vm_output = run_blake2s_last_block(
+        is_last_block = is_last_block,
         dst=COUNTER,
         op0=input_state,
         op1=random_message,
@@ -107,7 +114,7 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     return ();
 }
 
-// Forces the runner to execute the Blake2s with the given operands.
+// Forces the runner to execute the Blake2s or Blake2sLastBlock opcode with the given operands.
 // op0 is a pointer to an array of 8 felts as u32 integers of the state.
 // op1 is a pointer to an array of 16 felts as u32 integers of the messsage.
 // dst is a felt representing a u32 of the counter.
@@ -116,7 +123,8 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
 // An instruction encoding is built from offsets -5, -4, -3 and flags which are all 0 except for
 // those denoting uses of fp as the base for operand addresses and flag_opcode_blake (16th flag).
 // The instruction is then written to [pc] and the runner is forced to execute Blake2s.
-func run_blake2s(
+func run_blake2s_last_block(
+    is_last_block: felt,
     dst: felt,
     op0: felt*,
     op1: felt*,
@@ -147,17 +155,25 @@ func run_blake2s(
     let flag_opcode_call = 0;
     let flag_opcode_ret = 0;
     let flag_opcode_assert_eq = 0;
-    let flag_opcode_blake2s = 1;
 
-    // Build the instruction encoding.
-    let flag_num = flag_dst_base_fp+flag_op0_base_fp*(2**1)+flag_op1_imm*(2**2)+flag_op1_base_fp*(2**3)+flag_opcode_blake2s*(2**15);
-    let instruction_num = offset0 + offset1*(2**16) + offset2*(2**32) + flag_num*(2**48);
-    static_assert instruction_num==9226608988349300731;
+    let flag_num = flag_dst_base_fp+flag_op0_base_fp*(2**1)+flag_op1_imm*(2**2)+flag_op1_base_fp*(2**3);
+    let blake2s_opcode_extension_num = 1;
+    let blake2s_last_block_opcode_extension_num =2;
+    let blake2s_instruction_num = offset0 + offset1*(2**16) + offset2*(2**32) + flag_num*(2**48) + blake2s_opcode_extension_num*(2**63);
+    let blake2s_last_block_instruction_num = offset0 + offset1*(2**16) + offset2*(2**32) + flag_num*(2**48) + blake2s_last_block_opcode_extension_num*(2**63);
+    static_assert blake2s_instruction_num==9226608988349300731;
+    static_assert blake2s_last_block_instruction_num==18449981025204076539;
 
-    // Write the instruction to [pc] and point [ap] to the designated output.
+    // Write the instruction to [pc] and point [ap+1] to the designated output.
     let (local vm_output) = alloc();
-    assert [ap] = cast(vm_output, felt);
-    dw 9226608988349300731;
+    assert [ap+1] = cast(vm_output, felt);
+    if (is_last_block == TRUE) {
+        dw 18449981025204076539;
+        let vm_output = cast([ap], felt*);
+    } else {
+        dw 9226608988349300731;
+        let vm_output = cast([ap], felt*);
+    }
 
-    return cast([ap], felt*);
+    return vm_output;
 }
