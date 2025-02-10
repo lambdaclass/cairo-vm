@@ -138,6 +138,10 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
+    Blake2sInvalidOperand(u8, u8),
+    #[error("Blake2s opcode invalid flags {0}")]
+    InvalidBlake2sFlags(u128),
 }
 
 #[cfg(test)]

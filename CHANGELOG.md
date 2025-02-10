@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
+
 * feat: set `encoded_instruction` to be u128 for opcode_extensions to come [#1940](https://github.com/lambdaclass/cairo-vm/pull/1940)
 
 * feat: prepare `rust.yml` and `MakeFile` for the folder `stwo_exclusive_programs` [#1939](https://github.com/lambdaclass/cairo-vm/pull/1939)
