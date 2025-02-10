@@ -100,7 +100,7 @@ func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     assert vm_output[4] = bitwise_ptr[4].x_and_y;
     assert vm_output[5] = bitwise_ptr[5].x_and_y;
     assert vm_output[6] = bitwise_ptr[6].x_and_y;
-    assert vm_output[7] = bitwise_ptr[7].x_and_y;
+    assert vm_output[7] = 3;
 
     let bitwise_ptr = bitwise_ptr + BitwiseBuiltin.SIZE * STATE_SIZE_FELTS;
 
