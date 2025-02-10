@@ -108,6 +108,16 @@ pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMac
 
     let opcode_extension = match opcode_extension_num {
         0 => OpcodeExtension::Stone,
+        3 => {
+            if res == Res::Add
+                || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
+                || pc_update != PcUpdate::Regular
+                || opcode != Opcode::AssertEq
+            {
+                return Err(VirtualMachineError::InvalidQM31AddMulFlags(flags));
+            }
+            OpcodeExtension::QM31Operation
+        }
         _ => {
             return Err(VirtualMachineError::InvalidOpcodeExtension(
                 opcode_extension_num,
@@ -428,5 +438,20 @@ mod decoder_test {
         //  1001 0001 0000 0100 = 0x9104; off0 = 0, off1 = 1
         let error = decode_instruction(0x9104800180018000);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcodeExtension(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_qm31_operation_invalid_flags() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //    QM31Operation|     CALL|  REGULAR|  JumpRel|      Op1|     FP|     AP|     AP
+        //             1  1   0  0  1      0  0   0  1  0      0  0 0  1  0       0       0
+        //  1 1001 0001 0000 1000 = 0x19108; off0 = 1, off1 = 1
+        let error = decode_instruction(0x19108800180018001);
+        assert_matches!(
+            error,
+            Err(VirtualMachineError::InvalidQM31AddMulFlags(0x1108))
+        );
     }
 }
