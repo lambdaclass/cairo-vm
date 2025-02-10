@@ -1,4 +1,7 @@
-use crate::math_utils::signed_felt;
+use crate::math_utils::{
+    qm31_packed_reduced_add, qm31_packed_reduced_div, qm31_packed_reduced_mul,
+    qm31_packed_reduced_sub, signed_felt,
+};
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
@@ -9,7 +12,8 @@ use crate::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
-            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, OpcodeExtension,
+            PcUpdate, Res,
         },
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -219,6 +223,9 @@ impl VirtualMachine {
     ///Returns a tuple (deduced_op0, deduced_res).
     ///Deduces the value of op0 if possible (based on dst and op1). Otherwise, returns None.
     ///If res was already deduced, returns its deduced value as well.
+    ///Returns a tuple (deduced_op0, deduced_res).
+    ///Deduces the value of op0 if possible (based on dst and op1). Otherwise, returns None.
+    ///If res was already deduced, returns its deduced value as well.
     fn deduce_op0(
         &self,
         instruction: &Instruction,
@@ -232,20 +239,37 @@ impl VirtualMachine {
                 )),
                 None,
             )),
-            Opcode::AssertEq => match (&instruction.res, dst, op1) {
-                (Res::Add, Some(dst_addr), Some(op1_addr)) => {
-                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
+            Opcode::AssertEq => match (&instruction.res, dst, op1, &instruction.opcode_extension) {
+                (Res::Add, Some(dst_addr), Some(op1_addr), OpcodeExtension::Stone) => {
+                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned())) //
                 }
+                (
+                    Res::Op1,
+                    Some(MaybeRelocatable::Int(num_dst)),
+                    Some(MaybeRelocatable::Int(num_op1)),
+                    OpcodeExtension::QM31Operations,
+                ) => Ok((
+                    Some(MaybeRelocatable::Int(qm31_packed_reduced_sub(
+                        *num_dst, *num_op1,
+                    )?)), //
+                    dst.cloned(),
+                )),
                 (
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => Ok((
-                    Some(MaybeRelocatable::Int(num_dst.field_div(
-                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
-                    ))),
-                    dst.cloned(),
-                )),
+                    OpcodeExtension::Stone | OpcodeExtension::QM31Operations,
+                ) if !num_op1.is_zero() => {
+                    let op0_val =
+                        if instruction.opcode_extension == OpcodeExtension::Stone {
+                            MaybeRelocatable::Int(num_dst.field_div(
+                                &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
+                            ))
+                        } else {
+                            MaybeRelocatable::Int(qm31_packed_reduced_div(*num_dst, *num_op1)?)
+                        };
+                    Ok((Some(op0_val), dst.cloned()))
+                }
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -262,28 +286,47 @@ impl VirtualMachine {
         op0: Option<MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
         if let Opcode::AssertEq = instruction.opcode {
-            match instruction.res {
-                Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
-                Res::Add => {
+            match (instruction.res, instruction.opcode_extension) {
+                (Res::Op1, OpcodeExtension::Stone) => return Ok((dst.cloned(), dst.cloned())),
+                (Res::Add, OpcodeExtension::Stone) => {
                     return Ok((
                         dst.zip(op0).and_then(|(dst, op0)| dst.sub(&op0).ok()),
                         dst.cloned(),
                     ))
                 }
-                Res::Mul => match (dst, op0) {
-                    (
+                (Res::Op1, OpcodeExtension::QM31Operations) => {
+                    if let (
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
-                    ) if !num_op0.is_zero() => {
+                    ) = (dst, op0)
+                    {
                         return Ok((
-                            Some(MaybeRelocatable::Int(num_dst.field_div(
-                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
-                            ))),
+                            Some(MaybeRelocatable::Int(qm31_packed_reduced_sub(
+                                *num_dst, num_op0,
+                            )?)), //
                             dst.cloned(),
-                        ))
+                        ));
                     }
-                    _ => (),
-                },
+                }
+                (Res::Mul, OpcodeExtension::Stone | OpcodeExtension::QM31Operations) => {
+                    match (dst, op0) {
+                        (
+                            Some(MaybeRelocatable::Int(num_dst)),
+                            Some(MaybeRelocatable::Int(num_op0)),
+                        ) if !num_op0.is_zero() => {
+                            let op1_val = if instruction.opcode_extension == OpcodeExtension::Stone
+                            {
+                                MaybeRelocatable::Int(num_dst.field_div(
+                                    &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
+                                ))
+                            } else {
+                                MaybeRelocatable::Int(qm31_packed_reduced_div(*num_dst, num_op0)?)
+                            };
+                            return Ok((Some(op1_val), dst.cloned()));
+                        }
+                        _ => (),
+                    }
+                }
                 _ => (),
             };
         };
@@ -306,26 +349,44 @@ impl VirtualMachine {
     }
 
     ///Computes the value of res if possible
+    ///Computes the value of res if possible
     fn compute_res(
         &self,
         instruction: &Instruction,
         op0: &MaybeRelocatable,
         op1: &MaybeRelocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        match instruction.res {
-            Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add(op1)?)),
-            Res::Mul => {
+        match (instruction.res, instruction.opcode_extension) {
+            (Res::Op1, OpcodeExtension::Stone) => Ok(Some(op1.clone())),
+            (Res::Op1, OpcodeExtension::QM31Operations) => {
                 if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
                 {
-                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
+                    return Ok(Some(MaybeRelocatable::Int(qm31_packed_reduced_add(
+                        *num_op0, *num_op1,
+                    )?)));
+                }
+                Err(VirtualMachineError::ComputeResRelocatableQM31Add(Box::new(
+                    (op0.clone(), op1.clone()),
+                )))
+            }
+            (Res::Add, OpcodeExtension::Stone) => Ok(Some(op0.add(op1)?)),
+            (Res::Mul, OpcodeExtension::Stone | OpcodeExtension::QM31Operations) => {
+                if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
+                {
+                    if instruction.opcode_extension == OpcodeExtension::Stone {
+                        return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
+                    } else {
+                        return Ok(Some(MaybeRelocatable::Int(qm31_packed_reduced_mul(
+                            *num_op0, *num_op1,
+                        )?)));
+                    }
                 }
                 Err(VirtualMachineError::ComputeResRelocatableMul(Box::new((
                     op0.clone(),
                     op1.clone(),
                 ))))
             }
-            Res::Unconstrained => Ok(None),
+            _ => Ok(None),
         }
     }
 
@@ -352,6 +413,8 @@ impl VirtualMachine {
                 None => Err(VirtualMachineError::UnconstrainedResAssertEq),
                 Some(res) if res != &operands.dst => Err(VirtualMachineError::DiffAssertValues(
                     Box::new((operands.dst.clone(), res.clone())),
+                    //Box::new((operands.dst.clone(), operands.dst.clone())),
+                    //Box::new((operands.dst.clone(), res.clone())),
                 )),
                 _ => Ok(()),
             },

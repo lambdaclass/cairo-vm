@@ -105,6 +105,16 @@ pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMac
 
     let opcode_extension = match opcode_extension_num {
         0 => OpcodeExtension::Stone,
+        3 => {
+            if res == Res::Add
+                || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
+                || pc_update != PcUpdate::Regular
+                || opcode != Opcode::AssertEq
+            {
+                return Err(VirtualMachineError::InvalidQM31AddMulFlags(flags));
+            }
+            OpcodeExtension::QM31Operations
+        }
         _ => {
             return Err(VirtualMachineError::InvalidOpcodeExtension(
                 opcode_extension_num,
@@ -407,4 +417,28 @@ mod decoder_test {
         let error = decode_instruction(0x1104800180018001);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(1)));
     }
+
+    // #[test]
+    // #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    // fn decode_opcode_extension_clash() {
+    //     // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+    //     //  31 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+    //     //            Blake|     CALL|  REGULAR|  REGULAR|      Op1|     FP|     AP|     AP
+    //     //                1   0  0  1      0  0   0  0  0      0  0 0  1  0       0       0
+    //     //  1001 0000 0000 1000 = 0x9008; off0 = 1, off1 = 1
+    //     let error = decode_instruction(0x9008800180018001);
+    //     assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4104)));
+    // }
+
+    // #[test]
+    // #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    // fn decode_blake_imm() {
+    //     // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+    //     //  31 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+    //     //            Blake|      NOP|  REGULAR|  REGULAR|      Op1|    IMM|     AP|     AP
+    //     //                1   0  0  0      0  0   0  0  0      0  0 0  0  1       0       0
+    //     //  1000 0000 0000 0100 = 0x8004; off0 = 1, off1 = 1
+    //     let error = decode_instruction(0x8004800180018001);
+    //     assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4)));
+    // }
 }

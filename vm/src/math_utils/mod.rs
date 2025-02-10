@@ -15,6 +15,8 @@ use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
 use starknet_types_core::felt::NonZeroFelt;
 
+//use stwo-prover::core::fields::m31::M31;
+
 lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
     static ref POWERS_OF_TWO: Vec<NonZeroFelt> =
@@ -23,6 +25,8 @@ lazy_static! {
             .map(|x| x.try_into().unwrap())
             .collect::<Vec<_>>();
 }
+
+const STWO_PRIME: u128 = (1 << 31) - 1;
 
 /// Returns the `n`th (up to the `251`th power) power of 2 as a [`Felt252`]
 /// in constant time.
@@ -64,6 +68,216 @@ pub fn signed_felt(felt: Felt252) -> BigInt {
     } else {
         biguint.to_bigint().expect("cannot fail")
     }
+}
+
+fn qm31_packed_reduced_read_coordinates(felt: Felt252) -> Result<[u128; 4], MathError> {
+    let limbs = felt.to_le_digits();
+    if limbs[3] != 0 || limbs[2] >= 1 << 16 {
+        return Err(MathError::QM31UpackingError(Box::new(felt)));
+    }
+    let coordinates = [
+        (limbs[0] & ((1 << 36) - 1)) as u128,
+        ((limbs[0] >> 36) + ((limbs[1] & ((1 << 8) - 1)) << 28)) as u128,
+        ((limbs[1] >> 8) & ((1 << 36) - 1)) as u128,
+        ((limbs[1] >> 44) + (limbs[2] << 20)) as u128,
+    ];
+    for x in coordinates.iter() {
+        if *x >= STWO_PRIME {
+            return Err(MathError::QM31UnreducedError(Box::new(felt)));
+        }
+    }
+    Ok(coordinates)
+}
+
+fn qm31_coordinates_to_packed_reduced(coordinates: [u128; 4]) -> Felt252 {
+    let bytes_part1 =
+        ((coordinates[0] % STWO_PRIME) + ((coordinates[1] % STWO_PRIME) << 36)).to_le_bytes();
+    let bytes_part2 =
+        ((coordinates[2] % STWO_PRIME) + ((coordinates[3] % STWO_PRIME) << 36)).to_le_bytes();
+    let mut result_bytes = [0u8; 32];
+    result_bytes[0..9].copy_from_slice(&bytes_part1[0..9]);
+    result_bytes[9..18].copy_from_slice(&bytes_part2[0..9]);
+    Felt252::from_bytes_le(&result_bytes)
+}
+
+pub fn qm31_packed_reduced_add(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+    let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
+    let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
+    let result_unreduced_coordinates = [
+        coordinates1[0] + coordinates2[0],
+        coordinates1[1] + coordinates2[1],
+        coordinates1[2] + coordinates2[2],
+        coordinates1[3] + coordinates2[3],
+    ];
+    Ok(qm31_coordinates_to_packed_reduced(
+        result_unreduced_coordinates,
+    ))
+}
+
+pub fn qm31_packed_reduced_neg(felt: Felt252) -> Result<Felt252, MathError> {
+    let coordinates = qm31_packed_reduced_read_coordinates(felt)?;
+    Ok(qm31_coordinates_to_packed_reduced([
+        STWO_PRIME - coordinates[0],
+        STWO_PRIME - coordinates[1],
+        STWO_PRIME - coordinates[2],
+        STWO_PRIME - coordinates[3],
+    ]))
+}
+
+pub fn qm31_packed_reduced_sub(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+    let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
+    let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
+    let result_unreduced_coordinates = [
+        STWO_PRIME + coordinates1[0] - coordinates2[0],
+        STWO_PRIME + coordinates1[1] - coordinates2[1],
+        STWO_PRIME + coordinates1[2] - coordinates2[2],
+        STWO_PRIME + coordinates1[3] - coordinates2[3],
+    ];
+    Ok(qm31_coordinates_to_packed_reduced(
+        result_unreduced_coordinates,
+    ))
+}
+
+pub fn qm31_packed_reduced_mul(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+    let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
+    let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
+    let result_unreduced_coordinates = [
+        coordinates1[0] * coordinates2[0] +STWO_PRIME*STWO_PRIME- coordinates1[1] * coordinates2[1] // how minus?
+            + 2 * (coordinates1[2] * coordinates2[2] +STWO_PRIME*STWO_PRIME - coordinates1[3] * coordinates2[3])
+            - coordinates1[2] * coordinates2[3]
+            - coordinates1[3] * coordinates2[2],
+        coordinates1[0] * coordinates2[1]
+            + coordinates2[0] * coordinates1[1]
+            + 2 * (coordinates1[2] * coordinates2[3] + coordinates1[3] * coordinates2[2])
+            + coordinates1[2] * coordinates2[2]
+            - coordinates1[3] * coordinates2[3],
+        coordinates1[0] * coordinates2[2] + STWO_PRIME * STWO_PRIME
+            - coordinates1[1] * coordinates2[3]
+            + coordinates1[2] * coordinates2[0]
+            - coordinates1[3] * coordinates2[1],
+        coordinates1[0] * coordinates2[3]
+            + coordinates1[1] * coordinates2[2]
+            + coordinates1[2] * coordinates2[1]
+            + coordinates1[3] * coordinates2[0],
+    ];
+    Ok(qm31_coordinates_to_packed_reduced(
+        result_unreduced_coordinates,
+    ))
+}
+
+// fn mod_inverse(a: u128, p: u128) -> Option<u128> {
+//     let (g, x) = extended_gcd_u128(a, p);
+//     if g != 1 {
+//         // Modular inverse doesn't exist if gcd(a, p) != 1
+//         return None;
+//     }
+//     // Ensure positive result using modular arithmetic
+//     Some((x % p + p) % p)
+// }
+
+// // Extended Euclidean algorithm for u128 (no negative values)
+// fn extended_gcd_u128(mut a: u128, mut b: u128) -> (u128, u128) {
+//     let (mut x0, mut x1) = (1u128, 0u128);
+
+//     while b > 0 {
+//         let q = a / b;
+//         let (new_a, new_b) = (b, a % b);
+//         a = new_a;
+//         b = new_b;
+
+//         let (new_x0, new_x1) = (x1, x0.wrapping_sub(q.wrapping_mul(x1)));
+//         x0 = new_x0;
+//         x1 = new_x1;
+//     }
+
+//     (a, x0) // Return gcd and the modular inverse coefficient
+// }
+
+/// Computes `v^(STWO_PRIME-2) modulo STWO_PRIME`.
+pub fn pow2147483645(v: u128) -> u128 {
+    let t0 = (sqn(v, 2) * v) % STWO_PRIME;
+    let t1 = (sqn(t0, 1) * t0) % STWO_PRIME;
+    let t2 = (sqn(t1, 3) * t0) % STWO_PRIME;
+    let t3 = (sqn(t2, 1) * t0) % STWO_PRIME;
+    let t4 = (sqn(t3, 8) * t3) % STWO_PRIME;
+    let t5 = (sqn(t4, 8) * t3) % STWO_PRIME;
+    (sqn(t5, 7) * t2) % STWO_PRIME
+}
+
+/// Computes `v^(2*n) modulo STWO_PRIME`.
+fn sqn(v: u128, n: usize) -> u128 {
+    let mut u = v;
+    for _ in 0..n {
+        u = (u * u) % STWO_PRIME;
+    }
+    u
+}
+
+pub fn qm31_packed_reduced_inv(felt: Felt252) -> Result<Felt252, MathError> {
+    if felt.is_zero() {
+        return Err(MathError::DividedByZero); //
+    }
+    let coordinates = qm31_packed_reduced_read_coordinates(felt)?;
+
+    //let b2 = self.b * self.b;
+    let b2_r = (coordinates[2] * coordinates[2] + STWO_PRIME * STWO_PRIME
+        - coordinates[3] * coordinates[3])
+        % STWO_PRIME;
+    let b2_i = (2 * coordinates[2] * coordinates[3]) % STWO_PRIME;
+
+    // println!("b2_r: {} b2_i: {}", b2_r, b2_i);
+
+    // let ib2 = CM31 { a: -b2.b, b: b2.a };
+
+    // let denom_r = coordinates[0] * coordinates[0] - coordinates[1] * coordinates[1]
+    //     - (coordinates[2] * coordinates[2] - coordinates[3] * coordinates[3])
+    //     - (coordinates[2] * coordinates[3] + coordinates[3] * coordinates[2]);
+
+    // let denom = self.a * self.a - (b2 + b2 + ib2);
+    let denom_r = (coordinates[0] * coordinates[0] + STWO_PRIME * STWO_PRIME
+        - coordinates[1] * coordinates[1]
+        + 2 * STWO_PRIME
+        - 2 * b2_r
+        + b2_i)
+        % STWO_PRIME; // how minus?
+    let denom_i =
+        (2 * coordinates[0] * coordinates[1] + 3 * STWO_PRIME - 2 * b2_i - b2_r) % STWO_PRIME; // how minus? pad with multiple of STWO_PRIME?
+                                                                                               // implement M31? copy?
+                                                                                               // use i128?
+                                                                                               //println!("denom_r: {} denom_i: {}", denom_r, denom_i);
+
+    // let denom_norm_inverse_squared = (denom_r*denom_r + denom_i*denom_i).inv;
+    let denom_norm_squared = (denom_r * denom_r + denom_i * denom_i) % STWO_PRIME;
+    //println!("denom_norm_squared: {}", denom_norm_squared);
+    //let denom_norm_inverse_squared = mod_inverse(denom_norm_squared, STWO_PRIME).unwrap(); //pow2147483645
+    let denom_norm_inverse_squared = pow2147483645(denom_norm_squared);
+    //println!("denom_norm_inverse_squared: {}", denom_norm_inverse_squared);
+
+    // let denom_inverse = denom.inverse();
+    let denom_inverse_r = (denom_r * denom_norm_inverse_squared) % STWO_PRIME;
+    let denom_inverse_i = ((STWO_PRIME - denom_i) * denom_norm_inverse_squared) % STWO_PRIME;
+    // println!(
+    //     "denom_inverse_r: {} denom_inverse_i: {}",
+    //     denom_inverse_r, denom_inverse_i
+    // );
+
+    //QM31 { a: self.a * denom_inverse, b: -self.b * denom_inverse }
+    Ok(qm31_coordinates_to_packed_reduced([
+        coordinates[0] * denom_inverse_r + STWO_PRIME * STWO_PRIME
+            - coordinates[1] * denom_inverse_i,
+        coordinates[0] * denom_inverse_i + coordinates[1] * denom_inverse_r,
+        coordinates[3] * denom_inverse_i + STWO_PRIME * STWO_PRIME
+            - coordinates[2] * denom_inverse_r,
+        2 * STWO_PRIME * STWO_PRIME
+            - coordinates[2] * denom_inverse_i
+            - coordinates[3] * denom_inverse_r,
+    ]))
+}
+
+pub fn qm31_packed_reduced_div(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+    //qm31_packed_reduced_inv(felt2).and_then(|inv| qm31_packed_reduced_mul(felt1, inv))
+    let felt2_inv = qm31_packed_reduced_inv(felt2)?;
+    qm31_packed_reduced_mul(felt1, felt2_inv)
 }
 
 ///Returns the integer square root of the nonnegative integer n.
@@ -945,6 +1159,142 @@ mod tests {
             (BigInt::from(-1), BigInt::one(), BigInt::from(2))
         )
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_add_test() {
+        let x_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+        let y_coordinates = [1234567890, 1414213562, 1732050807, 1618033988];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+        let res = qm31_packed_reduced_add(x, y).unwrap();
+        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(
+            res_coordinates,
+            Ok([
+                (1414213562 + 1234567890) % STWO_PRIME,
+                (1732050807 + 1414213562) % STWO_PRIME,
+                (1618033988 + 1732050807) % STWO_PRIME,
+                (1234567890 + 1618033988) % STWO_PRIME,
+            ])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_sub_test() {
+        let x_coordinates = [
+            (1414213562 + 1234567890) % STWO_PRIME,
+            (1732050807 + 1414213562) % STWO_PRIME,
+            (1618033988 + 1732050807) % STWO_PRIME,
+            (1234567890 + 1618033988) % STWO_PRIME,
+        ];
+        let y_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+        let res = qm31_packed_reduced_sub(x, y).unwrap();
+        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(
+            res_coordinates,
+            Ok([1234567890, 1414213562, 1732050807, 1618033988])
+        );
+    }
+
+    // x*y coordinates_to_packed([947980980, 1510986506, 623360030, 1260310989]),
+    // x coordinates_to_packed([1414213562, 1732050807, 1618033988, 1234567890]),
+    // y coordinates_to_packed([1259921049, 1442249570, 1847759065, 2094551481]),
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_mul_test() {
+        let x_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+        let y_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+        let res = qm31_packed_reduced_mul(x, y).unwrap();
+        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(
+            res_coordinates,
+            Ok([947980980, 1510986506, 623360030, 1260310989])
+        );
+    }
+
+    // #[test]
+    // #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    // fn qm31_packed_reduced_mul_test2() {
+    //     let x_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
+    //     let y_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+    //     let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+    //     let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+    //     let res = qm31_packed_reduced_mul(x, y).unwrap();
+    //     let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+    //     assert_eq!(
+    //         res_coordinates,
+    //         Ok([947980980, 1510986506, 623360030, 1260310989])
+    //     );
+    // }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_inv_test_1() {
+        let x_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let res = qm31_packed_reduced_inv(x).unwrap();
+        // let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_inv_test_2() {
+        let x_coordinates = [1, 2, 3, 4];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let res = qm31_packed_reduced_inv(x).unwrap();
+        // let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_div_test_1() {
+        let x_coordinates = [947980980, 1510986506, 623360030, 1260310989];
+        let y_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+        let res = qm31_packed_reduced_div(x, y).unwrap();
+        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(
+            res_coordinates,
+            Ok([1259921049, 1442249570, 1847759065, 2094551481])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn qm31_packed_reduced_div_test_2() {
+        let x_coordinates = [947980980, 1510986506, 623360030, 1260310989];
+        let y_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
+        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
+        let res = qm31_packed_reduced_div(x, y).unwrap();
+        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+        assert_eq!(
+            res_coordinates,
+            Ok([1414213562, 1732050807, 1618033988, 1234567890])
+        );
+    }
+
+    // #[test]
+    // #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    // fn qm31_packed_reduced_inv_ok_test() {
+    //     let x_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
+    //     let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+    //     let res = qm31_packed_reduced_inv(x).unwrap();
+    //     let res_coordinates = qm31_packed_reduced_read_coordinates(res);
+    //     assert_eq!(
+    //         res_coordinates,
+    //         Ok([1414213562, 1732050807, 1618033988, 1234567890])
+    //     );
+    // }
 
     #[cfg(feature = "std")]
     proptest! {

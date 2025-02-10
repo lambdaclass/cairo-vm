@@ -62,6 +62,10 @@ pub enum VirtualMachineError {
         "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
     )]
     ComputeResRelocatableMul(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error(
+        "Failed to compute Res.ADD for QM31Operations: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
+    )]
+    ComputeResRelocatableQM31Add(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Couldn't compute operand {}. Unknown value for memory cell {}", (*.0).0, (*.0).1)]
     FailedToComputeOperands(Box<(String, Relocatable)>),
     #[error("An ASSERT_EQ instruction failed: {} != {}.", (*.0).0, (*.0).1)]
@@ -138,6 +142,10 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("QM31 add mul opcode invalid flags {0}")]
+    InvalidQM31AddMulFlags(u128),
+    #[error("Unimplemented arithmetics with opcode extension")]
+    OpcodeExtensionUnimplementedArithmetics,
 }
 
 #[cfg(test)]
