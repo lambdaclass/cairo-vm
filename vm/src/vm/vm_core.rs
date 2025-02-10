@@ -134,10 +134,10 @@ impl VirtualMachine {
 
     fn update_fp(
         &mut self,
-        instruction: &Instruction,
+        instruction: Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_fp_offset: usize = match instruction.fp_update {
+        let new_fp_offset: usize = match instruction.fp_update() {
             FpUpdate::APPlus2 => self.run_context.ap + 2,
             FpUpdate::Dst => match operands.dst {
                 MaybeRelocatable::RelocatableValue(ref rel) => rel.offset,
@@ -153,10 +153,10 @@ impl VirtualMachine {
 
     fn update_ap(
         &mut self,
-        instruction: &Instruction,
+        instruction: Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_apset: usize = match instruction.ap_update {
+        let new_apset: usize = match instruction.ap_update() {
             ApUpdate::Add => match &operands.res {
                 Some(res) => (self.run_context.get_ap() + res)?.offset,
                 None => return Err(VirtualMachineError::UnconstrainedResAdd),
@@ -171,10 +171,10 @@ impl VirtualMachine {
 
     fn update_pc(
         &mut self,
-        instruction: &Instruction,
+        instruction: Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        let new_pc: Relocatable = match instruction.pc_update {
+        let new_pc: Relocatable = match instruction.pc_update() {
             PcUpdate::Regular => (self.run_context.pc + instruction.size())?,
             PcUpdate::Jump => match operands.res.as_ref().and_then(|x| x.get_relocatable()) {
                 Some(ref res) => *res,
@@ -198,7 +198,7 @@ impl VirtualMachine {
 
     fn update_registers(
         &mut self,
-        instruction: &Instruction,
+        instruction: Instruction,
         operands: Operands,
     ) -> Result<(), VirtualMachineError> {
         self.update_fp(instruction, &operands)?;
@@ -221,18 +221,18 @@ impl VirtualMachine {
     ///If res was already deduced, returns its deduced value as well.
     fn deduce_op0(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
         dst: Option<&MaybeRelocatable>,
         op1: Option<&MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
-        match instruction.opcode {
+        match instruction.opcode() {
             Opcode::Call => Ok((
                 Some(MaybeRelocatable::from(
                     (self.run_context.pc + instruction.size())?,
                 )),
                 None,
             )),
-            Opcode::AssertEq => match (&instruction.res, dst, op1) {
+            Opcode::AssertEq => match (&instruction.res(), dst, op1) {
                 (Res::Add, Some(dst_addr), Some(op1_addr)) => {
                     Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
                 }
@@ -257,12 +257,12 @@ impl VirtualMachine {
     ///If res was already deduced, returns its deduced value as well.
     fn deduce_op1(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
         dst: Option<&MaybeRelocatable>,
         op0: Option<MaybeRelocatable>,
     ) -> Result<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError> {
-        if let Opcode::AssertEq = instruction.opcode {
-            match instruction.res {
+        if let Opcode::AssertEq = instruction.opcode() {
+            match instruction.res() {
                 Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
                 Res::Add => {
                     return Ok((
@@ -308,11 +308,11 @@ impl VirtualMachine {
     ///Computes the value of res if possible
     fn compute_res(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
         op0: &MaybeRelocatable,
         op1: &MaybeRelocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        match instruction.res {
+        match instruction.res() {
             Res::Op1 => Ok(Some(op1.clone())),
             Res::Add => Ok(Some(op0.add(op1)?)),
             Res::Mul => {
@@ -331,10 +331,10 @@ impl VirtualMachine {
 
     fn deduce_dst(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
         res: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
-        let dst = match (instruction.opcode, res) {
+        let dst = match (instruction.opcode(), res) {
             (Opcode::AssertEq, Some(res)) => res.clone(),
             (Opcode::Call, _) => MaybeRelocatable::from(self.run_context.get_fp()),
             _ => return Err(VirtualMachineError::NoDst),
@@ -344,10 +344,10 @@ impl VirtualMachine {
 
     fn opcode_assertions(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
         operands: &Operands,
     ) -> Result<(), VirtualMachineError> {
-        match instruction.opcode {
+        match instruction.opcode() {
             Opcode::AssertEq => match &operands.res {
                 None => Err(VirtualMachineError::UnconstrainedResAssertEq),
                 Some(res) if res != &operands.dst => Err(VirtualMachineError::DiffAssertValues(
@@ -404,7 +404,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    fn run_instruction(&mut self, instruction: &Instruction) -> Result<(), VirtualMachineError> {
+    fn run_instruction(&mut self, instruction: Instruction) -> Result<(), VirtualMachineError> {
         let (operands, operands_addresses, deduced_operands) =
             self.compute_operands(instruction)?;
         self.insert_deduced_operands(deduced_operands, &operands, &operands_addresses)?;
@@ -421,9 +421,9 @@ impl VirtualMachine {
         // Update range check limits
         const OFFSET_BITS: u32 = 16;
         let (off0, off1, off2) = (
-            instruction.off0 + (1_isize << (OFFSET_BITS - 1)),
-            instruction.off1 + (1_isize << (OFFSET_BITS - 1)),
-            instruction.off2 + (1_isize << (OFFSET_BITS - 1)),
+            instruction.offset0() + (1_isize << (OFFSET_BITS - 1)),
+            instruction.offset1() + (1_isize << (OFFSET_BITS - 1)),
+            instruction.offset2() + (1_isize << (OFFSET_BITS - 1)),
         );
         let (min, max) = self.rc_limits.unwrap_or((off0, off0));
         self.rc_limits = Some((
@@ -524,7 +524,7 @@ impl VirtualMachine {
             if instruction.is_none() {
                 *instruction = Some(self.decode_current_instruction()?);
             }
-            let instruction = instruction.as_ref().unwrap();
+            let instruction = instruction.unwrap();
 
             if !self.skip_instruction_execution {
                 self.run_instruction(instruction)?;
@@ -538,7 +538,7 @@ impl VirtualMachine {
             let instruction = self.decode_current_instruction()?;
 
             if !self.skip_instruction_execution {
-                self.run_instruction(&instruction)?;
+                self.run_instruction(instruction)?;
             } else {
                 self.run_context.pc += instruction.size();
                 self.skip_instruction_execution = false;
@@ -578,7 +578,7 @@ impl VirtualMachine {
         &self,
         op0_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
-        instruction: &Instruction,
+        instruction: Instruction,
         dst_op: &Option<MaybeRelocatable>,
         op1_op: &Option<MaybeRelocatable>,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -600,7 +600,7 @@ impl VirtualMachine {
         &self,
         op1_addr: Relocatable,
         res: &mut Option<MaybeRelocatable>,
-        instruction: &Instruction,
+        instruction: Instruction,
         dst_op: &Option<MaybeRelocatable>,
         op0: &MaybeRelocatable,
     ) -> Result<MaybeRelocatable, VirtualMachineError> {
@@ -625,7 +625,7 @@ impl VirtualMachine {
     /// value.
     pub fn compute_operands(
         &self,
-        instruction: &Instruction,
+        instruction: Instruction,
     ) -> Result<(Operands, OperandsAddresses, DeducedOperands), VirtualMachineError> {
         //Get operands from memory
         let dst_addr = self.run_context.compute_dst_addr(instruction)?;
