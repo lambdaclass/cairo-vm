@@ -139,13 +139,13 @@ pub enum VirtualMachineError {
     #[error("Initial FP should have been initialized")]
     MissingInitialFp,
     #[error("Return FP address should be in memory: {0}")]
-    MissingReturnFp(Relocatable),
-    #[error("Return FP {0} should equal expected final FP {1}")]
-    MismatchReturnFP(Relocatable, Relocatable),
-    #[error("Return FP {0} offset should equal expected final FP {1} offset")]
-    MismatchReturnFPOffset(Relocatable, Relocatable),
-    #[error("Return FP felt {0} should equal expected final FP {1} offset")]
-    MismatchReturnFPFelt(Felt252, Relocatable),
+    MissingReturnFp(Box<Relocatable>),
+    #[error("Return FP { } should equal expected final FP { }", (*.0).0, (*.0).1)]
+    MismatchReturnFP(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP { } offset should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPOffset(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP felt { } should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPFelt(Box<(Felt252, Relocatable)>),
 }
 
 #[cfg(test)]

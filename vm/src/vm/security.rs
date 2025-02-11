@@ -88,20 +88,26 @@ pub fn verify_secure_runner(
     let ret_fp = runner
         .vm
         .get_maybe(&ret_fp_addr)
-        .ok_or(VirtualMachineError::MissingReturnFp(ret_fp_addr))?;
+        .ok_or(VirtualMachineError::MissingReturnFp(Box::new(ret_fp_addr)))?;
     let final_fp = runner.vm.get_fp();
     match ret_fp {
         MaybeRelocatable::RelocatableValue(value) => {
             if runner.runner_mode == RunnerMode::ProofModeCanonical && value != final_fp {
-                return Err(VirtualMachineError::MismatchReturnFP(value, final_fp));
+                return Err(VirtualMachineError::MismatchReturnFP(Box::new((
+                    value, final_fp,
+                ))));
             }
             if runner.runner_mode == RunnerMode::ExecutionMode && value.offset != final_fp.offset {
-                return Err(VirtualMachineError::MismatchReturnFPOffset(value, final_fp));
+                return Err(VirtualMachineError::MismatchReturnFPOffset(Box::new((
+                    value, final_fp,
+                ))));
             }
         }
         MaybeRelocatable::Int(value) => {
             if Felt252::from(final_fp.offset) != value {
-                return Err(VirtualMachineError::MismatchReturnFPFelt(value, final_fp));
+                return Err(VirtualMachineError::MismatchReturnFPFelt(Box::new((
+                    value, final_fp,
+                ))));
             }
         }
     }
