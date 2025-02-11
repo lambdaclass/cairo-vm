@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: prepare `rust.yml` and `MakeFile` for the folder `stwo_exclusive_programs` [#1939](https://github.com/lambdaclass/cairo-vm/pull/1939)
+
 * feat: add `get_u32_range` to `impl VirtualMachine` add `get_u32` and `get_u32_range` to `impl Memory` [#1936](https://github.com/lambdaclass/cairo-vm/pull/1936)
 
 * feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)
