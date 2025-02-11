@@ -80,6 +80,7 @@ pub enum Opcode {
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum OpcodeExtension {
     Stone,
+    Blake,
 }
 
 impl Instruction {
