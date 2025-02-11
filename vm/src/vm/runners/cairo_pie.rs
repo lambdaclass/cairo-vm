@@ -522,7 +522,15 @@ pub(super) mod serde_impl {
         let mut res = Vec::with_capacity(mem_cap);
 
         for ((segment, offset), value) in values.iter() {
-            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+            // mem_addr = ADDR_BASE + segment * OFFSET_BASE + offset
+            let mem_addr = (*segment as u64)
+                .checked_mul(OFFSET_BASE)
+                .and_then(|n| n.checked_add(ADDR_BASE))
+                .and_then(|n| n.checked_add(*offset as u64))
+                .ok_or_else(|| {
+                    serde::ser::Error::custom("final memory address calculation overflowed")
+                })?;
+
             res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
             match value {
                 // Serializes RelocatableValue(little endian):
