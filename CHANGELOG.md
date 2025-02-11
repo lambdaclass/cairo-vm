@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)
+
 * fix(BREAKING): Fix no trace padding flow in proof mode [#1909](https://github.com/lambdaclass/cairo-vm/pull/1909)
 
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
