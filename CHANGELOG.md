@@ -2,7 +2,23 @@
 
 #### Upcoming Changes
 
+* feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)
+
+* fix(BREAKING): Fix no trace padding flow in proof mode [#1909](https://github.com/lambdaclass/cairo-vm/pull/1909)
+
+* refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
+
+#### [2.0.0-rc4] - 2025-01-23
+
+* feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)
+
+#### [2.0.0-rc3] - 2024-12-26
+
+* chore: update cairo-lang dependencies to 2.10.0-rc.0 #[1901](https://github.com/lambdaclass/cairo-vm/pull/1901)
+
 #### [2.0.0-rc2] - 2024-12-12
+
+* feat: Add support for subtractions containing references as right hand side operands [#1898](https://github.com/lambdaclass/cairo-vm/pull/1898)
 
 * fix: Change wildcard getrandom dependency.
 
@@ -169,7 +185,7 @@
   * `CairoRunner` has a new public field `vm: VirtualMachine`
   * `CairoRunner` no longer derives `Debug`
   * `CairoRunner` methods `new_v2` & `new` take an extra boolean argument `trace_enabled`.
-  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now retun only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
+  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now return only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
   * `CairoRunner` methods no longer take a reference to `VirtualMachine`. Methods that took an immutable reference to self and a mutable reference to the VM now take a mutable reference to self. Affected methods:
     * `initialize`
     * `initialize_builtins`

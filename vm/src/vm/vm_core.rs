@@ -89,6 +89,8 @@ pub struct VirtualMachine {
     pub(crate) rc_limits: Option<(isize, isize)>,
     skip_instruction_execution: bool,
     run_finished: bool,
+    // This flag is a parallel to the one in `struct CairoRunConfig`.
+    pub(crate) disable_trace_padding: bool,
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "test_utils")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
@@ -96,7 +98,7 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub fn new(trace_enabled: bool) -> VirtualMachine {
+    pub fn new(trace_enabled: bool, disable_trace_padding: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -118,6 +120,7 @@ impl VirtualMachine {
             segments: MemorySegmentManager::new(),
             rc_limits: None,
             run_finished: false,
+            disable_trace_padding,
             instruction_cache: Vec::new(),
             #[cfg(feature = "test_utils")]
             hooks: Default::default(),
@@ -1255,6 +1258,7 @@ impl VirtualMachineBuilder {
             #[cfg(feature = "test_utils")]
             hooks: self.hooks,
             relocation_table: None,
+            disable_trace_padding: false,
         }
     }
 }
@@ -1264,6 +1268,7 @@ mod tests {
     use super::*;
     use crate::felt_hex;
     use crate::stdlib::collections::HashMap;
+    use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::{
@@ -1302,6 +1307,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1335,6 +1341,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1368,6 +1375,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1401,6 +1409,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1435,6 +1444,7 @@ mod tests {
             ap_update: ApUpdate::Add,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1444,7 +1454,7 @@ mod tests {
             op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
-        let mut vm = VirtualMachine::new(false);
+        let mut vm = VirtualMachine::new(false, false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1471,6 +1481,7 @@ mod tests {
             ap_update: ApUpdate::Add,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1506,6 +1517,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1542,6 +1554,7 @@ mod tests {
             ap_update: ApUpdate::Add2,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1578,6 +1591,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1614,6 +1628,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1647,6 +1662,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1680,6 +1696,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1713,6 +1730,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1748,6 +1766,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1782,6 +1801,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1814,6 +1834,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1845,6 +1866,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1878,6 +1900,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1911,6 +1934,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1949,6 +1973,7 @@ mod tests {
             ap_update: ApUpdate::Add2,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1999,6 +2024,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2027,6 +2053,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2059,6 +2086,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2086,6 +2114,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2118,6 +2147,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2147,6 +2177,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2176,6 +2207,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Ret,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2206,6 +2238,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2233,6 +2266,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2264,6 +2298,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2290,6 +2325,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2321,6 +2357,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2350,6 +2387,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2378,6 +2416,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2408,6 +2447,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2437,6 +2477,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2466,6 +2507,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2495,6 +2537,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2522,6 +2565,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2549,6 +2593,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2575,6 +2620,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2597,6 +2643,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2622,6 +2669,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Ret,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2644,6 +2692,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2704,6 +2753,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
         let mut vm = vm!();
         //Create program and execution segments
@@ -2763,6 +2813,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2818,6 +2869,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2843,6 +2895,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2873,6 +2926,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2907,6 +2961,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2939,6 +2994,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2972,6 +3028,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -3339,6 +3396,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
         let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
@@ -3427,6 +3485,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);

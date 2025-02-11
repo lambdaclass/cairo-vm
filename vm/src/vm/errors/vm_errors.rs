@@ -34,8 +34,6 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Instruction MSB should be 0")]
-    InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
@@ -76,6 +74,8 @@ pub enum VirtualMachineError {
     InvalidRes(u64),
     #[error("Invalid opcode value: {0}")]
     InvalidOpcode(u64),
+    #[error("Invalid opcode extension value: {0}")]
+    InvalidOpcodeExtension(u64),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]

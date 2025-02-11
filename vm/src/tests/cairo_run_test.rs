@@ -1185,6 +1185,7 @@ fn run_program_with_custom_mod_builtin_params(
         cairo_run_config.dynamic_layout_params,
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )
     .unwrap();
 
@@ -1306,5 +1307,14 @@ fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
     let program_data = include_bytes!(
         "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec_mul_by_uint256.json"
     );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-data-availability-hints")]
+fn cairo_run_data_availability_reduced_mul() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-kzg-da-hints/reduced_mul.json");
     run_program_simple(program_data.as_slice());
 }
