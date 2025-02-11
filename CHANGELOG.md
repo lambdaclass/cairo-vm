@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
+
 * feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
 
 * feat: set `encoded_instruction` to be u128 for opcode_extensions to come [#1940](https://github.com/lambdaclass/cairo-vm/pull/1940)

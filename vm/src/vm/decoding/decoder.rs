@@ -108,23 +108,25 @@ pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMac
 
     let opcode_extension = match opcode_extension_num {
         0 => OpcodeExtension::Stone,
-        1 => {
-            if opcode != Opcode::NOp
-                || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
-                || res != Res::Op1
-                || pc_update != PcUpdate::Regular
-                || (ap_update_num != 0 && ap_update_num != 2)
-            {
-                return Err(VirtualMachineError::InvalidBlake2sFlags(flags));
-            };
-            OpcodeExtension::Blake
-        }
+        1 => OpcodeExtension::Blake,
+        2 => OpcodeExtension::BlakeFinalize,
         _ => {
             return Err(VirtualMachineError::InvalidOpcodeExtension(
                 opcode_extension_num,
             ))
         }
     };
+
+    if (opcode_extension == OpcodeExtension::Blake
+        || opcode_extension == OpcodeExtension::BlakeFinalize)
+        && (opcode != Opcode::NOp
+            || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
+            || res != Res::Op1
+            || pc_update != PcUpdate::Regular
+            || (ap_update_num != 0 && ap_update_num != 2))
+    {
+        return Err(VirtualMachineError::InvalidBlake2sFlags(flags));
+    }
 
     let ap_update = match (ap_update_num, opcode == Opcode::Call) {
         (0, true) => ApUpdate::Add2,
