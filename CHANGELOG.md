@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: set `encoded_instruction` to be u128 for opcode_extensions to come [#1940](https://github.com/lambdaclass/cairo-vm/pull/1940)
+
 * feat: prepare `rust.yml` and `MakeFile` for the folder `stwo_exclusive_programs` [#1939](https://github.com/lambdaclass/cairo-vm/pull/1939)
 
 * feat: add `get_u32_range` to `impl VirtualMachine` add `get_u32` and `get_u32_range` to `impl Memory` [#1936](https://github.com/lambdaclass/cairo-vm/pull/1936)
