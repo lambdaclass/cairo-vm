@@ -452,7 +452,7 @@ impl VirtualMachine {
             .segments
             .memory
             .get_integer(self.run_context.pc)?
-            .to_u64()
+            .to_u128()
             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
         decode_instruction(instruction)
     }
@@ -4187,7 +4187,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
