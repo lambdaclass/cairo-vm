@@ -31,6 +31,7 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
 
     // Flags start on the 48th bit.
     const FLAGS_OFFSET: u64 = 48;
+    const FLAGS_MASK: u64 = 0x7FFF;
     const OFF0_OFF: u64 = 0;
     const OFF1_OFF: u64 = 16;
     const OFF2_OFF: u64 = 32;
@@ -42,7 +43,7 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
     let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
 
     // Grab flags
-    let flags = encoded_instr >> FLAGS_OFFSET;
+    let flags = (encoded_instr >> FLAGS_OFFSET) & FLAGS_MASK;
     // Grab individual flags
     let dst_reg_num = (flags & DST_REG_MASK) >> DST_REG_OFF;
     let op0_reg_num = (flags & OP0_REG_MASK) >> OP0_REG_OFF;
