@@ -330,7 +330,7 @@ mod test {
 
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err)) if err.to_string().contains("Failed to retrieve the initial_fp: it is None")
+            Err(VirtualMachineError::MissingInitialFp)
         );
     }
 
@@ -344,8 +344,7 @@ mod test {
         runner.vm.segments.memory = crate::vm::vm_memory::memory::Memory::new();
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Ret FP address is not in memory")
+            Err(VirtualMachineError::MissingReturnFp(..))
         );
     }
 
@@ -362,8 +361,7 @@ mod test {
 
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP is not equal to final FP")
+            Err(VirtualMachineError::MismatchReturnFP(..))
         );
     }
 
@@ -377,8 +375,7 @@ mod test {
         // ExecutionMode only requires offset equality, not the entire relocatable.
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP offset is not equal to final FP offset")
+            Err(VirtualMachineError::MismatchReturnFPOffset(..))
         );
     }
 
@@ -394,8 +391,7 @@ mod test {
         // ExecutionMode only requires offset equality, not the entire relocatable.
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP felt value is not equal to final FP offset")
+            Err(VirtualMachineError::MismatchReturnFPFelt(..))
         );
     }
 }
