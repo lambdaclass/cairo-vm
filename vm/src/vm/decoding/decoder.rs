@@ -13,8 +13,6 @@ use crate::{
 /// opcode_extension_num=0 means the instruction is a Stone instruction.
 /// opcode_extension_num>0 is for new Stwo opcodes.
 pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMachineError> {
-    // HIGH_BITS_MASK is a mask to extract the high bits that are yet to be used in any opcode extension.
-    const HIGH_BITS_MASK: u128 = ((1 << 127) - (1 << 64)) << 1;
     const DST_REG_MASK: u128 = 0x0001;
     const DST_REG_OFF: u128 = 0;
     const OP0_REG_MASK: u128 = 0x0002;
@@ -37,10 +35,6 @@ pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMac
     const OFF1_OFF: u128 = 16;
     const OFF2_OFF: u128 = 32;
     const OFFX_MASK: u128 = 0xFFFF;
-
-    if (encoded_instr & HIGH_BITS_MASK) != 0 {
-        return Err(VirtualMachineError::NonZeroReservedBits);
-    }
 
     // Grab offsets and convert them from little endian format.
     let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
@@ -189,7 +183,7 @@ mod decoder_test {
         let error = decode_instruction(0x214a7800080008000);
         assert_eq!(
             error.unwrap_err().to_string(),
-            "Reserved instruction bits must be 0",
+            "Invalid opcode extension value: 4",
         )
     }
 
