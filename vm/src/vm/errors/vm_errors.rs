@@ -34,8 +34,6 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Reserved instruction bits must be 0")]
-    NonZeroReservedBits,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
