@@ -136,6 +136,16 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Initial FP should have been initialized")]
+    MissingInitialFp,
+    #[error("Return FP address should be in memory: {0}")]
+    MissingReturnFp(Box<Relocatable>),
+    #[error("Return FP { } should equal expected final FP { }", (*.0).0, (*.0).1)]
+    MismatchReturnFP(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP { } offset should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPOffset(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP felt { } should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPFelt(Box<(Felt252, Relocatable)>),
 }
 
 #[cfg(test)]

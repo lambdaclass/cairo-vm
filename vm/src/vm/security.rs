@@ -81,37 +81,33 @@ pub fn verify_secure_runner(
     }
 
     // Validate ret FP.
-    let initial_fp = runner.get_initial_fp().ok_or_else(|| {
-        VirtualMachineError::Other(anyhow::anyhow!(
-            "Failed to retrieve the initial_fp: it is None. \
-                     The initial_fp field should be initialized after running the entry point."
-        ))
-    })?;
+    let initial_fp = runner
+        .get_initial_fp()
+        .ok_or(VirtualMachineError::MissingInitialFp)?;
     let ret_fp_addr = (initial_fp - 2).map_err(VirtualMachineError::Math)?;
-    let ret_fp = runner.vm.get_maybe(&ret_fp_addr).ok_or_else(|| {
-        VirtualMachineError::Other(anyhow::anyhow!(
-            "Ret FP address is not in memory: {ret_fp_addr}"
-        ))
-    })?;
+    let ret_fp = runner
+        .vm
+        .get_maybe(&ret_fp_addr)
+        .ok_or(VirtualMachineError::MissingReturnFp(Box::new(ret_fp_addr)))?;
     let final_fp = runner.vm.get_fp();
     match ret_fp {
         MaybeRelocatable::RelocatableValue(value) => {
             if runner.runner_mode == RunnerMode::ProofModeCanonical && value != final_fp {
-                return Err(VirtualMachineError::Other(anyhow::anyhow!(
-                    "Return FP is not equal to final FP: ret_f={ret_fp}, final_fp={final_fp}"
-                )));
+                return Err(VirtualMachineError::MismatchReturnFP(Box::new((
+                    value, final_fp,
+                ))));
             }
             if runner.runner_mode == RunnerMode::ExecutionMode && value.offset != final_fp.offset {
-                return Err(VirtualMachineError::Other(anyhow::anyhow!(
-                    "Return FP offset is not equal to final FP offset: ret_f={ret_fp}, final_fp={final_fp}"
-                )));
+                return Err(VirtualMachineError::MismatchReturnFPOffset(Box::new((
+                    value, final_fp,
+                ))));
             }
         }
         MaybeRelocatable::Int(value) => {
             if Felt252::from(final_fp.offset) != value {
-                return Err(VirtualMachineError::Other(anyhow::anyhow!(
-                    "Return FP felt value is not equal to final FP offset: ret_fp={ret_fp}, final_fp={final_fp}"
-                )));
+                return Err(VirtualMachineError::MismatchReturnFPFelt(Box::new((
+                    value, final_fp,
+                ))));
             }
         }
     }
@@ -340,7 +336,7 @@ mod test {
 
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err)) if err.to_string().contains("Failed to retrieve the initial_fp: it is None")
+            Err(VirtualMachineError::MissingInitialFp)
         );
     }
 
@@ -354,8 +350,7 @@ mod test {
         runner.vm.segments.memory = crate::vm::vm_memory::memory::Memory::new();
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Ret FP address is not in memory")
+            Err(VirtualMachineError::MissingReturnFp(..))
         );
     }
 
@@ -372,8 +367,7 @@ mod test {
 
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP is not equal to final FP")
+            Err(VirtualMachineError::MismatchReturnFP(..))
         );
     }
 
@@ -387,8 +381,7 @@ mod test {
         // ExecutionMode only requires offset equality, not the entire relocatable.
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP offset is not equal to final FP offset")
+            Err(VirtualMachineError::MismatchReturnFPOffset(..))
         );
     }
 
@@ -404,8 +397,7 @@ mod test {
         // ExecutionMode only requires offset equality, not the entire relocatable.
         assert_matches!(
             verify_secure_runner(&runner, true, None),
-            Err(VirtualMachineError::Other(ref err))
-                if err.to_string().contains("Return FP felt value is not equal to final FP offset")
+            Err(VirtualMachineError::MismatchReturnFPFelt(..))
         );
     }
 }
