@@ -34,20 +34,18 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Instruction MSB should be 0")]
-    InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
-    InvalidOp1Reg(u64),
+    InvalidOp1Reg(u128),
     #[error("In immediate mode, off2 should be 1")]
     ImmShouldBe1,
     #[error("op0 must be known in double dereference")]
     UnknownOp0,
     #[error("Invalid ap_update value: {0}")]
-    InvalidApUpdate(u64),
+    InvalidApUpdate(u128),
     #[error("Invalid pc_update value: {0}")]
-    InvalidPcUpdate(u64),
+    InvalidPcUpdate(u128),
     #[error("Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")]
     UnconstrainedResAdd,
     #[error("Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")]
@@ -73,9 +71,11 @@ pub enum VirtualMachineError {
     #[error("Couldn't get or load dst")]
     NoDst,
     #[error("Invalid res value: {0}")]
-    InvalidRes(u64),
+    InvalidRes(u128),
     #[error("Invalid opcode value: {0}")]
-    InvalidOpcode(u64),
+    InvalidOpcode(u128),
+    #[error("Invalid opcode extension value: {0}")]
+    InvalidOpcodeExtension(u128),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
