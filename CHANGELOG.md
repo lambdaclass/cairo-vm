@@ -16,6 +16,8 @@
 
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
 
+* feat: define HashMap of hint groups along with hint strings [#1943](https://github.com/lambdaclass/cairo-vm/pull/1943)
+
 #### [2.0.0-rc4] - 2025-01-23
 
 * feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)
