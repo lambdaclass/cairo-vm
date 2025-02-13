@@ -699,8 +699,8 @@ from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import ec_double_slope
 
 # Compute the slope.
-x = pack(ids.point.x, SECP256R1_P)
-y = pack(ids.point.y, SECP256R1_P)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#;
 
 pub const EC_DOUBLE_SLOPE_EXTERNAL_CONSTS: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
