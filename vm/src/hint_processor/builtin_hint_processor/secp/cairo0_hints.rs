@@ -5,6 +5,7 @@ use crate::stdlib::{
     prelude::*,
 };
 
+use crate::define_hint_string_map;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_constant_from_var_name, get_integer_from_var_name, insert_value_from_var_name,
 };
@@ -17,6 +18,7 @@ use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::Felt252;
+use indoc::indoc;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::One;
@@ -26,9 +28,70 @@ use super::bigint_utils::{BigInt3, Uint384};
 use super::ec_utils::EcPoint;
 use super::secp_utils::{SECP256R1_ALPHA, SECP256R1_B, SECP256R1_P};
 
-pub const SECP_REDUCE: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+define_hint_string_map! {
+    CAIRO0_HINT_CODES,
+(SECP_REDUCE, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
 from starkware.cairo.common.cairo_secp.secp_utils import pack
-value = pack(ids.x, PRIME) % SECP256R1_P"#;
+value = pack(ids.x, PRIME) % SECP256R1_P"#}),
+(SECP_REDUCE_X, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+x = pack(ids.x, PRIME) % SECP256R1_P"#}),
+(COMPUTE_Q_MOD_PRIME, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+q, r = divmod(pack(ids.val, PRIME), SECP256R1_P)
+assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
+ids.q = q % PRIME"#}),
+(COMPUTE_IDS_HIGH_LOW, indoc! {r#"from starkware.cairo.common.math_utils import as_int
+
+# Correctness check.
+value = as_int(ids.value, PRIME) % PRIME
+assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**165).'
+
+# Calculation for the assertion.
+ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#}),
+(SECP_R1_GET_POINT_FROM_X, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+from starkware.python.math_utils import y_squared_from_x
+
+y_square_int = y_squared_from_x(
+    x=pack(ids.x, SECP256R1.prime),
+    alpha=SECP256R1.alpha,
+    beta=SECP256R1.beta,
+    field_prime=SECP256R1.prime,
+)
+
+# Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+#   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+#   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+#   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+# We need to decide whether to take y or prime - y.
+if ids.v % 2 == y % 2:
+    value = y
+else:
+    value = (-y) % SECP256R1.prime"#}),
+(IS_ON_CURVE_2, indoc! {r#"ids.is_on_curve = (y * y) % SECP256R1.prime == y_square_int"#}),
+(SECP_DOUBLE_ASSIGN_NEW_X, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, SECP256R1_P)
+x = pack(ids.point.x, SECP256R1_P)
+y = pack(ids.point.y, SECP256R1_P)
+
+value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#}),
+(GENERATE_NIBBLES, indoc! {r#"num = (ids.scalar.high << 128) + ids.scalar.low
+nibbles = [(num >> i) & 0xf for i in range(0, 256, 4)]
+ids.first_nibble = nibbles.pop()
+ids.last_nibble = nibbles[0]"#}),
+(FAST_SECP_ADD_ASSIGN_NEW_Y, indoc! {r#"value = new_y = (slope * (x - new_x) - y) % SECP256R1_P"#}),
+(WRITE_NIBBLES_TO_MEM, indoc! {r#"memory[fp + 0] = to_felt_or_relocatable(nibbles.pop())"#}),
+(COMPUTE_VALUE_DIV_MOD, indoc! {r#"from starkware.python.math_utils import div_mod
+
+value = div_mod(1, x, SECP256R1_P)"#})
+}
+
 pub fn reduce_value(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -41,10 +104,6 @@ pub fn reduce_value(
     Ok(())
 }
 
-pub const SECP_REDUCE_X: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
-from starkware.cairo.common.cairo_secp.secp_utils import pack
-
-x = pack(ids.x, PRIME) % SECP256R1_P"#;
 pub fn reduce_x(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -57,12 +116,6 @@ pub fn reduce_x(
     Ok(())
 }
 
-pub const COMPUTE_Q_MOD_PRIME: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
-from starkware.cairo.common.cairo_secp.secp_utils import pack
-
-q, r = divmod(pack(ids.val, PRIME), SECP256R1_P)
-assert r == 0, f"verify_zero: Invalid input {ids.val.d0, ids.val.d1, ids.val.d2}."
-ids.q = q % PRIME"#;
 pub fn compute_q_mod_prime(
     vm: &mut VirtualMachine,
     _exec_scopes: &mut ExecutionScopes,
@@ -79,14 +132,6 @@ pub fn compute_q_mod_prime(
     Ok(())
 }
 
-pub const COMPUTE_IDS_HIGH_LOW: &str = r#"from starkware.cairo.common.math_utils import as_int
-
-# Correctness check.
-value = as_int(ids.value, PRIME) % PRIME
-assert value < ids.UPPER_BOUND, f'{value} is outside of the range [0, 2**165).'
-
-# Calculation for the assertion.
-ids.high, ids.low = divmod(ids.value, ids.SHIFT)"#;
 pub fn compute_ids_high_low(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -120,28 +165,6 @@ pub fn compute_ids_high_low(
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)?;
     Ok(())
 }
-
-pub const SECP_R1_GET_POINT_FROM_X: &str = r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
-from starkware.python.math_utils import y_squared_from_x
-
-y_square_int = y_squared_from_x(
-    x=pack(ids.x, SECP256R1.prime),
-    alpha=SECP256R1.alpha,
-    beta=SECP256R1.beta,
-    field_prime=SECP256R1.prime,
-)
-
-# Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
-#   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
-#   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
-#   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
-y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
-
-# We need to decide whether to take y or prime - y.
-if ids.v % 2 == y % 2:
-    value = y
-else:
-    value = (-y) % SECP256R1.prime"#;
 
 pub fn r1_get_point_from_x(
     vm: &mut VirtualMachine,
@@ -204,8 +227,6 @@ pub fn r1_get_point_from_x(
     Ok(())
 }
 
-pub const IS_ON_CURVE_2: &str = r#"ids.is_on_curve = (y * y) % SECP256R1.prime == y_square_int"#;
-
 pub fn is_on_curve_2(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -227,15 +248,6 @@ pub fn is_on_curve_2(
 
     Ok(())
 }
-
-pub const SECP_DOUBLE_ASSIGN_NEW_X: &str = r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
-from starkware.cairo.common.cairo_secp.secp_utils import pack
-
-slope = pack(ids.slope, SECP256R1_P)
-x = pack(ids.point.x, SECP256R1_P)
-y = pack(ids.point.y, SECP256R1_P)
-
-value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#;
 
 pub fn secp_double_assign_new_x(
     vm: &mut VirtualMachine,
@@ -266,10 +278,6 @@ pub fn secp_double_assign_new_x(
     Ok(())
 }
 
-pub const GENERATE_NIBBLES: &str = r#"num = (ids.scalar.high << 128) + ids.scalar.low
-nibbles = [(num >> i) & 0xf for i in range(0, 256, 4)]
-ids.first_nibble = nibbles.pop()
-ids.last_nibble = nibbles[0]"#;
 pub fn generate_nibbles(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -298,8 +306,6 @@ pub fn generate_nibbles(
     Ok(())
 }
 
-pub const FAST_SECP_ADD_ASSIGN_NEW_Y: &str =
-    r#"value = new_y = (slope * (x - new_x) - y) % SECP256R1_P"#;
 pub fn fast_secp_add_assign_new_y(
     _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -322,8 +328,6 @@ pub fn fast_secp_add_assign_new_y(
     Ok(())
 }
 
-pub const WRITE_NIBBLES_TO_MEM: &str = r#"memory[fp + 0] = to_felt_or_relocatable(nibbles.pop())"#;
-
 pub fn write_nibbles_to_mem(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -338,9 +342,6 @@ pub fn write_nibbles_to_mem(
     Ok(())
 }
 
-pub const COMPUTE_VALUE_DIV_MOD: &str = r#"from starkware.python.math_utils import div_mod
-
-value = div_mod(1, x, SECP256R1_P)"#;
 pub fn compute_value_div_mod(
     _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,

@@ -78,10 +78,12 @@ fn qm31_packed_reduced_read_coordinates(felt: Felt252) -> Result<[u128; 4], Math
     if limbs[3] != 0 || limbs[2] >= 1 << 16 {
         return Err(MathError::QM31UpackingError(Box::new(felt)));
     }
+    let mask_36 = (1 << 36) - 1;
+    let mask_8 = (1 << 8) - 1;
     let coordinates = [
-        (limbs[0] & ((1 << 36) - 1)) as u128,
-        ((limbs[0] >> 36) + ((limbs[1] & ((1 << 8) - 1)) << 28)) as u128,
-        ((limbs[1] >> 8) & ((1 << 36) - 1)) as u128,
+        (limbs[0] & mask_36) as u128,
+        ((limbs[0] >> 36) + ((limbs[1] & mask_8) << 28)) as u128,
+        ((limbs[1] >> 8) & mask_36) as u128,
         ((limbs[1] >> 44) + (limbs[2] << 20)) as u128,
     ];
     for x in coordinates.iter() {

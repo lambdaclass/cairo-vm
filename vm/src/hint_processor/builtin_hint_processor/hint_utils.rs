@@ -15,6 +15,61 @@ use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 
+/// Generates a const string for each hint, and a lazy_static HashMap that maps the const name to
+/// the hint string.
+/// Allows gating specific hints behind feature gates.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate cairo_vm;
+/// # use cairo_vm::stdlib::collections::HashMap;
+/// cairo_vm::define_hint_string_map!(
+///     FOO_HINTS,
+///     (FOO_HINT_ADD_X_Y, "x + y"),
+///     (FOO_HINT_PRINT_X, "print(x)", "test_utils")
+/// );
+/// ```
+///
+/// This will generate the following code:
+///
+/// ```
+/// # use cairo_vm::stdlib::collections::HashMap;
+/// pub const FOO_HINT_ADD_X_Y: &str = "x + y";
+/// #[cfg(feature = "test_utils")]
+/// pub const FOO_HINT_PRINT_X: &str = "print(x)";
+///
+/// lazy_static::lazy_static! {
+///     pub static ref FOO_HINTS: HashMap<&'static str, &'static str> = {
+///         let mut map = HashMap::new();
+///         map.insert("FOO_HINT_ADD_X_Y", FOO_HINT_ADD_X_Y);
+///         #[cfg(feature = "test_utils")]
+///         map.insert("FOO_HINT_PRINT_X", FOO_HINT_PRINT_X);
+///         map
+///     };
+/// }
+/// ```
+#[macro_export]
+macro_rules! define_hint_string_map {
+    ($hint_set_name:ident, $(($hint_name:ident, $hint_str:expr $(, $feature_gate:expr)?)),+) => {
+        $(
+            $(#[cfg(feature = $feature_gate)])?
+            pub const $hint_name: &str = $hint_str;
+        )+
+
+        lazy_static::lazy_static! {
+            pub static ref $hint_set_name: HashMap<&'static str, &'static str> = {
+                let mut map = HashMap::new();
+                $(
+                    $(#[cfg(feature = $feature_gate)])?
+                    map.insert(stringify!($hint_name), $hint_name);
+                )+
+                map
+            };
+        }
+    }
+}
+
 //Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
     var_name: &str,
