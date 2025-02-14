@@ -528,7 +528,9 @@ pub(super) mod serde_impl {
                 .and_then(|n| n.checked_add(ADDR_BASE))
                 .and_then(|n| n.checked_add(*offset as u64))
                 .ok_or_else(|| {
-                    serde::ser::Error::custom("final memory address calculation overflowed")
+                    serde::ser::Error::custom(format!(
+                        "failed to serialize address: {segment}:{offset}"
+                    ))
                 })?;
 
             res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
