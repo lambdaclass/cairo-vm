@@ -272,7 +272,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn compute_addr_from_reference_no_regiter_in_reference() {
+    fn compute_addr_from_reference_no_register_in_reference() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
         let mut hint_reference = HintReference::new(0, 0, false, false, true);
