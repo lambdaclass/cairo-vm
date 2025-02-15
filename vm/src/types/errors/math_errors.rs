@@ -65,6 +65,8 @@ pub enum MathError {
         "Operation failed: divmod({}, {}, {}), igcdex({}, {}) != 1 ", (*.0).0, (*.0).1, (*.0).2, (*.0).1, (*.0).2
     )]
     DivModIgcdexNotZero(Box<(BigInt, BigInt, BigInt)>),
+    #[error("Number is not a packing of a QM31 in reduced form: {0})")]
+    QM31UnreducedError(Box<Felt252>),
 }
 
 #[cfg(test)]
