@@ -4,9 +4,14 @@ use crate::stdlib::{
     prelude::*,
 };
 
+use crate::math_utils::{
+    qm31_packed_reduced_add, qm31_packed_reduced_mul, qm31_packed_reduced_sub,
+};
 use crate::Felt252;
 use crate::{
-    relocatable, types::errors::math_errors::MathError, vm::errors::memory_errors::MemoryError,
+    relocatable,
+    types::{errors::math_errors::MathError, instruction::OpcodeExtension},
+    vm::errors::memory_errors::MemoryError,
 };
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
@@ -327,6 +332,89 @@ impl MaybeRelocatable {
                 self.clone(),
                 other.clone(),
             )))),
+        }
+    }
+
+    /// Substracts a MaybeRelocatable value from self according to the specified OpcodeExtension.
+    /// If the OpcodeExtension is Stone it subtracts as MaybeRelocatable::sub does.
+    /// If the OpcodeExtension is QM31Operation it requires them both to be Int and it subtracts
+    /// them as packed reduced QM31 elements.
+    pub fn typed_add(
+        &self,
+        other: &MaybeRelocatable,
+        opcode_extension: OpcodeExtension,
+    ) -> Result<MaybeRelocatable, MathError> {
+        match opcode_extension {
+            OpcodeExtension::Stone => self.add(other),
+            OpcodeExtension::QM31Operation => {
+                if let (MaybeRelocatable::Int(num_self), MaybeRelocatable::Int(num_other)) =
+                    (self, other)
+                {
+                    Ok(MaybeRelocatable::Int(qm31_packed_reduced_add(
+                        *num_self, *num_other,
+                    )?))
+                } else {
+                    Err(MathError::RelocatableQM31Add(Box::new((
+                        self.clone(),
+                        other.clone(),
+                    ))))
+                }
+            }
+            _ => Err(MathError::InvalidAddOpcodeExtension()),
+        }
+    }
+
+    /// Substracts a MaybeRelocatable value from self according to the specified OpcodeExtension.
+    /// If the OpcodeExtension is Stone it subtracts as MaybeRelocatable::sub does.
+    /// If the OpcodeExtension is QM31Operation it requires them both to be Int and it subtracts
+    /// them as packed reduced QM31 elements.
+    pub fn typed_sub(
+        &self,
+        other: &MaybeRelocatable,
+        opcode_extension: OpcodeExtension,
+    ) -> Result<MaybeRelocatable, MathError> {
+        match opcode_extension {
+            OpcodeExtension::Stone => self.sub(other),
+            OpcodeExtension::QM31Operation => {
+                if let (MaybeRelocatable::Int(num_self), MaybeRelocatable::Int(num_other)) =
+                    (self, other)
+                {
+                    Ok(MaybeRelocatable::Int(qm31_packed_reduced_sub(
+                        *num_self, *num_other,
+                    )?))
+                } else {
+                    Err(MathError::RelocatableQM31Sub(Box::new((
+                        self.clone(),
+                        other.clone(),
+                    ))))
+                }
+            }
+            _ => Err(MathError::InvalidSubOpcodeExtension()),
+        }
+    }
+
+    /// Multiplies self and another MaybeRelocatable value according to the specified OpcodeExtension.
+    /// Requires both operands to be Int.
+    /// If the OpcodeExtension is Stone it multiplies them as Felts.
+    /// If the OpcodeExtension is QM31Operation it multiplies them as packed reduced QM31 elements.
+    pub fn typed_mul(
+        &self,
+        other: &MaybeRelocatable,
+        opcode_extension: OpcodeExtension,
+    ) -> Result<MaybeRelocatable, MathError> {
+        if let (MaybeRelocatable::Int(num_self), MaybeRelocatable::Int(num_other)) = (self, other) {
+            match opcode_extension {
+                OpcodeExtension::Stone => Ok(MaybeRelocatable::Int(num_self * num_other)),
+                OpcodeExtension::QM31Operation => Ok(MaybeRelocatable::Int(
+                    qm31_packed_reduced_mul(*num_self, *num_other)?,
+                )),
+                _ => Err(MathError::InvalidMulOpcodeExtension()),
+            }
+        } else {
+            Err(MathError::RelocatableMul(Box::new((
+                self.clone(),
+                other.clone(),
+            ))))
         }
     }
 
@@ -676,6 +764,48 @@ mod tests {
                 Relocatable::from((7, 10))
             ))))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn typed_add_blake() {
+        let a = &MaybeRelocatable::from(5);
+        let b = &MaybeRelocatable::from(6);
+        let error = a.typed_add(b, OpcodeExtension::Blake);
+        assert_eq!(error, Err(MathError::InvalidAddOpcodeExtension()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn typed_sub_blake() {
+        let a = &MaybeRelocatable::from(7);
+        let b = &MaybeRelocatable::from(3);
+        let error = a.typed_sub(b, OpcodeExtension::Blake);
+        assert_eq!(error, Err(MathError::InvalidSubOpcodeExtension()));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn relocatable_typed_sub_q31_operation() {
+        let a = &MaybeRelocatable::from((6, 8));
+        let b = &MaybeRelocatable::from(2);
+        let error = a.typed_sub(b, OpcodeExtension::QM31Operation);
+        assert_eq!(
+            error,
+            Err(MathError::RelocatableQM31Sub(Box::new((
+                MaybeRelocatable::from((6, 8)),
+                MaybeRelocatable::from(2)
+            ))))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn typed_mul_blake_finalize() {
+        let a = &MaybeRelocatable::from(4);
+        let b = &MaybeRelocatable::from(9);
+        let error = a.typed_mul(b, OpcodeExtension::BlakeFinalize);
+        assert_eq!(error, Err(MathError::InvalidMulOpcodeExtension()));
     }
 
     #[test]

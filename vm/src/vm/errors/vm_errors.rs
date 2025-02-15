@@ -56,10 +56,6 @@ pub enum VirtualMachineError {
     UnconstrainedResAssertEq,
     #[error("A relocatable value as Res cannot be used with PcUpdate.JUMP_REL")]
     JumpRelNotInt,
-    #[error(
-        "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
-    )]
-    ComputeResRelocatableMul(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Couldn't compute operand {}. Unknown value for memory cell {}", (*.0).0, (*.0).1)]
     FailedToComputeOperands(Box<(String, Relocatable)>),
     #[error("An ASSERT_EQ instruction failed: {} != {}.", (*.0).0, (*.0).1)]
@@ -140,6 +136,8 @@ pub enum VirtualMachineError {
     Blake2sInvalidOperand(u8, u8),
     #[error("Blake2s opcode invalid flags {0}")]
     InvalidBlake2sFlags(u128),
+    #[error("QM31 add mul opcode invalid flags {0}")]
+    InvalidQM31AddMulFlags(u128),
 }
 
 #[cfg(test)]
