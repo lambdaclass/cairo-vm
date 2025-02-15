@@ -42,6 +42,10 @@ pub enum MathError {
     RelocatableAddUsizeOffsetExceeded(Box<(Relocatable, usize)>),
     #[error("Operation failed: {} + {}, can't add two relocatable values", (*.0).0, (*.0).1)]
     RelocatableAdd(Box<(Relocatable, Relocatable)>),
+    #[error("Operation failed: {} - {}, can't add a relocatable value as a QM31 element", (*.0).0, (*.0).1)]
+    RelocatableQM31Add(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Operation failed: {} - {}, can't subtract a relocatable value or from a relocatable value as a QM31 element", (*.0).0, (*.0).1)]
+    RelocatableQM31Sub(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Operation failed: {} - {}, can't subtract two relocatable values with different segment indexes", (*.0).0, (*.0).1)]
     RelocatableSubDiffIndex(Box<(Relocatable, Relocatable)>),
     #[error(
