@@ -82,6 +82,7 @@ pub enum OpcodeExtension {
     Stone,
     Blake,
     BlakeFinalize,
+    QM31Operation,
 }
 
 impl Instruction {
