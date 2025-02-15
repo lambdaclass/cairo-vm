@@ -1,7 +1,6 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
-use crate::types::instruction::OpcodeExtension;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
@@ -9,11 +8,13 @@ use crate::{
         builtin_hint_processor::blake2s_hash::blake2s_compress,
         hint_processor_definition::HintProcessor,
     },
+    typed_operations::{typed_add, typed_div, typed_mul, typed_sub},
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
-            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, OpcodeExtension,
+            PcUpdate, Res,
         },
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -237,19 +238,18 @@ impl VirtualMachine {
                 None,
             )),
             Opcode::AssertEq => match (&instruction.res, dst, op1) {
-                (Res::Add, Some(dst_addr), Some(op1_addr)) => {
-                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
-                }
+                (Res::Add, Some(dst_addr), Some(op1_addr)) => Ok((
+                    Some(typed_sub(dst_addr, op1_addr, instruction.opcode_extension)?),
+                    dst.cloned(),
+                )),
                 (
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => Ok((
-                    Some(MaybeRelocatable::Int(num_dst.field_div(
-                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
-                    ))),
-                    dst.cloned(),
-                )),
+                ) if !num_op1.is_zero() => {
+                    let num_op0 = typed_div(num_dst, num_op1, instruction.opcode_extension)?;
+                    Ok((Some(MaybeRelocatable::Int(num_op0)), dst.cloned()))
+                }
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -270,7 +270,9 @@ impl VirtualMachine {
                 Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
                 Res::Add => {
                     return Ok((
-                        dst.zip(op0).and_then(|(dst, op0)| dst.sub(&op0).ok()),
+                        dst.zip(op0).and_then(|(dst, op0)| {
+                            typed_sub(dst, &op0, instruction.opcode_extension).ok()
+                        }),
                         dst.cloned(),
                     ))
                 }
@@ -279,12 +281,8 @@ impl VirtualMachine {
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
                     ) if !num_op0.is_zero() => {
-                        return Ok((
-                            Some(MaybeRelocatable::Int(num_dst.field_div(
-                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
-                            ))),
-                            dst.cloned(),
-                        ))
+                        let num_op1 = typed_div(num_dst, &num_op0, instruction.opcode_extension)?;
+                        return Ok((Some(MaybeRelocatable::Int(num_op1)), dst.cloned()));
                     }
                     _ => (),
                 },
@@ -318,17 +316,8 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add(op1)?)),
-            Res::Mul => {
-                if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
-                {
-                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
-                }
-                Err(VirtualMachineError::ComputeResRelocatableMul(Box::new((
-                    op0.clone(),
-                    op1.clone(),
-                ))))
-            }
+            Res::Add => Ok(Some(typed_add(op0, op1, instruction.opcode_extension)?)),
+            Res::Mul => Ok(Some(typed_mul(op0, op1, instruction.opcode_extension)?)),
             Res::Unconstrained => Ok(None),
         }
     }
@@ -2619,6 +2608,34 @@ mod tests {
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Err(VirtualMachineError::ComputeResRelocatableMul(bx)) if *bx == (op0, op1)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_add_relocatable_values() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::from((2, 3));
+        let op0 = MaybeRelocatable::from((2, 6));
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err(VirtualMachineError::Math(MathError::RelocatableQM31Add(bx))) if *bx == (op0, op1)
         );
     }
 
