@@ -954,7 +954,7 @@ mod tests {
             dict: HashMap::from([(MaybeRelocatable::from(5), MaybeRelocatable::from((1, 7)))]),
             default_value: MaybeRelocatable::from(2),
         };
-        let expeced_dict_tracker = DictTracker {
+        let expected_dict_tracker = DictTracker {
             data: expected_dict,
             current_ptr: Relocatable::from((2, 3)),
         };
@@ -965,7 +965,7 @@ mod tests {
                 .borrow()
                 .trackers
                 .get(&2),
-            Some(&expeced_dict_tracker)
+            Some(&expected_dict_tracker)
         );
     }
 }
