@@ -24,7 +24,7 @@ lazy_static! {
             .collect::<Vec<_>>();
 }
 
-const STWO_PRIME: u64 = (1 << 31) - 1;
+pub const STWO_PRIME: u64 = (1 << 31) - 1;
 const STWO_PRIME_U128: u128 = STWO_PRIME as u128;
 const MASK_36: u64 = (1 << 36) - 1;
 const MASK_8: u64 = (1 << 8) - 1;
@@ -99,7 +99,7 @@ fn qm31_packed_reduced_read_coordinates(felt: Felt252) -> Result<[u64; 4], MathE
 /// Reduces four u64 coordinates and packs them into a single Felt252.
 /// STWO_PRIME fits in 36 bits, hence each coordinate can be represented by 36 bits and a QM31
 /// element can be stored in the first 144 bits of a Felt252.
-fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
+pub fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
     let bytes_part1 = ((coordinates[0] % STWO_PRIME) as u128
         + (((coordinates[1] % STWO_PRIME) as u128) << 36))
         .to_le_bytes();
