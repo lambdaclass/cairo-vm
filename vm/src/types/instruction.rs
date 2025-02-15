@@ -81,6 +81,7 @@ pub enum Opcode {
 pub enum OpcodeExtension {
     Stone,
     Blake,
+    QM31Operation,
 }
 
 impl Instruction {
