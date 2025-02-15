@@ -445,8 +445,13 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
-        if instruction.opcode_extension == OpcodeExtension::Blake {
-            self.handle_blake2s_instruction(&operands_addresses)?;
+        if instruction.opcode_extension == OpcodeExtension::Blake
+            || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
+        {
+            self.handle_blake2s_instruction(
+                &operands_addresses,
+                instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
+            )?;
         }
 
         self.update_registers(instruction, operands)?;
@@ -455,7 +460,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    /// Executes a Blake2s instruction.
+    /// Executes a Blake2s or Blake2sLastBlock instruction.
     /// Expects operands to be RelocatableValue and to point to segments of memory.
     /// op0 is expected to point to a sequence of 8 u32 values (state).
     /// op1 is expected to point to a sequence of 16 u32 values (message).
@@ -469,6 +474,7 @@ impl VirtualMachine {
     fn handle_blake2s_instruction(
         &mut self,
         operands_addresses: &OperandsAddresses,
+        is_last_block: bool,
     ) -> Result<(), VirtualMachineError> {
         let counter = self.segments.memory.get_u32(operands_addresses.dst_addr)?;
 
@@ -493,7 +499,14 @@ impl VirtualMachine {
         let ap = self.run_context.get_ap();
         let output_address = self.segments.memory.get_relocatable(ap)?;
 
-        let new_state = blake2s_compress(&state, &message, counter, 0, 0, 0);
+        let new_state = blake2s_compress(
+            &state,
+            &message,
+            counter,
+            0,
+            if !is_last_block { 0 } else { 0xffffffff },
+            0,
+        );
 
         for (i, &val) in new_state.iter().enumerate() {
             self.segments.memory.insert_as_accessed(
@@ -4496,7 +4509,7 @@ mod tests {
         };
 
         assert_matches!(
-            vm.handle_blake2s_instruction(&operands_addresses),
+            vm.handle_blake2s_instruction(&operands_addresses, false),
             Err(VirtualMachineError::Memory(MemoryError::UnknownMemoryCell(bx))) if *bx == (0, 7).into()
         );
     }
@@ -4528,7 +4541,7 @@ mod tests {
         };
 
         assert_matches!(
-            vm.handle_blake2s_instruction(&operands_addresses),
+            vm.handle_blake2s_instruction(&operands_addresses, false),
             Err(VirtualMachineError::Memory(MemoryError::UnknownMemoryCell(bx))) if *bx == (0, 8).into()
         );
     }
@@ -4568,7 +4581,7 @@ mod tests {
         };
 
         assert_matches!(
-            vm.handle_blake2s_instruction(&operands_addresses),
+            vm.handle_blake2s_instruction(&operands_addresses, false),
             Err(VirtualMachineError::Memory(MemoryError::InconsistentMemory(bx))) if *bx == ((0, 0).into(),0.into(),1848029226.into())
         );
     }
@@ -4621,7 +4634,10 @@ mod tests {
             ap: 0,
             fp: 0,
         };
-        assert_matches!(vm.handle_blake2s_instruction(&operands_addresses), Ok(()));
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, false),
+            Ok(())
+        );
 
         let state: [u32; 8] = vm
             .get_u32_range((0, 0).into(), 8)
@@ -4638,6 +4654,84 @@ mod tests {
         let expected_new_state: [u32; 8] = blake2s_compress(&state, &message, counter, 0, 0, 0)
             .try_into()
             .unwrap();
+
+        let new_state: [u32; 8] = vm
+            .get_u32_range((0, 25).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(new_state, expected_new_state);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_last_block_instruction_ok() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            // State
+            ((0, 0), 0x6B08E647),
+            ((0, 1), 0xBB67AE85),
+            ((0, 2), 0x3C6EF372),
+            ((0, 3), 0xA54FF53A),
+            ((0, 4), 0x510E527F),
+            ((0, 5), 0x9B05688C),
+            ((0, 6), 0x1F83D9AB),
+            ((0, 7), 0x5BE0CD19),
+            // Message
+            ((0, 8), 930933030),
+            ((0, 9), 1766240503),
+            ((0, 10), 3660871006),
+            ((0, 11), 388409270),
+            ((0, 12), 1948594622),
+            ((0, 13), 3119396969),
+            ((0, 14), 3924579183),
+            ((0, 15), 2089920034),
+            ((0, 16), 3857888532),
+            ((0, 17), 929304360),
+            ((0, 18), 1810891574),
+            ((0, 19), 860971754),
+            ((0, 20), 1822893775),
+            ((0, 21), 2008495810),
+            ((0, 22), 2958962335),
+            ((0, 23), 2340515744),
+            // Counter
+            ((0, 24), 64),
+            // AP
+            ((1, 0), (0, 25)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 8))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 24).into(),
+            op0_addr: (2, 0).into(),
+            op1_addr: (2, 1).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, true),
+            Ok(())
+        );
+
+        let state: [u32; 8] = vm
+            .get_u32_range((0, 0).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let message: [u32; 16] = vm
+            .get_u32_range((0, 8).into(), 16)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let counter = vm.segments.memory.get_u32((0, 24).into()).unwrap();
+
+        let expected_new_state: [u32; 8] =
+            blake2s_compress(&state, &message, counter, 0, 0xffffffff, 0)
+                .try_into()
+                .unwrap();
 
         let new_state: [u32; 8] = vm
             .get_u32_range((0, 25).into(), 8)
