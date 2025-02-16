@@ -132,6 +132,18 @@ impl CairoLayout {
         }
     }
 
+    pub(crate) fn all_cairo_stwo_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::all_cairo_stwo,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::all_cairo_stwo(),
+            public_memory_fraction: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
+        }
+    }
+
     pub(crate) fn all_solidity_instance() -> CairoLayout {
         CairoLayout {
             name: LayoutName::all_solidity,
