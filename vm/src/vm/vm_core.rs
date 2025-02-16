@@ -88,6 +88,7 @@ impl DeducedOperands {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub builtin_runners: Vec<BuiltinRunner>,
+    pub simulated_builtin_runners: Vec<BuiltinRunner>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -119,6 +120,7 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
+            simulated_builtin_runners: Vec::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -296,12 +298,17 @@ impl VirtualMachine {
         &self,
         address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        for builtin in self.builtin_runners.iter() {
-            if builtin.base() as isize == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.segments.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+        let memory = &self.segments.memory;
+
+        for runner in self
+            .builtin_runners
+            .iter()
+            .chain(self.simulated_builtin_runners.iter())
+        {
+            if runner.base() as isize == address.segment_index {
+                return runner
+                    .deduce_memory_cell(address, memory)
+                    .map_err(VirtualMachineError::RunnerError);
             }
         }
         Ok(None)
@@ -916,6 +923,16 @@ impl VirtualMachine {
         &mut self.builtin_runners
     }
 
+    /// Returns a mutable iterator over all builtin runners used. That is, both builtin_runners and
+    /// simulated_builtin_runners.
+    pub fn get_all_builtin_runners_as_mut_iter(
+        &mut self,
+    ) -> impl Iterator<Item = &mut BuiltinRunner> {
+        self.builtin_runners
+            .iter_mut()
+            .chain(self.simulated_builtin_runners.iter_mut())
+    }
+
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
@@ -1004,7 +1021,7 @@ impl VirtualMachine {
     pub fn get_signature_builtin(
         &mut self,
     ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
-        for builtin in self.get_builtin_runners_as_mut() {
+        for builtin in self.get_all_builtin_runners_as_mut_iter() {
             if let BuiltinRunner::Signature(signature_builtin) = builtin {
                 return Ok(signature_builtin);
             };
@@ -1309,6 +1326,7 @@ impl VirtualMachineBuilder {
         VirtualMachine {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
+            simulated_builtin_runners: Vec::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
