@@ -179,6 +179,28 @@ impl BuiltinsInstanceDef {
         }
     }
 
+    pub(crate) fn all_cairo_stwo() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(Some(256))),
+            range_check: Some(RangeCheckInstanceDef::default()),
+            ecdsa: None,
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
+            ec_op: None,
+            keccak: None,
+            poseidon: Some(PoseidonInstanceDef::new(Some(256))),
+            range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
+            #[cfg(feature = "mod_builtin")]
+            add_mod: Some(ModInstanceDef::new(Some(128), 1, 96)),
+            #[cfg(feature = "mod_builtin")]
+            mul_mod: Some(ModInstanceDef::new(Some(256), 1, 96)),
+            #[cfg(not(feature = "mod_builtin"))]
+            add_mod: None,
+            #[cfg(not(feature = "mod_builtin"))]
+            mul_mod: None,
+        }
+    }
+
     pub(crate) fn all_solidity() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,

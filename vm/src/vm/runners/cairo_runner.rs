@@ -188,6 +188,7 @@ impl CairoRunner {
             LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
+            LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
                 let params =
