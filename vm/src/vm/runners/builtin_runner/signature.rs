@@ -41,7 +41,7 @@ pub struct SignatureBuiltinRunner {
 }
 
 impl SignatureBuiltinRunner {
-    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         SignatureBuiltinRunner {
             base: 0,
             included,
