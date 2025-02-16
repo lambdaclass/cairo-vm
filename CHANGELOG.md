@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
+
 * feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
 * feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
