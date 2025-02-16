@@ -179,6 +179,28 @@ impl BuiltinsInstanceDef {
         }
     }
 
+    pub(crate) fn all_cairo_stwo() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(Some(256))),
+            range_check: Some(RangeCheckInstanceDef::default()),
+            ecdsa: None,
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
+            ec_op: None,
+            keccak: None,
+            poseidon: Some(PoseidonInstanceDef::new(Some(256))),
+            range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
+            #[cfg(feature = "mod_builtin")]
+            add_mod: Some(ModInstanceDef::new(Some(128), 1, 96)),
+            #[cfg(feature = "mod_builtin")]
+            mul_mod: Some(ModInstanceDef::new(Some(256), 1, 96)),
+            #[cfg(not(feature = "mod_builtin"))]
+            add_mod: None,
+            #[cfg(not(feature = "mod_builtin"))]
+            mul_mod: None,
+        }
+    }
+
     pub(crate) fn all_solidity() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
@@ -375,6 +397,27 @@ mod tests {
         assert!(builtins.ec_op.is_some());
         assert!(builtins.keccak.is_some());
         assert!(builtins.poseidon.is_some());
+    }
+
+    #[test]
+    fn get_builtins_all_cairo_stwo() {
+        let builtins = BuiltinsInstanceDef::all_cairo_stwo();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_none());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_none());
+        assert!(builtins.keccak.is_none());
+        assert!(builtins.poseidon.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.add_mod.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.mul_mod.is_some());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.add_mod.is_none());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.mul_mod.is_none());
     }
 
     #[test]
