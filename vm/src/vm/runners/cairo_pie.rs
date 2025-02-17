@@ -38,7 +38,7 @@ impl From<(isize, usize)> for SegmentInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct CairoPieMemory(
     #[serde(serialize_with = "serde_impl::serialize_memory")]
-    pub  Vec<(MaybeRelocatable, MaybeRelocatable)>,
+    pub  Vec<((usize, usize), MaybeRelocatable)>,
 );
 
 impl PartialEq for CairoPieMemory {
