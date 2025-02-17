@@ -609,6 +609,14 @@ from starkware.python.math_utils import ec_double_slope
 x = pack(ids.point.x, SECP256R1_P)
 y = pack(ids.point.y, SECP256R1_P)
 value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
+(EC_DOUBLE_SLOPE_V5, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA, SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
 (EC_DOUBLE_SLOPE_EXTERNAL_CONSTS, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import ec_double_slope
 
@@ -692,6 +700,14 @@ x = pack(ids.pt.x, PRIME)
 y = pack(ids.pt.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP_P) - 2 * x) % SECP_P"#}),
+(EC_DOUBLE_ASSIGN_NEW_X_V5, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+
+value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#}),
 (EC_DOUBLE_ASSIGN_NEW_Y, indoc! {r#"value = new_y = (slope * (x - new_x) - y) % SECP_P"#}),
 (SHA256_INPUT, indoc! {r#"ids.full_word = int(ids.n_bytes >= 4)"#}),
 (SHA256_MAIN_CONSTANT_INPUT_LENGTH, indoc! {r#"from starkware.cairo.common.cairo_sha256.sha256_utils import (

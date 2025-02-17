@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: bump pip `cairo-lang` 0.13.4a1 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
+
 * feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
 
 * feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)

@@ -547,6 +547,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &SECP256R1_P,
                 &SECP256R1_ALPHA,
             ),
+            hint_code::EC_DOUBLE_SLOPE_V5 => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+                &SECP256R1_P,
+                &SECP256R1_ALPHA,
+            ),
             hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
                 vm,
                 exec_scopes,
@@ -632,6 +641,14 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 &SECP_P,
                 "pt",
+            ),
+            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V5 => ec_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP256R1_P,
+                "point",
             ),
             hint_code::EC_DOUBLE_ASSIGN_NEW_Y => ec_double_assign_new_y(exec_scopes),
             hint_code::KECCAK_WRITE_ARGS => {
