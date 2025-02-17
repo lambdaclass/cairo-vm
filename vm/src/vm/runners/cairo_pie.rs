@@ -301,7 +301,11 @@ impl CairoPie {
     }
 
     #[cfg(feature = "std")]
-    pub fn write_zip_file(&mut self, file_path: &Path, merge_extra_segments: bool) -> Result<(), std::io::Error> {
+    pub fn write_zip_file(
+        &mut self,
+        file_path: &Path,
+        merge_extra_segments: bool,
+    ) -> Result<(), std::io::Error> {
         let (extra_segments, _new_offsets) = if merge_extra_segments {
             self.merge_extra_segments()
         } else {
@@ -954,9 +958,27 @@ mod test {
             SegmentInfo { index: 9, size: 20 },
         ];
         let memory = CairoPieMemory(vec![
-            ((3,4), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 6, offset: 7 })),
-            ((8,0), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 4 })),
-            ((9,3), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 9, offset: 7 })),
+            (
+                (3, 4),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 6,
+                    offset: 7,
+                }),
+            ),
+            (
+                (8, 0),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 8,
+                    offset: 4,
+                }),
+            ),
+            (
+                (9, 3),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 9,
+                    offset: 7,
+                }),
+            ),
         ]);
 
         cairo_pie.memory = memory;
@@ -969,7 +991,10 @@ mod test {
 
         std::fs::remove_file(file_path).unwrap();
 
-        assert_eq!(result_cairo_pie.metadata.extra_segments, vec![SegmentInfo {index: 8, size: 30}]);
+        assert_eq!(
+            result_cairo_pie.metadata.extra_segments,
+            vec![SegmentInfo { index: 8, size: 30 }]
+        );
         // assert_eq!(result_cairo_pie.memory, CairoPieMemory(vec![
         //     ((3,4), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 6, offset: 7 })),
         //     ((8,0), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 4 })),
