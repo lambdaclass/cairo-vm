@@ -38,7 +38,7 @@ impl From<(isize, usize)> for SegmentInfo {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct CairoPieMemory(
     #[serde(serialize_with = "serde_impl::serialize_memory")]
-    pub  Vec<((usize, usize), MaybeRelocatable)>,
+    pub  Vec<(MaybeRelocatable, MaybeRelocatable)>,
 );
 
 impl PartialEq for CairoPieMemory {
@@ -301,7 +301,17 @@ impl CairoPie {
     }
 
     #[cfg(feature = "std")]
-    pub fn write_zip_file(&self, file_path: &Path) -> Result<(), std::io::Error> {
+    pub fn write_zip_file(&mut self, file_path: &Path, merge_extra_segments: bool) -> Result<(), std::io::Error> {
+        let (extra_segments, _new_offsets) = if merge_extra_segments {
+            self.merge_extra_segments()
+        } else {
+            (None, None)
+        };
+
+        if let Some(segments) = extra_segments {
+            self.metadata.extra_segments = segments;
+        };
+
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
@@ -371,6 +381,38 @@ impl CairoPie {
         let zip = zip::ZipArchive::new(file)?;
 
         Self::from_zip_archive(zip)
+    }
+
+    pub fn merge_extra_segments(
+        &self,
+    ) -> (Option<Vec<SegmentInfo>>, Option<HashMap<i32, Relocatable>>) {
+        if self.metadata.extra_segments.len() <= 0 {
+            return (None, None);
+        }
+
+        let new_index = self.metadata.extra_segments[0].index;
+        let mut offsets: HashMap<i32, Relocatable> = HashMap::new();
+        let mut accumulated_size = 0;
+
+        for seg in self.metadata.extra_segments.iter() {
+            offsets.insert(
+                seg.index as i32,
+                Relocatable {
+                    segment_index: new_index,
+                    offset: accumulated_size,
+                },
+            );
+
+            accumulated_size += seg.size;
+        }
+
+        (
+            Some(vec![SegmentInfo {
+                index: new_index,
+                size: accumulated_size,
+            }]),
+            Some(offsets),
+        )
     }
 }
 
@@ -784,6 +826,12 @@ mod test {
 
     use super::*;
 
+    use crate::{
+        cairo_run::CairoRunConfig,
+        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+        types::layout_name::LayoutName,
+    };
+
     #[test]
     fn serialize_cairo_pie_memory() {
         let addrs = [
@@ -858,13 +906,8 @@ mod test {
     #[case(include_bytes!("../../../../cairo_programs/bitwise_output.json"), "bitwise")]
     #[case(include_bytes!("../../../../cairo_programs/value_beyond_segment.json"), "relocate_beyond")]
     fn read_write_pie_zip(#[case] program_content: &[u8], #[case] identifier: &str) {
-        use crate::{
-            cairo_run::CairoRunConfig,
-            hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-            types::layout_name::LayoutName,
-        };
         // Run a program to obtain the CairoPie
-        let cairo_pie = {
+        let mut cairo_pie = {
             let cairo_run_config = CairoRunConfig {
                 layout: LayoutName::starknet_with_keccak,
                 ..Default::default()
@@ -880,12 +923,57 @@ mod test {
         // Serialize the CairoPie into a zip file
         let filename = format!("temp_file_{}", identifier); // Identifier used to avoid name clashes
         let file_path = Path::new(&filename);
-        cairo_pie.write_zip_file(file_path).unwrap();
+        cairo_pie.write_zip_file(file_path, false).unwrap();
         // Deserialize the zip file
         let deserialized_pie = CairoPie::read_zip_file(file_path).unwrap();
         // Check that both pies are equal
         assert_eq!(cairo_pie, deserialized_pie);
         // Remove zip file created by the test
         std::fs::remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn cairo_pie_with_extra_segments() {
+        let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
+        let mut cairo_pie = {
+            let cairo_run_config = CairoRunConfig {
+                layout: LayoutName::starknet_with_keccak,
+                ..Default::default()
+            };
+            let runner = crate::cairo_run::cairo_run(
+                program_content,
+                &cairo_run_config,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie().unwrap()
+        };
+
+        cairo_pie.metadata.extra_segments = vec![
+            SegmentInfo { index: 8, size: 10 },
+            SegmentInfo { index: 9, size: 20 },
+        ];
+        let memory = CairoPieMemory(vec![
+            ((3,4), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 6, offset: 7 })),
+            ((8,0), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 4 })),
+            ((9,3), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 9, offset: 7 })),
+        ]);
+
+        cairo_pie.memory = memory;
+
+        let file_path = Path::new("merge_extra_segments_test");
+
+        cairo_pie.write_zip_file(file_path, true).unwrap();
+
+        let result_cairo_pie = CairoPie::read_zip_file(file_path).unwrap();
+
+        std::fs::remove_file(file_path).unwrap();
+
+        assert_eq!(result_cairo_pie.metadata.extra_segments, vec![SegmentInfo {index: 8, size: 30}]);
+        // assert_eq!(result_cairo_pie.memory, CairoPieMemory(vec![
+        //     ((3,4), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 6, offset: 7 })),
+        //     ((8,0), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 4 })),
+        //     ((8,13), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 13 })),
+        // ]))
     }
 }
