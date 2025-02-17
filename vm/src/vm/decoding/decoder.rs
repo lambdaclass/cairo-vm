@@ -1,41 +1,40 @@
 use crate::{
     types::instruction::{
-        ApUpdate, FpUpdate, Instruction, Op1Addr, Opcode, PcUpdate, Register, Res,
+        ApUpdate, FpUpdate, Instruction, Op1Addr, Opcode, OpcodeExtension, PcUpdate, Register, Res,
     },
     vm::errors::vm_errors::VirtualMachineError,
 };
 
-//  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-// 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+// opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+//  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
 
-/// Decodes an instruction. The encoding is little endian, so flags go from bit 63 to 48.
-pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMachineError> {
-    const HIGH_BIT: u64 = 1u64 << 63;
-    const DST_REG_MASK: u64 = 0x0001;
-    const DST_REG_OFF: u64 = 0;
-    const OP0_REG_MASK: u64 = 0x0002;
-    const OP0_REG_OFF: u64 = 1;
-    const OP1_SRC_MASK: u64 = 0x001C;
-    const OP1_SRC_OFF: u64 = 2;
-    const RES_LOGIC_MASK: u64 = 0x0060;
-    const RES_LOGIC_OFF: u64 = 5;
-    const PC_UPDATE_MASK: u64 = 0x0380;
-    const PC_UPDATE_OFF: u64 = 7;
-    const AP_UPDATE_MASK: u64 = 0x0C00;
-    const AP_UPDATE_OFF: u64 = 10;
-    const OPCODE_MASK: u64 = 0x7000;
-    const OPCODE_OFF: u64 = 12;
+/// Decodes an instruction. The encoding is little endian, so flags go from bit 127 to 48.
+/// The bits 63 and beyond are reserved for the opcode extension.
+/// opcode_extension_num=0 means the instruction is a Stone instruction.
+/// opcode_extension_num>0 is for new Stwo opcodes.
+pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMachineError> {
+    const DST_REG_MASK: u128 = 0x0001;
+    const DST_REG_OFF: u128 = 0;
+    const OP0_REG_MASK: u128 = 0x0002;
+    const OP0_REG_OFF: u128 = 1;
+    const OP1_SRC_MASK: u128 = 0x001C;
+    const OP1_SRC_OFF: u128 = 2;
+    const RES_LOGIC_MASK: u128 = 0x0060;
+    const RES_LOGIC_OFF: u128 = 5;
+    const PC_UPDATE_MASK: u128 = 0x0380;
+    const PC_UPDATE_OFF: u128 = 7;
+    const AP_UPDATE_MASK: u128 = 0x0C00;
+    const AP_UPDATE_OFF: u128 = 10;
+    const OPCODE_MASK: u128 = 0x7000;
+    const OPCODE_OFF: u128 = 12;
+    const OPCODE_EXTENSION_OFF: u128 = 63;
 
     // Flags start on the 48th bit.
-    const FLAGS_OFFSET: u64 = 48;
-    const OFF0_OFF: u64 = 0;
-    const OFF1_OFF: u64 = 16;
-    const OFF2_OFF: u64 = 32;
-    const OFFX_MASK: u64 = 0xFFFF;
-
-    if encoded_instr & HIGH_BIT != 0 {
-        return Err(VirtualMachineError::InstructionNonZeroHighBit);
-    }
+    const FLAGS_OFFSET: u128 = 48;
+    const OFF0_OFF: u128 = 0;
+    const OFF1_OFF: u128 = 16;
+    const OFF2_OFF: u128 = 32;
+    const OFFX_MASK: u128 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
     let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
@@ -52,6 +51,9 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
     let pc_update_num = (flags & PC_UPDATE_MASK) >> PC_UPDATE_OFF;
     let ap_update_num = (flags & AP_UPDATE_MASK) >> AP_UPDATE_OFF;
     let opcode_num = (flags & OPCODE_MASK) >> OPCODE_OFF;
+
+    // Grab opcode_extension
+    let opcode_extension_num = encoded_instr >> OPCODE_EXTENSION_OFF;
 
     // Match each flag to its corresponding enum value
     let dst_register = if dst_reg_num == 1 {
@@ -96,6 +98,26 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
         2 => Opcode::Ret,
         4 => Opcode::AssertEq,
         _ => return Err(VirtualMachineError::InvalidOpcode(opcode_num)),
+    };
+
+    let opcode_extension = match opcode_extension_num {
+        0 => OpcodeExtension::Stone,
+        1 => {
+            if opcode != Opcode::NOp
+                || (op1_addr != Op1Addr::FP && op1_addr != Op1Addr::AP)
+                || res != Res::Op1
+                || pc_update != PcUpdate::Regular
+                || (ap_update_num != 0 && ap_update_num != 2)
+            {
+                return Err(VirtualMachineError::InvalidBlake2sFlags(flags & 0x7FFF));
+            };
+            OpcodeExtension::Blake
+        }
+        _ => {
+            return Err(VirtualMachineError::InvalidOpcodeExtension(
+                opcode_extension_num,
+            ))
+        }
     };
 
     let ap_update = match (ap_update_num, opcode == Opcode::Call) {
@@ -145,11 +167,12 @@ pub fn decode_instruction(encoded_instr: u64) -> Result<Instruction, VirtualMach
         ap_update,
         fp_update,
         opcode,
+        opcode_extension,
     })
 }
 
-fn decode_offset(offset: u64) -> isize {
-    let vectorized_offset: [u8; 8] = offset.to_le_bytes();
+fn decode_offset(offset: u128) -> isize {
+    let vectorized_offset: [u8; 16] = offset.to_le_bytes();
     let offset_16b_encoded = u16::from_le_bytes([vectorized_offset[0], vectorized_offset[1]]);
     let complement_const = 0x8000u16;
     let (offset_16b, _) = offset_16b_encoded.overflowing_sub(complement_const);
@@ -167,11 +190,11 @@ mod decoder_test {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn non_zero_high_bit() {
-        let error = decode_instruction(0x94A7800080008000);
+    fn non_zero_high_bits() {
+        let error = decode_instruction(0x214a7800080008000);
         assert_eq!(
             error.unwrap_err().to_string(),
-            "Instruction MSB should be 0",
+            "Invalid opcode extension value: 4",
         )
     }
 
@@ -221,10 +244,10 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_nop_add_jmp_add_imm_fp_fp() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |    NOp|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
-        //  0  0  0  0      0  1   0  0  1      0  1 0  0  1       1       1
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      NOp|      ADD|     JUMP|      ADD|    IMM|     FP|     FP
+        //                0   0  0  0      0  1   0  0  1      0  1 0  0  1       1       1
         //  0000 0100 1010 0111 = 0x04A7; offx = 0
         let inst = decode_instruction(0x04A7800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::FP);
@@ -235,15 +258,16 @@ mod decoder_test {
         assert_matches!(inst.ap_update, ApUpdate::Add);
         assert_matches!(inst.opcode, Opcode::NOp);
         assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_nop_add1_jmp_rel_mul_fp_ap_ap() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     NOp|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
-        //  0  0  0  0      1  0   0  1  0      1  0 0  1  0       0       0
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      NOp|     ADD1| JUMP_REL|      MUL|     FP|     AP|     AP
+        //                0   0  0  0      1  0   0  1  0      1  0 0  1  0       0       0
         //  0000 1001 0100 1000 = 0x0948; offx = 0
         let inst = decode_instruction(0x0948800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
@@ -254,15 +278,16 @@ mod decoder_test {
         assert_matches!(inst.ap_update, ApUpdate::Add1);
         assert_matches!(inst.opcode, Opcode::NOp);
         assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_assrt_add_regular_mul_ap_ap_ap() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |ASSRT_EQ|      ADD|  REGULAR|      MUL|     AP|     AP|     AP
-        //  0  1  0  0      1  0   0  0  0      1  0 1  0  0       0       0
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone| ASSRT_EQ|      ADD|  REGULAR|      MUL|     AP|     AP|     AP
+        //                0   1  0  0      1  0   0  0  0      1  0 1  0  0       0       0
         //  0100 1000 0101 0000 = 0x4850; offx = 0
         let inst = decode_instruction(0x4850800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
@@ -273,15 +298,16 @@ mod decoder_test {
         assert_matches!(inst.ap_update, ApUpdate::Add1);
         assert_matches!(inst.opcode, Opcode::AssertEq);
         assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_assrt_add2_jnz_uncon_op0_ap_ap() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |ASSRT_EQ|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
-        //  0  1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone| ASSRT_EQ|     ADD2|      JNZ|UNCONSTRD|    OP0|     AP|     AP
+        //                0   1  0  0      0  0   1  0  0      0  0 0  0  0       0       0
         //  0100 0010 0000 0000 = 0x4200; offx = 0
         let inst = decode_instruction(0x4200800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
@@ -292,15 +318,16 @@ mod decoder_test {
         assert_matches!(inst.ap_update, ApUpdate::Regular);
         assert_matches!(inst.opcode, Opcode::AssertEq);
         assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_flags_nop_regu_regu_op1_op0_ap_ap() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
-        //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
+        //                0   0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800080008000).unwrap();
         assert_matches!(inst.dst_register, Register::AP);
@@ -311,15 +338,16 @@ mod decoder_test {
         assert_matches!(inst.ap_update, ApUpdate::Regular);
         assert_matches!(inst.opcode, Opcode::NOp);
         assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_offset_negative() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
-        //  0  0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      NOP|  REGULAR|  REGULAR|      OP1|    OP0|     AP|     AP
+        //                0   0  0  0      0  0   0  0  0      0  0 0  0  0       0       0
         //  0000 0000 0000 0000 = 0x0000; offx = 0
         let inst = decode_instruction(0x0000800180007FFF).unwrap();
         assert_eq!(inst.off0, -1);
@@ -330,10 +358,10 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_ret_cairo_standard() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     RET|  REGULAR|     JUMP|      Op1|     FP|     FP|     FP
-        //  0  0  1  0      0  0   0  0  1      0  0 0  1  0       1       1
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      RET|  REGULAR|     JUMP|      Op1|     FP|     FP|     FP
+        //                0   0  1  0      0  0   0  0  1      0  0 0  1  0       1       1
         //  0010 0000 1000 1011 = 0x208b; off0 = -2, off1 = -1
         let inst = decode_instruction(0x208b7fff7fff7ffe).unwrap();
         assert_matches!(inst.opcode, Opcode::Ret);
@@ -346,16 +374,17 @@ mod decoder_test {
         assert_matches!(inst.pc_update, PcUpdate::Jump);
         assert_matches!(inst.ap_update, ApUpdate::Regular);
         assert_matches!(inst.fp_update, FpUpdate::Dst);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_call_cairo_standard() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |    CALL|     Add2|  JumpRel|      Op1|     FP|     FP|     FP
-        //  0  0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
-        //  0001 0001 0000 0100 = 0x208b; off0 = 0, off1 = 1
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|     CALL|  Regular|  JumpRel|      Op1|     FP|     FP|     FP
+        //                0   0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
+        //  0001 0001 0000 0100 = 0x1104; off0 = 0, off1 = 1
         let inst = decode_instruction(0x1104800180018000).unwrap();
         assert_matches!(inst.opcode, Opcode::Call);
         assert_matches!(inst.off0, 0);
@@ -367,15 +396,16 @@ mod decoder_test {
         assert_matches!(inst.pc_update, PcUpdate::JumpRel);
         assert_matches!(inst.ap_update, ApUpdate::Add2);
         assert_matches!(inst.fp_update, FpUpdate::APPlus2);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Stone);
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_ret_opcode_error() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |     RET|  REGULAR|     JUMP|      Op1|     FP|     FP|     FP
-        //  0  0  1  0      0  0   0  0  1      0  0 0  1  0       1       1
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|      RET|  REGULAR|     JUMP|      Op1|     FP|     FP|     FP
+        //                0   0  1  0      0  0   0  0  1      0  0 0  1  0       1       1
         //  0010 0000 1000 1011 = 0x208b; off0 = -1, off1 = -1
         let error = decode_instruction(0x208b7fff7fff7fff);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(2)));
@@ -384,12 +414,70 @@ mod decoder_test {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_call_opcode_error() {
-        //  0|  opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
-        // 15|14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
-        //   |    CALL|     Add2|  JumpRel|      Op1|     FP|     FP|     FP
-        //  0  0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
-        //  0001 0001 0000 0100 = 0x208b; off0 = 1, off1 = 1
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Stone|     CALL|  REGULAR|  JumpRel|      Op1|    IMM|     AP|     AP
+        //                0   0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
+        //  0001 0001 0000 0100 = 0x1104; off0 = 1, off1 = 1
         let error = decode_instruction(0x1104800180018001);
         assert_matches!(error, Err(VirtualMachineError::InvalidOpcode(1)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_opcode_extension_clash() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Blake|     CALL|  REGULAR|  REGULAR|      Op1|     FP|     AP|     AP
+        //                1   0  0  1      0  0   0  0  0      0  0 0  1  0       0       0
+        //  1001 0000 0000 1000 = 0x9008; off0 = 1, off1 = 1
+        let error = decode_instruction(0x9008800180018001);
+        assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4104)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_blake_imm() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Blake|      NOP|  REGULAR|  REGULAR|      Op1|    IMM|     AP|     AP
+        //                1   0  0  0      0  0   0  0  0      0  0 0  0  1       0       0
+        //  1000 0000 0000 0100 = 0x8004; off0 = 1, off1 = 1
+        let error = decode_instruction(0x8004800180018001);
+        assert_matches!(error, Err(VirtualMachineError::InvalidBlake2sFlags(4)));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_blake() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //            Blake|      NOP|     ADD1|  REGULAR|      Op1|     AP|     FP|     FP
+        //                1   0  0  0      1  0   0  0  0      0  0 1  0  0       1       1
+        //  1000 1000 0001 0011 = 0x8813; off0 = 1, off1 = 1
+        let inst = decode_instruction(0x8813800180018001).unwrap();
+        assert_matches!(inst.opcode, Opcode::NOp);
+        assert_matches!(inst.off0, 1);
+        assert_matches!(inst.off1, 1);
+        assert_matches!(inst.dst_register, Register::FP);
+        assert_matches!(inst.op0_register, Register::FP);
+        assert_matches!(inst.op1_addr, Op1Addr::AP);
+        assert_matches!(inst.res, Res::Op1);
+        assert_matches!(inst.pc_update, PcUpdate::Regular);
+        assert_matches!(inst.ap_update, ApUpdate::Add1);
+        assert_matches!(inst.fp_update, FpUpdate::Regular);
+        assert_matches!(inst.opcode_extension, OpcodeExtension::Blake);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn decode_invalid_opcode_extension_error() {
+        // opcode_extension|   opcode|ap_update|pc_update|res_logic|op1_src|op0_reg|dst_reg
+        //  79 ... 17 16 15| 14 13 12|    11 10|  9  8  7|     6  5|4  3  2|      1|      0
+        //              ???|     CALL|     Add2|  JumpRel|      Op1|    IMM|     FP|     FP
+        //          0  1  1   0  0  1      0  0   0  1  0      0  0 0  0  1       0       0
+        //  0001 1001 0001 0000 0100 = 0x39104; off0 = 0, off1 = 1
+        let error = decode_instruction(0x19104800180018000);
+        assert_matches!(error, Err(VirtualMachineError::InvalidOpcodeExtension(3)));
     }
 }
