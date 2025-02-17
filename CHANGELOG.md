@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+* chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
 
 * feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
 
