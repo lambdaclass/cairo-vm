@@ -387,6 +387,8 @@ impl CairoPie {
         Self::from_zip_archive(zip)
     }
 
+    // Heavily inspired in:
+    // https://github.com/starkware-libs/cairo-lang/blob/8276ac35830148a397e1143389f23253c8b80e93/src/starkware/cairo/lang/vm/cairo_pie.py#L286-L306
     pub fn merge_extra_segments(
         &self,
     ) -> (Option<Vec<SegmentInfo>>, Option<HashMap<i32, Relocatable>>) {
