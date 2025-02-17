@@ -87,6 +87,7 @@ impl DeducedOperands {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub builtin_runners: Vec<BuiltinRunner>,
+    pub simulated_builtin_runners: Vec<BuiltinRunner>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -118,6 +119,7 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
+            simulated_builtin_runners: Vec::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -298,12 +300,17 @@ impl VirtualMachine {
         &self,
         address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        for builtin in self.builtin_runners.iter() {
-            if builtin.base() as isize == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.segments.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+        let memory = &self.segments.memory;
+
+        for runner in self
+            .builtin_runners
+            .iter()
+            .chain(self.simulated_builtin_runners.iter())
+        {
+            if runner.base() as isize == address.segment_index {
+                return runner
+                    .deduce_memory_cell(address, memory)
+                    .map_err(VirtualMachineError::RunnerError);
             }
         }
         Ok(None)
@@ -1312,6 +1319,7 @@ impl VirtualMachineBuilder {
         VirtualMachine {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
+            simulated_builtin_runners: Vec::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
