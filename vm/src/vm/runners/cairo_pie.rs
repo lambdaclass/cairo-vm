@@ -399,7 +399,7 @@ impl CairoPie {
         Option<Vec<SegmentInfo>>,
         Option<HashMap<usize, Relocatable>>,
     ) {
-        if self.metadata.extra_segments.len() <= 0 {
+        if self.metadata.extra_segments.len() == 0 {
             return (None, None);
         }
 
@@ -698,7 +698,7 @@ pub(super) mod serde_impl {
                         );
                         let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16).unwrap();
                         let reloc_value = reloc_base
-                            + BigUint::from(segment as usize) * BigUint::from(OFFSET_BASE)
+                            + BigUint::from(segment) * BigUint::from(OFFSET_BASE)
                             + BigUint::from(offset);
                         res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
                     }
@@ -865,15 +865,16 @@ pub(super) mod serde_impl {
 #[cfg(test)]
 mod test {
     #[cfg(feature = "std")]
-    use rstest::rstest;
+    use {
+        crate::{
+            cairo_run::CairoRunConfig,
+            hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+            types::layout_name::LayoutName,
+        },
+        rstest::rstest,
+    };
 
     use super::*;
-
-    use crate::{
-        cairo_run::CairoRunConfig,
-        hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::layout_name::LayoutName,
-    };
 
     #[test]
     fn serialize_cairo_pie_memory() {
