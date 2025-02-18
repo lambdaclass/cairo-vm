@@ -236,7 +236,9 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     }
 
     if let Some(ref file_path) = args.cairo_pie_output {
-        runner.get_cairo_pie()?.write_zip_file(file_path, args.merge_extra_segments)?
+        runner
+            .get_cairo_pie()?
+            .write_zip_file(file_path, args.merge_extra_segments)?
     }
 
     if let Some(trace_path) = args.trace_file {

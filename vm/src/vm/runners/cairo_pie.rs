@@ -306,14 +306,14 @@ impl CairoPie {
         file_path: &Path,
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
-        let (extra_segments, segment_offsets) = if merge_extra_segments {
+        let (single_extra_segment, segment_offsets) = if merge_extra_segments {
             self.merge_extra_segments()
         } else {
             (None, None)
         };
 
-        if let Some(segments) = extra_segments {
-            self.metadata.extra_segments = segments;
+        if let Some(segment) = single_extra_segment {
+            self.metadata.extra_segments = segment;
         };
 
         let file = File::create(file_path)?;
