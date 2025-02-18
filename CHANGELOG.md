@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix: Fix Cairo Pie limint limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
+* fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
   * Implement `merge_extra_segments`
 
 * feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
