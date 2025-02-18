@@ -269,7 +269,7 @@ ifdef TEST_COLLECT_COVERAGE
 	TEST_COMMAND:=cargo llvm-cov nextest --no-report
 endif
 
-test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts cairo_stwo_exclusive_programs
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
 test-no_std: cairo_proof_programs cairo_test_programs
 	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
