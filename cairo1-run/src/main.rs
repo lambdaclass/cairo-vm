@@ -48,6 +48,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<PathBuf>,
+    #[clap(long = "merge_extra_segments", value_parser)]
+    merge_extra_segments: bool,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
     #[clap(long = "args", default_value = "", value_parser=process_args, conflicts_with = "args_file")]
@@ -234,7 +236,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     }
 
     if let Some(ref file_path) = args.cairo_pie_output {
-        runner.get_cairo_pie()?.write_zip_file(file_path, false)?
+        runner.get_cairo_pie()?.write_zip_file(file_path, args.merge_extra_segments)?
     }
 
     if let Some(trace_path) = args.trace_file {

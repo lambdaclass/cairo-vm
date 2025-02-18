@@ -69,6 +69,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
+    #[structopt(long = "merge_extra_segments")]
+    merge_extra_segments: bool,
     #[structopt(long = "allow_missing_builtins")]
     allow_missing_builtins: Option<bool>,
     #[structopt(long = "tracer")]
@@ -273,7 +275,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_runner
             .get_cairo_pie()
             .map_err(CairoRunError::Runner)?
-            .write_zip_file(file_path, false)?
+            .write_zip_file(file_path, args.merge_extra_segments)?
     }
 
     Ok(())
