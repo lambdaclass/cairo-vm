@@ -404,20 +404,25 @@ impl CairoPie {
         }
 
         let new_index = self.metadata.extra_segments[0].index;
-        let mut offsets: HashMap<usize, Relocatable> = HashMap::new();
         let mut accumulated_size = 0;
+        let offsets: HashMap<usize, Relocatable> = self
+            .metadata
+            .extra_segments
+            .iter()
+            .map(|seg| {
+                let value = (
+                    seg.index as usize,
+                    Relocatable {
+                        segment_index: new_index,
+                        offset: accumulated_size,
+                    },
+                );
 
-        for seg in self.metadata.extra_segments.iter() {
-            offsets.insert(
-                seg.index as usize,
-                Relocatable {
-                    segment_index: new_index,
-                    offset: accumulated_size,
-                },
-            );
+                accumulated_size += seg.size;
 
-            accumulated_size += seg.size;
-        }
+                value
+            })
+            .collect();
 
         (
             Some(vec![SegmentInfo {
