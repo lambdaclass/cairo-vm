@@ -306,7 +306,7 @@ impl CairoPie {
         file_path: &Path,
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
-        let (extra_segments, _new_offsets) = if merge_extra_segments {
+        let (extra_segments, segment_offsets) = if merge_extra_segments {
             self.merge_extra_segments()
         } else {
             (None, None)
@@ -325,7 +325,7 @@ impl CairoPie {
         zip_writer.start_file("metadata.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.metadata)?;
         zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write_all(&self.memory.to_bytes())?;
+        zip_writer.write_all(&self.memory.to_bytes(segment_offsets))?;
         zip_writer.start_file("additional_data.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
@@ -389,20 +389,27 @@ impl CairoPie {
 
     // Heavily inspired in:
     // https://github.com/starkware-libs/cairo-lang/blob/8276ac35830148a397e1143389f23253c8b80e93/src/starkware/cairo/lang/vm/cairo_pie.py#L286-L306
+    /// Merges `extra_seglments` to a single segment.
+    ///
+    /// Returns a tuple with the new `extra_segments` (containing just the merged segment)
+    /// and a HashMap with the old segment indices mapped to their new offset in the new segment
     pub fn merge_extra_segments(
         &self,
-    ) -> (Option<Vec<SegmentInfo>>, Option<HashMap<i32, Relocatable>>) {
+    ) -> (
+        Option<Vec<SegmentInfo>>,
+        Option<HashMap<usize, Relocatable>>,
+    ) {
         if self.metadata.extra_segments.len() <= 0 {
             return (None, None);
         }
 
         let new_index = self.metadata.extra_segments[0].index;
-        let mut offsets: HashMap<i32, Relocatable> = HashMap::new();
+        let mut offsets: HashMap<usize, Relocatable> = HashMap::new();
         let mut accumulated_size = 0;
 
         for seg in self.metadata.extra_segments.iter() {
             offsets.insert(
-                seg.index as i32,
+                seg.index as usize,
                 Relocatable {
                     segment_index: new_index,
                     offset: accumulated_size,
@@ -643,7 +650,27 @@ pub(super) mod serde_impl {
     }
 
     impl CairoPieMemory {
-        pub fn to_bytes(&self) -> Vec<u8> {
+        /// Relocates a `Relocatable` value, which represented by its 
+        /// index and offset, according to a given segment offsets
+        fn relocate_value(
+            index: usize,
+            offset: usize,
+            segment_offsets: &Option<HashMap<usize, Relocatable>>,
+        ) -> (usize, usize) {
+            if let Some(offsets) = segment_offsets {
+                return match offsets.get(&index) {
+                    Some(relocatable) => (
+                        relocatable.segment_index as usize,
+                        relocatable.offset + offset,
+                    ),
+                    None => (index, offset),
+                };
+            }
+
+            (index, offset)
+        }
+
+        pub fn to_bytes(&self, seg_offsets: Option<HashMap<usize, Relocatable>>) -> Vec<u8> {
             // Missing segment and memory holes can be ignored
             // as they can be inferred by the address on the prover side
             let values = &self.0;
@@ -651,18 +678,23 @@ pub(super) mod serde_impl {
             let mut res = Vec::with_capacity(mem_cap);
 
             for ((segment, offset), value) in values.iter() {
-                let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+                let (segment, offset) = Self::relocate_value(*segment, *offset, &seg_offsets);
+                let mem_addr = ADDR_BASE + segment as u64 * OFFSET_BASE + offset as u64;
                 res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
                 match value {
                     // Serializes RelocatableValue(little endian):
                     // 1bit |   SEGMENT_BITS |   OFFSET_BITS
                     // 1    |     segment    |   offset
                     MaybeRelocatable::RelocatableValue(rel_val) => {
+                        let (segment, offset) = Self::relocate_value(
+                            rel_val.segment_index as usize,
+                            rel_val.offset,
+                            &seg_offsets,
+                        );
                         let reloc_base = BigUint::from_str_radix(RELOCATE_BASE, 16).unwrap();
                         let reloc_value = reloc_base
-                            + BigUint::from(rel_val.segment_index as usize)
-                                * BigUint::from(OFFSET_BASE)
-                            + BigUint::from(rel_val.offset);
+                            + BigUint::from(segment as usize) * BigUint::from(OFFSET_BASE)
+                            + BigUint::from(offset);
                         res.extend_from_slice(reloc_value.to_bytes_le().as_ref());
                     }
                     // Serializes Int(little endian):
@@ -997,10 +1029,93 @@ mod test {
             result_cairo_pie.metadata.extra_segments,
             vec![SegmentInfo { index: 8, size: 30 }]
         );
-        // assert_eq!(result_cairo_pie.memory, CairoPieMemory(vec![
-        //     ((3,4), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 6, offset: 7 })),
-        //     ((8,0), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 4 })),
-        //     ((8,13), MaybeRelocatable::RelocatableValue(Relocatable { segment_index: 8, offset: 13 })),
-        // ]))
+        assert_eq!(
+            result_cairo_pie.memory,
+            CairoPieMemory(vec![
+                (
+                    (3, 4),
+                    MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: 6,
+                        offset: 7
+                    })
+                ),
+                (
+                    (8, 0),
+                    MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: 8,
+                        offset: 4
+                    })
+                ),
+                (
+                    (8, 13),
+                    MaybeRelocatable::RelocatableValue(Relocatable {
+                        segment_index: 8,
+                        offset: 17
+                    })
+                ),
+            ])
+        )
+    }
+
+    #[test]
+    fn cairo_pie_without_extra_segments_() {
+        let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
+        let mut cairo_pie = {
+            let cairo_run_config = CairoRunConfig {
+                layout: LayoutName::starknet_with_keccak,
+                ..Default::default()
+            };
+            let runner = crate::cairo_run::cairo_run(
+                program_content,
+                &cairo_run_config,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie().unwrap()
+        };
+
+        cairo_pie.metadata.extra_segments = vec![];
+        let memory = CairoPieMemory(vec![
+            (
+                (3, 4),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 6,
+                    offset: 7,
+                }),
+            ),
+            (
+                (8, 0),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 8,
+                    offset: 4,
+                }),
+            ),
+            (
+                (9, 3),
+                MaybeRelocatable::RelocatableValue(Relocatable {
+                    segment_index: 9,
+                    offset: 7,
+                }),
+            ),
+        ]);
+
+        cairo_pie.memory = memory.clone();
+
+        let file_path = Path::new("merge_without_extra_segments_test");
+
+        cairo_pie.write_zip_file(file_path, true).unwrap();
+
+        let result_cairo_pie = CairoPie::read_zip_file(file_path).unwrap();
+
+        std::fs::remove_file(file_path).unwrap();
+
+        assert_eq!(
+            result_cairo_pie.metadata.extra_segments,
+            vec![]
+        );
+        assert_eq!(
+            result_cairo_pie.memory,
+            memory
+        )
     }
 }
