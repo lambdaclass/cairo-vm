@@ -399,7 +399,7 @@ impl CairoPie {
         Option<Vec<SegmentInfo>>,
         Option<HashMap<usize, Relocatable>>,
     ) {
-        if self.metadata.extra_segments.len() == 0 {
+        if self.metadata.extra_segments.is_empty() {
             return (None, None);
         }
 
