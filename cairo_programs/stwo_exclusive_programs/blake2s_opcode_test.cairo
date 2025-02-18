@@ -9,10 +9,13 @@ from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 const COUNTER = 64;
 const U32_MASK = 0xffffffff;
 
-// Tests the Blake2s and Blake2sLastBlock opcode runners using a preexisting implementation within the repo as reference.
+// Tests the Blake2s and Blake2sLastBlock opcode runners using a preexisting implementation within
+// the repo as reference.
 // The initial state, a random message of 64 bytes and a counter are used as input.
-// Both the opcode and the reference implementation are run on the same inputs and then their outputs are compared.
-// Before comparing the outputs, it is verified that the opcode runner has written the output to the correct location.
+// Both the opcode and the reference implementation are run on the same inputs and then their
+// outputs are compared.
+// Before comparing the outputs, it is verified that the opcode runner has written the output to the
+// correct location.
 func main{range_check_ptr, bitwise_ptr: BitwiseBuiltin*}() {
     run_blake_test(is_last_block=FALSE);
     run_blake_test(is_last_block=TRUE);
