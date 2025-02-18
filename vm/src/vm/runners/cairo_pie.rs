@@ -650,7 +650,7 @@ pub(super) mod serde_impl {
     }
 
     impl CairoPieMemory {
-        /// Relocates a `Relocatable` value, which represented by its 
+        /// Relocates a `Relocatable` value, which represented by its
         /// index and offset, according to a given segment offsets
         fn relocate_value(
             index: usize,
@@ -1109,13 +1109,7 @@ mod test {
 
         std::fs::remove_file(file_path).unwrap();
 
-        assert_eq!(
-            result_cairo_pie.metadata.extra_segments,
-            vec![]
-        );
-        assert_eq!(
-            result_cairo_pie.memory,
-            memory
-        )
+        assert_eq!(result_cairo_pie.metadata.extra_segments, vec![]);
+        assert_eq!(result_cairo_pie.memory, memory)
     }
 }
