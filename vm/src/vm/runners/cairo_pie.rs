@@ -302,7 +302,7 @@ impl CairoPie {
 
     #[cfg(feature = "std")]
     pub fn write_zip_file(
-        &mut self,
+        &self,
         file_path: &Path,
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
@@ -312,8 +312,10 @@ impl CairoPie {
             (None, None)
         };
 
+        let mut metadata = self.metadata.clone();
+
         if let Some(segment) = single_extra_segment {
-            self.metadata.extra_segments = segment;
+            metadata.extra_segments = segment;
         };
 
         let file = File::create(file_path)?;
@@ -951,7 +953,7 @@ mod test {
     #[case(include_bytes!("../../../../cairo_programs/value_beyond_segment.json"), "relocate_beyond")]
     fn read_write_pie_zip(#[case] program_content: &[u8], #[case] identifier: &str) {
         // Run a program to obtain the CairoPie
-        let mut cairo_pie = {
+        let cairo_pie = {
             let cairo_run_config = CairoRunConfig {
                 layout: LayoutName::starknet_with_keccak,
                 ..Default::default()
