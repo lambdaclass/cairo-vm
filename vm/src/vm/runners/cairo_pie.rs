@@ -971,6 +971,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "std")]
     fn cairo_pie_with_extra_segments() {
         let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let mut cairo_pie = {
@@ -1058,6 +1059,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "std")]
     fn cairo_pie_without_extra_segments_() {
         let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let mut cairo_pie = {
