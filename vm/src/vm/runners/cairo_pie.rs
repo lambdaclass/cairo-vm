@@ -325,7 +325,7 @@ impl CairoPie {
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
         zip_writer.start_file("metadata.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &self.metadata)?;
+        serde_json::to_writer(&mut zip_writer, &metadata)?;
         zip_writer.start_file("memory.bin", options)?;
         zip_writer.write_all(&self.memory.to_bytes(segment_offsets))?;
         zip_writer.start_file("additional_data.json", options)?;
