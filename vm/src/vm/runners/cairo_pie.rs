@@ -306,28 +306,38 @@ impl CairoPie {
         file_path: &Path,
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
-        let (single_extra_segment, segment_offsets) = if merge_extra_segments {
+        let merge_result = if merge_extra_segments {
             self.merge_extra_segments()
         } else {
-            (None, None)
+            None
         };
 
         let mut metadata = self.metadata.clone();
-
-        if let Some(segment) = single_extra_segment {
-            metadata.extra_segments = segment;
-        };
-
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
-        zip_writer.start_file("metadata.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &metadata)?;
-        zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write_all(&self.memory.to_bytes(segment_offsets))?;
+
+        match merge_result {
+            Some((segment, segment_offsets)) => {
+                metadata.extra_segments = vec![segment];
+                
+                zip_writer.start_file("metadata.json", options)?;
+                serde_json::to_writer(&mut zip_writer, &metadata)?;
+                zip_writer.start_file("memory.bin", options)?;
+                zip_writer.write_all(&self.memory.to_bytes(Some(segment_offsets)))?;
+            }
+            None => {
+                zip_writer.start_file("metadata.json", options)?;
+                serde_json::to_writer(&mut zip_writer, &metadata)?;
+                zip_writer.start_file("memory.bin", options)?;
+                zip_writer.write_all(&self.memory.to_bytes(None))?;
+            }
+        };
+
         zip_writer.start_file("additional_data.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
@@ -396,14 +406,9 @@ impl CairoPie {
     /// Returns a tuple with the new `extra_segments` (containing just the merged segment)
     /// and a HashMap with the old segment indices mapped to their new offset in the new segment
     #[cfg(feature = "std")]
-    fn merge_extra_segments(
-        &self,
-    ) -> (
-        Option<Vec<SegmentInfo>>,
-        Option<HashMap<usize, Relocatable>>,
-    ) {
+    fn merge_extra_segments(&self) -> Option<(SegmentInfo, HashMap<usize, Relocatable>)> {
         if self.metadata.extra_segments.is_empty() {
-            return (None, None);
+            return None;
         }
 
         let new_index = self.metadata.extra_segments[0].index;
@@ -427,13 +432,13 @@ impl CairoPie {
             })
             .collect();
 
-        (
-            Some(vec![SegmentInfo {
+        Some((
+            SegmentInfo {
                 index: new_index,
                 size: accumulated_size,
-            }]),
-            Some(offsets),
-        )
+            },
+            offsets,
+        ))
     }
 }
 
