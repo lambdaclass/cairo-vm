@@ -324,7 +324,7 @@ impl CairoPie {
         match merge_result {
             Some((segment, segment_offsets)) => {
                 metadata.extra_segments = vec![segment];
-                
+
                 zip_writer.start_file("metadata.json", options)?;
                 serde_json::to_writer(&mut zip_writer, &metadata)?;
                 zip_writer.start_file("memory.bin", options)?;
