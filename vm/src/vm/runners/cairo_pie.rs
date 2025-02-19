@@ -395,7 +395,7 @@ impl CairoPie {
     ///
     /// Returns a tuple with the new `extra_segments` (containing just the merged segment)
     /// and a HashMap with the old segment indices mapped to their new offset in the new segment
-    pub fn merge_extra_segments(
+    fn merge_extra_segments(
         &self,
     ) -> (
         Option<Vec<SegmentInfo>>,
