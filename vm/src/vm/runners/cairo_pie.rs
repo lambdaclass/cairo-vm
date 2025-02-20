@@ -307,6 +307,7 @@ impl CairoPie {
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
         let mut metadata = self.metadata.clone();
+
         let segment_offsets = if merge_extra_segments {
             if let Some((segment, segment_offsets)) = self.merge_extra_segments() {
                 metadata.extra_segments = vec![segment];
@@ -321,8 +322,8 @@ impl CairoPie {
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
-        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-        
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
         zip_writer.start_file("metadata.json", options)?;
