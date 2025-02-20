@@ -306,38 +306,29 @@ impl CairoPie {
         file_path: &Path,
         merge_extra_segments: bool,
     ) -> Result<(), std::io::Error> {
-        let merge_result = if merge_extra_segments {
-            self.merge_extra_segments()
+        let mut metadata = self.metadata.clone();
+        let segment_offsets = if merge_extra_segments {
+            if let Some((segment, segment_offsets)) = self.merge_extra_segments() {
+                metadata.extra_segments = vec![segment];
+                Some(segment_offsets)
+            } else {
+                None
+            }
         } else {
             None
         };
 
-        let mut metadata = self.metadata.clone();
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
         let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
+        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
-
-        match merge_result {
-            Some((segment, segment_offsets)) => {
-                metadata.extra_segments = vec![segment];
-
-                zip_writer.start_file("metadata.json", options)?;
-                serde_json::to_writer(&mut zip_writer, &metadata)?;
-                zip_writer.start_file("memory.bin", options)?;
-                zip_writer.write_all(&self.memory.to_bytes(Some(segment_offsets)))?;
-            }
-            None => {
-                zip_writer.start_file("metadata.json", options)?;
-                serde_json::to_writer(&mut zip_writer, &metadata)?;
-                zip_writer.start_file("memory.bin", options)?;
-                zip_writer.write_all(&self.memory.to_bytes(None))?;
-            }
-        };
-
+        zip_writer.start_file("metadata.json", options)?;
+        serde_json::to_writer(&mut zip_writer, &metadata)?;
+        zip_writer.start_file("memory.bin", options)?;
+        zip_writer.write_all(&self.memory.to_bytes(segment_offsets))?;
         zip_writer.start_file("additional_data.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
         zip_writer.start_file("execution_resources.json", options)?;
