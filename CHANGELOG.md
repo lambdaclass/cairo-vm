@@ -2,6 +2,9 @@
 
 #### Upcoming Changes
 
+* fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
+  * Implement `merge_extra_segments`
+
 * feat: implement an opcode that computes QM31 arithmetics (add, sub, mul, div) in the VM [#1938](https://github.com/lambdaclass/cairo-vm/pull/1938)
 
 * feat: add functions that compute packed reduced qm31 arithmetics to `math_utils` [#1944](https://github.com/lambdaclass/cairo-vm/pull/1944)
