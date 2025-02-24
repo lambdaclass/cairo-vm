@@ -1,7 +1,6 @@
 use crate::math_utils::signed_felt;
 use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
-use crate::types::instruction::OpcodeExtension;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
@@ -9,11 +8,13 @@ use crate::{
         builtin_hint_processor::blake2s_hash::blake2s_compress,
         hint_processor_definition::HintProcessor,
     },
+    typed_operations::{typed_add, typed_div, typed_mul, typed_sub},
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
-            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, OpcodeExtension,
+            PcUpdate, Res,
         },
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -237,19 +238,18 @@ impl VirtualMachine {
                 None,
             )),
             Opcode::AssertEq => match (&instruction.res, dst, op1) {
-                (Res::Add, Some(dst_addr), Some(op1_addr)) => {
-                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
-                }
+                (Res::Add, Some(dst_addr), Some(op1_addr)) => Ok((
+                    Some(typed_sub(dst_addr, op1_addr, instruction.opcode_extension)?),
+                    dst.cloned(),
+                )),
                 (
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => Ok((
-                    Some(MaybeRelocatable::Int(num_dst.field_div(
-                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
-                    ))),
-                    dst.cloned(),
-                )),
+                ) if !num_op1.is_zero() => {
+                    let num_op0 = typed_div(num_dst, num_op1, instruction.opcode_extension)?;
+                    Ok((Some(MaybeRelocatable::Int(num_op0)), dst.cloned()))
+                }
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -270,7 +270,9 @@ impl VirtualMachine {
                 Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
                 Res::Add => {
                     return Ok((
-                        dst.zip(op0).and_then(|(dst, op0)| dst.sub(&op0).ok()),
+                        dst.zip(op0).and_then(|(dst, op0)| {
+                            typed_sub(dst, &op0, instruction.opcode_extension).ok()
+                        }),
                         dst.cloned(),
                     ))
                 }
@@ -279,12 +281,8 @@ impl VirtualMachine {
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
                     ) if !num_op0.is_zero() => {
-                        return Ok((
-                            Some(MaybeRelocatable::Int(num_dst.field_div(
-                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
-                            ))),
-                            dst.cloned(),
-                        ))
+                        let num_op1 = typed_div(num_dst, &num_op0, instruction.opcode_extension)?;
+                        return Ok((Some(MaybeRelocatable::Int(num_op1)), dst.cloned()));
                     }
                     _ => (),
                 },
@@ -318,17 +316,8 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add(op1)?)),
-            Res::Mul => {
-                if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
-                {
-                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
-                }
-                Err(VirtualMachineError::ComputeResRelocatableMul(Box::new((
-                    op0.clone(),
-                    op1.clone(),
-                ))))
-            }
+            Res::Add => Ok(Some(typed_add(op0, op1, instruction.opcode_extension)?)),
+            Res::Mul => Ok(Some(typed_mul(op0, op1, instruction.opcode_extension)?)),
             Res::Unconstrained => Ok(None),
         }
     }
@@ -1339,6 +1328,7 @@ impl VirtualMachineBuilder {
 mod tests {
     use super::*;
     use crate::felt_hex;
+    use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
     use crate::stdlib::collections::HashMap;
     use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
@@ -2297,6 +2287,106 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [STWO_PRIME - 10, 5, STWO_PRIME - 5, 1];
+        let dst_coordinates = [STWO_PRIME - 4, 2, 12, 3];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([6, STWO_PRIME-3, 17, 2]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [0, 0, 1, 0];
+        let dst_coordinates = [0, 0, 0, 1];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_blake_finalize_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::BlakeFinalize,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::Int(Felt252::from(5));
+        let dst = MaybeRelocatable::Int(Felt252::from(15));
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_sub"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_op1_opcode_call() {
         let instruction = Instruction {
             off0: 1,
@@ -2506,6 +2596,106 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op0_coordinates = [4, STWO_PRIME - 13, 3, 7];
+        let dst_coordinates = [8, 7, 6, 5];
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([4, 20, 3, STWO_PRIME - 2]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op0_coordinates = [0, 1, 0, 0];
+        let dst_coordinates = [STWO_PRIME - 1, 0, 0, 0];
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_blake_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Blake,
+        };
+
+        let vm = vm!();
+
+        let op0 = MaybeRelocatable::Int(Felt252::from(4));
+        let dst = MaybeRelocatable::Int(Felt252::from(16));
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_div"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_res_op1() {
         let instruction = Instruction {
             off0: 1,
@@ -2619,6 +2809,130 @@ mod tests {
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Err(VirtualMachineError::ComputeResRelocatableMul(bx)) if *bx == (op0, op1)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_add_relocatable_values() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::from((2, 3));
+        let op0 = MaybeRelocatable::from(7);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err(VirtualMachineError::Math(MathError::RelocatableQM31Add(bx))) if *bx == (op0, op1)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [1, 2, 3, 4];
+        let op0_coordinates = [10, 11, STWO_PRIME - 1, 13];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == qm31_coordinates_to_packed_reduced([11, 13, 2, 17])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [0, 0, 1, 0];
+        let op0_coordinates = [0, 0, 1, 0];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == qm31_coordinates_to_packed_reduced([2, 1, 0, 0])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_blake_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Blake,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::Int(Felt252::from(11));
+        let op0 = MaybeRelocatable::Int(Felt252::from(12));
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_mul"
         );
     }
 
