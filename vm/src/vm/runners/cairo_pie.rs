@@ -665,11 +665,11 @@ pub(super) mod serde_impl {
             segment_offsets
                 .as_ref()
                 .and_then(|offsets| offsets.get(&index))
-                .and_then(|relocatable| {
-                    Some((
+                .map(|relocatable| {
+                    (
                         relocatable.segment_index as usize,
                         relocatable.offset + offset,
-                    ))
+                    )
                 })
                 .unwrap_or((index, offset))
         }
