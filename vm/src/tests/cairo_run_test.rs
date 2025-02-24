@@ -578,6 +578,14 @@ fn blake2s_opcode_test() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_proof_mode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json");
+    run_program(program_data.as_slice(), true, None, None, None);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn qm31_opcodes_test() {
     let program_data =
         include_bytes!("../../../cairo_programs/stwo_exclusive_programs/qm31_opcodes_test.json");
