@@ -61,6 +61,7 @@ pub mod hint_processor;
 pub mod math_utils;
 pub mod program_hash;
 pub mod serde;
+pub mod typed_operations;
 pub mod types;
 pub mod utils;
 pub mod vm;
