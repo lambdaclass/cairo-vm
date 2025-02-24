@@ -393,7 +393,7 @@ impl CairoPie {
 
     // Heavily inspired in:
     // https://github.com/starkware-libs/cairo-lang/blob/8276ac35830148a397e1143389f23253c8b80e93/src/starkware/cairo/lang/vm/cairo_pie.py#L286-L306
-    /// Merges `extra_seglments` to a single segment.
+    /// Merges `extra_segments` to a single segment.
     ///
     /// Returns a tuple with the new `extra_segments` (containing just the merged segment)
     /// and a HashMap with the old segment indices mapped to their new offset in the new segment
@@ -662,17 +662,16 @@ pub(super) mod serde_impl {
             offset: usize,
             segment_offsets: &Option<HashMap<usize, Relocatable>>,
         ) -> (usize, usize) {
-            if let Some(offsets) = segment_offsets {
-                return match offsets.get(&index) {
-                    Some(relocatable) => (
+            segment_offsets
+                .as_ref()
+                .and_then(|offsets| offsets.get(&index))
+                .and_then(|relocatable| {
+                    Some((
                         relocatable.segment_index as usize,
                         relocatable.offset + offset,
-                    ),
-                    None => (index, offset),
-                };
-            }
-
-            (index, offset)
+                    ))
+                })
+                .unwrap_or((index, offset))
         }
 
         pub fn to_bytes(&self, seg_offsets: Option<HashMap<usize, Relocatable>>) -> Vec<u8> {
@@ -1066,7 +1065,7 @@ mod test {
 
     #[test]
     #[cfg(feature = "std")]
-    fn cairo_pie_without_extra_segments_() {
+    fn cairo_pie_without_extra_segments() {
         let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let mut cairo_pie = {
             let cairo_run_config = CairoRunConfig {
