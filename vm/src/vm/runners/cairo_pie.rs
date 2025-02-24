@@ -858,6 +858,17 @@ mod test {
         );
     }
 
+    #[test]
+    fn serialize_cairo_pie_memory_with_overflow() {
+        let memory = CairoPieMemory(vec![
+            ((0, 0), MaybeRelocatable::Int(0.into())),
+            ((0, 1), MaybeRelocatable::Int(1.into())),
+            ((usize::MAX, 0), MaybeRelocatable::Int(2.into())),
+        ]);
+
+        serde_json::to_value(memory).unwrap_err();
+    }
+
     #[rstest]
     #[cfg(feature = "std")]
     #[case(include_bytes!("../../../../cairo_programs/fibonacci.json"), "fibonacci")]
