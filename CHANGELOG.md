@@ -4,6 +4,14 @@
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
 
+* feat: implement an opcode that computes QM31 arithmetics (add, sub, mul, div) in the VM [#1938](https://github.com/lambdaclass/cairo-vm/pull/1938)
+
+* feat: add functions that compute packed reduced qm31 arithmetics to `math_utils` [#1944](https://github.com/lambdaclass/cairo-vm/pull/1944)
+
+* feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
+
+* feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
+
 * feat: remove `NonZeroReservedBits` from `VirtualMachineError` [#1948](https://github.com/lambdaclass/cairo-vm/pull/1948)
 
 * feat: set `encoded_instruction` to be u128 for opcode_extensions to come [#1940](https://github.com/lambdaclass/cairo-vm/pull/1940)
