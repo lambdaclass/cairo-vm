@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [2.0.0-rc5] - 2025-02-24
+
 * fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
   * Implement `merge_extra_segments`
 
