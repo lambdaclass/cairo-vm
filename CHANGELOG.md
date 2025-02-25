@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [2.0.0] - 2025-02-25
+
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
 
 #### [2.0.0-rc5] - 2025-02-24
