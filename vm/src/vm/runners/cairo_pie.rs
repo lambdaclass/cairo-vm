@@ -582,7 +582,17 @@ pub(super) mod serde_impl {
         let mut res = Vec::with_capacity(mem_cap);
 
         for ((segment, offset), value) in values.iter() {
-            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+            // mem_addr = ADDR_BASE + segment * OFFSET_BASE + offset
+            let mem_addr = (*segment as u64)
+                .checked_mul(OFFSET_BASE)
+                .and_then(|n| n.checked_add(ADDR_BASE))
+                .and_then(|n| n.checked_add(*offset as u64))
+                .ok_or_else(|| {
+                    serde::ser::Error::custom(format!(
+                        "failed to serialize address: {segment}:{offset}"
+                    ))
+                })?;
+
             res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
             match value {
                 // Serializes RelocatableValue(little endian):
@@ -937,6 +947,17 @@ mod test {
             "0200000000800000000000000000000000000000000000000000000000000080",
             "value mismatch: {mem_str:?}",
         );
+    }
+
+    #[test]
+    fn serialize_cairo_pie_memory_with_overflow() {
+        let memory = CairoPieMemory(vec![
+            ((0, 0), MaybeRelocatable::Int(0.into())),
+            ((0, 1), MaybeRelocatable::Int(1.into())),
+            ((usize::MAX, 0), MaybeRelocatable::Int(2.into())),
+        ]);
+
+        serde_json::to_value(memory).unwrap_err();
     }
 
     #[rstest]

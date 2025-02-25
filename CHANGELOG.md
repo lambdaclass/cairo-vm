@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
+
 #### [2.0.0-rc5] - 2025-02-24
 
 * fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
