@@ -14,7 +14,7 @@ This diagram was produced using this [mermaid code](./diagram/cairo_vm_flow_diag
 
 ## How does the vm manage memory?
 
-Cairo's memory is read-only (can only be written once), and requires that memory addresses accessed by the program must be contiguous. If gaps are present they will be filled with arbitrary values.
+Cairo's memory is read-only (can only be written once), and requires that memory addresses accessed by the program must be continuous. If gaps are present they will be filled with arbitrary values.
 
 The memory itself is a list of continuous segments, the size of each segment may vary and can only be known once the program terminates. Absolute addresses of every memory cell within a segment can only be determined at the end of a vm run (Relocatable values are used to represent them, indicating the segment number and the offset).
 
@@ -25,7 +25,7 @@ The different segments:
 
 ## Registers
 
-**Allocation Pointer (ap)** Points to an unused memory cell.
+**Allocation Pointer (ap)** Points to a yet unused memory cell.
 **Frame Pointer (fp)** Points to the frame of the current function. The addresses of all the function's arguments and local variables are relative to the value of this register. It's equal to ap when the function starts, and remains constant throughout the scope of it. When a function2 is called inside a function1, the value of fp changes once function2 starts, but it is restored back to function1's value once function2 ends (this is needed to keep track of function1's value, as ap will have changed).
 **Program Counter (pc)** Points to the current instruction. Each instruction takes 1 or 2 felts(2 when an imm is used), and pc advances by 1 or 2 after each instruction, other ways of changing this register is by jumps.
 
