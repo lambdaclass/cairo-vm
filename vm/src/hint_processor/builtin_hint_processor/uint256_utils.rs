@@ -342,7 +342,7 @@ pub fn uint256_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 0, 1)
+    uint256_offsetted_unsigned_div_rem(vm, ids_data, ap_tracking, 0, 1)
 }
 
 /*
@@ -363,10 +363,10 @@ pub fn uint256_expanded_unsigned_div_rem(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 1, 3)
+    uint256_offsetted_unsigned_div_rem(vm, ids_data, ap_tracking, 1, 3)
 }
 
-pub fn uint256_offseted_unsigned_div_rem(
+pub fn uint256_offsetted_unsigned_div_rem(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
