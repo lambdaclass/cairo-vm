@@ -132,6 +132,18 @@ impl CairoLayout {
         }
     }
 
+    pub(crate) fn all_cairo_stwo_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::all_cairo_stwo,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::all_cairo_stwo(),
+            public_memory_fraction: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
+        }
+    }
+
     pub(crate) fn all_solidity_instance() -> CairoLayout {
         CairoLayout {
             name: LayoutName::all_solidity,
@@ -447,6 +459,20 @@ mod tests {
         let layout = CairoLayout::all_cairo_instance();
         let builtins = BuiltinsInstanceDef::all_cairo();
         assert_eq!(layout.name, LayoutName::all_cairo);
+        assert_eq!(layout.rc_units, 4);
+        assert_eq!(layout.builtins, builtins);
+        assert_eq!(layout.public_memory_fraction, 8);
+        assert_eq!(
+            layout.diluted_pool_instance_def,
+            Some(DilutedPoolInstanceDef::default())
+        );
+    }
+
+    #[test]
+    fn get_all_cairo_stwo_instance() {
+        let layout = CairoLayout::all_cairo_stwo_instance();
+        let builtins = BuiltinsInstanceDef::all_cairo_stwo();
+        assert_eq!(layout.name, LayoutName::all_cairo_stwo);
         assert_eq!(layout.rc_units, 4);
         assert_eq!(layout.builtins, builtins);
         assert_eq!(layout.public_memory_fraction, 8);
