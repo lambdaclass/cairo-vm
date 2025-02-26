@@ -34,8 +34,6 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Reserved instruction bits must be 0")]
-    NonZeroReservedBits,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
@@ -62,6 +60,10 @@ pub enum VirtualMachineError {
         "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
     )]
     ComputeResRelocatableMul(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error(
+        "Failed to compute operand, attempted to use {0} for an OpcodeExtension that is neither Stone nor QM31Operation"
+    )]
+    InvalidTypedOperationOpcodeExtension(Box<str>),
     #[error("Couldn't compute operand {}. Unknown value for memory cell {}", (*.0).0, (*.0).1)]
     FailedToComputeOperands(Box<(String, Relocatable)>),
     #[error("An ASSERT_EQ instruction failed: {} != {}.", (*.0).0, (*.0).1)]
@@ -138,6 +140,12 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
+    Blake2sInvalidOperand(u8, u8),
+    #[error("Blake2s opcode invalid flags {0}")]
+    InvalidBlake2sFlags(u128),
+    #[error("QM31 add mul opcode invalid flags {0}")]
+    InvalidQM31AddMulFlags(u128),
 }
 
 #[cfg(test)]
