@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
 * fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
 
 * feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
