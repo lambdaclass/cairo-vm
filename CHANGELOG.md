@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
 * feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
 * chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
