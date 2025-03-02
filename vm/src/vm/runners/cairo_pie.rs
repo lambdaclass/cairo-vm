@@ -437,7 +437,6 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
-    use num_integer::Integer;
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
@@ -723,7 +722,7 @@ pub(super) mod serde_impl {
         }
 
         pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
-            if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
+            if !num_integer::Integer::is_multiple_of(&bytes.len(), &CELL_BYTE_LEN) {
                 return None;
             }
 
