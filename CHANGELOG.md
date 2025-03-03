@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
 #### [2.0.0] - 2025-02-26
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
