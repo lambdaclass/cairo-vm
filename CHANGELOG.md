@@ -6,6 +6,8 @@
 
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
+* feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
 #### [2.0.1] - 2025-03-17
 
 * feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
