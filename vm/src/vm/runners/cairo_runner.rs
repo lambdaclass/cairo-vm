@@ -1477,6 +1477,28 @@ impl CairoRunner {
             })
             .collect()
     }
+
+    pub fn get_info_for_prover_input(&self) -> Result<ProverInfo, RunnerError> {
+        Ok(ProverInfo {
+            relocatble_trace: self
+            .vm
+            .trace.clone()
+            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?,
+            relocatble_memory: self.vm.segments.memory.data.clone(),
+            public_memory_addresses: self.vm.segments.public_memory_offsets.clone(),
+            builtins_segments: self.get_builtin_segment_info_for_pie()?
+        })
+    }
+}
+
+//* ----------------------
+//*   ProverInfo
+//* ---------------------- 
+pub struct ProverInfo {
+    pub relocatble_trace: Vec<TraceEntry>,
+    pub relocatble_memory: Vec<Vec<MemoryCell>>,
+    pub public_memory_addresses: HashMap<usize, Vec<(usize, usize)>>,
+    pub builtins_segments: HashMap<BuiltinName, cairo_pie::SegmentInfo>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
