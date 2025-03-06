@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
 - refactor: Fixed some warnings [#1980](https://github.com/lambdaclass/cairo-vm/pull/1980)
 
