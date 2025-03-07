@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* dev: make `BuiltinRunner::included` public [#1989](https://github.com/lambdaclass/cairo-vm/pull/1989)
+
 #### [2.0.0] - 2025-02-26
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
