@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
+
 * feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
 * chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
