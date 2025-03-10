@@ -31,7 +31,7 @@ pub struct KeccakBuiltinRunner {
 }
 
 impl KeccakBuiltinRunner {
-    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         KeccakBuiltinRunner {
             base: 0,
             ratio,
