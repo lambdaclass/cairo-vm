@@ -1,3 +1,7 @@
+// ark-ff-macros mess workaround
+#![allow(non_local_definitions)]
+#![allow(unexpected_cfgs)]
+
 use super::circuit;
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
@@ -39,9 +43,9 @@ struct MemoryExecScope {
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
 #[generator = "3"]
-
 /// Returns the Beta value of the Starkware elliptic curve.
 struct FqConfig;
+
 type Fq = Fp256<MontBackend<FqConfig, 4>>;
 
 fn get_beta() -> Felt252 {
