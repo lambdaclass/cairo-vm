@@ -21,6 +21,7 @@ pub enum LayoutName {
     all_solidity,
     all_cairo,
     dynamic,
+    all_cairo_stwo,
 }
 
 impl LayoutName {
@@ -37,6 +38,7 @@ impl LayoutName {
             LayoutName::all_solidity => "all_solidity",
             LayoutName::all_cairo => "all_cairo",
             LayoutName::dynamic => "dynamic",
+            LayoutName::all_cairo_stwo => "all_cairo_stwo",
         }
     }
 }
@@ -62,6 +64,7 @@ impl ValueEnum for LayoutName {
             Self::all_solidity,
             Self::all_cairo,
             Self::dynamic,
+            Self::all_cairo_stwo,
         ]
     }
 
