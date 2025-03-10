@@ -78,10 +78,10 @@ impl DeducedOperands {
         self.0 & 1 != 0
     }
     fn was_op0_deducted(&self) -> bool {
-        self.0 & 1 << 1 != 0
+        self.0 & (1 << 1) != 0
     }
     fn was_op1_deducted(&self) -> bool {
-        self.0 & 1 << 2 != 0
+        self.0 & (1 << 2) != 0
     }
 }
 
