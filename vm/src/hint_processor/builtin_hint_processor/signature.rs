@@ -25,9 +25,7 @@ pub fn verify_ecdsa_signature(
     if ecdsa_ptr.segment_index != ecdsa_builtin.base() as isize {
         return Err(HintError::AddSignatureWrongEcdsaPtr(Box::new(ecdsa_ptr)));
     }
-    if !num_integer::Integer::is_multiple_of(&ecdsa_ptr
-        .offset, &(CELLS_PER_SIGNATURE as usize))
-    {
+    if !num_integer::Integer::is_multiple_of(&ecdsa_ptr.offset, &(CELLS_PER_SIGNATURE as usize)) {
         return Err(HintError::AddSignatureNotAPublicKey(Box::new(ecdsa_ptr)));
     }
     ecdsa_builtin
