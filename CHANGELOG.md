@@ -2,7 +2,22 @@
 
 #### Upcoming Changes
 
+* chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
+
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+
+#### [2.0.0] - 2025-02-26
+
+* fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
+
+#### [2.0.0-rc5] - 2025-02-24
+
+* fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
+  * Implement `merge_extra_segments`
+
+* feat: implement an opcode that computes QM31 arithmetics (add, sub, mul, div) in the VM [#1938](https://github.com/lambdaclass/cairo-vm/pull/1938)
+
+* feat: add functions that compute packed reduced qm31 arithmetics to `math_utils` [#1944](https://github.com/lambdaclass/cairo-vm/pull/1944)
 
 * feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
 

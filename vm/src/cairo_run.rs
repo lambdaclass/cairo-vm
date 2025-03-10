@@ -45,7 +45,7 @@ pub struct CairoRunConfig<'a> {
     pub allow_missing_builtins: Option<bool>,
 }
 
-impl<'a> Default for CairoRunConfig<'a> {
+impl Default for CairoRunConfig<'_> {
     fn default() -> Self {
         CairoRunConfig {
             entrypoint: "main",
@@ -152,9 +152,9 @@ pub fn cairo_run_pie(
     if cairo_run_config.proof_mode {
         return Err(RunnerError::CairoPieProofMode.into());
     }
-    if !hint_processor
+    if hint_processor
         .get_n_steps()
-        .is_some_and(|steps| steps == pie.execution_resources.n_steps)
+        .is_none_or(|steps| steps != pie.execution_resources.n_steps)
     {
         return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
     }
