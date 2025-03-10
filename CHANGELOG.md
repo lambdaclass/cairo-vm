@@ -6,6 +6,8 @@
 
 - ci: Update CI [#1991](https://github.com/lambdaclass/cairo-vm/pull/1991)
 
+- chore: Update iai-callgrind [#1992](https://github.com/lambdaclass/cairo-vm/pull/1992)
+
 #### [2.0.0] - 2025-02-26
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
