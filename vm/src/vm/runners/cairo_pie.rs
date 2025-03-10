@@ -255,9 +255,9 @@ impl CairoPie {
             HashMap::from_iter(segment_sizes.iter().map(|si| (si.index, si.size)));
 
         let validate_addr = |addr: Relocatable| -> Result<(), CairoPieValidationError> {
-            if !segment_sizes
+            if segment_sizes
                 .get(&addr.segment_index)
-                .is_some_and(|size| addr.offset <= *size)
+                .is_none_or(|size| addr.offset > *size)
             {
                 return Err(CairoPieValidationError::InvalidAddress);
             }
@@ -437,7 +437,6 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
-    use num_integer::Integer;
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
@@ -467,7 +466,7 @@ pub(super) mod serde_impl {
 
     pub(crate) struct Felt252Wrapper<'a>(&'a Felt252);
 
-    impl<'a> Serialize for Felt252Wrapper<'a> {
+    impl Serialize for Felt252Wrapper<'_> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -582,7 +581,17 @@ pub(super) mod serde_impl {
         let mut res = Vec::with_capacity(mem_cap);
 
         for ((segment, offset), value) in values.iter() {
-            let mem_addr = ADDR_BASE + *segment as u64 * OFFSET_BASE + *offset as u64;
+            // mem_addr = ADDR_BASE + segment * OFFSET_BASE + offset
+            let mem_addr = (*segment as u64)
+                .checked_mul(OFFSET_BASE)
+                .and_then(|n| n.checked_add(ADDR_BASE))
+                .and_then(|n| n.checked_add(*offset as u64))
+                .ok_or_else(|| {
+                    serde::ser::Error::custom(format!(
+                        "failed to serialize address: {segment}:{offset}"
+                    ))
+                })?;
+
             res.extend_from_slice(mem_addr.to_le_bytes().as_ref());
             match value {
                 // Serializes RelocatableValue(little endian):
@@ -713,7 +722,7 @@ pub(super) mod serde_impl {
         }
 
         pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
-            if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
+            if !num_integer::Integer::is_multiple_of(&bytes.len(), &CELL_BYTE_LEN) {
                 return None;
             }
 
@@ -937,6 +946,17 @@ mod test {
             "0200000000800000000000000000000000000000000000000000000000000080",
             "value mismatch: {mem_str:?}",
         );
+    }
+
+    #[test]
+    fn serialize_cairo_pie_memory_with_overflow() {
+        let memory = CairoPieMemory(vec![
+            ((0, 0), MaybeRelocatable::Int(0.into())),
+            ((0, 1), MaybeRelocatable::Int(1.into())),
+            ((usize::MAX, 0), MaybeRelocatable::Int(2.into())),
+        ]);
+
+        serde_json::to_value(memory).unwrap_err();
     }
 
     #[rstest]

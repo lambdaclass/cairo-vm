@@ -188,6 +188,7 @@ impl CairoRunner {
             LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
+            LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
                 let params =
@@ -229,6 +230,11 @@ impl CairoRunner {
         trace_enabled: bool,
         disable_trace_padding: bool,
     ) -> Result<CairoRunner, RunnerError> {
+        // `disable_trace_padding` can only be used in `proof_mode`, so we enforce this here to
+        // avoid unintended behavior.
+        if disable_trace_padding && !proof_mode {
+            return Err(RunnerError::DisableTracePaddingWithoutProofMode);
+        }
         if proof_mode {
             Self::new_v2(
                 program,
@@ -3398,9 +3404,32 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_empty() {
+    fn run_empty_all_cairo() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo, false, true);
+        assert_matches!(
+            cairo_runner.initialize(false),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty_recursive_with_poseidon() {
+        let program = program!();
+        let mut cairo_runner =
+            cairo_runner!(&program, LayoutName::recursive_with_poseidon, false, true);
+        assert_matches!(
+            cairo_runner.initialize(false),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty_all_cairo_stwo() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo_stwo, false, true);
         assert_matches!(
             cairo_runner.initialize(false),
             Err(RunnerError::MissingMain)
@@ -5398,5 +5427,16 @@ mod tests {
                 }
             })]
         );
+    }
+
+    #[test]
+    fn test_disable_trace_padding_without_proof_mode() {
+        let program = program!();
+        // Attempt to create a runner in non-proof mode with trace padding disabled.
+        let result = CairoRunner::new(&program, LayoutName::plain, None, false, true, true);
+        match result {
+            Err(RunnerError::DisableTracePaddingWithoutProofMode) => { /* test passed */ }
+            _ => panic!("Expected DisableTracePaddingWithoutProofMode error"),
+        }
     }
 }
