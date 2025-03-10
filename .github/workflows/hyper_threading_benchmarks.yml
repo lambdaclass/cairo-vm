@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout PR
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
 
@@ -35,7 +35,7 @@ jobs:
         cargo build --release -p hyper_threading
         cp target/release/hyper_threading ${{ github.workspace }}/hyper_threading_pr
         cp ./examples/hyper_threading/hyper-threading-workflow.sh ${{ github.workspace }}/hyper-threading-workflow.sh
-    
+
     - name: Upload PR Binary
       uses: actions/upload-artifact@v4
       with:
@@ -50,7 +50,7 @@ jobs:
 
 
     - name: Checkout Main Branch
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: 'main'
 
@@ -71,7 +71,7 @@ jobs:
         name: hyper_threading_workflow_script
         path: ${{ github.workspace }}/
 
-    - name: Compile programs 
+    - name: Compile programs
       run: make cairo_bench_programs
 
     - name: Run Benchmarks
