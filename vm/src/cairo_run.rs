@@ -16,7 +16,7 @@ use crate::{
 use crate::Felt252;
 use bincode::enc::write::Writer;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
