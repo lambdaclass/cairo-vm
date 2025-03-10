@@ -4,6 +4,8 @@
 
 * feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
+* chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
+
 #### [2.0.0] - 2025-02-26
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
