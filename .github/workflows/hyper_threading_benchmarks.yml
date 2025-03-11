@@ -1,5 +1,11 @@
 name: Benchmark Hyper Threading
 
+permissions:
+  # permission to write a bench comment
+  issues: write
+  # permission to write a bench comment
+  pull-requests: write
+
 on:
   pull_request:
     branches:
