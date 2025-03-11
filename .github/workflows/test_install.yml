@@ -25,11 +25,10 @@ jobs:
           cache-directories: ./cairo/target/
 
       # just to cache dependencies
-      - name: Install python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
-          cache: 'pip'
+          enable-cache: true
 
       # NOTE: we do it in one step because GitHub cleans the PATH between steps
       - name: Install dependencies and compile project
@@ -60,22 +59,10 @@ jobs:
           key: ${{ runner.os }}-install-${{ github.sha }}
           restore-keys: ${{ runner.os }}-install-
 
-      - name: Enable pip cache
-        run: |
-          mkdir -p ~/.cache/pip
-          chown -v -R $USER ~/.cache
-          chmod -v -R 770 ~/.cache
-          ls -al ~/
-          ls -al ~/.cache
-
-      # NOTE: we don't use install-python because lsb_release isn't installed
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          path: |
-            ~/.cache/pip/wheels
-          key: ${{ runner.os }}-python-install-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-python-install-
+          enable-cache: true
 
       # NOTE: we do it in one step because GitHub cleans the PATH between steps
       - name: Install dependencies and compile project
