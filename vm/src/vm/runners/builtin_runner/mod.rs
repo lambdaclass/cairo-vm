@@ -56,6 +56,11 @@ pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
 
+const MIN_N_INSTANCES_IN_BUILTIN_SEGMENT: usize = 16;
+
+// Assert MIN_N_INSTANCES_IN_BUILTIN_SEGMENT is a power of 2.
+const _: () = assert!(MIN_N_INSTANCES_IN_BUILTIN_SEGMENT.is_power_of_two());
+
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
  * are either storing a `dyn Trait` inside an `Arc<Mutex<&dyn Trait>>` or
@@ -535,10 +540,15 @@ impl BuiltinRunner {
                 let used_cells = self.get_used_cells(&vm.segments)?;
                 if vm.disable_trace_padding {
                     // If trace padding is disabled, we pad the used cells to still ensure that the
-                    // number of instances is a power of 2.
+                    // number of instances is a power of 2, and at least
+                    // MIN_N_INSTANCES_IN_BUILTIN_SEGMENT.
                     let num_instances = self.get_used_instances(&vm.segments)?;
                     let padded_used_cells = if num_instances > 0 {
-                        num_instances.next_power_of_two() * self.cells_per_instance() as usize
+                        let padded_num_instances = core::cmp::max(
+                            MIN_N_INSTANCES_IN_BUILTIN_SEGMENT,
+                            num_instances.next_power_of_two(),
+                        );
+                        padded_num_instances * self.cells_per_instance() as usize
                     } else {
                         0
                     };
@@ -971,6 +981,15 @@ mod tests {
                 assert!(
                     n_allocated_instances_true.is_power_of_two() || n_allocated_instances_true == 0
                 );
+                // Assert the builtin segment is padded to at least
+                // `MIN_N_INSTANCES_IN_BUILTIN_SEGMENT`.
+                // Pedersen proof has exactly one pedersen builtin, so this indeed tests the padding
+                // to at least `MIN_N_INSTANCES_IN_BUILTIN_SEGMENT`.
+                assert!(
+                    n_allocated_instances_true >= MIN_N_INSTANCES_IN_BUILTIN_SEGMENT
+                        || n_allocated_instances_true == 0
+                );
+
                 // Checks that the number of allocated instances is different when trace padding is
                 // enabled/disabled. Holds for this specific program, not always (that is, in other
                 // programs, padding may be of size 0, or the same).

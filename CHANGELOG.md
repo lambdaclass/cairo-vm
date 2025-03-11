@@ -2,11 +2,17 @@
 
 #### Upcoming Changes
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
+* fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
+
 * feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
 
 * feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
 
 * chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
+
+* chore: Update fastecdsa python package [#1993](https://github.com/lambdaclass/cairo-vm/pull/1993)
 
 #### [2.0.0] - 2025-02-26
 
