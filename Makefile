@@ -214,34 +214,26 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	cargo install --version 0.6.1 flamegraph --locked
+	cargo install --version 0.6.7 flamegraph --locked
 	cargo install --version 1.19.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest --locked
-	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack --locked
+	cargo install --version 0.9.92 cargo-nextest --locked
+	cargo install --version 0.6.16 cargo-llvm-cov
+	cargo install --version 0.13.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
 deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
-	pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
-	. cairo-vm-pypy-env/bin/activate ; \
-	pip install -r requirements.txt ; \
-	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	uv python install 3.9.15 ; \
+	uv venv --python 3.9.15 cairo-vm-env
 	. cairo-vm-env/bin/activate ; \
-	pip install -r requirements.txt ; \
+	uv pip install -r requirements.txt ; \
 
 deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
-	arch -x86_64 pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
-	. cairo-vm-pypy-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
-	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	uv python install 3.9.15 ; \
+	uv venv --python 3.9.15 cairo-vm-env ; \
 	. cairo-vm-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib uv pip install -r requirements.txt ; \
 
 $(RELBIN):
 	cargo build --release

@@ -25,11 +25,10 @@ jobs:
           cache-directories: ./cairo/target/
 
       # just to cache dependencies
-      - name: Install python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
-          cache: 'pip'
+          enable-cache: true
 
       # NOTE: we do it in one step because GitHub cleans the PATH between steps
       - name: Install dependencies and compile project

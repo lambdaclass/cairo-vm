@@ -75,21 +75,23 @@ jobs:
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
 
-    - name: Python3 Build
+    - name: Install uv
       if: steps.cache-programs.outputs.cache-hit != 'true'
         && matrix.program-target != 'cairo_1_test_contracts'
         && matrix.program-target != 'cairo_2_test_contracts'
-      uses: actions/setup-python@v4
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      if: |
-        steps.cache-programs.outputs.cache-hit != 'true'
+          enable-cache: true
+    - name: Set python env
+      if: steps.cache-programs.outputs.cache-hit != 'true'
         && matrix.program-target != 'cairo_1_test_contracts'
         && matrix.program-target != 'cairo_2_test_contracts'
-      run: pip install -r requirements.txt
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      if: steps.cache-programs.outputs.cache-hit != 'true'
+        && matrix.program-target != 'cairo_1_test_contracts'
+        && matrix.program-target != 'cairo_2_test_contracts'
+      run: uv pip install -r requirements.txt
 
     - name: Install cairo 1 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
@@ -452,16 +454,17 @@ jobs:
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
         restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
 
-    - name: Python3 Build
+    - name: Install uv
       if: steps.trace-cache.outputs.cache-hit != 'true'
-      uses: actions/setup-python@v4
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
+        enable-cache: true
+    - name: Set python env
       if: steps.trace-cache.outputs.cache-hit != 'true'
-      run: pip install -r requirements.txt
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      if: steps.trace-cache.outputs.cache-hit != 'true'
+      run: uv pip install -r requirements.txt
 
     - name: Fetch programs
       if: steps.trace-cache.outputs.cache-hit != 'true'
@@ -711,15 +714,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
+        enable-cache: true
+    - name: Set python env
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      run: uv pip install -r requirements.txt
 
     - name: Install cairo-lang and deps
       run: |
-        pip install -r requirements.txt
         npm install -g wasm-pack
 
     - name: Build wasm-demo
@@ -736,14 +741,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Set python env
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      run: uv pip install -r requirements.txt
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -775,14 +780,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Set python env
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      run: uv pip install -r requirements.txt
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -826,14 +831,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Set python env
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      run: uv pip install -r requirements.txt
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3

@@ -40,8 +40,10 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.85.0
 
-    - name: Install Pyenv
-      uses: "gabrielfalcao/pyenv-action@v13"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
 
     - name: Install Rosetta
       if: matrix.os_name == 'macos'

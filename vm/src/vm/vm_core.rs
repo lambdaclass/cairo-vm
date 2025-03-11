@@ -3485,7 +3485,7 @@ mod tests {
             vm.step(
                 &mut hint_processor,
                 exec_scopes_ref!(),
-                &mut Vec::new(),
+                &Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
                 &HashMap::new(),

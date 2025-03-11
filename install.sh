@@ -20,7 +20,7 @@ print_os() {
 # Print a message and run the script
 run_script() {
     echo "Running $1..."
-    . $1
+    . "$1"
 }
 
 # Detect Linux distro
@@ -70,12 +70,12 @@ install_linux() {
 
 install_macos() {
     print_os "MacOS"
-    run_script install-scripts/install-macos.sh 
+    run_script install-scripts/install-macos.sh
 }
 
 case "$OSTYPE" in
   linux*)           install_linux ;;
-  darwin*)          install_macos ;; 
+  darwin*)          install_macos ;;
   msys*|cygwin*)    unsupported_os "Windows" ;;
   solaris*)         unsupported_os "Solaris" ;;
   bsd*)             unsupported_os "BSD" ;;

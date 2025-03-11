@@ -19,12 +19,14 @@ jobs:
       with:
           components: rustfmt, clippy
     - uses: actions/checkout@v4
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-    - name: Install test dependencies
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Set python env
+      run: uv python install 3.9.15 && uv python pin 3.9.15
+    - name: Install python dependencies
+      run: uv pip install -r requirements.txt
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result
