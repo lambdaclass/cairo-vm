@@ -82,16 +82,11 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
           enable-cache: true
-    - name: Set python env
+    - name: Install python deps
       if: steps.cache-programs.outputs.cache-hit != 'true'
         && matrix.program-target != 'cairo_1_test_contracts'
         && matrix.program-target != 'cairo_2_test_contracts'
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      if: steps.cache-programs.outputs.cache-hit != 'true'
-        && matrix.program-target != 'cairo_1_test_contracts'
-        && matrix.program-target != 'cairo_2_test_contracts'
-      run: uv pip install -r requirements.txt
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo 1 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
@@ -459,12 +454,9 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
+    - name: Install python deps
       if: steps.trace-cache.outputs.cache-hit != 'true'
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      if: steps.trace-cache.outputs.cache-hit != 'true'
-      run: uv pip install -r requirements.txt
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch programs
       if: steps.trace-cache.outputs.cache-hit != 'true'
@@ -718,10 +710,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo-lang and deps
       run: |
@@ -745,10 +735,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -784,10 +772,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -835,10 +821,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3

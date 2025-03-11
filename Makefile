@@ -19,7 +19,7 @@ endif
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	hyper-threading-benchmarks \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
-	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
+	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace ci-python-deps \
 	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
@@ -234,6 +234,13 @@ deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-mac
 	uv venv --python 3.9.15 cairo-vm-env ; \
 	. cairo-vm-env/bin/activate ; \
 	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib uv pip install -r requirements.txt ; \
+
+# Used in CI when only python deps are needed.
+ci-python-deps:
+	uv python install 3.9.15 ; \
+	uv venv --python 3.9.15 cairo-vm-env
+	. cairo-vm-env/bin/activate ; \
+	uv pip install -r requirements.txt ; \
 
 $(RELBIN):
 	cargo build --release

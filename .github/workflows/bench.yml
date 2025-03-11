@@ -23,10 +23,13 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: |
+          uv python install 3.9.15
+          uv venv --python 3.9.15 cairo-vm-env
+          . cairo-vm-env/bin/activate
+          uv pip install -r requirements.txt
+          echo PATH=$PATH >> $GITHUB_ENV
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result

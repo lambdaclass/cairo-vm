@@ -51,7 +51,7 @@ jobs:
 
     - name: Run make deps${{ matrix.deps_suffix }}
       id: deps
-      run: make deps${{ matrix.deps_suffix }}
+      run: make deps${{ matrix.deps_suffix }} && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Run make build
       id: build

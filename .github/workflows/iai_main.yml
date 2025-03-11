@@ -18,10 +18,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set python env
-      run: uv python install 3.9.15 && uv python pin 3.9.15
-    - name: Install python dependencies
-      run: uv pip install -r requirements.txt
+    - name: Install python deps
+      run: make ci-python-deps && . cairo-vm-env/bin/activate && echo PATH=$PATH >> $GITHUB_ENV
     - name: Install test dependencies
       run: |
         sudo apt update
