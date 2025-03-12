@@ -566,8 +566,13 @@ impl ModBuiltinRunner {
                 if let Some((_, mul_mod_runner, _)) = mul_mod {
                     if mul_mod_runner.fill_value(memory, &mul_mod_inputs, mul_mod_index)? {
                         mul_mod_index += 1;
+                        continue;
+                    } else {
+                        return Err(RunnerError::FillMemoryCoudNotFillTable(
+                            add_mod_index,
+                            mul_mod_index,
+                        ));
                     }
-                    continue;
                 }
             }
 
