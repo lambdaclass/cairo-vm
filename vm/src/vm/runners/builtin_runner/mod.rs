@@ -233,7 +233,7 @@ impl BuiltinRunner {
     }
 
     /// Returns if the builtin is included in the program builtins
-    fn included(&self) -> bool {
+    pub fn included(&self) -> bool {
         match *self {
             BuiltinRunner::Bitwise(ref bitwise) => bitwise.included,
             BuiltinRunner::EcOp(ref ec) => ec.included,
