@@ -4,6 +4,20 @@
 
 * dev: make `BuiltinRunner::included` public [#1989](https://github.com/lambdaclass/cairo-vm/pull/1989)
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
+* fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
+
+* feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
+
+* feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
+
+* chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
+
+* chore: Update fastecdsa python package [#1993](https://github.com/lambdaclass/cairo-vm/pull/1993)
+
+* fix: Update wasm-bindgen to version 0.2.100 and unpin its version requirement [#1988](https://github.com/lambdaclass/cairo-vm/pull/1988)
+
 #### [2.0.0] - 2025-02-26
 
 * fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
