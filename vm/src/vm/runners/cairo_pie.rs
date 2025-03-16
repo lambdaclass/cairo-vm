@@ -255,9 +255,9 @@ impl CairoPie {
             HashMap::from_iter(segment_sizes.iter().map(|si| (si.index, si.size)));
 
         let validate_addr = |addr: Relocatable| -> Result<(), CairoPieValidationError> {
-            if !segment_sizes
+            if segment_sizes
                 .get(&addr.segment_index)
-                .is_some_and(|size| addr.offset <= *size)
+                .is_none_or(|size| addr.offset > *size)
             {
                 return Err(CairoPieValidationError::InvalidAddress);
             }
@@ -437,7 +437,6 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
-    use num_integer::Integer;
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
@@ -467,7 +466,7 @@ pub(super) mod serde_impl {
 
     pub(crate) struct Felt252Wrapper<'a>(&'a Felt252);
 
-    impl<'a> Serialize for Felt252Wrapper<'a> {
+    impl Serialize for Felt252Wrapper<'_> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -723,7 +722,7 @@ pub(super) mod serde_impl {
         }
 
         pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
-            if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
+            if !num_integer::Integer::is_multiple_of(&bytes.len(), &CELL_BYTE_LEN) {
                 return None;
             }
 
