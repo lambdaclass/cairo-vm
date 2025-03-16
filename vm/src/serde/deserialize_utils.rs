@@ -88,7 +88,7 @@ fn register(input: &str) -> IResult<&str, Option<Register>> {
 }
 
 fn offset(input: &str) -> IResult<&str, i32> {
-    if input.eq("") {
+    if input.is_empty() {
         return Ok(("", 0));
     }
 

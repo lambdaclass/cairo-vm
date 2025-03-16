@@ -37,9 +37,9 @@ pub fn decode_instruction(encoded_instr: u128) -> Result<Instruction, VirtualMac
     const OFFX_MASK: u128 = 0xFFFF;
 
     // Grab offsets and convert them from little endian format.
-    let off0 = decode_offset(encoded_instr >> OFF0_OFF & OFFX_MASK);
-    let off1 = decode_offset(encoded_instr >> OFF1_OFF & OFFX_MASK);
-    let off2 = decode_offset(encoded_instr >> OFF2_OFF & OFFX_MASK);
+    let off0 = decode_offset((encoded_instr >> OFF0_OFF) & OFFX_MASK);
+    let off1 = decode_offset((encoded_instr >> OFF1_OFF) & OFFX_MASK);
+    let off2 = decode_offset((encoded_instr >> OFF2_OFF) & OFFX_MASK);
 
     // Grab flags
     let flags = encoded_instr >> FLAGS_OFFSET;
