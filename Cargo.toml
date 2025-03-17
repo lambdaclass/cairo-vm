@@ -58,7 +58,7 @@ generic-array = { version = "0.14.7", default-features = false }
 keccak = { version = "0.1.2", default-features = false }
 hashbrown = { version = "0.15.2", features = ["serde"] }
 anyhow = { version = "1.0.94", default-features = false }
-thiserror-no-std = { version = "2.0.2", default-features = false }
+thiserror = { version = "2", default-features = false }
 
 bitvec = { version = "1", default-features = false, features = ["alloc"] }
 

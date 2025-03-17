@@ -17,7 +17,7 @@ std = [
     "starknet-types-core/std",
     "starknet-crypto/std",
     "dep:num-prime",
-    "thiserror-no-std/std",
+    "thiserror/std",
     "dep:zip",
 ]
 cairo-1-hints = [
@@ -58,7 +58,7 @@ generic-array = { workspace = true }
 keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
-thiserror-no-std = { workspace = true }
+thiserror = { workspace = true }
 starknet-types-core = { version = "0.1.2", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
