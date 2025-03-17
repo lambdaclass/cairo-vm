@@ -4,7 +4,7 @@
 use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::Felt252;
 
