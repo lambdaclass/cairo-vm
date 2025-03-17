@@ -1155,6 +1155,14 @@ fn cairo_run_mod_builtin_failure() {
 
 #[test]
 #[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_no_solution() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_no_solution.json");
+    run_program_with_error(program_data, "Could not fill the values table");
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
 fn cairo_run_mod_builtin_large_batch_size() {
     let program_data = include_bytes!(
         "../../../cairo_programs/mod_builtin_feature/mod_builtin_large_batch_size.json"
