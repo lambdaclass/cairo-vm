@@ -158,6 +158,11 @@ impl AddressSet {
 
 pub struct Memory {
     pub(crate) data: Vec<Vec<MemoryCell>>,
+    /// Temporary segments are used when it's necessary to write data, but we
+    /// don't know yet where it will be located. These segments will eventually
+    /// be relocated to the main memory according to the `relocation_rules`. For
+    /// example, dictionaries are required to be contiguous, so each is stored in a
+    /// temporary segment and eventually relocated to a single segment.
     pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
