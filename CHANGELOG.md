@@ -2,6 +2,10 @@
 
 #### Upcoming Changes
 
+* feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+
+#### [2.0.1] - 2025-03-17
+
 * feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
 
 * fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
@@ -12,7 +16,9 @@
 
 * chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
 
-* feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+* chore: Update fastecdsa python package [#1993](https://github.com/lambdaclass/cairo-vm/pull/1993)
+
+* fix: Update wasm-bindgen to version 0.2.100 and unpin its version requirement [#1988](https://github.com/lambdaclass/cairo-vm/pull/1988)
 
 #### [2.0.0] - 2025-02-26
 
