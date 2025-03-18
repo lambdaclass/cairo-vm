@@ -5,7 +5,7 @@ use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEn
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{Attribute, Identifier, InstructionLocation},
-    types::{builtin_name::BuiltinName, layout::CairoLayout},
+    types::{builtin_name::BuiltinName, layout::CairoLayout, relocatable::Relocatable},
     utils::is_subsequence,
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
@@ -15,14 +15,19 @@ use crate::{
             RangeCheckBuiltinRunner, SignatureBuiltinRunner, RC_N_PARTS_96, RC_N_PARTS_STANDARD,
         },
         vm_core::{VirtualMachine, VirtualMachineBuilder},
+        vm_memory::memory_segments::MemorySegmentManager,
     },
     Felt252,
 };
 
 #[allow(dead_code)]
 pub struct CairoRunner2 {
-    executable: Executable,
     virtual_machine: VirtualMachine,
+    program_base: Relocatable,
+    execution_base: Relocatable,
+
+    // Configuration
+    executable: Executable,
     entrypoint_kind: EntryPointKind,
     layout: CairoLayout,
     trace_enabled: bool,
@@ -59,15 +64,26 @@ impl CairoRunner2 {
         check_builtin_order(&builtins)?;
 
         let builtins_set: HashSet<BuiltinName> = builtins.clone().into_iter().collect();
-        let builtin_runners = initialize_builtin_runners(&layout, builtins_set, true, true)?;
+        let mut builtin_runners = initialize_builtin_runners(&layout, builtins_set, true, true)?;
+
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        let program_base = memory_segment_manager.add();
+        let execution_base = memory_segment_manager.add();
+
+        for builtin_runner in &mut builtin_runners {
+            builtin_runner.initialize_segments(&mut memory_segment_manager);
+        }
 
         let virtual_machine = VirtualMachineBuilder::default()
             .builtin_runners(builtin_runners)
+            .segments(memory_segment_manager)
             .build();
 
         Ok(Self {
             executable,
             virtual_machine,
+            program_base,
+            execution_base,
             entrypoint_kind,
             layout,
             trace_enabled,
