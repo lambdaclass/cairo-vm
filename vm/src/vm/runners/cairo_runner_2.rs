@@ -74,6 +74,12 @@ impl CairoRunner2 {
             builtin_runner.initialize_segments(&mut memory_segment_manager);
         }
 
+        for builtin_runner in &mut builtin_runners {
+            if let BuiltinRunner::Mod(runner) = builtin_runner {
+                runner.initialize_zero_segment(&mut memory_segment_manager);
+            }
+        }
+
         let virtual_machine = VirtualMachineBuilder::default()
             .builtin_runners(builtin_runners)
             .segments(memory_segment_manager)
