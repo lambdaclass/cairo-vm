@@ -6,13 +6,17 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{Attribute, Identifier, InstructionLocation},
     types::layout::CairoLayout,
-    vm::errors::vm_errors::VirtualMachineError,
+    vm::{
+        errors::vm_errors::VirtualMachineError,
+        vm_core::{VirtualMachine, VirtualMachineBuilder},
+    },
     Felt252,
 };
 
 #[allow(dead_code)]
 pub struct CairoRunner2 {
     executable: Executable,
+    virtual_machine: VirtualMachine,
     entrypoint_kind: EntryPointKind,
     layout: CairoLayout,
     trace_enabled: bool,
@@ -35,8 +39,11 @@ impl CairoRunner2 {
         identifiers: HashMap<String, Identifier>,
         reference_manager: Vec<HintReference>,
     ) -> Self {
+        let virtual_machine = VirtualMachineBuilder::default().build();
+
         Self {
             executable,
+            virtual_machine,
             entrypoint_kind,
             layout,
             trace_enabled,
