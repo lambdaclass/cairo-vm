@@ -449,8 +449,8 @@ mod tests {
     ))]
     #[case(
         "gas_builtin_loading.cairo",
-        "[0x49696e1f15859d196a1431137af687863ac98de0754c7e53618e0dc22e8f735]",
-        "",
+        "0x32748aafc2b24d8c71bdda3ee5e60ae8721f6268303bbd6c1c3dc368a7da465",
+        "[0x3c, 0x3d]",
         None,
         None
     )]
