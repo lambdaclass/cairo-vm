@@ -8,6 +8,7 @@ use crate::{
     types::{builtin_name::BuiltinName, layout::CairoLayout, relocatable::Relocatable},
     utils::is_subsequence,
     vm::{
+        context::run_context::RunContext,
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
         runners::builtin_runner::{
             BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
@@ -80,9 +81,26 @@ impl CairoRunner2 {
             }
         }
 
+        // TODO: implement main entrypoint initialization
+        let pc = (|| todo!())();
+        let ap = (|| todo!())();
+        let fp = (|| todo!())();
+
+        let run_context = RunContext::new(pc, ap, fp);
+
+        for builtin_runner in &mut builtin_runners {
+            builtin_runner.add_validation_rule(&mut memory_segment_manager.memory)
+        }
+
+        memory_segment_manager
+            .memory
+            .validate_existing_memory()
+            .map_err(RunnerError::MemoryValidationError)?;
+
         let virtual_machine = VirtualMachineBuilder::default()
             .builtin_runners(builtin_runners)
             .segments(memory_segment_manager)
+            .run_context(run_context)
             .build();
 
         Ok(Self {
