@@ -5,7 +5,11 @@ use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEn
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::{Attribute, Identifier, InstructionLocation},
-    types::{builtin_name::BuiltinName, layout::CairoLayout, relocatable::Relocatable},
+    types::{
+        builtin_name::BuiltinName,
+        layout::CairoLayout,
+        relocatable::{MaybeRelocatable, Relocatable},
+    },
     utils::is_subsequence,
     vm::{
         context::run_context::RunContext,
@@ -86,18 +90,58 @@ impl CairoRunner2 {
             .segments(memory_segment_manager)
             .build();
 
-        // TODO: implement main entrypoint initialization
-        let pc = (|| todo!())();
-        let ap = (|| todo!())();
-        let fp = (|| todo!())();
+        let builtin_runner_map: HashMap<BuiltinName, &BuiltinRunner> = virtual_machine
+            .builtin_runners
+            .iter()
+            .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
+            .collect();
+        let mut stack = Vec::new();
+        for builtin in builtins {
+            if let Some(builtin_runner) = builtin_runner_map.get(&builtin) {
+                stack.append(&mut builtin_runner.initial_stack());
+            } else {
+                stack.push(Felt252::ZERO.into())
+            }
+        }
 
-        let run_context = RunContext::new(pc, ap, fp);
+        let return_fp = virtual_machine.add_memory_segment();
+        let return_pc = virtual_machine.add_memory_segment();
+        stack.push(MaybeRelocatable::RelocatableValue(return_fp));
+        stack.push(MaybeRelocatable::RelocatableValue(return_pc));
+
+        let initial_pc = (program_base + entrypoint.offset)?;
+        let initial_fp = (execution_base + stack.len())?;
+        let initial_ap = initial_fp;
+
+        let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
+        virtual_machine.set_run_context(run_context);
+
+        let bytecode = executable
+            .program
+            .bytecode
+            .iter()
+            .map(Felt252::from)
+            .map(MaybeRelocatable::from)
+            .collect::<Vec<_>>();
+
+        virtual_machine
+            .load_data(program_base, &bytecode)
+            .map_err(RunnerError::MemoryInitializationError)?;
+
+        for i in 0..bytecode.len() {
+            virtual_machine
+                .segments
+                .memory
+                .mark_as_accessed((program_base + i)?);
+        }
+
+        virtual_machine
+            .load_data(execution_base, &stack)
+            .map_err(RunnerError::MemoryInitializationError)?;
 
         for builtin_runner in &mut virtual_machine.builtin_runners {
             builtin_runner.add_validation_rule(&mut virtual_machine.segments.memory)
         }
-
-        virtual_machine.set_run_context(run_context);
 
         virtual_machine
             .segments
