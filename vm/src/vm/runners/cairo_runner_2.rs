@@ -13,7 +13,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct CairoRunner2 {
     executable: Executable,
-    entrypoint: EntryPointKind,
+    entrypoint_kind: EntryPointKind,
     layout: CairoLayout,
     trace_enabled: bool,
     constants: HashMap<String, Felt252>,
@@ -26,7 +26,7 @@ pub struct CairoRunner2 {
 impl CairoRunner2 {
     pub fn new(
         executable: Executable,
-        entrypoint: EntryPointKind,
+        entrypoint_kind: EntryPointKind,
         layout: CairoLayout,
         trace_enabled: bool,
         constants: HashMap<String, Felt252>,
@@ -37,7 +37,7 @@ impl CairoRunner2 {
     ) -> Self {
         Self {
             executable,
-            entrypoint,
+            entrypoint_kind,
             layout,
             trace_enabled,
             constants,
