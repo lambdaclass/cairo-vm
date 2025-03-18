@@ -30,6 +30,7 @@ pub struct CairoRunner2 {
     virtual_machine: VirtualMachine,
     program_base: Relocatable,
     execution_base: Relocatable,
+    final_pc: Relocatable,
 
     // Configuration
     executable: Executable,
@@ -149,11 +150,17 @@ impl CairoRunner2 {
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)?;
 
+        let final_pc = match entrypoint_kind {
+            EntryPointKind::Bootloader => return_pc,
+            EntryPointKind::Standalone => (initial_pc + 4)?,
+        };
+
         Ok(Self {
             executable,
             virtual_machine,
             program_base,
             execution_base,
+            final_pc,
             entrypoint_kind,
             layout,
             trace_enabled,
