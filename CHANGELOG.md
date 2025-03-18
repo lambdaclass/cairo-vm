@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: use Vec::with_capacity avoid realloc memory [#1863](https://github.com/lambdaclass/cairo-vm/pull/1863)
 
 * fix: `mod_builtin_fill_memory` could be stuck in an infinite loop [#1975](https://github.com/lambdaclass/cairo-vm/issues/1975)
 
