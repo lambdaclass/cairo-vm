@@ -17,7 +17,7 @@ std = [
     "starknet-types-core/std",
     "starknet-crypto/std",
     "dep:num-prime",
-    "thiserror-no-std/std",
+    "thiserror/std",
     "dep:zip",
 ]
 cairo-1-hints = [
@@ -58,7 +58,7 @@ generic-array = { workspace = true }
 keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
-thiserror-no-std = { workspace = true }
+thiserror = { workspace = true }
 starknet-types-core = { version = "0.1.2", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
@@ -81,17 +81,13 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 # Used to derive clap traits for CLIs
 clap = { version = "4.3.10", features = ["derive"], optional = true}
 
-# Pin wasm-bindgen version to fix ensure-no_std CI workflow
-# It's not used directly
-wasm-bindgen = { version = "= 0.2.92" }
-
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+wasm-bindgen-test = "0.3.50"
 # The js feature needs to be enabled
 getrandom = { version = "0.2", features = ["js"]}
 
