@@ -81,6 +81,11 @@ impl CairoRunner2 {
             }
         }
 
+        let mut virtual_machine = VirtualMachineBuilder::default()
+            .builtin_runners(builtin_runners)
+            .segments(memory_segment_manager)
+            .build();
+
         // TODO: implement main entrypoint initialization
         let pc = (|| todo!())();
         let ap = (|| todo!())();
@@ -88,20 +93,17 @@ impl CairoRunner2 {
 
         let run_context = RunContext::new(pc, ap, fp);
 
-        for builtin_runner in &mut builtin_runners {
-            builtin_runner.add_validation_rule(&mut memory_segment_manager.memory)
+        for builtin_runner in &mut virtual_machine.builtin_runners {
+            builtin_runner.add_validation_rule(&mut virtual_machine.segments.memory)
         }
 
-        memory_segment_manager
+        virtual_machine.set_run_context(run_context);
+
+        virtual_machine
+            .segments
             .memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)?;
-
-        let virtual_machine = VirtualMachineBuilder::default()
-            .builtin_runners(builtin_runners)
-            .segments(memory_segment_manager)
-            .run_context(run_context)
-            .build();
 
         Ok(Self {
             executable,
