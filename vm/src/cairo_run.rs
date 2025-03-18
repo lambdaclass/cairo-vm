@@ -16,7 +16,7 @@ use crate::{
 use crate::Felt252;
 use bincode::enc::write::Writer;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
@@ -95,6 +95,8 @@ pub fn cairo_run_program_with_initial_scope(
         .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
     if cairo_run_config.proof_mode {
+        // we run an additional step to ensure that `end` is the last step execute,
+        // rather than the one after it.
         cairo_runner.run_for_steps(1, hint_processor)?;
     }
     cairo_runner.end_run(

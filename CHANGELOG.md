@@ -4,6 +4,12 @@
 
 * fix: Fix `WriteReturnFp` error due to a bad loading of initial gas [#2015](https://github.com/lambdaclass/cairo-vm/pull/2015)
 
+* fix: `mod_builtin_fill_memory` could be stuck in an infinite loop [#1975](https://github.com/lambdaclass/cairo-vm/issues/1975)
+
+* feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+
+#### [2.0.1] - 2025-03-17
+
 * feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
 
 * fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
