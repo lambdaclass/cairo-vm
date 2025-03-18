@@ -52,3 +52,37 @@ impl CairoRunner2 {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
+    use cairo_lang_executable::{compile::compile_executable, executable::Executable};
+    use std::path::Path;
+
+    #[test]
+    fn execute_program() {
+        let program_path = Path::new("../cairo_programs/new_executable/empty.cairo");
+
+        let reporter = DiagnosticsReporter::stderr();
+        let executable = Executable::new(
+            compile_executable(program_path, None, reporter).expect("failed to compile program"),
+        );
+
+        let layout = CairoLayout::all_cairo_instance();
+
+        let mut runner = CairoRunner2::new(
+            executable,
+            EntryPointKind::Standalone,
+            layout,
+            false,
+            HashMap::default(),
+            Vec::default(),
+            None,
+            HashMap::default(),
+            Vec::default(),
+        );
+
+        runner.run().expect("failed to run program");
+    }
+}
