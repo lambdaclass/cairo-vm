@@ -447,6 +447,13 @@ mod tests {
         None,
         None
     ))]
+    #[case(
+        "gas_builtin_loading.cairo",
+        "[0x49696e1f15859d196a1431137af687863ac98de0754c7e53618e0dc22e8f735]",
+        "",
+        None,
+        None
+    )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
