@@ -197,9 +197,9 @@ fn initialize_builtin_runner_segments(
     }
 }
 
-// TODO: Remove this once cyclic dependency is fixed.
-// It should not be necessary, but cargo treats executable BuiltinName as a separate type
-// which is why I had to create this adapter function.
+/// TODO: Remove this once cyclic dependency is fixed.
+/// It should not be necessary, but cargo treats executable BuiltinName as a separate type
+/// which is why I had to create this adapter function.
 pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<BuiltinName> {
     let mut builtins = Vec::with_capacity(entrypoint.builtins.len());
 
