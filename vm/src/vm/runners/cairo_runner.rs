@@ -273,6 +273,8 @@ impl CairoRunner {
     /// When running in proof_mode, all builtins in the layout will be created, and only those in the program will be included
     /// When not running in proof_mode, only program builtins will be created and included
     /// Unless `allow_missing_builtins` is set to true, an error will be returned if a builtin is included in the program but not on the layout
+    ///
+    /// NOTE: 'included' does not refer to the builtin being included in the builtin runners but rather to the flag `included` in a builtin.
     pub fn initialize_builtins(&mut self, allow_missing_builtins: bool) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
