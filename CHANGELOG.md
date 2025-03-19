@@ -2,9 +2,13 @@
 
 #### Upcoming Changes
 
+* refactor: Replaces security anyhow errors with enum variants [#1946](https://github.com/lambdaclass/cairo-vm/pull/1946)
+
 * fix: `mod_builtin_fill_memory` could be stuck in an infinite loop [#1975](https://github.com/lambdaclass/cairo-vm/issues/1975)
 
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+
+* feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
 
 #### [2.0.1] - 2025-03-17
 

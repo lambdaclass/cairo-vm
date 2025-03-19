@@ -11,7 +11,7 @@ use crate::{
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
-        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
     },
     Felt252,
 };
@@ -1483,6 +1483,67 @@ impl CairoRunner {
             })
             .collect()
     }
+
+    /// Collects relevant information for the prover from the runner, including the
+    /// relocatable form of the trace, memory, public memory, and built-ins.
+    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, RunnerError> {
+        let relocatable_trace = self
+            .vm
+            .trace
+            .as_ref()
+            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?
+            .clone();
+
+        let relocatable_memory = self
+            .vm
+            .segments
+            .memory
+            .data
+            .iter()
+            .map(|segment| segment.iter().filter_map(|cell| cell.get_value()).collect())
+            .collect();
+
+        let public_memory_offsets = self
+            .vm
+            .segments
+            .public_memory_offsets
+            .iter()
+            .map(|(segment, offset_page)| {
+                let offsets: Vec<usize> = offset_page.iter().map(|(offset, _)| *offset).collect();
+                (*segment, offsets)
+            })
+            .collect();
+
+        let builtins_segments = self
+            .get_builtin_segment_info_for_pie()?
+            .into_iter()
+            .map(|(name, info)| (info.index as usize, name))
+            .collect();
+
+        Ok(ProverInputInfo {
+            relocatable_trace,
+            relocatable_memory,
+            public_memory_offsets,
+            builtins_segments,
+        })
+    }
+}
+
+//* ----------------------
+//*   ProverInputInfo
+//* ----------------------
+/// This struct contains all relevant data for the prover.
+/// All addresses are relocatable.
+#[derive(Deserialize, Serialize)]
+pub struct ProverInputInfo {
+    /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
+    pub relocatable_trace: Vec<TraceEntry>,
+    /// A vector of segments, where each segment is a vector of maybe relocatable values.
+    pub relocatable_memory: Vec<Vec<MaybeRelocatable>>,
+    /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
+    pub public_memory_offsets: HashMap<usize, Vec<usize>>,
+    /// A map from the builtin segment index into its name.
+    pub builtins_segments: HashMap<usize, BuiltinName>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -5438,5 +5499,92 @@ mod tests {
             Err(RunnerError::DisableTracePaddingWithoutProofMode) => { /* test passed */ }
             _ => panic!("Expected DisableTracePaddingWithoutProofMode error"),
         }
+    }
+
+    #[test]
+    fn get_prover_input_info() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+        let expected_trace = vec![
+            TraceEntry {
+                pc: (0, 15).into(),
+                ap: 3,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 16).into(),
+                ap: 4,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 18).into(),
+                ap: 5,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 20).into(),
+                ap: 6,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 22).into(),
+                ap: 7,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 24).into(),
+                ap: 8,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 10).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 11).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 12).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 14).into(),
+                ap: 11,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 26).into(),
+                ap: 11,
+                fp: 3,
+            },
+        ];
+        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
+        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: 2,
+            offset: 0,
+        });
+        assert_eq!(prover_info.relocatable_trace, expected_trace);
+        assert_eq!(prover_info.relocatable_memory[0][3], expected_in_memory_0_3);
+        assert_eq!(prover_info.relocatable_memory[1][0], expected_in_memory_1_0);
+        assert!(prover_info.public_memory_offsets.is_empty());
+        assert_eq!(
+            prover_info.builtins_segments,
+            HashMap::from([(2, BuiltinName::ecdsa)])
+        );
     }
 }
