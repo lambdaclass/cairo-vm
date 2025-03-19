@@ -53,6 +53,10 @@ MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
 MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
 COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
 
+STWO_EXCLUSIVE_DIR=cairo_programs/stwo_exclusive_programs
+STWO_EXCLUSIVE_FILES:=$(wildcard $(STWO_EXCLUSIVE_DIR)/*.cairo)
+COMPILED_STWO_EXCLUSIVE_TESTS:=$(patsubst $(STWO_EXCLUSIVE_DIR)/%.cairo, $(STWO_EXCLUSIVE_DIR)/%.json, $(STWO_EXCLUSIVE_FILES))
+
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
@@ -67,6 +71,9 @@ $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 
 $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json: $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(MOD_BUILTIN_TEST_PROOF_DIR):$(MOD_BUILTIN_TEST_PROOF_DIR)" $< --output $@ --proof_mode
+
+$(STWO_EXCLUSIVE_DIR)/%.json: $(STWO_EXCLUSIVE_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@ --proof_mode
 
 # ======================
 # Run without proof mode
@@ -208,7 +215,7 @@ cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph --locked
-	cargo install --version 1.14.0 hyperfine
+	cargo install --version 1.19.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.12.1 wasm-pack --locked
@@ -248,7 +255,7 @@ check:
 	cargo check
 
 cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS) $(COMPILED_SECP_CAIRO0_HINTS) $(COMPILED_KZG_DA_CAIRO0_HINTS)
-cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS)
+cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS) $(COMPILED_STWO_EXCLUSIVE_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
@@ -352,6 +359,7 @@ clean:
 	rm -f $(TEST_DIR)/*.pie
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
+	rm -f $(STWO_EXCLUSIVE_DIR)/*.json
 	rm -f $(SECP_CAIRO0_HINTS_DIR)/*.json
 	rm -f $(KZG_DA_CAIRO0_HINTS_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json

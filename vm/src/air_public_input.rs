@@ -48,7 +48,7 @@ mod mem_value_serde {
 
     struct Felt252OptionVisitor;
 
-    impl<'de> de::Visitor<'de> for Felt252OptionVisitor {
+    impl de::Visitor<'_> for Felt252OptionVisitor {
         type Value = Option<Felt252>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

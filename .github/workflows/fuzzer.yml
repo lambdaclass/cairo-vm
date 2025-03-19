@@ -9,7 +9,7 @@ jobs:
     steps:
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
 
@@ -22,7 +22,7 @@ jobs:
         path: fuzzer/hfuzz_workspace/fuzz_json/input
         key: ${{ runner.os }}-inputs
 
-    
+
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -38,12 +38,12 @@ jobs:
       run: cargo install honggfuzz
 
     # If has cached inputs starts with them or else starts from 0
-    - name: Initializing fuzzer with previous inputs 
+    - name: Initializing fuzzer with previous inputs
       run: |
         cd fuzzer
         HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --timeout 60" cargo hfuzz run fuzz_json
 
-    # run the fuzzer with minimize to reduce inputs 
+    # run the fuzzer with minimize to reduce inputs
     - name: Initializing fuzzer with minimize
       run: |
         cd fuzzer
@@ -55,20 +55,20 @@ jobs:
         file_pattern: '*/hfuzz_workspace/fuzzer/fuzz_json/HONGGFUZZ*  */hfuzz_workspace/fuzzer/fuzz_json/*.fuzz'
 
     # Checkout current and last commit for the diff
-    - name: Checkout commits  
-      uses: actions/checkout@v3
+    - name: Checkout commits
+      uses: actions/checkout@v4
       with:
         fetch-depth: 2
 
     # Check if any new crashes were added
     - name: Check diff
       id: check_file_changed
-      run:  echo "report=$(git diff --name-only HEAD^ HEAD -- fuzzer/hfuzz_workspace/fuzz_json/*.fuzz)" >> $GITHUB_OUTPUT 
+      run:  echo "report=$(git diff --name-only HEAD^ HEAD -- fuzzer/hfuzz_workspace/fuzz_json/*.fuzz)" >> $GITHUB_OUTPUT
 
     # If a new crash was found, create an issue
-    - name: Create issue 
+    - name: Create issue
       uses: JasonEtco/create-an-issue@v2
-      if: ${{ steps.check_file_changed.outputs.report != '' }} 
+      if: ${{ steps.check_file_changed.outputs.report != '' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CRASH_REPORT: ${{ steps.check_file_changed.outputs.report }}

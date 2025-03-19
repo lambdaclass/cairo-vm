@@ -35,13 +35,13 @@ lazy_static! {
 pub struct SignatureBuiltinRunner {
     pub(crate) included: bool,
     ratio: Option<u32>,
-    base: usize,
+    pub base: usize,
     pub(crate) stop_ptr: Option<usize>,
-    signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
+    pub signatures: Rc<RefCell<HashMap<Relocatable, Signature>>>,
 }
 
 impl SignatureBuiltinRunner {
-    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         SignatureBuiltinRunner {
             base: 0,
             included,

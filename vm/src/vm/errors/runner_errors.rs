@@ -136,6 +136,8 @@ pub enum RunnerError {
     MissingDynamicLayoutParams,
     #[error("dynamic layout {0} ratio should be 0 when disabled")]
     BadDynamicLayoutBuiltinRatio(BuiltinName),
+    #[error("Initialization failure: Cannot run with trace padding disabled without proof mode")]
+    DisableTracePaddingWithoutProofMode,
 }
 
 #[cfg(test)]

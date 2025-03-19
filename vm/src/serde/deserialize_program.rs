@@ -309,7 +309,7 @@ impl ValueAddress {
 
 struct Felt252Visitor;
 
-impl<'de> de::Visitor<'de> for Felt252Visitor {
+impl de::Visitor<'_> for Felt252Visitor {
     type Value = Felt252;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -377,7 +377,7 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
 
 struct ValueAddressVisitor;
 
-impl<'de> de::Visitor<'de> for ValueAddressVisitor {
+impl de::Visitor<'_> for ValueAddressVisitor {
     type Value = ValueAddress;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

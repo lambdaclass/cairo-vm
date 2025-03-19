@@ -4,6 +4,53 @@
 
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
+* feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
+
+* fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
+
+* feat: adding option to simulate builtins [#1956](https://github.com/lambdaclass/cairo-vm/pull/1956)
+
+* feat: adding `all_cairo_stwo` layout to vm [#1957](https://github.com/lambdaclass/cairo-vm/pull/1957)
+
+* chore: update Rust required version to 1.85.0 [#1990](https://github.com/lambdaclass/cairo-vm/pull/1990)
+
+* chore: Update fastecdsa python package [#1993](https://github.com/lambdaclass/cairo-vm/pull/1993)
+
+* fix: Update wasm-bindgen to version 0.2.100 and unpin its version requirement [#1988](https://github.com/lambdaclass/cairo-vm/pull/1988)
+
+#### [2.0.0] - 2025-02-26
+
+* fix: Check overflow in cairo pie address calculation [#1945](https://github.com/lambdaclass/cairo-vm/pull/1945)
+
+#### [2.0.0-rc5] - 2025-02-24
+
+* fix: Fix Cairo Pie limiting the number of segments to 2^16 [#1960](https://github.com/lambdaclass/cairo-vm/pull/1960)
+  * Implement `merge_extra_segments`
+
+* feat: implement an opcode that computes QM31 arithmetics (add, sub, mul, div) in the VM [#1938](https://github.com/lambdaclass/cairo-vm/pull/1938)
+
+* feat: add functions that compute packed reduced qm31 arithmetics to `math_utils` [#1944](https://github.com/lambdaclass/cairo-vm/pull/1944)
+
+* feat: implement `Blake2sLastBlock` opcode in VM [#1932](https://github.com/lambdaclass/cairo-vm/pull/1932)
+
+* feat: implement `Blake2s` opcode in VM [#1927](https://github.com/lambdaclass/cairo-vm/pull/1927)
+
+* feat: remove `NonZeroReservedBits` from `VirtualMachineError` [#1948](https://github.com/lambdaclass/cairo-vm/pull/1948)
+
+* feat: set `encoded_instruction` to be u128 for opcode_extensions to come [#1940](https://github.com/lambdaclass/cairo-vm/pull/1940)
+
+* feat: add `get_u32_range` to `impl VirtualMachine` add `get_u32` and `get_u32_range` to `impl Memory` [#1936](https://github.com/lambdaclass/cairo-vm/pull/1936)
+
+* feat: add the field `opcode_extension` to the structure of `Instruction` [#1933](https://github.com/lambdaclass/cairo-vm/pull/1933)
+
+* fix(BREAKING): Fix no trace padding flow in proof mode [#1909](https://github.com/lambdaclass/cairo-vm/pull/1909)
+
+* refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
+
+* feat: define HashMap of hint groups along with hint strings [#1943](https://github.com/lambdaclass/cairo-vm/pull/1943)
+
+#### [2.0.0-rc4] - 2025-01-23
+
 * feat: implement `kzg` data availability hints [#1887](https://github.com/lambdaclass/cairo-vm/pull/1887)
 
 #### [2.0.0-rc3] - 2024-12-26
@@ -179,7 +226,7 @@
   * `CairoRunner` has a new public field `vm: VirtualMachine`
   * `CairoRunner` no longer derives `Debug`
   * `CairoRunner` methods `new_v2` & `new` take an extra boolean argument `trace_enabled`.
-  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now retun only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
+  * Functions `cairo_run` , `cairo_run_program` & `cairo_run_fuzzed_program` from `vm` crate and `cairo_run_program` from `cairo1-run` crate now return only `CairoRunner` instead of `(CairoRunner, VirtualMachine)`
   * `CairoRunner` methods no longer take a reference to `VirtualMachine`. Methods that took an immutable reference to self and a mutable reference to the VM now take a mutable reference to self. Affected methods:
     * `initialize`
     * `initialize_builtins`
