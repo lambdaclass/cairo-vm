@@ -1,3 +1,5 @@
+use core::any::Any;
+
 use cairo_lang_casm::hints::Hint;
 use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
 
@@ -145,8 +147,17 @@ impl CairoRunner2 {
 
     pub fn run(
         &mut self,
-        _hint_processor: &mut dyn HintProcessor,
+        hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
+        #[allow(unused_mut)]
+        let mut hint_data = get_hint_data(
+            &self.hint_collection,
+            &self.reference_manager,
+            hint_processor,
+        )?;
+
+        let _ = hint_data;
+
         Ok(())
     }
 }
@@ -323,6 +334,26 @@ fn extend_stack_with_builtins(
             stack.push(Felt252::ZERO.into())
         }
     }
+}
+
+fn get_hint_data(
+    collection: &HintsCollection,
+    references: &[HintReference],
+    processor: &dyn HintProcessor,
+) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
+    collection
+        .iter_hints()
+        .map(|hint| {
+            processor
+                .compile_hint(
+                    &hint.code,
+                    &hint.flow_tracking_data.ap_tracking,
+                    &hint.flow_tracking_data.reference_ids,
+                    references,
+                )
+                .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
+        })
+        .collect()
 }
 
 /// TODO: Remove this once cyclic dependency is fixed.
