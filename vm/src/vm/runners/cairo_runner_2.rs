@@ -27,7 +27,7 @@ use crate::{
 
 #[allow(dead_code)]
 pub struct CairoRunner2 {
-    virtual_machine: VirtualMachine,
+    vm: VirtualMachine,
     program_base: Relocatable,
     execution_base: Relocatable,
     final_pc: Relocatable,
@@ -56,66 +56,37 @@ impl CairoRunner2 {
         identifiers: HashMap<String, Identifier>,
         reference_manager: Vec<HintReference>,
     ) -> Result<Self, RunnerError> {
-        let entrypoint = executable
-            .entrypoints
-            .iter()
-            .find(|entrypoint| {
-                // TODO: Use `Eq` once implemented on `EntryPointKind`.
-                std::mem::discriminant(&entrypoint.kind) == std::mem::discriminant(&entrypoint_kind)
-            })
-            .expect("executable had no entrypoint of required kind");
+        let entrypoint = find_entrypoint_of_kind(&executable.entrypoints, entrypoint_kind.clone());
 
         let builtins = get_entrypoint_builtins(entrypoint);
 
         check_builtin_order(&builtins)?;
+        let mut builtin_runners = initialize_builtin_runners(&layout, &builtins, true, true)?;
 
-        let builtins_set: HashSet<BuiltinName> = builtins.clone().into_iter().collect();
-        let mut builtin_runners = initialize_builtin_runners(&layout, builtins_set, true, true)?;
+        let mut segments = MemorySegmentManager::new();
+        let program_base = segments.add();
+        let execution_base = segments.add();
 
-        let mut memory_segment_manager = MemorySegmentManager::new();
-        let program_base = memory_segment_manager.add();
-        let execution_base = memory_segment_manager.add();
+        initialize_builtin_runner_segments(&mut builtin_runners, &mut segments);
 
-        for builtin_runner in &mut builtin_runners {
-            builtin_runner.initialize_segments(&mut memory_segment_manager);
-        }
-
-        for builtin_runner in &mut builtin_runners {
-            if let BuiltinRunner::Mod(runner) = builtin_runner {
-                runner.initialize_zero_segment(&mut memory_segment_manager);
-            }
-        }
-
-        let mut virtual_machine = VirtualMachineBuilder::default()
+        let mut vm = VirtualMachineBuilder::default()
             .builtin_runners(builtin_runners)
-            .segments(memory_segment_manager)
+            .segments(segments)
             .build();
 
-        let builtin_runner_map: HashMap<BuiltinName, &BuiltinRunner> = virtual_machine
-            .builtin_runners
-            .iter()
-            .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
-            .collect();
         let mut stack = Vec::new();
-        for builtin in builtins {
-            if let Some(builtin_runner) = builtin_runner_map.get(&builtin) {
-                stack.append(&mut builtin_runner.initial_stack());
-            } else {
-                stack.push(Felt252::ZERO.into())
-            }
-        }
+        extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
 
-        let return_fp = virtual_machine.add_memory_segment();
-        let return_pc = virtual_machine.add_memory_segment();
+        let return_fp = vm.add_memory_segment();
+        let return_pc = vm.add_memory_segment();
         stack.push(MaybeRelocatable::RelocatableValue(return_fp));
         stack.push(MaybeRelocatable::RelocatableValue(return_pc));
 
         let initial_pc = (program_base + entrypoint.offset)?;
         let initial_fp = (execution_base + stack.len())?;
         let initial_ap = initial_fp;
-
         let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
-        virtual_machine.set_run_context(run_context);
+        vm.set_run_context(run_context);
 
         let bytecode = executable
             .program
@@ -124,28 +95,19 @@ impl CairoRunner2 {
             .map(Felt252::from)
             .map(MaybeRelocatable::from)
             .collect::<Vec<_>>();
-
-        virtual_machine
-            .load_data(program_base, &bytecode)
+        vm.load_data(program_base, &bytecode)
             .map_err(RunnerError::MemoryInitializationError)?;
-
         for i in 0..bytecode.len() {
-            virtual_machine
-                .segments
-                .memory
-                .mark_as_accessed((program_base + i)?);
+            vm.segments.memory.mark_as_accessed((program_base + i)?);
         }
 
-        virtual_machine
-            .load_data(execution_base, &stack)
+        vm.load_data(execution_base, &stack)
             .map_err(RunnerError::MemoryInitializationError)?;
 
-        for builtin_runner in &mut virtual_machine.builtin_runners {
-            builtin_runner.add_validation_rule(&mut virtual_machine.segments.memory)
+        for builtin_runner in &mut vm.builtin_runners {
+            builtin_runner.add_validation_rule(&mut vm.segments.memory)
         }
-
-        virtual_machine
-            .segments
+        vm.segments
             .memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)?;
@@ -157,7 +119,7 @@ impl CairoRunner2 {
 
         Ok(Self {
             executable,
-            virtual_machine,
+            vm,
             program_base,
             execution_base,
             final_pc,
@@ -174,6 +136,52 @@ impl CairoRunner2 {
 
     pub fn run(&mut self) -> Result<(), VirtualMachineError> {
         Ok(())
+    }
+}
+
+fn find_entrypoint_of_kind(
+    entrypoints: &[ExecutableEntryPoint],
+    entrypoint_kind: EntryPointKind,
+) -> &ExecutableEntryPoint {
+    entrypoints
+        .iter()
+        .find(|entrypoint| {
+            // TODO: Use `Eq` once implemented on `EntryPointKind`.
+            std::mem::discriminant(&entrypoint.kind) == std::mem::discriminant(&entrypoint_kind)
+        })
+        .expect("executable had no entrypoint of required kind")
+}
+
+fn extend_stack_with_builtins(
+    stack: &mut Vec<MaybeRelocatable>,
+    builtins: &[BuiltinName],
+    runners: &[BuiltinRunner],
+) {
+    let runner_map: HashMap<BuiltinName, &BuiltinRunner> = runners
+        .iter()
+        .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
+        .collect();
+    for builtin in builtins {
+        if let Some(builtin_runner) = runner_map.get(&builtin) {
+            stack.append(&mut builtin_runner.initial_stack());
+        } else {
+            stack.push(Felt252::ZERO.into())
+        }
+    }
+}
+
+fn initialize_builtin_runner_segments(
+    builtin_runners: &mut [BuiltinRunner],
+    segments: &mut MemorySegmentManager,
+) {
+    for builtin_runner in builtin_runners.iter_mut() {
+        builtin_runner.initialize_segments(segments);
+    }
+
+    for builtin_runner in builtin_runners.iter_mut() {
+        if let BuiltinRunner::Mod(mod_builtin_runner) = builtin_runner {
+            mod_builtin_runner.initialize_zero_segment(segments);
+        }
     }
 }
 
@@ -215,11 +223,13 @@ pub fn check_builtin_order(builtins: &[BuiltinName]) -> Result<(), RunnerError> 
 
 pub fn initialize_builtin_runners(
     layout: &CairoLayout,
-    mut builtins: HashSet<BuiltinName>,
+    builtins: &[BuiltinName],
     allow_missing_builtins: bool,
     create_all_builtins: bool,
 ) -> Result<Vec<BuiltinRunner>, RunnerError> {
     let mut builtin_runners = Vec::new();
+
+    let mut builtins: HashSet<BuiltinName> = builtins.into_iter().map(ToOwned::to_owned).collect();
 
     if layout.builtins.output {
         let included = builtins.remove(&BuiltinName::output);
