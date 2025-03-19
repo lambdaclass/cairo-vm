@@ -1,13 +1,17 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
+use cairo_lang_casm::hints::Hint;
 use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    serde::deserialize_program::{Attribute, Identifier, InstructionLocation},
+    serde::deserialize_program::{
+        ApTracking, Attribute, FlowTrackingData, HintParams, Identifier, InstructionLocation,
+    },
     types::{
         builtin_name::BuiltinName,
         layout::CairoLayout,
+        program::HintsCollection,
         relocatable::{MaybeRelocatable, Relocatable},
     },
     utils::is_subsequence,
@@ -42,6 +46,9 @@ pub struct CairoRunner2 {
     instruction_locations: Option<HashMap<usize, InstructionLocation>>,
     identifiers: HashMap<String, Identifier>,
     reference_manager: Vec<HintReference>,
+
+    // Preprocessed Data
+    hint_collection: HintsCollection,
 }
 
 impl CairoRunner2 {
@@ -117,6 +124,8 @@ impl CairoRunner2 {
             EntryPointKind::Standalone => (initial_pc + 4)?,
         };
 
+        let hint_collection = build_hint_collection(&executable.program.hints, bytecode.len());
+
         Ok(Self {
             executable,
             vm,
@@ -131,6 +140,7 @@ impl CairoRunner2 {
             instruction_locations,
             identifiers,
             reference_manager,
+            hint_collection,
         })
     }
 
@@ -201,6 +211,34 @@ pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<Builtin
     }
 
     builtins
+}
+
+/// TODO: Determine if we receive the hint collection or build it ourselves
+/// This function was adapted from cairo-lang-runner
+pub fn build_hint_collection(
+    hints: &[(usize, Vec<Hint>)],
+    program_length: usize,
+) -> HintsCollection {
+    let mut hint_map: BTreeMap<usize, Vec<HintParams>> = BTreeMap::new();
+
+    for (offset, offset_hints) in hints {
+        hint_map.insert(
+            *offset,
+            offset_hints
+                .iter()
+                .map(|hint| HintParams {
+                    code: hint.representing_string(),
+                    accessible_scopes: vec![],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking::new(),
+                        reference_ids: HashMap::new(),
+                    },
+                })
+                .collect(),
+        );
+    }
+
+    HintsCollection::new(&hint_map, program_length).expect("failed to build hint collection")
 }
 
 pub fn check_builtin_order(builtins: &[BuiltinName]) -> Result<(), RunnerError> {
