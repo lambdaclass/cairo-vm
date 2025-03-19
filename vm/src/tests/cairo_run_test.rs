@@ -1,4 +1,13 @@
-use crate::{tests::*, types::layout_name::LayoutName};
+use std::rc::Rc;
+
+use crate::{
+    hint_processor::builtin_hint_processor::{
+        builtin_hint_processor_definition::HintFunc,
+        hint_utils::{get_integer_from_var_name, get_ptr_from_var_name},
+    },
+    tests::*,
+    types::layout_name::LayoutName,
+};
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
@@ -1342,4 +1351,124 @@ fn cairo_run_data_availability_reduced_mul() {
     let program_data =
         include_bytes!("../../../cairo_programs/cairo-0-kzg-da-hints/reduced_mul.json");
     run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn test_segment_arena() {
+    use crate::any_box;
+    use crate::hint_processor::builtin_hint_processor::hint_utils::insert_value_into_ap;
+    use crate::hint_processor::hint_processor_definition::HintReference;
+    use crate::serde::deserialize_program::ApTracking;
+    use crate::types::exec_scope::ExecutionScopes;
+    use crate::vm::errors::hint_errors::HintError;
+    use crate::vm::vm_core::VirtualMachine;
+    use crate::Felt252;
+    use indoc::indoc;
+    use std::collections::HashMap;
+
+    let program_data = include_bytes!("../../../cairo_programs/test_segment_arena.json");
+
+    let mut extra_hints = HashMap::new();
+    let run_resources = Default::default();
+
+    const SEGMENTS_ADD: &str = "memory[ap] = to_felt_or_relocatable(segments.add())";
+
+    fn segments_add(
+        vm: &mut VirtualMachine,
+        _exec_scopes: &mut ExecutionScopes,
+        _ids_data: &HashMap<String, HintReference>,
+        _ap_tracking: &ApTracking,
+        _constants: &HashMap<String, Felt252>,
+    ) -> Result<(), HintError> {
+        let segment = vm.add_memory_segment();
+        insert_value_into_ap(vm, segment)
+    }
+
+    const SETUP_SEGMENT_INDEX: &str = indoc! {r#"if 'segment_index_to_arena_index' not in globals():
+            # A map from the relocatable value segment index to the index in the arena.
+            segment_index_to_arena_index = {}
+
+        # The segment is placed at the end of the arena.
+        index = ids.n_segments
+
+        # Create a segment or a temporary segment.
+        start = segments.add_temp_segment() if index > 0 else segments.add()
+
+        # Update 'SegmentInfo::start' and 'segment_index_to_arena_index'.
+        ids.prev_segment_arena.infos[index].start = start
+        segment_index_to_arena_index[start.segment_index] = index"#};
+
+    fn get_variable_from_root_exec_scope<T>(
+        exec_scopes: &ExecutionScopes,
+        name: &str,
+    ) -> Result<T, HintError>
+    where
+        T: Clone + 'static,
+    {
+        exec_scopes.data[0]
+            .get(name)
+            .and_then(|var| var.downcast_ref::<T>().cloned())
+            .ok_or(HintError::VariableNotInScopeError(
+                name.to_string().into_boxed_str(),
+            ))
+    }
+    fn setup_segment_index(
+        vm: &mut VirtualMachine,
+        exec_scopes: &mut ExecutionScopes,
+        ids_data: &HashMap<String, HintReference>,
+        ap_tracking: &ApTracking,
+        _constants: &HashMap<String, Felt252>,
+    ) -> Result<(), HintError> {
+        let mut segment_index_to_arena_index: HashMap<isize, Felt252> =
+            get_variable_from_root_exec_scope(exec_scopes, "segment_index_to_arena_index")
+                .unwrap_or_default();
+        let n_segments = get_integer_from_var_name("n_segments", vm, ids_data, ap_tracking)?;
+        let start = if n_segments > Felt252::ZERO {
+            vm.add_temporary_segment()
+        } else {
+            vm.add_memory_segment()
+        };
+
+        let prev_segment_arena_ptr =
+            get_ptr_from_var_name("prev_segment_arena", vm, ids_data, ap_tracking)?;
+
+        let infos_ptr = vm.get_relocatable(prev_segment_arena_ptr).unwrap();
+
+        let infos_start_ptr: crate::types::relocatable::Relocatable =
+            vm.load_data(infos_ptr, &[start.into()]).unwrap();
+
+        vm.insert_value(infos_start_ptr, start)?;
+
+        exec_scopes.insert_value("index", n_segments);
+        exec_scopes.insert_value("start", start);
+
+        segment_index_to_arena_index.insert(start.segment_index, n_segments);
+
+        exec_scopes.data[0].insert(
+            "segment_index_to_arena_index".to_string(),
+            any_box!(segment_index_to_arena_index),
+        );
+
+        Ok(())
+    }
+
+    extra_hints.insert(
+        SEGMENTS_ADD.to_owned(),
+        Rc::new(HintFunc(Box::new(segments_add))),
+    );
+    extra_hints.insert(
+        SETUP_SEGMENT_INDEX.to_owned(),
+        Rc::new(HintFunc(Box::new(setup_segment_index))),
+    );
+
+    let mut hint_executor = BuiltinHintProcessor::new(extra_hints, run_resources);
+    let cairo_run_config = CairoRunConfig {
+        layout: LayoutName::all_cairo,
+        relocate_mem: true,
+        trace_enabled: true,
+        proof_mode: false,
+        ..Default::default()
+    };
+    cairo_run(program_data, &cairo_run_config, &mut hint_executor).expect("Execution failed");
 }
