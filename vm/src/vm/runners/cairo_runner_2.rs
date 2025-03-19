@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
 
 use crate::{
-    hint_processor::hint_processor_definition::HintReference,
+    hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     serde::deserialize_program::{Attribute, Identifier, InstructionLocation},
     types::{
         builtin_name::BuiltinName,
@@ -134,7 +134,10 @@ impl CairoRunner2 {
         })
     }
 
-    pub fn run(&mut self) -> Result<(), VirtualMachineError> {
+    pub fn run(
+        &mut self,
+        _hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
         Ok(())
     }
 }
@@ -330,6 +333,8 @@ pub fn initialize_builtin_runners(
 
 #[cfg(test)]
 mod tests {
+    use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
+
     use super::*;
     use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
     use cairo_lang_executable::{compile::compile_executable, executable::Executable};
@@ -359,6 +364,9 @@ mod tests {
         )
         .expect("failed to create runner");
 
-        runner.run().expect("failed to run program");
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner
+            .run(&mut hint_processor)
+            .expect("failed to run program");
     }
 }
