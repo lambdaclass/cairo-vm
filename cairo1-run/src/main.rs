@@ -447,6 +447,13 @@ mod tests {
         None,
         None
     ))]
+    #[case(
+        "gas_builtin_loading.cairo",
+        "939340725154356279478212603733403581890242362232206720294887278547043341575",
+        "[939340725154356279478212603733403581890242362232206720294887278547043341575]",
+        None,
+        None
+    )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
