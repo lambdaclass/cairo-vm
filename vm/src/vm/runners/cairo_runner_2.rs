@@ -164,82 +164,6 @@ fn find_entrypoint_of_kind(
         .expect("executable had no entrypoint of required kind")
 }
 
-fn extend_stack_with_builtins(
-    stack: &mut Vec<MaybeRelocatable>,
-    builtins: &[BuiltinName],
-    runners: &[BuiltinRunner],
-) {
-    let runner_map: HashMap<BuiltinName, &BuiltinRunner> = runners
-        .iter()
-        .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
-        .collect();
-    for builtin in builtins {
-        if let Some(builtin_runner) = runner_map.get(&builtin) {
-            stack.append(&mut builtin_runner.initial_stack());
-        } else {
-            stack.push(Felt252::ZERO.into())
-        }
-    }
-}
-
-fn initialize_builtin_runner_segments(
-    builtin_runners: &mut [BuiltinRunner],
-    segments: &mut MemorySegmentManager,
-) {
-    for builtin_runner in builtin_runners.iter_mut() {
-        builtin_runner.initialize_segments(segments);
-    }
-
-    for builtin_runner in builtin_runners.iter_mut() {
-        if let BuiltinRunner::Mod(mod_builtin_runner) = builtin_runner {
-            mod_builtin_runner.initialize_zero_segment(segments);
-        }
-    }
-}
-
-/// TODO: Remove this once cyclic dependency is fixed.
-/// It should not be necessary, but cargo treats executable BuiltinName as a separate type
-/// which is why I had to create this adapter function.
-pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<BuiltinName> {
-    let mut builtins = Vec::with_capacity(entrypoint.builtins.len());
-
-    for builtin in &entrypoint.builtins {
-        let adapted_builtin = BuiltinName::from_str(builtin.to_str())
-            .expect("should never fail under the same implementation");
-        builtins.push(adapted_builtin);
-    }
-
-    builtins
-}
-
-/// TODO: Determine if we receive the hint collection or build it ourselves
-/// This function was adapted from cairo-lang-runner
-pub fn build_hint_collection(
-    hints: &[(usize, Vec<Hint>)],
-    program_length: usize,
-) -> HintsCollection {
-    let mut hint_map: BTreeMap<usize, Vec<HintParams>> = BTreeMap::new();
-
-    for (offset, offset_hints) in hints {
-        hint_map.insert(
-            *offset,
-            offset_hints
-                .iter()
-                .map(|hint| HintParams {
-                    code: hint.representing_string(),
-                    accessible_scopes: vec![],
-                    flow_tracking_data: FlowTrackingData {
-                        ap_tracking: ApTracking::new(),
-                        reference_ids: HashMap::new(),
-                    },
-                })
-                .collect(),
-        );
-    }
-
-    HintsCollection::new(&hint_map, program_length).expect("failed to build hint collection")
-}
-
 pub fn check_builtin_order(builtins: &[BuiltinName]) -> Result<(), RunnerError> {
     let ordered_builtins = vec![
         BuiltinName::output,
@@ -366,6 +290,82 @@ pub fn initialize_builtin_runners(
     }
 
     Ok(builtin_runners)
+}
+
+fn initialize_builtin_runner_segments(
+    builtin_runners: &mut [BuiltinRunner],
+    segments: &mut MemorySegmentManager,
+) {
+    for builtin_runner in builtin_runners.iter_mut() {
+        builtin_runner.initialize_segments(segments);
+    }
+
+    for builtin_runner in builtin_runners.iter_mut() {
+        if let BuiltinRunner::Mod(mod_builtin_runner) = builtin_runner {
+            mod_builtin_runner.initialize_zero_segment(segments);
+        }
+    }
+}
+
+fn extend_stack_with_builtins(
+    stack: &mut Vec<MaybeRelocatable>,
+    builtins: &[BuiltinName],
+    runners: &[BuiltinRunner],
+) {
+    let runner_map: HashMap<BuiltinName, &BuiltinRunner> = runners
+        .iter()
+        .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
+        .collect();
+    for builtin in builtins {
+        if let Some(builtin_runner) = runner_map.get(&builtin) {
+            stack.append(&mut builtin_runner.initial_stack());
+        } else {
+            stack.push(Felt252::ZERO.into())
+        }
+    }
+}
+
+/// TODO: Remove this once cyclic dependency is fixed.
+/// It should not be necessary, but cargo treats executable BuiltinName as a separate type
+/// which is why I had to create this adapter function.
+pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<BuiltinName> {
+    let mut builtins = Vec::with_capacity(entrypoint.builtins.len());
+
+    for builtin in &entrypoint.builtins {
+        let adapted_builtin = BuiltinName::from_str(builtin.to_str())
+            .expect("should never fail under the same implementation");
+        builtins.push(adapted_builtin);
+    }
+
+    builtins
+}
+
+/// TODO: Determine if we receive the hint collection or build it ourselves
+/// This function was adapted from cairo-lang-runner
+pub fn build_hint_collection(
+    hints: &[(usize, Vec<Hint>)],
+    program_length: usize,
+) -> HintsCollection {
+    let mut hint_map: BTreeMap<usize, Vec<HintParams>> = BTreeMap::new();
+
+    for (offset, offset_hints) in hints {
+        hint_map.insert(
+            *offset,
+            offset_hints
+                .iter()
+                .map(|hint| HintParams {
+                    code: hint.representing_string(),
+                    accessible_scopes: vec![],
+                    flow_tracking_data: FlowTrackingData {
+                        ap_tracking: ApTracking::new(),
+                        reference_ids: HashMap::new(),
+                    },
+                })
+                .collect(),
+        );
+    }
+
+    HintsCollection::new(&hint_map, program_length).expect("failed to build hint collection")
 }
 
 #[cfg(test)]
