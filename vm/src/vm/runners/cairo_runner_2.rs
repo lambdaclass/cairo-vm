@@ -8,7 +8,10 @@ use crate::{
     serde::deserialize_program::{
         ApTracking, Attribute, FlowTrackingData, HintParams, Identifier, InstructionLocation,
     },
-    stdlib::collections::{BTreeMap, HashMap, HashSet},
+    stdlib::{
+        collections::{BTreeMap, HashMap, HashSet},
+        prelude::Vec,
+    },
     types::{
         builtin_name::BuiltinName,
         exec_scope::ExecutionScopes,
