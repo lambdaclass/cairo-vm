@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
-
 use cairo_lang_casm::hints::Hint;
 use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
 
@@ -8,6 +6,7 @@ use crate::{
     serde::deserialize_program::{
         ApTracking, Attribute, FlowTrackingData, HintParams, Identifier, InstructionLocation,
     },
+    stdlib::collections::{BTreeMap, HashMap, HashSet},
     types::{
         builtin_name::BuiltinName,
         layout::CairoLayout,
