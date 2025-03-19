@@ -89,15 +89,18 @@ impl CairoRunner2 {
             .build();
 
         let mut stack = Vec::new();
+
+        let initial_fp_offset: usize = 2;
+        stack.push(MaybeRelocatable::RelocatableValue(
+            (execution_base + initial_fp_offset)?,
+        ));
+        stack.push(MaybeRelocatable::Int(Felt252::ZERO));
+
         extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
 
-        let return_fp = vm.add_memory_segment();
-        let return_pc = vm.add_memory_segment();
-        stack.push(MaybeRelocatable::RelocatableValue(return_fp));
-        stack.push(MaybeRelocatable::RelocatableValue(return_pc));
 
         let initial_pc = (program_base + entrypoint.offset)?;
-        let initial_fp = (execution_base + stack.len())?;
+        let initial_fp = (execution_base + initial_fp_offset)?;
         let initial_ap = initial_fp;
         let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
         vm.set_run_context(run_context);
@@ -127,7 +130,7 @@ impl CairoRunner2 {
             .map_err(RunnerError::MemoryValidationError)?;
 
         let final_pc = match entrypoint_kind {
-            EntryPointKind::Bootloader => return_pc,
+            EntryPointKind::Bootloader => unimplemented!(),
             EntryPointKind::Standalone => (initial_pc + 4)?,
         };
 
@@ -420,8 +423,8 @@ pub fn build_hint_collection(
             *offset,
             offset_hints
                 .iter()
-                .map(|hint| HintParams {
-                    code: hint.representing_string(),
+                .map(|_| HintParams {
+                    code: format!("{offset}"),
                     accessible_scopes: vec![],
                     flow_tracking_data: FlowTrackingData {
                         ap_tracking: ApTracking::new(),
