@@ -9,13 +9,13 @@ use crate::vm::runners::cairo_pie::StrippedProgram;
 
 type HashFunction = fn(&Felt252, &Felt252) -> Felt252;
 
-#[derive(thiserror_no_std::Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum HashChainError {
     #[error("Data array must contain at least one element.")]
     EmptyData,
 }
 
-#[derive(thiserror_no_std::Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum ProgramHashError {
     #[error(transparent)]
     HashChain(#[from] HashChainError),
