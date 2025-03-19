@@ -11,6 +11,7 @@ use crate::{
     stdlib::collections::{BTreeMap, HashMap, HashSet},
     types::{
         builtin_name::BuiltinName,
+        exec_scope::ExecutionScopes,
         layout::CairoLayout,
         program::HintsCollection,
         relocatable::{MaybeRelocatable, Relocatable},
@@ -36,6 +37,7 @@ pub struct CairoRunner2 {
     program_base: Relocatable,
     execution_base: Relocatable,
     final_pc: Relocatable,
+    execution_scopes: ExecutionScopes,
 
     // Configuration
     executable: Executable,
@@ -133,6 +135,7 @@ impl CairoRunner2 {
             program_base,
             execution_base,
             final_pc,
+            execution_scopes: ExecutionScopes::new(),
             entrypoint_kind,
             layout,
             trace_enabled,
@@ -149,14 +152,43 @@ impl CairoRunner2 {
         &mut self,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        #[allow(unused_mut)]
+        #[cfg_attr(not(feature = "extensive_hints"), allow(unused_mut))]
         let mut hint_data = get_hint_data(
             &self.hint_collection,
             &self.reference_manager,
             hint_processor,
         )?;
 
-        let _ = hint_data;
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_ranges = self.hint_collection.hints_ranges.clone();
+
+        while self.vm.get_pc() != self.final_pc && !hint_processor.consumed() {
+            #[cfg(feature = "extensive_hints")]
+            let hint_data = &mut hint_data;
+            #[cfg(not(feature = "extensive_hints"))]
+            let hint_data = self
+                .hint_collection
+                .get_hint_range_for_pc(self.vm.get_pc().offset)
+                .and_then(|range| {
+                    range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                })
+                .unwrap_or(&[]);
+
+            self.vm.step(
+                hint_processor,
+                &mut self.execution_scopes,
+                hint_data,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_ranges,
+                &self.constants,
+            )?;
+
+            hint_processor.consume_step();
+        }
+
+        if self.vm.get_pc() != self.final_pc {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
 
         Ok(())
     }
