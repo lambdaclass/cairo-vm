@@ -55,6 +55,7 @@ pub struct CairoRunner2 {
 }
 
 impl CairoRunner2 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         executable: Executable,
         entrypoint_kind: EntryPointKind,
@@ -236,7 +237,7 @@ pub fn initialize_builtin_runners(
 ) -> Result<Vec<BuiltinRunner>, RunnerError> {
     let mut builtin_runners = Vec::new();
 
-    let mut builtins: HashSet<BuiltinName> = builtins.into_iter().map(ToOwned::to_owned).collect();
+    let mut builtins: HashSet<BuiltinName> = builtins.iter().map(ToOwned::to_owned).collect();
 
     if layout.builtins.output {
         let included = builtins.remove(&BuiltinName::output);
@@ -360,7 +361,7 @@ fn extend_stack_with_builtins(
         .map(|builtin_runner| (builtin_runner.name(), builtin_runner))
         .collect();
     for builtin in builtins {
-        if let Some(builtin_runner) = runner_map.get(&builtin) {
+        if let Some(builtin_runner) = runner_map.get(builtin) {
             stack.append(&mut builtin_runner.initial_stack());
         } else {
             stack.push(Felt252::ZERO.into())
