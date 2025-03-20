@@ -450,31 +450,3 @@ pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<Builtin
 
     builtins
 }
-
-/// TODO: Determine if we receive the hint collection or build it ourselves
-/// This function was adapted from cairo-lang-runner
-pub fn build_hint_collection(
-    hints: &[(usize, Vec<Hint>)],
-    program_length: usize,
-) -> HintsCollection {
-    let mut hint_map: BTreeMap<usize, Vec<HintParams>> = BTreeMap::new();
-
-    for (offset, offset_hints) in hints {
-        hint_map.insert(
-            *offset,
-            offset_hints
-                .iter()
-                .map(|_| HintParams {
-                    code: format!("{offset}"),
-                    accessible_scopes: vec![],
-                    flow_tracking_data: FlowTrackingData {
-                        ap_tracking: ApTracking::new(),
-                        reference_ids: HashMap::new(),
-                    },
-                })
-                .collect(),
-        );
-    }
-
-    HintsCollection::new(&hint_map, program_length).expect("failed to build hint collection")
-}
