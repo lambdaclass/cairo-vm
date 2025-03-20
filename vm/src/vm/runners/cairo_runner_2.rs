@@ -12,6 +12,7 @@ use crate::{
     },
     stdlib::{
         collections::{BTreeMap, HashMap, HashSet},
+        mem,
         prelude::*,
     },
     types::{
@@ -244,7 +245,7 @@ fn find_entrypoint_of_kind(
         .iter()
         .find(|entrypoint| {
             // TODO: Use `Eq` once implemented on `EntryPointKind`.
-            std::mem::discriminant(&entrypoint.kind) == std::mem::discriminant(&entrypoint_kind)
+            mem::discriminant(&entrypoint.kind) == mem::discriminant(&entrypoint_kind)
         })
         .expect("executable had no entrypoint of required kind")
 }
