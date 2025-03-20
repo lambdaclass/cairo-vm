@@ -2,14 +2,11 @@
 
 use core::any::Any;
 
-use cairo_lang_casm::hints::Hint;
 use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    serde::deserialize_program::{
-        ApTracking, Attribute, FlowTrackingData, HintParams, Identifier, InstructionLocation,
-    },
+    serde::deserialize_program::{Attribute, HintParams, Identifier, InstructionLocation},
     stdlib::{
         collections::{BTreeMap, HashMap, HashSet},
         mem,
@@ -72,6 +69,7 @@ impl CairoRunner2 {
         instruction_locations: Option<HashMap<usize, InstructionLocation>>,
         identifiers: HashMap<String, Identifier>,
         reference_manager: Vec<HintReference>,
+        hints: BTreeMap<usize, Vec<HintParams>>,
     ) -> Result<Self, RunnerError> {
         let entrypoint = find_entrypoint_of_kind(&executable.entrypoints, entrypoint_kind.clone());
 
@@ -176,7 +174,8 @@ impl CairoRunner2 {
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)?;
 
-        let hint_collection = build_hint_collection(&executable.program.hints, bytecode.len());
+        let hint_collection =
+            HintsCollection::new(&hints, bytecode.len()).expect("failed to build hint collection");
 
         Ok(Self {
             executable,
