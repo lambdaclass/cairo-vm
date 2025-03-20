@@ -1035,7 +1035,6 @@ dependencies = [
  "bincode",
  "bitvec",
  "cairo-lang-casm",
- "cairo-lang-compiler",
  "cairo-lang-executable",
  "cairo-lang-starknet",
  "cairo-lang-starknet-classes",
