@@ -36,8 +36,8 @@ mod run_deprecated_contract_class_simplified;
 mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
-mod struct_test;
 mod segment_arena_test;
+mod struct_test;
 
 mod cairo_pie_test;
 #[cfg(feature = "test_utils")]

@@ -57,7 +57,7 @@ impl DictManagerExecScope {
 
     /// Allocates a new segment for a new dictionary and return the start of the segment.
     pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, HintError> {
-        let dict_segment = if self.use_temporary_segments && self.trackers.len() > 0 {
+        let dict_segment = if self.use_temporary_segments && !self.trackers.is_empty() {
             vm.add_temporary_segment()
         } else {
             vm.add_memory_segment()
@@ -125,8 +125,8 @@ impl DictManagerExecScope {
     pub fn relocate_all_dictionaries(&mut self, vm: &mut VirtualMachine) -> Result<(), HintError> {
         // We expect the first segment to be a normal one, which doesn't require relocation. So
         // there is nothing to do unless there are at least two segments.
-        if self.use_temporary_segments && self.trackers.len() > 1 {
-            let first_segment = self.trackers.get(0).unwrap();
+        if self.use_temporary_segments && !self.trackers.is_empty() {
+            let first_segment = self.trackers.first().expect("Trackers cannot be empty");
             if first_segment.start.segment_index < 0 {
                 return Err(HintError::CustomHint(
                     "First dict segment should not be temporary"
