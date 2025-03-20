@@ -101,11 +101,14 @@ impl CairoRunner2 {
                 // The stack is arranged as if we are at the start of a function call.
                 // Input arguments are set as input arguments to the the function.
                 //
-                //   --- ARGUMENTS ---   RETURN FP   RETURN PC
-                // ┌────┬────┬────┬────┬───────────┬───────────┬ ─ ─ ─ ─ ┐
-                // │    │    │    │    │           │           │ START FP
-                // └────┴────┴────┴────┴───────────┴───────────┴ ─ ─ ─ ─ ┘
+                // <-------- ARGUMENTS ----
+                //     ┌────┬────┬────┬────┬────────┬────────┬ ─ ─ ─ ─ ┐
+                // ... │    │    │    │    │ RET FP │ RET PC │
+                //     └────┴────┴────┴────┴────────┴────────┴ ─ ─ ─ ─ ┘
+                //                                             INIT FP
                 // Note: The size of the cells is not relevant
+                //
+                // The initial fp variable points to the cell after the return pc.
 
                 extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
 
@@ -122,11 +125,14 @@ impl CairoRunner2 {
                 // On standalone, we execute until a fixed address.
                 // Input arguments are set as local variables to the current frame.
                 //
-                //   ZERO   ------ ARGUMENTS ------
-                // ┌──────┬──────────┬────┬────┬────┐
-                // │      │ START FP │    │    │    │
-                // └──────┴──────────┴────┴────┴────┘
+                //         -------------- ARGUMENTS ------------------>
+                // ┌──────┬─────────┬────┬────┬────┬────┬────┬────┐
+                // │ ZERO │         │    │    │    │    │    │    │ ...
+                // └──────┴─────────┴────┴────┴────┴────┴────┴────┘
+                //          INIT FP
                 // Note: The size of the cells is not relevant
+                //
+                // The initial fp variable points to the cell after the zero element.
                 //
                 // The zero element is necessary because the compiler asumes that `fp`
                 // is not pointing to the start of a segment - it fails otherwise.
