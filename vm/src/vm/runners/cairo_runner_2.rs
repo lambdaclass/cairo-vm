@@ -90,17 +90,55 @@ impl CairoRunner2 {
 
         let mut stack = Vec::new();
 
-        let initial_fp_offset: usize = 2;
-        stack.push(MaybeRelocatable::RelocatableValue(
-            (execution_base + initial_fp_offset)?,
-        ));
-        stack.push(MaybeRelocatable::Int(Felt252::ZERO));
-
-        extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
-
-
         let initial_pc = (program_base + entrypoint.offset)?;
-        let initial_fp = (execution_base + initial_fp_offset)?;
+
+        let (initial_fp, final_pc) = match entrypoint_kind {
+            EntryPointKind::Bootloader => {
+                // On bootloader, we execute until control flow is returned.
+                // The stack is arranged as if we are at the start of a function call.
+                // Input arguments are set as input arguments to the the function.
+                //
+                //   --- ARGUMENTS ---   RETURN FP   RETURN PC
+                // ┌────┬────┬────┬────┬───────────┬───────────┬ ─ ─ ─ ─ ┐
+                // │    │    │    │    │           │           │ START FP
+                // └────┴────┴────┴────┴───────────┴───────────┴ ─ ─ ─ ─ ┘
+                // Note: The size of the cells is not relevant
+
+                extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
+
+                let return_fp = vm.add_memory_segment();
+                let return_pc = vm.add_memory_segment();
+                stack.push(MaybeRelocatable::RelocatableValue(return_fp));
+                stack.push(MaybeRelocatable::RelocatableValue(return_pc));
+
+                let initial_fp = (execution_base + stack.len())?;
+
+                (initial_fp, return_pc)
+            }
+            EntryPointKind::Standalone => {
+                // On standalone, we execute until a fixed address.
+                // Input arguments are set as local variables to the current frame.
+                //
+                //   ZERO   ------ ARGUMENTS ------
+                // ┌──────┬──────────┬────┬────┬────┐
+                // │      │ START FP │    │    │    │
+                // └──────┴──────────┴────┴────┴────┘
+                // Note: The size of the cells is not relevant
+                //
+                // The zero element is necessary because the compiler asumes that `fp`
+                // is not pointing to the start of a segment - it fails otherwise.
+
+                let stack_prefix = &[MaybeRelocatable::Int(Felt252::ZERO)];
+                stack.extend_from_slice(stack_prefix);
+                extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
+
+                let final_pc = (initial_pc + 4)?;
+                let initial_fp = (execution_base + stack_prefix.len())?;
+
+                (initial_fp, final_pc)
+            }
+        };
+
         let initial_ap = initial_fp;
         let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
         vm.set_run_context(run_context);
@@ -128,11 +166,6 @@ impl CairoRunner2 {
             .memory
             .validate_existing_memory()
             .map_err(RunnerError::MemoryValidationError)?;
-
-        let final_pc = match entrypoint_kind {
-            EntryPointKind::Bootloader => unimplemented!(),
-            EntryPointKind::Standalone => (initial_pc + 4)?,
-        };
 
         let hint_collection = build_hint_collection(&executable.program.hints, bytecode.len());
 
