@@ -22,6 +22,7 @@ std = [
 ]
 cairo-1-hints = [
     "dep:cairo-lang-starknet",
+    "dep:cairo-lang-casm",
     "dep:cairo-lang-starknet-classes",
     "dep:ark-ff",
     "dep:ark-std",
@@ -30,6 +31,10 @@ tracer = []
 mod_builtin = []
 cairo-0-secp-hints = []
 cairo-0-data-availability-hints = []
+cairo-runner-2 = [
+    "dep:cairo-lang-casm",
+    "dep:cairo-lang-executable",
+]
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
@@ -62,8 +67,8 @@ starknet-types-core = { version = "0.1.2", default-features = false, features = 
 rust_decimal = { version = "1.35.0", default-features = false }
 
 # cairo-lang dependencies
-cairo-lang-executable = { workspace = true }
-cairo-lang-casm = { workspace = true }
+cairo-lang-executable = { workspace = true, optional = true }
+cairo-lang-casm = { workspace = true, optional = true }
 
 # only for std
 num-prime = { version = "0.4.3", features = ["big-int"], optional = true }

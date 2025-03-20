@@ -1,3 +1,5 @@
+#![cfg(feature = "cairo-runner-2")]
+
 use core::any::Any;
 
 use cairo_lang_casm::hints::Hint;
