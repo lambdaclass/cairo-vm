@@ -126,7 +126,9 @@ impl DictManagerExecScope {
         // We expect the first segment to be a normal one, which doesn't require relocation. So
         // there is nothing to do unless there are at least two segments.
         if self.use_temporary_segments && !self.trackers.is_empty() {
-            let first_segment = self.trackers.first().expect("Trackers cannot be empty");
+            let first_segment = self.trackers.first().ok_or(HintError::CustomHint(
+                "Trackers must have a first element".into(),
+            ))?;
             if first_segment.start.segment_index < 0 {
                 return Err(HintError::CustomHint(
                     "First dict segment should not be temporary"
