@@ -1,3 +1,6 @@
+// This test contains parts imported from cairo-lang
+// https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/builtins/segment_arena/segment_arena_test.cairo
+
 from starkware.cairo.common.alloc import alloc
 
 // Represents the information about a single segment allocated by the arena.
@@ -161,10 +164,4 @@ func test_segment_arena() -> (felt*, SegmentInfo*) {
     }
     validate_segment_arena(segment_arena=&segment_arena[-1]);
     return (segment0, segment_arena_start[-1].infos);
-}
-
-func main{}() {
-    let (res, segments) = test_segment_arena();
-    // assert res[0] = 1;
-    ret;
 }
