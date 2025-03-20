@@ -1,6 +1,6 @@
 // This test mirrors the test on cairo-lang for segment_arena
 // https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/builtins/segment_arena/segment_arena_test.py
-use crate::stdlib::{borrow::Cow, rc::Rc};
+use crate::stdlib::{borrow::Cow, collections::HashMap, rc::Rc};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
@@ -25,7 +25,6 @@ use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 use crate::Felt252;
 use indoc::indoc;
-use std::collections::HashMap;
 
 fn get_variable_from_root_exec_scope<T>(
     exec_scopes: &ExecutionScopes,
