@@ -12,7 +12,7 @@ use crate::{
     },
     stdlib::{
         collections::{BTreeMap, HashMap, HashSet},
-        prelude::Vec,
+        prelude::*,
     },
     types::{
         builtin_name::BuiltinName,
