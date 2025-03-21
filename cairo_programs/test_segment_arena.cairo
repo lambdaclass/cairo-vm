@@ -165,3 +165,8 @@ func test_segment_arena() -> (felt*, SegmentInfo*) {
     validate_segment_arena(segment_arena=&segment_arena[-1]);
     return (segment0, segment_arena_start[-1].infos);
 }
+
+func main{}() {
+    let (_segment0, _infos) = test_segment_arena();
+    ret;
+}
