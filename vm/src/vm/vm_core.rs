@@ -1067,6 +1067,11 @@ impl VirtualMachine {
         self.run_context.set_pc(pc)
     }
 
+    #[doc(hidden)]
+    pub fn set_run_context(&mut self, run_context: RunContext) {
+        self.run_context = run_context;
+    }
+
     pub fn get_segment_used_size(&self, index: usize) -> Option<usize> {
         self.segments.get_segment_used_size(index)
     }
