@@ -28,8 +28,8 @@ use crate::{
             KeccakBuiltinRunner, ModBuiltinRunner, OutputBuiltinRunner, PoseidonBuiltinRunner,
             RangeCheckBuiltinRunner, SignatureBuiltinRunner, RC_N_PARTS_96, RC_N_PARTS_STANDARD,
         },
-        vm_core::{VirtualMachine, VirtualMachineBuilder},
-        vm_memory::memory_segments::MemorySegmentManager,
+        vm_core::VirtualMachine,
+        vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
     },
     Felt252,
 };
@@ -71,23 +71,40 @@ impl CairoRunner2 {
         reference_manager: Vec<HintReference>,
         hints: BTreeMap<usize, Vec<HintParams>>,
     ) -> Result<Self, RunnerError> {
+        // =============
+        // PREPROCESSING
+        // =============
+
         let entrypoint = find_entrypoint_of_kind(&executable.entrypoints, entrypoint_kind.clone());
+
+        let bytecode = executable
+            .program
+            .bytecode
+            .iter()
+            .map(Felt252::from)
+            .map(MaybeRelocatable::from)
+            .collect::<Vec<_>>();
+
+        let hint_collection =
+            HintsCollection::new(&hints, bytecode.len()).expect("failed to build hint collection");
 
         let builtins = get_entrypoint_builtins(entrypoint);
 
+        // ==============
+        // INITIALIZATION
+        // ==============
+
+        let mut vm = VirtualMachine::new(trace_enabled, false);
+
         check_builtin_order(&builtins)?;
-        let mut builtin_runners = initialize_builtin_runners(&layout, &builtins, true, true)?;
+        vm.builtin_runners = initialize_builtin_runners(&layout, &builtins, true, true)?;
 
-        let mut segments = MemorySegmentManager::new();
-        let program_base = segments.add();
-        let execution_base = segments.add();
+        let program_base = vm.add_memory_segment();
+        let execution_base = vm.add_memory_segment();
 
-        initialize_builtin_runner_segments(&mut builtin_runners, &mut segments);
+        initialize_builtin_runner_segments(&mut vm.builtin_runners, &mut vm.segments);
 
-        let mut vm = VirtualMachineBuilder::default()
-            .builtin_runners(builtin_runners)
-            .segments(segments)
-            .build();
+        load_program(&mut vm, program_base, &bytecode)?;
 
         let mut stack = Vec::new();
 
@@ -150,32 +167,9 @@ impl CairoRunner2 {
         let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
         vm.set_run_context(run_context);
 
-        let bytecode = executable
-            .program
-            .bytecode
-            .iter()
-            .map(Felt252::from)
-            .map(MaybeRelocatable::from)
-            .collect::<Vec<_>>();
-        vm.load_data(program_base, &bytecode)
-            .map_err(RunnerError::MemoryInitializationError)?;
-        for i in 0..bytecode.len() {
-            vm.segments.memory.mark_as_accessed((program_base + i)?);
-        }
+        load_stack(&mut vm, execution_base, stack)?;
 
-        vm.load_data(execution_base, &stack)
-            .map_err(RunnerError::MemoryInitializationError)?;
-
-        for builtin_runner in &mut vm.builtin_runners {
-            builtin_runner.add_validation_rule(&mut vm.segments.memory)
-        }
-        vm.segments
-            .memory
-            .validate_existing_memory()
-            .map_err(RunnerError::MemoryValidationError)?;
-
-        let hint_collection =
-            HintsCollection::new(&hints, bytecode.len()).expect("failed to build hint collection");
+        add_builtin_validation_rules(&mut vm.segments.memory, &mut vm.builtin_runners)?;
 
         Ok(Self {
             executable,
@@ -414,6 +408,42 @@ fn extend_stack_with_builtins(
             stack.push(Felt252::ZERO.into())
         }
     }
+}
+
+fn load_program(
+    vm: &mut VirtualMachine,
+    program_base: Relocatable,
+    bytecode: &Vec<MaybeRelocatable>,
+) -> Result<(), RunnerError> {
+    vm.load_data(program_base, bytecode)
+        .map_err(RunnerError::MemoryInitializationError)?;
+    for i in 0..bytecode.len() {
+        vm.segments.memory.mark_as_accessed((program_base + i)?);
+    }
+    Ok(())
+}
+
+fn load_stack(
+    vm: &mut VirtualMachine,
+    execution_base: Relocatable,
+    stack: Vec<MaybeRelocatable>,
+) -> Result<(), RunnerError> {
+    vm.load_data(execution_base, &stack)
+        .map_err(RunnerError::MemoryInitializationError)?;
+    Ok(())
+}
+
+fn add_builtin_validation_rules(
+    memory: &mut Memory,
+    runners: &mut [BuiltinRunner],
+) -> Result<(), RunnerError> {
+    for runner in runners {
+        runner.add_validation_rule(memory)
+    }
+    memory
+        .validate_existing_memory()
+        .map_err(RunnerError::MemoryValidationError)?;
+    Ok(())
 }
 
 fn get_hint_data(
