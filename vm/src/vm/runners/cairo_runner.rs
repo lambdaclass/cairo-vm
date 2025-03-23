@@ -1516,17 +1516,23 @@ impl CairoRunner {
             })
             .collect();
 
-        let builtins_segments = self
-            .get_builtin_segment_info_for_pie()?
-            .into_iter()
-            .map(|(name, info)| (info.index as usize, name))
-            .collect();
+            let mut builtins_segments = vec![];
+            for builtin in &self.vm.builtin_runners {
+                if matches!(builtin, BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)) {
+                    // Those segments are not treated as builtins by the prover.
+                    continue;
+                }
+                let (index, _) = builtin.get_memory_segment_addresses();
+                builtins_segments.push(
+                    (index, builtin.name())
+                );
+            }
 
         Ok(ProverInputInfo {
             relocatable_trace,
             relocatable_memory,
             public_memory_offsets,
-            builtins_segments,
+            builtins_segments: builtins_segments.into_iter().collect(),
         })
     }
 }
