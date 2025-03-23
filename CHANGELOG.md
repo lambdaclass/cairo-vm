@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
 
 * fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
