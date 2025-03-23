@@ -1516,17 +1516,27 @@ impl CairoRunner {
             })
             .collect();
 
-        let builtins_segments = self
-            .get_builtin_segment_info_for_pie()?
-            .into_iter()
-            .map(|(name, info)| (info.index as usize, name))
+        let builtins_segments: Vec<_> = self
+            .vm
+            .builtin_runners
+            .iter()
+            .filter(|builtin| {
+                !matches!(
+                    builtin,
+                    BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)
+                )
+            })
+            .map(|builtin| {
+                let (index, _) = builtin.get_memory_segment_addresses();
+                (index, builtin.name())
+            })
             .collect();
 
         Ok(ProverInputInfo {
             relocatable_trace,
             relocatable_memory,
             public_memory_offsets,
-            builtins_segments,
+            builtins_segments: builtins_segments.into_iter().collect(),
         })
     }
 }
@@ -5594,5 +5604,27 @@ mod tests {
             prover_info.builtins_segments,
             HashMap::from([(2, BuiltinName::ecdsa)])
         );
+    }
+
+    #[test]
+    fn test_output_not_builtin_segment() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+
+        assert!(!prover_info
+            .builtins_segments
+            .values()
+            .any(|v| *v == BuiltinName::output));
     }
 }
