@@ -244,13 +244,7 @@ impl Memory {
     {
         let relocatable: Relocatable = key.try_into().ok()?;
 
-        let data = if relocatable.segment_index.is_negative() {
-            &self.temp_data
-        } else {
-            &self.data
-        };
-        let (i, j) = from_relocatable_to_indexes(relocatable);
-        let value = data.get(i)?.get(j)?.get_value()?;
+        let value = self.get_cell(relocatable)?.get_value()?;
         Some(Cow::Owned(self.relocate_value(&value).ok()?.into_owned()))
     }
 
@@ -648,17 +642,19 @@ impl Memory {
         Ok(values)
     }
 
-    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
-        let (i, j) = from_relocatable_to_indexes(*addr);
+    fn get_cell(&self, addr: Relocatable) -> Option<&MemoryCell> {
+        let (i, j) = from_relocatable_to_indexes(addr);
         let data = if addr.segment_index < 0 {
             &self.temp_data
         } else {
             &self.data
         };
-        Ok(data
-            .get(i)
-            .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
-            .get(j)
+        data.get(i)?.get(j)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        Ok(self
+            .get_cell(*addr)
             .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
             .is_accessed())
     }
