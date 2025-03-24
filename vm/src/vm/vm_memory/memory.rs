@@ -648,6 +648,21 @@ impl Memory {
         Ok(values)
     }
 
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        let (i, j) = from_relocatable_to_indexes(*addr);
+        let data = if addr.segment_index < 0 {
+            &self.temp_data
+        } else {
+            &self.data
+        };
+        Ok(data
+            .get(i)
+            .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
+            .get(j)
+            .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
+            .is_accessed())
+    }
+
     pub fn mark_as_accessed(&mut self, addr: Relocatable) {
         let (i, j) = from_relocatable_to_indexes(addr);
         let data = if addr.segment_index < 0 {
