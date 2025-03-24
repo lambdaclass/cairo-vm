@@ -4,9 +4,9 @@ use crate::stdlib::{borrow::Cow, collections::HashMap, rc::Rc};
 use crate::{tests::*, types::layout_name::LayoutName};
 
 #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
-use crate::alloc::string::ToString;
-#[cfg(any(target_arch = "wasm32", not(feature = "std")))]
 use crate::alloc::borrow::ToOwned;
+#[cfg(any(target_arch = "wasm32", not(feature = "std")))]
+use crate::alloc::string::ToString;
 
 use crate::any_box;
 use crate::cairo_run::{cairo_run, CairoRunConfig};
