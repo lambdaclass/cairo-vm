@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement VirtualMachine::is_accessed [#2024](https://github.com/lambdaclass/cairo-vm/pull/2024)
+
 * fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
 * refactor: Clap attribute macros from #[clap(...)] to #[arg(...)] and #[command(...)] in v4.x [#2003] (https://github.com/lambdaclass/cairo-vm/pull/2003)

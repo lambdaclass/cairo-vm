@@ -200,6 +200,10 @@ impl MemorySegmentManager {
         }
     }
 
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.memory.is_accessed(addr)
+    }
+
     /// Counts the memory holes (aka unaccessed memory cells) in memory
     /// # Parameters
     /// - `builtin_segment_indexes`: Set representing the segments indexes of the builtins initialized in the VM, except for the output builtin.
