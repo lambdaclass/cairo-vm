@@ -2,7 +2,7 @@ name: Cairo 1 programs execution
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, starkware-development ]
   pull_request:
     branches: [ '**' ]
 
