@@ -161,7 +161,7 @@ jobs:
         key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
   lint:
-    needs: build-programs
+    needs: merge-caches
     name: Run Lints
     runs-on: ubuntu-24.04
     steps:
