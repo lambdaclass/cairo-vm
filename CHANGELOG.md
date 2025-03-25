@@ -1,6 +1,7 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* fix: use Vec::with_capacity avoid realloc memory [#1863](https://github.com/lambdaclass/cairo-vm/pull/1863)
 
 * fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
