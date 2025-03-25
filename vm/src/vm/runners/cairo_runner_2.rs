@@ -2,18 +2,16 @@
 
 use core::any::Any;
 
-use cairo_lang_executable::executable::{EntryPointKind, Executable, ExecutableEntryPoint};
-
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    serde::deserialize_program::{Attribute, HintParams, Identifier, InstructionLocation},
+    serde::deserialize_program::HintParams,
     stdlib::{
         collections::{BTreeMap, HashMap, HashSet},
-        mem,
         prelude::*,
     },
     types::{
         builtin_name::BuiltinName,
+        errors::program_errors::ProgramError,
         exec_scope::ExecutionScopes,
         layout::CairoLayout,
         program::HintsCollection,
@@ -34,6 +32,52 @@ use crate::{
     Felt252,
 };
 
+/// This type is originally defined in `cairo-lang-executable`.
+/// We redefine it here to avoid a cyclic dependencies.
+#[derive(Debug)]
+pub struct ExecutableEntryPoint {
+    pub builtins: Vec<BuiltinName>,
+    pub offset: usize,
+    pub kind: EntryPointKind,
+}
+
+/// This type is originally defined in `cairo-lang-executable`.
+/// We redefine it here to avoid a cyclic dependencies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryPointKind {
+    Bootloader,
+    Standalone,
+}
+
+pub struct Program2 {
+    pub bytecode: Vec<MaybeRelocatable>,
+    pub hints_collection: HintsCollection,
+    pub entrypoint: ExecutableEntryPoint,
+
+    pub reference_manager: Vec<HintReference>,
+    pub constants: HashMap<String, Felt252>,
+}
+
+impl Program2 {
+    pub fn new(
+        bytecode: Vec<MaybeRelocatable>,
+        hints: BTreeMap<usize, Vec<HintParams>>,
+        entrypoint: ExecutableEntryPoint,
+        reference_manager: Vec<HintReference>,
+        constants: HashMap<String, Felt252>,
+    ) -> Result<Program2, ProgramError> {
+        let hints_collection = HintsCollection::new(&hints, bytecode.len())?;
+
+        Ok(Self {
+            bytecode,
+            hints_collection,
+            entrypoint,
+            reference_manager,
+            constants,
+        })
+    }
+}
+
 #[allow(dead_code)]
 pub struct CairoRunner2 {
     vm: VirtualMachine,
@@ -43,74 +87,35 @@ pub struct CairoRunner2 {
     execution_scopes: ExecutionScopes,
 
     // Configuration
-    executable: Executable,
-    entrypoint_kind: EntryPointKind,
+    program: Program2,
     layout: CairoLayout,
-    trace_enabled: bool,
-    constants: HashMap<String, Felt252>,
-    error_message_attributes: Vec<Attribute>,
-    instruction_locations: Option<HashMap<usize, InstructionLocation>>,
-    identifiers: HashMap<String, Identifier>,
-    reference_manager: Vec<HintReference>,
-
-    // Preprocessed Data
-    hint_collection: HintsCollection,
 }
 
 impl CairoRunner2 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        executable: Executable,
-        entrypoint_kind: EntryPointKind,
+        program: Program2,
         layout: CairoLayout,
         trace_enabled: bool,
-        constants: HashMap<String, Felt252>,
-        error_message_attributes: Vec<Attribute>,
-        instruction_locations: Option<HashMap<usize, InstructionLocation>>,
-        identifiers: HashMap<String, Identifier>,
-        reference_manager: Vec<HintReference>,
-        hints: BTreeMap<usize, Vec<HintParams>>,
     ) -> Result<Self, RunnerError> {
-        // =============
-        // PREPROCESSING
-        // =============
-
-        let entrypoint = find_entrypoint_of_kind(&executable.entrypoints, entrypoint_kind.clone());
-
-        let bytecode = executable
-            .program
-            .bytecode
-            .iter()
-            .map(Felt252::from)
-            .map(MaybeRelocatable::from)
-            .collect::<Vec<_>>();
-
-        let hint_collection =
-            HintsCollection::new(&hints, bytecode.len()).expect("failed to build hint collection");
-
-        let builtins = get_entrypoint_builtins(entrypoint);
-
-        // ==============
-        // INITIALIZATION
-        // ==============
-
         let mut vm = VirtualMachine::new(trace_enabled, false);
 
-        check_builtin_order(&builtins)?;
-        vm.builtin_runners = initialize_builtin_runners(&layout, &builtins, true, true)?;
+        check_builtin_order(&(&program.entrypoint).builtins)?;
+        vm.builtin_runners =
+            initialize_builtin_runners(&layout, &program.entrypoint.builtins, true, true)?;
 
         let program_base = vm.add_memory_segment();
         let execution_base = vm.add_memory_segment();
 
         initialize_builtin_runner_segments(&mut vm.builtin_runners, &mut vm.segments);
 
-        load_program(&mut vm, program_base, &bytecode)?;
+        load_program(&mut vm, program_base, &program.bytecode)?;
 
         let mut stack = Vec::new();
 
-        let initial_pc = (program_base + entrypoint.offset)?;
+        let initial_pc = (program_base + program.entrypoint.offset)?;
 
-        let (initial_fp, final_pc) = match entrypoint_kind {
+        let (initial_fp, final_pc) = match program.entrypoint.kind {
             EntryPointKind::Bootloader => {
                 // On bootloader, we execute until control flow is returned.
                 // The stack is arranged as if we are at the start of a function call.
@@ -125,7 +130,11 @@ impl CairoRunner2 {
                 //
                 // The initial fp variable points to the cell after the return pc.
 
-                extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
+                extend_stack_with_builtins(
+                    &mut stack,
+                    &program.entrypoint.builtins,
+                    &vm.builtin_runners,
+                );
 
                 let return_fp = vm.add_memory_segment();
                 let return_pc = vm.add_memory_segment();
@@ -154,7 +163,11 @@ impl CairoRunner2 {
 
                 let stack_prefix = &[MaybeRelocatable::Int(Felt252::ZERO)];
                 stack.extend_from_slice(stack_prefix);
-                extend_stack_with_builtins(&mut stack, &builtins, &vm.builtin_runners);
+                extend_stack_with_builtins(
+                    &mut stack,
+                    &program.entrypoint.builtins,
+                    &vm.builtin_runners,
+                );
 
                 let final_pc = (initial_pc + 4)?;
                 let initial_fp = (execution_base + stack_prefix.len())?;
@@ -167,26 +180,18 @@ impl CairoRunner2 {
         let run_context = RunContext::new(initial_pc, initial_ap.offset, initial_fp.offset);
         vm.set_run_context(run_context);
 
-        load_stack(&mut vm, execution_base, stack)?;
+        load_stack(&mut vm, execution_base, &stack)?;
 
         add_builtin_validation_rules(&mut vm.segments.memory, &mut vm.builtin_runners)?;
 
         Ok(Self {
-            executable,
             vm,
             program_base,
             execution_base,
             final_pc,
             execution_scopes: ExecutionScopes::new(),
-            entrypoint_kind,
+            program,
             layout,
-            trace_enabled,
-            constants,
-            error_message_attributes,
-            instruction_locations,
-            identifiers,
-            reference_manager,
-            hint_collection,
         })
     }
 
@@ -196,20 +201,21 @@ impl CairoRunner2 {
     ) -> Result<(), VirtualMachineError> {
         #[cfg_attr(not(feature = "extensive_hints"), allow(unused_mut))]
         let mut hint_data = get_hint_data(
-            &self.hint_collection,
-            &self.reference_manager,
+            &self.program.hints_collection,
+            &self.program.reference_manager,
             hint_processor,
         )?;
 
         #[cfg(feature = "extensive_hints")]
-        let mut hint_ranges = self.hint_collection.hints_ranges.clone();
+        let mut hint_ranges = self.program.hints_collection.hints_ranges.clone();
 
         while self.vm.get_pc() != self.final_pc && !hint_processor.consumed() {
             #[cfg(feature = "extensive_hints")]
             let hint_data = &mut hint_data;
             #[cfg(not(feature = "extensive_hints"))]
             let hint_data = self
-                .hint_collection
+                .program
+                .hints_collection
                 .get_hint_range_for_pc(self.vm.get_pc().offset)
                 .and_then(|range| {
                     range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
@@ -222,7 +228,7 @@ impl CairoRunner2 {
                 hint_data,
                 #[cfg(feature = "extensive_hints")]
                 &mut hint_ranges,
-                &self.constants,
+                &self.program.constants,
             )?;
 
             hint_processor.consume_step();
@@ -234,19 +240,6 @@ impl CairoRunner2 {
 
         Ok(())
     }
-}
-
-fn find_entrypoint_of_kind(
-    entrypoints: &[ExecutableEntryPoint],
-    entrypoint_kind: EntryPointKind,
-) -> &ExecutableEntryPoint {
-    entrypoints
-        .iter()
-        .find(|entrypoint| {
-            // TODO: Use `Eq` once implemented on `EntryPointKind`.
-            mem::discriminant(&entrypoint.kind) == mem::discriminant(&entrypoint_kind)
-        })
-        .expect("executable had no entrypoint of required kind")
 }
 
 pub fn check_builtin_order(builtins: &[BuiltinName]) -> Result<(), RunnerError> {
@@ -413,7 +406,7 @@ fn extend_stack_with_builtins(
 fn load_program(
     vm: &mut VirtualMachine,
     program_base: Relocatable,
-    bytecode: &Vec<MaybeRelocatable>,
+    bytecode: &[MaybeRelocatable],
 ) -> Result<(), RunnerError> {
     vm.load_data(program_base, bytecode)
         .map_err(RunnerError::MemoryInitializationError)?;
@@ -426,9 +419,9 @@ fn load_program(
 fn load_stack(
     vm: &mut VirtualMachine,
     execution_base: Relocatable,
-    stack: Vec<MaybeRelocatable>,
+    stack: &[MaybeRelocatable],
 ) -> Result<(), RunnerError> {
-    vm.load_data(execution_base, &stack)
+    vm.load_data(execution_base, stack)
         .map_err(RunnerError::MemoryInitializationError)?;
     Ok(())
 }
@@ -464,19 +457,4 @@ fn get_hint_data(
                 .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
         })
         .collect()
-}
-
-/// TODO: Remove this once cyclic dependency is fixed.
-/// It should not be necessary, but cargo treats executable BuiltinName as a separate type
-/// which is why I had to create this adapter function.
-pub fn get_entrypoint_builtins(entrypoint: &ExecutableEntryPoint) -> Vec<BuiltinName> {
-    let mut builtins = Vec::with_capacity(entrypoint.builtins.len());
-
-    for builtin in &entrypoint.builtins {
-        let adapted_builtin = BuiltinName::from_str(builtin.to_str())
-            .expect("should never fail under the same implementation");
-        builtins.push(adapted_builtin);
-    }
-
-    builtins
 }
