@@ -161,7 +161,7 @@ fn test_segment_arena() {
     let runner =
         cairo_run(program_data, &cairo_run_config, &mut hint_executor).expect("Execution failed");
     let return_values = runner.vm.get_return_values(2).unwrap();
-    let concat_segments = return_values.get(0).unwrap().get_relocatable().unwrap();
+    let concat_segments = return_values.first().unwrap().get_relocatable().unwrap();
     let infos = return_values.get(1).unwrap();
 
     let concat_segments_data = runner.vm.get_range(concat_segments, 10);
