@@ -12,6 +12,7 @@ use crate::{
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        vm_memory::memory::MemoryCell,
     },
     Felt252,
 };
@@ -1486,6 +1487,59 @@ impl CairoRunner {
             .collect()
     }
 
+    /// Updates the given memory segments with the missing builtin deductions.
+    pub fn fill_builtins_segments_holes(
+        &self,
+        memory_segments: &mut [Vec<Option<MaybeRelocatable>>],
+    ) -> Result<(), RunnerError> {
+        for builtin in self.vm.builtin_runners.iter() {
+            let builtin_index: usize = builtin.base();
+
+            // Output and SegmentArena don't need to be filled.
+            if matches!(
+                builtin,
+                BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_)
+            ) {
+                continue;
+            }
+
+            // Extend the segment size to a multiple of the number of cells per instance.
+            let current_builtin_segment = &mut memory_segments[builtin_index];
+            let len = current_builtin_segment.len();
+            let cells_per_instance = builtin.cells_per_instance() as usize;
+            current_builtin_segment
+                .resize(len.div_ceil(cells_per_instance) * cells_per_instance, None);
+
+            let mut missing_values: Vec<(usize, MemoryCell)> = vec![];
+
+            for (offset, cell) in memory_segments[builtin_index].iter().enumerate() {
+                if cell.is_none() {
+                    // This cell is a hole.
+                    let deduced_memory_cell = builtin
+                        .deduce_memory_cell(
+                            Relocatable::from((builtin_index as isize, offset)),
+                            &self.vm.segments.memory,
+                        )?
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Failed to deduce memory cell for builtin {} at offset {}",
+                                builtin.name(),
+                                offset
+                            )
+                        });
+
+                    // Collect values to be stored in the memory.
+                    missing_values.push((offset, MemoryCell::new(deduced_memory_cell)));
+                }
+            }
+
+            for (offset, value) in missing_values {
+                memory_segments[builtin_index][offset] = value.get_value();
+            }
+        }
+        Ok(())
+    }
+
     /// Collects relevant information for the prover from the runner, including the
     /// relocatable form of the trace, memory, public memory, and built-ins.
     pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, RunnerError> {
@@ -1496,7 +1550,7 @@ impl CairoRunner {
             .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?
             .clone();
 
-        let relocatable_memory = self
+        let mut relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>> = self
             .vm
             .segments
             .memory
@@ -1504,6 +1558,8 @@ impl CairoRunner {
             .iter()
             .map(|segment| segment.iter().map(|cell| cell.get_value()).collect())
             .collect();
+
+        self.fill_builtins_segments_holes(&mut relocatable_memory)?;
 
         let public_memory_offsets = self
             .vm
@@ -1663,6 +1719,8 @@ mod tests {
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
+    use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
+    use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
 
     use crate::felt_hex;
@@ -5627,5 +5685,36 @@ mod tests {
             .builtins_segments
             .values()
             .any(|v| *v == BuiltinName::output));
+    }
+
+    #[test]
+    fn prover_input_info_fill_builtins_holes() {
+        let program =
+            include_bytes!("../../../../cairo_programs/proof_programs/keccak_uint256.json");
+
+        let runner = crate::cairo_run::cairo_run(
+            program,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+
+        // In the original memory segments
+        assert!(runner.vm.segments.memory.data[3].len() as u32 % CELLS_PER_BITWISE != 0);
+        assert!(runner.vm.segments.memory.data[4].len() as u32 % CELLS_PER_BITWISE != 0);
+
+        let prover_info = runner
+            .get_prover_input_info()
+            .expect("Failed to get prover input info");
+
+        // In prover info input
+        assert!(prover_info.builtins_segments.get(&3) == Some(&BuiltinName::bitwise));
+        assert!(prover_info.builtins_segments.get(&4) == Some(&BuiltinName::keccak));
+        assert!(prover_info.relocatable_memory[3].len() as u32 % CELLS_PER_BITWISE == 0);
+        assert!(prover_info.relocatable_memory[4].len() as u32 % CELLS_PER_KECCAK == 0);
     }
 }
