@@ -112,8 +112,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
 
 ### Pushing commits to Pull Requests
 
-All commits of Pull Requests to this repo must be signed. See [this page](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits) for more details on how to sign a commit and how to manage signing keys in Github.
-
+This repository enforces commit signing on all branches. See [this page](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits) for more details on how to sign a commit and how to manage signing keys in Github.
 
 <!-- TODO
 ### Your First Code Contribution
