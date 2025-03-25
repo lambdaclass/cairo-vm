@@ -42,13 +42,12 @@ jobs:
     strategy:
       matrix:
         # NOTE: we build cairo_bench_programs so clippy can check the benchmarks too
-        program-target: [
-          cairo_bench_programs,
-          cairo_proof_programs,
-          cairo_test_programs,
-          cairo_1_test_contracts,
-          cairo_2_test_contracts,
-        ]
+        program-target:
+        - cairo_bench_programs
+        - cairo_proof_programs
+        - cairo_test_programs
+        - cairo_1_test_contracts
+        - cairo_2_test_contracts
     name: Build Cairo programs
     runs-on: ubuntu-24.04
     steps:
@@ -162,7 +161,7 @@ jobs:
         key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
 
   lint:
-    needs: build-programs
+    needs: merge-caches
     name: Run Lints
     runs-on: ubuntu-24.04
     steps:
