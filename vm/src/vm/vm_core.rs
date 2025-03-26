@@ -4733,7 +4733,9 @@ mod tests {
             ((0, 1), 0),
             ((0, 2), 1),
             ((0, 10), 10),
-            ((1, 1), 1)
+            ((1, 1), 1),
+            ((1, 2), 0),
+            ((2, 0), 0)
         ];
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
@@ -4759,6 +4761,12 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(1)
         );
+        assert!(vm.is_accessed(&Relocatable::from((0, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 2))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 10))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((1, 1))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((1, 2))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((2, 0))).unwrap());
     }
 
     #[test]
