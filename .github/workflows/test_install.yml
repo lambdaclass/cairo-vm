@@ -3,7 +3,7 @@ name: Test dependencies and cairo-vm install
 on:
   merge_group:
   push:
-    branches: [ main ]
+    branches: [ main, starkware-development ]
   pull_request:
     branches: [ '**' ]
 

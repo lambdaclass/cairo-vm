@@ -2,7 +2,7 @@ name: benchmark
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, starkware-development ]
 
 permissions:
   # deployments permission to deploy GitHub pages website

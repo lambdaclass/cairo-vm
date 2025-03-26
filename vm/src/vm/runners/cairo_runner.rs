@@ -1502,7 +1502,7 @@ impl CairoRunner {
             .memory
             .data
             .iter()
-            .map(|segment| segment.iter().filter_map(|cell| cell.get_value()).collect())
+            .map(|segment| segment.iter().map(|cell| cell.get_value()).collect())
             .collect();
 
         let public_memory_offsets = self
@@ -1540,8 +1540,8 @@ impl CairoRunner {
 pub struct ProverInputInfo {
     /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
     pub relocatable_trace: Vec<TraceEntry>,
-    /// A vector of segments, where each segment is a vector of maybe relocatable values.
-    pub relocatable_memory: Vec<Vec<MaybeRelocatable>>,
+    /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
+    pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
     /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
     pub public_memory_offsets: HashMap<usize, Vec<usize>>,
     /// A map from the builtin segment index into its name.
@@ -5581,8 +5581,14 @@ mod tests {
             offset: 0,
         });
         assert_eq!(prover_info.relocatable_trace, expected_trace);
-        assert_eq!(prover_info.relocatable_memory[0][3], expected_in_memory_0_3);
-        assert_eq!(prover_info.relocatable_memory[1][0], expected_in_memory_1_0);
+        assert_eq!(
+            prover_info.relocatable_memory[0][3],
+            Some(expected_in_memory_0_3)
+        );
+        assert_eq!(
+            prover_info.relocatable_memory[1][0],
+            Some(expected_in_memory_1_0)
+        );
         assert!(prover_info.public_memory_offsets.is_empty());
         assert_eq!(
             prover_info.builtins_segments,
