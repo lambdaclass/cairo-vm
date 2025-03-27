@@ -895,6 +895,10 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
+    pub fn get_current_step(&self) -> usize {
+        self.current_step
+    }
+
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
@@ -5170,7 +5174,7 @@ mod tests {
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
 
         assert!(virtual_machine_from_builder.run_finished);
-        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(virtual_machine_from_builder.get_current_step(), 12);
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners
