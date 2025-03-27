@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add get_current_step getter [#2031](https://github.com/lambdaclass/cairo-vm/pull/2031)
+
 * refactor: Clap attribute macros from #[clap(...)] to #[arg(...)] and #[command(...)] in v4.x [#2003] (https://github.com/lambdaclass/cairo-vm/pull/2003)
 
 * fix: Fix `WriteReturnFp` error due to a bad loading of initial gas [#2015](https://github.com/lambdaclass/cairo-vm/pull/2015)
