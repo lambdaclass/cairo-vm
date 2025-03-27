@@ -3,6 +3,7 @@ use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
+use crate::vm::vm_memory::memory::MemoryCell;
 use crate::{
     hint_processor::{
         builtin_hint_processor::blake2s_hash::blake2s_compress,
@@ -748,6 +749,57 @@ impl VirtualMachine {
         ))
     }
 
+    /// Updates the memory with missing built-in deductions and verifies the existing ones.
+    pub fn complete_builtin_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
+        for builtin in self.builtin_runners.iter() {
+            let index: usize = builtin.base();
+
+            if !matches!(
+                builtin,
+                BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_)
+            ) {
+                // Extend the segment size to a multiple of the number of cells per instance.
+                // Output and SegmentArena do not need to be extended
+                let current_builtin_segment = &mut self.segments.memory.data[index];
+                let len = current_builtin_segment.len();
+                let cells_per_instance = builtin.cells_per_instance() as usize;
+                current_builtin_segment.resize(
+                    len.div_ceil(cells_per_instance) * cells_per_instance,
+                    MemoryCell::NONE,
+                );
+            }
+
+            // Collect the values that need to be written to the memory.
+            let mut new_values: Vec<(usize, MemoryCell)> = vec![];
+
+            for (offset, cell) in self.segments.memory.data[index].iter().enumerate() {
+                if let Some(deduced_memory_cell) = builtin
+                    .deduce_memory_cell(
+                        Relocatable::from((index as isize, offset)),
+                        &self.segments.memory,
+                    )
+                    .map_err(VirtualMachineError::RunnerError)?
+                {
+                    let memory_value = cell.get_value();
+                    if memory_value.is_some() {
+                        if Some(&deduced_memory_cell) != memory_value.as_ref() {
+                            return Err(VirtualMachineError::InconsistentAutoDeduction(Box::new(
+                                (builtin.name(), deduced_memory_cell, memory_value),
+                            )));
+                        }
+                    } else {
+                        new_values.push((offset, MemoryCell::new(deduced_memory_cell)));
+                    }
+                }
+            }
+
+            for (offset, value) in new_values {
+                self.segments.memory.data[index][offset] = value;
+            }
+        }
+        Ok(())
+    }
+
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
         for builtin in self.builtin_runners.iter() {
@@ -799,7 +851,7 @@ impl VirtualMachine {
     }
 
     pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
-        self.verify_auto_deductions()?;
+        self.complete_builtin_auto_deductions()?;
         self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
