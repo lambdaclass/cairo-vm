@@ -4,7 +4,7 @@ use crate::{
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
-        collections::{HashMap, HashSet},
+        collections::{BTreeMap, HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
@@ -1516,7 +1516,7 @@ impl CairoRunner {
             })
             .collect();
 
-        let builtins_segments: HashMap<usize, BuiltinName> = self
+        let builtins_segments: BTreeMap<usize, BuiltinName> = self
             .vm
             .builtin_runners
             .iter()
@@ -1554,9 +1554,9 @@ pub struct ProverInputInfo {
     /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
     pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
     /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
-    pub public_memory_offsets: HashMap<usize, Vec<usize>>,
+    pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
     /// A map from the builtin segment index into its name.
-    pub builtins_segments: HashMap<usize, BuiltinName>,
+    pub builtins_segments: BTreeMap<usize, BuiltinName>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -5603,7 +5603,7 @@ mod tests {
         assert!(prover_info.public_memory_offsets.is_empty());
         assert_eq!(
             prover_info.builtins_segments,
-            HashMap::from([(2, BuiltinName::ecdsa)])
+            BTreeMap::from([(2, BuiltinName::ecdsa)])
         );
     }
 
