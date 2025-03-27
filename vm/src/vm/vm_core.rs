@@ -5174,7 +5174,7 @@ mod tests {
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
 
         assert!(virtual_machine_from_builder.run_finished);
-        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(virtual_machine_from_builder.get_current_step(), 12);
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners
