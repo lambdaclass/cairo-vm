@@ -4,7 +4,7 @@ use crate::{
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
-        collections::{HashMap, HashSet},
+        collections::{BTreeMap, HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
@@ -1516,10 +1516,21 @@ impl CairoRunner {
             })
             .collect();
 
-        let builtins_segments = self
-            .get_builtin_segment_info_for_pie()?
-            .into_iter()
-            .map(|(name, info)| (info.index as usize, name))
+        let builtins_segments: BTreeMap<usize, BuiltinName> = self
+            .vm
+            .builtin_runners
+            .iter()
+            .filter(|builtin| {
+                // Those segments are not treated as builtins by the prover.
+                !matches!(
+                    builtin,
+                    BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)
+                )
+            })
+            .map(|builtin| {
+                let (index, _) = builtin.get_memory_segment_addresses();
+                (index, builtin.name())
+            })
             .collect();
 
         Ok(ProverInputInfo {
@@ -1543,9 +1554,9 @@ pub struct ProverInputInfo {
     /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
     pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
     /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
-    pub public_memory_offsets: HashMap<usize, Vec<usize>>,
+    pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
     /// A map from the builtin segment index into its name.
-    pub builtins_segments: HashMap<usize, BuiltinName>,
+    pub builtins_segments: BTreeMap<usize, BuiltinName>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -5592,7 +5603,29 @@ mod tests {
         assert!(prover_info.public_memory_offsets.is_empty());
         assert_eq!(
             prover_info.builtins_segments,
-            HashMap::from([(2, BuiltinName::ecdsa)])
+            BTreeMap::from([(2, BuiltinName::ecdsa)])
         );
+    }
+
+    #[test]
+    fn test_output_not_builtin_segment() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+
+        assert!(!prover_info
+            .builtins_segments
+            .values()
+            .any(|v| *v == BuiltinName::output));
     }
 }
