@@ -239,3 +239,98 @@ impl DictSquashExecScope {
         self.current_access_indices()?.pop()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stdlib::collections::HashMap;
+    use crate::types::relocatable::Relocatable;
+    use crate::vm::vm_core::VirtualMachine;
+
+    /// Test for new_default_dict error case:
+    /// Attempting to create a dictionary on a segment that's already taken
+    #[test]
+    fn test_new_default_dict_segment_taken_error() {
+        let mut vm = VirtualMachine::new(false, false);
+        let mut dict_manager = DictManagerExecScope::new(true);
+
+        // First dictionary creation should work
+        let _first_dict_start = dict_manager.new_default_dict(&mut vm).unwrap();
+
+        // Simulate a scenario where the same segment index is attempted to be used again
+        // let conflicting_segment = Relocatable::from((first_dict_start.segment_index, 0));
+
+        // Attempt to create a new dictionary should return an error
+        let result = dict_manager.new_default_dict(&mut vm);
+        assert!(matches!(
+            result,
+            Err(HintError::CantCreateDictionaryOnTakenSegment(_))
+        ));
+    }
+
+    /// Test for relocate_all_dictionaries error cases
+    #[test]
+    fn test_relocate_all_dictionaries_errors() {
+        let mut vm = VirtualMachine::new(false, false);
+
+        // Test 1: First segment is a temporary segment (should error)
+        {
+            let mut dict_manager = DictManagerExecScope::new(true);
+            let first_dict_start = Relocatable::from((-1, 0)); // Temporary segment
+
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: first_dict_start,
+                end: Some(Relocatable::from((-1, 10))),
+            });
+
+            let result = dict_manager.relocate_all_dictionaries(&mut vm);
+            assert!(matches!(
+                result,
+                Err(HintError::CustomHint(_)) if result.unwrap_err().to_string().contains("First dict segment should not be temporary")
+            ));
+        }
+
+        // Test 2: Non-temporary dictionary segment
+        {
+            let mut dict_manager = DictManagerExecScope::new(true);
+            let first_dict_start = Relocatable::from((0, 0)); // Non-temporary segment
+            let second_dict_start = Relocatable::from((1, 0)); // Non-temporary segment
+
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: first_dict_start,
+                end: Some(Relocatable::from((0, 10))),
+            });
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: second_dict_start,
+                end: Some(Relocatable::from((1, 10))),
+            });
+
+            let result = dict_manager.relocate_all_dictionaries(&mut vm);
+            assert!(matches!(
+                result,
+                Err(HintError::CustomHint(_)) if result.unwrap_err().to_string().contains("Dict segment should be temporary")
+            ));
+        }
+    }
+
+    /// Test for relocate_all_dictionaries when no temporary segments
+    #[test]
+    fn test_relocate_all_dictionaries_no_temporary_segments() {
+        let mut vm = VirtualMachine::new(false, false);
+        let mut dict_manager = DictManagerExecScope::new(false);
+
+        // Adding some trackers should not cause any errors
+        dict_manager.trackers.push(DictTrackerExecScope {
+            data: HashMap::default(),
+            start: Relocatable::from((0, 0)),
+            end: Some(Relocatable::from((0, 10))),
+        });
+
+        // Should not error and essentially do nothing
+        let result = dict_manager.relocate_all_dictionaries(&mut vm);
+        assert!(result.is_ok());
+    }
+}
