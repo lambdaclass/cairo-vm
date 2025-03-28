@@ -895,6 +895,10 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
+    pub fn get_current_step(&self) -> usize {
+        self.current_step
+    }
+
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
@@ -969,6 +973,10 @@ impl VirtualMachine {
 
     pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
         self.segments.memory.mem_eq(lhs, rhs, len)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.segments.is_accessed(addr)
     }
 
     ///Gets `n_ret` return values from memory
@@ -4729,12 +4737,18 @@ mod tests {
             ((0, 1), 0),
             ((0, 2), 1),
             ((0, 10), 10),
-            ((1, 1), 1)
+            ((1, 1), 1),
+            ((1, 2), 0),
+            ((2, 0), 0),
+            ((-1, 0), 0),
+            ((-1, 1), 0)
         ];
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
             .unwrap();
         vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        vm.mark_address_range_as_accessed((-1, 0).into(), 1)
+            .unwrap();
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
@@ -4755,6 +4769,14 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(1)
         );
+        assert!(vm.is_accessed(&Relocatable::from((0, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 2))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 10))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((1, 1))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((1, 2))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((2, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((-1, 0))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((-1, 1))).unwrap());
     }
 
     #[test]
@@ -5152,7 +5174,7 @@ mod tests {
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
 
         assert!(virtual_machine_from_builder.run_finished);
-        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(virtual_machine_from_builder.get_current_step(), 12);
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners
