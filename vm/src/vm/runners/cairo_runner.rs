@@ -4,14 +4,14 @@ use crate::{
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
-        collections::{HashMap, HashSet},
+        collections::{BTreeMap, HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
     },
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
-        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
     },
     Felt252,
 };
@@ -154,7 +154,7 @@ pub struct CairoRunner {
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
-    runner_mode: RunnerMode,
+    pub(crate) runner_mode: RunnerMode,
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
@@ -176,6 +176,7 @@ impl CairoRunner {
         dynamic_layout_params: Option<CairoLayoutParams>,
         mode: RunnerMode,
         trace_enabled: bool,
+        disable_trace_padding: bool,
     ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout {
             LayoutName::plain => CairoLayout::plain_instance(),
@@ -187,6 +188,7 @@ impl CairoRunner {
             LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
+            LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::dynamic => {
                 let params =
@@ -197,7 +199,7 @@ impl CairoRunner {
         };
         Ok(CairoRunner {
             program: program.clone(),
-            vm: VirtualMachine::new(trace_enabled),
+            vm: VirtualMachine::new(trace_enabled, disable_trace_padding),
             layout: cairo_layout,
             final_pc: None,
             program_base: None,
@@ -226,7 +228,13 @@ impl CairoRunner {
         dynamic_layout_params: Option<CairoLayoutParams>,
         proof_mode: bool,
         trace_enabled: bool,
+        disable_trace_padding: bool,
     ) -> Result<CairoRunner, RunnerError> {
+        // `disable_trace_padding` can only be used in `proof_mode`, so we enforce this here to
+        // avoid unintended behavior.
+        if disable_trace_padding && !proof_mode {
+            return Err(RunnerError::DisableTracePaddingWithoutProofMode);
+        }
         if proof_mode {
             Self::new_v2(
                 program,
@@ -234,6 +242,7 @@ impl CairoRunner {
                 dynamic_layout_params,
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
+                disable_trace_padding,
             )
         } else {
             Self::new_v2(
@@ -242,6 +251,7 @@ impl CairoRunner {
                 dynamic_layout_params,
                 RunnerMode::ExecutionMode,
                 trace_enabled,
+                disable_trace_padding,
             )
         }
     }
@@ -263,6 +273,8 @@ impl CairoRunner {
     /// When running in proof_mode, all builtins in the layout will be created, and only those in the program will be included
     /// When not running in proof_mode, only program builtins will be created and included
     /// Unless `allow_missing_builtins` is set to true, an error will be returned if a builtin is included in the program but not on the layout
+    ///
+    /// NOTE: 'included' does not refer to the builtin being included in the builtin runners but rather to the flag `included` in a builtin.
     pub fn initialize_builtins(&mut self, allow_missing_builtins: bool) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -1473,6 +1485,78 @@ impl CairoRunner {
             })
             .collect()
     }
+
+    /// Collects relevant information for the prover from the runner, including the
+    /// relocatable form of the trace, memory, public memory, and built-ins.
+    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, RunnerError> {
+        let relocatable_trace = self
+            .vm
+            .trace
+            .as_ref()
+            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?
+            .clone();
+
+        let relocatable_memory = self
+            .vm
+            .segments
+            .memory
+            .data
+            .iter()
+            .map(|segment| segment.iter().map(|cell| cell.get_value()).collect())
+            .collect();
+
+        let public_memory_offsets = self
+            .vm
+            .segments
+            .public_memory_offsets
+            .iter()
+            .map(|(segment, offset_page)| {
+                let offsets: Vec<usize> = offset_page.iter().map(|(offset, _)| *offset).collect();
+                (*segment, offsets)
+            })
+            .collect();
+
+        let builtins_segments: BTreeMap<usize, BuiltinName> = self
+            .vm
+            .builtin_runners
+            .iter()
+            .filter(|builtin| {
+                // Those segments are not treated as builtins by the prover.
+                !matches!(
+                    builtin,
+                    BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)
+                )
+            })
+            .map(|builtin| {
+                let (index, _) = builtin.get_memory_segment_addresses();
+                (index, builtin.name())
+            })
+            .collect();
+
+        Ok(ProverInputInfo {
+            relocatable_trace,
+            relocatable_memory,
+            public_memory_offsets,
+            builtins_segments,
+        })
+    }
+}
+
+//* ----------------------
+//*   ProverInputInfo
+//* ----------------------
+/// This struct contains all relevant data for the prover.
+/// All addresses are relocatable.
+#[derive(Deserialize, Serialize)]
+pub struct ProverInputInfo {
+    /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
+    pub relocatable_trace: Vec<TraceEntry>,
+    /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
+    pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
+    /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
+    pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
+    /// A map from the builtin segment index into its name.
+    pub builtins_segments: BTreeMap<usize, BuiltinName>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -3394,9 +3478,32 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn run_empty() {
+    fn run_empty_all_cairo() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo, false, true);
+        assert_matches!(
+            cairo_runner.initialize(false),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty_recursive_with_poseidon() {
+        let program = program!();
+        let mut cairo_runner =
+            cairo_runner!(&program, LayoutName::recursive_with_poseidon, false, true);
+        assert_matches!(
+            cairo_runner.initialize(false),
+            Err(RunnerError::MissingMain)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_empty_all_cairo_stwo() {
+        let program = program!();
+        let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo_stwo, false, true);
         assert_matches!(
             cairo_runner.initialize(false),
             Err(RunnerError::MissingMain)
@@ -5394,5 +5501,131 @@ mod tests {
                 }
             })]
         );
+    }
+
+    #[test]
+    fn test_disable_trace_padding_without_proof_mode() {
+        let program = program!();
+        // Attempt to create a runner in non-proof mode with trace padding disabled.
+        let result = CairoRunner::new(&program, LayoutName::plain, None, false, true, true);
+        match result {
+            Err(RunnerError::DisableTracePaddingWithoutProofMode) => { /* test passed */ }
+            _ => panic!("Expected DisableTracePaddingWithoutProofMode error"),
+        }
+    }
+
+    #[test]
+    fn get_prover_input_info() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+        let expected_trace = vec![
+            TraceEntry {
+                pc: (0, 15).into(),
+                ap: 3,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 16).into(),
+                ap: 4,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 18).into(),
+                ap: 5,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 20).into(),
+                ap: 6,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 22).into(),
+                ap: 7,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 24).into(),
+                ap: 8,
+                fp: 3,
+            },
+            TraceEntry {
+                pc: (0, 10).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 11).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 12).into(),
+                ap: 10,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 14).into(),
+                ap: 11,
+                fp: 10,
+            },
+            TraceEntry {
+                pc: (0, 26).into(),
+                ap: 11,
+                fp: 3,
+            },
+        ];
+        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
+        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: 2,
+            offset: 0,
+        });
+        assert_eq!(prover_info.relocatable_trace, expected_trace);
+        assert_eq!(
+            prover_info.relocatable_memory[0][3],
+            Some(expected_in_memory_0_3)
+        );
+        assert_eq!(
+            prover_info.relocatable_memory[1][0],
+            Some(expected_in_memory_1_0)
+        );
+        assert!(prover_info.public_memory_offsets.is_empty());
+        assert_eq!(
+            prover_info.builtins_segments,
+            BTreeMap::from([(2, BuiltinName::ecdsa)])
+        );
+    }
+
+    #[test]
+    fn test_output_not_builtin_segment() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+
+        assert!(!prover_info
+            .builtins_segments
+            .values()
+            .any(|v| *v == BuiltinName::output));
     }
 }

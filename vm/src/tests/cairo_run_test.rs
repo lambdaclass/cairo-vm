@@ -8,8 +8,6 @@ use crate::{
     },
 };
 
-use num_traits::Zero;
-
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci() {
@@ -570,6 +568,30 @@ fn blake2s_integration_tests() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_proof_mode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json");
+    run_program(program_data.as_slice(), true, None, None, None);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn qm31_opcodes_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/qm31_opcodes_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn relocate_segments() {
     let program_data = include_bytes!("../../../cairo_programs/relocate_segments.json");
     run_program_simple(program_data.as_slice());
@@ -1005,14 +1027,17 @@ fn cairo_run_if_reloc_equal() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_proof_mode_disable_trace_padding() {
-    let program_data = include_bytes!("../../../cairo_programs/fibonacci.json");
+    let program_data = include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
     let config = CairoRunConfig {
+        proof_mode: true,
         disable_trace_padding: true,
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let runner = cairo_run(program_data, &config, &mut hint_processor).unwrap();
-    assert!(runner.get_memory_holes().unwrap().is_zero());
+    // The following check is to ensure that the trace is not padded. For this specific program,
+    // the number of steps doesn't end up as a power of 2 and we make sure it stays that way.
+    assert!(!runner.vm.current_step.is_power_of_two());
 }
 
 #[test]
@@ -1130,6 +1155,14 @@ fn cairo_run_mod_builtin_failure() {
 
 #[test]
 #[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_no_solution() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_no_solution.json");
+    run_program_with_error(program_data, "Could not fill the values table");
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
 fn cairo_run_mod_builtin_large_batch_size() {
     let program_data = include_bytes!(
         "../../../cairo_programs/mod_builtin_feature/mod_builtin_large_batch_size.json"
@@ -1185,6 +1218,7 @@ fn run_program_with_custom_mod_builtin_params(
         cairo_run_config.dynamic_layout_params,
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )
     .unwrap();
 
@@ -1306,5 +1340,14 @@ fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
     let program_data = include_bytes!(
         "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec_mul_by_uint256.json"
     );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-data-availability-hints")]
+fn cairo_run_data_availability_reduced_mul() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-kzg-da-hints/reduced_mul.json");
     run_program_simple(program_data.as_slice());
 }

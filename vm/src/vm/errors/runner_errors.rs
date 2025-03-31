@@ -4,7 +4,7 @@
 use crate::stdlib::{collections::HashSet, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::layout_name::LayoutName;
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
@@ -136,6 +136,8 @@ pub enum RunnerError {
     MissingDynamicLayoutParams,
     #[error("dynamic layout {0} ratio should be 0 when disabled")]
     BadDynamicLayoutBuiltinRatio(BuiltinName),
+    #[error("Initialization failure: Cannot run with trace padding disabled without proof mode")]
+    DisableTracePaddingWithoutProofMode,
 }
 
 #[cfg(test)]
