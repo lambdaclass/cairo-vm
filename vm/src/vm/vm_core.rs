@@ -1269,15 +1269,15 @@ impl VirtualMachine {
         }
     }
 
-    /// Возвращает текущее состояние выполнения виртуальной машины
+    /// Returns the current execution state of the virtual machine
     /// 
-    /// Эта функция собирает все важные компоненты состояния VM, включая
-    /// текущие регистры (pc, ap, fp), информацию о шаге выполнения и 
-    /// активных builtin функциях.
+    /// This function gathers all important components of the VM state, including
+    /// the current registers (pc, ap, fp), execution step information, and 
+    /// active built-in functions.
     /// 
-    /// # Возвращаемое значение
+    /// # Return value
     /// 
-    /// `ExecutionState` структура с текущим состоянием VM
+    /// `ExecutionState` structure containing the current VM state
     pub fn get_execution_state(&self) -> ExecutionState {
         ExecutionState {
             pc: self.run_context.pc,
