@@ -327,3 +327,30 @@ fn get_casm_contract_builtins(
         .map(|s| BuiltinName::from_str(s).expect("Invalid builtin name"))
         .collect()
 }
+
+#[cfg(test)]
+mod execution_state_tests {
+    use crate::vm::vm_core::VirtualMachine;
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_get_execution_state_integration() {
+        // Create a virtual machine directly for testing
+        let mut vm = VirtualMachine::new(true, false);
+        
+        // Set some values for testing
+        vm.run_context.ap = 123;
+        vm.run_context.fp = 456;
+        vm.current_step = 10;
+        
+        // Get the execution state
+        let execution_state = vm.get_execution_state();
+        
+        // Check the main state attributes
+        assert_eq!(execution_state.ap, 123);
+        assert_eq!(execution_state.fp, 456);
+        assert_eq!(execution_state.current_step, 10);
+        assert_eq!(execution_state.run_finished, false); // Expect false as we didn't set it
+        assert!(execution_state.memory_segments_count > 0);
+    }
+}
