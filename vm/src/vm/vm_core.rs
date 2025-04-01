@@ -103,22 +103,22 @@ pub struct VirtualMachine {
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
-/// Структура для хранения состояния выполнения виртуальной машины
+/// Structure for storing the execution state of a virtual machine
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionState {
-    /// Текущий счетчик программы (Program Counter)
+    /// Current program counter (Program Counter)
     pub pc: Relocatable,
-    /// Текущий указатель распределения (Allocation Pointer)
+    /// Current allocation pointer (Allocation Pointer)
     pub ap: usize,
-    /// Текущий указатель кадра (Frame Pointer)
+    /// Current frame pointer (Frame Pointer)
     pub fp: usize,
-    /// Текущий шаг выполнения
+    /// Current execution step
     pub current_step: usize,
-    /// Завершено ли выполнение
+    /// Whether execution is finished
     pub run_finished: bool,
-    /// Количество сегментов памяти
+    /// Number of memory segments
     pub memory_segments_count: usize,
-    /// Информация о работающих builtins
+    /// Information about active built-ins
     pub active_builtins: Vec<String>,
 }
 
