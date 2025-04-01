@@ -1663,6 +1663,8 @@ mod tests {
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
+    use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
+    use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
 
     use crate::felt_hex;
@@ -5627,5 +5629,39 @@ mod tests {
             .builtins_segments
             .values()
             .any(|v| *v == BuiltinName::output));
+    }
+
+    #[test]
+    fn end_run_fill_builtins() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/keccak_uint256.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+
+        let end = cairo_runner.initialize(false).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+
+        // Before end run
+        assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE != 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_BITWISE != 0);
+        assert_matches!(
+            cairo_runner.end_run(false, false, &mut hint_processor),
+            Ok(())
+        );
+
+        // After end run
+        let prover_input = cairo_runner
+            .get_prover_input_info()
+            .expect("Failed to get prover input info");
+        assert!(prover_input.builtins_segments.get(&6) == Some(&BuiltinName::bitwise));
+        assert!(prover_input.builtins_segments.get(&8) == Some(&BuiltinName::keccak));
+        assert!(prover_input.relocatable_memory[6].len() as u32 % CELLS_PER_BITWISE == 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
     }
 }
