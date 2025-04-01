@@ -103,6 +103,25 @@ pub struct VirtualMachine {
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
+/// Структура для хранения состояния выполнения виртуальной машины
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExecutionState {
+    /// Текущий счетчик программы (Program Counter)
+    pub pc: Relocatable,
+    /// Текущий указатель распределения (Allocation Pointer)
+    pub ap: usize,
+    /// Текущий указатель кадра (Frame Pointer)
+    pub fp: usize,
+    /// Текущий шаг выполнения
+    pub current_step: usize,
+    /// Завершено ли выполнение
+    pub run_finished: bool,
+    /// Количество сегментов памяти
+    pub memory_segments_count: usize,
+    /// Информация о работающих builtins
+    pub active_builtins: Vec<String>,
+}
+
 impl VirtualMachine {
     pub fn new(trace_enabled: bool, disable_trace_padding: bool) -> VirtualMachine {
         let run_context = RunContext {
@@ -1247,6 +1266,30 @@ impl VirtualMachine {
         for info in segment_infos {
             self.segments
                 .finalize(Some(info.size), info.index as usize, None)
+        }
+    }
+
+    /// Возвращает текущее состояние выполнения виртуальной машины
+    /// 
+    /// Эта функция собирает все важные компоненты состояния VM, включая
+    /// текущие регистры (pc, ap, fp), информацию о шаге выполнения и 
+    /// активных builtin функциях.
+    /// 
+    /// # Возвращаемое значение
+    /// 
+    /// `ExecutionState` структура с текущим состоянием VM
+    pub fn get_execution_state(&self) -> ExecutionState {
+        ExecutionState {
+            pc: self.run_context.pc,
+            ap: self.run_context.ap,
+            fp: self.run_context.fp,
+            current_step: self.current_step,
+            run_finished: self.run_finished,
+            memory_segments_count: self.segments.num_segments(),
+            active_builtins: self.builtin_runners
+                .iter()
+                .map(|runner| runner.name().to_string())
+                .collect(),
         }
     }
 }
@@ -5389,5 +5432,39 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(6)
         );
+    }
+
+    /// Returns the current execution state of the virtual machine
+    /// 
+    /// This function gathers all essential components of the VM state, including  
+    /// the current registers (pc, ap, fp), execution step information, and
+    /// active built-in functions.
+    /// 
+    /// # Return Value
+    /// 
+    /// `ExecutionState` is a structure containing the current state of the VM
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_execution_state_test() {
+        let mut vm = vm!();
+        vm.run_context.ap = 1;
+        vm.run_context.fp = 2;
+        vm.run_context.pc = Relocatable::from((3, 4));
+        vm.current_step = 5;
+        vm.run_finished = true;
+        vm.builtin_runners.push(BuiltinRunner::from(HashBuiltinRunner::new(
+            Some(12),
+            true,
+        )));
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        let execution_state = vm.get_execution_state();
+        assert_eq!(execution_state.pc, Relocatable::from((3, 4)));
+        assert_eq!(execution_state.ap, 1);
+        assert_eq!(execution_state.fp, 2);
+        assert_eq!(execution_state.current_step, 5);
+        assert_eq!(execution_state.run_finished, true);
+        assert_eq!(execution_state.memory_segments_count, 1);
+        assert_eq!(execution_state.active_builtins, vec!["pedersen".to_string()]);
     }
 }
