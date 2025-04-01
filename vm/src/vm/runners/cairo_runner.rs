@@ -654,6 +654,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.ap_tracking,
                         &hint.flow_tracking_data.reference_ids,
                         references,
+                        &hint.accessible_scopes,
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
@@ -4597,6 +4598,7 @@ mod tests {
                     members: None,
                     cairo_type: None,
                     size: None,
+                    destination: None,
                 },
             )]
             .into_iter()
@@ -4626,6 +4628,7 @@ mod tests {
                         members: None,
                         cairo_type: None,
                         size: None,
+                        destination: None,
                     },
                 ),
                 (
@@ -4638,6 +4641,7 @@ mod tests {
                         members: None,
                         cairo_type: None,
                         size: None,
+                        destination: None,
                     },
                 ),
             ]
@@ -4668,6 +4672,7 @@ mod tests {
                     members: None,
                     cairo_type: None,
                     size: None,
+                    destination: None,
                 },
             )]
             .into_iter()
