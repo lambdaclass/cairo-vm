@@ -7,7 +7,7 @@ use crate::{
     types::relocatable::Relocatable,
 };
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::{
     hint_processor::hint_processor_utils::get_maybe_relocatable_from_reference,

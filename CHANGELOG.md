@@ -4,6 +4,30 @@
 
 * dev: make `BuiltinRunner::included` public [#1989](https://github.com/lambdaclass/cairo-vm/pull/1989)
 
+* feat: add get_current_step getter [#2034](https://github.com/lambdaclass/cairo-vm/pull/2034)
+
+* feat: implement VirtualMachine::is_accessed [#2033](https://github.com/lambdaclass/cairo-vm/pull/2033)
+
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
+
+* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
+
+* refactor: Clap attribute macros from #[clap(...)] to #[arg(...)] and #[command(...)] in v4.x [#2003] (https://github.com/lambdaclass/cairo-vm/pull/2003)
+
+* fix: Fix `WriteReturnFp` error due to a bad loading of initial gas [#2015](https://github.com/lambdaclass/cairo-vm/pull/2015)
+
+* refactor: Replaces security anyhow errors with enum variants [#1946](https://github.com/lambdaclass/cairo-vm/pull/1946)
+
+* fix: `mod_builtin_fill_memory` could be stuck in an infinite loop [#1975](https://github.com/lambdaclass/cairo-vm/issues/1975)
+
+* feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
+
+* feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+#### [2.0.1] - 2025-03-17
+
 * feat: Limited padding of builtin segments to >=16 [#1981](https://github.com/lambdaclass/cairo-vm/pull/1981)
 
 * fix: Enforce `disable_trace_padding` used only in `proof_mode` [#1984](https://github.com/lambdaclass/cairo-vm/pull/1984)
