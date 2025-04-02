@@ -5434,16 +5434,6 @@ mod tests {
         );
     }
 
-    /// Returns the current execution state of the virtual machine
-    /// 
-    /// This function gathers all essential components of the VM state, including  
-    /// the current registers (pc, ap, fp), execution step information, and
-    /// active built-in functions.
-    /// 
-    /// # Return Value
-    /// 
-    /// `ExecutionState` is a structure containing the current state of the VM
-    #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_state_test() {
         let mut vm = vm!();
