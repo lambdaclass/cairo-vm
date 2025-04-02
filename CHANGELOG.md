@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add ExecutionState structure and get_execution_state method [#2043](https://github.com/lambdaclass/cairo-vm/pull/2043)
+
 * feat: add get_current_step getter [#2034](https://github.com/lambdaclass/cairo-vm/pull/2034)
 
 * feat: implement VirtualMachine::is_accessed [#2033](https://github.com/lambdaclass/cairo-vm/pull/2033)

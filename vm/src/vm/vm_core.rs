@@ -103,6 +103,25 @@ pub struct VirtualMachine {
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
+/// Structure for storing the execution state of a virtual machine
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExecutionState {
+    /// Current program counter (Program Counter)
+    pub pc: Relocatable,
+    /// Current allocation pointer (Allocation Pointer)
+    pub ap: usize,
+    /// Current frame pointer (Frame Pointer)
+    pub fp: usize,
+    /// Current execution step
+    pub current_step: usize,
+    /// Whether execution is finished
+    pub run_finished: bool,
+    /// Number of memory segments
+    pub memory_segments_count: usize,
+    /// Information about active built-ins
+    pub active_builtins: Vec<String>,
+}
+
 impl VirtualMachine {
     pub fn new(trace_enabled: bool, disable_trace_padding: bool) -> VirtualMachine {
         let run_context = RunContext {
@@ -1247,6 +1266,30 @@ impl VirtualMachine {
         for info in segment_infos {
             self.segments
                 .finalize(Some(info.size), info.index as usize, None)
+        }
+    }
+
+    /// Returns the current execution state of the virtual machine
+    /// 
+    /// This function gathers all important components of the VM state, including
+    /// the current registers (pc, ap, fp), execution step information, and 
+    /// active built-in functions.
+    /// 
+    /// # Return value
+    /// 
+    /// `ExecutionState` structure containing the current VM state
+    pub fn get_execution_state(&self) -> ExecutionState {
+        ExecutionState {
+            pc: self.run_context.pc,
+            ap: self.run_context.ap,
+            fp: self.run_context.fp,
+            current_step: self.current_step,
+            run_finished: self.run_finished,
+            memory_segments_count: self.segments.num_segments(),
+            active_builtins: self.builtin_runners
+                .iter()
+                .map(|runner| runner.name().to_string())
+                .collect(),
         }
     }
 }
@@ -5389,5 +5432,30 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(6)
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_execution_state_test() {
+        let mut vm = vm!();
+        vm.run_context.ap = 1;
+        vm.run_context.fp = 2;
+        vm.run_context.pc = Relocatable::from((3, 4));
+        vm.current_step = 5;
+        vm.run_finished = true;
+        vm.builtin_runners.push(BuiltinRunner::from(HashBuiltinRunner::new(
+            Some(12),
+            true,
+        )));
+        vm.segments.segment_used_sizes = Some(vec![1]);
+
+        let execution_state = vm.get_execution_state();
+        assert_eq!(execution_state.pc, Relocatable::from((3, 4)));
+        assert_eq!(execution_state.ap, 1);
+        assert_eq!(execution_state.fp, 2);
+        assert_eq!(execution_state.current_step, 5);
+        assert_eq!(execution_state.run_finished, true);
+        assert_eq!(execution_state.memory_segments_count, 1);
+        assert_eq!(execution_state.active_builtins, vec!["pedersen".to_string()]);
     }
 }
