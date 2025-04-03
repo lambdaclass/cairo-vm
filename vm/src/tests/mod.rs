@@ -327,3 +327,8 @@ fn get_casm_contract_builtins(
         .map(|s| BuiltinName::from_str(s).expect("Invalid builtin name"))
         .collect()
 }
+
+#[test]
+fn will_fail() {
+    panic!("will panic!");
+}
