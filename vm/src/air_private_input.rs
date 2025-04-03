@@ -7,7 +7,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use starknet_types_core::felt::Felt;
+use crate::Felt;
 
 // Serializable format, matches the file output of the python implementation
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
