@@ -2,7 +2,7 @@ use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
-use crate::Felt252;
+use starknet_types_core::felt::Felt;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
@@ -100,7 +100,7 @@ impl From<MemoryCell> for MaybeRelocatable {
                 let mut value = cell.0;
                 // Remove all flag bits
                 value[0] &= 0x0fffffffffffffff;
-                Self::Int(Felt252::from_raw(value))
+                Self::Int(Felt::from_raw(value))
             }
         }
     }
@@ -408,14 +408,12 @@ impl Memory {
 
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
-        match self
-            .get(&key)
-            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
-        {
-            Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
-            Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
-            _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
+        match self.get(&key) {
+            Some(Cow::Borrowed(MaybeRelocatable::Int(num))) => Ok(Cow::Borrowed(num)),
+            Some(Cow::Owned(MaybeRelocatable::Int(num))) => Ok(Cow::Owned(num)),
+            Some(_) => Err(MemoryError::ExpectedInteger(Box::new(key))),
+            None => Err(MemoryError::UnknownMemoryCell(Box::new(key))),
         }
     }
 
@@ -424,15 +422,15 @@ impl Memory {
     pub fn get_u32(&self, key: Relocatable) -> Result<u32, MemoryError> {
         let felt = self.get_integer(key)?.into_owned();
         felt.to_u32()
-            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToU32Conversion(Box::new(felt))))
+            .ok_or_else(|| MemoryError::Math(MathError::FeltToU32Conversion(Box::new(felt))))
     }
 
     /// Gets the value from memory address as a usize.
-    /// Returns an Error if the value at the memory address is missing not a Felt252, or can't be converted to usize.
+    /// Returns an Error if the value at the memory address is missing not a Felt, or can't be converted to usize.
     pub fn get_usize(&self, key: Relocatable) -> Result<usize, MemoryError> {
         let felt = self.get_integer(key)?.into_owned();
         felt.to_usize()
-            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToUsizeConversion(Box::new(felt))))
+            .ok_or_else(|| MemoryError::Math(MathError::FeltToUsizeConversion(Box::new(felt))))
     }
 
     /// Gets the value from memory address as a Relocatable value.
@@ -626,11 +624,18 @@ impl Memory {
         &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
-        let mut values = Vec::new();
+    ) -> Result<Vec<Cow<Felt>>, MemoryError> {
+        let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            values.push(self.get_integer((addr + i)?)?);
+            let value = match self.get(&(addr + i)?) {
+                Some(Cow::Borrowed(MaybeRelocatable::Int(num))) => Cow::Borrowed(num),
+                Some(Cow::Owned(MaybeRelocatable::Int(num))) => Cow::Owned(num),
+                Some(_) => return Err(MemoryError::ExpectedInteger(Box::new((addr + i)?))),
+                None => return Err(MemoryError::UnknownMemoryCell(Box::new((addr + i)?))),
+            };
+
+            values.push(value);
         }
 
         Ok(values)
@@ -785,8 +790,8 @@ impl RelocateValue<'_, Relocatable, MaybeRelocatable> for Memory {
     }
 }
 
-impl<'a> RelocateValue<'a, &'a Felt252, &'a Felt252> for Memory {
-    fn relocate_value(&self, value: &'a Felt252) -> Result<&'a Felt252, MemoryError> {
+impl<'a> RelocateValue<'a, &'a Felt, &'a Felt> for Memory {
+    fn relocate_value(&self, value: &'a Felt) -> Result<&'a Felt, MemoryError> {
         Ok(value)
     }
 }
@@ -844,13 +849,13 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_succesful() {
         let key = Relocatable::from((0, 0));
-        let val = MaybeRelocatable::from(Felt252::from(5_u64));
+        let val = MaybeRelocatable::from(Felt::from(5_u64));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt252::from(5_u64))
+            &MaybeRelocatable::from(Felt::from(5_u64))
         );
     }
 
@@ -873,13 +878,13 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_value_in_temp_segment() {
         let key = Relocatable::from((-1, 3));
-        let val = MaybeRelocatable::from(Felt252::from(8_u64));
+        let val = MaybeRelocatable::from(Felt::from(8_u64));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
         memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.temp_data[0][3],
-            MemoryCell::new(MaybeRelocatable::from(Felt252::from(8_u64)))
+            MemoryCell::new(MaybeRelocatable::from(Felt::from(8_u64)))
         );
     }
 
@@ -887,13 +892,13 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_and_get_from_temp_segment_succesful() {
         let key = Relocatable::from((-1, 0));
-        let val = MaybeRelocatable::from(Felt252::from(5_u64));
+        let val = MaybeRelocatable::from(Felt::from(5_u64));
         let mut memory = Memory::new();
         memory.temp_data.push(Vec::new());
         memory.insert(key, &val).unwrap();
         assert_eq!(
             memory.get(&key).unwrap().as_ref(),
-            &MaybeRelocatable::from(Felt252::from(5_u64)),
+            &MaybeRelocatable::from(Felt::from(5_u64)),
         );
     }
 
@@ -936,7 +941,7 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_non_allocated_memory() {
         let key = Relocatable::from((0, 0));
-        let val = MaybeRelocatable::from(Felt252::from(5_u64));
+        let val = MaybeRelocatable::from(Felt::from(5_u64));
         let mut memory = Memory::new();
         let error = memory.insert(key, &val);
         assert_eq!(
@@ -949,8 +954,8 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_inconsistent_memory() {
         let key = Relocatable::from((0, 0));
-        let val_a = MaybeRelocatable::from(Felt252::from(5_u64));
-        let val_b = MaybeRelocatable::from(Felt252::from(6_u64));
+        let val_a = MaybeRelocatable::from(Felt::from(5_u64));
+        let val_b = MaybeRelocatable::from(Felt::from(6_u64));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory
@@ -970,7 +975,7 @@ mod memory_tests {
     fn insert_non_contiguous_element() {
         let key_a = Relocatable::from((0, 0));
         let key_b = Relocatable::from((0, 2));
-        let val = MaybeRelocatable::from(Felt252::from(5_u64));
+        let val = MaybeRelocatable::from(Felt::from(5_u64));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(key_a, &val).unwrap();
@@ -983,7 +988,7 @@ mod memory_tests {
     fn insert_non_contiguous_element_memory_gaps_none() {
         let key_a = Relocatable::from((0, 0));
         let key_b = Relocatable::from((0, 5));
-        let val = MaybeRelocatable::from(Felt252::from(5_u64));
+        let val = MaybeRelocatable::from(Felt::from(5_u64));
         let mut memory = Memory::new();
         memory.data.push(Vec::new());
         memory.insert(key_a, &val).unwrap();
@@ -1010,7 +1015,7 @@ mod memory_tests {
             .memory
             .insert(
                 Relocatable::from((0, 0)),
-                &MaybeRelocatable::from(Felt252::from(45_u64)),
+                &MaybeRelocatable::from(Felt::from(45_u64)),
             )
             .unwrap();
         segments.memory.validate_existing_memory().unwrap();
@@ -1031,7 +1036,7 @@ mod memory_tests {
             .memory
             .insert(
                 Relocatable::from((1, 0)),
-                &MaybeRelocatable::from(Felt252::from(-10)),
+                &MaybeRelocatable::from(Felt::from(-10)),
             )
             .unwrap();
         builtin.add_validation_rule(&mut segments.memory);
@@ -1039,8 +1044,8 @@ mod memory_tests {
         assert_eq!(
             error,
             Err(MemoryError::RangeCheckNumOutOfBounds(Box::new((
-                Felt252::from(-10),
-                Felt252::TWO.pow(128_u128)
+                Felt::from(-10),
+                Felt::TWO.pow(128_u64)
             ))))
         );
     }
@@ -1140,7 +1145,7 @@ mod memory_tests {
             .memory
             .insert(
                 Relocatable::from((0, 0)),
-                &MaybeRelocatable::from(Felt252::from(-45_i128)),
+                &MaybeRelocatable::from(Felt::from(-45_i128)),
             )
             .unwrap();
         builtin.add_validation_rule(&mut segments.memory);
@@ -1156,7 +1161,7 @@ mod memory_tests {
                 .get_integer(Relocatable::from((0, 0)))
                 .unwrap()
                 .as_ref(),
-            &Felt252::from(10)
+            &Felt::from(10)
         );
     }
 
@@ -1184,13 +1189,13 @@ mod memory_tests {
         segments.add();
         segments
             .memory
-            .insert(Relocatable::from((0, 0)), &Felt252::from(1_u64 << 32))
+            .insert(Relocatable::from((0, 0)), &Felt::from(1_u64 << 32))
             .unwrap();
         assert_matches!(
             segments.memory.get_u32(Relocatable::from((0, 0))),
-            Err(MemoryError::Math(MathError::Felt252ToU32Conversion(
+            Err(MemoryError::Math(MathError::FeltToU32Conversion(
                 bx
-            ))) if *bx == Felt252::from(1_u64 << 32)
+            ))) if *bx == Felt::from(1_u64 << 32)
         );
     }
 
@@ -1208,7 +1213,7 @@ mod memory_tests {
         memory.temp_data.push(Vec::new());
 
         let key = Relocatable::from((-1, 0));
-        let val = MaybeRelocatable::from(Felt252::from(5));
+        let val = MaybeRelocatable::from(Felt::from(5));
         memory.insert(key, &val).unwrap();
 
         assert_eq!(memory.get(&key).unwrap().as_ref(), &val);
@@ -1255,9 +1260,9 @@ mod memory_tests {
         // Test when value is Some(BigInt):
         assert_eq!(
             memory
-                .relocate_value(&MaybeRelocatable::Int(Felt252::from(0)))
+                .relocate_value(&MaybeRelocatable::Int(Felt::from(0)))
                 .unwrap(),
-            Cow::Owned(MaybeRelocatable::Int(Felt252::from(0))),
+            Cow::Owned(MaybeRelocatable::Int(Felt::from(0))),
         );
     }
 
@@ -1352,9 +1357,9 @@ mod memory_tests {
     fn get_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::from(2));
-        let value2 = MaybeRelocatable::from(Felt252::from(3));
-        let value3 = MaybeRelocatable::from(Felt252::from(4));
+        let value1 = MaybeRelocatable::from(Felt::from(2));
+        let value2 = MaybeRelocatable::from(Felt::from(3));
+        let value3 = MaybeRelocatable::from(Felt::from(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -1369,9 +1374,9 @@ mod memory_tests {
     fn get_range_for_non_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 3), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::from(2));
-        let value2 = MaybeRelocatable::from(Felt252::from(3));
-        let value3 = MaybeRelocatable::from(Felt252::from(4));
+        let value1 = MaybeRelocatable::from(Felt::from(2));
+        let value2 = MaybeRelocatable::from(Felt::from(3));
+        let value3 = MaybeRelocatable::from(Felt::from(4));
 
         let expected_vec = vec![
             Some(Cow::Borrowed(&value1)),
@@ -1387,9 +1392,9 @@ mod memory_tests {
     fn get_continuous_range_for_continuous_memory() {
         let memory = memory![((1, 0), 2), ((1, 1), 3), ((1, 2), 4)];
 
-        let value1 = MaybeRelocatable::from(Felt252::from(2));
-        let value2 = MaybeRelocatable::from(Felt252::from(3));
-        let value3 = MaybeRelocatable::from(Felt252::from(4));
+        let value1 = MaybeRelocatable::from(Felt::from(2));
+        let value2 = MaybeRelocatable::from(Felt::from(3));
+        let value3 = MaybeRelocatable::from(Felt::from(4));
 
         let expected_vec = vec![value1, value2, value3];
         assert_eq!(
@@ -1428,7 +1433,7 @@ mod memory_tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_u32_range_over_32_bits() {
         let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967296), ((0, 3), 3)];
-        assert_matches!(memory.get_u32_range((0, 1).into(), 2), Err(MemoryError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt252::from(4294967296_u64));
+        assert_matches!(memory.get_u32_range((0, 1).into(), 2), Err(MemoryError::Math(MathError::FeltToU32Conversion(bx))) if *bx == Felt::from(4294967296_u64));
     }
 
     #[test]
@@ -1929,14 +1934,14 @@ mod memory_tests {
     #[test]
     fn insert_alloc_fails_gracefully() {
         let mut mem = memory![((0, 0), 1)];
-        let err = mem.insert((0, usize::MAX >> 1).into(), Felt252::ONE);
+        let err = mem.insert((0, usize::MAX >> 1).into(), Felt::ONE);
         assert_eq!(err, Err(MemoryError::VecCapacityExceeded));
     }
 
     #[test]
     fn insert_overflow_fails_gracefully() {
         let mut mem = memory![((0, 0), 1)];
-        let err = mem.insert((0, usize::MAX).into(), Felt252::ONE);
+        let err = mem.insert((0, usize::MAX).into(), Felt::ONE);
         assert_eq!(err, Err(MemoryError::VecCapacityExceeded));
     }
 
