@@ -7,7 +7,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::Felt252;
+use starknet_types_core::felt::Felt;
 
 // Serializable format, matches the file output of the python implementation
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -55,59 +55,59 @@ pub enum PrivateInput {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputValue {
     pub index: usize,
-    pub value: Felt252,
+    pub value: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputPair {
     pub index: usize,
-    pub x: Felt252,
-    pub y: Felt252,
+    pub x: Felt,
+    pub y: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputEcOp {
     pub index: usize,
-    pub p_x: Felt252,
-    pub p_y: Felt252,
-    pub m: Felt252,
-    pub q_x: Felt252,
-    pub q_y: Felt252,
+    pub p_x: Felt,
+    pub p_y: Felt,
+    pub m: Felt,
+    pub q_x: Felt,
+    pub q_y: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputPoseidonState {
     pub index: usize,
-    pub input_s0: Felt252,
-    pub input_s1: Felt252,
-    pub input_s2: Felt252,
+    pub input_s0: Felt,
+    pub input_s1: Felt,
+    pub input_s2: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputKeccakState {
     pub index: usize,
-    pub input_s0: Felt252,
-    pub input_s1: Felt252,
-    pub input_s2: Felt252,
-    pub input_s3: Felt252,
-    pub input_s4: Felt252,
-    pub input_s5: Felt252,
-    pub input_s6: Felt252,
-    pub input_s7: Felt252,
+    pub input_s0: Felt,
+    pub input_s1: Felt,
+    pub input_s2: Felt,
+    pub input_s3: Felt,
+    pub input_s4: Felt,
+    pub input_s5: Felt,
+    pub input_s6: Felt,
+    pub input_s7: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrivateInputSignature {
     pub index: usize,
-    pub pubkey: Felt252,
-    pub msg: Felt252,
+    pub pubkey: Felt,
+    pub msg: Felt,
     pub signature_input: SignatureInput,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SignatureInput {
-    pub r: Felt252,
-    pub w: Felt252,
+    pub r: Felt,
+    pub w: Felt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -119,10 +119,10 @@ pub struct ModInput {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInputInstance {
     pub index: usize,
-    pub p0: Felt252,
-    pub p1: Felt252,
-    pub p2: Felt252,
-    pub p3: Felt252,
+    pub p0: Felt,
+    pub p1: Felt,
+    pub p2: Felt,
+    pub p3: Felt,
     pub values_ptr: usize,
     pub offsets_ptr: usize,
     pub n: usize,
@@ -134,20 +134,20 @@ pub struct ModInputInstance {
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct ModInputMemoryVars {
     pub a_offset: usize,
-    pub a0: Felt252,
-    pub a1: Felt252,
-    pub a2: Felt252,
-    pub a3: Felt252,
+    pub a0: Felt,
+    pub a1: Felt,
+    pub a2: Felt,
+    pub a3: Felt,
     pub b_offset: usize,
-    pub b0: Felt252,
-    pub b1: Felt252,
-    pub b2: Felt252,
-    pub b3: Felt252,
+    pub b0: Felt,
+    pub b1: Felt,
+    pub b2: Felt,
+    pub b3: Felt,
     pub c_offset: usize,
-    pub c0: Felt252,
-    pub c1: Felt252,
-    pub c2: Felt252,
-    pub c3: Felt252,
+    pub c0: Felt,
+    pub c1: Felt,
+    pub c2: Felt,
+    pub c3: Felt,
 }
 
 impl AirPrivateInput {
@@ -239,18 +239,18 @@ mod mod_input_instance_batch_serde {
                     a_offset: 5,
                     b_offset: 5,
                     c_offset: 5,
-                    a0: Felt252::from(5u32),
-                    a1: Felt252::from(5u32),
-                    a2: Felt252::from(5u32),
-                    a3: Felt252::from(5u32),
-                    b0: Felt252::from(5u32),
-                    b1: Felt252::from(5u32),
-                    b2: Felt252::from(5u32),
-                    b3: Felt252::from(5u32),
-                    c0: Felt252::from(5u32),
-                    c1: Felt252::from(5u32),
-                    c2: Felt252::from(5u32),
-                    c3: Felt252::from(5u32),
+                    a0: Felt::from(5u32),
+                    a1: Felt::from(5u32),
+                    a2: Felt::from(5u32),
+                    a3: Felt::from(5u32),
+                    b0: Felt::from(5u32),
+                    b1: Felt::from(5u32),
+                    b2: Felt::from(5u32),
+                    b3: Felt::from(5u32),
+                    c0: Felt::from(5u32),
+                    c1: Felt::from(5u32),
+                    c2: Felt::from(5u32),
+                    c3: Felt::from(5u32),
                 },
             ),
             (
@@ -259,18 +259,18 @@ mod mod_input_instance_batch_serde {
                     a_offset: 7,
                     b_offset: 7,
                     c_offset: 7,
-                    a0: Felt252::from(7u32),
-                    a1: Felt252::from(7u32),
-                    a2: Felt252::from(7u32),
-                    a3: Felt252::from(7u32),
-                    b0: Felt252::from(7u32),
-                    b1: Felt252::from(7u32),
-                    b2: Felt252::from(7u32),
-                    b3: Felt252::from(7u32),
-                    c0: Felt252::from(7u32),
-                    c1: Felt252::from(7u32),
-                    c2: Felt252::from(7u32),
-                    c3: Felt252::from(7u32),
+                    a0: Felt::from(7u32),
+                    a1: Felt::from(7u32),
+                    a2: Felt::from(7u32),
+                    a3: Felt::from(7u32),
+                    b0: Felt::from(7u32),
+                    b1: Felt::from(7u32),
+                    b2: Felt::from(7u32),
+                    b3: Felt::from(7u32),
+                    c0: Felt::from(7u32),
+                    c1: Felt::from(7u32),
+                    c2: Felt::from(7u32),
+                    c3: Felt::from(7u32),
                 },
             ),
         ]
@@ -310,56 +310,56 @@ mod tests {
             memory_path: "memory.bin".to_string(),
             pedersen: Some(vec![PrivateInput::Pair(PrivateInputPair {
                 index: 0,
-                x: Felt252::from(100),
-                y: Felt252::from(200),
+                x: Felt::from(100),
+                y: Felt::from(200),
             })]),
             range_check: Some(vec![PrivateInput::Value(PrivateInputValue {
                 index: 10000,
-                value: Felt252::from(8000),
+                value: Felt::from(8000),
             })]),
             range_check96: Some(vec![PrivateInput::Value(PrivateInputValue {
                 index: 10000,
-                value: Felt252::from(8000),
+                value: Felt::from(8000),
             })]),
             ecdsa: Some(vec![PrivateInput::Signature(PrivateInputSignature {
                 index: 0,
-                pubkey: Felt252::from(123),
-                msg: Felt252::from(456),
+                pubkey: Felt::from(123),
+                msg: Felt::from(456),
                 signature_input: SignatureInput {
-                    r: Felt252::from(654),
-                    w: Felt252::from(321),
+                    r: Felt::from(654),
+                    w: Felt::from(321),
                 },
             })]),
             bitwise: Some(vec![PrivateInput::Pair(PrivateInputPair {
                 index: 4,
-                x: Felt252::from(7),
-                y: Felt252::from(8),
+                x: Felt::from(7),
+                y: Felt::from(8),
             })]),
             ec_op: Some(vec![PrivateInput::EcOp(PrivateInputEcOp {
                 index: 1,
-                p_x: Felt252::from(10),
-                p_y: Felt252::from(10),
-                m: Felt252::from(100),
-                q_x: Felt252::from(11),
-                q_y: Felt252::from(14),
+                p_x: Felt::from(10),
+                p_y: Felt::from(10),
+                m: Felt::from(100),
+                q_x: Felt::from(11),
+                q_y: Felt::from(14),
             })]),
             keccak: Some(vec![PrivateInput::KeccakState(PrivateInputKeccakState {
                 index: 0,
-                input_s0: Felt252::from(0),
-                input_s1: Felt252::from(1),
-                input_s2: Felt252::from(2),
-                input_s3: Felt252::from(3),
-                input_s4: Felt252::from(4),
-                input_s5: Felt252::from(5),
-                input_s6: Felt252::from(6),
-                input_s7: Felt252::from(7),
+                input_s0: Felt::from(0),
+                input_s1: Felt::from(1),
+                input_s2: Felt::from(2),
+                input_s3: Felt::from(3),
+                input_s4: Felt::from(4),
+                input_s5: Felt::from(5),
+                input_s6: Felt::from(6),
+                input_s7: Felt::from(7),
             })]),
             poseidon: Some(vec![PrivateInput::PoseidonState(
                 PrivateInputPoseidonState {
                     index: 42,
-                    input_s0: Felt252::from(1),
-                    input_s1: Felt252::from(2),
-                    input_s2: Felt252::from(3),
+                    input_s0: Felt::from(1),
+                    input_s1: Felt::from(2),
+                    input_s2: Felt::from(3),
                 },
             )]),
             add_mod: None,
