@@ -296,13 +296,15 @@ pub fn vm_load_program(
     let hint_ap_tracking_data = ApTracking::default();
     let reference_ids = HashMap::default();
     let references = vec![];
-    let accessible_scopes = vec!["__main__", "__main__.get_number"];
+    let accessible_scopes = vec![
+        String::from("__main__"),
+        String::from("__main__.get_number"),
+    ];
     // Compile the hint
     let compiled_hint = hint_processor.compile_hint(
         hint_code,
         &hint_ap_tracking_data,
-        &reference_ids,
-        &references,
+        &reference_ids & references,
         &accessible_scopes,
     )?;
     // Create the hint extension
