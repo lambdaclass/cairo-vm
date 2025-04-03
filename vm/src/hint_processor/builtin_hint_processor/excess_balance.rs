@@ -9,7 +9,7 @@ use core::str::FromStr;
 
 use num_bigint::{BigInt, BigUint};
 use rust_decimal::Decimal;
-use starknet_types_core::felt::Felt;
+use crate::Felt;
 
 use crate::{
     math_utils::{isqrt, signed_felt},
@@ -35,11 +35,11 @@ lazy_static! {
     static ref DECIMAL_ADJUSTMENT_HALVED: Decimal = Decimal::from_scientific("1e-4").unwrap();
 }
 
-fn felt_to_scaled_decimal(f: &Felt252) -> Option<Decimal> {
+fn felt_to_scaled_decimal(f: &Felt) -> Option<Decimal> {
     Some(Decimal::from_str_radix(&signed_felt(*f).to_string(), 10).ok()? * *DECIMAL_ADJUSTMENT)
 }
 
-fn felt_to_trimmed_str(f: &Felt252) -> Option<String> {
+fn felt_to_trimmed_str(f: &Felt) -> Option<String> {
     Some(
         core::str::from_utf8(&f.to_bytes_be())
             .ok()?
@@ -217,13 +217,13 @@ fn fees_dict(
     dict_manager: &DictManager,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-) -> Option<HashMap<Felt252, Decimal>> {
+) -> Option<HashMap<Felt, Decimal>> {
     // Fetch dictionary
     let fees = dict_ref_from_var_name("fees_cache_ptr", vm, dict_manager, ids_data, ap_tracking)?;
 
     // Apply data type conversions
     let apply_conversion =
-        |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<(Felt252, Decimal)> {
+        |k: &MaybeRelocatable, v: &MaybeRelocatable| -> Option<(Felt, Decimal)> {
             Some((k.get_int()?, felt_to_scaled_decimal(v.get_int_ref()?)?))
         };
 
@@ -262,7 +262,7 @@ pub fn excess_balance_hint(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    constants: &HashMap<String, Felt>,
     exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     // Fetch constants & variables
@@ -388,8 +388,8 @@ pub fn excess_balance_hint(
         .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("excess_balance".into()))?;
 
     // Convert final results to Felt
-    let felt_from_decimal = |d: Decimal| -> Option<Felt252> {
-        Some(Felt252::from(
+    let felt_from_decimal = |d: Decimal| -> Option<Felt> {
+        Some(Felt::from(
             BigInt::from_str(
                 &(d.checked_mul(*DECIMAL_ADJUSTMENT_POSITIVE)?)
                     .trunc()
@@ -593,7 +593,7 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt::ONE)]);
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),                // ids.margin_check_type
@@ -732,23 +732,23 @@ mod tests {
                 HashMap::from([
                     (
                         felt_str!("6044027408028715819619898970704").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("25783120691025710696626475600").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("5176525270854594879110454268496").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("21456356293159021401772216912").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("20527877651862571847371805264").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                 ]),
             )
@@ -786,8 +786,8 @@ mod tests {
             .new_dict(
                 &mut vm,
                 HashMap::from([
-                    (Felt252::from(100).into(), Felt252::from(10000).into()),
-                    (Felt252::from(200).into(), Felt252::from(10000).into()),
+                    (Felt::from(100).into(), Felt::from(10000).into()),
+                    (Felt::from(200).into(), Felt::from(10000).into()),
                 ]),
             )
             .unwrap();
@@ -935,7 +935,7 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt::ONE)]);
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),      // ids.margin_check_type
@@ -1098,23 +1098,23 @@ mod tests {
                 HashMap::from([
                     (
                         felt_str!("6044027408028715819619898970704").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("25783120691025710696626475600").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("5176525270854594879110454268496").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("21456356293159021401772216912").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                     (
                         felt_str!("20527877651862571847371805264").into(),
-                        Felt252::ZERO.into(),
+                        Felt::ZERO.into(),
                     ),
                 ]),
             )
@@ -1152,8 +1152,8 @@ mod tests {
             .new_dict(
                 &mut vm,
                 HashMap::from([
-                    (Felt252::from(100).into(), Felt252::from(10000).into()),
-                    (Felt252::from(200).into(), Felt252::from(10000).into()),
+                    (Felt::from(100).into(), Felt::from(10000).into()),
+                    (Felt::from(200).into(), Felt::from(10000).into()),
                 ]),
             )
             .unwrap();
