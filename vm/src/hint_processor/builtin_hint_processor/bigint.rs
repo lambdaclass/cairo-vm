@@ -4,7 +4,7 @@ use crate::math_utils::{div_mod, safe_div_bigint, signed_felt};
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
-use starknet_types_core::felt::Felt;
+use crate::Felt;
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::bigint_utils::BigInt3,
