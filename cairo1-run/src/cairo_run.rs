@@ -1593,7 +1593,7 @@ mod tests {
             .and_then(|rt| {
                 rt.debug_name
                     .as_ref()
-                    .map(|n| n.as_ref().starts_with("core::panics::PanicResult::"))
+                    .map(|n| n.as_str().starts_with("core::panics::PanicResult::"))
             })
             .unwrap_or_default()
     }
