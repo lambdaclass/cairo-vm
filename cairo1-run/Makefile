@@ -13,7 +13,7 @@ TRACES:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.trace, $(CAIRO
 MEMORY:=$(patsubst $(CAIRO_1_FOLDER)/%.cairo, $(CAIRO_1_FOLDER)/%.memory, $(CAIRO_1_PROGRAMS))
 
 deps:
-	git clone --depth=1 -b v2.10.0-rc.0 https://github.com/starkware-libs/cairo.git \
+	git clone --depth=1 -b v2.12.0-dev.0 https://github.com/starkware-libs/cairo.git \
 	&& mv cairo/corelib/ . \
 	&& rm -rf cairo/
 
