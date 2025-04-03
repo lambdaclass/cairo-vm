@@ -9,7 +9,7 @@ use core::str::FromStr;
 
 use num_bigint::{BigInt, BigUint};
 use rust_decimal::Decimal;
-use starknet_types_core::felt::Felt as Felt252;
+use starknet_types_core::felt::Felt;
 
 use crate::{
     math_utils::{isqrt, signed_felt},
