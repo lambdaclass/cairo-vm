@@ -1,6 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
-use crate::Felt252;
+use crate::Felt;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
@@ -23,13 +23,13 @@ use num_traits::ToPrimitive;
 
 fn get_access_indices(
     exec_scopes: &mut ExecutionScopes,
-) -> Result<&HashMap<Felt252, Vec<Felt252>>, HintError> {
-    let mut access_indices: Option<&HashMap<Felt252, Vec<Felt252>>> = None;
+) -> Result<&HashMap<Felt, Vec<Felt>>, HintError> {
+    let mut access_indices: Option<&HashMap<Felt, Vec<Felt>>> = None;
     if let Some(variable) = exec_scopes
         .get_local_variables_mut()?
         .get_mut("access_indices")
     {
-        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<Felt252, Vec<Felt252>>>() {
+        if let Some(py_access_indices) = variable.downcast_mut::<HashMap<Felt, Vec<Felt>>>() {
             access_indices = Some(py_access_indices);
         }
     }
@@ -50,7 +50,7 @@ pub fn squash_dict_inner_first_iteration(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that access_indices and key are in scope
-    let key = exec_scopes.get::<Felt252>("key")?;
+    let key = exec_scopes.get::<Felt>("key")?;
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Get current_indices from access_indices
@@ -80,12 +80,12 @@ pub fn squash_dict_inner_skip_loop(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let should_skip_loop = if current_access_indices.is_empty() {
-        Felt252::ONE
+        Felt::ONE
     } else {
-        Felt252::ZERO
+        Felt::ZERO
     };
     insert_value_from_var_name(
         "should_skip_loop",
@@ -108,14 +108,14 @@ pub fn squash_dict_inner_check_access_index(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices and current_access_index are in scope
-    let current_access_index = exec_scopes.get::<Felt252>("current_access_index")?;
+    let current_access_index = exec_scopes.get::<Felt>("current_access_index")?;
     let current_access_indices =
-        exec_scopes.get_mut_list_ref::<Felt252>("current_access_indices")?;
+        exec_scopes.get_mut_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let new_access_index = current_access_indices
         .pop()
         .ok_or(HintError::EmptyCurrentAccessIndices)?;
-    let index_delta_minus1 = new_access_index - current_access_index - Felt252::ONE;
+    let index_delta_minus1 = new_access_index - current_access_index - Felt::ONE;
     //loop_temps.delta_minus1 = loop_temps + 0 as it is the first field of the struct
     //Insert loop_temps.delta_minus1 into memory
     insert_value_from_var_name("loop_temps", index_delta_minus1, vm, ids_data, ap_tracking)?;
@@ -135,12 +135,12 @@ pub fn squash_dict_inner_continue_loop(
     //Get addr for ids variables
     let loop_temps_addr = get_relocatable_from_var_name("loop_temps", vm, ids_data, ap_tracking)?;
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     //Main Logic
     let should_continue = if current_access_indices.is_empty() {
-        Felt252::ZERO
+        Felt::ZERO
     } else {
-        Felt252::ONE
+        Felt::ONE
     };
     //loop_temps.delta_minus1 = loop_temps + 3 as it is the fourth field of the struct
     //Insert loop_temps.delta_minus1 into memory
@@ -152,7 +152,7 @@ pub fn squash_dict_inner_continue_loop(
 // Implements Hint: assert len(current_access_indices) == 0
 pub fn squash_dict_inner_len_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
+    let current_access_indices = exec_scopes.get_list_ref::<Felt>("current_access_indices")?;
     if !current_access_indices.is_empty() {
         return Err(HintError::CurrentAccessIndicesNotEmpty);
     }
@@ -166,7 +166,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let key = exec_scopes.get::<Felt252>("key")?;
+    let key = exec_scopes.get::<Felt>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
     let access_indices = get_access_indices(exec_scopes)?;
     //Main Logic
@@ -174,7 +174,7 @@ pub fn squash_dict_inner_used_accesses_assert(
         .get(&key)
         .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key)))?;
 
-    if n_used_accesses.as_ref() != &Felt252::from(access_indices_at_key.len()) {
+    if n_used_accesses.as_ref() != &Felt::from(access_indices_at_key.len()) {
         return Err(HintError::NumUsedAccessesAssertFail(Box::new((
             n_used_accesses,
             access_indices_at_key.len(),
@@ -189,7 +189,7 @@ pub fn squash_dict_inner_assert_len_keys(
     exec_scopes: &mut ExecutionScopes,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_list_ref::<Felt252>("keys")?;
+    let keys = exec_scopes.get_list_ref::<Felt>("keys")?;
     if !keys.is_empty() {
         return Err(HintError::KeysNotEmpty);
     };
@@ -206,7 +206,7 @@ pub fn squash_dict_inner_next_key(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
-    let keys = exec_scopes.get_mut_list_ref::<Felt252>("keys")?;
+    let keys = exec_scopes.get_mut_list_ref::<Felt>("keys")?;
     let next_key = keys.pop().ok_or(HintError::EmptyKeys)?;
     //Insert next_key into ids.next_keys
     insert_value_from_var_name("next_key", next_key, vm, ids_data, ap_tracking)?;
@@ -255,7 +255,7 @@ pub fn squash_dict(
     if ptr_diff % DICT_ACCESS_SIZE != 0 {
         return Err(HintError::PtrDiffNotDivisibleByDictAccessSize);
     }
-    let squash_dict_max_size = exec_scopes.get::<Felt252>("__squash_dict_max_size");
+    let squash_dict_max_size = exec_scopes.get::<Felt>("__squash_dict_max_size");
     if let Ok(max_size) = squash_dict_max_size {
         if n_accesses.as_ref() > &max_size {
             return Err(HintError::SquashDictMaxSizeExceeded(Box::new((
@@ -267,7 +267,7 @@ pub fn squash_dict(
         .to_usize()
         .ok_or_else(|| HintError::NAccessesTooBig(Box::new(n_accesses)))?;
     //A map from key to the list of indices accessing it.
-    let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
+    let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
     for i in 0..n_accesses_usize {
         let key_addr = (address + DICT_ACCESS_SIZE * i)?;
         let key = vm
@@ -276,17 +276,17 @@ pub fn squash_dict(
         access_indices
             .entry(key.into_owned())
             .or_default()
-            .push(Felt252::from(i));
+            .push(Felt::from(i));
     }
     //Descending list of keys.
-    let mut keys: Vec<Felt252> = access_indices.keys().cloned().collect();
+    let mut keys: Vec<Felt> = access_indices.keys().cloned().collect();
     keys.sort();
     keys.reverse();
     //Are the keys used bigger than the range_check bound.
     let big_keys = if keys[0] >= range_check_bound {
-        Felt252::ONE
+        Felt::ONE
     } else {
-        Felt252::ZERO
+        Felt::ZERO
     };
     insert_value_from_var_name("big_keys", big_keys, vm, ids_data, ap_tracking)?;
     let key = keys.pop().ok_or(HintError::EmptyKeys)?;
@@ -337,8 +337,9 @@ mod tests {
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
-        let mut access_indices = HashMap::<Felt252, Vec<Felt252>>::new();
+        let mut access_indices = HashMap::<Felt, Vec<Felt>>::new();
         let current_accessed_indices = vec![
+            Felt::from(9),
             Felt252::from(9),
             Felt252::from(3),
             Felt252::from(10),
