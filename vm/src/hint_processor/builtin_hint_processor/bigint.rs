@@ -4,7 +4,7 @@ use crate::math_utils::{div_mod, safe_div_bigint, signed_felt};
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
-use crate::Felt252;
+use starknet_types_core::felt::Felt;
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::bigint_utils::BigInt3,
@@ -84,9 +84,9 @@ pub fn bigint_safe_div_hint(
 
     let k = safe_div_bigint(&(res * y - x), &p)?;
     let (value, flag) = if k.is_positive() {
-        (k.clone(), Felt252::ONE)
+        (k.clone(), Felt::ONE)
     } else {
-        (-k.clone(), Felt252::ZERO)
+        (-k.clone(), Felt::ZERO)
     };
 
     exec_scopes.insert_value("k", k);
@@ -217,6 +217,6 @@ mod test {
         check_memory![vm.segments.memory, ((1, 0), 1)];
         // let flag_result = get_integer_from_var_name("flag", vm, ids_data, ap_tracking);
         // assert!(flag_result.is_ok());
-        // assert_eq!(flag_result.unwrap().as_ref(), Felt252::ONE);
+        // assert_eq!(flag_result.unwrap().as_ref(), Felt::ONE);
     }
 }
