@@ -406,14 +406,16 @@ impl Memory {
         Ok(())
     }
 
-    /// Gets the value from memory address as a Felt value.
-    /// Returns an Error if the value at the memory address is missing or not a Felt.
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
-        match self.get(&key) {
-            Some(Cow::Borrowed(MaybeRelocatable::Int(num))) => Ok(Cow::Borrowed(num)),
-            Some(Cow::Owned(MaybeRelocatable::Int(num))) => Ok(Cow::Owned(num)),
-            Some(_) => Err(MemoryError::ExpectedInteger(Box::new(key))),
-            None => Err(MemoryError::UnknownMemoryCell(Box::new(key))),
+    /// Gets the value from memory address as a Felt252 value.
+    /// Returns an Error if the value at the memory address is missing or not a Felt252.
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
+            Cow::Borrowed(MaybeRelocatable::Int(int)) => Ok(Cow::Borrowed(int)),
+            Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
+            _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
         }
     }
 
