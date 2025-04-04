@@ -76,7 +76,7 @@ pub enum VirtualMachineError {
     #[error("Invalid res value: {0}")]
     InvalidRes(u128),
     #[error("Invalid opcode value: {0}")]
-    InvalidOpcode(u64),
+    InvalidOpcode(u128),
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
     InconsistentAutoDeduction(Box<(BuiltinName, MaybeRelocatable, Option<MaybeRelocatable>)>),
     #[error("Expected output builtin to be present")]
