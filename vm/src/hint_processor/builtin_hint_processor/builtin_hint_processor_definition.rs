@@ -11,7 +11,7 @@ use super::{
     mod_circuit::{run_p_mod_circuit, run_p_mod_circuit_with_large_batch_size},
     secp::{
         ec_utils::{
-            compute_doubling_slope_external_consts, compute_slope_and_assing_secp_p,
+            compute_doubling_slope_external_consts, compute_slope_and_assign_secp_p,
             ec_double_assign_new_y, ec_mul_inner, ec_negate_embedded_secp_p,
             ec_negate_import_secp_p, square_slope_minus_xs,
         },
@@ -553,7 +553,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
             ),
-            hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assing_secp_p(
+            hint_code::COMPUTE_SLOPE_V1 => compute_slope_and_assign_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -565,7 +565,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::SQUARE_SLOPE_X_MOD_P => {
                 square_slope_minus_xs(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assing_secp_p(
+            hint_code::COMPUTE_SLOPE_V2 => compute_slope_and_assign_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
@@ -593,7 +593,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 "SECP256R1_P",
             ),
             hint_code::IMPORT_SECP256R1_P => import_secp256r1_p(exec_scopes),
-            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assing_secp_p(
+            hint_code::COMPUTE_SLOPE_WHITELIST => compute_slope_and_assign_secp_p(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,
