@@ -1,9 +1,12 @@
+#[cfg(feature = "cairo-0-secp-hints")]
+use super::secp::cairo0_hints;
 use super::{
     blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
     },
+    excess_balance::excess_balance_hint,
     field_arithmetic::{u256_get_square_root, u384_get_square_root, uint384_div},
     mod_circuit::{run_p_mod_circuit, run_p_mod_circuit_with_large_batch_size},
     secp::{
@@ -866,6 +869,112 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::PRINT_DICT => {
                 print_dict(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::EXCESS_BALANCE => excess_balance_hint(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                exec_scopes,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_Q_MOD_PRIME => cairo0_hints::compute_q_mod_prime(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_IDS_HIGH_LOW => cairo0_hints::compute_ids_high_low(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X => cairo0_hints::secp_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => cairo0_hints::fast_secp_add_assign_new_y(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_VALUE_DIV_MOD => cairo0_hints::compute_value_div_mod(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::GENERATE_NIBBLES => cairo0_hints::generate_nibbles(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::WRITE_NIBBLES_TO_MEM => cairo0_hints::write_nibbles_to_mem(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::IS_ON_CURVE_2 => cairo0_hints::is_on_curve_2(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_R1_GET_POINT_FROM_X => cairo0_hints::r1_get_point_from_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_REDUCE => cairo0_hints::reduce_value(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_REDUCE_X => cairo0_hints::reduce_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-data-availability-hints")]
+            super::kzg_da::WRITE_DIVMOD_SEGMENT => super::kzg_da::write_div_mod_segment(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }

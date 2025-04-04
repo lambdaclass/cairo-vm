@@ -63,6 +63,10 @@ MOD_BUILTIN_TEST_PROOF_DIR=cairo_programs/mod_builtin_feature/proof
 MOD_BUILTIN_TEST_PROOF_FILES:=$(wildcard $(MOD_BUILTIN_TEST_PROOF_DIR)/*.cairo)
 COMPILED_MOD_BUILTIN_PROOF_TESTS:=$(patsubst $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo, $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json, $(MOD_BUILTIN_TEST_PROOF_FILES))
 
+STWO_EXCLUSIVE_DIR=cairo_programs/stwo_exclusive_programs
+STWO_EXCLUSIVE_FILES:=$(wildcard $(STWO_EXCLUSIVE_DIR)/*.cairo)
+COMPILED_STWO_EXCLUSIVE_TESTS:=$(patsubst $(STWO_EXCLUSIVE_DIR)/%.cairo, $(STWO_EXCLUSIVE_DIR)/%.json, $(STWO_EXCLUSIVE_FILES))
+
 $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
@@ -77,6 +81,9 @@ $(PROOF_BENCH_DIR)/%.json: $(PROOF_BENCH_DIR)/%.cairo
 
 $(MOD_BUILTIN_TEST_PROOF_DIR)/%.json: $(MOD_BUILTIN_TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(MOD_BUILTIN_TEST_PROOF_DIR):$(MOD_BUILTIN_TEST_PROOF_DIR)" $< --output $@ --proof_mode
+
+$(STWO_EXCLUSIVE_DIR)/%.json: $(STWO_EXCLUSIVE_DIR)/%.cairo
+	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@ --proof_mode
 
 # ======================
 # Run without proof mode
@@ -99,6 +106,14 @@ COMPILED_BENCHES:=$(patsubst $(BENCH_DIR)/%.cairo, $(BENCH_DIR)/%.json, $(BENCH_
 BAD_TEST_DIR=cairo_programs/bad_programs
 BAD_TEST_FILES:=$(wildcard $(BAD_TEST_DIR)/*.cairo)
 COMPILED_BAD_TESTS:=$(patsubst $(BAD_TEST_DIR)/%.cairo, $(BAD_TEST_DIR)/%.json, $(BAD_TEST_FILES))
+
+SECP_CAIRO0_HINTS_DIR=cairo_programs/cairo-0-secp-hints-feature
+SECP_CAIRO0_HINTS_FILES:=$(wildcard $(SECP_CAIRO0_HINTS_DIR)/*.cairo)
+COMPILED_SECP_CAIRO0_HINTS:=$(patsubst $(SECP_CAIRO0_HINTS_DIR)/%.cairo, $(SECP_CAIRO0_HINTS_DIR)/%.json, $(SECP_CAIRO0_HINTS_FILES))
+
+KZG_DA_CAIRO0_HINTS_DIR=cairo_programs/cairo-0-kzg-da-hints
+KZG_DA_CAIRO0_HINTS_FILES:=$(wildcard $(KZG_DA_CAIRO0_HINTS_DIR)/*.cairo)
+COMPILED_KZG_DA_CAIRO0_HINTS:=$(patsubst $(KZG_DA_CAIRO0_HINTS_DIR)/%.cairo, $(KZG_DA_CAIRO0_HINTS_DIR)/%.json, $(KZG_DA_CAIRO0_HINTS_FILES))
 
 PRINT_TEST_DIR=cairo_programs/print_feature
 PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
@@ -190,7 +205,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.5.4
+CAIRO_2_VERSION = 2.12.0-dev.0
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
@@ -213,7 +228,7 @@ cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph --locked
-	cargo install --version 1.14.0 hyperfine
+	cargo install --version 1.19.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.12.1 wasm-pack --locked
@@ -252,8 +267,8 @@ run:
 check:
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS)
-cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS)
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS) $(COMPILED_SECP_CAIRO0_HINTS) $(COMPILED_KZG_DA_CAIRO0_HINTS)
+cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS) $(COMPILED_STWO_EXCLUSIVE_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
@@ -277,7 +292,7 @@ test-wasm: cairo_proof_programs cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
 test-extensive_hints: cairo_proof_programs cairo_test_programs
-	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, extensive_hints"
+	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, cairo-0-secp-hints, cairo-0-data-availability-hints, extensive_hints"
 
 check-fmt:
 	cargo fmt --all -- --check
@@ -287,8 +302,8 @@ clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
 	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
-coverage:
-	cargo llvm-cov report --lcov --output-path lcov.info
+coverage: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+	cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints"
 
 coverage-clean:
 	cargo llvm-cov clean
@@ -357,6 +372,9 @@ clean:
 	rm -f $(TEST_DIR)/*.pie
 	rm -f $(BENCH_DIR)/*.json
 	rm -f $(BAD_TEST_DIR)/*.json
+	rm -f $(STWO_EXCLUSIVE_DIR)/*.json
+	rm -f $(SECP_CAIRO0_HINTS_DIR)/*.json
+	rm -f $(KZG_DA_CAIRO0_HINTS_DIR)/*.json
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm

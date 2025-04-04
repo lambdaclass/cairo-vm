@@ -11,7 +11,7 @@ mod TestUint256DivMod {
     use zeroable::NonZero;
     use core::traits::Into;
     use traits::TryInto;
-    use integer::BoundedInt;
+    use core::num::traits::Bounded;
 
     #[storage]
     struct Storage {}
@@ -19,7 +19,7 @@ mod TestUint256DivMod {
     #[abi(embed_v0)]
     impl TestUint256DivMod of super::ITestUint256DivMod<ContractState> {
         fn test_uint256_div_mod_max(ref self: ContractState) {
-            let a = BoundedInt::max();
+            let a = Bounded::MAX;
 
             let b = as_u256(1_u128, 0);
             let b = integer::u256_as_non_zero(b);

@@ -6,12 +6,6 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
-
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -23,12 +17,6 @@ use crate::{
         },
         cairo_runner::ExecutionResources,
     },
-};
-
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
 };
 
 #[test]
@@ -46,9 +34,9 @@ fn pedersen_test() {
         &mut hint_processor,
     );
     assert!(result.is_ok());
-    let (runner, vm) = result.unwrap();
+    let runner = result.unwrap();
     // Obtain the pie
-    let result = runner.get_cairo_pie(&vm);
+    let result = runner.get_cairo_pie();
     assert!(result.is_ok());
     let cairo_pie = result.unwrap();
     // Check pie values
@@ -109,7 +97,7 @@ fn pedersen_test() {
     // memory
     assert_eq!(
         cairo_pie.memory,
-        Into::<CairoPieMemory>::into(&vm.segments.memory)
+        Into::<CairoPieMemory>::into(&runner.vm.segments.memory)
     );
 }
 
@@ -128,9 +116,9 @@ fn common_signature() {
         &mut hint_processor,
     );
     assert!(result.is_ok());
-    let (runner, vm) = result.unwrap();
+    let runner = result.unwrap();
     // Obtain the pie
-    let result = runner.get_cairo_pie(&vm);
+    let result = runner.get_cairo_pie();
     assert!(result.is_ok());
     let cairo_pie = result.unwrap();
     // Check pie values
@@ -184,7 +172,7 @@ fn common_signature() {
     // memory
     assert_eq!(
         cairo_pie.memory,
-        Into::<CairoPieMemory>::into(&vm.segments.memory)
+        Into::<CairoPieMemory>::into(&runner.vm.segments.memory)
     );
 }
 
@@ -203,9 +191,9 @@ fn relocate_segments() {
         &mut hint_processor,
     );
     assert!(result.is_ok());
-    let (runner, vm) = result.unwrap();
+    let runner = result.unwrap();
     // Obtain the pie
-    let result = runner.get_cairo_pie(&vm);
+    let result = runner.get_cairo_pie();
     assert!(result.is_ok());
     let cairo_pie = result.unwrap();
     // Check pie values
@@ -243,7 +231,7 @@ fn relocate_segments() {
     // memory
     assert_eq!(
         cairo_pie.memory,
-        Into::<CairoPieMemory>::into(&vm.segments.memory)
+        Into::<CairoPieMemory>::into(&runner.vm.segments.memory)
     );
 }
 
@@ -262,9 +250,9 @@ fn serialize_cairo_pie() {
         &mut hint_processor,
     );
     assert!(result.is_ok());
-    let (runner, vm) = result.unwrap();
+    let runner = result.unwrap();
     // Obtain the pie
-    let result = runner.get_cairo_pie(&vm);
+    let result = runner.get_cairo_pie();
     assert!(result.is_ok());
     let cairo_pie = result.unwrap();
 
@@ -281,7 +269,7 @@ fn run_pie_validity_checks_integration() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/integration.json");
     let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let (runner, vm) = cairo_run(
+    let runner = cairo_run(
         program_content,
         &CairoRunConfig {
             layout: LayoutName::all_cairo,
@@ -291,6 +279,6 @@ fn run_pie_validity_checks_integration() {
     )
     .expect("cairo_run failure");
     // Obtain the pie
-    let cairo_pie = runner.get_cairo_pie(&vm).expect("Failed to get pie");
+    let cairo_pie = runner.get_cairo_pie().expect("Failed to get pie");
     assert!(cairo_pie.run_validity_checks().is_ok())
 }
