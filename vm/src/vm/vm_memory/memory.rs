@@ -630,14 +630,7 @@ impl Memory {
         let mut values = Vec::with_capacity(size);
 
         for i in 0..size {
-            let value = match self.get(&(addr + i)?) {
-                Some(Cow::Borrowed(MaybeRelocatable::Int(num))) => Cow::Borrowed(num),
-                Some(Cow::Owned(MaybeRelocatable::Int(num))) => Cow::Owned(num),
-                Some(_) => return Err(MemoryError::ExpectedInteger(Box::new((addr + i)?))),
-                None => return Err(MemoryError::UnknownMemoryCell(Box::new((addr + i)?))),
-            };
-
-            values.push(value);
+            values.push(self.get_integer((addr + i)?)?);
         }
 
         Ok(values)
