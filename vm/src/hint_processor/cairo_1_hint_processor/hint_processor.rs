@@ -13,7 +13,7 @@ use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::runners::cairo_runner::RunResources;
-use crate::Felt252;
+use crate::Felt;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessorLogic,
     types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
@@ -49,8 +49,8 @@ struct FqConfig;
 
 type Fq = Fp256<MontBackend<FqConfig, 4>>;
 
-fn get_beta() -> Felt252 {
-    Felt252::from_dec_str(
+fn get_beta() -> Felt {
+    Felt::from_dec_str(
         "3141592653589793238462643383279502884197169399375105820974944592307816406665",
     )
     .unwrap()
@@ -327,7 +327,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?;
         let rhs_value = res_operand_get_val(vm, rhs)?;
-        let result = Felt252::from((lhs_value < rhs_value) as u8);
+        let result = Felt::from((lhs_value < rhs_value) as u8);
 
         vm.insert_value(cell_ref_to_relocatable(dst, vm)?, result)
             .map_err(HintError::from)
@@ -341,7 +341,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let value = res_operand_get_val(vm, value)?.to_biguint();
         let result = value.sqrt();
-        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, Felt252::from(&result))
+        vm.insert_value(cell_ref_to_relocatable(dst, vm)?, Felt::from(&result))
             .map_err(HintError::from)
     }
 
@@ -354,7 +354,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?;
         let rhs_value = res_operand_get_val(vm, rhs)?;
-        let result = Felt252::from((lhs_value <= rhs_value) as u8);
+        let result = Felt::from((lhs_value <= rhs_value) as u8);
 
         vm.insert_value(cell_ref_to_relocatable(dst, vm)?, result)
             .map_err(HintError::from)
@@ -373,7 +373,7 @@ impl Cairo1HintProcessor {
         let mut lengths_and_indices = [
             (a_val, 0),
             (b_val - a_val, 1),
-            (Felt252::from(-1) - b_val, 2),
+            (Felt::from(-1) - b_val, 2),
         ];
         lengths_and_indices.sort();
         exec_scopes.assign_or_update_variable("excluded_arc", Box::new(lengths_and_indices[2].1));
@@ -385,19 +385,19 @@ impl Cairo1HintProcessor {
         let range_check_ptr = get_ptr(vm, range_check_base, &range_check_offset)?;
         vm.insert_value(
             range_check_ptr,
-            Felt252::from(&(lengths_and_indices[0].0.to_biguint() % prime_over_3_high)),
+            Felt::from(&(lengths_and_indices[0].0.to_biguint() % prime_over_3_high)),
         )?;
         vm.insert_value(
             (range_check_ptr + 1)?,
-            Felt252::from(&(lengths_and_indices[0].0.to_biguint() / prime_over_3_high)),
+            Felt::from(&(lengths_and_indices[0].0.to_biguint() / prime_over_3_high)),
         )?;
         vm.insert_value(
             (range_check_ptr + 2)?,
-            Felt252::from(&(lengths_and_indices[1].0.to_biguint() % prime_over_2_high)),
+            Felt::from(&(lengths_and_indices[1].0.to_biguint() % prime_over_2_high)),
         )?;
         vm.insert_value(
             (range_check_ptr + 3)?,
-            Felt252::from(&(lengths_and_indices[1].0.to_biguint() / prime_over_2_high)),
+            Felt::from(&(lengths_and_indices[1].0.to_biguint() / prime_over_2_high)),
         )
         .map_err(HintError::from)
     }
@@ -434,8 +434,8 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let lhs_value = res_operand_get_val(vm, lhs)?.to_biguint();
         let rhs_value = res_operand_get_val(vm, rhs)?.to_biguint();
-        let quotient_value = Felt252::from(&(&lhs_value / &rhs_value));
-        let remainder_value = Felt252::from(&(lhs_value % rhs_value));
+        let quotient_value = Felt::from(&(&lhs_value / &rhs_value));
+        let remainder_value = Felt::from(&(lhs_value % rhs_value));
         vm.insert_value(cell_ref_to_relocatable(quotient, vm)?, quotient_value)?;
         vm.insert_value(cell_ref_to_relocatable(remainder, vm)?, remainder_value)
             .map_err(HintError::from)
@@ -484,20 +484,20 @@ impl Cairo1HintProcessor {
         let (limb1, limb0) = quotient.div_rem(&pow_2_128);
         vm.insert_value(
             cell_ref_to_relocatable(quotient0, vm)?,
-            Felt252::from(&limb0),
+            Felt::from(&limb0),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(quotient1, vm)?,
-            Felt252::from(&limb1),
+            Felt::from(&limb1),
         )?;
         let (limb1, limb0) = remainder.div_rem(&pow_2_128);
         vm.insert_value(
             cell_ref_to_relocatable(remainder0, vm)?,
-            Felt252::from(&limb0),
+            Felt::from(&limb0),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(remainder1, vm)?,
-            Felt252::from(&limb1),
+            Felt::from(&limb1),
         )?;
 
         Ok(())
@@ -510,7 +510,7 @@ impl Cairo1HintProcessor {
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), HintError> {
         let excluded_arc: i32 = exec_scopes.get("excluded_arc")?;
-        let val = Felt252::from((excluded_arc != 0) as u8);
+        let val = Felt::from((excluded_arc != 0) as u8);
         vm.insert_value(cell_ref_to_relocatable(skip_exclude_a_flag, vm)?, val)?;
         Ok(())
     }
@@ -530,9 +530,9 @@ impl Cairo1HintProcessor {
         let x_value = (&value / &scalar).min(max_x);
         let y_value = value - &x_value * &scalar;
 
-        vm.insert_value(cell_ref_to_relocatable(x, vm)?, Felt252::from(&x_value))
+        vm.insert_value(cell_ref_to_relocatable(x, vm)?, Felt::from(&x_value))
             .map_err(HintError::from)?;
-        vm.insert_value(cell_ref_to_relocatable(y, vm)?, Felt252::from(&y_value))
+        vm.insert_value(cell_ref_to_relocatable(y, vm)?, Felt::from(&y_value))
             .map_err(HintError::from)?;
 
         Ok(())
@@ -564,8 +564,8 @@ impl Cairo1HintProcessor {
             .into_bigint()
             .into();
 
-        vm.insert_value(cell_ref_to_relocatable(x, vm)?, Felt252::from(&x_bigint))?;
-        vm.insert_value(cell_ref_to_relocatable(y, vm)?, Felt252::from(&y_bigint))?;
+        vm.insert_value(cell_ref_to_relocatable(x, vm)?, Felt::from(&x_bigint))?;
+        vm.insert_value(cell_ref_to_relocatable(y, vm)?, Felt::from(&y_bigint))?;
 
         Ok(())
     }
@@ -634,7 +634,7 @@ impl Cairo1HintProcessor {
         exec_scopes: &mut ExecutionScopes,
     ) -> Result<(), HintError> {
         let excluded_arc: i32 = exec_scopes.get("excluded_arc")?;
-        let val = Felt252::from((excluded_arc != 1) as u8);
+        let val = Felt::from((excluded_arc != 1) as u8);
 
         vm.insert_value(cell_ref_to_relocatable(skip_exclude_b_minus_a, vm)?, val)?;
 
@@ -652,7 +652,7 @@ impl Cairo1HintProcessor {
         let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
         let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
         let key = res_operand_get_val(vm, key)?;
-        let value = if let ResOperand::Deref(cell) = value {
+        let value: MaybeRelocatable = if let ResOperand::Deref(cell) = value {
             get_mayberelocatable(vm, cell)?
         } else {
             MaybeRelocatable::Int(res_operand_get_val(vm, value)?)
@@ -701,33 +701,33 @@ impl Cairo1HintProcessor {
 
         vm.insert_value(
             cell_ref_to_relocatable(quotient0, vm)?,
-            Felt252::from(&limb0),
+            Felt::from(&limb0),
         )?;
 
         let (quotient, limb1) = quotient.div_rem(&pow_2_128);
         vm.insert_value(
             cell_ref_to_relocatable(quotient1, vm)?,
-            Felt252::from(&limb1),
+            Felt::from(&limb1),
         )?;
         let (limb3, limb2) = quotient.div_rem(&pow_2_128);
 
         vm.insert_value(
             cell_ref_to_relocatable(quotient2, vm)?,
-            Felt252::from(&limb2),
+            Felt::from(&limb2),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(quotient3, vm)?,
-            Felt252::from(&limb3),
+            Felt::from(&limb3),
         )?;
         let (limb1, limb0) = remainder.div_rem(&pow_2_128);
 
         vm.insert_value(
             cell_ref_to_relocatable(remainder0, vm)?,
-            Felt252::from(&limb0),
+            Felt::from(&limb0),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(remainder1, vm)?,
-            Felt252::from(&limb1),
+            Felt::from(&limb1),
         )?;
 
         Ok(())
@@ -759,22 +759,22 @@ impl Cairo1HintProcessor {
         let (sqrt1_val, sqrt0_val) = sqrt.div_rem(&pow_2_64);
         vm.insert_value(
             cell_ref_to_relocatable(sqrt0, vm)?,
-            Felt252::from(&sqrt0_val),
+            Felt::from(&sqrt0_val),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(sqrt1, vm)?,
-            Felt252::from(&sqrt1_val),
+            Felt::from(&sqrt1_val),
         )?;
 
         let (remainder_high_val, remainder_low_val) = remainder.div_rem(&pow_2_128);
 
         vm.insert_value(
             cell_ref_to_relocatable(remainder_low, vm)?,
-            Felt252::from(&remainder_low_val),
+            Felt::from(&remainder_low_val),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(remainder_high, vm)?,
-            Felt252::from(&remainder_high_val),
+            Felt::from(&remainder_high_val),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(sqrt_mul_2_minus_remainder_ge_u128, vm)?,
@@ -836,7 +836,7 @@ impl Cairo1HintProcessor {
         exec_scopes: &mut ExecutionScopes,
         n_used_accesses: &CellRef,
     ) -> Result<(), HintError> {
-        let key = exec_scopes.get::<Felt252>("key")?;
+        let key = exec_scopes.get::<Felt>("key")?;
         let n = get_cell_val(vm, n_used_accesses)?;
 
         let dict_squash_exec_scope: &mut DictSquashExecScope =
@@ -847,7 +847,7 @@ impl Cairo1HintProcessor {
             .get(&key.clone())
             .ok_or_else(|| HintError::NoKeyInAccessIndices(Box::new(key)))?;
 
-        if n != Felt252::from(access_indices_at_key.len()) {
+        if n != Felt::from(access_indices_at_key.len()) {
             return Err(HintError::NumUsedAccessesAssertFail(Box::new((
                 n,
                 access_indices_at_key.len(),
@@ -867,7 +867,7 @@ impl Cairo1HintProcessor {
         let dict_squash_exec_scope: &mut DictSquashExecScope =
             exec_scopes.get_mut_ref("dict_squash_exec_scope")?;
 
-        let val = Felt252::from(
+        let val = Felt::from(
             if dict_squash_exec_scope
                 .current_access_indices()
                 .ok_or_else(|| {
@@ -896,7 +896,7 @@ impl Cairo1HintProcessor {
     ) -> Result<(), HintError> {
         let (dict_base, dict_offset) = extract_buffer(dict_ptr)?;
         let dict_address = get_ptr(vm, dict_base, &dict_offset)?;
-        let key = get_double_deref_val(vm, dict_base, &(dict_offset + Felt252::from(-3)))?;
+        let key = get_double_deref_val(vm, dict_base, &(dict_offset + Felt::from(-3)))?;
         let value: MaybeRelocatable = if let ResOperand::Deref(cell) = value {
             get_mayberelocatable(vm, cell)?
         } else {
@@ -956,7 +956,7 @@ impl Cairo1HintProcessor {
         first_key: &CellRef,
     ) -> Result<(), HintError> {
         let dict_access_size = 3;
-        let rangecheck_bound = Felt252::from(u128::MAX) + 1u64;
+        let rangecheck_bound = Felt::from(u128::MAX) + 1u64;
 
         exec_scopes.assign_or_update_variable(
             "dict_squash_exec_scope",
@@ -981,8 +981,8 @@ impl Cairo1HintProcessor {
             dict_squash_exec_scope
                 .access_indices
                 .entry(current_key.into_owned())
-                .and_modify(|indices| indices.push(Felt252::from(i)))
-                .or_insert_with(|| vec![Felt252::from(i)]);
+                .and_modify(|indices| indices.push(Felt::from(i)))
+                .or_insert_with(|| vec![Felt::from(i)]);
         }
         // Reverse the accesses in order to pop them in order later.
         for (_, accesses) in dict_squash_exec_scope.access_indices.iter_mut() {
@@ -996,12 +996,12 @@ impl Cairo1HintProcessor {
             .collect();
         dict_squash_exec_scope.keys.sort_by(|a, b| b.cmp(a));
         // big_keys indicates if the keys are greater than rangecheck_bound. If they are not
-        // a simple range check is used instead of assert_le_felt252.
+        // a simple range check is used instead of assert_le_Felt.
 
         let val = if dict_squash_exec_scope.keys[0] < rangecheck_bound {
-            Felt252::from(0)
+            Felt::from(0)
         } else {
-            Felt252::from(1)
+            Felt::from(1)
         };
 
         vm.insert_value(cell_ref_to_relocatable(big_keys, vm)?, val)?;
@@ -1082,7 +1082,7 @@ impl Cairo1HintProcessor {
             .current_access_indices()
             .ok_or(HintError::EmptyCurrentAccessIndices)?;
 
-        let should_continue = Felt252::from((current_access_indices.len() > 1) as u8);
+        let should_continue = Felt::from((current_access_indices.len() > 1) as u8);
 
         vm.insert_value(cell_ref_to_relocatable(dst, vm)?, should_continue)
             .map_err(HintError::from)
@@ -1106,7 +1106,7 @@ impl Cairo1HintProcessor {
         if let Some(root) = res.sqrt() {
             let root0: BigUint = root.into_bigint().into();
             let root1: BigUint = (-root).into_bigint().into();
-            let root = Felt252::from(&core::cmp::min(root0, root1));
+            let root = Felt::from(&core::cmp::min(root0, root1));
             vm.insert_value(cell_ref_to_relocatable(sqrt, vm)?, root)
                 .map_err(HintError::from)
         } else {
@@ -1130,11 +1130,11 @@ impl Cairo1HintProcessor {
         let prod = lhs_val * rhs_val;
         vm.insert_value(
             cell_ref_to_relocatable(high, vm)?,
-            Felt252::from(&(prod.clone() >> 128)),
+            Felt::from(&(prod.clone() >> 128)),
         )?;
         vm.insert_value(
             cell_ref_to_relocatable(low, vm)?,
-            Felt252::from(&(prod & mask128)),
+            Felt::from(&(prod & mask128)),
         )
         .map_err(HintError::from)
     }
@@ -1167,31 +1167,31 @@ impl Cairo1HintProcessor {
             y: mut r,
         } = n.extended_gcd(&b);
         if n == 1.into() {
-            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(b0))?;
-            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(b1))?;
-            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(1))?;
-            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(0))?;
-            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(1))?;
-            vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt252::from(0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt::from(b0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt::from(b1))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt::from(1))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt::from(0))?;
+            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt::from(1))?;
+            vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt::from(0))?;
         } else if g != 1.into() {
             // This makes sure `g0_or_no_inv` is always non-zero in the no inverse case.
             if g.is_even() {
                 g = 2u32.into();
             }
             let (limb1, limb0) = (&b / &g).div_rem(&pow_2_128);
-            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
-            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt::from(limb1))?;
             let (limb1, limb0) = (&n / &g).div_rem(&pow_2_128);
-            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
-            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt::from(limb1))?;
             let (limb1, limb0) = g.div_rem(&pow_2_128);
             vm.insert_value(
                 cell_ref_to_relocatable(g0_or_no_inv, vm)?,
-                Felt252::from(limb0),
+                Felt::from(limb0),
             )?;
             vm.insert_value(
                 cell_ref_to_relocatable(g1_option, vm)?,
-                Felt252::from(limb1),
+                Felt::from(limb1),
             )?;
         } else {
             r %= &n;
@@ -1200,12 +1200,12 @@ impl Cairo1HintProcessor {
             }
             let k: BigInt = (&r * b - 1) / n;
             let (limb1, limb0) = r.div_rem(&pow_2_128);
-            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
-            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt::from(limb1))?;
             let (limb1, limb0) = k.div_rem(&pow_2_128);
-            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
-            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
-            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(0))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt::from(limb1))?;
+            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt::from(0))?;
         }
         Ok(())
     }
@@ -1221,14 +1221,14 @@ impl Cairo1HintProcessor {
         let n_add_mods =
             n_add_mods
                 .to_usize()
-                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                .ok_or(HintError::Math(MathError::FeltToUsizeConversion(
                     Box::from(n_add_mods),
                 )))?;
         let n_mul_mods = get_val(vm, n_mul_mods)?;
         let n_mul_mods =
             n_mul_mods
                 .to_usize()
-                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                .ok_or(HintError::Math(MathError::FeltToUsizeConversion(
                     Box::from(n_mul_mods),
                 )))?;
 
@@ -1283,7 +1283,7 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         //Data structure that can be downcasted to the structure generated by compile_hint
         hint_data: &Box<dyn Any>,
         //Constant values extracted from the program specification.
-        _constants: &HashMap<String, Felt252>,
+        _constants: &HashMap<String, Felt>,
     ) -> Result<(), HintError> {
         let hints: &Vec<Hint> = hint_data.downcast_ref().ok_or(HintError::WrongHintData)?;
         for hint in hints {
