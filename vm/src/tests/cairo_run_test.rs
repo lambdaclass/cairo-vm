@@ -1,4 +1,5 @@
 use crate::{tests::*, types::layout_name::LayoutName};
+
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
@@ -7,8 +8,6 @@ use crate::{
         security::verify_secure_runner,
     },
 };
-
-use num_traits::Zero;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -1029,14 +1028,17 @@ fn cairo_run_if_reloc_equal() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_proof_mode_disable_trace_padding() {
-    let program_data = include_bytes!("../../../cairo_programs/fibonacci.json");
+    let program_data = include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
     let config = CairoRunConfig {
+        proof_mode: true,
         disable_trace_padding: true,
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let runner = cairo_run(program_data, &config, &mut hint_processor).unwrap();
-    assert!(runner.get_memory_holes().unwrap().is_zero());
+    // The following check is to ensure that the trace is not padded. For this specific program,
+    // the number of steps doesn't end up as a power of 2 and we make sure it stays that way.
+    assert!(!runner.vm.current_step.is_power_of_two());
 }
 
 #[test]
@@ -1150,6 +1152,14 @@ fn cairo_run_mod_builtin_failure() {
         include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_failure.json");
     let error_msg = "mul_mod_builtin: Expected a * b == c (mod p). Got: instance=2, batch=0, p=9, a=2, b=2, c=2.";
     run_program_with_custom_mod_builtin_params(program_data, false, 1, 3, Some(error_msg));
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_no_solution() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_no_solution.json");
+    run_program_with_error(program_data, "Could not fill the values table");
 }
 
 #[test]

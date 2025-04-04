@@ -17,49 +17,49 @@ use std::{
 };
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 struct Args {
-    #[clap(value_parser, value_hint=ValueHint::FilePath)]
+    #[arg(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long = "trace_file", value_parser)]
+    #[arg(long = "trace_file", value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "memory_file")]
+    #[arg(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    /// When using dynamic layout, it's parameters must be specified through a layout params file.
-    #[clap(long = "layout", default_value = "plain", value_enum)]
+    /// When using dynamic layout, its parameters must be specified through a layout params file.
+    #[arg(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
     /// Required when using with dynamic layout.
     /// Ignored otherwise.
-    #[clap(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
+    #[arg(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
     cairo_layout_params_file: Option<PathBuf>,
-    #[clap(long = "proof_mode", value_parser)]
+    #[arg(long = "proof_mode", value_parser)]
     proof_mode: bool,
-    #[clap(long = "air_public_input", requires = "proof_mode")]
+    #[arg(long = "air_public_input", requires = "proof_mode")]
     air_public_input: Option<PathBuf>,
-    #[clap(
+    #[arg(
         long = "air_private_input",
         requires_all = ["proof_mode", "trace_file", "memory_file"]
     )]
     air_private_input: Option<PathBuf>,
-    #[clap(
+    #[arg(
         long = "cairo_pie_output",
         // We need to add these air_private_input & air_public_input or else
         // passing cairo_pie_output + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<PathBuf>,
-    #[clap(long = "merge_extra_segments", value_parser)]
+    #[arg(long = "merge_extra_segments", value_parser)]
     merge_extra_segments: bool,
     // Arguments should be spaced, with array elements placed between brackets
     // For example " --args '1 2 [1 2 3]'" will yield 3 arguments, with the last one being an array of 3 elements
-    #[clap(long = "args", default_value = "", value_parser=process_args, conflicts_with = "args_file")]
+    #[arg(long = "args", default_value = "", value_parser=process_args, conflicts_with = "args_file")]
     args: FuncArgs,
     // Same rules from `args` apply here
-    #[clap(long = "args_file", value_parser, value_hint=ValueHint::FilePath, conflicts_with = "args")]
+    #[arg(long = "args_file", value_parser, value_hint=ValueHint::FilePath, conflicts_with = "args")]
     args_file: Option<PathBuf>,
-    #[clap(long = "print_output", value_parser)]
+    #[arg(long = "print_output", value_parser)]
     print_output: bool,
-    #[clap(
+    #[arg(
         long = "append_return_values",
         // We need to add these air_private_input & air_public_input or else
         // passing cairo_pie_output + either of these without proof_mode will not fail
@@ -447,6 +447,13 @@ mod tests {
         None,
         None
     ))]
+    #[case(
+        "gas_builtin_loading.cairo",
+        "939340725154356279478212603733403581890242362232206720294887278547043341575",
+        "[939340725154356279478212603733403581890242362232206720294887278547043341575]",
+        None,
+        None
+    )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,

@@ -143,8 +143,6 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let initial_gas = 9999999999999_usize;
-
     // Fetch return type data
     let return_type_id = match main_func.signature.ret_types.last() {
         // We need to check if the last return type is indeed the function's return value and not an implicit return value
@@ -261,7 +259,7 @@ pub fn cairo_run_program(
         false,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func, initial_gas)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -465,7 +463,6 @@ fn load_arguments(
     runner: &mut CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
-    initial_gas: usize,
 ) -> Result<(), Error> {
     let got_gas_builtin = main_func
         .signature
@@ -497,12 +494,7 @@ fn load_arguments(
     if got_segment_arena {
         ap_offset += 4;
     }
-    // Load initial gas if GasBuiltin is present
     if got_gas_builtin {
-        runner.vm.insert_value(
-            (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
-            Felt252::from(initial_gas),
-        )?;
         ap_offset += 1;
     }
     for arg in cairo_run_config.args {
@@ -617,9 +609,10 @@ fn create_entry_code(
                 ap += 1;
             };
         } else if generic_ty == &GasBuiltinType::ID {
-            // We already loaded the inital gas so we just advance AP
+            // Load initial gas
             casm_build_extend! {ctx,
-                ap += 1;
+                const initial_gas = 9999999999999_usize;
+                tempvar gas = initial_gas;
             };
         } else {
             let ty_size = type_sizes[ty];
@@ -1600,7 +1593,7 @@ mod tests {
             .and_then(|rt| {
                 rt.debug_name
                     .as_ref()
-                    .map(|n| n.as_ref().starts_with("core::panics::PanicResult::"))
+                    .map(|n| n.as_str().starts_with("core::panics::PanicResult::"))
             })
             .unwrap_or_default()
     }

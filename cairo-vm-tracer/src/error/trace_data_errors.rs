@@ -1,5 +1,5 @@
 use cairo_vm::vm::errors::{memory_errors::MemoryError, vm_errors::VirtualMachineError};
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TraceDataError {

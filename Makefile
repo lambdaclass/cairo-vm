@@ -105,6 +105,10 @@ KZG_DA_CAIRO0_HINTS_DIR=cairo_programs/cairo-0-kzg-da-hints
 KZG_DA_CAIRO0_HINTS_FILES:=$(wildcard $(KZG_DA_CAIRO0_HINTS_DIR)/*.cairo)
 COMPILED_KZG_DA_CAIRO0_HINTS:=$(patsubst $(KZG_DA_CAIRO0_HINTS_DIR)/%.cairo, $(KZG_DA_CAIRO0_HINTS_DIR)/%.json, $(KZG_DA_CAIRO0_HINTS_FILES))
 
+SEGMENT_ARENA_CAIRO0_HINTS_DIR=cairo_programs/segment_arena
+SEGMENT_ARENA_CAIRO0_HINTS_FILES:=$(wildcard $(SEGMENT_ARENA_CAIRO0_HINTS_DIR)/*.cairo)
+COMPILED_SEGMENT_ARENA_CAIRO0_HINTS:=$(patsubst $(SEGMENT_ARENA_CAIRO0_HINTS_DIR)/%.cairo, $(SEGMENT_ARENA_CAIRO0_HINTS_DIR)/%.json, $(SEGMENT_ARENA_CAIRO0_HINTS_FILES))
+
 PRINT_TEST_DIR=cairo_programs/print_feature
 PRINT_TEST_FILES:=$(wildcard $(PRINT_TEST_DIR)/*.cairo)
 COMPILED_PRINT_TESTS:=$(patsubst $(PRINT_TEST_DIR)/%.cairo, $(PRINT_TEST_DIR)/%.json, $(PRINT_TEST_FILES))
@@ -195,7 +199,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.10.0-rc.0
+CAIRO_2_VERSION = 2.12.0-dev.0
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \
@@ -215,7 +219,7 @@ cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph --locked
-	cargo install --version 1.14.0 hyperfine
+	cargo install --version 1.19.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
 	cargo install --version 0.12.1 wasm-pack --locked
@@ -254,7 +258,7 @@ run:
 check:
 	cargo check
 
-cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS) $(COMPILED_SECP_CAIRO0_HINTS) $(COMPILED_KZG_DA_CAIRO0_HINTS)
+cairo_test_programs: $(COMPILED_TESTS) $(COMPILED_BAD_TESTS) $(COMPILED_NORETROCOMPAT_TESTS) $(COMPILED_PRINT_TESTS) $(COMPILED_MOD_BUILTIN_TESTS) $(COMPILED_SECP_CAIRO0_HINTS) $(COMPILED_KZG_DA_CAIRO0_HINTS) $(COMPILED_SEGMENT_ARENA_CAIRO0_HINTS)
 cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS) $(COMPILED_STWO_EXCLUSIVE_TESTS)
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)

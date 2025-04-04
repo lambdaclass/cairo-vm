@@ -78,16 +78,17 @@ impl DeducedOperands {
         self.0 & 1 != 0
     }
     fn was_op0_deducted(&self) -> bool {
-        self.0 & 1 << 1 != 0
+        self.0 & (1 << 1) != 0
     }
     fn was_op1_deducted(&self) -> bool {
-        self.0 & 1 << 2 != 0
+        self.0 & (1 << 2) != 0
     }
 }
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub builtin_runners: Vec<BuiltinRunner>,
+    pub simulated_builtin_runners: Vec<BuiltinRunner>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -119,6 +120,7 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
+            simulated_builtin_runners: Vec::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -296,12 +298,17 @@ impl VirtualMachine {
         &self,
         address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        for builtin in self.builtin_runners.iter() {
-            if builtin.base() as isize == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.segments.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+        let memory = &self.segments.memory;
+
+        for runner in self
+            .builtin_runners
+            .iter()
+            .chain(self.simulated_builtin_runners.iter())
+        {
+            if runner.base() as isize == address.segment_index {
+                return runner
+                    .deduce_memory_cell(address, memory)
+                    .map_err(VirtualMachineError::RunnerError);
             }
         }
         Ok(None)
@@ -888,6 +895,10 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
+    pub fn get_current_step(&self) -> usize {
+        self.current_step
+    }
+
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
@@ -914,6 +925,16 @@ impl VirtualMachine {
     /// Returns a mutable reference to the vector with all builtins present in the virtual machine
     pub fn get_builtin_runners_as_mut(&mut self) -> &mut Vec<BuiltinRunner> {
         &mut self.builtin_runners
+    }
+
+    /// Returns a mutable iterator over all builtin runners used. That is, both builtin_runners and
+    /// simulated_builtin_runners.
+    pub fn get_all_builtin_runners_as_mut_iter(
+        &mut self,
+    ) -> impl Iterator<Item = &mut BuiltinRunner> {
+        self.builtin_runners
+            .iter_mut()
+            .chain(self.simulated_builtin_runners.iter_mut())
     }
 
     ///Inserts a value into a memory address given by a Relocatable value
@@ -952,6 +973,10 @@ impl VirtualMachine {
 
     pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
         self.segments.memory.mem_eq(lhs, rhs, len)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.segments.is_accessed(addr)
     }
 
     ///Gets `n_ret` return values from memory
@@ -1004,7 +1029,7 @@ impl VirtualMachine {
     pub fn get_signature_builtin(
         &mut self,
     ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
-        for builtin in self.get_builtin_runners_as_mut() {
+        for builtin in self.get_all_builtin_runners_as_mut_iter() {
             if let BuiltinRunner::Signature(signature_builtin) = builtin {
                 return Ok(signature_builtin);
             };
@@ -1309,6 +1334,7 @@ impl VirtualMachineBuilder {
         VirtualMachine {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
+            simulated_builtin_runners: Vec::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
@@ -4711,12 +4737,18 @@ mod tests {
             ((0, 1), 0),
             ((0, 2), 1),
             ((0, 10), 10),
-            ((1, 1), 1)
+            ((1, 1), 1),
+            ((1, 2), 0),
+            ((2, 0), 0),
+            ((-1, 0), 0),
+            ((-1, 1), 0)
         ];
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
             .unwrap();
         vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        vm.mark_address_range_as_accessed((-1, 0).into(), 1)
+            .unwrap();
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
@@ -4737,6 +4769,14 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(1)
         );
+        assert!(vm.is_accessed(&Relocatable::from((0, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 2))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 10))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((1, 1))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((1, 2))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((2, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((-1, 0))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((-1, 1))).unwrap());
     }
 
     #[test]
@@ -5134,7 +5174,7 @@ mod tests {
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
 
         assert!(virtual_machine_from_builder.run_finished);
-        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(virtual_machine_from_builder.get_current_step(), 12);
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners

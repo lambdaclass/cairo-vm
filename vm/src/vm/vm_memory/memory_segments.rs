@@ -23,7 +23,7 @@ use super::memory::MemoryCell;
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
-    pub(crate) memory: Memory,
+    pub memory: Memory,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
@@ -198,6 +198,10 @@ impl MemorySegmentManager {
             },
             None => Err(MemoryError::MissingSegmentUsedSizes),
         }
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.memory.is_accessed(addr)
     }
 
     /// Counts the memory holes (aka unaccessed memory cells) in memory
