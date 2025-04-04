@@ -4,10 +4,10 @@ use num_traits::ToPrimitive;
 
 use super::{
     errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-    runners::cairo_runner::CairoRunner,
-    vm_core::VirtualMachine,
+    runners::cairo_runner::{CairoRunner, RunnerMode},
 };
 use crate::types::relocatable::MaybeRelocatable;
+use crate::Felt252;
 
 /// Verify that the completed run in a runner is safe to be relocated and be
 /// used by other Cairo programs.
@@ -24,15 +24,15 @@ pub fn verify_secure_runner(
     runner: &CairoRunner,
     verify_builtins: bool,
     program_segment_size: Option<usize>,
-    vm: &mut VirtualMachine,
 ) -> Result<(), VirtualMachineError> {
     let builtins_segment_info = match verify_builtins {
-        true => runner.get_builtin_segments_info(vm)?,
+        true => runner.get_builtin_segments_info()?,
         false => Vec::new(),
     };
     // Check builtin segment out of bounds.
     for (index, stop_ptr) in builtins_segment_info {
-        let current_size = vm
+        let current_size = runner
+            .vm
             .segments
             .memory
             .data
@@ -50,7 +50,8 @@ pub fn verify_secure_runner(
         .ok_or(RunnerError::NoProgBase)?;
     let program_segment_size =
         program_segment_size.unwrap_or(runner.program.shared_program_data.data.len());
-    let program_length = vm
+    let program_length = runner
+        .vm
         .segments
         .memory
         .data
@@ -63,8 +64,8 @@ pub fn verify_secure_runner(
     // Check that the addresses in memory are valid
     // This means that every temporary address has been properly relocated to a real address
     // Asumption: If temporary memory is empty, this means no temporary memory addresses were generated and all addresses in memory are real
-    if !vm.segments.memory.temp_data.is_empty() {
-        for value in vm.segments.memory.data.iter().flatten() {
+    if !runner.vm.segments.memory.temp_data.is_empty() {
+        for value in runner.vm.segments.memory.data.iter().flatten() {
             match value.get_value() {
                 Some(MaybeRelocatable::RelocatableValue(addr)) if addr.segment_index < 0 => {
                     return Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
@@ -75,10 +76,41 @@ pub fn verify_secure_runner(
             }
         }
     }
-    for builtin in vm.builtin_runners.iter() {
-        builtin.run_security_checks(vm)?;
+    for builtin in runner.vm.builtin_runners.iter() {
+        builtin.run_security_checks(&runner.vm)?;
     }
 
+    // Validate ret FP.
+    let initial_fp = runner
+        .get_initial_fp()
+        .ok_or(VirtualMachineError::MissingInitialFp)?;
+    let ret_fp_addr = (initial_fp - 2).map_err(VirtualMachineError::Math)?;
+    let ret_fp = runner
+        .vm
+        .get_maybe(&ret_fp_addr)
+        .ok_or(VirtualMachineError::MissingReturnFp(Box::new(ret_fp_addr)))?;
+    let final_fp = runner.vm.get_fp();
+    match ret_fp {
+        MaybeRelocatable::RelocatableValue(value) => {
+            if runner.runner_mode == RunnerMode::ProofModeCanonical && value != final_fp {
+                return Err(VirtualMachineError::MismatchReturnFP(Box::new((
+                    value, final_fp,
+                ))));
+            }
+            if runner.runner_mode == RunnerMode::ExecutionMode && value.offset != final_fp.offset {
+                return Err(VirtualMachineError::MismatchReturnFPOffset(Box::new((
+                    value, final_fp,
+                ))));
+            }
+        }
+        MaybeRelocatable::Int(value) => {
+            if Felt252::from(final_fp.offset) != value {
+                return Err(VirtualMachineError::MismatchReturnFPFelt(Box::new((
+                    value, final_fp,
+                ))));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -103,10 +135,9 @@ mod test {
         let program = program!();
 
         let runner = cairo_runner!(program);
-        let mut vm = vm!();
 
         assert_matches!(
-            verify_secure_runner(&runner, true, None, &mut vm),
+            verify_secure_runner(&runner, true, None),
             Err(VirtualMachineError::RunnerError(RunnerError::NoProgBase))
         );
     }
@@ -115,30 +146,30 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_empty_memory() {
         let program = program!(main = Some(0),);
-
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
-
-        runner.initialize(&mut vm, false).unwrap();
-        vm.segments.compute_effective_sizes();
-        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
+        runner.initialize(false).unwrap();
+        // runner.vm.segments.compute_effective_sizes();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        runner.end_run(false, false, &mut hint_processor).unwrap();
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
+        assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_program_access_out_of_bounds() {
         let program = program!(main = Some(0),);
-
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
 
-        runner.initialize(&mut vm, false).unwrap();
+        runner.initialize(false).unwrap();
 
-        vm.segments = segments![((0, 0), 100)];
-        vm.segments.segment_used_sizes = Some(vec![1]);
+        runner.vm.segments = segments![((0, 0), 100)];
+        runner.vm.segments.segment_used_sizes = Some(vec![1]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, None, &mut vm),
+            verify_secure_runner(&runner, true, None),
             Err(VirtualMachineError::OutOfBoundsProgramSegmentAccess)
         );
     }
@@ -147,35 +178,31 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_program_with_program_size() {
         let program = program!(main = Some(0),);
-
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
 
-        runner.initialize(&mut vm, false).unwrap();
-
-        vm.segments = segments![((0, 0), 100)];
-        vm.segments.segment_used_sizes = Some(vec![1]);
-
-        assert_matches!(
-            verify_secure_runner(&runner, true, Some(1), &mut vm),
-            Ok(())
-        );
+        runner.initialize(false).unwrap();
+        // We insert (1, 0) for ret_fp segment.
+        runner.vm.segments = segments![((0, 0), 100), ((1, 0), 0)];
+        runner.vm.segments.segment_used_sizes = Some(vec![1]);
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
+        assert_matches!(verify_secure_runner(&runner, true, Some(1)), Ok(()));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
         let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
-
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
-        runner.initialize(&mut vm, false).unwrap();
-        vm.builtin_runners[0].set_stop_ptr(0);
-        vm.segments.memory = memory![((2, 0), 1)];
-        vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
+
+        runner.initialize(false).unwrap();
+        runner.vm.builtin_runners[0].set_stop_ptr(0);
+        runner.vm.segments.memory = memory![((2, 0), 1)];
+        runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 0, 0]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, None, &mut vm),
+            verify_secure_runner(&runner, true, None),
             Err(VirtualMachineError::OutOfBoundsBuiltinSegmentAccess)
         );
     }
@@ -184,20 +211,20 @@ mod test {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_correct() {
         let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
-
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
-        runner.initialize(&mut vm, false).unwrap();
+
+        runner.initialize(false).unwrap();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        runner
-            .end_run(false, false, &mut vm, &mut hint_processor)
-            .unwrap();
-        vm.builtin_runners[0].set_stop_ptr(1);
+        runner.end_run(false, false, &mut hint_processor).unwrap();
+        runner.vm.builtin_runners[0].set_stop_ptr(1);
+        // Adding ((1, 1), (3, 0)) to the memory segment to simulate the ret_fp_segment.
+        runner.vm.segments.memory = memory![((2, 0), 1), ((1, 1), (3, 0))];
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
+        runner.vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
 
-        vm.segments.memory = memory![((2, 0), 1)];
-        vm.segments.segment_used_sizes = Some(vec![0, 0, 1, 0]);
-
-        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
 
     #[test]
@@ -214,18 +241,22 @@ mod test {
         );
 
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
 
-        runner.initialize(&mut vm, false).unwrap();
-        vm.segments.memory = memory![
+        runner.initialize(false).unwrap();
+        // We insert (1, 0) for ret_fp segment.
+        runner.vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
             ((0, 2), (3, 2)),
-            ((0, 3), (4, 3))
+            ((0, 3), (4, 3)),
+            ((1, 0), 0)
         ];
-        vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
 
-        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
 
     #[test]
@@ -242,18 +273,22 @@ mod test {
         );
 
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
 
-        runner.initialize(&mut vm, false).unwrap();
-        vm.segments.memory = memory![
+        // We insert (1, 0) for ret_fp segment.
+        runner.initialize(false).unwrap();
+        runner.vm.segments.memory = memory![
             ((0, 1), (1, 0)),
             ((0, 2), (2, 1)),
             ((0, 3), (3, 2)),
-            ((-1, 0), (1, 2))
+            ((-1, 0), (1, 2)),
+            ((1, 0), 0)
         ];
-        vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
+        // to the stack at the start of the run.
+        runner.vm.run_context.fp = 0;
 
-        assert_matches!(verify_secure_runner(&runner, true, None, &mut vm), Ok(()));
+        assert_matches!(verify_secure_runner(&runner, true, None), Ok(()));
     }
 
     #[test]
@@ -270,23 +305,99 @@ mod test {
         );
 
         let mut runner = cairo_runner!(program);
-        let mut vm = vm!();
 
-        runner.initialize(&mut vm, false).unwrap();
-        vm.segments.memory = memory![
+        runner.initialize(false).unwrap();
+        // We insert (1, 0) for ret_fp segment.
+        runner.vm.segments.memory = memory![
             ((0, 0), (1, 0)),
             ((0, 1), (2, 1)),
             ((0, 2), (-3, 2)),
             ((0, 3), (4, 3)),
-            ((-1, 0), (1, 2))
+            ((-1, 0), (1, 2)),
+            ((1, 0), 0)
         ];
-        vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
+        runner.vm.segments.segment_used_sizes = Some(vec![5, 1, 2, 3, 4]);
 
         assert_matches!(
-            verify_secure_runner(&runner, true, None, &mut vm),
+            verify_secure_runner(&runner, true, None),
             Err(VirtualMachineError::InvalidMemoryValueTemporaryAddress(
                 bx
             )) if *bx == relocatable!(-3, 2)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_missing_initial_fp_error() {
+        let program = program!(main = Some(0),);
+        let mut runner = cairo_runner!(program);
+        // init program base to avoid other errors.
+        runner.program_base = Some(runner.vm.add_memory_segment());
+
+        assert_matches!(
+            verify_secure_runner(&runner, true, None),
+            Err(VirtualMachineError::MissingInitialFp)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_ret_fp_address_not_in_memory() {
+        let program = program!(main = Some(0),);
+        let mut runner = cairo_runner!(program);
+        runner.initialize(false).unwrap();
+        // simulate empty memory.
+        runner.vm.segments.memory = crate::vm::vm_memory::memory::Memory::new();
+        assert_matches!(
+            verify_secure_runner(&runner, true, None),
+            Err(VirtualMachineError::MissingReturnFp(..))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_return_fp_not_equal_final_fp_proof_mode() {
+        let program = program!(main = Some(0),);
+        let mut runner = cairo_runner!(program);
+        runner.initialize(false).unwrap();
+
+        // Set the runner mode to ProofModeCanonical, so we expect
+        // the return FP to be equal to final_fp.
+        runner.runner_mode = RunnerMode::ProofModeCanonical;
+
+        assert_matches!(
+            verify_secure_runner(&runner, true, None),
+            Err(VirtualMachineError::MismatchReturnFP(..))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_return_fp_offset_not_equal_final_fp_offset_execution_mode() {
+        let program = program!(main = Some(0),);
+        let mut runner = cairo_runner!(program);
+        runner.initialize(false).unwrap();
+
+        // ExecutionMode only requires offset equality, not the entire relocatable.
+        assert_matches!(
+            verify_secure_runner(&runner, true, None),
+            Err(VirtualMachineError::MismatchReturnFPOffset(..))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn verify_secure_runner_return_fp_felt_not_equal_final_fp_offse() {
+        let program = program!(main = Some(0),);
+        let mut runner = cairo_runner!(program);
+        runner.initialize(false).unwrap();
+        // Insert Felt(0) as the return FP.
+        runner.vm.segments.memory = memory![((1, 0), 0)];
+
+        // ExecutionMode only requires offset equality, not the entire relocatable.
+        assert_matches!(
+            verify_secure_runner(&runner, true, None),
+            Err(VirtualMachineError::MismatchReturnFPFelt(..))
         );
     }
 }

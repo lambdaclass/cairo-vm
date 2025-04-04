@@ -234,7 +234,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false);
+            let mut vm = VirtualMachine::new(false, false);
             vm.builtin_runners = vec![
                 $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
                     Some(8),
@@ -249,21 +249,43 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(
+            crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 crate::types::layout_name::LayoutName::all_cairo,
+                None,
+                false,
+                false,
                 false,
             )
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&$program, $layout, false).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program, $layout, None, false, false, false,
+            )
+            .unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&$program, $layout, $proof_mode).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                None,
+                $proof_mode,
+                false,
+                false,
+            )
+            .unwrap()
         };
-        ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
+        ($program:expr, $layout:expr, $proof_mode:expr, $trace_enabled:expr) => {
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                None,
+                $proof_mode,
+                $trace_enabled,
+                false,
+            )
+            .unwrap()
         };
     }
     pub(crate) use cairo_runner;
@@ -386,11 +408,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false)
+            crate::vm::vm_core::VirtualMachine::new(false, false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace)
+            crate::vm::vm_core::VirtualMachine::new($use_trace, false)
         }};
     }
     pub(crate) use vm;
@@ -639,7 +661,7 @@ mod test {
         serde::deserialize_program::ReferenceManager,
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
+        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
 
     #[cfg(target_arch = "wasm32")]

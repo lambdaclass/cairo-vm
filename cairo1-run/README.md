@@ -7,7 +7,7 @@ Once you are inside the `./cairo1-run` folder, use the CLI with the following co
 To install the required dependencies(cairo corelib) run
 
 ```bash
-make deps 
+make deps
 ```
 
 Now that you have the dependencies necessary to run the tests, you can run:
@@ -19,7 +19,7 @@ make test
 To execute a Cairo 1 program (either as Cairo 1 source file or Sierra)
 
 ```bash
-cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo 
+cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo
 ```
 
 Arguments to generate the trace and memory files
@@ -44,7 +44,7 @@ cargo run ../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo --
 To execute all the cairo 1 programs inside `../cairo_programs/cairo-1-programs/` and generate the corresponding trace and the memory files
 
 ```bash
-make run 
+make run
 ```
 
 ## CLI argument list
@@ -61,7 +61,7 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--memory_file <MEMORY_FILE>`: Receives the name of a file and outputs the relocated memory into it
 
-* `--proof_mode`: Runs the program in proof_mode
+* `--proof_mode`: Runs the program in proof_mode. Only allows `Array<felt252>` as return and input value.
 
 * `--air_public_input <AIR_PUBLIC_INPUT>`: Receives the name of a file and outputs the AIR public inputs into it. Can only be used if proof_mode is also enabled.
 
@@ -69,7 +69,11 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
-* `--append_return_values`: Adds extra instructions to the program in order to append the return values to the output builtin's segment. This is the default behaviour for proof_mode.
+* `--append_return_values`: Adds extra instructions to the program in order to append the return and input values to the output builtin's segment. This is the default behaviour for proof_mode. Only allows `Array<felt252>` as return and input value.
+
+## Running circuits
+
+Circuits in cairo 1 require to enable the `mod_builtin` feature in order for the `AddMod`, `MulMod` and `RangeCheck96` builtins to be taken into account.
 
 # Running scarb projects
 
@@ -86,7 +90,7 @@ Then run the compiled project's sierra file located at `project_name/target/proj
 
 Example:
 ```bash
-  cargo run path-to-project/target/project_name.sierra.json 
+  cargo run path-to-project/target/project_name.sierra.json
 ```
 
 # Known bugs & issues

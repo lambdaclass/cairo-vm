@@ -23,6 +23,6 @@ fn main() -> SquashedFelt252Dict<Nullable<FP16x16>> {
     d.squash()
 }
 
-// TODO: remove this temporary fixed once fixed in cairo
+// TODO: remove this temporary fix once fixed in cairo
 #[inline(never)]
 fn identity<T>(t: T) -> T { t }

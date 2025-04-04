@@ -1,3 +1,4 @@
+use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
 
@@ -22,7 +23,7 @@ use super::memory::MemoryCell;
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
-    pub(crate) memory: Memory,
+    pub memory: Memory,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
@@ -67,7 +68,7 @@ impl MemorySegmentManager {
     pub fn load_data(
         &mut self,
         ptr: Relocatable,
-        data: &Vec<MaybeRelocatable>,
+        data: &[MaybeRelocatable],
     ) -> Result<Relocatable, MemoryError> {
         // Starting from the end ensures any necessary resize
         // is performed once with enough room for everything
@@ -175,7 +176,7 @@ impl MemorySegmentManager {
         if let Some(vector) = arg.downcast_ref::<Vec<MaybeRelocatable>>() {
             self.load_data(ptr, vector).map(Into::into)
         } else if let Some(vector) = arg.downcast_ref::<Vec<Relocatable>>() {
-            let data = &vector.iter().map(|value| value.into()).collect();
+            let data: &Vec<MaybeRelocatable> = &vector.iter().map(|value| value.into()).collect();
             self.load_data(ptr, data).map(Into::into)
         } else {
             Err(MemoryError::WriteArg)
@@ -199,30 +200,28 @@ impl MemorySegmentManager {
         }
     }
 
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.memory.is_accessed(addr)
+    }
+
+    /// Counts the memory holes (aka unaccessed memory cells) in memory
+    /// # Parameters
+    /// - `builtin_segment_indexes`: Set representing the segments indexes of the builtins initialized in the VM, except for the output builtin.
     pub fn get_memory_holes(
         &self,
-        builtin_count: usize,
-        has_output_builtin: bool,
+        builtin_segment_indexes: HashSet<usize>,
     ) -> Result<usize, MemoryError> {
         let data = &self.memory.data;
         let mut memory_holes = 0;
-        let builtin_segments_start = if has_output_builtin {
-            2 // program segment + execution segment + output segment
-        } else {
-            1 // program segment + execution segment
-        };
-        let builtin_segments_end = builtin_segments_start + builtin_count;
-        // Count the memory holes for each segment by substracting the amount of accessed_addresses from the segment's size
-        // Segments without accesses addresses are not accounted for when counting memory holes
         for i in 0..data.len() {
             // Instead of marking all of the builtin segment's address as accessed, we just skip them when counting memory holes
             // Output builtin is extempt from this behaviour
-            if i > builtin_segments_start && i <= builtin_segments_end {
+            if builtin_segment_indexes.contains(&i) {
                 continue;
             }
             let accessed_amount =
                 // Instead of marking the values in the zero segment until zero_segment_size as accessed we use zero_segment_size as accessed_amount
-                if !self.zero_segment_index.is_zero() && i == self.zero_segment_index {
+                if self.has_zero_segment() && i == self.zero_segment_index {
                     self.zero_segment_size
                 } else {
                     match self.memory.get_amount_of_accessed_addresses_for_segment(i) {
@@ -270,7 +269,7 @@ impl MemorySegmentManager {
     // * size - The size of the segment (to be used in relocate_segments).
     // * public_memory - A list of offsets for memory cells that will be considered as public
     // memory.
-    pub(crate) fn finalize(
+    pub fn finalize(
         &mut self,
         size: Option<usize>,
         segment_index: usize,
@@ -283,15 +282,20 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
+    pub fn has_zero_segment(&self) -> bool {
+        !self.zero_segment_index.is_zero()
+    }
+
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
     pub(crate) fn add_zero_segment(&mut self, size: usize) -> usize {
-        if self.zero_segment_index.is_zero() {
+        if !self.has_zero_segment() {
             self.zero_segment_index = self.add().segment_index as usize;
         }
+
         // Fil zero segment with zero values until size is reached
-        for _ in 0..self.zero_segment_size.saturating_sub(size) {
+        for _ in 0..(size.saturating_sub(self.zero_segment_size)) {
             // As zero_segment_index is only accessible to the segment manager
             // we can asume that it is always valid and index direcly into it
             self.memory.data[self.zero_segment_index].push(MemoryCell::new(Felt252::ZERO.into()))
@@ -302,7 +306,7 @@ impl MemorySegmentManager {
 
     // Finalizes the zero segment and clears it's tracking data from the manager
     pub(crate) fn finalize_zero_segment(&mut self) {
-        if !self.zero_segment_index.is_zero() {
+        if self.has_zero_segment() {
             self.finalize(Some(self.zero_segment_size), self.zero_segment_index, None);
             self.zero_segment_index = 0;
             self.zero_segment_size = 0;
@@ -687,7 +691,7 @@ mod tests {
             .memory
             .mark_as_accessed((0, 0).into());
         assert_eq!(
-            memory_segment_manager.get_memory_holes(0, false),
+            memory_segment_manager.get_memory_holes(HashSet::new()),
             Err(MemoryError::MissingSegmentUsedSizes),
         );
     }
@@ -704,7 +708,7 @@ mod tests {
                 .mark_as_accessed((0, i).into());
         }
         assert_eq!(
-            memory_segment_manager.get_memory_holes(0, false),
+            memory_segment_manager.get_memory_holes(HashSet::new()),
             Err(MemoryError::SegmentHasMoreAccessedAddressesThanSize(
                 Box::new((0, 3, 2))
             )),
@@ -716,7 +720,10 @@ mod tests {
     fn get_memory_holes_empty() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(Vec::new());
-        assert_eq!(memory_segment_manager.get_memory_holes(0, false), Ok(0),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(0),
+        );
     }
 
     #[test]
@@ -724,7 +731,10 @@ mod tests {
     fn get_memory_holes_empty2() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.segment_used_sizes = Some(vec![4]);
-        assert_eq!(memory_segment_manager.get_memory_holes(0, false), Ok(0),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(0),
+        );
     }
 
     #[test]
@@ -747,7 +757,10 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(0, false), Ok(2),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(2),
+        );
     }
 
     #[test]
@@ -772,7 +785,10 @@ mod tests {
                 .memory
                 .mark_as_accessed((0, i).into());
         }
-        assert_eq!(memory_segment_manager.get_memory_holes(0, false), Ok(7),);
+        assert_eq!(
+            memory_segment_manager.get_memory_holes(HashSet::new()),
+            Ok(7),
+        );
     }
 
     #[test]
@@ -995,6 +1011,44 @@ mod tests {
         assert_matches!(
             memory_segment_manager.gen_cairo_arg(&cairo_args),
             Ok(x) if x == mayberelocatable!(2, 0)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_add_zero_segment() {
+        // Create MemorySegmentManager with program and execution segments
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.add();
+        memory_segment_manager.add();
+
+        // Add zero segment
+        memory_segment_manager.add_zero_segment(3);
+        assert_eq!(memory_segment_manager.zero_segment_index, 2);
+        assert_eq!(memory_segment_manager.zero_segment_size, 3);
+        assert_eq!(
+            &memory_segment_manager.memory.data[2],
+            &Vec::from([
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0))
+            ])
+        );
+
+        // Resize zero segment
+        memory_segment_manager.add_zero_segment(5);
+        assert_eq!(memory_segment_manager.zero_segment_index, 2);
+        assert_eq!(memory_segment_manager.zero_segment_size, 5);
+
+        assert_eq!(
+            &memory_segment_manager.memory.data[2],
+            &Vec::from([
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0)),
+                MemoryCell::new(MaybeRelocatable::from(0))
+            ])
         );
     }
 }
