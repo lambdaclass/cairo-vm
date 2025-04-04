@@ -28,7 +28,7 @@ use crate::{
         relocatable::MaybeRelocatable,
     },
 };
-use num_bigint::BigUint;
+use num_bigint::BigInt;
 use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
@@ -102,6 +102,7 @@ pub struct Identifier {
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
     pub cairo_type: Option<String>,
+    pub size: Option<usize>,
 }
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
@@ -235,15 +236,20 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
             let str = n.to_string();
             let list: [&str; 2] = str.split('e').collect::<Vec<&str>>().try_into().ok()?;
             let exponent = list[1].parse::<u128>().ok()?;
+
             // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
-            let base_biguint = BigUint::from_str_radix(list[0], 10).ok()? % CAIRO_PRIME.clone();
-            let base = Felt252::from_dec_str(&base_biguint.to_string()).ok()?;
+            let prime_bigint = BigInt::from_biguint(num_bigint::Sign::Plus, CAIRO_PRIME.clone());
+            let base_bigint = BigInt::from_str_radix(list[0], 10).ok()? % prime_bigint;
+            let base = Felt252::from_dec_str(&base_bigint.to_string()).ok()?;
+
             Some(base * Felt252::from(10).pow(exponent))
         }
         Some(float) => {
-            let number = BigUint::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?;
             // Apply % CAIRO_PRIME, BECAUSE Felt252::from_dec_str fails with big numbers
-            Felt252::from_dec_str(&(number % CAIRO_PRIME.clone()).to_string()).ok()
+            let prime_bigint = BigInt::from_biguint(num_bigint::Sign::Plus, CAIRO_PRIME.clone());
+            let number = BigInt::from_str_radix(&FloatCore::round(float).to_string(), 10).ok()?
+                % prime_bigint;
+            Felt252::from_dec_str(&number.to_string()).ok()
         }
     }
 }
@@ -269,7 +275,7 @@ pub struct Reference {
 pub enum OffsetValue {
     Immediate(Felt252),
     Value(i32),
-    Reference(Register, i32, bool),
+    Reference(Register, i32, bool, bool),
 }
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
@@ -303,7 +309,7 @@ impl ValueAddress {
 
 struct Felt252Visitor;
 
-impl<'de> de::Visitor<'de> for Felt252Visitor {
+impl de::Visitor<'_> for Felt252Visitor {
     type Value = Felt252;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -371,7 +377,7 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
 
 struct ValueAddressVisitor;
 
-impl<'de> de::Visitor<'de> for ValueAddressVisitor {
+impl de::Visitor<'_> for ValueAddressVisitor {
     type Value = ValueAddress;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -561,7 +567,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                }, 
+                },
                 "builtins": [],
                 "data": [
                     "0x480680017fff8000",
@@ -708,7 +714,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -4, false),
+                        offset1: OffsetValue::Reference(Register::FP, -4, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
@@ -722,7 +728,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -3, false),
+                        offset1: OffsetValue::Reference(Register::FP, -3, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
@@ -736,7 +742,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, -3, true),
+                        offset1: OffsetValue::Reference(Register::FP, -3, true, true),
                         offset2: OffsetValue::Immediate(Felt252::from(2)),
                         outer_dereference: false,
                         inner_dereference: false,
@@ -750,7 +756,7 @@ mod tests {
                     },
                     pc: Some(0),
                     value_address: ValueAddress {
-                        offset1: OffsetValue::Reference(Register::FP, 0, false),
+                        offset1: OffsetValue::Reference(Register::FP, 0, false, true),
                         offset2: OffsetValue::Value(0),
                         outer_dereference: true,
                         inner_dereference: false,
@@ -1007,6 +1013,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1020,6 +1027,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1031,6 +1039,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1044,6 +1053,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1055,6 +1065,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1066,6 +1077,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
         identifiers.insert(
@@ -1077,6 +1089,7 @@ mod tests {
                 full_name: None,
                 members: None,
                 cairo_type: None,
+                size: None,
             },
         );
 
@@ -1092,7 +1105,7 @@ mod tests {
                 "attributes": [],
                 "debug_info": {
                     "instruction_locations": {}
-                },  
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1173,10 +1186,10 @@ mod tests {
                         "start_pc": 402,
                         "value": "SafeUint256: subtraction overflow"
                     }
-                ], 
+                ],
                 "debug_info": {
                     "instruction_locations": {}
-                },           
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1230,7 +1243,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1281,7 +1294,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1339,7 +1352,7 @@ mod tests {
         let valid_json = r#"
             {
                 "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
-                "attributes": [], 
+                "attributes": [],
                 "debug_info": {
                     "file_contents": {},
                     "instruction_locations": {
@@ -1386,7 +1399,7 @@ mod tests {
                             }
                         }
                     }
-                },          
+                },
                 "builtins": [],
                 "data": [
                 ],
@@ -1479,8 +1492,7 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_felt_from_number_with_scientific_notation() {
-        let n = Number::deserialize(serde_json::Value::from(1000000000000000000000000000_u128))
-            .unwrap();
+        let n = Number::deserialize(serde_json::Value::from(1e27)).unwrap();
         assert_eq!(n.to_string(), "1e27".to_owned());
 
         assert_matches!(
@@ -1539,6 +1551,17 @@ mod tests {
             )
             .unwrap()
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_felt_from_number_with_scientific_notation_negative() {
+        let n = Number::deserialize(serde_json::Value::from(-1e27)).unwrap();
+        assert_eq!(n.to_string(), "-1e27".to_owned());
+
+        let felt = felt_from_number(n).unwrap().unwrap();
+
+        assert_eq!(felt, Felt252::from(-1) * Felt252::from(10).pow(27_u32));
     }
 
     #[test]

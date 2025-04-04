@@ -1,6 +1,6 @@
 use crate::Felt252;
 use serde::{Deserialize, Serialize};
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::{
     stdlib::{
@@ -34,7 +34,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("{:x}", value))
+            serializer.serialize_str(&format!("0x{:x}", value))
         } else {
             serializer.serialize_none()
         }
@@ -48,7 +48,7 @@ mod mem_value_serde {
 
     struct Felt252OptionVisitor;
 
-    impl<'de> de::Visitor<'de> for Felt252OptionVisitor {
+    impl de::Visitor<'_> for Felt252OptionVisitor {
         type Value = Option<Felt252>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -89,6 +89,7 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
     }
 }
 
+#[allow(clippy::manual_non_exhaustive)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PublicInput<'a> {
     pub layout: &'a str,
@@ -198,8 +199,8 @@ mod tests {
             layout: LayoutName::all_cairo,
             ..Default::default()
         };
-        let (runner, vm) = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
-        let public_input = runner.get_air_public_input(&vm).unwrap();
+        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let public_input = runner.get_air_public_input().unwrap();
         // We already know serialization works as expected due to the comparison against python VM
         let serialized_public_input = public_input.serialize_json().unwrap();
         let deserialized_public_input: PublicInput =

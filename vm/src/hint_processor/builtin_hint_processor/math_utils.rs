@@ -743,10 +743,7 @@ pub fn split_xx(
         x = &*SPLIT_XX_PRIME - x;
     }
 
-    vm.insert_value(
-        x_addr,
-        Felt252::from(&(&x & &BigUint::from(u128::max_value()))),
-    )?;
+    vm.insert_value(x_addr, Felt252::from(&(&x & &BigUint::from(u128::MAX))))?;
     vm.insert_value((x_addr + 1)?, Felt252::from(&(x >> 128_u32)))?;
 
     Ok(())
@@ -2056,8 +2053,14 @@ mod tests {
         //Create ids
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(
@@ -2134,8 +2137,14 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
 
         //Execute the hint
@@ -2178,8 +2187,14 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(
@@ -2216,8 +2231,14 @@ mod tests {
         //Create ids_data & hint_data
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(
@@ -2254,8 +2275,14 @@ mod tests {
         //Create ids
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(
@@ -2280,8 +2307,14 @@ mod tests {
         //Create ids
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(
@@ -2318,8 +2351,14 @@ mod tests {
         //Create ids
         let ids_data = HashMap::from([
             ("value".to_string(), HintReference::new_simple(-4)),
-            ("low".to_string(), HintReference::new(-3, 0, true, true)),
-            ("high".to_string(), HintReference::new(-3, 1, true, true)),
+            (
+                "low".to_string(),
+                HintReference::new(-3, 0, true, true, true),
+            ),
+            (
+                "high".to_string(),
+                HintReference::new(-3, 1, true, true, true),
+            ),
         ]);
         //Execute the hint
         assert_matches!(

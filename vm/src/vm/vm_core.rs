@@ -4,12 +4,17 @@ use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
 use crate::{
-    hint_processor::hint_processor_definition::HintProcessor,
+    hint_processor::{
+        builtin_hint_processor::blake2s_hash::blake2s_compress,
+        hint_processor_definition::HintProcessor,
+    },
+    typed_operations::{typed_add, typed_div, typed_mul, typed_sub},
     types::{
         errors::math_errors::MathError,
         exec_scope::ExecutionScopes,
         instruction::{
-            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, PcUpdate, Res,
+            is_call_instruction, ApUpdate, FpUpdate, Instruction, Opcode, OpcodeExtension,
+            PcUpdate, Res,
         },
         relocatable::{MaybeRelocatable, Relocatable},
     },
@@ -73,22 +78,25 @@ impl DeducedOperands {
         self.0 & 1 != 0
     }
     fn was_op0_deducted(&self) -> bool {
-        self.0 & 1 << 1 != 0
+        self.0 & (1 << 1) != 0
     }
     fn was_op1_deducted(&self) -> bool {
-        self.0 & 1 << 2 != 0
+        self.0 & (1 << 2) != 0
     }
 }
 
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub builtin_runners: Vec<BuiltinRunner>,
+    pub simulated_builtin_runners: Vec<BuiltinRunner>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
     pub(crate) rc_limits: Option<(isize, isize)>,
     skip_instruction_execution: bool,
     run_finished: bool,
+    // This flag is a parallel to the one in `struct CairoRunConfig`.
+    pub(crate) disable_trace_padding: bool,
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "test_utils")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
@@ -96,7 +104,7 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub fn new(trace_enabled: bool) -> VirtualMachine {
+    pub fn new(trace_enabled: bool, disable_trace_padding: bool) -> VirtualMachine {
         let run_context = RunContext {
             pc: Relocatable::from((0, 0)),
             ap: 0,
@@ -112,12 +120,14 @@ impl VirtualMachine {
         VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
+            simulated_builtin_runners: Vec::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
             segments: MemorySegmentManager::new(),
             rc_limits: None,
             run_finished: false,
+            disable_trace_padding,
             instruction_cache: Vec::new(),
             #[cfg(feature = "test_utils")]
             hooks: Default::default(),
@@ -230,19 +240,18 @@ impl VirtualMachine {
                 None,
             )),
             Opcode::AssertEq => match (&instruction.res, dst, op1) {
-                (Res::Add, Some(dst_addr), Some(op1_addr)) => {
-                    Ok((Some(dst_addr.sub(op1_addr)?), dst.cloned()))
-                }
+                (Res::Add, Some(dst_addr), Some(op1_addr)) => Ok((
+                    Some(typed_sub(dst_addr, op1_addr, instruction.opcode_extension)?),
+                    dst.cloned(),
+                )),
                 (
                     Res::Mul,
                     Some(MaybeRelocatable::Int(num_dst)),
                     Some(MaybeRelocatable::Int(num_op1)),
-                ) if !num_op1.is_zero() => Ok((
-                    Some(MaybeRelocatable::Int(num_dst.field_div(
-                        &num_op1.try_into().map_err(|_| MathError::DividedByZero)?,
-                    ))),
-                    dst.cloned(),
-                )),
+                ) if !num_op1.is_zero() => {
+                    let num_op0 = typed_div(num_dst, num_op1, instruction.opcode_extension)?;
+                    Ok((Some(MaybeRelocatable::Int(num_op0)), dst.cloned()))
+                }
                 _ => Ok((None, None)),
             },
             _ => Ok((None, None)),
@@ -263,7 +272,9 @@ impl VirtualMachine {
                 Res::Op1 => return Ok((dst.cloned(), dst.cloned())),
                 Res::Add => {
                     return Ok((
-                        dst.zip(op0).and_then(|(dst, op0)| dst.sub(&op0).ok()),
+                        dst.zip(op0).and_then(|(dst, op0)| {
+                            typed_sub(dst, &op0, instruction.opcode_extension).ok()
+                        }),
                         dst.cloned(),
                     ))
                 }
@@ -272,12 +283,8 @@ impl VirtualMachine {
                         Some(MaybeRelocatable::Int(num_dst)),
                         Some(MaybeRelocatable::Int(num_op0)),
                     ) if !num_op0.is_zero() => {
-                        return Ok((
-                            Some(MaybeRelocatable::Int(num_dst.field_div(
-                                &num_op0.try_into().map_err(|_| MathError::DividedByZero)?,
-                            ))),
-                            dst.cloned(),
-                        ))
+                        let num_op1 = typed_div(num_dst, &num_op0, instruction.opcode_extension)?;
+                        return Ok((Some(MaybeRelocatable::Int(num_op1)), dst.cloned()));
                     }
                     _ => (),
                 },
@@ -291,12 +298,17 @@ impl VirtualMachine {
         &self,
         address: Relocatable,
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
-        for builtin in self.builtin_runners.iter() {
-            if builtin.base() as isize == address.segment_index {
-                match builtin.deduce_memory_cell(address, &self.segments.memory) {
-                    Ok(maybe_reloc) => return Ok(maybe_reloc),
-                    Err(error) => return Err(VirtualMachineError::RunnerError(error)),
-                };
+        let memory = &self.segments.memory;
+
+        for runner in self
+            .builtin_runners
+            .iter()
+            .chain(self.simulated_builtin_runners.iter())
+        {
+            if runner.base() as isize == address.segment_index {
+                return runner
+                    .deduce_memory_cell(address, memory)
+                    .map_err(VirtualMachineError::RunnerError);
             }
         }
         Ok(None)
@@ -311,17 +323,8 @@ impl VirtualMachine {
     ) -> Result<Option<MaybeRelocatable>, VirtualMachineError> {
         match instruction.res {
             Res::Op1 => Ok(Some(op1.clone())),
-            Res::Add => Ok(Some(op0.add(op1)?)),
-            Res::Mul => {
-                if let (MaybeRelocatable::Int(num_op0), MaybeRelocatable::Int(num_op1)) = (op0, op1)
-                {
-                    return Ok(Some(MaybeRelocatable::Int(num_op0 * num_op1)));
-                }
-                Err(VirtualMachineError::ComputeResRelocatableMul(Box::new((
-                    op0.clone(),
-                    op1.clone(),
-                ))))
-            }
+            Res::Add => Ok(Some(typed_add(op0, op1, instruction.opcode_extension)?)),
+            Res::Mul => Ok(Some(typed_mul(op0, op1, instruction.opcode_extension)?)),
             Res::Unconstrained => Ok(None),
         }
     }
@@ -438,8 +441,70 @@ impl VirtualMachine {
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
 
+        if instruction.opcode_extension == OpcodeExtension::Blake
+            || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
+        {
+            self.handle_blake2s_instruction(
+                &operands_addresses,
+                instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
+            )?;
+        }
+
         self.update_registers(instruction, operands)?;
         self.current_step += 1;
+
+        Ok(())
+    }
+
+    /// Executes a Blake2s or Blake2sLastBlock instruction.
+    /// Expects operands to be RelocatableValue and to point to segments of memory.
+    /// op0 is expected to point to a sequence of 8 u32 values (state).
+    /// op1 is expected to point to a sequence of 16 u32 values (message).
+    /// dst is expected hold the u32 value of the counter (t).
+    /// [ap] is expected to point to a sequence of 8 cells each being either unitialised or
+    /// containing the Blake2s compression output at that index.
+    /// Deviation from the aforementioned expectations will result in an error.
+    /// The instruction will update the memory segment pointed by [ap] with the new state.
+    /// Note: the byte counter should count the number of message bytes processed so far including
+    /// the current portion of the message (i.e. it starts at 64, not 0).
+    fn handle_blake2s_instruction(
+        &mut self,
+        operands_addresses: &OperandsAddresses,
+        is_last_block: bool,
+    ) -> Result<(), VirtualMachineError> {
+        let counter = self.segments.memory.get_u32(operands_addresses.dst_addr)?;
+
+        let state: [u32; 8] = (self.get_u32_range(
+            self.segments
+                .memory
+                .get_relocatable(operands_addresses.op0_addr)?,
+            8,
+        )?)
+        .try_into()
+        .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(0, 8))?;
+
+        let message: [u32; 16] = (self.get_u32_range(
+            self.segments
+                .memory
+                .get_relocatable(operands_addresses.op1_addr)?,
+            16,
+        )?)
+        .try_into()
+        .map_err(|_| VirtualMachineError::Blake2sInvalidOperand(1, 16))?;
+
+        let f0 = if is_last_block { 0xffffffff } else { 0 };
+
+        let ap = self.run_context.get_ap();
+        let output_address = self.segments.memory.get_relocatable(ap)?;
+
+        let new_state = blake2s_compress(&state, &message, counter, 0, f0, 0);
+
+        for (i, &val) in new_state.iter().enumerate() {
+            self.segments.memory.insert_as_accessed(
+                (output_address + i)?,
+                MaybeRelocatable::Int(Felt252::from(val)),
+            )?;
+        }
 
         Ok(())
     }
@@ -449,7 +514,7 @@ impl VirtualMachine {
             .segments
             .memory
             .get_integer(self.run_context.pc)?
-            .to_u64()
+            .to_u128()
             .ok_or(VirtualMachineError::InvalidInstructionEncoding)?;
         decode_instruction(instruction)
     }
@@ -830,6 +895,10 @@ impl VirtualMachine {
         self.run_context.get_pc()
     }
 
+    pub fn get_current_step(&self) -> usize {
+        self.current_step
+    }
+
     ///Gets the integer value corresponding to the Relocatable address
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
@@ -858,6 +927,16 @@ impl VirtualMachine {
         &mut self.builtin_runners
     }
 
+    /// Returns a mutable iterator over all builtin runners used. That is, both builtin_runners and
+    /// simulated_builtin_runners.
+    pub fn get_all_builtin_runners_as_mut_iter(
+        &mut self,
+    ) -> impl Iterator<Item = &mut BuiltinRunner> {
+        self.builtin_runners
+            .iter_mut()
+            .chain(self.simulated_builtin_runners.iter_mut())
+    }
+
     ///Inserts a value into a memory address given by a Relocatable value
     pub fn insert_value<T: Into<MaybeRelocatable>>(
         &mut self,
@@ -871,7 +950,7 @@ impl VirtualMachine {
     pub fn load_data(
         &mut self,
         ptr: Relocatable,
-        data: &Vec<MaybeRelocatable>,
+        data: &[MaybeRelocatable],
     ) -> Result<Relocatable, MemoryError> {
         if ptr.segment_index == 0 {
             self.instruction_cache.resize(data.len(), None);
@@ -894,6 +973,10 @@ impl VirtualMachine {
 
     pub fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
         self.segments.memory.mem_eq(lhs, rhs, len)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.segments.is_accessed(addr)
     }
 
     ///Gets `n_ret` return values from memory
@@ -926,6 +1009,12 @@ impl VirtualMachine {
         self.segments.memory.get_integer_range(addr, size)
     }
 
+    /// Gets n u32 values from memory starting from addr (n being size).
+    /// Returns an error if any of the values inside the range is missing (memory gap) or is not a u32.
+    pub fn get_u32_range(&self, addr: Relocatable, size: usize) -> Result<Vec<u32>, MemoryError> {
+        self.segments.memory.get_u32_range(addr, size)
+    }
+
     pub fn get_range_check_builtin(
         &self,
     ) -> Result<&RangeCheckBuiltinRunner<RC_N_PARTS_STANDARD>, VirtualMachineError> {
@@ -940,7 +1029,7 @@ impl VirtualMachine {
     pub fn get_signature_builtin(
         &mut self,
     ) -> Result<&mut SignatureBuiltinRunner, VirtualMachineError> {
-        for builtin in self.get_builtin_runners_as_mut() {
+        for builtin in self.get_all_builtin_runners_as_mut_iter() {
             if let BuiltinRunner::Signature(signature_builtin) = builtin {
                 return Ok(signature_builtin);
             };
@@ -1000,6 +1089,10 @@ impl VirtualMachine {
 
     /// Add a new relocation rule.
     ///
+    /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
+    /// MaybeRelocatable). Relocating memory to anything other than a `Relocatable` is generally
+    /// not useful, but it does make the implementation consistent with the pythonic version.
+    ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
@@ -1007,7 +1100,8 @@ impl VirtualMachine {
     pub fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
-        dst_ptr: Relocatable,
+        #[cfg(not(feature = "extensive_hints"))] dst_ptr: Relocatable,
+        #[cfg(feature = "extensive_hints")] dst_ptr: MaybeRelocatable,
     ) -> Result<(), MemoryError> {
         self.segments.memory.add_relocation_rule(src_ptr, dst_ptr)
     }
@@ -1240,6 +1334,7 @@ impl VirtualMachineBuilder {
         VirtualMachine {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
+            simulated_builtin_runners: Vec::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
@@ -1250,6 +1345,7 @@ impl VirtualMachineBuilder {
             #[cfg(feature = "test_utils")]
             hooks: self.hooks,
             relocation_table: None,
+            disable_trace_padding: false,
         }
     }
 }
@@ -1258,7 +1354,9 @@ impl VirtualMachineBuilder {
 mod tests {
     use super::*;
     use crate::felt_hex;
+    use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
     use crate::stdlib::collections::HashMap;
+    use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::{
@@ -1274,10 +1372,7 @@ mod tests {
         utils::test_utils::*,
         vm::{
             errors::memory_errors::MemoryError,
-            runners::{
-                builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
-                cairo_runner::CairoRunner,
-            },
+            runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
     use assert_matches::assert_matches;
@@ -1300,6 +1395,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1333,6 +1429,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1366,6 +1463,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1399,6 +1497,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1433,6 +1532,7 @@ mod tests {
             ap_update: ApUpdate::Add,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1442,7 +1542,7 @@ mod tests {
             op1: MaybeRelocatable::Int(Felt252::from(10)),
         };
 
-        let mut vm = VirtualMachine::new(false);
+        let mut vm = VirtualMachine::new(false, false);
         vm.run_context.pc = Relocatable::from((0, 4));
         vm.run_context.ap = 5;
         vm.run_context.fp = 6;
@@ -1469,6 +1569,7 @@ mod tests {
             ap_update: ApUpdate::Add,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1504,6 +1605,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1540,6 +1642,7 @@ mod tests {
             ap_update: ApUpdate::Add2,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1576,6 +1679,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1612,6 +1716,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1645,6 +1750,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1678,6 +1784,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1711,6 +1818,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1746,6 +1854,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1780,6 +1889,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1812,6 +1922,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1843,6 +1954,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1876,6 +1988,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1909,6 +2022,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1947,6 +2061,7 @@ mod tests {
             ap_update: ApUpdate::Add2,
             fp_update: FpUpdate::Dst,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -1997,6 +2112,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2025,6 +2141,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2057,6 +2174,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2084,6 +2202,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2116,6 +2235,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2145,6 +2265,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2174,6 +2295,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Ret,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2186,6 +2308,106 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 None, None
             ))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [STWO_PRIME - 10, 5, STWO_PRIME - 5, 1];
+        let dst_coordinates = [STWO_PRIME - 4, 2, 12, 3];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([6, STWO_PRIME-3, 17, 2]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [0, 0, 1, 0];
+        let dst_coordinates = [0, 0, 0, 1];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op0_blake_finalize_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::BlakeFinalize,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::Int(Felt252::from(5));
+        let dst = MaybeRelocatable::Int(Felt252::from(15));
+        assert_matches!(
+            vm.deduce_op0(&instruction, Some(&dst), Some(&op1)),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_sub"
         );
     }
 
@@ -2204,6 +2426,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2231,6 +2454,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2262,6 +2486,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2288,6 +2513,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2319,6 +2545,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2348,6 +2575,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2376,6 +2604,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2388,6 +2617,106 @@ mod tests {
                 y
             )) if x == Some(MaybeRelocatable::Int(Felt252::from(7))) &&
                     y == Some(MaybeRelocatable::Int(Felt252::from(7)))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op0_coordinates = [4, STWO_PRIME - 13, 3, 7];
+        let dst_coordinates = [8, 7, 6, 5];
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([4, 20, 3, STWO_PRIME - 2]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op0_coordinates = [0, 1, 0, 0];
+        let dst_coordinates = [STWO_PRIME - 1, 0, 0, 0];
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        let dst = MaybeRelocatable::Int(dst_packed);
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
+                x,
+                y
+            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+                    y == Some(MaybeRelocatable::Int(dst_packed))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_op1_blake_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Blake,
+        };
+
+        let vm = vm!();
+
+        let op0 = MaybeRelocatable::Int(Felt252::from(4));
+        let dst = MaybeRelocatable::Int(Felt252::from(16));
+        assert_matches!(
+            vm.deduce_op1(&instruction, Some(&dst), Some(op0)),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_div"
         );
     }
 
@@ -2406,6 +2735,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2435,6 +2765,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2464,6 +2795,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2493,6 +2825,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2502,6 +2835,130 @@ mod tests {
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Err(VirtualMachineError::ComputeResRelocatableMul(bx)) if *bx == (op0, op1)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_add_relocatable_values() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::from((2, 3));
+        let op0 = MaybeRelocatable::from(7);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err(VirtualMachineError::Math(MathError::RelocatableQM31Add(bx))) if *bx == (op0, op1)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_add_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Add,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [1, 2, 3, 4];
+        let op0_coordinates = [10, 11, STWO_PRIME - 1, 13];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == qm31_coordinates_to_packed_reduced([11, 13, 2, 17])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_qm31_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::QM31Operation,
+        };
+
+        let vm = vm!();
+
+        let op1_coordinates = [0, 0, 1, 0];
+        let op0_coordinates = [0, 0, 1, 0];
+        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
+        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1 = MaybeRelocatable::Int(op1_packed);
+        let op0 = MaybeRelocatable::Int(op0_packed);
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
+                x
+            ))) if x == qm31_coordinates_to_packed_reduced([2, 1, 0, 0])
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_res_blake_mul_int_operands() {
+        let instruction = Instruction {
+            off0: 1,
+            off1: 2,
+            off2: 3,
+            dst_register: Register::FP,
+            op0_register: Register::AP,
+            op1_addr: Op1Addr::AP,
+            res: Res::Mul,
+            pc_update: PcUpdate::Regular,
+            ap_update: ApUpdate::Regular,
+            fp_update: FpUpdate::Regular,
+            opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Blake,
+        };
+
+        let vm = vm!();
+
+        let op1 = MaybeRelocatable::Int(Felt252::from(11));
+        let op0 = MaybeRelocatable::Int(Felt252::from(12));
+        assert_matches!(
+            vm.compute_res(&instruction, &op0, &op1),
+            Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(ref message)) if message.as_ref() == "typed_mul"
         );
     }
 
@@ -2520,6 +2977,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2547,6 +3005,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2573,6 +3032,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2595,6 +3055,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2620,6 +3081,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::Ret,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let vm = vm!();
@@ -2642,6 +3104,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2702,6 +3165,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
         let mut vm = vm!();
         //Create program and execution segments
@@ -2761,6 +3225,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2816,6 +3281,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::NOp,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut vm = vm!();
@@ -2841,6 +3307,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2871,6 +3338,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2905,6 +3373,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2937,6 +3406,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -2970,6 +3440,7 @@ mod tests {
             ap_update: ApUpdate::Regular,
             fp_update: FpUpdate::APPlus2,
             opcode: Opcode::Call,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let operands = Operands {
@@ -3337,6 +3808,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
         let mut builtin = HashBuiltinRunner::new(Some(8), true);
         builtin.base = 3;
@@ -3425,6 +3897,7 @@ mod tests {
             ap_update: ApUpdate::Add1,
             fp_update: FpUpdate::Regular,
             opcode: Opcode::AssertEq,
+            opcode_extension: OpcodeExtension::Stone,
         };
 
         let mut builtin = BitwiseBuiltinRunner::new(Some(256), true);
@@ -4120,7 +4593,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decode_current_instruction_invalid_encoding() {
         let mut vm = vm!();
-        vm.segments = segments![((0, 0), ("112233445566778899", 16))];
+        vm.segments = segments![((0, 0), ("112233445566778899112233445566778899", 16))];
         assert_matches!(
             vm.decode_current_instruction(),
             Err(VirtualMachineError::InvalidInstructionEncoding)
@@ -4221,7 +4694,7 @@ mod tests {
         let segment = vm.segments.add();
         vm.load_data(
             segment,
-            &vec![
+            &[
                 mayberelocatable!(1),
                 mayberelocatable!(2),
                 mayberelocatable!(3),
@@ -4242,7 +4715,7 @@ mod tests {
         let segment = vm.segments.add();
         vm.load_data(
             segment,
-            &vec![
+            &[
                 mayberelocatable!(1),
                 mayberelocatable!(2),
                 mayberelocatable!(3),
@@ -4264,12 +4737,18 @@ mod tests {
             ((0, 1), 0),
             ((0, 2), 1),
             ((0, 10), 10),
-            ((1, 1), 1)
+            ((1, 1), 1),
+            ((1, 2), 0),
+            ((2, 0), 0),
+            ((-1, 0), 0),
+            ((-1, 1), 0)
         ];
         vm.mark_address_range_as_accessed((0, 0).into(), 3).unwrap();
         vm.mark_address_range_as_accessed((0, 10).into(), 2)
             .unwrap();
         vm.mark_address_range_as_accessed((1, 1).into(), 1).unwrap();
+        vm.mark_address_range_as_accessed((-1, 0).into(), 1)
+            .unwrap();
         //Check that the following addresses have been accessed:
         // Addresses have been copied from python execution:
         let mem = &vm.segments.memory.data;
@@ -4290,6 +4769,14 @@ mod tests {
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(1)
         );
+        assert!(vm.is_accessed(&Relocatable::from((0, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 2))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((0, 10))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((1, 1))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((1, 2))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((2, 0))).unwrap());
+        assert!(vm.is_accessed(&Relocatable::from((-1, 0))).unwrap());
+        assert!(!vm.is_accessed(&Relocatable::from((-1, 1))).unwrap());
     }
 
     #[test]
@@ -4314,6 +4801,297 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_ok() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967295), ((0, 3), 3)];
+        let expected_vector = vec![1, 4294967295];
+        assert_eq!(vm.get_u32_range((0, 1).into(), 2), Ok(expected_vector));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_relocatable() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), (0, 0)), ((0, 3), 3)];
+        assert_matches!(vm.get_u32_range((0, 1).into(), 2), Err(MemoryError::ExpectedInteger(bx)) if *bx == (0, 2).into());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_over_32_bits() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967296), ((0, 3), 3)];
+        assert_matches!(vm.get_u32_range((0, 1).into(), 2), Err(MemoryError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt252::from(4294967296_u64));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_memory_gap() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 3), 3)];
+        assert_matches!(vm.get_u32_range((0, 1).into(), 3), Err(MemoryError::UnknownMemoryCell(bx)) if *bx == (0, 2).into());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_state_too_short() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((0, 5), 0),
+            ((0, 6), 0),
+            ((2, 0), (0, 0))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 0).into(),
+            op0_addr: (2, 0).into(),
+            op1_addr: (2, 0).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, false),
+            Err(VirtualMachineError::Memory(MemoryError::UnknownMemoryCell(bx))) if *bx == (0, 7).into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_message_too_short() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((0, 5), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((2, 0), (0, 0))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 0).into(),
+            op0_addr: (2, 0).into(),
+            op1_addr: (2, 0).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, false),
+            Err(VirtualMachineError::Memory(MemoryError::UnknownMemoryCell(bx))) if *bx == (0, 8).into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_ap_points_to_inconsistent_memory() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            ((0, 0), 0),
+            ((0, 1), 0),
+            ((0, 2), 0),
+            ((0, 3), 0),
+            ((0, 4), 0),
+            ((0, 5), 0),
+            ((0, 6), 0),
+            ((0, 7), 0),
+            ((0, 8), 0),
+            ((0, 9), 0),
+            ((0, 10), 0),
+            ((0, 11), 0),
+            ((0, 12), 0),
+            ((0, 13), 0),
+            ((0, 14), 0),
+            ((0, 15), 0),
+            ((1, 0), (0, 0))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 0).into(),
+            op0_addr: (1, 0).into(),
+            op1_addr: (1, 0).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, false),
+            Err(VirtualMachineError::Memory(MemoryError::InconsistentMemory(bx))) if *bx == ((0, 0).into(),0.into(),1848029226.into())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_instruction_ok() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            // State
+            ((0, 0), 0x6B08E647),
+            ((0, 1), 0xBB67AE85),
+            ((0, 2), 0x3C6EF372),
+            ((0, 3), 0xA54FF53A),
+            ((0, 4), 0x510E527F),
+            ((0, 5), 0x9B05688C),
+            ((0, 6), 0x1F83D9AB),
+            ((0, 7), 0x5BE0CD19),
+            // Message
+            ((0, 8), 930933030),
+            ((0, 9), 1766240503),
+            ((0, 10), 3660871006),
+            ((0, 11), 388409270),
+            ((0, 12), 1948594622),
+            ((0, 13), 3119396969),
+            ((0, 14), 3924579183),
+            ((0, 15), 2089920034),
+            ((0, 16), 3857888532),
+            ((0, 17), 929304360),
+            ((0, 18), 1810891574),
+            ((0, 19), 860971754),
+            ((0, 20), 1822893775),
+            ((0, 21), 2008495810),
+            ((0, 22), 2958962335),
+            ((0, 23), 2340515744),
+            // Counter
+            ((0, 24), 64),
+            // AP
+            ((1, 0), (0, 25)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 8))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 24).into(),
+            op0_addr: (2, 0).into(),
+            op1_addr: (2, 1).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, false),
+            Ok(())
+        );
+
+        let state: [u32; 8] = vm
+            .get_u32_range((0, 0).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let message: [u32; 16] = vm
+            .get_u32_range((0, 8).into(), 16)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let counter = vm.segments.memory.get_u32((0, 24).into()).unwrap();
+
+        let expected_new_state: [u32; 8] = blake2s_compress(&state, &message, counter, 0, 0, 0)
+            .try_into()
+            .unwrap();
+
+        let new_state: [u32; 8] = vm
+            .get_u32_range((0, 25).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(new_state, expected_new_state);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn handle_blake2s_last_block_instruction_ok() {
+        let mut vm = vm!();
+        vm.segments.memory = memory![
+            // State
+            ((0, 0), 0x6B08E647),
+            ((0, 1), 0xBB67AE85),
+            ((0, 2), 0x3C6EF372),
+            ((0, 3), 0xA54FF53A),
+            ((0, 4), 0x510E527F),
+            ((0, 5), 0x9B05688C),
+            ((0, 6), 0x1F83D9AB),
+            ((0, 7), 0x5BE0CD19),
+            // Message
+            ((0, 8), 930933030),
+            ((0, 9), 1766240503),
+            ((0, 10), 3660871006),
+            ((0, 11), 388409270),
+            ((0, 12), 1948594622),
+            ((0, 13), 3119396969),
+            ((0, 14), 3924579183),
+            ((0, 15), 2089920034),
+            ((0, 16), 3857888532),
+            ((0, 17), 929304360),
+            ((0, 18), 1810891574),
+            ((0, 19), 860971754),
+            ((0, 20), 1822893775),
+            ((0, 21), 2008495810),
+            ((0, 22), 2958962335),
+            ((0, 23), 2340515744),
+            // Counter
+            ((0, 24), 64),
+            // AP
+            ((1, 0), (0, 25)),
+            ((2, 0), (0, 0)),
+            ((2, 1), (0, 8))
+        ];
+        let operands_addresses = OperandsAddresses {
+            dst_addr: (0, 24).into(),
+            op0_addr: (2, 0).into(),
+            op1_addr: (2, 1).into(),
+        };
+        vm.run_context = RunContext {
+            pc: (0, 0).into(),
+            ap: 0,
+            fp: 0,
+        };
+        assert_matches!(
+            vm.handle_blake2s_instruction(&operands_addresses, true),
+            Ok(())
+        );
+
+        let state: [u32; 8] = vm
+            .get_u32_range((0, 0).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let message: [u32; 16] = vm
+            .get_u32_range((0, 8).into(), 16)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let counter = vm.segments.memory.get_u32((0, 24).into()).unwrap();
+
+        let expected_new_state: [u32; 8] =
+            blake2s_compress(&state, &message, counter, 0, 0xffffffff, 0)
+                .try_into()
+                .unwrap();
+
+        let new_state: [u32; 8] = vm
+            .get_u32_range((0, 25).into(), 8)
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(new_state, expected_new_state);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_traceback_entries_bad_usort() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/bad_programs/bad_usort.json"),
@@ -4323,18 +5101,15 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
         let expected_traceback = vec![
             (Relocatable::from((1, 3)), Relocatable::from((0, 97))),
             (Relocatable::from((1, 14)), Relocatable::from((0, 30))),
             (Relocatable::from((1, 26)), Relocatable::from((0, 60))),
         ];
-        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+        assert_eq!(cairo_runner.vm.get_traceback_entries(), expected_traceback);
     }
 
     #[test]
@@ -4348,14 +5123,11 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
         let expected_traceback = vec![(Relocatable::from((1, 2)), Relocatable::from((0, 34)))];
-        assert_eq!(vm.get_traceback_entries(), expected_traceback);
+        assert_eq!(cairo_runner.vm.get_traceback_entries(), expected_traceback);
     }
 
     #[test]
@@ -4387,7 +5159,6 @@ mod tests {
         #[cfg(feature = "test_utils")]
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
-            _runner: &mut CairoRunner,
             _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
@@ -4403,11 +5174,11 @@ mod tests {
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
 
         assert!(virtual_machine_from_builder.run_finished);
-        assert_eq!(virtual_machine_from_builder.current_step, 12);
+        assert_eq!(virtual_machine_from_builder.get_current_step(), 12);
         assert_eq!(
             virtual_machine_from_builder
                 .builtin_runners
-                .get(0)
+                .first()
                 .unwrap()
                 .name(),
             BuiltinName::pedersen
@@ -4435,13 +5206,10 @@ mod tests {
             .expect("Call to `Program::from_file()` failed.");
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let mut cairo_runner = cairo_runner!(program);
-            let end = cairo_runner
-                .initialize(&mut virtual_machine_from_builder, false)
-                .unwrap();
+            cairo_runner.vm = virtual_machine_from_builder;
+            let end = cairo_runner.initialize(false).unwrap();
 
-            assert!(cairo_runner
-                .run_until_pc(end, &mut virtual_machine_from_builder, &mut hint_processor)
-                .is_err());
+            assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
         }
     }
 
