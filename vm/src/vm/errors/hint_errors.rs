@@ -3,7 +3,7 @@
 
 use crate::stdlib::prelude::*;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
@@ -32,16 +32,16 @@ pub enum HintError {
     WrongHintData,
     #[error("Unknown identifier {0}")]
     UnknownIdentifier(Box<str>),
-    #[error("Expected ids.{} at address {} to be an Integer value", (*.0).0, (*.0).1)]
-    IdentifierNotInteger(Box<(String, Relocatable)>),
-    #[error("Expected ids.{} at address {} to be a Relocatable value", (*.0).0, (*.0).1)]
-    IdentifierNotRelocatable(Box<(String, Relocatable)>),
+    #[error("Expected ids.{} to be an Integer value", (*.0))]
+    IdentifierNotInteger(Box<str>),
+    #[error("Expected ids.{} to be a Relocatable value", (*.0))]
+    IdentifierNotRelocatable(Box<str>),
     #[error("ids.{} has no member {} or it is of incorrect type", (*.0).0, (*.0).1)]
     IdentifierHasNoMember(Box<(String, String)>),
     #[error("Unknown identifier")]
     UnknownIdentifierInternal,
-    #[error("Wrong identifier type at address {0}")]
-    WrongIdentifierTypeInternal(Box<Relocatable>),
+    #[error("Wrong identifier type")]
+    WrongIdentifierTypeInternal,
     #[error("Hint Error: {0}")]
     CustomHint(Box<str>),
     #[error("Missing constant: {0}")]
@@ -154,6 +154,8 @@ pub enum HintError {
     BigintToU32Fail,
     #[error("BigInt to BigUint failed, BigInt is negative")]
     BigIntToBigUintFail,
+    #[error("BigUint to BigInt failed")]
+    BigUintToBigIntFail,
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
     ValueOutOfRange(Box<Felt252>),
     #[error("Assertion failed, 0 <= ids.a % PRIME < range_check_builtin.bound \n a = {0} is out of range")]
@@ -184,6 +186,16 @@ pub enum HintError {
     NPairBitsTooLowM,
     #[error("{0}")]
     SyscallError(Box<str>),
+    #[error("excess_balance_func: Failed to fetch {0} dictionary. It is either missing or has unexpected data types")]
+    ExcessBalanceFailedToFecthDict(Box<str>),
+    #[error("excess_balance_func: Key not found in {0} dictionary")]
+    ExcessBalanceKeyError(Box<str>),
+    #[error("excess_balance_func: Failed to calculate {0}")]
+    ExcessBalanceCalculationFailed(Box<str>),
+    #[error("generate_nibbles fail: tried to read from an empty list of nibbles")]
+    EmptyNibbles,
+    #[error("circuit evalution: {0}")]
+    CircuitEvaluationFailed(Box<str>),
 }
 
 #[cfg(test)]

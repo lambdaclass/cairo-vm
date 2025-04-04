@@ -11,10 +11,10 @@ use crate::{
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(
     Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default,
 )]
@@ -23,7 +23,7 @@ pub struct Relocatable {
     pub offset: usize,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),
@@ -356,23 +356,12 @@ impl MaybeRelocatable {
     }
 }
 
-impl<'a> Add<usize> for &'a Relocatable {
-    type Output = Relocatable;
-
-    fn add(self, other: usize) -> Self::Output {
-        Relocatable {
-            segment_index: self.segment_index,
-            offset: self.offset + other,
-        }
-    }
-}
-
 /// Turns a MaybeRelocatable into a Felt252 value.
 /// If the value is an Int, it will extract the Felt252 value from it.
 /// If the value is RelocatableValue, it will relocate it according to the relocation_table
 pub fn relocate_value(
     value: MaybeRelocatable,
-    relocation_table: &Vec<usize>,
+    relocation_table: &[usize],
 ) -> Result<Felt252, MemoryError> {
     match value {
         MaybeRelocatable::Int(num) => Ok(num),
@@ -386,7 +375,7 @@ pub fn relocate_value(
 // Relocates a Relocatable value according to the relocation_table
 pub fn relocate_address(
     relocatable: Relocatable,
-    relocation_table: &Vec<usize>,
+    relocation_table: &[usize],
 ) -> Result<usize, MemoryError> {
     let (segment_index, offset) = if relocatable.segment_index >= 0 {
         (relocatable.segment_index as usize, relocatable.offset)
@@ -412,7 +401,6 @@ mod tests {
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
-    #[cfg(feature = "std")]
     #[cfg(feature = "std")]
     use proptest::prelude::*;
 

@@ -1,13 +1,12 @@
 use crate::Felt252;
 use serde::{Deserialize, Serialize};
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::{
     stdlib::{
         collections::HashMap,
         prelude::{String, Vec},
     },
-    types::layout::CairoLayout,
     vm::{
         errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
         trace::trace_entry::RelocatedTraceEntry,
@@ -35,7 +34,7 @@ mod mem_value_serde {
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         if let Some(value) = value {
-            serializer.serialize_str(&format!("{:x}", value))
+            serializer.serialize_str(&format!("0x{:x}", value))
         } else {
             serializer.serialize_none()
         }
@@ -49,7 +48,7 @@ mod mem_value_serde {
 
     struct Felt252OptionVisitor;
 
-    impl<'de> de::Visitor<'de> for Felt252OptionVisitor {
+    impl de::Visitor<'_> for Felt252OptionVisitor {
         type Value = Option<Felt252>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -90,6 +89,7 @@ impl From<(usize, usize)> for MemorySegmentAddresses {
     }
 }
 
+#[allow(clippy::manual_non_exhaustive)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PublicInput<'a> {
     pub layout: &'a str,
@@ -98,16 +98,14 @@ pub struct PublicInput<'a> {
     pub n_steps: usize,
     pub memory_segments: HashMap<&'a str, MemorySegmentAddresses>,
     pub public_memory: Vec<PublicMemoryEntry>,
-    #[serde(rename = "dynamic_params")]
     #[serde(skip_deserializing)] // This is set to None by default so we can skip it
-    layout_params: Option<&'a CairoLayout>,
+    dynamic_params: (),
 }
 
 impl<'a> PublicInput<'a> {
     pub fn new(
         memory: &[Option<Felt252>],
         layout: &'a str,
-        dyn_layout_params: Option<&'a CairoLayout>,
         public_memory_addresses: &[(usize, usize)],
         memory_segment_addresses: HashMap<&'static str, (usize, usize)>,
         trace: &[RelocatedTraceEntry],
@@ -136,7 +134,7 @@ impl<'a> PublicInput<'a> {
 
         Ok(PublicInput {
             layout,
-            layout_params: dyn_layout_params,
+            dynamic_params: (),
             rc_min,
             rc_max,
             n_steps: trace.len(),
@@ -192,15 +190,17 @@ mod tests {
     #[case(include_bytes!("../../cairo_programs/proof_programs/pedersen_test.json"))]
     #[case(include_bytes!("../../cairo_programs/proof_programs/ec_op.json"))]
     fn serialize_and_deserialize_air_public_input(#[case] program_content: &[u8]) {
+        use crate::types::layout_name::LayoutName;
+
         let config = crate::cairo_run::CairoRunConfig {
             proof_mode: true,
             relocate_mem: true,
             trace_enabled: true,
-            layout: "all_cairo",
+            layout: LayoutName::all_cairo,
             ..Default::default()
         };
-        let (runner, vm) = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
-        let public_input = runner.get_air_public_input(&vm).unwrap();
+        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let public_input = runner.get_air_public_input().unwrap();
         // We already know serialization works as expected due to the comparison against python VM
         let serialized_public_input = public_input.serialize_json().unwrap();
         let deserialized_public_input: PublicInput =
@@ -217,10 +217,6 @@ mod tests {
         assert_eq!(
             public_input.public_memory,
             deserialized_public_input.public_memory
-        );
-        assert!(
-            public_input.layout_params.is_none()
-                && deserialized_public_input.layout_params.is_none()
         );
     }
 }

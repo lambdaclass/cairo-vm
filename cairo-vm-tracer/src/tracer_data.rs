@@ -67,7 +67,7 @@ impl InputCodeFile {
             format!("<span class=\"{}\">", classes.join(" ")),
         ));
         self.tags
-            .push((offset_end, -std::isize::MAX, "</span>".to_string()));
+            .push((offset_end, -isize::MAX, "</span>".to_string()));
     }
 
     pub fn to_html(&self) -> String {
@@ -143,7 +143,7 @@ impl TracerData {
             let (instruction_encoding, _) =
                 get_instruction_encoding(entry.pc, &memory, program.prime())?;
 
-            let instruction_encoding = instruction_encoding.to_u64();
+            let instruction_encoding = instruction_encoding.to_u128();
             if instruction_encoding.is_none() {
                 return Err(TraceDataError::FailedToConvertInstructionEncoding);
             }

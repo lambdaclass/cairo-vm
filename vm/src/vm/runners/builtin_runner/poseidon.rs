@@ -1,6 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
-use crate::types::errors::math_errors::MathError;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
 };
@@ -11,9 +11,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_integer::div_ceil;
-use starknet_crypto::{poseidon_permute_comp, FieldElement};
-
-use super::POSEIDON_BUILTIN_NAME;
+use starknet_types_core::hash::Poseidon;
 
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
@@ -77,28 +75,23 @@ impl PoseidonBuiltinRunner {
         for i in 0..INPUT_CELLS_PER_POSEIDON as usize {
             let m_index = (first_input_addr + i)?;
             let val = match memory.get(&m_index) {
-                Some(value) => {
-                    let num = value
-                        .get_int_ref()
-                        .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            POSEIDON_BUILTIN_NAME,
-                            (first_input_addr + i)?,
-                        ))))?;
-                    FieldElement::from_bytes_be(&num.to_bytes_be())
-                        .map_err(|_| MathError::ByteConversionError)?
-                }
+                Some(value) => *value
+                    .get_int_ref()
+                    .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
+                        BuiltinName::poseidon,
+                        m_index,
+                    ))))?,
                 _ => return Ok(None),
             };
             input_felts.push(val)
         }
         // n_input_cells is fixed to 3, so this try_into will never fail
-        let mut poseidon_state: [FieldElement; 3] = input_felts.try_into().unwrap();
-        poseidon_permute_comp(&mut poseidon_state);
+        let mut poseidon_state: [Felt252; 3] = input_felts.try_into().unwrap();
+        Poseidon::hades_permutation(&mut poseidon_state);
         for (i, elem) in poseidon_state.iter().enumerate() {
-            self.cache.borrow_mut().insert(
-                (first_output_addr + i)?,
-                Felt252::from_bytes_be(&elem.to_bytes_be()),
-            );
+            self.cache
+                .borrow_mut()
+                .insert((first_output_addr + i)?, *elem);
         }
 
         Ok(self.cache.borrow().get(&address).map(|x| x.into()))
@@ -150,12 +143,11 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::CairoRunner;
 
-    use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
+    use crate::vm::runners::builtin_runner::BuiltinRunner;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -226,7 +218,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                POSEIDON_BUILTIN_NAME,
+                BuiltinName::poseidon,
                 relocatable!(0, 1002),
                 relocatable!(0, 0)
             ))))
@@ -277,7 +269,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(POSEIDON_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::poseidon)))
         );
     }
 
@@ -286,10 +278,6 @@ mod tests {
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-
         let program = program!(
             builtins = vec![BuiltinName::poseidon],
             data = vec_data!(
@@ -315,16 +303,20 @@ mod tests {
         );
 
         let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 6)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 6))
+        );
     }
 
     #[test]
@@ -332,8 +324,6 @@ mod tests {
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
         let program = program!(
             builtins = vec![BuiltinName::poseidon],
             data = vec_data!(
@@ -362,13 +352,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(6));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(6));
     }
 
     #[test]

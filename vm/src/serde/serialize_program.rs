@@ -1,13 +1,16 @@
-use crate::stdlib::{
-    collections::{BTreeMap, HashMap},
-    prelude::*,
+use crate::{
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+    },
+    types::builtin_name::BuiltinName,
 };
 
 use serde::{Deserialize, Serialize};
 
 use super::deserialize_program::{
-    ApTracking, Attribute, BuiltinName, DebugInfo, FlowTrackingData, HintParams, Identifier,
-    Member, ProgramJson, Reference, ReferenceManager, ValueAddress,
+    ApTracking, Attribute, DebugInfo, FlowTrackingData, HintParams, Identifier, Member,
+    ProgramJson, Reference, ReferenceManager, ValueAddress,
 };
 use crate::types::program::Program;
 use crate::types::relocatable::MaybeRelocatable;
@@ -124,6 +127,7 @@ pub(crate) struct IdentifierSerializer {
     pub full_name: Option<String>,
     pub members: Option<HashMap<String, Member>>,
     pub cairo_type: Option<String>,
+    pub size: Option<usize>,
 }
 
 impl From<IdentifierSerializer> for Identifier {
@@ -135,6 +139,7 @@ impl From<IdentifierSerializer> for Identifier {
             full_name: identifier_serialer.full_name,
             members: identifier_serialer.members,
             cairo_type: identifier_serialer.cairo_type,
+            size: identifier_serialer.size,
         }
     }
 }
@@ -148,6 +153,7 @@ impl From<Identifier> for IdentifierSerializer {
             full_name: identifier_serialer.full_name,
             members: identifier_serialer.members,
             cairo_type: identifier_serialer.cairo_type,
+            size: identifier_serialer.size,
         }
     }
 }
@@ -195,7 +201,8 @@ impl From<&Program> for ProgramSerializer {
                 value_address: ValueAddress {
                     offset1: r.offset1,
                     offset2: r.offset2,
-                    dereference: r.dereference,
+                    outer_dereference: r.outer_dereference,
+                    inner_dereference: r.inner_dereference,
                     value_type: r.cairo_type.unwrap_or_default(),
                 },
                 ap_tracking_data: r.ap_tracking_data.unwrap_or_default(),

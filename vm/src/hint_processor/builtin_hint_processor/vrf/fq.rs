@@ -71,7 +71,7 @@ pub fn uint512_unsigned_div_rem(
 /// Implements hint:
 /// ```python
 /// from starkware.python.math_utils import div_mod
-
+///
 /// def split(a: int):
 /// return (a & ((1 << 128) - 1), a >> 128)
 ///

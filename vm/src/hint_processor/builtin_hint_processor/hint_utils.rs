@@ -15,6 +15,61 @@ use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
 
+/// Generates a const string for each hint, and a lazy_static HashMap that maps the const name to
+/// the hint string.
+/// Allows gating specific hints behind feature gates.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate cairo_vm;
+/// # use cairo_vm::stdlib::collections::HashMap;
+/// cairo_vm::define_hint_string_map!(
+///     FOO_HINTS,
+///     (FOO_HINT_ADD_X_Y, "x + y"),
+///     (FOO_HINT_PRINT_X, "print(x)", "test_utils")
+/// );
+/// ```
+///
+/// This will generate the following code:
+///
+/// ```
+/// # use cairo_vm::stdlib::collections::HashMap;
+/// pub const FOO_HINT_ADD_X_Y: &str = "x + y";
+/// #[cfg(feature = "test_utils")]
+/// pub const FOO_HINT_PRINT_X: &str = "print(x)";
+///
+/// lazy_static::lazy_static! {
+///     pub static ref FOO_HINTS: HashMap<&'static str, &'static str> = {
+///         let mut map = HashMap::new();
+///         map.insert("FOO_HINT_ADD_X_Y", FOO_HINT_ADD_X_Y);
+///         #[cfg(feature = "test_utils")]
+///         map.insert("FOO_HINT_PRINT_X", FOO_HINT_PRINT_X);
+///         map
+///     };
+/// }
+/// ```
+#[macro_export]
+macro_rules! define_hint_string_map {
+    ($hint_set_name:ident, $(($hint_name:ident, $hint_str:expr $(, $feature_gate:expr)?)),+) => {
+        $(
+            $(#[cfg(feature = $feature_gate)])?
+            pub const $hint_name: &str = $hint_str;
+        )+
+
+        lazy_static::lazy_static! {
+            pub static ref $hint_set_name: HashMap<&'static str, &'static str> = {
+                let mut map = HashMap::new();
+                $(
+                    $(#[cfg(feature = $feature_gate)])?
+                    map.insert(stringify!($hint_name), $hint_name);
+                )+
+                map
+            };
+        }
+    }
+}
+
 //Inserts value into the address of the given ids variable
 pub fn insert_value_from_var_name(
     var_name: &str,
@@ -48,12 +103,10 @@ pub fn get_ptr_from_var_name(
     match get_ptr_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
-        Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
-            HintError::IdentifierNotRelocatable(Box::new((var_name.to_string(), *var_addr))),
-        ),
-        _ => Err(HintError::UnknownIdentifier(
-            var_name.to_string().into_boxed_str(),
+        Err(HintError::WrongIdentifierTypeInternal) => Err(HintError::IdentifierNotRelocatable(
+            Box::<str>::from(var_name),
         )),
+        _ => Err(HintError::UnknownIdentifier(Box::<str>::from(var_name))),
     }
 }
 
@@ -77,7 +130,7 @@ pub fn get_relocatable_from_var_name(
     ids_data
         .get(var_name)
         .and_then(|x| compute_addr_from_reference(x, vm, ap_tracking))
-        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
+        .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
 //Gets the value of a variable name.
@@ -93,12 +146,10 @@ pub fn get_integer_from_var_name(
     match get_integer_from_reference(vm, reference, ap_tracking) {
         // Map internal errors into more descriptive variants
         Ok(val) => Ok(val),
-        Err(HintError::WrongIdentifierTypeInternal(var_addr)) => Err(
-            HintError::IdentifierNotInteger(Box::new((var_name.to_string(), *var_addr))),
-        ),
-        _ => Err(HintError::UnknownIdentifier(
-            var_name.to_string().into_boxed_str(),
-        )),
+        Err(HintError::WrongIdentifierTypeInternal) => {
+            Err(HintError::IdentifierNotInteger(Box::<str>::from(var_name)))
+        }
+        _ => Err(HintError::UnknownIdentifier(Box::<str>::from(var_name))),
     }
 }
 
@@ -111,7 +162,7 @@ pub fn get_maybe_relocatable_from_var_name<'a>(
 ) -> Result<MaybeRelocatable, HintError> {
     let reference = get_reference_from_var_name(var_name, ids_data)?;
     get_maybe_relocatable_from_reference(vm, reference, ap_tracking)
-        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
+        .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
 pub fn get_reference_from_var_name<'a>(
@@ -120,7 +171,7 @@ pub fn get_reference_from_var_name<'a>(
 ) -> Result<&'a HintReference, HintError> {
     ids_data
         .get(var_name)
-        .ok_or_else(|| HintError::UnknownIdentifier(var_name.to_string().into_boxed_str()))
+        .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
 pub fn get_constant_from_var_name<'a>(
@@ -137,14 +188,11 @@ pub fn get_constant_from_var_name<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
 
     use crate::{
-        hint_processor::hint_processor_definition::HintReference,
-        relocatable,
-        serde::deserialize_program::OffsetValue,
-        utils::test_utils::*,
-        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
+        hint_processor::hint_processor_definition::HintReference, relocatable,
+        serde::deserialize_program::OffsetValue, utils::test_utils::*,
+        vm::vm_memory::memory::Memory,
     };
     use assert_matches::assert_matches;
 
@@ -156,7 +204,7 @@ mod tests {
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
-        let mut hint_ref = HintReference::new(0, 0, true, false);
+        let mut hint_ref = HintReference::new(0, 0, true, false, true);
         hint_ref.offset2 = OffsetValue::Value(2);
         let ids_data = HashMap::from([("imm".to_string(), hint_ref)]);
 
@@ -218,7 +266,7 @@ mod tests {
 
         assert_matches!(
             get_ptr_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotRelocatable(bx)) if *bx == ("value".to_string(), (1,0).into())
+            Err(HintError::IdentifierNotRelocatable(bx)) if bx.as_ref() == "value"
         );
     }
 
@@ -274,7 +322,7 @@ mod tests {
 
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
-            Err(HintError::IdentifierNotInteger(bx)) if *bx == ("value".to_string(), (1,0).into())
+            Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
     }
 }

@@ -1,6 +1,6 @@
 use crate::stdlib::prelude::*;
 use crate::utils::PRIME_STR;
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ProgramError {
@@ -9,6 +9,8 @@ pub enum ProgramError {
     IO(#[from] std::io::Error),
     #[error(transparent)]
     Parse(#[from] serde_json::Error),
+    #[error("The \"{0}\" operation is not supported")]
+    OperationNotSupported(String),
     #[error("Entrypoint {0} not found")]
     EntrypointNotFound(String),
     #[error("Constant {0} has no value")]

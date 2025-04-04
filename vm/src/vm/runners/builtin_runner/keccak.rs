@@ -1,6 +1,7 @@
 use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
 use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::keccak_instance_def::{
     CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
 };
@@ -13,8 +14,6 @@ use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
-
-use super::KECCAK_BUILTIN_NAME;
 
 const KECCAK_FELT_BYTE_SIZE: usize = 25; // 200 / 8
 const BITS: u32 = 200;
@@ -32,7 +31,7 @@ pub struct KeccakBuiltinRunner {
 }
 
 impl KeccakBuiltinRunner {
-    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         KeccakBuiltinRunner {
             base: 0,
             ratio,
@@ -86,7 +85,7 @@ impl KeccakBuiltinRunner {
                     let num = value
                         .get_int_ref()
                         .ok_or(RunnerError::BuiltinExpectedInteger(Box::new((
-                            KECCAK_BUILTIN_NAME,
+                            BuiltinName::keccak,
                             (first_input_addr + i)?,
                         ))))?;
                     if num >= &KECCAK_INPUT_MAX {
@@ -215,13 +214,11 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, relocatable};
 
     use crate::vm::{
         errors::{memory_errors::MemoryError, runner_errors::RunnerError},
         runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine,
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -282,7 +279,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                KECCAK_BUILTIN_NAME,
+                BuiltinName::keccak,
                 relocatable!(0, 992),
                 relocatable!(0, 0)
             ))))
@@ -333,7 +330,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(KECCAK_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::keccak)))
         );
     }
 
@@ -342,9 +339,6 @@ mod tests {
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
         let program = Program::from_bytes(
             include_bytes!("../../../../../cairo_programs/keccak.json"),
             Some("main"),
@@ -352,17 +346,18 @@ mod tests {
         .unwrap();
 
         let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
         assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&vm),
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
             Ok((0, 1072))
         );
     }
@@ -499,7 +494,7 @@ mod tests {
         assert_eq!(
             result,
             Err(RunnerError::BuiltinExpectedInteger(Box::new((
-                KECCAK_BUILTIN_NAME,
+                BuiltinName::keccak,
                 (0, 0).into()
             ))))
         );

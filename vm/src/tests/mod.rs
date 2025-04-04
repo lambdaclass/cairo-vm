@@ -1,3 +1,4 @@
+use crate::types::layout_name::LayoutName;
 #[cfg(feature = "cairo-1-hints")]
 use crate::vm::errors::cairo_run_errors::CairoRunError;
 #[cfg(feature = "cairo-1-hints")]
@@ -8,15 +9,11 @@ use crate::Felt252;
 #[cfg(feature = "cairo-1-hints")]
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
-    serde::deserialize_program::BuiltinName,
-    types::relocatable::MaybeRelocatable,
-    vm::{
-        runners::cairo_runner::{CairoArg, CairoRunner},
-        vm_core::VirtualMachine,
-    },
+    types::{builtin_name::BuiltinName, relocatable::MaybeRelocatable},
+    vm::runners::cairo_runner::{CairoArg, CairoRunner},
 };
 #[cfg(feature = "cairo-1-hints")]
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 
 use crate::stdlib::prelude::*;
 
@@ -28,8 +25,8 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 mod bitwise_test;
 #[cfg(test)]
@@ -39,41 +36,42 @@ mod run_deprecated_contract_class_simplified;
 mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
+mod segment_arena_test;
 mod struct_test;
 
 mod cairo_pie_test;
-#[cfg(feature = "skip_next_instruction_hint")]
+#[cfg(feature = "test_utils")]
 mod skip_instruction_test;
 
 //For simple programs that should just succeed and have no special needs.
 //Checks memory holes == 0
 fn run_program_simple(data: &[u8]) {
-    run_program(data, false, Some("all_cairo"), None, None)
+    run_program(data, false, None, None, None)
 }
 
 //For simple programs that should just succeed but using small layout.
 fn run_program_small(data: &[u8]) {
-    run_program(data, false, Some("small"), None, None)
+    run_program(data, false, Some(LayoutName::small), None, None)
 }
 
 fn run_program_with_trace(data: &[u8], trace: &[(usize, usize, usize)]) {
-    run_program(data, false, Some("all_cairo"), Some(trace), None)
+    run_program(data, false, None, Some(trace), None)
 }
 
 fn run_program_with_error(data: &[u8], error: &str) {
-    run_program(data, false, Some("all_cairo"), None, Some(error))
+    run_program(data, false, None, None, Some(error))
 }
 
 fn run_program(
     data: &[u8],
     proof_mode: bool,
-    layout: Option<&str>,
+    layout: Option<LayoutName>,
     trace: Option<&[(usize, usize, usize)]>,
     error: Option<&str>,
 ) {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
     let cairo_run_config = CairoRunConfig {
-        layout: layout.unwrap_or("all_cairo"),
+        layout: layout.unwrap_or(LayoutName::all_cairo),
         relocate_mem: true,
         trace_enabled: true,
         proof_mode,
@@ -85,7 +83,7 @@ fn run_program(
         assert!(res.err().unwrap().to_string().contains(error));
         return;
     }
-    let (runner, _) = res.expect("Execution failed");
+    let runner = res.expect("Execution failed");
     if let Some(trace) = trace {
         let expected_trace: Vec<_> = trace
             .iter()
@@ -111,31 +109,30 @@ fn run_cairo_1_entrypoint(
 ) {
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor =
-        Cairo1HintProcessor::new(&contract_class.hints, RunResources::default());
+        Cairo1HintProcessor::new(&contract_class.hints, RunResources::default(), false);
 
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
-        "all_cairo",
+        LayoutName::all_cairo,
+        None,
+        false,
+        false,
         false,
     )
     .unwrap();
-    let mut vm = VirtualMachine::new(false);
 
     let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
     runner
-        .initialize_function_runner_cairo_1(&mut vm, &program_builtins)
+        .initialize_function_runner_cairo_1(&program_builtins)
         .unwrap();
 
     // Implicit Args
-    let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
+    let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
 
-    let builtins: Vec<&'static str> = runner
-        .get_program_builtins()
-        .iter()
-        .map(|b| b.name())
-        .collect();
+    let builtins = runner.get_program_builtins();
 
-    let builtin_segment: Vec<MaybeRelocatable> = vm
+    let builtin_segment: Vec<MaybeRelocatable> = runner
+        .vm
         .get_builtin_runners()
         .iter()
         .filter(|b| builtins.contains(&b.name()))
@@ -153,20 +150,25 @@ fn run_cairo_1_entrypoint(
     // Load builtin costs
     let builtin_costs: Vec<MaybeRelocatable> =
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
-    let builtin_costs_ptr = vm.add_memory_segment();
-    vm.load_data(builtin_costs_ptr, &builtin_costs).unwrap();
+    let builtin_costs_ptr = runner.vm.add_memory_segment();
+    runner
+        .vm
+        .load_data(builtin_costs_ptr, &builtin_costs)
+        .unwrap();
 
     // Load extra data
     let core_program_end_ptr =
         (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
-    vm.load_data(core_program_end_ptr, &program_extra_data)
+    runner
+        .vm
+        .load_data(core_program_end_ptr, &program_extra_data)
         .unwrap();
 
     // Load calldata
-    let calldata_start = vm.add_memory_segment();
-    let calldata_end = vm.load_data(calldata_start, &args.to_vec()).unwrap();
+    let calldata_start = runner.vm.add_memory_segment();
+    let calldata_end = runner.vm.load_data(calldata_start, args).unwrap();
 
     // Create entrypoint_args
 
@@ -188,16 +190,16 @@ fn run_cairo_1_entrypoint(
             &entrypoint_args,
             true,
             Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
-            &mut vm,
             &mut hint_processor,
         )
         .unwrap();
 
     // Check return values
-    let return_values = vm.get_return_values(5).unwrap();
+    let return_values = runner.vm.get_return_values(5).unwrap();
     let retdata_start = return_values[3].get_relocatable().unwrap();
     let retdata_end = return_values[4].get_relocatable().unwrap();
-    let retdata: Vec<Felt252> = vm
+    let retdata: Vec<Felt252> = runner
+        .vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()
@@ -217,27 +219,26 @@ fn run_cairo_1_entrypoint_with_run_resources(
 ) -> Result<Vec<Felt252>, CairoRunError> {
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
-        "all_cairo",
+        LayoutName::all_cairo,
+        None,
+        false,
+        false,
         false,
     )
     .unwrap();
-    let mut vm = VirtualMachine::new(false);
 
     let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
     runner
-        .initialize_function_runner_cairo_1(&mut vm, &program_builtins)
+        .initialize_function_runner_cairo_1(&program_builtins)
         .unwrap();
 
     // Implicit Args
-    let syscall_segment = MaybeRelocatable::from(vm.add_memory_segment());
+    let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
 
-    let builtins: Vec<&'static str> = runner
-        .get_program_builtins()
-        .iter()
-        .map(|b| b.name())
-        .collect();
+    let builtins = runner.get_program_builtins();
 
-    let builtin_segment: Vec<MaybeRelocatable> = vm
+    let builtin_segment: Vec<MaybeRelocatable> = runner
+        .vm
         .get_builtin_runners()
         .iter()
         .filter(|b| builtins.contains(&b.name()))
@@ -255,20 +256,25 @@ fn run_cairo_1_entrypoint_with_run_resources(
     // Load builtin costs
     let builtin_costs: Vec<MaybeRelocatable> =
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
-    let builtin_costs_ptr = vm.add_memory_segment();
-    vm.load_data(builtin_costs_ptr, &builtin_costs).unwrap();
+    let builtin_costs_ptr = runner.vm.add_memory_segment();
+    runner
+        .vm
+        .load_data(builtin_costs_ptr, &builtin_costs)
+        .unwrap();
 
     // Load extra data
     let core_program_end_ptr =
         (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
-    vm.load_data(core_program_end_ptr, &program_extra_data)
+    runner
+        .vm
+        .load_data(core_program_end_ptr, &program_extra_data)
         .unwrap();
 
     // Load calldata
-    let calldata_start = vm.add_memory_segment();
-    let calldata_end = vm.load_data(calldata_start, &args.to_vec()).unwrap();
+    let calldata_start = runner.vm.add_memory_segment();
+    let calldata_end = runner.vm.load_data(calldata_start, args).unwrap();
 
     // Create entrypoint_args
 
@@ -289,15 +295,15 @@ fn run_cairo_1_entrypoint_with_run_resources(
         &entrypoint_args,
         true,
         Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
-        &mut vm,
         hint_processor,
     )?;
 
     // Check return values
-    let return_values = vm.get_return_values(5).unwrap();
+    let return_values = runner.vm.get_return_values(5).unwrap();
     let retdata_start = return_values[3].get_relocatable().unwrap();
     let retdata_end = return_values[4].get_relocatable().unwrap();
-    let retdata: Vec<Felt252> = vm
+    let retdata: Vec<Felt252> = runner
+        .vm
         .get_integer_range(retdata_start, (retdata_end - retdata_start).unwrap())
         .unwrap()
         .iter()
@@ -319,22 +325,6 @@ fn get_casm_contract_builtins(
         .unwrap()
         .builtins
         .iter()
-        .map(|n| format!("{}_builtin", n))
-        .map(|s| match &*s {
-            crate::vm::runners::builtin_runner::OUTPUT_BUILTIN_NAME => BuiltinName::output,
-            crate::vm::runners::builtin_runner::RANGE_CHECK_BUILTIN_NAME => {
-                BuiltinName::range_check
-            }
-            crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME => BuiltinName::pedersen,
-            crate::vm::runners::builtin_runner::SIGNATURE_BUILTIN_NAME => BuiltinName::ecdsa,
-            crate::vm::runners::builtin_runner::KECCAK_BUILTIN_NAME => BuiltinName::keccak,
-            crate::vm::runners::builtin_runner::BITWISE_BUILTIN_NAME => BuiltinName::bitwise,
-            crate::vm::runners::builtin_runner::EC_OP_BUILTIN_NAME => BuiltinName::ec_op,
-            crate::vm::runners::builtin_runner::POSEIDON_BUILTIN_NAME => BuiltinName::poseidon,
-            crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME => {
-                BuiltinName::segment_arena
-            }
-            _ => panic!("Invalid builtin {}", s),
-        })
+        .map(|s| BuiltinName::from_str(s).expect("Invalid builtin name"))
         .collect()
 }

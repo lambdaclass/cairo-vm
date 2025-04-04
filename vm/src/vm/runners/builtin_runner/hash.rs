@@ -1,6 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPair};
 use crate::stdlib::{cell::RefCell, prelude::*};
-use crate::types::errors::math_errors::MathError;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::pedersen_instance_def::CELLS_PER_HASH;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -8,9 +8,8 @@ use crate::vm::errors::runner_errors::RunnerError;
 use crate::vm::runners::cairo_pie::BuiltinAdditionalData;
 use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
-use crate::Felt252;
 use num_integer::{div_ceil, Integer};
-use starknet_crypto::{pedersen_hash, FieldElement};
+use starknet_types_core::hash::StarkHash;
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
@@ -89,21 +88,8 @@ impl HashBuiltinRunner {
                     .resize(address.offset + 1, false);
             }
             self.verified_addresses.borrow_mut()[address.offset] = true;
-
-            //Convert MaybeRelocatable to FieldElement
-            let a_be_bytes = num_a.to_bytes_be();
-            let b_be_bytes = num_b.to_bytes_be();
-            let (y, x) = match (
-                FieldElement::from_bytes_be(&a_be_bytes),
-                FieldElement::from_bytes_be(&b_be_bytes),
-            ) {
-                (Ok(field_element_a), Ok(field_element_b)) => (field_element_a, field_element_b),
-                _ => return Err(MathError::ByteConversionError.into()),
-            };
             //Compute pedersen Hash
-            let fe_result = pedersen_hash(&x, &y);
-            //Convert result from FieldElement to MaybeRelocatable
-            let result = Felt252::from_bytes_be(&fe_result.to_bytes_be());
+            let result = starknet_types_core::hash::Pedersen::hash(num_b, num_a);
             return Ok(Some(MaybeRelocatable::from(result)));
         }
         Ok(None)
@@ -131,6 +117,29 @@ impl HashBuiltinRunner {
             }
         }
         BuiltinAdditionalData::Hash(verified_addresses)
+    }
+
+    pub fn extend_additional_data(
+        &mut self,
+        additional_data: &BuiltinAdditionalData,
+    ) -> Result<(), RunnerError> {
+        let additional_data = match additional_data {
+            BuiltinAdditionalData::Hash(d) => d,
+            BuiltinAdditionalData::Empty(_) => return Ok(()),
+            _ => return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen)),
+        };
+        let mut verified_addresses = self.verified_addresses.borrow_mut();
+        for addr in additional_data {
+            if addr.segment_index != self.base as isize {
+                return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
+            }
+            // Mark offset as verified
+            if addr.offset > verified_addresses.len() {
+                verified_addresses.resize(addr.offset, false);
+            }
+            verified_addresses.insert(addr.offset, true)
+        }
+        Ok(())
     }
 
     pub fn air_private_input(&self, memory: &Memory) -> Vec<PrivateInput> {
@@ -162,17 +171,12 @@ impl HashBuiltinRunner {
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
-    use crate::serde::deserialize_program::BuiltinName;
+    use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::builtin_runner::HASH_BUILTIN_NAME;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::{felt_hex, relocatable};
 
-    use crate::vm::{
-        errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
-        vm_core::VirtualMachine,
-    };
+    use crate::vm::{errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -233,7 +237,7 @@ mod tests {
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
-                HASH_BUILTIN_NAME,
+                BuiltinName::pedersen,
                 relocatable!(0, 999),
                 relocatable!(0, 0)
             ))))
@@ -284,7 +288,7 @@ mod tests {
 
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
-            Err(RunnerError::NoStopPointer(Box::new(HASH_BUILTIN_NAME)))
+            Err(RunnerError::NoStopPointer(Box::new(BuiltinName::pedersen)))
         );
     }
 
@@ -293,10 +297,6 @@ mod tests {
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-
         let program = program!(
             builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
@@ -323,15 +323,20 @@ mod tests {
 
         let mut cairo_runner = cairo_runner!(program);
 
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
+
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 3)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 3))
+        );
     }
 
     #[test]
@@ -339,8 +344,6 @@ mod tests {
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
         let program = program!(
             builtins = vec![BuiltinName::ec_op],
             data = vec_data!(
@@ -369,13 +372,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(3));
     }
 
     #[test]
@@ -458,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn get_additional_info() {
+    fn get_additional_data() {
         let mut builtin = HashBuiltinRunner::new(Some(1), true);
         let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
         builtin.verified_addresses =
@@ -467,6 +470,17 @@ mod tests {
             builtin.get_additional_data(),
             BuiltinAdditionalData::Hash(verified_addresses)
         )
+    }
+
+    #[test]
+    fn get_and_extend_additional_data() {
+        let mut builtin_a = HashBuiltinRunner::new(Some(1), true);
+        builtin_a.verified_addresses =
+            RefCell::new(vec![false, false, false, true, false, false, true]);
+        let additional_data = builtin_a.get_additional_data();
+        let mut builtin_b = HashBuiltinRunner::new(Some(1), true);
+        builtin_b.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin_a.verified_addresses, builtin_b.verified_addresses);
     }
 
     #[test]
