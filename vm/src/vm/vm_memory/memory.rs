@@ -2,7 +2,7 @@ use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
-use starknet_types_core::felt::Felt;
+use crate::Felt;
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},
     utils::from_relocatable_to_indexes,
