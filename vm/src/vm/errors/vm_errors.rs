@@ -1,7 +1,7 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::prelude::*;
+use crate::{stdlib::prelude::*, Felt252};
 use crate::types::builtin_name::BuiltinName;
 
 use thiserror::Error;
