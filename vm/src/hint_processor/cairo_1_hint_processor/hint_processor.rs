@@ -1,3 +1,9 @@
+// ark-ff-macros mess workaround
+// can't put this directly above MontConfig derive because Rust can't parse it correctly.
+#![allow(non_local_definitions)]
+#![allow(unexpected_cfgs)]
+
+use super::circuit;
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
@@ -10,14 +16,14 @@ use crate::vm::runners::cairo_runner::RunResources;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessorLogic,
-    types::exec_scope::ExecutionScopes,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::errors::vm_errors::VirtualMachineError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
-use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint};
+use cairo_lang_casm::hints::{CoreHintBase, DeprecatedHint, StarknetHint};
 use cairo_lang_casm::{
     hints::{CoreHint, Hint},
     operand::{CellRef, ResOperand},
@@ -25,9 +31,9 @@ use cairo_lang_casm::{
 use core::any::Any;
 use core::ops::Shl;
 
-use num_bigint::BigUint;
-use num_integer::Integer;
-use num_traits::ToPrimitive;
+use num_bigint::{BigInt, BigUint};
+use num_integer::{ExtendedGcd, Integer};
+use num_traits::{Signed, ToPrimitive};
 
 /// Execution scope for constant memory allocation.
 struct MemoryExecScope {
@@ -38,9 +44,9 @@ struct MemoryExecScope {
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
 #[generator = "3"]
-
 /// Returns the Beta value of the Starkware elliptic curve.
 struct FqConfig;
+
 type Fq = Fp256<MontBackend<FqConfig, 4>>;
 
 fn get_beta() -> Felt252 {
@@ -54,16 +60,26 @@ fn get_beta() -> Felt252 {
 pub struct Cairo1HintProcessor {
     hints: HashMap<usize, Vec<Hint>>,
     run_resources: RunResources,
+    /// If set to true, uses a single segment for dictionaries to aid in segment arena validations
+    /// WARNING: The program must call the "RelocateAllDictionaries" Cheatcode if the flag is enabled
+    segment_arena_validations: bool,
 }
 
 impl Cairo1HintProcessor {
-    pub fn new(hints: &[(usize, Vec<Hint>)], run_resources: RunResources) -> Self {
+    pub fn new(
+        hints: &[(usize, Vec<Hint>)],
+        run_resources: RunResources,
+        segment_arena_validations: bool,
+    ) -> Self {
         Self {
             hints: hints.iter().cloned().collect(),
             run_resources,
+            segment_arena_validations,
         }
     }
-    // Runs a single Hint
+    // Most of the Hints implementations are derived from the `cairo-lang-runner` crate.
+    // https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/casm_run/mod.rs#L1681
+    /// Runs a single Hint
     pub fn execute(
         &self,
         vm: &mut VirtualMachine,
@@ -77,9 +93,12 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHintBase::Core(CoreHint::TestLessThan { lhs, rhs, dst })) => {
                 self.test_less_than(vm, lhs, rhs, dst)
             }
-            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst })) => {
-                self.test_less_than_or_equal(vm, lhs, rhs, dst)
-            }
+            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst }))
+            | Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqualAddress {
+                lhs,
+                rhs,
+                dst,
+            })) => self.test_less_than_or_equal(vm, lhs, rhs, dst),
             Hint::Core(CoreHintBase::Deprecated(DeprecatedHint::Felt252DictRead {
                 dict_ptr,
                 key,
@@ -166,7 +185,7 @@ impl Cairo1HintProcessor {
             })) => self.linear_split(vm, value, scalar, max_x, x, y),
 
             Hint::Core(CoreHintBase::Core(CoreHint::AllocFelt252Dict { segment_arena_ptr })) => {
-                self.alloc_felt_256_dict(vm, segment_arena_ptr, exec_scopes)
+                self.alloc_felt_252_dict(vm, segment_arena_ptr, exec_scopes)
             }
 
             Hint::Core(CoreHintBase::Core(CoreHint::AssertLeFindSmallArcs {
@@ -242,6 +261,50 @@ impl Cairo1HintProcessor {
                 vm, dividend0, dividend1, dividend2, dividend3, divisor0, divisor1, quotient0,
                 quotient1, quotient2, quotient3, remainder0, remainder1,
             ),
+            Hint::Core(CoreHintBase::Core(CoreHint::U256InvModN {
+                b0,
+                b1,
+                n0,
+                n1,
+                g0_or_no_inv,
+                g1_option,
+                s_or_r0,
+                s_or_r1,
+                t_or_k0,
+                t_or_k1,
+            })) => self.u256_inv_mod_n(
+                vm,
+                b0,
+                b1,
+                n0,
+                n1,
+                g0_or_no_inv,
+                g1_option,
+                s_or_r0,
+                s_or_r1,
+                t_or_k0,
+                t_or_k1,
+            ),
+            Hint::Core(CoreHintBase::Core(CoreHint::EvalCircuit {
+                n_add_mods,
+                add_mod_builtin,
+                n_mul_mods,
+                mul_mod_builtin,
+            })) => self.eval_circuit(vm, n_add_mods, add_mod_builtin, n_mul_mods, mul_mod_builtin),
+            Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
+                let selector = &selector.value.to_bytes_be().1;
+                let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
+                    HintError::CustomHint(Box::from("failed to parse selector".to_string()))
+                })?;
+                match selector {
+                    "RelocateAllDictionaries" => {
+                        let dict_manager_exec_scope = exec_scopes
+                            .get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?;
+                        dict_manager_exec_scope.relocate_all_dictionaries(vm)
+                    }
+                    _ => Err(HintError::UnknownHint(selector.into())),
+                }
+            }
 
             hint => Err(HintError::UnknownHint(
                 format!("{:?}", hint).into_boxed_str(),
@@ -392,10 +455,11 @@ impl Cairo1HintProcessor {
 
         let dict_infos_index = dict_manager_exec_scope.get_dict_infos_index(dict_address)?;
         vm.insert_value(cell_ref_to_relocatable(dict_index, vm)?, dict_infos_index)
-            .map_err(HintError::from)
+            .map_err(HintError::from)?;
+        // The hint is only for dictionary finalization, so can be called.
+        dict_manager_exec_scope.finalize_segment(dict_address)
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::too_many_arguments)]
     fn uint256_div_mod(
         &self,
@@ -523,7 +587,7 @@ impl Cairo1HintProcessor {
         Err(HintError::KeyNotFound)
     }
 
-    fn alloc_felt_256_dict(
+    fn alloc_felt_252_dict(
         &self,
         vm: &mut VirtualMachine,
         segment_arena_ptr: &ResOperand,
@@ -552,7 +616,7 @@ impl Cairo1HintProcessor {
                 Err(_) => {
                     exec_scopes.assign_or_update_variable(
                         "dict_manager_exec_scope",
-                        Box::<DictManagerExecScope>::default(),
+                        Box::new(DictManagerExecScope::new(self.segment_arena_validations)),
                     );
                     exec_scopes.get_mut_ref::<DictManagerExecScope>("dict_manager_exec_scope")?
                 }
@@ -1073,6 +1137,116 @@ impl Cairo1HintProcessor {
             Felt252::from(&(prod & mask128)),
         )
         .map_err(HintError::from)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn u256_inv_mod_n(
+        &self,
+        vm: &mut VirtualMachine,
+        b0: &ResOperand,
+        b1: &ResOperand,
+        n0: &ResOperand,
+        n1: &ResOperand,
+        g0_or_no_inv: &CellRef,
+        g1_option: &CellRef,
+        s_or_r0: &CellRef,
+        s_or_r1: &CellRef,
+        t_or_k0: &CellRef,
+        t_or_k1: &CellRef,
+    ) -> Result<(), HintError> {
+        let pow_2_128 = BigInt::from(u128::MAX) + 1u32;
+        let b0 = get_val(vm, b0)?.to_bigint();
+        let b1 = get_val(vm, b1)?.to_bigint();
+        let n0 = get_val(vm, n0)?.to_bigint();
+        let n1 = get_val(vm, n1)?.to_bigint();
+        let b: BigInt = b0.clone() + b1.clone().shl(128);
+        let n: BigInt = n0 + n1.shl(128);
+        let ExtendedGcd {
+            gcd: mut g,
+            x: _,
+            y: mut r,
+        } = n.extended_gcd(&b);
+        if n == 1.into() {
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(b0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(b1))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(1))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(0))?;
+            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(1))?;
+            vm.insert_value(cell_ref_to_relocatable(g1_option, vm)?, Felt252::from(0))?;
+        } else if g != 1.into() {
+            // This makes sure `g0_or_no_inv` is always non-zero in the no inverse case.
+            if g.is_even() {
+                g = 2u32.into();
+            }
+            let (limb1, limb0) = (&b / &g).div_rem(&pow_2_128);
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+            let (limb1, limb0) = (&n / &g).div_rem(&pow_2_128);
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
+            let (limb1, limb0) = g.div_rem(&pow_2_128);
+            vm.insert_value(
+                cell_ref_to_relocatable(g0_or_no_inv, vm)?,
+                Felt252::from(limb0),
+            )?;
+            vm.insert_value(
+                cell_ref_to_relocatable(g1_option, vm)?,
+                Felt252::from(limb1),
+            )?;
+        } else {
+            r %= &n;
+            if r.is_negative() {
+                r += &n;
+            }
+            let k: BigInt = (&r * b - 1) / n;
+            let (limb1, limb0) = r.div_rem(&pow_2_128);
+            vm.insert_value(cell_ref_to_relocatable(s_or_r0, vm)?, Felt252::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(s_or_r1, vm)?, Felt252::from(limb1))?;
+            let (limb1, limb0) = k.div_rem(&pow_2_128);
+            vm.insert_value(cell_ref_to_relocatable(t_or_k0, vm)?, Felt252::from(limb0))?;
+            vm.insert_value(cell_ref_to_relocatable(t_or_k1, vm)?, Felt252::from(limb1))?;
+            vm.insert_value(cell_ref_to_relocatable(g0_or_no_inv, vm)?, Felt252::from(0))?;
+        }
+        Ok(())
+    }
+    fn eval_circuit(
+        &self,
+        vm: &mut VirtualMachine,
+        n_add_mods: &ResOperand,
+        add_mod_builtin_ptr: &ResOperand,
+        n_mul_mods: &ResOperand,
+        mul_mod_builtin_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let n_add_mods = get_val(vm, n_add_mods)?;
+        let n_add_mods =
+            n_add_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_add_mods),
+                )))?;
+        let n_mul_mods = get_val(vm, n_mul_mods)?;
+        let n_mul_mods =
+            n_mul_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_mul_mods),
+                )))?;
+
+        let (add_mod_builtin_base, add_mod_builtin_offset) = extract_buffer(add_mod_builtin_ptr)?;
+        let (mul_mod_builtin_base, mul_mod_builtin_offset) = extract_buffer(mul_mod_builtin_ptr)?;
+
+        let add_mod_builtin_address = get_ptr(vm, add_mod_builtin_base, &add_mod_builtin_offset)?;
+        let mul_mod_builtin_address = get_ptr(vm, mul_mod_builtin_base, &mul_mod_builtin_offset)?;
+
+        circuit::eval_circuit(
+            vm,
+            n_add_mods,
+            add_mod_builtin_address,
+            n_mul_mods,
+            mul_mod_builtin_address,
+        )?;
+
+        Ok(())
     }
 }
 

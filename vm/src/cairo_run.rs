@@ -1,72 +1,73 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    types::program::Program,
+    types::{
+        builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
+        program::Program,
+    },
     vm::{
-        errors::{cairo_run_errors::CairoRunError, vm_exception::VmException},
-        runners::cairo_runner::CairoRunner,
+        errors::{
+            cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
+        },
+        runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
         security::verify_secure_runner,
-        vm_core::VirtualMachine,
     },
 };
 
 use crate::Felt252;
 use bincode::enc::write::Writer;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
-#[cfg(feature = "arbitrary")]
-use arbitrary::{self, Arbitrary, Unstructured};
+use crate::types::exec_scope::ExecutionScopes;
+#[cfg(feature = "test_utils")]
+use arbitrary::{self, Arbitrary};
 
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
-    #[cfg_attr(feature = "arbitrary", arbitrary(value = "main"))]
+    #[cfg_attr(feature = "test_utils", arbitrary(value = "main"))]
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
     pub relocate_mem: bool,
-    #[cfg_attr(feature = "arbitrary", arbitrary(with = arbitrary_layout))]
-    pub layout: &'a str,
+    pub layout: LayoutName,
+    /// The `dynamic_layout_params` argument should only be used with dynamic layout.
+    /// It is ignored otherwise.
+    pub dynamic_layout_params: Option<CairoLayoutParams>,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
+    /// Disable padding of the trace.
+    /// By default, the trace is padded to accommodate the expected builtins-n_steps relationships
+    /// according to the layout.
+    /// When the padding is disabled:
+    /// - It doesn't modify/pad n_steps.
+    /// - It still pads each builtin segment to the next power of 2 (w.r.t the number of used
+    ///   instances of the builtin) compared to their sizes at the end of the execution.
     pub disable_trace_padding: bool,
     pub allow_missing_builtins: Option<bool>,
 }
 
-#[cfg(feature = "arbitrary")]
-fn arbitrary_layout<'a>(u: &mut Unstructured) -> arbitrary::Result<&'a str> {
-    let layouts = [
-        "plain",
-        "small",
-        "dex",
-        "starknet",
-        "starknet_with_keccak",
-        "recursive_large_output",
-        "all_cairo",
-        "all_solidity",
-        "dynamic",
-    ];
-    Ok(u.choose(&layouts)?)
-}
-
-impl<'a> Default for CairoRunConfig<'a> {
+impl Default for CairoRunConfig<'_> {
     fn default() -> Self {
         CairoRunConfig {
             entrypoint: "main",
             trace_enabled: false,
             relocate_mem: false,
-            layout: "plain",
+            layout: LayoutName::plain,
             proof_mode: false,
             secure_run: None,
             disable_trace_padding: false,
             allow_missing_builtins: None,
+            dynamic_layout_params: None,
         }
     }
 }
 
-pub fn cairo_run_program(
+/// Runs a program with a customized execution scope.
+pub fn cairo_run_program_with_initial_scope(
     program: &Program,
     cairo_run_config: &CairoRunConfig,
-    hint_executor: &mut dyn HintProcessor,
-) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    hint_processor: &mut dyn HintProcessor,
+    exec_scopes: ExecutionScopes,
+) -> Result<CairoRunner, CairoRunError> {
     let secure_run = cairo_run_config
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
@@ -78,57 +79,157 @@ pub fn cairo_run_program(
     let mut cairo_runner = CairoRunner::new(
         program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         cairo_run_config.proof_mode,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )?;
 
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
+    cairo_runner.exec_scopes = exec_scopes;
+
+    let end = cairo_runner.initialize(allow_missing_builtins)?;
     // check step calculation
 
     cairo_runner
-        .run_until_pc(end, &mut vm, hint_executor)
-        .map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+        .run_until_pc(end, hint_processor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
     if cairo_run_config.proof_mode {
-        cairo_runner.run_for_steps(1, &mut vm, hint_executor)?;
+        // we run an additional step to ensure that `end` is the last step execute,
+        // rather than the one after it.
+        cairo_runner.run_for_steps(1, hint_processor)?;
     }
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
         false,
-        &mut vm,
-        hint_executor,
+        hint_processor,
     )?;
 
-    vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
+    cairo_runner.vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
-        cairo_runner.finalize_segments(&mut vm)?;
+        cairo_runner.finalize_segments()?;
     }
     if secure_run {
-        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+        verify_secure_runner(&cairo_runner, true, None)?;
     }
-    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
-    Ok((cairo_runner, vm))
+    Ok(cairo_runner)
+}
+
+pub fn cairo_run_program(
+    program: &Program,
+    cairo_run_config: &CairoRunConfig,
+    hint_processor: &mut dyn HintProcessor,
+) -> Result<CairoRunner, CairoRunError> {
+    cairo_run_program_with_initial_scope(
+        program,
+        cairo_run_config,
+        hint_processor,
+        ExecutionScopes::new(),
+    )
 }
 
 pub fn cairo_run(
     program_content: &[u8],
     cairo_run_config: &CairoRunConfig,
-    hint_executor: &mut dyn HintProcessor,
-) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    hint_processor: &mut dyn HintProcessor,
+) -> Result<CairoRunner, CairoRunError> {
     let program = Program::from_bytes(program_content, Some(cairo_run_config.entrypoint))?;
 
-    cairo_run_program(&program, cairo_run_config, hint_executor)
+    cairo_run_program(&program, cairo_run_config, hint_processor)
+}
+/// Runs a Cairo PIE generated by a previous cairo execution
+/// To generate a cairo pie use the runner's method `get_cairo_pie`
+/// Note: Cairo PIEs cannot be ran in proof_mode
+/// WARNING: As the RunResources are part of the HintProcessor trait, the caller should make sure that
+/// the number of steps in the `RunResources` matches that of the `ExecutionResources` in the `CairoPie`.
+/// An error will be returned if this doesn't hold.
+pub fn cairo_run_pie(
+    pie: &CairoPie,
+    cairo_run_config: &CairoRunConfig,
+    hint_processor: &mut dyn HintProcessor,
+) -> Result<CairoRunner, CairoRunError> {
+    if cairo_run_config.proof_mode {
+        return Err(RunnerError::CairoPieProofMode.into());
+    }
+    if hint_processor
+        .get_n_steps()
+        .is_none_or(|steps| steps != pie.execution_resources.n_steps)
+    {
+        return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
+    }
+    pie.run_validity_checks()?;
+    let secure_run = cairo_run_config.secure_run.unwrap_or(true);
+
+    let allow_missing_builtins = cairo_run_config.allow_missing_builtins.unwrap_or_default();
+
+    let program = Program::from_stripped_program(&pie.metadata.program);
+    let mut cairo_runner = CairoRunner::new(
+        &program,
+        cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
+        false,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
+    )?;
+
+    let end = cairo_runner.initialize(allow_missing_builtins)?;
+    cairo_runner.vm.finalize_segments_by_cairo_pie(pie);
+    // Load builtin additional data
+    for (name, data) in pie.additional_data.0.iter() {
+        // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
+        if matches!(name, BuiltinName::pedersen) && secure_run {
+            continue;
+        }
+        if let Some(builtin) = cairo_runner
+            .vm
+            .builtin_runners
+            .iter_mut()
+            .find(|b| b.name() == *name)
+        {
+            builtin.extend_additional_data(data)?;
+        }
+    }
+    // Load previous execution memory
+    let has_zero_segment = cairo_runner.vm.segments.has_zero_segment() as usize;
+    let n_extra_segments = pie.metadata.extra_segments.len() - has_zero_segment;
+    cairo_runner
+        .vm
+        .segments
+        .load_pie_memory(&pie.memory, n_extra_segments)?;
+
+    cairo_runner
+        .run_until_pc(end, hint_processor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
+
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        hint_processor,
+    )?;
+
+    cairo_runner.vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(allow_missing_builtins)?;
+
+    if secure_run {
+        verify_secure_runner(&cairo_runner, true, None)?;
+        // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE received
+        cairo_runner.get_cairo_pie()?.check_pie_compatibility(pie)?;
+    }
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
+
+    Ok(cairo_runner)
 }
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 pub fn cairo_run_fuzzed_program(
     program: Program,
     cairo_run_config: &CairoRunConfig,
-    hint_executor: &mut dyn HintProcessor,
+    hint_processor: &mut dyn HintProcessor,
     steps_limit: usize,
-) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+) -> Result<CairoRunner, CairoRunError> {
     use crate::vm::errors::vm_errors::VirtualMachineError;
 
     let secure_run = cairo_run_config
@@ -142,33 +243,34 @@ pub fn cairo_run_fuzzed_program(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         cairo_run_config.proof_mode,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )?;
 
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
+    let _end = cairo_runner.initialize(allow_missing_builtins)?;
 
-    let _end = cairo_runner.initialize(&mut vm, allow_missing_builtins)?;
-
-    let res = match cairo_runner.run_until_steps(steps_limit, &mut vm, hint_executor) {
+    let res = match cairo_runner.run_until_steps(steps_limit, hint_processor) {
         Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
         res => res,
     };
 
-    res.map_err(|err| VmException::from_vm_error(&cairo_runner, &vm, err))?;
+    res.map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
-    cairo_runner.end_run(false, false, &mut vm, hint_executor)?;
+    cairo_runner.end_run(false, false, hint_processor)?;
 
-    vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(&mut vm, allow_missing_builtins)?;
+    cairo_runner.vm.verify_auto_deductions()?;
+    cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
-        cairo_runner.finalize_segments(&mut vm)?;
+        cairo_runner.finalize_segments()?;
     }
     if secure_run {
-        verify_secure_runner(&cairo_runner, true, None, &mut vm)?;
+        verify_secure_runner(&cairo_runner, true, None)?;
     }
-    cairo_runner.relocate(&mut vm, cairo_run_config.relocate_mem)?;
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
-    Ok((cairo_runner, vm))
+    Ok(cairo_runner)
 }
 
 #[derive(Debug, Error)]
@@ -223,6 +325,7 @@ pub fn write_encoded_memory(
 mod tests {
     use super::*;
     use crate::stdlib::prelude::*;
+    use crate::vm::runners::cairo_runner::RunResources;
     use crate::Felt252;
     use crate::{
         hint_processor::{
@@ -233,25 +336,23 @@ mod tests {
     };
     use bincode::enc::write::SliceWriter;
 
+    use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
     fn run_test_program(
         program_content: &[u8],
         hint_processor: &mut dyn HintProcessor,
-    ) -> Result<(CairoRunner, VirtualMachine), CairoRunError> {
+    ) -> Result<CairoRunner, CairoRunError> {
         let program = Program::from_bytes(program_content, Some("main")).unwrap();
-        let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!(true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false, true);
         let end = cairo_runner
-            .initialize(&mut vm, false)
+            .initialize(false)
             .map_err(CairoRunError::Runner)?;
 
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, hint_processor)
-            .is_ok());
+        assert!(cairo_runner.run_until_pc(end, hint_processor).is_ok());
 
-        Ok((cairo_runner, vm))
+        Ok(cairo_runner)
     }
 
     #[test]
@@ -262,15 +363,12 @@ mod tests {
             Some("not_main"),
         )
         .unwrap();
-        let mut vm = vm!();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_ok());
-        assert!(cairo_runner.relocate(&mut vm, true).is_ok());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
+        assert!(cairo_runner.relocate(true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
         assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(123)));
@@ -317,11 +415,11 @@ mod tests {
     fn write_output_program() {
         let program_content = include_bytes!("../../cairo_programs/bitwise_output.json");
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let (_, mut vm) = run_test_program(program_content, &mut hint_processor)
+        let mut runner = run_test_program(program_content, &mut hint_processor)
             .expect("Couldn't initialize cairo runner");
 
         let mut output_buffer = String::new();
-        vm.write_output(&mut output_buffer).unwrap();
+        runner.vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "0\n");
     }
 
@@ -334,11 +432,9 @@ mod tests {
 
         // run test program until the end
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner_result = run_test_program(program_content, &mut hint_processor);
-        let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
 
-        // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
+        assert!(cairo_runner.relocate(false).is_ok());
 
         let trace_entries = cairo_runner.relocated_trace.unwrap();
         let mut buffer = [0; 24];
@@ -359,11 +455,10 @@ mod tests {
 
         // run test program until the end
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let cairo_runner_result = run_test_program(program_content, &mut hint_processor);
-        let (mut cairo_runner, mut vm) = cairo_runner_result.unwrap();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(&mut vm, true).is_ok());
+        assert!(cairo_runner.relocate(true).is_ok());
 
         let mut buffer = [0; 120];
         let mut buff_writer = SliceWriter::new(&mut buffer);
@@ -385,12 +480,64 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_ok());
-        assert!(cairo_runner.relocate(&mut vm, false).is_ok());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
+        assert!(cairo_runner.relocate(false).is_ok());
         assert!(cairo_runner.relocated_trace.is_none());
+    }
+
+    #[rstest]
+    #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../cairo_programs/integration.json"))]
+    #[case(include_bytes!("../../cairo_programs/common_signature.json"))]
+    #[case(include_bytes!("../../cairo_programs/relocate_segments.json"))]
+    #[case(include_bytes!("../../cairo_programs/ec_op.json"))]
+    #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
+    #[case(include_bytes!("../../cairo_programs/value_beyond_segment.json"))]
+    fn get_and_run_cairo_pie(#[case] program_content: &[u8]) {
+        let cairo_run_config = CairoRunConfig {
+            layout: LayoutName::starknet_with_keccak,
+            ..Default::default()
+        };
+        // First run program to get Cairo PIE
+        let cairo_pie = {
+            let runner = cairo_run(
+                program_content,
+                &cairo_run_config,
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie().unwrap()
+        };
+        let mut hint_processor = BuiltinHintProcessor::new(
+            Default::default(),
+            RunResources::new(cairo_pie.execution_resources.n_steps),
+        );
+        // Default config runs with secure_run, which checks that the Cairo PIE produced by this run is compatible with the one received
+        assert!(cairo_run_pie(&cairo_pie, &cairo_run_config, &mut hint_processor).is_ok());
+    }
+
+    #[test]
+    fn cairo_run_pie_n_steps_not_set() {
+        // First run program to get Cairo PIE
+        let cairo_pie = {
+            let runner = cairo_run(
+                include_bytes!("../../cairo_programs/fibonacci.json"),
+                &CairoRunConfig::default(),
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+            runner.get_cairo_pie().unwrap()
+        };
+        // Run Cairo PIE
+        let res = cairo_run_pie(
+            &cairo_pie,
+            &CairoRunConfig::default(),
+            &mut BuiltinHintProcessor::new_empty(),
+        );
+        assert!(res.is_err_and(|err| matches!(
+            err,
+            CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
+        )));
     }
 }

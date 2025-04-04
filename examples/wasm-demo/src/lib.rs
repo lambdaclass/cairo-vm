@@ -3,6 +3,7 @@ mod utils;
 use cairo_vm::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
+    types::layout_name::LayoutName,
 };
 use wasm_bindgen::prelude::*;
 
@@ -32,13 +33,13 @@ pub fn run_cairo_program() -> Result<String, JsError> {
     let mut hint_executor = BuiltinHintProcessor::new_empty();
 
     let cairo_run_config = CairoRunConfig {
-        layout: "all_cairo",
+        layout: LayoutName::all_cairo,
         relocate_mem: true,
         trace_enabled: true,
         ..Default::default()
     };
 
-    let (_runner, mut vm) = wrap_error!(cairo_run(
+    let mut runner = wrap_error!(cairo_run(
         PROGRAM_JSON,
         &cairo_run_config,
         &mut hint_executor
@@ -46,7 +47,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
     let mut buffer = String::new();
 
-    wrap_error!(vm.write_output(&mut buffer))?;
+    wrap_error!(runner.vm.write_output(&mut buffer))?;
 
     log(buffer.as_str());
 

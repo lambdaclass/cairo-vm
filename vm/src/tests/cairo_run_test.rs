@@ -1,15 +1,13 @@
-use crate::tests::*;
+use crate::{tests::*, types::layout_name::LayoutName};
+
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
     vm::{
         runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
         security::verify_secure_runner,
-        vm_core::VirtualMachine,
     },
 };
-
-use num_traits::Zero;
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -571,6 +569,30 @@ fn blake2s_integration_tests() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn blake2s_opcode_proof_mode_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json");
+    run_program(program_data.as_slice(), true, None, None, None);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn qm31_opcodes_test() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/stwo_exclusive_programs/qm31_opcodes_test.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn relocate_segments() {
     let program_data = include_bytes!("../../../cairo_programs/relocate_segments.json");
     run_program_simple(program_data.as_slice());
@@ -1006,14 +1028,24 @@ fn cairo_run_if_reloc_equal() {
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn fibonacci_proof_mode_disable_trace_padding() {
-    let program_data = include_bytes!("../../../cairo_programs/fibonacci.json");
+    let program_data = include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
     let config = CairoRunConfig {
+        proof_mode: true,
         disable_trace_padding: true,
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let (r, v) = cairo_run(program_data, &config, &mut hint_processor).unwrap();
-    assert!(r.get_memory_holes(&v).unwrap().is_zero());
+    let runner = cairo_run(program_data, &config, &mut hint_processor).unwrap();
+    // The following check is to ensure that the trace is not padded. For this specific program,
+    // the number of steps doesn't end up as a power of 2 and we make sure it stays that way.
+    assert!(!runner.vm.current_step.is_power_of_two());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn value_beyond_segment() {
+    let program_data = include_bytes!("../../../cairo_programs/value_beyond_segment.json");
+    run_program_simple(program_data.as_slice());
 }
 
 #[test]
@@ -1043,28 +1075,28 @@ fn divmod_igcdex_not_one() {
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_felt.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_array() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_array.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_dict_felt.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_array() {
     let program_data =
         include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
@@ -1076,7 +1108,7 @@ fn run_program_allow_missing_builtins() {
     let program_data = include_bytes!("../../../cairo_programs/pedersen_extra_builtins.json");
     let config = CairoRunConfig {
         allow_missing_builtins: Some(true),
-        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
     assert!(crate::cairo_run::cairo_run(
@@ -1094,7 +1126,7 @@ fn run_program_allow_missing_builtins_proof() {
     let config = CairoRunConfig {
         proof_mode: true,
         allow_missing_builtins: Some(true),
-        layout: "small", // The program logic only uses builtins in the small layout but contains builtins outside of it
+        layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
     };
     assert!(crate::cairo_run::cairo_run(
@@ -1120,6 +1152,14 @@ fn cairo_run_mod_builtin_failure() {
         include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_failure.json");
     let error_msg = "mul_mod_builtin: Expected a * b == c (mod p). Got: instance=2, batch=0, p=9, a=2, b=2, c=2.";
     run_program_with_custom_mod_builtin_params(program_data, false, 1, 3, Some(error_msg));
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_no_solution() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_no_solution.json");
+    run_program_with_error(program_data, "Could not fill the values table");
 }
 
 #[test]
@@ -1167,7 +1207,7 @@ fn run_program_with_custom_mod_builtin_params(
     security_error: Option<&str>,
 ) {
     let cairo_run_config = CairoRunConfig {
-        layout: "all_cairo",
+        layout: LayoutName::all_cairo,
         proof_mode,
         ..Default::default()
     };
@@ -1176,44 +1216,41 @@ fn run_program_with_custom_mod_builtin_params(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params,
         cairo_run_config.proof_mode,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )
     .unwrap();
 
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = cairo_runner.initialize(&mut vm, false).unwrap();
+    let end = cairo_runner.initialize(false).unwrap();
     // Modify add_mod & mul_mod params
-    for runner in vm.get_builtin_runners_as_mut() {
+    for runner in cairo_runner.vm.get_builtin_runners_as_mut() {
         if let BuiltinRunner::Mod(runner) = runner {
             runner.override_layout_params(batch_size, word_bit_len)
         }
     }
 
-    cairo_runner
-        .run_until_pc(end, &mut vm, &mut hint_processor)
-        .unwrap();
+    cairo_runner.run_until_pc(end, &mut hint_processor).unwrap();
 
     if cairo_run_config.proof_mode {
-        cairo_runner
-            .run_for_steps(1, &mut vm, &mut hint_processor)
-            .unwrap();
+        cairo_runner.run_for_steps(1, &mut hint_processor).unwrap();
     }
     cairo_runner
         .end_run(
             cairo_run_config.disable_trace_padding,
             false,
-            &mut vm,
             &mut hint_processor,
         )
         .unwrap();
 
-    vm.verify_auto_deductions().unwrap();
-    cairo_runner.read_return_values(&mut vm, false).unwrap();
+    cairo_runner.vm.verify_auto_deductions().unwrap();
+    cairo_runner.read_return_values(false).unwrap();
     if cairo_run_config.proof_mode {
-        cairo_runner.finalize_segments(&mut vm).unwrap();
+        cairo_runner.finalize_segments().unwrap();
     }
     if !cairo_run_config.proof_mode {
-        let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
+        let security_res = verify_secure_runner(&cairo_runner, true, None);
         if let Some(error) = security_error {
             assert!(security_res.is_err());
             assert!(security_res.err().unwrap().to_string().contains(error));
@@ -1221,4 +1258,97 @@ fn run_program_with_custom_mod_builtin_params(
         }
         security_res.unwrap();
     }
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_apply_poly() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/apply_poly.json");
+    run_program(program_data, false, None, None, None);
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_apply_poly_proof() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/proof/apply_poly.json");
+    run_program(program_data, true, None, None, None);
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_reduce_value() {
+    let program_data = include_bytes!(
+        "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_reduce_value.json"
+    );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_ec() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_reduce_x() {
+    let program_data = include_bytes!(
+        "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_reduce_x.json"
+    );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_get_point_from_x() {
+    let program_data = include_bytes!(
+        "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_get_point_from_x.json"
+    );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_compute_q_mod_prime() {
+    let program_data = include_bytes!(
+        "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_compute_q_mod_prime.json"
+    );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_ec_double_assign_new_x() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec_double_assign_new_x.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
+    let program_data = include_bytes!(
+        "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec_mul_by_uint256.json"
+    );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-data-availability-hints")]
+fn cairo_run_data_availability_reduced_mul() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-kzg-da-hints/reduced_mul.json");
+    run_program_simple(program_data.as_slice());
 }
