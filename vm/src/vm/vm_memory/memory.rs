@@ -23,7 +23,7 @@ pub struct ValidationRule(
 /// 32 bytes boundaries will never get split into two separate lines, avoiding double stalls and
 /// reducing false sharing and evictions.
 /// The trade off is extra computation for conversion to our "in-flight" `MaybeRelocatable` and
-/// `Felt252` as well as some extra copies. Empirically, this seems to be offset by the improved
+/// `Felt` as well as some extra copies. Empirically, this seems to be offset by the improved
 /// locality of the bigger structure for Lambdaworks. There is a big hit from the conversions when
 /// using the `BigUint` implementation, since those force allocations on the heap, but since that's
 /// dropped in later versions anyway it's not a priority. For Lambdaworks the new copies are mostly
@@ -32,8 +32,8 @@ pub struct ValidationRule(
 /// - BIT63: NONE flag, 1 when the cell is actually empty.
 /// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
 /// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
-///   `Felt252`.
-///   `Felt252` values are stored in big-endian order to keep the flag bits free.
+///   `Felt`.
+///   `Felt` values are stored in big-endian order to keep the flag bits free.
 ///   `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
 ///   and the 4th word storing the offset.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
@@ -406,8 +406,8 @@ impl Memory {
         Ok(())
     }
 
-    /// Gets the value from memory address as a Felt252 value.
-    /// Returns an Error if the value at the memory address is missing or not a Felt252.
+    /// Gets the value from memory address as a Felt value.
+    /// Returns an Error if the value at the memory address is missing or not a Felt.
     pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt>, MemoryError> {
         match self.get(&key) {
             Some(Cow::Borrowed(MaybeRelocatable::Int(num))) => Ok(Cow::Borrowed(num)),
@@ -617,9 +617,9 @@ impl Memory {
         Ok(values)
     }
 
-    /// Gets a range of Felt252 memory values from addr to addr + size
+    /// Gets a range of Felt memory values from addr to addr + size
     /// Fails if there if any of the values inside the range is missing (memory gap),
-    /// or is not a Felt252
+    /// or is not a Felt
     pub fn get_integer_range(
         &self,
         addr: Relocatable,
