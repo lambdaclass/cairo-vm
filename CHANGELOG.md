@@ -4,6 +4,8 @@
 
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
+* chore: update cairo-lang dependencies to 2.12.0-dev.0 #[2040](https://github.com/lambdaclass/cairo-vm/pull/2040)
+
 * feat: add get_current_step getter [#2034](https://github.com/lambdaclass/cairo-vm/pull/2034)
 
 * feat: implement VirtualMachine::is_accessed [#2033](https://github.com/lambdaclass/cairo-vm/pull/2033)
