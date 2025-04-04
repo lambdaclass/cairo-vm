@@ -234,7 +234,7 @@ pub mod test_utils {
 
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false);
+            let mut vm = VirtualMachine::new(false, false);
             vm.builtin_runners = vec![
                 $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
                     Some(8),
@@ -252,20 +252,26 @@ pub mod test_utils {
             crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 crate::types::layout_name::LayoutName::all_cairo,
+                None,
+                false,
                 false,
                 false,
             )
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
-            crate::vm::runners::cairo_runner::CairoRunner::new(&$program, $layout, false, false)
-                .unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program, $layout, None, false, false, false,
+            )
+            .unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
             crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 $layout,
+                None,
                 $proof_mode,
+                false,
                 false,
             )
             .unwrap()
@@ -274,8 +280,10 @@ pub mod test_utils {
             crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 $layout,
+                None,
                 $proof_mode,
                 $trace_enabled,
+                false,
             )
             .unwrap()
         };
@@ -400,11 +408,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            crate::vm::vm_core::VirtualMachine::new(false)
+            crate::vm::vm_core::VirtualMachine::new(false, false)
         }};
 
         ($use_trace:expr) => {{
-            crate::vm::vm_core::VirtualMachine::new($use_trace)
+            crate::vm::vm_core::VirtualMachine::new($use_trace, false)
         }};
     }
     pub(crate) use vm;

@@ -17,7 +17,7 @@ std = [
     "starknet-types-core/std",
     "starknet-crypto/std",
     "dep:num-prime",
-    "thiserror-no-std/std",
+    "thiserror/std",
     "dep:zip",
 ]
 cairo-1-hints = [
@@ -29,6 +29,8 @@ cairo-1-hints = [
 ]
 tracer = []
 mod_builtin = []
+cairo-0-secp-hints = []
+cairo-0-data-availability-hints = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
@@ -37,7 +39,7 @@ test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet
 extensive_hints = []
 
 [dependencies]
-zip = {version = "0.6.6", optional = true }
+zip = { version = "0.6.6", optional = true, default-features = false, features = ["deflate"] }
 num-bigint = { workspace = true }
 rand = { workspace = true }
 num-traits = { workspace = true }
@@ -48,6 +50,7 @@ hex = { workspace = true }
 bincode = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
+indoc = { workspace = true }
 lazy_static = { workspace = true }
 nom = { workspace = true }
 sha2 = { workspace = true }
@@ -55,7 +58,7 @@ generic-array = { workspace = true }
 keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
-thiserror-no-std = { workspace = true }
+thiserror = { workspace = true }
 starknet-types-core = { version = "0.1.2", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
@@ -84,7 +87,9 @@ rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+wasm-bindgen-test = "0.3.50"
+# The js feature needs to be enabled
+getrandom = { version = "0.2", features = ["js"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.3.1"

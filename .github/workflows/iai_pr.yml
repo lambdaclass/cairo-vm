@@ -6,10 +6,10 @@ on:
 
 jobs:
   fetch-iai-results:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.base.sha }}
     - name: Initialize IAI cache for ${{ github.event.pull_request.base.sha }}
@@ -23,7 +23,7 @@ jobs:
 
     - name: Install Rust
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
-      uses: dtolnay/rust-toolchain@1.76.0
+      uses: dtolnay/rust-toolchain@1.85.0
     - name: Set up cargo cache
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       uses: Swatinem/rust-cache@v2
@@ -46,12 +46,12 @@ jobs:
 
   run-iai-benchmark:
     needs: fetch-iai-results
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.76.0
+      uses: dtolnay/rust-toolchain@1.85.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Python3 Build

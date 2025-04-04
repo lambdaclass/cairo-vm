@@ -17,8 +17,8 @@ jobs:
           - os: ubuntu-22.04
             deps_suffix: ''
             os_name: ubuntu-22.04
-          - os: [self-hosted, macOS]
-            deps_suffix: '-macos' 
+          - os: macos-latest
+            deps_suffix: '-macos'
             os_name: macos
     runs-on: ${{ matrix.os_name }}
     name: "Make deps, build & test on fresh ${{ matrix.os_name }} system"
@@ -33,12 +33,12 @@ jobs:
         sudo rm -rf /opt/ghc
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-     
+
     - name: Checkout
-      uses: actions/checkout@v3
-    
+      uses: actions/checkout@v4
+
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.76.0
+      uses: dtolnay/rust-toolchain@1.85.0
 
     - name: Install Pyenv
       uses: "gabrielfalcao/pyenv-action@v13"
@@ -68,7 +68,7 @@ jobs:
             FAILED_TARGET=deps${{ matrix.deps_suffix }}
         elif [ ${{ steps.build.outcome }} = failure ]; then
             FAILED_TARGET=build
-        else 
+        else
             FAILED_TARGET=test
         fi
         echo "FAILED_TARGET=$FAILED_TARGET" >> $GITHUB_ENV

@@ -6,6 +6,7 @@ use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
+use cairo_vm::types::layout::CairoLayoutParams;
 use cairo_vm::types::layout_name::LayoutName;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
@@ -31,44 +32,51 @@ use mimalloc::MiMalloc;
 static ALLOC: MiMalloc = MiMalloc;
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 struct Args {
-    #[clap(value_parser, value_hint=ValueHint::FilePath)]
+    #[arg(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long = "trace_file", value_parser)]
+    #[arg(long = "trace_file", value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "print_output")]
+    #[arg(long = "print_output")]
     print_output: bool,
-    #[structopt(long = "entrypoint", default_value = "main")]
+    #[arg(long = "entrypoint", default_value = "main")]
     entrypoint: String,
-    #[structopt(long = "memory_file")]
+    #[arg(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    #[clap(long = "layout", default_value = "plain", value_enum)]
+    /// When using dynamic layout, its parameters must be specified through a layout params file.
+    #[arg(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
-    #[structopt(long = "proof_mode")]
+    /// Required when using with dynamic layout.
+    /// Ignored otherwise.
+    #[arg(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
+    cairo_layout_params_file: Option<PathBuf>,
+    #[arg(long = "proof_mode")]
     proof_mode: bool,
-    #[structopt(long = "secure_run")]
+    #[arg(long = "secure_run")]
     secure_run: Option<bool>,
-    #[clap(long = "air_public_input", requires = "proof_mode")]
+    #[arg(long = "air_public_input", requires = "proof_mode")]
     air_public_input: Option<String>,
-    #[clap(
+    #[arg(
         long = "air_private_input",
         requires_all = ["proof_mode", "trace_file", "memory_file"]
     )]
     air_private_input: Option<String>,
-    #[clap(
+    #[arg(
         long = "cairo_pie_output",
         // We need to add these air_private_input & air_public_input or else
         // passing cairo_pie_output + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
-    #[structopt(long = "allow_missing_builtins")]
+    #[arg(long = "merge_extra_segments")]
+    merge_extra_segments: bool,
+    #[arg(long = "allow_missing_builtins")]
     allow_missing_builtins: Option<bool>,
-    #[structopt(long = "tracer")]
+    #[arg(long = "tracer")]
     #[cfg(feature = "with_tracer")]
     tracer: bool,
-    #[structopt(
+    #[arg(
         long = "run_from_cairo_pie",
         // We need to add these air_private_input & air_public_input or else
         // passing run_from_cairo_pie + either of these without proof_mode will not fail
@@ -162,6 +170,11 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
 
+    let cairo_layout_params = match args.cairo_layout_params_file {
+        Some(file) => Some(CairoLayoutParams::from_file(&file)?),
+        None => None,
+    };
+
     let cairo_run_config = cairo_run::CairoRunConfig {
         entrypoint: &args.entrypoint,
         trace_enabled,
@@ -170,6 +183,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
+        dynamic_layout_params: cairo_layout_params,
         ..Default::default()
     };
 
@@ -261,7 +275,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_runner
             .get_cairo_pie()
             .map_err(CairoRunError::Runner)?
-            .write_zip_file(file_path)?
+            .write_zip_file(file_path, args.merge_extra_segments)?
     }
 
     Ok(())
@@ -403,6 +417,19 @@ mod tests {
     fn test_run_bad_file(#[case] program: &str) {
         let args = ["cairo-vm-cli", program].into_iter().map(String::from);
         assert_matches!(run(args), Err(Error::Runner(_)));
+    }
+
+    #[test]
+    fn test_run_dynamic_params() {
+        let mut args = vec!["cairo-vm-cli".to_string()];
+        args.extend_from_slice(&["--layout".to_string(), "dynamic".to_string()]);
+        args.extend_from_slice(&[
+            "--cairo_layout_params_file".to_string(),
+            "../vm/src/tests/cairo_layout_params_file.json".to_string(),
+        ]);
+        args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
+
+        assert_matches!(run(args.into_iter()), Ok(_));
     }
 
     //Since the functionality here is trivial, I just call the function

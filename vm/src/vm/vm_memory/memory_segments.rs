@@ -23,7 +23,7 @@ use super::memory::MemoryCell;
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
-    pub(crate) memory: Memory,
+    pub memory: Memory,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
@@ -200,6 +200,10 @@ impl MemorySegmentManager {
         }
     }
 
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        self.memory.is_accessed(addr)
+    }
+
     /// Counts the memory holes (aka unaccessed memory cells) in memory
     /// # Parameters
     /// - `builtin_segment_indexes`: Set representing the segments indexes of the builtins initialized in the VM, except for the output builtin.
@@ -217,7 +221,7 @@ impl MemorySegmentManager {
             }
             let accessed_amount =
                 // Instead of marking the values in the zero segment until zero_segment_size as accessed we use zero_segment_size as accessed_amount
-                if !self.zero_segment_index.is_zero() && i == self.zero_segment_index {
+                if self.has_zero_segment() && i == self.zero_segment_index {
                     self.zero_segment_size
                 } else {
                     match self.memory.get_amount_of_accessed_addresses_for_segment(i) {
@@ -278,11 +282,15 @@ impl MemorySegmentManager {
             .insert(segment_index, public_memory.cloned().unwrap_or_default());
     }
 
+    pub fn has_zero_segment(&self) -> bool {
+        !self.zero_segment_index.is_zero()
+    }
+
     // Creates the zero segment if it wasn't previously created
     // Fills the segment with the value 0 until size is reached
     // Returns the index of the zero segment
     pub(crate) fn add_zero_segment(&mut self, size: usize) -> usize {
-        if self.zero_segment_index.is_zero() {
+        if !self.has_zero_segment() {
             self.zero_segment_index = self.add().segment_index as usize;
         }
 
@@ -298,7 +306,7 @@ impl MemorySegmentManager {
 
     // Finalizes the zero segment and clears it's tracking data from the manager
     pub(crate) fn finalize_zero_segment(&mut self) {
-        if !self.zero_segment_index.is_zero() {
+        if self.has_zero_segment() {
             self.finalize(Some(self.zero_segment_size), self.zero_segment_index, None);
             self.zero_segment_index = 0;
             self.zero_segment_size = 0;

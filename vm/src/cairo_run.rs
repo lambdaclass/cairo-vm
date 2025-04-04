@@ -1,6 +1,9 @@
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
-    types::{builtin_name::BuiltinName, layout_name::LayoutName, program::Program},
+    types::{
+        builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
+        program::Program,
+    },
     vm::{
         errors::{
             cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
@@ -13,7 +16,7 @@ use crate::{
 use crate::Felt252;
 use bincode::enc::write::Writer;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
@@ -26,13 +29,23 @@ pub struct CairoRunConfig<'a> {
     pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub layout: LayoutName,
+    /// The `dynamic_layout_params` argument should only be used with dynamic layout.
+    /// It is ignored otherwise.
+    pub dynamic_layout_params: Option<CairoLayoutParams>,
     pub proof_mode: bool,
     pub secure_run: Option<bool>,
+    /// Disable padding of the trace.
+    /// By default, the trace is padded to accommodate the expected builtins-n_steps relationships
+    /// according to the layout.
+    /// When the padding is disabled:
+    /// - It doesn't modify/pad n_steps.
+    /// - It still pads each builtin segment to the next power of 2 (w.r.t the number of used
+    ///   instances of the builtin) compared to their sizes at the end of the execution.
     pub disable_trace_padding: bool,
     pub allow_missing_builtins: Option<bool>,
 }
 
-impl<'a> Default for CairoRunConfig<'a> {
+impl Default for CairoRunConfig<'_> {
     fn default() -> Self {
         CairoRunConfig {
             entrypoint: "main",
@@ -43,6 +56,7 @@ impl<'a> Default for CairoRunConfig<'a> {
             secure_run: None,
             disable_trace_padding: false,
             allow_missing_builtins: None,
+            dynamic_layout_params: None,
         }
     }
 }
@@ -65,8 +79,10 @@ pub fn cairo_run_program_with_initial_scope(
     let mut cairo_runner = CairoRunner::new(
         program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )?;
 
     cairo_runner.exec_scopes = exec_scopes;
@@ -79,6 +95,8 @@ pub fn cairo_run_program_with_initial_scope(
         .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
     if cairo_run_config.proof_mode {
+        // we run an additional step to ensure that `end` is the last step execute,
+        // rather than the one after it.
         cairo_runner.run_for_steps(1, hint_processor)?;
     }
     cairo_runner.end_run(
@@ -136,9 +154,9 @@ pub fn cairo_run_pie(
     if cairo_run_config.proof_mode {
         return Err(RunnerError::CairoPieProofMode.into());
     }
-    if !hint_processor
+    if hint_processor
         .get_n_steps()
-        .is_some_and(|steps| steps == pie.execution_resources.n_steps)
+        .is_none_or(|steps| steps != pie.execution_resources.n_steps)
     {
         return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
     }
@@ -151,8 +169,10 @@ pub fn cairo_run_pie(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         false,
         cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )?;
 
     let end = cairo_runner.initialize(allow_missing_builtins)?;
@@ -173,7 +193,8 @@ pub fn cairo_run_pie(
         }
     }
     // Load previous execution memory
-    let n_extra_segments = pie.metadata.extra_segments.len();
+    let has_zero_segment = cairo_runner.vm.segments.has_zero_segment() as usize;
+    let n_extra_segments = pie.metadata.extra_segments.len() - has_zero_segment;
     cairo_runner
         .vm
         .segments
@@ -222,8 +243,10 @@ pub fn cairo_run_fuzzed_program(
     let mut cairo_runner = CairoRunner::new(
         &program,
         cairo_run_config.layout,
+        cairo_run_config.dynamic_layout_params.clone(),
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
     )?;
 
     let _end = cairo_runner.initialize(allow_missing_builtins)?;

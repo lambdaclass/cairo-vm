@@ -25,8 +25,8 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 mod bitwise_test;
 #[cfg(test)]
@@ -113,6 +113,8 @@ fn run_cairo_1_entrypoint(
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
+        None,
+        false,
         false,
         false,
     )
@@ -217,6 +219,8 @@ fn run_cairo_1_entrypoint_with_run_resources(
     let mut runner = CairoRunner::new(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
+        None,
+        false,
         false,
         false,
     )
