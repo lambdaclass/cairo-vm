@@ -19,11 +19,35 @@ pub fn relocate_segment(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let src_ptr = get_ptr_from_var_name("src_ptr", vm, ids_data, ap_tracking)?;
-    #[cfg(not(feature = "extensive_hints"))]
-    let dest_ptr = get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
-    #[cfg(feature = "extensive_hints")]
-    let dest_ptr = crate::hint_processor::builtin_hint_processor::hint_utils::get_maybe_relocatable_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?;
+    // Bugfix: this is a workaround for an issue in the vm related to the way it computes
+    // `dest_ptr` in `segment_arena.cairo`. For some reason it sets `dest_ptr` to 0 (felt) instead
+    // of a valid relocatable value.
+    // As this hint is used in other places, we need to determine if we are in `segments_arena`
+    // first. We check this by determining if the "infos" variable is declared.
+    // If it is the case, we simply recompute `dest_ptr` manually.
+    let dest_ptr = if let Ok(infos) = get_ptr_from_var_name("infos", vm, ids_data, ap_tracking) {
+        let infos_0_end = vm.get_relocatable((infos + 1)?)?;
 
+        #[cfg(not(feature = "extensive_hints"))]
+        {
+            (infos_0_end + 1u32)?
+        }
+
+        #[cfg(feature = "extensive_hints")]
+        {
+            crate::types::relocatable::MaybeRelocatable::RelocatableValue((infos_0_end + 1u32)?)
+        }
+    } else {
+        #[cfg(not(feature = "extensive_hints"))]
+        {
+            get_ptr_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?
+        }
+
+        #[cfg(feature = "extensive_hints")]
+        {
+            crate::hint_processor::builtin_hint_processor::hint_utils::get_maybe_relocatable_from_var_name("dest_ptr", vm, ids_data, ap_tracking)?
+        }
+    };
     vm.add_relocation_rule(src_ptr, dest_ptr)
         .map_err(HintError::Memory)?;
     Ok(())
