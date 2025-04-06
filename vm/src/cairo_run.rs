@@ -107,7 +107,7 @@ pub fn cairo_run_program_with_initial_scope(
 
     cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
-    if cairo_run_config.proof_mode {
+    if cairo_run_config.proof_mode || cairo_run_config.trace_enabled {
         cairo_runner.finalize_segments()?;
     }
     if secure_run {
