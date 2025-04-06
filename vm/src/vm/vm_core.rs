@@ -1199,7 +1199,7 @@ impl VirtualMachine {
         Ok(())
     }
 
-    /// Returns a list of addresses of memory cells that constitute the public memory.
+    /// Returns a list of addresses of memory cells that constitute the public memory..
     pub fn get_public_memory_addresses(&self) -> Result<Vec<(usize, usize)>, VirtualMachineError> {
         if let Some(relocation_table) = &self.relocation_table {
             self.segments
