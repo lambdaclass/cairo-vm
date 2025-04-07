@@ -122,12 +122,6 @@ jobs:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
         key: cairo_test_programs-cache-${{ hashFiles('**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
-    - name: Fetch cairo stwo exclusive programs
-      uses: actions/cache/restore@v3
-      with:
-        path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_stwo_exclusive_programs-cache-${{ hashFiles('**/*.cairo', 'Makefile', 'requirements.txt') }}
-        fail-on-cache-miss: true
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
