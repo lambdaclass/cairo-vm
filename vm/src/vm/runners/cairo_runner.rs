@@ -48,6 +48,7 @@ use crate::{
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
@@ -1542,6 +1543,7 @@ impl CairoRunner {
     }
 }
 
+// TODO(Stav): move to specified file.
 //* ----------------------
 //*   ProverInputInfo
 //* ----------------------
@@ -1557,6 +1559,19 @@ pub struct ProverInputInfo {
     pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
     /// A map from the builtin segment index into its name.
     pub builtins_segments: BTreeMap<usize, BuiltinName>,
+}
+
+impl ProverInputInfo {
+    pub fn serialize_json(&self) -> Result<String, ProverInputInfoError> {
+        serde_json::to_string_pretty(&self).map_err(ProverInputInfoError::from)
+    }
+}
+
+// TODO(Stav): add TraceNotEnabled error.
+#[derive(Debug, Error)]
+pub enum ProverInputInfoError {
+    #[error("Failed to (de)serialize data")]
+    Serde(#[from] serde_json::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1666,6 +1681,7 @@ mod tests {
     use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
     use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
+    use rstest::rstest;
 
     use crate::felt_hex;
     use crate::{
@@ -5670,5 +5686,45 @@ mod tests {
         assert!(prover_input.builtins_segments.get(&8) == Some(&BuiltinName::keccak));
         assert!(prover_input.relocatable_memory[6].len() as u32 % CELLS_PER_BITWISE == 0);
         assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
+    }
+
+    #[rstest]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/bitwise_output.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/relocate_temporary_segment_append.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/pedersen_test.json"))]
+    fn serialize_and_deserialize_prover_input_info(#[case] program_content: &[u8]) {
+        use crate::types::layout_name::LayoutName;
+
+        let config = crate::cairo_run::CairoRunConfig {
+            proof_mode: false,
+            relocate_mem: false,
+            trace_enabled: true,
+            layout: LayoutName::all_cairo_stwo,
+            ..Default::default()
+        };
+        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let prover_input_info = runner.get_prover_input_info().unwrap();
+        let serialized_prover_input_info = prover_input_info.serialize_json().unwrap();
+        let deserialized_prover_input_info: ProverInputInfo =
+            serde_json::from_str(&serialized_prover_input_info).unwrap();
+        // Check that the deserialized prover input info is equal to the original one.
+        assert_eq!(
+            prover_input_info.relocatable_memory,
+            deserialized_prover_input_info.relocatable_memory
+        );
+        assert_eq!(
+            prover_input_info.relocatable_trace,
+            deserialized_prover_input_info.relocatable_trace
+        );
+        assert_eq!(
+            prover_input_info.builtins_segments,
+            deserialized_prover_input_info.builtins_segments
+        );
+        assert_eq!(
+            prover_input_info.public_memory_offsets,
+            deserialized_prover_input_info.public_memory_offsets
+        );
     }
 }
