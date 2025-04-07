@@ -1245,7 +1245,7 @@ fn run_program_with_custom_mod_builtin_params(
         .unwrap();
 
     cairo_runner.vm.verify_auto_deductions().unwrap();
-    cairo_runner.read_return_values(false).unwrap();
+    cairo_runner.read_return_values(false, false).unwrap();
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments().unwrap();
     }
