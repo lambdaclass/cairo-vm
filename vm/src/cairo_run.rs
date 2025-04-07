@@ -106,8 +106,8 @@ pub fn cairo_run_program_with_initial_scope(
     )?;
 
     cairo_runner.vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(allow_missing_builtins)?;
-    if cairo_run_config.proof_mode {
+    cairo_runner.read_return_values(allow_missing_builtins, cairo_run_config.trace_enabled)?;
+    if cairo_run_config.proof_mode || cairo_run_config.trace_enabled {
         cairo_runner.finalize_segments()?;
     }
     if secure_run {
@@ -211,7 +211,7 @@ pub fn cairo_run_pie(
     )?;
 
     cairo_runner.vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(allow_missing_builtins)?;
+    cairo_runner.read_return_values(allow_missing_builtins, cairo_run_config.trace_enabled)?;
 
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None)?;
@@ -261,7 +261,7 @@ pub fn cairo_run_fuzzed_program(
     cairo_runner.end_run(false, false, hint_processor)?;
 
     cairo_runner.vm.verify_auto_deductions()?;
-    cairo_runner.read_return_values(allow_missing_builtins)?;
+    cairo_runner.read_return_values(allow_missing_builtins, cairo_run_config.trace_enabled)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments()?;
     }

@@ -830,7 +830,7 @@ mod tests {
         runner.run_until_pc(end, &mut hint_processor).unwrap();
         runner.run_for_steps(1, &mut hint_processor).unwrap();
         runner.end_run(false, false, &mut hint_processor).unwrap();
-        runner.read_return_values(false).unwrap();
+        runner.read_return_values(false, false).unwrap();
         runner.finalize_segments().unwrap();
 
         // We compare against the execution of python cairo-run with the same layout

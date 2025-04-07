@@ -1259,7 +1259,11 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn read_return_values(&mut self, allow_missing_builtins: bool) -> Result<(), RunnerError> {
+    pub fn read_return_values(
+        &mut self,
+        allow_missing_builtins: bool,
+        trace_enabled: bool,
+    ) -> Result<(), RunnerError> {
         if !self.run_ended {
             return Err(RunnerError::ReadReturnValuesNoEndRun);
         }
@@ -1287,7 +1291,7 @@ impl CairoRunner {
         if self.segments_finalized {
             return Err(RunnerError::FailedAddingReturnValues);
         }
-        if self.is_proof_mode() {
+        if self.is_proof_mode() || trace_enabled {
             let exec_base = *self
                 .execution_base
                 .as_ref()
@@ -4714,7 +4718,7 @@ mod tests {
         cairo_runner.segments_finalized = false;
         //Check values written by first call to segments.finalize()
 
-        assert_eq!(cairo_runner.read_return_values(false), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(false, false), Ok(()));
         assert_eq!(
             cairo_runner
                 .execution_public_memory
@@ -4735,7 +4739,7 @@ mod tests {
         cairo_runner.execution_base = Some(Relocatable::from((1, 0)));
         cairo_runner.run_ended = false;
         assert_eq!(
-            cairo_runner.read_return_values(false),
+            cairo_runner.read_return_values(false, false),
             Err(RunnerError::ReadReturnValuesNoEndRun)
         );
     }
@@ -4753,7 +4757,7 @@ mod tests {
         cairo_runner.run_ended = true;
         cairo_runner.segments_finalized = true;
         assert_eq!(
-            cairo_runner.read_return_values(false),
+            cairo_runner.read_return_values(false, false),
             Err(RunnerError::FailedAddingReturnValues)
         );
     }
@@ -4780,7 +4784,7 @@ mod tests {
         cairo_runner.vm.set_ap(1);
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(false), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(false, false), Ok(()));
         let output_builtin = match &cairo_runner.vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4810,7 +4814,7 @@ mod tests {
         cairo_runner.vm.set_ap(1);
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![1, 1, 0]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(false), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(false, false), Ok(()));
         let output_builtin = match &cairo_runner.vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
@@ -4847,13 +4851,13 @@ mod tests {
         // We use 5 as bitwise builtin's segment size as a bitwise instance is 5 cells
         cairo_runner.vm.segments.segment_used_sizes = Some(vec![0, 2, 0, 5]);
         //Check values written by first call to segments.finalize()
-        assert_eq!(cairo_runner.read_return_values(false), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(false, false), Ok(()));
         let output_builtin = match &cairo_runner.vm.builtin_runners[0] {
             BuiltinRunner::Output(runner) => runner,
             _ => unreachable!(),
         };
         assert_eq!(output_builtin.stop_ptr, Some(0));
-        assert_eq!(cairo_runner.read_return_values(false), Ok(()));
+        assert_eq!(cairo_runner.read_return_values(false, false), Ok(()));
         let bitwise_builtin = match &cairo_runner.vm.builtin_runners[1] {
             BuiltinRunner::Bitwise(runner) => runner,
             _ => unreachable!(),
