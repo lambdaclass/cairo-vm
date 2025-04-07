@@ -6,8 +6,8 @@ use arbitrary::{self, Arbitrary};
 // Internal constants
 const OUTPUT_BUILTIN_NAME: &str = "output";
 const HASH_BUILTIN_NAME: &str = "pedersen";
-const RANGE_CHECK_BUILTIN_NAME: &str = "range_check";
-const RANGE_CHECK_96_BUILTIN_NAME: &str = "range_check96";
+const RANGE_CHECK_BUILTIN_BITS_128_NAME: &str = "range_check";
+const RANGE_CHECK_BUILTIN_BITS_96_NAME: &str = "range_check96";
 const SIGNATURE_BUILTIN_NAME: &str = "ecdsa";
 const BITWISE_BUILTIN_NAME: &str = "bitwise";
 const EC_OP_BUILTIN_NAME: &str = "ec_op";
@@ -19,8 +19,8 @@ const MUL_MOD_BUILTIN_NAME: &str = "mul_mod";
 
 const OUTPUT_BUILTIN_NAME_WITH_SUFFIX: &str = "output_builtin";
 const HASH_BUILTIN_NAME_WITH_SUFFIX: &str = "pedersen_builtin";
-const RANGE_CHECK_BUILTIN_NAME_WITH_SUFFIX: &str = "range_check_builtin";
-const RANGE_CHECK_96_BUILTIN_NAME_WITH_SUFFIX: &str = "range_check96_builtin";
+const RANGE_CHECK_BUILTIN_BITS_128_NAME_WITH_SUFFIX: &str = "range_check_builtin_bits_128";
+const RANGE_CHECK_BUILTIN_BITS_96_NAME_WITH_SUFFIX: &str = "range_check_builtin_bits_96";
 const SIGNATURE_BUILTIN_NAME_WITH_SUFFIX: &str = "ecdsa_builtin";
 const BITWISE_BUILTIN_NAME_WITH_SUFFIX: &str = "bitwise_builtin";
 const EC_OP_BUILTIN_NAME_WITH_SUFFIX: &str = "ec_op_builtin";
@@ -64,7 +64,7 @@ impl BuiltinName {
     pub fn to_str_with_suffix(self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME_WITH_SUFFIX,
-            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME_WITH_SUFFIX,
+            BuiltinName::range_check => RANGE_CHECK_BUILTIN_BITS_128_NAME_WITH_SUFFIX,
             BuiltinName::pedersen => HASH_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::keccak => KECCAK_BUILTIN_NAME_WITH_SUFFIX,
@@ -72,7 +72,7 @@ impl BuiltinName {
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME_WITH_SUFFIX,
-            BuiltinName::range_check96 => RANGE_CHECK_96_BUILTIN_NAME_WITH_SUFFIX,
+            BuiltinName::range_check96 => RANGE_CHECK_BUILTIN_BITS_96_NAME_WITH_SUFFIX,
             BuiltinName::add_mod => ADD_MOD_BUILTIN_NAME_WITH_SUFFIX,
             BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME_WITH_SUFFIX,
         }
@@ -92,7 +92,7 @@ impl BuiltinName {
     pub fn to_str(self) -> &'static str {
         match self {
             BuiltinName::output => OUTPUT_BUILTIN_NAME,
-            BuiltinName::range_check => RANGE_CHECK_BUILTIN_NAME,
+            BuiltinName::range_check => RANGE_CHECK_BUILTIN_BITS_128_NAME,
             BuiltinName::pedersen => HASH_BUILTIN_NAME,
             BuiltinName::ecdsa => SIGNATURE_BUILTIN_NAME,
             BuiltinName::keccak => KECCAK_BUILTIN_NAME,
@@ -100,7 +100,7 @@ impl BuiltinName {
             BuiltinName::ec_op => EC_OP_BUILTIN_NAME,
             BuiltinName::poseidon => POSEIDON_BUILTIN_NAME,
             BuiltinName::segment_arena => SEGMENT_ARENA_BUILTIN_NAME,
-            BuiltinName::range_check96 => RANGE_CHECK_96_BUILTIN_NAME,
+            BuiltinName::range_check96 => RANGE_CHECK_BUILTIN_BITS_96_NAME,
             BuiltinName::add_mod => ADD_MOD_BUILTIN_NAME,
             BuiltinName::mul_mod => MUL_MOD_BUILTIN_NAME,
         }
@@ -121,7 +121,7 @@ impl BuiltinName {
     pub fn from_str_with_suffix(suffixed_str: &str) -> Option<Self> {
         match suffixed_str {
             OUTPUT_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::output),
-            RANGE_CHECK_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::range_check),
+            RANGE_CHECK_BUILTIN_BITS_128_NAME_WITH_SUFFIX => Some(BuiltinName::range_check),
             HASH_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::pedersen),
             SIGNATURE_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::ecdsa),
             KECCAK_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::keccak),
@@ -129,7 +129,7 @@ impl BuiltinName {
             EC_OP_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::ec_op),
             POSEIDON_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::poseidon),
             SEGMENT_ARENA_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::segment_arena),
-            RANGE_CHECK_96_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::range_check96),
+            RANGE_CHECK_BUILTIN_BITS_96_NAME_WITH_SUFFIX => Some(BuiltinName::range_check96),
             ADD_MOD_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::add_mod),
             MUL_MOD_BUILTIN_NAME_WITH_SUFFIX => Some(BuiltinName::mul_mod),
             _ => None,
@@ -153,7 +153,7 @@ impl BuiltinName {
     pub fn from_str(str: &str) -> Option<Self> {
         match str {
             OUTPUT_BUILTIN_NAME => Some(BuiltinName::output),
-            RANGE_CHECK_BUILTIN_NAME => Some(BuiltinName::range_check),
+            RANGE_CHECK_BUILTIN_BITS_128_NAME => Some(BuiltinName::range_check),
             HASH_BUILTIN_NAME => Some(BuiltinName::pedersen),
             SIGNATURE_BUILTIN_NAME => Some(BuiltinName::ecdsa),
             KECCAK_BUILTIN_NAME => Some(BuiltinName::keccak),
@@ -161,7 +161,7 @@ impl BuiltinName {
             EC_OP_BUILTIN_NAME => Some(BuiltinName::ec_op),
             POSEIDON_BUILTIN_NAME => Some(BuiltinName::poseidon),
             SEGMENT_ARENA_BUILTIN_NAME => Some(BuiltinName::segment_arena),
-            RANGE_CHECK_96_BUILTIN_NAME => Some(BuiltinName::range_check96),
+            RANGE_CHECK_BUILTIN_BITS_96_NAME => Some(BuiltinName::range_check96),
             ADD_MOD_BUILTIN_NAME => Some(BuiltinName::add_mod),
             MUL_MOD_BUILTIN_NAME => Some(BuiltinName::mul_mod),
             _ => None,
