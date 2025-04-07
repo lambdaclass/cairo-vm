@@ -7,6 +7,20 @@
 
 * fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
+* fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
+
+* chore: update cairo-lang dependencies to 2.12.0-dev.0 #[2040](https://github.com/lambdaclass/cairo-vm/pull/2040)
+
+* feat: add get_current_step getter [#2034](https://github.com/lambdaclass/cairo-vm/pull/2034)
+
+* feat: implement VirtualMachine::is_accessed [#2033](https://github.com/lambdaclass/cairo-vm/pull/2033)
+
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
+
+* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
+
 * refactor: Clap attribute macros from #[clap(...)] to #[arg(...)] and #[command(...)] in v4.x [#2003] (https://github.com/lambdaclass/cairo-vm/pull/2003)
 
 * fix: Fix `WriteReturnFp` error due to a bad loading of initial gas [#2015](https://github.com/lambdaclass/cairo-vm/pull/2015)
