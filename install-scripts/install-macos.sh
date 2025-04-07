@@ -14,6 +14,7 @@ brew install pyenv
 #install gmp
 ifeq (, $(shell which gmp))
     brew install gmp
+endif
 
 # Make sure pyenv has been installed correctly
 pyenv -v
