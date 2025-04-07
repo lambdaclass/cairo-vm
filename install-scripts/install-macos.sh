@@ -11,9 +11,6 @@ rustc --version
 # Install pyenv
 brew install pyenv
 
-ifeq (, $(shell which gmp))
-    brew install gmp
-
 # Make sure pyenv has been installed correctly
 pyenv -v
 
