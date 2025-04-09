@@ -121,14 +121,13 @@ mod tests {
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
-        //TODO, Check SecpSplitutOfRange limit
-        let array_4 = bigint3_split(
-            &bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            )
-            .to_biguint()
-            .expect("Couldn't convert to BigUint"),
-        );
+        //Check SecpSplitOutOfRange exact limit
+        // BASE**3 = 2**258 would be the exact upper bound where bigint3_split should fail
+        let max_value = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
+        let over_max_value = &*BASE * &*BASE * &*BASE;
+        
+        let array_max = bigint3_split(&max_value);
+        let array_over_max = bigint3_split(&over_max_value);
 
         assert_matches!(
             array_1,
@@ -158,14 +157,21 @@ mod tests {
                     .expect("Couldn't convert to BigUint")
             ]
         );
+        
+        // Verify max value at the boundary works
         assert_matches!(
-            array_4,
-            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == bigint_str!(
-                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-                )
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint")
-
+            array_max,
+            Ok(x) if x == [
+                BASE_MINUS_ONE.clone(),
+                BASE_MINUS_ONE.clone(), 
+                BASE_MINUS_ONE.clone()
+            ]
+        );
+        
+        // Verify one above max value fails with SecpSplitOutOfRange
+        assert_matches!(
+            array_over_max,
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == over_max_value
         );
     }
 }
