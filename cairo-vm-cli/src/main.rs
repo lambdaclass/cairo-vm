@@ -69,7 +69,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
-    #[arg(long = "prover_input_info")]
+    #[arg(long = "prover_input_info",
+    requires_all = ["proof_mode"])]
     prover_input_info: Option<String>,
     #[arg(long = "merge_extra_segments")]
     merge_extra_segments: bool,
@@ -190,7 +191,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: args.prover_input_info.is_some(),
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -412,6 +413,7 @@ mod tests {
         if air_public_input && !proof_mode
             || (air_private_input && (!proof_mode || !trace_file || !memory_file))
             || cairo_pie_output && proof_mode
+            || prover_input_info && !proof_mode
         {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {
