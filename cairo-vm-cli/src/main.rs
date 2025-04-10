@@ -190,7 +190,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: args.prover_input_info.is_some(),
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
