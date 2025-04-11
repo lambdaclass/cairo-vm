@@ -304,7 +304,8 @@ pub fn vm_load_program(
     let compiled_hint = hint_processor.compile_hint(
         hint_code,
         &hint_ap_tracking_data,
-        &reference_ids & references,
+        &reference_ids,
+        &references,
         &accessible_scopes,
     )?;
     // Create the hint extension
