@@ -12,6 +12,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputBuiltinState {
     pub base: usize,
+    pub base_offset: usize,
     pub pages: Pages,
     pub attributes: Attributes,
 }
@@ -19,6 +20,7 @@ pub struct OutputBuiltinState {
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
     base: usize,
+    pub base_offset: usize,
     pub(crate) pages: Pages,
     pub(crate) attributes: Attributes,
     pub(crate) stop_ptr: Option<usize>,
@@ -29,6 +31,7 @@ impl OutputBuiltinRunner {
     pub fn new(included: bool) -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
+            base_offset: 0,
             pages: HashMap::default(),
             attributes: HashMap::default(),
             stop_ptr: None,
@@ -36,8 +39,9 @@ impl OutputBuiltinRunner {
         }
     }
 
-    pub fn new_state(&mut self, base: usize, included: bool) {
+    pub fn new_state(&mut self, base: usize, base_offset: usize, included: bool) {
         self.base = base;
+        self.base_offset = base_offset;
         self.pages = HashMap::default();
         self.attributes = HashMap::default();
         self.stop_ptr = None;
@@ -143,6 +147,7 @@ impl OutputBuiltinRunner {
 
     pub fn set_state(&mut self, new_state: OutputBuiltinState) {
         self.base = new_state.base;
+        self.base_offset = new_state.base_offset;
         self.pages = new_state.pages;
         self.attributes = new_state.attributes;
     }
@@ -150,6 +155,7 @@ impl OutputBuiltinRunner {
     pub fn get_state(&mut self) -> OutputBuiltinState {
         OutputBuiltinState {
             base: self.base,
+            base_offset: self.base_offset,
             pages: self.pages.clone(),
             attributes: self.attributes.clone(),
         }
@@ -168,7 +174,7 @@ impl OutputBuiltinRunner {
         self.pages.insert(
             page_id,
             PublicMemoryPage {
-                start: page_start.offset,
+                start: page_start.offset - self.base_offset,
                 size: page_size,
             },
         );
@@ -493,6 +499,7 @@ mod tests {
 
         let new_state = OutputBuiltinState {
             base: 10,
+            base_offset: 0,
             pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
             attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
         };
@@ -510,6 +517,7 @@ mod tests {
     fn new_state() {
         let mut builtin = OutputBuiltinRunner {
             base: 10,
+            base_offset: 0,
             pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
             attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: Some(10),
@@ -518,9 +526,10 @@ mod tests {
 
         let new_base = 11;
         let new_included = false;
-        builtin.new_state(new_base, new_included);
+        builtin.new_state(new_base, 2, new_included);
 
         assert_eq!(builtin.base, new_base);
+        assert_eq!(builtin.base_offset, 2);
         assert!(builtin.pages.is_empty());
         assert!(builtin.attributes.is_empty());
         assert_eq!(builtin.stop_ptr, None);
@@ -614,6 +623,7 @@ mod tests {
     fn get_and_extend_additional_data() {
         let builtin_a = OutputBuiltinRunner {
             base: 0,
+            base_offset: 0,
             pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
             attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: None,
@@ -622,6 +632,7 @@ mod tests {
         let additional_data = builtin_a.get_additional_data();
         let mut builtin_b = OutputBuiltinRunner {
             base: 0,
+            base_offset: 0,
             pages: Default::default(),
             attributes: Default::default(),
             stop_ptr: None,
