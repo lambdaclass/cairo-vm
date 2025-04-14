@@ -1405,18 +1405,34 @@ impl CairoRunner {
             }
         }
 
+        let stripped_program = self
+            .get_program()
+            .get_stripped_program()
+            .map_err(|_| RunnerError::StrippedProgramNoMain)?;
+        let mut simulated_builtins = self
+            .vm
+            .simulated_builtin_runners
+            .iter()
+            .map(|builtin| builtin.name())
+            .collect::<Vec<_>>();
+        // Sort the simulated builtins by their order in the program.
+        simulated_builtins.sort_by_key(|builtin| {
+            stripped_program
+                .builtins
+                .iter()
+                .position(|b| b == builtin)
+                .unwrap()
+        });
         let execution_size = (self.vm.get_ap() - execution_base)?;
         let metadata = CairoPieMetadata {
-            program: self
-                .get_program()
-                .get_stripped_program()
-                .map_err(|_| RunnerError::StrippedProgramNoMain)?,
+            program: stripped_program,
             program_segment: (program_base.segment_index, self.program.data_len()).into(),
             execution_segment: (execution_base.segment_index, execution_size).into(),
             ret_fp_segment: (return_fp.segment_index, 0).into(),
             ret_pc_segment: (return_pc.segment_index, 0).into(),
             builtin_segments,
             extra_segments,
+            simulated_builtins,
         };
 
         Ok(CairoPie {

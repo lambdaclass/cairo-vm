@@ -147,6 +147,8 @@ pub struct CairoPieMetadata {
     #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
     pub builtin_segments: HashMap<BuiltinName, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
+    #[serde(default)]
+    pub simulated_builtins: Vec<BuiltinName>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -175,12 +177,11 @@ impl CairoPieMetadata {
         if self.program.data.len() != self.program_segment.size {
             return Err(CairoPieValidationError::ProgramLenVsSegmentSizeMismatch);
         }
-        if self.builtin_segments.len() != self.program.builtins.len()
-            || !self
-                .program
-                .builtins
-                .iter()
-                .all(|b| self.builtin_segments.contains_key(b))
+        if self.builtin_segments.len() + self.simulated_builtins.len()
+            != self.program.builtins.len()
+            || !self.program.builtins.iter().all(|b| {
+                self.builtin_segments.contains_key(b) || self.simulated_builtins.contains(b)
+            })
         {
             return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
         }
@@ -200,23 +201,32 @@ impl CairoPieMetadata {
         if !self.execution_segment.index.is_one() {
             return Err(CairoPieValidationError::InvalidExecutionSegmentIndex);
         }
-        for (i, builtin_name) in self.program.builtins.iter().enumerate() {
-            // We can safely index as run_validity_checks already ensures that the keys match
-            if self.builtin_segments[builtin_name].index != 2 + i as isize {
+        let mut non_simulated_index = 0;
+        for builtin_name in self.program.builtins.iter() {
+            // We can safely index as run_validity_checks already ensures that the keys match,
+            // to either a builtin_segments key or a simulated_builtins key.
+            // If the builtin is simulated, skip processing without incrementing non_simulated_index.
+            if self.simulated_builtins.contains(builtin_name) {
+                continue;
+            }
+
+            if self.builtin_segments[builtin_name].index != 2 + non_simulated_index as isize {
                 return Err(CairoPieValidationError::InvalidBuiltinSegmentIndex(
                     *builtin_name,
                 ));
             }
+            non_simulated_index += 1;
         }
-        let n_builtins = self.program.builtins.len() as isize;
-        if self.ret_fp_segment.index != n_builtins + 2 {
+        let n_builtin_segments =
+            (self.program.builtins.len() - self.simulated_builtins.len()) as isize;
+        if self.ret_fp_segment.index != n_builtin_segments + 2 {
             return Err(CairoPieValidationError::InvalidRetFpSegmentIndex);
         }
-        if self.ret_pc_segment.index != n_builtins + 3 {
+        if self.ret_pc_segment.index != n_builtin_segments + 3 {
             return Err(CairoPieValidationError::InvalidRetPcSegmentIndex);
         }
         for (i, segment) in self.extra_segments.iter().enumerate() {
-            if segment.index != 4 + n_builtins + i as isize {
+            if segment.index != 4 + n_builtin_segments + i as isize {
                 return Err(CairoPieValidationError::InvalidExtraSegmentIndex);
             }
         }
@@ -230,11 +240,13 @@ impl CairoPie {
         self.metadata.run_validity_checks()?;
         self.run_memory_validity_checks()?;
         if self.execution_resources.builtin_instance_counter.len()
+            + self.metadata.simulated_builtins.len()
             != self.metadata.program.builtins.len()
             || !self.metadata.program.builtins.iter().all(|b| {
                 self.execution_resources
                     .builtin_instance_counter
                     .contains_key(b)
+                    || self.metadata.simulated_builtins.contains(b)
             })
         {
             return Err(CairoPieValidationError::BuiltinListVsSegmentsMismatch);
