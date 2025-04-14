@@ -14,6 +14,7 @@ pub struct OutputBuiltinState {
     pub base: usize,
     pub pages: Pages,
     pub attributes: Attributes,
+    pub base_offset: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,7 @@ pub struct OutputBuiltinRunner {
     pub(crate) attributes: Attributes,
     pub(crate) stop_ptr: Option<usize>,
     pub(crate) included: bool,
+    pub base_offset: usize,
 }
 
 impl OutputBuiltinRunner {
@@ -33,15 +35,17 @@ impl OutputBuiltinRunner {
             attributes: HashMap::default(),
             stop_ptr: None,
             included,
+            base_offset: 0,
         }
     }
 
-    pub fn new_state(&mut self, base: usize, included: bool) {
+    pub fn new_state(&mut self, base: usize, included: bool, base_offset: usize) {
         self.base = base;
         self.pages = HashMap::default();
         self.attributes = HashMap::default();
         self.stop_ptr = None;
         self.included = included;
+        self.base_offset = base_offset;
     }
 
     pub fn initialize_segments(&mut self, segments: &mut MemorySegmentManager) {
@@ -145,6 +149,7 @@ impl OutputBuiltinRunner {
         self.base = new_state.base;
         self.pages = new_state.pages;
         self.attributes = new_state.attributes;
+        self.base_offset = new_state.base_offset;
     }
 
     pub fn get_state(&mut self) -> OutputBuiltinState {
@@ -152,6 +157,7 @@ impl OutputBuiltinRunner {
             base: self.base,
             pages: self.pages.clone(),
             attributes: self.attributes.clone(),
+            base_offset: self.base_offset,
         }
     }
 
@@ -168,7 +174,7 @@ impl OutputBuiltinRunner {
         self.pages.insert(
             page_id,
             PublicMemoryPage {
-                start: page_start.offset,
+                start: page_start.offset - self.base_offset,
                 size: page_size,
             },
         );
