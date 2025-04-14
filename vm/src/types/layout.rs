@@ -169,6 +169,30 @@ impl CairoLayout {
             builtins: BuiltinsInstanceDef::dynamic(params),
         }
     }
+
+    pub(crate) fn perpetual_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::perpetual,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::perpetual(),
+            public_memory_fraction: 4,
+            diluted_pool_instance_def: None,
+        }
+    }
+
+    pub(crate) fn dex_with_bitwise_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::dex_with_bitwise,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::dex_with_bitwise(),
+            public_memory_fraction: 4,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
+        }
+    }
 }
 
 #[cfg(feature = "test_utils")]

@@ -191,6 +191,8 @@ impl CairoRunner {
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
+            LayoutName::perpetual => CairoLayout::perpetual_instance(),
+            LayoutName::dex_with_bitwise => CairoLayout::dex_with_bitwise_instance(),
             LayoutName::dynamic => {
                 let params =
                     dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
