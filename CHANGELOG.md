@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Optimize bigint3_split function with early overflow check [#2062](https://github.com/lambdaclass/cairo-vm/pull/2062)
+
 * refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
 
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
