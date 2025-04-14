@@ -126,11 +126,11 @@ mod tests {
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
-        
+
         let max_value = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
         let over_max_value = &*BASE * &*BASE * &*BASE;
         let way_over_max_value = &*BASE * &*BASE * &*BASE * &*BASE;
-        
+
         let array_max = bigint3_split(&max_value);
         let array_over_max = bigint3_split(&over_max_value);
         let array_way_over_max = bigint3_split(&way_over_max_value);
@@ -163,21 +163,21 @@ mod tests {
                     .expect("Couldn't convert to BigUint")
             ]
         );
-        
+
         assert_matches!(
             array_max,
             Ok(x) if x == [
                 BASE_MINUS_ONE.clone(),
-                BASE_MINUS_ONE.clone(), 
+                BASE_MINUS_ONE.clone(),
                 BASE_MINUS_ONE.clone()
             ]
         );
-        
+
         assert_matches!(
             array_over_max,
             Err(HintError::SecpSplitOutOfRange(bx)) if *bx == over_max_value
         );
-        
+
         assert_matches!(
             array_way_over_max,
             Err(HintError::SecpSplitOutOfRange(bx)) if *bx == way_over_max_value
