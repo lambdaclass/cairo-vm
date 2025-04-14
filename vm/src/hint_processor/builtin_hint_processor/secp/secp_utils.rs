@@ -79,6 +79,11 @@ d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
 pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
+    let max_allowed = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
+    if integer > &max_allowed {
+        return Err(HintError::SecpSplitOutOfRange(Box::new(integer.clone())));
+    }
+
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
@@ -121,14 +126,14 @@ mod tests {
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
-        //TODO, Check SecpSplitutOfRange limit
-        let array_4 = bigint3_split(
-            &bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            )
-            .to_biguint()
-            .expect("Couldn't convert to BigUint"),
-        );
+
+        let max_value = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
+        let over_max_value = &*BASE * &*BASE * &*BASE;
+        let way_over_max_value = &*BASE * &*BASE * &*BASE * &*BASE;
+
+        let array_max = bigint3_split(&max_value);
+        let array_over_max = bigint3_split(&over_max_value);
+        let array_way_over_max = bigint3_split(&way_over_max_value);
 
         assert_matches!(
             array_1,
@@ -158,14 +163,24 @@ mod tests {
                     .expect("Couldn't convert to BigUint")
             ]
         );
-        assert_matches!(
-            array_4,
-            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == bigint_str!(
-                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-                )
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint")
 
+        assert_matches!(
+            array_max,
+            Ok(x) if x == [
+                BASE_MINUS_ONE.clone(),
+                BASE_MINUS_ONE.clone(),
+                BASE_MINUS_ONE.clone()
+            ]
+        );
+
+        assert_matches!(
+            array_over_max,
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == over_max_value
+        );
+
+        assert_matches!(
+            array_way_over_max,
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == way_over_max_value
         );
     }
 }
