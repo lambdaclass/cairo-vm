@@ -238,7 +238,7 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<'b, MaybeRelocatable>>
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<'b, MaybeRelocatable>>
     where
         Relocatable: TryFrom<&'a K>,
     {
@@ -445,6 +445,18 @@ impl Memory {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
             _ => Err(MemoryError::ExpectedRelocatable(Box::new(key))),
+        }
+    }
+
+    /// Gets the value from memory address as a MaybeRelocatable value.
+    /// Returns an Error if the value at the memory address is missing or not a MaybeRelocatable.
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
+            Cow::Borrowed(maybe_rel) => Ok(maybe_rel.clone()),
+            Cow::Owned(maybe_rel) => Ok(maybe_rel),
         }
     }
 
