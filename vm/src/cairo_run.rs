@@ -8,7 +8,11 @@ use crate::{
         errors::{
             cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
         },
-        runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
+        runners::{
+            builtin_runner::{EcOpBuiltinRunner, KeccakBuiltinRunner, SignatureBuiltinRunner},
+            cairo_pie::CairoPie,
+            cairo_runner::CairoRunner,
+        },
         security::verify_secure_runner,
     },
 };
@@ -178,6 +182,31 @@ pub fn cairo_run_pie(
     let end = cairo_runner.initialize(allow_missing_builtins)?;
     cairo_runner.vm.finalize_segments_by_cairo_pie(pie);
     // Load builtin additional data
+    for builtin_name in pie.metadata.simulated_builtins.iter() {
+        match builtin_name {
+            BuiltinName::ecdsa => {
+                cairo_runner
+                    .vm
+                    .simulated_builtin_runners
+                    .push(SignatureBuiltinRunner::new(Some(1), false).into());
+            }
+            BuiltinName::keccak => {
+                cairo_runner
+                    .vm
+                    .simulated_builtin_runners
+                    .push(KeccakBuiltinRunner::new(Some(1), false).into());
+            }
+            BuiltinName::ec_op => {
+                cairo_runner
+                    .vm
+                    .simulated_builtin_runners
+                    .push(EcOpBuiltinRunner::new(Some(1), false).into());
+            }
+            _ => {
+                panic!("Unsupported simulated builtin in Cairo PIE");
+            }
+        }
+    }
     for (name, data) in pie.additional_data.0.iter() {
         // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
         if matches!(name, BuiltinName::pedersen) && secure_run {
