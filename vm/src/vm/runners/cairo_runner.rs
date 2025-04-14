@@ -1405,18 +1405,36 @@ impl CairoRunner {
             }
         }
 
+        let stripped_program = self
+            .get_program()
+            .get_stripped_program()
+            .map_err(|_| RunnerError::StrippedProgramNoMain)?;
+        let mut simulated_builtins = self
+            .vm
+            .simulated_builtin_runners
+            .iter()
+            .map(|builtin| builtin.name())
+            .collect::<Vec<_>>();
+        // Sort the simulated builtins by their order in the program, so their order is aligned
+        // when used (for example, in the simple bootloader when setting up the pre execution
+        // builtin pointers of a CairoPIE subtask).
+        simulated_builtins.sort_by_key(|builtin| {
+            stripped_program
+                .builtins
+                .iter()
+                .position(|b| b == builtin)
+                .unwrap()
+        });
         let execution_size = (self.vm.get_ap() - execution_base)?;
         let metadata = CairoPieMetadata {
-            program: self
-                .get_program()
-                .get_stripped_program()
-                .map_err(|_| RunnerError::StrippedProgramNoMain)?,
+            program: stripped_program,
             program_segment: (program_base.segment_index, self.program.data_len()).into(),
             execution_segment: (execution_base.segment_index, execution_size).into(),
             ret_fp_segment: (return_fp.segment_index, 0).into(),
             ret_pc_segment: (return_pc.segment_index, 0).into(),
             builtin_segments,
             extra_segments,
+            simulated_builtins,
         };
 
         Ok(CairoPie {
@@ -1542,6 +1560,35 @@ impl CairoRunner {
             public_memory_offsets,
             builtins_segments,
         })
+    }
+
+    /// Loads builtin runners for simulated builtins in the pie's metadata, so the resulted pie is
+    /// compatible with the one received.
+    pub fn load_simulated_builtin_runners(
+        &mut self,
+        simulated_builtins: &[BuiltinName],
+    ) -> Result<(), CairoRunError> {
+        for builtin_name in simulated_builtins.iter() {
+            match builtin_name {
+                BuiltinName::ecdsa => {
+                    self.vm
+                        .simulated_builtin_runners
+                        .push(SignatureBuiltinRunner::new(Some(1), false).into());
+                }
+                BuiltinName::keccak => {
+                    self.vm
+                        .simulated_builtin_runners
+                        .push(KeccakBuiltinRunner::new(Some(1), false).into());
+                }
+                BuiltinName::ec_op => {
+                    self.vm
+                        .simulated_builtin_runners
+                        .push(EcOpBuiltinRunner::new(Some(1), false).into());
+                }
+                _ => return Err(CairoRunError::UnsupportedSimulatedBuiltin(*builtin_name)),
+            }
+        }
+        Ok(())
     }
 }
 
@@ -5728,5 +5775,50 @@ mod tests {
             prover_input_info.public_memory_offsets,
             deserialized_prover_input_info.public_memory_offsets
         );
+    }
+
+    #[test]
+    fn test_load_simulated_builtin_runners_success() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner =
+            CairoRunner::new(&program, LayoutName::plain, None, false, false, false).unwrap();
+        runner.vm.simulated_builtin_runners.clear();
+
+        // Pass a slice with all supported simulated builtins.
+        runner
+            .load_simulated_builtin_runners(&[
+                BuiltinName::ecdsa,
+                BuiltinName::keccak,
+                BuiltinName::ec_op,
+            ])
+            .unwrap();
+
+        assert_eq!(runner.vm.simulated_builtin_runners.len(), 3);
+    }
+
+    #[test]
+    fn test_load_simulated_builtin_runners_failure() {
+        // Use a valid Cairo program to create a runner.
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner =
+            CairoRunner::new(&program, LayoutName::plain, None, false, false, false).unwrap();
+        runner.vm.simulated_builtin_runners.clear();
+
+        // Test with an unsupported simulated builtin.
+        let result = runner.load_simulated_builtin_runners(&[BuiltinName::pedersen]);
+        match result {
+            Err(CairoRunError::UnsupportedSimulatedBuiltin(builtin)) => {
+                assert_eq!(builtin, BuiltinName::pedersen);
+            }
+            _ => panic!("Expected unsupported simulated builtin error."),
+        }
     }
 }
