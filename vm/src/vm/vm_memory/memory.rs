@@ -455,6 +455,7 @@ impl Memory {
             .get(&key)
             .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
         {
+            // Note: the `Borrowed` variant will never occur.
             Cow::Borrowed(maybe_rel) => Ok(maybe_rel.clone()),
             Cow::Owned(maybe_rel) => Ok(maybe_rel),
         }
