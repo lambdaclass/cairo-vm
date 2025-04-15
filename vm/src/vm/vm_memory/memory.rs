@@ -1209,6 +1209,29 @@ mod memory_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_maybe_relocatable_valid_relocatable() {
+        let memory = memory![((0, 0), (1, 0))];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            Relocatable::from((1, 0)).into()
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_valid_integer() {
+        let memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            10.into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_memory() {
         let mem: Memory = Default::default();
         assert_eq!(mem.data.len(), 0);
