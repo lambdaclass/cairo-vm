@@ -3,6 +3,13 @@ use crate::{
     types::{builtin_name::BuiltinName, layout_name::LayoutName},
 };
 
+#[cfg(feature = "std")]
+#[cfg(feature = "mod_builtin")]
+use crate::{
+    cairo_run,
+    vm::runners::{cairo_pie::CairoPie, cairo_runner::RunResources},
+};
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
@@ -281,4 +288,27 @@ fn run_pie_validity_checks_integration() {
     // Obtain the pie
     let cairo_pie = runner.get_cairo_pie().expect("Failed to get pie");
     assert!(cairo_pie.run_validity_checks().is_ok())
+}
+
+#[test]
+#[cfg(feature = "std")]
+#[cfg(feature = "mod_builtin")]
+fn get_cairo_pie_with_simulated_builtins() {
+    // Load a Cairo PIE with simulated builtins (this PIE is of a run of the simple_bootloader
+    // program, with a subtask that uses all available builtins, simulating the ones not present in
+    // the `all_cairo_stwo` layout).
+    let pie =
+        CairoPie::from_bytes(include_bytes!("cairo_pie_with_simulated_builtins.zip")).unwrap();
+    let mut hint_processor = BuiltinHintProcessor::new(
+        Default::default(),
+        RunResources::new(pie.execution_resources.n_steps),
+    );
+    let cairo_run_config = CairoRunConfig {
+        layout: LayoutName::all_cairo_stwo,
+        secure_run: Some(true),
+        allow_missing_builtins: Some(true),
+        ..Default::default()
+    };
+    let result = cairo_run::cairo_run_pie(&pie, &cairo_run_config, &mut hint_processor);
+    assert!(result.unwrap().get_cairo_pie().is_ok());
 }

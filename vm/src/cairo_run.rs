@@ -177,6 +177,8 @@ pub fn cairo_run_pie(
 
     let end = cairo_runner.initialize(allow_missing_builtins)?;
     cairo_runner.vm.finalize_segments_by_cairo_pie(pie);
+    // Load simulated builtin runners according to the pie's metadata.
+    cairo_runner.load_simulated_builtin_runners(&pie.metadata.simulated_builtins)?;
     // Load builtin additional data
     for (name, data) in pie.additional_data.0.iter() {
         // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
