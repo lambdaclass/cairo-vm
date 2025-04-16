@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
+
 * dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
 
 * refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
