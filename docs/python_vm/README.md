@@ -365,7 +365,7 @@ Computes the size of each segment (via `compute_effective_sizes()`, which deduce
 
 *Overall this function is in charge of relocating every memory address in the vm's memory, trace entry and addresses used by builtins*
 
-First calls `relocate_segments`, which returns a dictionary mapping the segment indexes to to the cummulative sum of each segment size (taking the base as 1 (first address constant)) and stores it as segment_offsets.
+First calls `relocate_segments`, which returns a dictionary mapping the segment indexes to the cummulative sum of each segment size (taking the base as 1 (first address constant)) and stores it as segment_offsets.
 Then creates an initializer, a map between maybe relocatable values which contains the relocation (using `relocate_value`) of each address and value in memory.
 This initializer is then used to create a MemoryDict, which is stored as the CairoRunner's `relocated_memory`.
 Then the trace is relocated by calling `relocate_trace` on the vm's trace, the segment offsets, and the program's prime. This returns a new trace entry with the relocated fp, pc, and ap of each trace entry.
