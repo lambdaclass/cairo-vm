@@ -654,6 +654,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.ap_tracking,
                         &hint.flow_tracking_data.reference_ids,
                         references,
+                        &hint.accessible_scopes,
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
