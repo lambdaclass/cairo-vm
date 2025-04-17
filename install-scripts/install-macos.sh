@@ -9,7 +9,12 @@ source "$HOME/.cargo/env"
 rustc --version
 
 # Install pyenv
-brew install pyenv gmp
+brew install pyenv
+
+# install gmp if it wasn't intalled before
+if ! type foobar &> /dev/null; then
+    brew install gmp
+fi
 
 # Make sure pyenv has been installed correctly
 pyenv -v
