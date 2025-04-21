@@ -1263,6 +1263,8 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         _reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &[HintReference],
+        // List of accessible scopes in the hint
+        _accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
         .ok_or_else(|| VirtualMachineError::CompileHintFail(
