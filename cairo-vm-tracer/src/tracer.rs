@@ -56,8 +56,8 @@ pub async fn run_tracer(
     Ok(())
 }
 
-async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
-    let data_response = DataReponse {
+async fn get_data(tracer_data: State<TracerData>) -> Json<DataResponse> {
+    let data_response = DataResponse {
         code: tracer_data
             .input_files
             .iter()
@@ -125,7 +125,7 @@ fn field_element_repr(val: &BigInt, prime: &BigInt) -> String {
 }
 
 #[derive(Serialize)]
-struct DataReponse {
+struct DataResponse {
     code: HashMap<String, String>,
     trace: Vec<RelocatedTraceEntry>,
     memory: HashMap<usize, String>,
