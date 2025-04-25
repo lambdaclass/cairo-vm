@@ -16,7 +16,7 @@ jobs:
 
     - name: Cache Inputs
       id: cache-inputs
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
       # Path where the inputs for the fuzzer are stored
         path: fuzzer/hfuzz_workspace/fuzz_json/input
