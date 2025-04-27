@@ -1551,7 +1551,7 @@ impl CairoRunner {
 //* ----------------------
 /// This struct contains all relevant data for the prover.
 /// All addresses are relocatable.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct ProverInputInfo {
     /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
     pub relocatable_trace: Vec<TraceEntry>,
@@ -1567,13 +1567,19 @@ impl ProverInputInfo {
     pub fn serialize_json(&self) -> Result<String, ProverInputInfoError> {
         serde_json::to_string_pretty(&self).map_err(ProverInputInfoError::from)
     }
+    pub fn serialize(&self) -> Result<Vec<u8>, ProverInputInfoError> {
+        bincode::serde::encode_to_vec(self, bincode::config::standard())
+            .map_err(ProverInputInfoError::from)
+    }
 }
 
 // TODO(Stav): add TraceNotEnabled error.
 #[derive(Debug, Error)]
 pub enum ProverInputInfoError {
     #[error("Failed to (de)serialize data")]
-    Serde(#[from] serde_json::Error),
+    SerdeBincode(#[from] bincode::error::EncodeError),
+    #[error("Failed to (de)serialize data using postcard")]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -5708,25 +5714,29 @@ mod tests {
         };
         let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
         let prover_input_info = runner.get_prover_input_info().unwrap();
-        let serialized_prover_input_info = prover_input_info.serialize_json().unwrap();
-        let deserialized_prover_input_info: ProverInputInfo =
-            serde_json::from_str(&serialized_prover_input_info).unwrap();
-        // Check that the deserialized prover input info is equal to the original one.
-        assert_eq!(
-            prover_input_info.relocatable_memory,
-            deserialized_prover_input_info.relocatable_memory
+
+        // Using bincode.
+        let serialized_prover_input_info = prover_input_info.serialize().unwrap();
+        let (deserialized_prover_input_info, _): (ProverInputInfo, usize) =
+            bincode::serde::decode_from_slice(
+                &serialized_prover_input_info,
+                bincode::config::standard(),
+            )
+            .unwrap();
+
+        assert!(
+            prover_input_info == deserialized_prover_input_info,
+            "Deserialized ProverInputInfo with bincode does not match the original one."
         );
-        assert_eq!(
-            prover_input_info.relocatable_trace,
-            deserialized_prover_input_info.relocatable_trace
-        );
-        assert_eq!(
-            prover_input_info.builtins_segments,
-            deserialized_prover_input_info.builtins_segments
-        );
-        assert_eq!(
-            prover_input_info.public_memory_offsets,
-            deserialized_prover_input_info.public_memory_offsets
+
+        // Using json.
+        let serialized_prover_input_info_json = prover_input_info.serialize_json().unwrap();
+        let deserialized_prover_input_info_json: ProverInputInfo =
+            serde_json::from_str(&serialized_prover_input_info_json).unwrap();
+
+        assert!(
+            prover_input_info == deserialized_prover_input_info_json,
+            "Deserialized ProverInputInfo with json does not match the original one."
         );
     }
 }
