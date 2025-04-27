@@ -69,9 +69,10 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
-    #[arg(long = "prover_input_info",
-    requires_all = ["proof_mode"])]
+    #[arg(long = "prover_input_info", requires_all = ["proof_mode"])]
     prover_input_info: Option<String>,
+    #[arg(long = "prover_input_info_json", requires_all = ["proof_mode"])]
+    prover_input_info_json: Option<String>,
     #[arg(long = "merge_extra_segments")]
     merge_extra_segments: bool,
     #[arg(long = "allow_missing_builtins")]
@@ -175,7 +176,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     let trace_enabled = args.trace_file.is_some()
         || args.air_public_input.is_some()
-        || args.prover_input_info.is_some();
+        || args.prover_input_info.is_some()
+        || args.prover_input_info_json.is_some();
 
     let cairo_layout_params = match args.cairo_layout_params_file {
         Some(file) => Some(CairoLayoutParams::from_file(&file)?),
@@ -191,7 +193,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        disable_trace_padding: args.prover_input_info.is_some(),
+        disable_trace_padding: args.prover_input_info.is_some()
+            || args.prover_input_info_json.is_some(),
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -242,13 +245,22 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         memory_writer.flush()?;
     }
 
-    if let Some(prover_input_info_path) = args.prover_input_info {
+    if let Some(path) = args.prover_input_info {
+        let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
+            eprintln!("{error}");
+            CairoRunError::Runner(error)
+        })?;
+        let bytes = prover_input_info.serialize()?;
+        std::fs::write(path, bytes)?;
+    }
+
+    if let Some(path) = args.prover_input_info_json {
         let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
             eprintln!("{error}");
             CairoRunError::Runner(error)
         })?;
         let json = prover_input_info.serialize_json()?;
-        std::fs::write(prover_input_info_path, json)?;
+        std::fs::write(path, json)?;
     }
 
     if let Some(file_path) = args.air_public_input {
