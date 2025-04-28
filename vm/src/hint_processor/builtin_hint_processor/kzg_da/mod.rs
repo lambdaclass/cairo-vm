@@ -58,11 +58,11 @@ pub fn write_div_mod_segment(
     let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
     let res_reloc = get_relocatable_from_var_name("res", vm, ids_data, ap_tracking)?;
 
-    let q_arg: Vec<MaybeRelocatable> = bls_split(q)
+    let q_arg: Vec<MaybeRelocatable> = bls_split(q)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
-    let res_arg: Vec<MaybeRelocatable> = bls_split(r)
+    let res_arg: Vec<MaybeRelocatable> = bls_split(r)?
         .into_iter()
         .map(|ref n| Felt252::from(n).into())
         .collect::<Vec<MaybeRelocatable>>();
@@ -72,7 +72,7 @@ pub fn write_div_mod_segment(
     Ok(())
 }
 
-fn bls_split(mut num: BigInt) -> Vec<BigInt> {
+fn bls_split(mut num: BigInt) -> Result<Vec<BigInt>, HintError> {
     let mut canonical = Vec::new();
     for _ in 0..2 {
         let (new_num, residue) = num.div_rem(&BLS_BASE);
@@ -80,10 +80,12 @@ fn bls_split(mut num: BigInt) -> Vec<BigInt> {
         canonical.push(residue);
     }
 
-    assert!(num.abs() < BigInt::from_u128(1 << 127).unwrap());
+    if num.abs() >= BigInt::from(1u128 << 127) {
+        return Err(HintError::BlsSplitError(Box::new(num)));
+    }
 
     canonical.push(num);
-    canonical
+    Ok(canonical)
 }
 
 fn as_int(value: BigInt, prime: &BigUint) -> BigInt {
