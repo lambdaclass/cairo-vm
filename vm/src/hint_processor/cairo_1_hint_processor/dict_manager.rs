@@ -57,7 +57,7 @@ impl DictManagerExecScope {
 
     /// Allocates a new segment for a new dictionary and return the start of the segment.
     pub fn new_default_dict(&mut self, vm: &mut VirtualMachine) -> Result<Relocatable, HintError> {
-        let dict_segment = if self.use_temporary_segments {
+        let dict_segment = if self.use_temporary_segments && !self.trackers.is_empty() {
             vm.add_temporary_segment()
         } else {
             vm.add_memory_segment()
@@ -123,9 +123,28 @@ impl DictManagerExecScope {
     /// Relocates all dictionaries into a single segment
     /// Does nothing if use_temporary_segments is set to false
     pub fn relocate_all_dictionaries(&mut self, vm: &mut VirtualMachine) -> Result<(), HintError> {
-        if self.use_temporary_segments {
-            let mut prev_end = vm.add_memory_segment();
-            for tracker in &self.trackers {
+        // We expect the first segment to be a normal one, which doesn't require relocation. So
+        // there is nothing to do unless there are at least two segments.
+        if self.use_temporary_segments && !self.trackers.is_empty() {
+            let first_segment = self.trackers.first().ok_or(HintError::CustomHint(
+                "Trackers must have a first element".into(),
+            ))?;
+            if first_segment.start.segment_index < 0 {
+                return Err(HintError::CustomHint(
+                    "First dict segment should not be temporary"
+                        .to_string()
+                        .into_boxed_str(),
+                ));
+            }
+            let mut prev_end = first_segment.end.unwrap_or_default();
+            for tracker in &self.trackers[1..] {
+                if tracker.start.segment_index >= 0 {
+                    return Err(HintError::CustomHint(
+                        "Dict segment should be temporary"
+                            .to_string()
+                            .into_boxed_str(),
+                    ));
+                }
                 #[cfg(feature = "extensive_hints")]
                 {
                     vm.add_relocation_rule(
@@ -218,5 +237,79 @@ impl DictSquashExecScope {
     /// Returns and removes the current access index.
     pub fn pop_current_access_index(&mut self) -> Option<Felt252> {
         self.current_access_indices()?.pop()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::stdlib::collections::HashMap;
+    use crate::types::relocatable::Relocatable;
+    use crate::vm::vm_core::VirtualMachine;
+
+    /// Test for relocate_all_dictionaries error cases
+    #[test]
+    fn test_relocate_all_dictionaries_errors() {
+        let mut vm = VirtualMachine::new(false, false);
+
+        // Test 1: First segment is a temporary segment (should error)
+        {
+            let mut dict_manager = DictManagerExecScope::new(true);
+            let first_dict_start = Relocatable::from((-1, 0)); // Temporary segment
+
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: first_dict_start,
+                end: Some(Relocatable::from((-1, 10))),
+            });
+
+            let result = dict_manager.relocate_all_dictionaries(&mut vm);
+            assert!(matches!(
+                result,
+                Err(HintError::CustomHint(_)) if result.unwrap_err().to_string().contains("First dict segment should not be temporary")
+            ));
+        }
+
+        // Test 2: Non-temporary dictionary segment
+        {
+            let mut dict_manager = DictManagerExecScope::new(true);
+            let first_dict_start = Relocatable::from((0, 0)); // Non-temporary segment
+            let second_dict_start = Relocatable::from((1, 0)); // Non-temporary segment
+
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: first_dict_start,
+                end: Some(Relocatable::from((0, 10))),
+            });
+            dict_manager.trackers.push(DictTrackerExecScope {
+                data: HashMap::default(),
+                start: second_dict_start,
+                end: Some(Relocatable::from((1, 10))),
+            });
+
+            let result = dict_manager.relocate_all_dictionaries(&mut vm);
+            assert!(matches!(
+                result,
+                Err(HintError::CustomHint(_)) if result.unwrap_err().to_string().contains("Dict segment should be temporary")
+            ));
+        }
+    }
+
+    /// Test for relocate_all_dictionaries when no temporary segments
+    #[test]
+    fn test_relocate_all_dictionaries_no_temporary_segments() {
+        let mut vm = VirtualMachine::new(false, false);
+        let mut dict_manager = DictManagerExecScope::new(false);
+
+        // Adding some trackers should not cause any errors
+        dict_manager.trackers.push(DictTrackerExecScope {
+            data: HashMap::default(),
+            start: Relocatable::from((0, 0)),
+            end: Some(Relocatable::from((0, 10))),
+        });
+
+        // Should not error and essentially do nothing
+        let result = dict_manager.relocate_all_dictionaries(&mut vm);
+        assert!(result.is_ok());
     }
 }

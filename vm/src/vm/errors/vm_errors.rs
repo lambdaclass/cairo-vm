@@ -4,7 +4,7 @@
 use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::Felt252;
 use crate::{
@@ -140,6 +140,16 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Initial FP should have been initialized")]
+    MissingInitialFp,
+    #[error("Return FP address should be in memory: {0}")]
+    MissingReturnFp(Box<Relocatable>),
+    #[error("Return FP { } should equal expected final FP { }", (*.0).0, (*.0).1)]
+    MismatchReturnFP(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP { } offset should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPOffset(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP felt { } should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPFelt(Box<(Felt252, Relocatable)>),
     #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
     Blake2sInvalidOperand(u8, u8),
     #[error("Blake2s opcode invalid flags {0}")]

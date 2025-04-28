@@ -1,4 +1,5 @@
 use crate::{tests::*, types::layout_name::LayoutName};
+
 #[cfg(feature = "mod_builtin")]
 use crate::{
     utils::test_utils::Program,
@@ -1151,6 +1152,14 @@ fn cairo_run_mod_builtin_failure() {
         include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_failure.json");
     let error_msg = "mul_mod_builtin: Expected a * b == c (mod p). Got: instance=2, batch=0, p=9, a=2, b=2, c=2.";
     run_program_with_custom_mod_builtin_params(program_data, false, 1, 3, Some(error_msg));
+}
+
+#[test]
+#[cfg(feature = "mod_builtin")]
+fn cairo_run_mod_builtin_no_solution() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/mod_builtin_feature/mod_builtin_no_solution.json");
+    run_program_with_error(program_data, "Could not fill the values table");
 }
 
 #[test]

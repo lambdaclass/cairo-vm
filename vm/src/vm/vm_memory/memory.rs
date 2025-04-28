@@ -158,6 +158,11 @@ impl AddressSet {
 
 pub struct Memory {
     pub(crate) data: Vec<Vec<MemoryCell>>,
+    /// Temporary segments are used when it's necessary to write data, but we
+    /// don't know yet where it will be located. These segments will eventually
+    /// be relocated to the main memory according to the `relocation_rules`. For
+    /// example, dictionaries are required to be contiguous, so each is stored in a
+    /// temporary segment and eventually relocated to a single segment.
     pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
@@ -443,6 +448,19 @@ impl Memory {
         }
     }
 
+    /// Gets the value from memory address as a MaybeRelocatable value.
+    /// Returns an Error if the value at the memory address is missing or not a MaybeRelocatable.
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
+            // Note: the `Borrowed` variant will never occur.
+            Cow::Borrowed(maybe_rel) => Ok(maybe_rel.clone()),
+            Cow::Owned(maybe_rel) => Ok(maybe_rel),
+        }
+    }
+
     /// Inserts a value into memory
     /// Returns an error if the memory cell asignment is invalid
     pub fn insert_value<T: Into<MaybeRelocatable>>(
@@ -641,6 +659,23 @@ impl Memory {
         }
 
         Ok(values)
+    }
+
+    fn get_cell(&self, addr: Relocatable) -> Option<&MemoryCell> {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let data = if addr.segment_index < 0 {
+            &self.temp_data
+        } else {
+            &self.data
+        };
+        data.get(i)?.get(j)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        Ok(self
+            .get_cell(*addr)
+            .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
+            .is_accessed())
     }
 
     pub fn mark_as_accessed(&mut self, addr: Relocatable) {
@@ -1169,6 +1204,29 @@ mod memory_tests {
             Err(MemoryError::Math(MathError::Felt252ToU32Conversion(
                 bx
             ))) if *bx == Felt252::from(1_u64 << 32)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_maybe_relocatable_valid_relocatable() {
+        let memory = memory![((0, 0), (1, 0))];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            Relocatable::from((1, 0)).into()
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_valid_integer() {
+        let memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            10.into()
         );
     }
 
