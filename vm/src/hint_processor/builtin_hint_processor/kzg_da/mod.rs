@@ -1,25 +1,23 @@
 use core::str::FromStr;
 
-use super::{
-    hint_utils::get_relocatable_from_var_name,
-    secp::{bigint_utils::BigInt3, secp_utils::SECP_P},
-};
+use super::{hint_utils::get_relocatable_from_var_name, secp::bigint_utils::BigInt3};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
     types::relocatable::MaybeRelocatable,
+    utils::CAIRO_PRIME,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
     Felt252,
 };
 use crate::{
-    stdlib::{collections::HashMap, ops::Deref, prelude::*},
+    stdlib::{collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
 };
 use lazy_static::lazy_static;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::FromPrimitive;
-use num_traits::Zero;
+use num_traits::Signed;
 
 lazy_static! {
     static ref BLS_BASE: BigInt = BigInt::from_u64(2).unwrap().pow(86);
@@ -50,11 +48,11 @@ pub fn write_div_mod_segment(
 ) -> Result<(), HintError> {
     let a = bls_pack(
         &BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?,
-        &SECP_P,
+        &CAIRO_PRIME,
     );
     let b = bls_pack(
         &BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?,
-        &SECP_P,
+        &CAIRO_PRIME,
     );
     let (q, r) = (a * b).div_mod_floor(&BLS_PRIME);
     let q_reloc = get_relocatable_from_var_name("q", vm, ids_data, ap_tracking)?;
@@ -75,34 +73,33 @@ pub fn write_div_mod_segment(
 }
 
 fn bls_split(mut num: BigInt) -> Vec<BigInt> {
-    use num_traits::Signed;
-    let mut a = Vec::new();
+    let mut canonical = Vec::new();
     for _ in 0..2 {
-        let residue = &num % BLS_BASE.deref();
-        num /= BLS_BASE.deref();
-        a.push(residue);
+        let (new_num, residue) = num.div_rem(&BLS_BASE);
+        num = new_num;
+        canonical.push(residue);
     }
+
     assert!(num.abs() < BigInt::from_u128(1 << 127).unwrap());
-    a.push(num);
-    a
+
+    canonical.push(num);
+    canonical
 }
 
-fn as_int(value: BigInt, prime: &BigInt) -> BigInt {
-    let half_prime = prime / 2u32;
-    if value > half_prime {
-        value - prime
-    } else {
+fn as_int(value: BigInt, prime: &BigUint) -> BigInt {
+    let half_prime: BigInt = (prime / 2u32).into();
+    let prime: BigInt = prime.clone().into();
+    if value < half_prime {
         value
+    } else {
+        value - prime
     }
 }
 
-fn bls_pack(z: &BigInt3, prime: &BigInt) -> BigInt {
-    let limbs = &z.limbs;
-    limbs
+fn bls_pack(z: &BigInt3, prime: &BigUint) -> BigInt {
+    z.limbs
         .iter()
         .enumerate()
-        .fold(BigInt::zero(), |acc, (i, limb)| {
-            let limb_as_int = as_int(limb.to_bigint(), prime);
-            acc + limb_as_int * &BLS_BASE.pow(i as u32)
-        })
+        .map(|(i, limb)| as_int(limb.to_bigint(), prime) * &BLS_BASE.pow(i as u32))
+        .sum()
 }
