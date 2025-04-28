@@ -69,6 +69,19 @@ The cairo1-run cli supports the following optional arguments:
 
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
+* `--run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled Cairo 1 program or Sierra file. The name of the file will be the first argument received by the CLI. Can only be used if proof_mode is not enabled.
+
+  Example:
+  ```bash
+  # First, run a Cairo 1 program and generate a Cairo PIE file
+  cargo run ../cairo_programs/cairo-1-programs/fibonacci.cairo --layout all_cairo --cairo_pie_output fibonacci.pie
+  
+  # Then, run the program from the Cairo PIE file
+  cargo run fibonacci.pie --run_from_cairo_pie --layout all_cairo
+  ```
+
+  Note: Cairo PIE files cannot be run in proof_mode. When using the `--run_from_cairo_pie` flag, make sure to specify the same layout that was used to create the PIE file.
+
 * `--append_return_values`: Adds extra instructions to the program in order to append the return and input values to the output builtin's segment. This is the default behaviour for proof_mode. Only allows `Array<felt252>` as return and input value.
 
 ## Running circuits
