@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+
 * feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
 
 * feat(BREAKING): add support for accessible scopes in hint processor [#2042](https://github.com/lambdaclass/cairo-vm/pull/2042)
