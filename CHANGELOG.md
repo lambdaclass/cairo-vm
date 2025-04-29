@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* test: Enhanced tests for bigint3_split function to validate boundary conditions [#2062](https://github.com/lambdaclass/cairo-vm/pull/2062)
-
 * feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
 
 * feat(BREAKING): add support for accessible scopes in hint processor [#2042](https://github.com/lambdaclass/cairo-vm/pull/2042)
