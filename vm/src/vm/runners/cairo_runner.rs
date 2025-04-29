@@ -18,7 +18,7 @@ use crate::{
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    prover_input_info::ProverInputInfo,
+    prover_input_info::{ProverInputInfo, ProverInputInfoError},
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -1492,12 +1492,12 @@ impl CairoRunner {
 
     /// Collects relevant information for the prover from the runner, including the
     /// relocatable form of the trace, memory, public memory, and built-ins.
-    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, RunnerError> {
+    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, ProverInputInfoError> {
         let relocatable_trace = self
             .vm
             .trace
             .as_ref()
-            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?
+            .ok_or(ProverInputInfoError::TraceNotEnabled)?
             .clone();
 
         let relocatable_memory = self
