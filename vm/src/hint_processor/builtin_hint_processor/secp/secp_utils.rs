@@ -79,11 +79,6 @@ d0 + BASE * d1 + BASE**2 * d2,
 where BASE = 2**86.
 */
 pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUint; 3], HintError> {
-    let max_allowed = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
-    if integer > &max_allowed {
-        return Err(HintError::SecpSplitOutOfRange(Box::new(integer.clone())));
-    }
-
     let mut canonical_repr: [num_bigint::BigUint; 3] = Default::default();
     let mut num = integer.clone();
     for item in &mut canonical_repr {
