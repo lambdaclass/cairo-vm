@@ -202,7 +202,7 @@ The cairo-vm-cli supports the following optional arguments:
   cargo run fibonacci.pie --run_from_cairo_pie --layout all_cairo
   ```
 
-  Note: Cairo PIE files cannot be run in proof_mode. When using the `--run_from_cairo_pie` flag, the layout specified must be the same as the one used to create the PIE file, otherwise you may encounter compatibility issues.
+  Note: When using the `--run_from_cairo_pie` flag, the layout specified must be the same as the one used to create the PIE file, otherwise you may encounter compatibility issues.
 
 - `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
 
