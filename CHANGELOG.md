@@ -4,6 +4,14 @@
 
 * Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
 
+* feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
+
+* feat(BREAKING): add support for accessible scopes in hint processor [#2042](https://github.com/lambdaclass/cairo-vm/pull/2042)
+
+* dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
+
+* refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
+
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
 * chore: update cairo-lang dependencies to 2.12.0-dev.0 #[2040](https://github.com/lambdaclass/cairo-vm/pull/2040)

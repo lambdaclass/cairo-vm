@@ -128,6 +128,7 @@ pub(crate) struct IdentifierSerializer {
     pub members: Option<HashMap<String, Member>>,
     pub cairo_type: Option<String>,
     pub size: Option<usize>,
+    pub destination: Option<String>, // in case of alias
 }
 
 impl From<IdentifierSerializer> for Identifier {
@@ -140,6 +141,7 @@ impl From<IdentifierSerializer> for Identifier {
             members: identifier_serialer.members,
             cairo_type: identifier_serialer.cairo_type,
             size: identifier_serialer.size,
+            destination: identifier_serialer.destination,
         }
     }
 }
@@ -154,6 +156,7 @@ impl From<Identifier> for IdentifierSerializer {
             members: identifier_serialer.members,
             cairo_type: identifier_serialer.cairo_type,
             size: identifier_serialer.size,
+            destination: identifier_serialer.destination,
         }
     }
 }

@@ -132,6 +132,7 @@ pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
+    pub accessible_scopes: Vec<String>,
 }
 
 impl HintProcessorData {
@@ -140,6 +141,7 @@ impl HintProcessorData {
             code,
             ap_tracking: ApTracking::default(),
             ids_data,
+            accessible_scopes: vec![],
         }
     }
 }
