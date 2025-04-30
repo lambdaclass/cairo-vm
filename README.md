@@ -184,11 +184,11 @@ The cairo-vm-cli supports the following optional arguments:
 
   ```bash
   # First, compile a Cairo 0 program and run it to generate a Cairo PIE file
-  cairo-compile cairo_programs/fibonacci.cairo --output cairo_programs/fibonacci_compiled.json
-  target/release/cairo-vm-cli cairo_programs/fibonacci_compiled.json --layout all_cairo --cairo_pie_output fibonacci.pie
+  cairo-compile cairo_programs/print.cairo --output cairo_programs/print_compiled.json
+  target/release/cairo-vm-cli cairo_programs/print_compiled.json --layout all_cairo --cairo_pie_output print.pie
   
   # Then, run the program from the Cairo PIE file
-  target/release/cairo-vm-cli fibonacci.pie --run_from_cairo_pie --layout all_cairo --print_output
+  target/release/cairo-vm-cli print.pie --run_from_cairo_pie --layout all_cairo --print_output
   ```
 
   Note: Cairo PIE files cannot be run in proof_mode. When using the `--run_from_cairo_pie` flag, the layout specified must be the same as the one used to create the PIE file, otherwise you may encounter compatibility issues.
