@@ -182,7 +182,6 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `--run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
-  **Using Cairo PIE files:**
   ```bash
   # First, compile a Cairo 0 program and run it to generate a Cairo PIE file
   cairo-compile cairo_programs/fibonacci.cairo --output cairo_programs/fibonacci_compiled.json
