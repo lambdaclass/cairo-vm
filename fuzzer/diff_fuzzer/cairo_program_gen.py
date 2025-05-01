@@ -37,7 +37,7 @@ CAIRO_CONSTS = {
 
 def classify_variables(hint_code):
     """
-    classify_varables(String) -> (Dict<String, set>, Dict<String, set>, List<String>)
+    classify_variables(String) -> (Dict<String, set>, Dict<String, set>, List<String>)
     return declare_in_main, declare_in_hint_fn, list(consts_to_import)
     Grabs a hint text and classifies all the variables associated with the `ids` structure.
     - declare_in_main: holds all the variables that should be declared in the `main` cairo
@@ -107,7 +107,7 @@ def classify_variables(hint_code):
 def generate_cairo_hint_program(hint_code):
     """
     generate_cairo_hint_program(String) -> [String]
-    Call `classify_varables(hint_code)` and create a cairo program with all the necessary code to run the hint
+    Call `classify_variables(hint_code)` and create a cairo program with all the necessary code to run the hint
     code block that was passed as parameter
     """
     declare_in_main, declare_in_hint_fn, consts = classify_variables(hint_code)
