@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+* Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
 
 * feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
 
