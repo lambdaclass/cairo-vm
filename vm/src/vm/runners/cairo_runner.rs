@@ -1068,7 +1068,7 @@ impl CairoRunner {
         Ok(ExecutionResources {
             n_steps,
             n_memory_holes,
-            builtin_instance_counter,
+            builtin_instance_counter: builtin_instance_counter.into_iter().collect(),
         })
     }
 
@@ -1415,7 +1415,7 @@ impl CairoRunner {
             execution_segment: (execution_base.segment_index, execution_size).into(),
             ret_fp_segment: (return_fp.segment_index, 0).into(),
             ret_pc_segment: (return_pc.segment_index, 0).into(),
-            builtin_segments,
+            builtin_segments: builtin_segments.into_iter().collect(),
             extra_segments,
         };
 
@@ -1597,7 +1597,7 @@ pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub builtin_instance_counter: HashMap<BuiltinName, usize>,
+    pub builtin_instance_counter: BTreeMap<BuiltinName, usize>,
 }
 
 /// Returns a copy of the execution resources where all the builtins with a usage counter
@@ -3965,7 +3965,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -4020,7 +4020,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -4045,7 +4045,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::output, 4)]),
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::output, 4)]),
             }),
         );
     }
@@ -4989,7 +4989,7 @@ mod tests {
     }
 
     fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
-        let mut builtin_instance_counter: HashMap<BuiltinName, usize> = HashMap::new();
+        let mut builtin_instance_counter: BTreeMap<BuiltinName, usize> = BTreeMap::new();
         builtin_instance_counter.insert(BuiltinName::output, 8);
 
         let execution_resources_1 = ExecutionResources {
@@ -5181,7 +5181,7 @@ mod tests {
         let execution_resources_1 = ExecutionResources {
             n_steps: 800,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([
+            builtin_instance_counter: BTreeMap::from([
                 (BuiltinName::pedersen, 7),
                 (BuiltinName::range_check, 16),
             ]),
@@ -5192,7 +5192,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 1600,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([
+                builtin_instance_counter: BTreeMap::from([
                     (BuiltinName::pedersen, 14),
                     (BuiltinName::range_check, 32)
                 ])
@@ -5202,7 +5202,7 @@ mod tests {
         let execution_resources_2 = ExecutionResources {
             n_steps: 545,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 17)]),
+            builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 17)]),
         };
 
         assert_eq!(
@@ -5210,14 +5210,14 @@ mod tests {
             ExecutionResources {
                 n_steps: 4360,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 136)])
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 136)])
             }
         );
 
         let execution_resources_3 = ExecutionResources {
             n_steps: 42,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::new(),
+            builtin_instance_counter: BTreeMap::new(),
         };
 
         assert_eq!(
@@ -5225,7 +5225,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 756,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new()
+                builtin_instance_counter: BTreeMap::new()
             }
         );
     }
