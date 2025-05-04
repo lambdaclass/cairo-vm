@@ -33,11 +33,12 @@ impl ProverInputInfo {
     }
 }
 
-// TODO(Stav): add TraceNotEnabled error.
 #[derive(Debug, Error)]
 pub enum ProverInputInfoError {
     #[error("Failed to (de)serialize data using bincode")]
     SerdeBincode(#[from] bincode::error::EncodeError),
     #[error("Failed to (de)serialize data using json")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("Trace was not enabled")]
+    TraceNotEnabled,
 }

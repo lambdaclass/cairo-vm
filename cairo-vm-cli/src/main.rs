@@ -247,19 +247,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(path) = args.prover_input_info {
-        let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
-            eprintln!("{error}");
-            CairoRunError::Runner(error)
-        })?;
+        let prover_input_info = cairo_runner.get_prover_input_info()?;
         let bytes = prover_input_info.serialize()?;
         std::fs::write(path, bytes)?;
     }
 
     if let Some(path) = args.prover_input_info_json {
-        let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
-            eprintln!("{error}");
-            CairoRunError::Runner(error)
-        })?;
+        let prover_input_info = cairo_runner.get_prover_input_info()?;
         let json = prover_input_info.serialize_json()?;
         std::fs::write(path, json)?;
     }
