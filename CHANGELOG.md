@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+* fix: Use Cairo prime instead of SECP_P in WRITE_DIVMOD_SEGMENT hint [#2078](https://github.com/lambdaclass/cairo-vm/pull/2078)
 
 * feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
 
