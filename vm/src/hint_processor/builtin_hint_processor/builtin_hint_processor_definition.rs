@@ -549,6 +549,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &SECP256R1_P,
                 &SECP256R1_ALPHA,
             ),
+            hint_code::EC_DOUBLE_SLOPE_V5 => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+                &SECP256R1_P,
+                &SECP256R1_ALPHA,
+            ),
             hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => compute_doubling_slope_external_consts(
                 vm,
                 exec_scopes,
@@ -903,6 +912,14 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 constants,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X_V2 => cairo0_hints::secp_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => cairo0_hints::fast_secp_add_assign_new_y(
                 vm,
                 exec_scopes,
@@ -945,6 +962,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::SECP_R1_GET_POINT_FROM_X => cairo0_hints::r1_get_point_from_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_R1_GET_POINT_FROM_X_V2 => cairo0_hints::r1_get_point_from_x(
                 vm,
                 exec_scopes,
                 &hint_data.ids_data,

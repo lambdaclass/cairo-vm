@@ -609,6 +609,14 @@ from starkware.python.math_utils import ec_double_slope
 x = pack(ids.point.x, SECP256R1_P)
 y = pack(ids.point.y, SECP256R1_P)
 value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
+(EC_DOUBLE_SLOPE_V5, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA, SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
+value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
 (EC_DOUBLE_SLOPE_EXTERNAL_CONSTS, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import ec_double_slope
 
