@@ -87,9 +87,38 @@ These dependencies are only necessary in order to run the original VM, compile C
 - make
 - PyEnv
 
+#### How to install `make`
+
+Linux:
+
+ ```bash
+sudo apt install build-essential  # Debian/Ubuntu
+sudo dnf install make            # Fedora/RHEL
+```
+
+macOS:
+
+ ```bash
+xcode-select --install  # OR
+brew install make
+```
+
+Windows:
+
+ ```bash
+choco install make     # OR use WSL
+```
+
+Verify with:
+
+ ```bash
+make --version
+```
+
+
 #### Installation script
 
-You can install all of the required and optional dependencies by running the script `install.sh` while in the repository root.
+You can install all of the required and optional dependencies by running the script [`install.sh`](/install.sh) while in the repository root.
 
 ### Installing project dependencies
 
