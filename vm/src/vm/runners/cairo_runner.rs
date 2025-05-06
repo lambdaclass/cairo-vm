@@ -891,13 +891,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
+        proof_mode: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes)?;
+        self.vm.end_run(&self.exec_scopes, proof_mode)?;
 
         if disable_finalize_all {
             return Ok(());
@@ -1155,7 +1156,7 @@ impl CairoRunner {
 
         self.run_until_pc(end, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, err))?;
-        self.end_run(true, false, hint_processor)?;
+        self.end_run(true, false, hint_processor, self.is_proof_mode())?;
 
         if verify_secure {
             verify_secure_runner(self, false, program_segment_size)?;
@@ -3875,7 +3876,7 @@ mod tests {
 
         cairo_runner.run_ended = true;
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Err(VirtualMachineError::RunnerError(
                 RunnerError::EndRunCalledTwice
             ))
@@ -3891,14 +3892,14 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
 
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Ok(())
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
         assert_matches!(
-            cairo_runner.end_run(true, true, &mut hint_processor),
+            cairo_runner.end_run(true, true, &mut hint_processor, false),
             Ok(())
         );
         assert!(!cairo_runner.run_ended);
@@ -3912,16 +3913,16 @@ mod tests {
             Some("main"),
         )
         .unwrap();
-
+        let proof_mode = true;
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
 
         let end = cairo_runner.initialize(false).unwrap();
         cairo_runner
             .run_until_pc(end, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
-            cairo_runner.end_run(false, false, &mut hint_processor),
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
             Ok(())
         );
     }
@@ -5665,7 +5666,8 @@ mod tests {
         .unwrap();
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+        let proof_mode = true;
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
 
         let end = cairo_runner.initialize(false).unwrap();
         cairo_runner
@@ -5676,7 +5678,7 @@ mod tests {
         assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE != 0);
         assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK != 0);
         assert_matches!(
-            cairo_runner.end_run(false, false, &mut hint_processor),
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
             Ok(())
         );
 
