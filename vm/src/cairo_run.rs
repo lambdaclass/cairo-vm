@@ -103,9 +103,9 @@ pub fn cairo_run_program_with_initial_scope(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
+        cairo_run_config.proof_mode,
     )?;
 
-    cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments()?;
@@ -208,6 +208,7 @@ pub fn cairo_run_pie(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
+        cairo_run_config.proof_mode,
     )?;
 
     cairo_runner.vm.verify_auto_deductions()?;
@@ -258,7 +259,7 @@ pub fn cairo_run_fuzzed_program(
 
     res.map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
-    cairo_runner.end_run(false, false, hint_processor)?;
+    cairo_runner.end_run(false, false, hint_processor, cairo_run_config.proof_mode)?;
 
     cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
