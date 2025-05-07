@@ -119,6 +119,7 @@ Implements hint:
     value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)
 %}
 */
+#[allow(clippy::too_many_arguments)]
 pub fn compute_doubling_slope(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
