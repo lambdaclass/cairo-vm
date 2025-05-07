@@ -22,6 +22,18 @@ func main{range_check_ptr: felt}() {
         56511396263956479754791421, 38561311687768998103117219, 2015104701319196654781984
     );
 
+    let x = BigInt3(-1,-2,-3);
+    let y = try_get_point_from_x_prime(x, 0);
+    assert y = BigInt3(
+        39197606747300743094893670, 38008389934708701866119639, 2071781356858789560884686
+    );
+
+    let x = BigInt3(-1,-2,-3);
+    let y = try_get_point_from_x_secp256r1(x, 0);
+    assert y = BigInt3(
+        56004882917990234964232380, 17943756516348761157632108, 3811440313376405071875160
+    );
+
     return ();
 }
 
@@ -53,4 +65,60 @@ func compute_doubling_slope_secp256r1{range_check_ptr}(point: EcPoint) -> BigInt
     %}
     let (slope: BigInt3) = nondet_bigint3();
     return slope;
+}
+
+func try_get_point_from_x_prime{range_check_ptr}(x: BigInt3, v: felt) -> BigInt3 {
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+        from starkware.python.math_utils import y_squared_from_x
+
+        y_square_int = y_squared_from_x(
+            x=pack(ids.x, PRIME),
+            alpha=SECP256R1.alpha,
+            beta=SECP256R1.beta,
+            field_prime=SECP256R1.prime,
+        )
+
+        # Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+        #   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+        #   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+        #   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+        y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+        # We need to decide whether to take y or prime - y.
+        if ids.v % 2 == y % 2:
+            value = y
+        else:
+            value = (-y) % SECP256R1.prime
+    %}
+    let (y: BigInt3) = nondet_bigint3();
+    return y;
+}
+
+func try_get_point_from_x_secp256r1{range_check_ptr}(x: BigInt3, v: felt) -> BigInt3 {
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+        from starkware.python.math_utils import y_squared_from_x
+
+        y_square_int = y_squared_from_x(
+            x=pack(ids.x, SECP256R1.prime),
+            alpha=SECP256R1.alpha,
+            beta=SECP256R1.beta,
+            field_prime=SECP256R1.prime,
+        )
+
+        # Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+        #   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+        #   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+        #   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+        y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+        # We need to decide whether to take y or prime - y.
+        if ids.v % 2 == y % 2:
+            value = y
+        else:
+            value = (-y) % SECP256R1.prime
+    %}
+    let (y: BigInt3) = nondet_bigint3();
+    return y;
 }
