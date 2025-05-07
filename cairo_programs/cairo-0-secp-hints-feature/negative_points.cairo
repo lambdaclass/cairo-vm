@@ -34,6 +34,18 @@ func main{range_check_ptr: felt}() {
         56004882917990234964232380, 17943756516348761157632108, 3811440313376405071875160
     );
 
+    let slope = BigInt3(-1,-2,-3);
+    let x = ec_double_x_prime(point, slope);
+    assert x = BigInt3(
+        648518346341351470, 77370588372549613637288996, 18662792551970020321619971
+    );
+
+    let slope = BigInt3(-1,-2,-3);
+    let x = ec_double_x_secp256r1(point, slope);
+    assert x = BigInt3(
+        21299552074028835321108137, 50187220174510023990904347, 2291813387120727975022296
+    );
+
     return ();
 }
 
@@ -121,4 +133,35 @@ func try_get_point_from_x_secp256r1{range_check_ptr}(x: BigInt3, v: felt) -> Big
     %}
     let (y: BigInt3) = nondet_bigint3();
     return y;
+}
+
+
+func ec_double_x_prime{range_check_ptr}(point: EcPoint, slope: BigInt3) -> BigInt3 {
+    %{
+        from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        slope = pack(ids.slope, PRIME)
+        x = pack(ids.point.x, PRIME)
+        y = pack(ids.point.y, PRIME)
+
+        value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P
+    %}
+    let (new_x: BigInt3) = nondet_bigint3();
+    return new_x;
+}
+
+func ec_double_x_secp256r1{range_check_ptr}(point: EcPoint, slope: BigInt3) -> BigInt3 {
+    %{
+        from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+        slope = pack(ids.slope, SECP256R1_P)
+        x = pack(ids.point.x, SECP256R1_P)
+        y = pack(ids.point.y, SECP256R1_P)
+
+        value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P
+    %}
+    let (new_x: BigInt3) = nondet_bigint3();
+    return new_x;
 }
