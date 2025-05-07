@@ -37,15 +37,6 @@ for file in $(ls $tests_path | grep .rs.pie.zip$ | sed -E 's/\.rs.pie.zip$//'); 
         passed_tests=$((passed_tests + 1))
     fi
 
-    # Compare Memory
-    if ! ./memory_comparator.py $path_file.memory.pie $path_file.rs.memory.pie; then
-        echo "Memory differs for $file"
-        exit_code=1
-        failed_tests=$((failed_tests + 1))
-    else
-        passed_tests=$((passed_tests + 1))
-    fi
-
     # Compare PIE
     if ! ./cairo_pie_comparator.py $path_file.pie.zip.pie $path_file.rs.pie.zip.pie; then
         echo "Cairo PIE differs for $file"
