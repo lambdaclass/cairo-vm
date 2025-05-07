@@ -11,13 +11,14 @@ use crate::{
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
-        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
     },
     Felt252,
 };
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
+    prover_input_info::ProverInputInfo,
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -48,7 +49,6 @@ use crate::{
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
@@ -1544,43 +1544,6 @@ impl CairoRunner {
             builtins_segments,
         })
     }
-}
-
-// TODO(Stav): move to specified file.
-//* ----------------------
-//*   ProverInputInfo
-//* ----------------------
-/// This struct contains all relevant data for the prover.
-/// All addresses are relocatable.
-#[derive(Deserialize, Serialize, PartialEq)]
-pub struct ProverInputInfo {
-    /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
-    pub relocatable_trace: Vec<TraceEntry>,
-    /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
-    pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
-    /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
-    pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
-    /// A map from the builtin segment index into its name.
-    pub builtins_segments: BTreeMap<usize, BuiltinName>,
-}
-
-impl ProverInputInfo {
-    pub fn serialize_json(&self) -> Result<String, ProverInputInfoError> {
-        serde_json::to_string_pretty(&self).map_err(ProverInputInfoError::from)
-    }
-    pub fn serialize(&self) -> Result<Vec<u8>, ProverInputInfoError> {
-        bincode::serde::encode_to_vec(self, bincode::config::standard())
-            .map_err(ProverInputInfoError::from)
-    }
-}
-
-// TODO(Stav): add TraceNotEnabled error.
-#[derive(Debug, Error)]
-pub enum ProverInputInfoError {
-    #[error("Failed to (de)serialize data using bincode")]
-    SerdeBincode(#[from] bincode::error::EncodeError),
-    #[error("Failed to (de)serialize data using json")]
-    SerdeJson(#[from] serde_json::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
