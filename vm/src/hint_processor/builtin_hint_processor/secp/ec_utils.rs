@@ -125,6 +125,7 @@ pub fn compute_doubling_slope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point_alias: &str,
+    pack_prime: &BigUint,
     secp_p: &BigInt,
     alpha: &BigInt,
 ) -> Result<(), HintError> {
@@ -132,7 +133,14 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p)?;
+    let value = ec_double_slope(
+        &(
+            point.x.pack86_for_prime(pack_prime),
+            point.y.pack86_for_prime(pack_prime),
+        ),
+        alpha,
+        secp_p,
+    )?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())

@@ -95,7 +95,6 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
             .sum()
     }
 
-    #[cfg(feature = "cairo-0-secp-hints")]
     pub(crate) fn pack86_for_prime(self, prime: &BigUint) -> BigInt {
         self.limbs
             .into_iter()

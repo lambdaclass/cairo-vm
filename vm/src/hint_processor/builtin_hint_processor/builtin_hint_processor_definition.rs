@@ -1,3 +1,4 @@
+use super::blake2s_utils::example_blake2s_compress;
 use super::{
     blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
@@ -22,9 +23,11 @@ use super::{
         pack::*,
     },
 };
-#[cfg(feature = "test_utils")]
-use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 use crate::Felt252;
+use crate::{
+    hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
+    utils::CAIRO_PRIME,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::ec_utils::{
@@ -116,16 +119,14 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+
 #[cfg(feature = "cairo-0-secp-hints")]
-use {super::secp::cairo0_hints, crate::utils::CAIRO_PRIME};
-
+use crate::hint_processor::builtin_hint_processor::secp::cairo0_hints;
 #[cfg(feature = "test_utils")]
-use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{
-    SECP256R1_ALPHA, SECP256R1_P,
+use crate::hint_processor::builtin_hint_processor::{
+    print::{print_array, print_dict, print_felt},
+    skip_next_instruction::skip_next_instruction,
 };
-
-use super::blake2s_utils::example_blake2s_compress;
 
 pub struct HintProcessorData {
     pub code: String,
@@ -518,6 +519,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &CAIRO_PRIME,
                 &SECP_P,
                 &ALPHA,
             ),
@@ -527,6 +529,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &CAIRO_PRIME,
                 &SECP_P_V2,
                 &ALPHA_V2,
             ),
@@ -536,6 +539,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "pt",
+                &CAIRO_PRIME,
                 &SECP_P,
                 &ALPHA,
             ),
@@ -545,6 +549,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                SECP256R1_P.magnitude(),
                 &SECP256R1_P,
                 &SECP256R1_ALPHA,
             ),
@@ -554,6 +559,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &CAIRO_PRIME,
                 &SECP256R1_P,
                 &SECP256R1_ALPHA,
             ),
