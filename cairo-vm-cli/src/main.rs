@@ -250,8 +250,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             eprintln!("{error}");
             CairoRunError::Runner(error)
         })?;
-        let bytes = prover_input_info.serialize()?;
-        std::fs::write(path, bytes)?;
+        prover_input_info
+            .write_encoded_prover_input_info(&Path::new(&path)).expect("");
     }
 
     if let Some(path) = args.prover_input_info_json {

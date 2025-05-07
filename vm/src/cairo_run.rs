@@ -540,4 +540,29 @@ mod tests {
             CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
         )));
     }
+
+    use crate::vm::runners::cairo_runner::ProverInputInfo;
+    #[test]
+    fn stav() {
+        let program_content =
+            include_bytes!("/home/stav/Stwo-Cairo/stwo-cairo/stwo_cairo_prover/test_data/test_big_program/compiled.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                trace_enabled: true,
+                layout: LayoutName::all_cairo_stwo,
+                allow_missing_builtins: Some(true),
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let prover_info = runner.get_prover_input_info().unwrap();
+
+        prover_info.write_encoded_prover_input_info(std::path::Path::new("hola")).expect("");
+
+        let prover_input_info =
+            ProverInputInfo::read_encoded_prover_input_info(std::path::Path::new("hola")).unwrap();
+        assert!(prover_input_info == prover_info);
+    }
 }

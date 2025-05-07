@@ -1563,6 +1563,14 @@ pub struct ProverInputInfo {
     pub builtins_segments: BTreeMap<usize, BuiltinName>,
 }
 
+use bincode::decode_from_slice;
+use std::fs::File;
+use std::io;
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+
+
 impl ProverInputInfo {
     pub fn serialize_json(&self) -> Result<String, ProverInputInfoError> {
         serde_json::to_string_pretty(&self).map_err(ProverInputInfoError::from)
@@ -1570,6 +1578,176 @@ impl ProverInputInfo {
     pub fn serialize(&self) -> Result<Vec<u8>, ProverInputInfoError> {
         bincode::serde::encode_to_vec(self, bincode::config::standard())
             .map_err(ProverInputInfoError::from)
+    }
+
+    pub fn write_encoded_prover_input_info(
+        &self,
+        path: &std::path::Path,
+    ) -> std::io::Result<()> {
+        let mut dest = File::create(path)?;
+        // Header
+        // let trace_len = data.relocatable_trace.len() as u32;
+        dest.write_all(&(self.relocatable_trace.len() as u32).to_le_bytes())
+            .expect("");
+        // let memory_len = data.relocatable_memory.iter().map(|seg| seg.len()).sum::<usize>() as u32;
+        dest.write_all(&(self.relocatable_memory.len() as u32).to_le_bytes())
+            .expect("");
+
+        // let public_offset_count = data.public_memory_offsets.values().map(|v| v.len()).sum::<usize>() as u32;
+        // let builtin_count = data.builtins_segments.len() as u32;
+
+        // write_memory
+        for segment in self.relocatable_memory.iter() {
+
+            dest.write_all(&(segment.len() as u32).to_le_bytes())
+                .expect("");
+            for memory_cell in segment.iter() {
+                match memory_cell {
+                    None => {
+                        dest.write_all(&[0u8]).expect("");
+                        dest.write_all(&[0u8; 32]).expect("");
+                    }
+                    Some(unwrapped_memory_cell) => match unwrapped_memory_cell {
+                        MaybeRelocatable::Int(int) => {
+                            dest.write_all(&[0u8]).expect("");
+                            dest.write_all(&int.to_bytes_le()).expect("");
+                        }
+                        MaybeRelocatable::RelocatableValue(relocatable) => {
+                            dest.write_all(&[1u8]).expect("");
+                            dest.write_all(&(relocatable.segment_index as u32).to_le_bytes())
+                                .expect("");
+                            dest.write_all(&(relocatable.offset as u32).to_le_bytes())
+                                .expect("");
+                        }
+                    },
+                }
+            }
+        }
+
+        // write_trace
+        for entry in &self.relocatable_trace {
+            dest.write_all(&(entry.pc.segment_index as u32).to_le_bytes())
+                .expect("");
+            dest.write_all(&(entry.pc.offset as u32).to_le_bytes())
+                .expect("");
+            dest.write_all(&(entry.fp as u32).to_le_bytes()).expect("");
+            dest.write_all(&(entry.ap as u32).to_le_bytes()).expect("");
+        }
+
+        //write builtins segments
+        dest.write_all(
+            &bincode::serde::encode_to_vec(&self.builtins_segments, bincode::config::standard())
+                .unwrap(),
+        )
+        .expect("");
+
+        //write pa addresses
+        dest.write_all(
+            &bincode::serde::encode_to_vec(
+                &self.public_memory_offsets,
+                bincode::config::standard(),
+            )
+            .unwrap(),
+        )
+        .expect("");
+
+        Ok(())
+    }
+
+    pub fn read_encoded_prover_input_info(path: &Path) -> io::Result<Self> {
+        let mut file = File::open(path)?;
+        let mut buf = [0u8; 4];
+
+        // --- Read Header ---
+        file.read_exact(&mut buf)?;
+        let trace_len = u32::from_le_bytes(buf);
+
+        file.read_exact(&mut buf)?;
+        let num_memory_segments = u32::from_le_bytes(buf);
+
+        // --- Read Memory ---
+        let mut relocatable_memory = Vec::new();
+
+        for _ in 0..num_memory_segments {
+            // Read segment length
+            file.read_exact(&mut buf)?;
+            let segment_len = u32::from_le_bytes(buf);
+
+            let mut segment = Vec::with_capacity(segment_len as usize);
+            for _ in 0..segment_len {
+                let mut tag = [0u8; 1];
+                file.read_exact(&mut tag)?;
+
+                match tag[0] {
+                    0u8 => {
+                        let mut felt_bytes = [0u8; 32];
+                        file.read_exact(&mut felt_bytes)?;
+                        segment.push(Some(MaybeRelocatable::Int(Felt252::from_bytes_le(
+                            &felt_bytes,
+                        ))));
+                    }
+                    1u8 => {
+                        let mut seg_buf = [0u8; 4];
+                        let mut off_buf = [0u8; 4];
+                    
+                        file.read_exact(&mut seg_buf)?;
+                        file.read_exact(&mut off_buf)?;
+                        segment.push(Some(MaybeRelocatable::RelocatableValue(Relocatable {
+                            segment_index: u32::from_le_bytes(seg_buf) as isize,
+                            offset: u32::from_le_bytes(off_buf) as usize,
+                        })))
+                    }
+                    _ => panic!("invalid tag: {}", tag[0]),
+                };
+            }
+            relocatable_memory.push(segment);
+        }
+
+        // --- Read Trace ---
+        let mut relocatable_trace = Vec::with_capacity(trace_len as usize);
+        for _ in 0..trace_len {
+            let mut seg_buf = [0u8; 4];
+            let mut off_buf = [0u8; 4];
+            let mut fp_buf = [0u8; 4];
+            let mut ap_buf = [0u8; 4];
+
+            file.read_exact(&mut seg_buf)?;
+            file.read_exact(&mut off_buf)?;
+            file.read_exact(&mut fp_buf)?;
+            file.read_exact(&mut ap_buf)?;
+
+            relocatable_trace.push(TraceEntry {
+                pc: Relocatable {
+                    segment_index: u32::from_le_bytes(seg_buf) as isize,
+                    offset: u32::from_le_bytes(off_buf) as usize,
+                },
+                fp: u32::from_le_bytes(fp_buf) as usize,
+                ap: u32::from_le_bytes(ap_buf) as usize,
+            });
+        }
+
+        // --- Read Remaining as Bincode Maps ---
+        let mut remaining_bytes = Vec::new();
+        file.read_to_end(&mut remaining_bytes)?;
+
+        let config = bincode::config::standard();
+
+        let (builtins_segments, bytes_read) =
+            bincode::serde::decode_from_slice(&remaining_bytes, config.clone()).map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, format!("bincode error: {e}"))
+            })?;
+
+        let (public_memory_offsets, _) = decode_from_slice(&remaining_bytes[bytes_read..], config)
+            .map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, format!("bincode error: {e}"))
+            })?;
+
+        Ok(Self {
+            relocatable_trace,
+            relocatable_memory,
+            public_memory_offsets,
+            builtins_segments,
+        })
     }
 }
 
