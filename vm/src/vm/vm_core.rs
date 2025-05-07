@@ -859,8 +859,16 @@ impl VirtualMachine {
         Ok(())
     }
 
-    pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
-        self.complete_builtin_auto_deductions()?;
+    pub fn end_run(
+        &mut self,
+        exec_scopes: &ExecutionScopes,
+        proof_mode: bool,
+    ) -> Result<(), VirtualMachineError> {
+        if proof_mode {
+            self.complete_builtin_auto_deductions()?;
+        } else {
+            self.verify_auto_deductions()?;
+        }
         self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
@@ -4621,7 +4629,7 @@ mod tests {
         scopes.enter_scope(HashMap::new());
 
         assert_matches!(
-            vm.end_run(scopes),
+            vm.end_run(scopes, false),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::NoScopeError
             ))
