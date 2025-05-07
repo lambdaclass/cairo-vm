@@ -1,5 +1,3 @@
-#[cfg(feature = "cairo-0-secp-hints")]
-use super::secp::cairo0_hints;
 use super::{
     blake2s_utils::finalize_blake2s_v3,
     ec_recover::{
@@ -24,6 +22,8 @@ use super::{
         pack::*,
     },
 };
+#[cfg(feature = "test_utils")]
+use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -116,9 +116,8 @@ use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-
-#[cfg(feature = "test_utils")]
-use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
+#[cfg(feature = "cairo-0-secp-hints")]
+use {super::secp::cairo0_hints, starknet_types_core::felt::CAIRO_PRIME_BIGINT};
 
 #[cfg(feature = "test_utils")]
 use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
@@ -910,6 +909,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                &SECP256R1_P,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X_V2 => cairo0_hints::secp_double_assign_new_x(
@@ -918,6 +918,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                &CAIRO_PRIME_BIGINT,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => cairo0_hints::fast_secp_add_assign_new_y(
@@ -967,6 +968,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                &SECP256R1_P,
             ),
 
             #[cfg(feature = "cairo-0-secp-hints")]
@@ -976,6 +978,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                &CAIRO_PRIME_BIGINT,
             ),
 
             #[cfg(feature = "cairo-0-secp-hints")]
