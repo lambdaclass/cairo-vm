@@ -117,7 +117,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 #[cfg(feature = "cairo-0-secp-hints")]
-use {super::secp::cairo0_hints, starknet_types_core::felt::CAIRO_PRIME_BIGINT};
+use {super::secp::cairo0_hints, crate::utils::CAIRO_PRIME};
 
 #[cfg(feature = "test_utils")]
 use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
@@ -909,7 +909,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
-                &SECP256R1_P,
+                SECP256R1_P.magnitude(),
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X_V2 => cairo0_hints::secp_double_assign_new_x(
@@ -918,7 +918,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
-                &CAIRO_PRIME_BIGINT,
+                &CAIRO_PRIME,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => cairo0_hints::fast_secp_add_assign_new_y(
@@ -968,7 +968,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
-                &SECP256R1_P,
+                SECP256R1_P.magnitude(),
             ),
 
             #[cfg(feature = "cairo-0-secp-hints")]
@@ -978,7 +978,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
-                &CAIRO_PRIME_BIGINT,
+                &CAIRO_PRIME,
             ),
 
             #[cfg(feature = "cairo-0-secp-hints")]

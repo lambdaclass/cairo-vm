@@ -70,6 +70,16 @@ pub fn signed_felt(felt: Felt252) -> BigInt {
     }
 }
 
+pub fn signed_felt_for_prime(value: Felt252, prime: &BigUint) -> BigInt {
+    let value = value.to_biguint();
+    let half_prime = prime / 2u32;
+    if value > half_prime {
+        BigInt::from_biguint(num_bigint::Sign::Minus, prime - &value)
+    } else {
+        BigInt::from_biguint(num_bigint::Sign::Plus, value)
+    }
+}
+
 /// QM31 utility function, used specifically for Stwo.
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Reads four u64 coordinates from a single Felt252.

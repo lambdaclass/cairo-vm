@@ -23,7 +23,6 @@ use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::One;
 use num_traits::Zero;
-use starknet_types_core::felt::CAIRO_PRIME_BIGINT;
 
 use super::bigint_utils::{BigInt3, Uint384};
 use super::ec_utils::EcPoint;
@@ -202,7 +201,7 @@ pub fn r1_get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
-    pack_prime: &BigInt,
+    pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
@@ -236,11 +235,7 @@ pub fn r1_get_point_from_x(
     //         y = (-y) % prime
 
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?;
-    let x = if pack_prime.eq(&CAIRO_PRIME_BIGINT) {
-        x.pack86()
-    } else {
-        x.pack86().mod_floor(pack_prime)
-    };
+    let x = x.pack86_for_prime(pack_prime);
 
     let y_square_int = y_squared_from_x(&x, &SECP256R1_ALPHA, &SECP256R1_B, &SECP256R1_P);
     exec_scopes.insert_value::<BigInt>("y_square_int", y_square_int.clone());
@@ -289,7 +284,7 @@ pub fn secp_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
-    pack_prime: &BigInt,
+    pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
     //ids.slope
@@ -297,23 +292,9 @@ pub fn secp_double_assign_new_x(
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = if pack_prime.eq(&CAIRO_PRIME_BIGINT) {
-        slope.pack86()
-    } else {
-        slope.pack86().mod_floor(pack_prime)
-    };
-
-    let x = if pack_prime.eq(&CAIRO_PRIME_BIGINT) {
-        point.x.pack86()
-    } else {
-        point.x.pack86().mod_floor(pack_prime)
-    };
-
-    let y = if pack_prime.eq(&CAIRO_PRIME_BIGINT) {
-        point.y.pack86()
-    } else {
-        point.y.pack86().mod_floor(pack_prime)
-    };
+    let slope = slope.pack86_for_prime(pack_prime);
+    let x = point.x.pack86_for_prime(pack_prime);
+    let y = point.y.pack86_for_prime(pack_prime);
 
     let value =
         (slope.modpow(&(2usize.into()), &SECP256R1_P) - (&x << 1u32)).mod_floor(&SECP256R1_P);
@@ -580,7 +561,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &constants,
-            &SECP256R1_P,
+            SECP256R1_P.magnitude(),
         )
         .expect("calculate_value() failed");
 
