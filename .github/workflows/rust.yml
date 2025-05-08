@@ -634,6 +634,37 @@ jobs:
         key: codecov-cache-test-no_std-mod_builtin-${{ github.sha }}
         fail-on-cache-miss: true
 
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-cairo-0-secp-hints.info
+        key: codecov-cache-test#1-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-cairo-0-secp-hints.info
+        key: codecov-cache-test#2-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-cairo-0-secp-hints.info
+        key: codecov-cache-test#3-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-cairo-0-secp-hints.info
+        key: codecov-cache-test#4-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-no_std-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:
