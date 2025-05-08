@@ -95,6 +95,17 @@ impl<const NUM_LIMBS: usize> BigIntN<'_, NUM_LIMBS> {
             .sum()
     }
 
+    pub(crate) fn pack86_for_prime(self, prime: &BigUint) -> BigInt {
+        self.limbs
+            .into_iter()
+            .take(3)
+            .enumerate()
+            .map(|(idx, value)| {
+                crate::math_utils::signed_felt_for_prime(*value, prime).shl(idx * 86)
+            })
+            .sum()
+    }
+
     pub(crate) fn split(num: &BigUint) -> Self {
         let limbs = split(num, 128);
         Self::from_values(limbs)
