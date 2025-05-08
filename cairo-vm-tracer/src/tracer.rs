@@ -71,7 +71,7 @@ async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
             .map(|x| {
                 field_element_repr(
                     &x.to_bigint(),
-                    &BigInt::parse_bytes(PRIME_STR[2..].as_bytes(), 16).unwrap(),
+                    &BigInt::parse_bytes(&PRIME_STR.as_bytes()[2..], 16).unwrap(),
                 )
             })
             .enumerate()
