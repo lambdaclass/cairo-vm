@@ -14,7 +14,7 @@ use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use cairo_vm::vm::runners::cairo_pie::CairoPie;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
-use cairo_vm::vm::runners::cairo_runner::RunResources;
+use cairo_vm::vm::runners::cairo_runner::{ProverInputInfoError, RunResources};
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
@@ -69,6 +69,10 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
+    #[arg(long = "prover_input_info", requires_all = ["proof_mode"])]
+    prover_input_info: Option<String>,
+    #[arg(long = "prover_input_info_json", requires_all = ["proof_mode"])]
+    prover_input_info_json: Option<String>,
     #[arg(long = "merge_extra_segments")]
     merge_extra_segments: bool,
     #[arg(long = "allow_missing_builtins")]
@@ -101,6 +105,8 @@ enum Error {
     Trace(#[from] TraceError),
     #[error(transparent)]
     PublicInput(#[from] PublicInputError),
+    #[error(transparent)]
+    ProveInputInfo(#[from] ProverInputInfoError),
     #[error(transparent)]
     #[cfg(feature = "with_tracer")]
     TraceData(#[from] TraceDataError),
@@ -168,7 +174,10 @@ fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
-    let trace_enabled = args.trace_file.is_some() || args.air_public_input.is_some();
+    let trace_enabled = args.trace_file.is_some()
+        || args.air_public_input.is_some()
+        || args.prover_input_info.is_some()
+        || args.prover_input_info_json.is_some();
 
     let cairo_layout_params = match args.cairo_layout_params_file {
         Some(file) => Some(CairoLayoutParams::from_file(&file)?),
@@ -184,7 +193,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: args.prover_input_info.is_some()
+            || args.prover_input_info_json.is_some(),
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -233,6 +243,24 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
         cairo_run::write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
+    }
+
+    if let Some(path) = args.prover_input_info {
+        let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
+            eprintln!("{error}");
+            CairoRunError::Runner(error)
+        })?;
+        let bytes = prover_input_info.serialize()?;
+        std::fs::write(path, bytes)?;
+    }
+
+    if let Some(path) = args.prover_input_info_json {
+        let prover_input_info = cairo_runner.get_prover_input_info().map_err(|error| {
+            eprintln!("{error}");
+            CairoRunError::Runner(error)
+        })?;
+        let json = prover_input_info.serialize_json()?;
+        std::fs::write(path, json)?;
     }
 
     if let Some(file_path) = args.air_public_input {
@@ -358,6 +386,7 @@ mod tests {
         #[values(false, true)] air_public_input: bool,
         #[values(false, true)] air_private_input: bool,
         #[values(false, true)] cairo_pie_output: bool,
+        #[values(false, true)] prover_input_info: bool,
     ) {
         let mut args = vec!["cairo-vm-cli".to_string()];
         if let Some(layout) = layout {
@@ -388,11 +417,15 @@ mod tests {
         if print_output {
             args.extend_from_slice(&["--print_output".to_string()]);
         }
+        if prover_input_info {
+            args.extend_from_slice(&["--prover_input_info".to_string(), "/dev/null".to_string()]);
+        }
 
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
         if air_public_input && !proof_mode
             || (air_private_input && (!proof_mode || !trace_file || !memory_file))
             || cairo_pie_output && proof_mode
+            || prover_input_info && !proof_mode
         {
             assert_matches!(run(args.into_iter()), Err(_));
         } else {

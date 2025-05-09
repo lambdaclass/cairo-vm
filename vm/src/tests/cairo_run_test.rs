@@ -1241,6 +1241,7 @@ fn run_program_with_custom_mod_builtin_params(
             cairo_run_config.disable_trace_padding,
             false,
             &mut hint_processor,
+            cairo_run_config.proof_mode,
         )
         .unwrap();
 

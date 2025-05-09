@@ -48,6 +48,7 @@ use crate::{
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
@@ -190,6 +191,8 @@ impl CairoRunner {
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
+            LayoutName::perpetual => CairoLayout::perpetual_instance(),
+            LayoutName::dex_with_bitwise => CairoLayout::dex_with_bitwise_instance(),
             LayoutName::dynamic => {
                 let params =
                     dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
@@ -889,13 +892,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
+        proof_mode: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes)?;
+        self.vm.end_run(&self.exec_scopes, proof_mode)?;
 
         if disable_finalize_all {
             return Ok(());
@@ -1066,7 +1070,7 @@ impl CairoRunner {
         Ok(ExecutionResources {
             n_steps,
             n_memory_holes,
-            builtin_instance_counter,
+            builtin_instance_counter: builtin_instance_counter.into_iter().collect(),
         })
     }
 
@@ -1153,7 +1157,7 @@ impl CairoRunner {
 
         self.run_until_pc(end, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, err))?;
-        self.end_run(true, false, hint_processor)?;
+        self.end_run(true, false, hint_processor, self.is_proof_mode())?;
 
         if verify_secure {
             verify_secure_runner(self, false, program_segment_size)?;
@@ -1413,7 +1417,7 @@ impl CairoRunner {
             execution_segment: (execution_base.segment_index, execution_size).into(),
             ret_fp_segment: (return_fp.segment_index, 0).into(),
             ret_pc_segment: (return_pc.segment_index, 0).into(),
-            builtin_segments,
+            builtin_segments: builtin_segments.into_iter().collect(),
             extra_segments,
         };
 
@@ -1543,12 +1547,13 @@ impl CairoRunner {
     }
 }
 
+// TODO(Stav): move to specified file.
 //* ----------------------
 //*   ProverInputInfo
 //* ----------------------
 /// This struct contains all relevant data for the prover.
 /// All addresses are relocatable.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct ProverInputInfo {
     /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
     pub relocatable_trace: Vec<TraceEntry>,
@@ -1558,6 +1563,25 @@ pub struct ProverInputInfo {
     pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
     /// A map from the builtin segment index into its name.
     pub builtins_segments: BTreeMap<usize, BuiltinName>,
+}
+
+impl ProverInputInfo {
+    pub fn serialize_json(&self) -> Result<String, ProverInputInfoError> {
+        serde_json::to_string_pretty(&self).map_err(ProverInputInfoError::from)
+    }
+    pub fn serialize(&self) -> Result<Vec<u8>, ProverInputInfoError> {
+        bincode::serde::encode_to_vec(self, bincode::config::standard())
+            .map_err(ProverInputInfoError::from)
+    }
+}
+
+// TODO(Stav): add TraceNotEnabled error.
+#[derive(Debug, Error)]
+pub enum ProverInputInfoError {
+    #[error("Failed to (de)serialize data using bincode")]
+    SerdeBincode(#[from] bincode::error::EncodeError),
+    #[error("Failed to (de)serialize data using json")]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1575,7 +1599,7 @@ pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub builtin_instance_counter: HashMap<BuiltinName, usize>,
+    pub builtin_instance_counter: BTreeMap<BuiltinName, usize>,
 }
 
 /// Returns a copy of the execution resources where all the builtins with a usage counter
@@ -1664,7 +1688,10 @@ mod tests {
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
+    use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
+    use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
+    use rstest::rstest;
 
     use crate::felt_hex;
     use crate::{
@@ -3850,7 +3877,7 @@ mod tests {
 
         cairo_runner.run_ended = true;
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Err(VirtualMachineError::RunnerError(
                 RunnerError::EndRunCalledTwice
             ))
@@ -3866,14 +3893,14 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
 
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Ok(())
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
         assert_matches!(
-            cairo_runner.end_run(true, true, &mut hint_processor),
+            cairo_runner.end_run(true, true, &mut hint_processor, false),
             Ok(())
         );
         assert!(!cairo_runner.run_ended);
@@ -3887,16 +3914,16 @@ mod tests {
             Some("main"),
         )
         .unwrap();
-
+        let proof_mode = true;
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
 
         let end = cairo_runner.initialize(false).unwrap();
         cairo_runner
             .run_until_pc(end, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
-            cairo_runner.end_run(false, false, &mut hint_processor),
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
             Ok(())
         );
     }
@@ -3940,7 +3967,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -3995,7 +4022,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -4020,7 +4047,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::output, 4)]),
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::output, 4)]),
             }),
         );
     }
@@ -4968,7 +4995,7 @@ mod tests {
     }
 
     fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
-        let mut builtin_instance_counter: HashMap<BuiltinName, usize> = HashMap::new();
+        let mut builtin_instance_counter: BTreeMap<BuiltinName, usize> = BTreeMap::new();
         builtin_instance_counter.insert(BuiltinName::output, 8);
 
         let execution_resources_1 = ExecutionResources {
@@ -5160,7 +5187,7 @@ mod tests {
         let execution_resources_1 = ExecutionResources {
             n_steps: 800,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([
+            builtin_instance_counter: BTreeMap::from([
                 (BuiltinName::pedersen, 7),
                 (BuiltinName::range_check, 16),
             ]),
@@ -5171,7 +5198,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 1600,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([
+                builtin_instance_counter: BTreeMap::from([
                     (BuiltinName::pedersen, 14),
                     (BuiltinName::range_check, 32)
                 ])
@@ -5181,7 +5208,7 @@ mod tests {
         let execution_resources_2 = ExecutionResources {
             n_steps: 545,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 17)]),
+            builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 17)]),
         };
 
         assert_eq!(
@@ -5189,14 +5216,14 @@ mod tests {
             ExecutionResources {
                 n_steps: 4360,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 136)])
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 136)])
             }
         );
 
         let execution_resources_3 = ExecutionResources {
             n_steps: 42,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::new(),
+            builtin_instance_counter: BTreeMap::new(),
         };
 
         assert_eq!(
@@ -5204,7 +5231,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 756,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new()
+                builtin_instance_counter: BTreeMap::new()
             }
         );
     }
@@ -5632,5 +5659,91 @@ mod tests {
             .builtins_segments
             .values()
             .any(|v| *v == BuiltinName::output));
+    }
+
+    #[test]
+    // TODO(Stav): add another test that checks filling holes in the middle of the segment.
+    fn end_run_fill_builtins() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/keccak_uint256.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let proof_mode = true;
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
+
+        let end = cairo_runner.initialize(false).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+
+        // Before end run
+        assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE != 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK != 0);
+        assert_matches!(
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
+            Ok(())
+        );
+
+        // After end run
+        assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE == 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
+        assert!(cairo_runner.vm.segments.memory.data[6].last().is_some());
+        assert!(cairo_runner.vm.segments.memory.data[8].last().is_some());
+
+        // Check prover input info
+        let prover_input = cairo_runner
+            .get_prover_input_info()
+            .expect("Failed to get prover input info");
+        assert!(prover_input.builtins_segments.get(&6) == Some(&BuiltinName::bitwise));
+        assert!(prover_input.builtins_segments.get(&8) == Some(&BuiltinName::keccak));
+        assert!(prover_input.relocatable_memory[6].len() as u32 % CELLS_PER_BITWISE == 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
+    }
+
+    #[rstest]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/bitwise_output.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/relocate_temporary_segment_append.json"))]
+    #[case(include_bytes!("../../../../cairo_programs/proof_programs/pedersen_test.json"))]
+    fn serialize_and_deserialize_prover_input_info(#[case] program_content: &[u8]) {
+        use crate::types::layout_name::LayoutName;
+
+        let config = crate::cairo_run::CairoRunConfig {
+            proof_mode: false,
+            relocate_mem: false,
+            trace_enabled: true,
+            layout: LayoutName::all_cairo_stwo,
+            ..Default::default()
+        };
+        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let prover_input_info = runner.get_prover_input_info().unwrap();
+
+        // Using bincode.
+        let serialized_prover_input_info = prover_input_info.serialize().unwrap();
+        let (deserialized_prover_input_info, _): (ProverInputInfo, usize) =
+            bincode::serde::decode_from_slice(
+                &serialized_prover_input_info,
+                bincode::config::standard(),
+            )
+            .unwrap();
+
+        assert!(
+            prover_input_info == deserialized_prover_input_info,
+            "Deserialized ProverInputInfo with bincode does not match the original one."
+        );
+
+        // Using json.
+        let serialized_prover_input_info_json = prover_input_info.serialize_json().unwrap();
+        let deserialized_prover_input_info_json: ProverInputInfo =
+            serde_json::from_str(&serialized_prover_input_info_json).unwrap();
+
+        assert!(
+            prover_input_info == deserialized_prover_input_info_json,
+            "Deserialized ProverInputInfo with json does not match the original one."
+        );
     }
 }

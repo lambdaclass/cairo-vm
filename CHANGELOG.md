@@ -1,6 +1,11 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
+
+* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
 #### [3.0.0-rc.1] - 2025-05-08
 
@@ -41,6 +46,8 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+* feat: Support hints for new blake felt serialization library code [#1994](https://github.com/lambdaclass/cairo-vm/pull/1994)
 
 #### [2.0.1] - 2025-03-17
 
