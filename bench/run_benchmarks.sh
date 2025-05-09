@@ -6,10 +6,12 @@ set -e
 for file in $(ls $tests_path | grep .cairo | sed -E 's/\.cairo//'); do
     echo "Running $file benchmark"
 
-    export PATH="$(pyenv root)/shims:$PATH"
+    program="$tests_path/$file.json"
+    python_command="cairo-run --proof_mode --memory_file /dev/null --trace_file /dev/null --layout starknet_with_keccak --program $program"
+    rust_command="../target/release/cairo-vm-cli $program --proof_mode --memory_file /dev/null --trace_file /dev/null --layout starknet_with_keccak"
 
     hyperfine \
-	    -n "Cairo VM (CPython)" "PYENV_VERSION=3.9.15 cairo-run --proof_mode --memory_file /dev/null --trace_file /dev/null --layout starknet_with_keccak --program $tests_path/$file.json" \
-	    -n "Cairo VM (PyPy)" "PYENV_VERSION=pypy3.9-7.3.9 cairo-run --proof_mode --memory_file /dev/null --trace_file /dev/null --layout starknet_with_keccak --program $tests_path/$file.json" \
-	    -n "cairo-vm (Rust)" "../target/release/cairo-vm-cli $tests_path/$file.json --proof_mode --memory_file /dev/null --trace_file /dev/null --layout starknet_with_keccak"
+	    -n "Cairo VM (CPython)" ". ../cairo-vm-env/bin/activate && $python_command" \
+	    -n "Cairo VM (PyPy)"    ". ../cairo-vm-pypy-env/bin/activate && $python_command" \
+	    -n "cairo-vm (Rust)"    "$rust_command"
 done

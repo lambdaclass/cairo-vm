@@ -19,7 +19,7 @@ endif
 	compare_trace_memory_proof  compare_all_proof compare_trace_proof compare_memory_proof compare_air_public_input  compare_air_private_input\
 	hyper-threading-benchmarks \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
-	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace \
+	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace ci-python-deps \
 	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
@@ -218,34 +218,38 @@ build-cairo-2-compiler:
 cargo-deps:
 	cargo install --version 0.3.1 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
-	cargo install --version 0.6.1 flamegraph --locked
+	cargo install --version 0.6.7 flamegraph --locked
 	cargo install --version 1.19.0 hyperfine
-	cargo install --version 0.9.49 cargo-nextest --locked
-	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack --locked
+	cargo install --version 0.9.92 cargo-nextest --locked
+	cargo install --version 0.6.16 cargo-llvm-cov
+	cargo install --version 0.13.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
 
-deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps
-	pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
-	. cairo-vm-pypy-env/bin/activate ; \
-	pip install -r requirements.txt ; \
-	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
-	. cairo-vm-env/bin/activate ; \
-	pip install -r requirements.txt ; \
+deps: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler build-cairo-2-compiler cairo1-run-deps deps-python ;
 
-deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps
-	arch -x86_64 pyenv install -s pypy3.9-7.3.9
-	PYENV_VERSION=pypy3.9-7.3.9 python -m venv cairo-vm-pypy-env
+deps-macos: create-proof-programs-symlinks cargo-deps build-cairo-1-compiler-macos build-cairo-2-compiler-macos cairo1-run-deps deps-macos-python ;
+
+deps-python:
+	uv python install pypy3.9.15 ; \
+	uv venv --python pypy3.9.15 cairo-vm-pypy-env ; \
 	. cairo-vm-pypy-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
-	pyenv install -s 3.9.15
-	PYENV_VERSION=3.9.15 python -m venv cairo-vm-env
+	uv pip install -r requirements.txt ; \
+	uv python install 3.9.15 ; \
+	uv venv --python 3.9.15 cairo-vm-env
 	. cairo-vm-env/bin/activate ; \
-	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt ; \
+	uv pip install -r requirements.txt ; \
+
+deps-macos-python:
+	uv python install pypy3.9.15 ; \
+	uv venv --python pypy3.9.15 cairo-vm-pypy-env ; \
+	. cairo-vm-pypy-env/bin/activate ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib uv pip install -r requirements.txt ; \
+	uv python install 3.9.15 ; \
+	uv venv --python 3.9.15 cairo-vm-env ; \
+	. cairo-vm-env/bin/activate ; \
+	CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib uv pip install -r requirements.txt ; \
 
 $(RELBIN):
 	cargo build --release
