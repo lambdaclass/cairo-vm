@@ -35,15 +35,19 @@ jobs:
           key: benchmarks-${{ matrix.branch }}-${{ hashFiles( 'cairo_programs/benchmarks/*.cairo' ) }}
           restore-keys: benchmarks-${{ matrix.branch }}-
 
-      - name: Install Python
+      - name: Install uv
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@v4
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
-
-      - name: Install Cairo compiler
+          enable-cache: true
+      - name: Install python deps
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        run: pip install -r requirements.txt
+        run: |
+          uv python install 3.9.15
+          uv venv --python 3.9.15 cairo-vm-env
+          . cairo-vm-env/bin/activate
+          uv pip install -r requirements.txt
+          echo PATH=$PATH >> $GITHUB_ENV
 
       - name: Build programs
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}

@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
+
 #### [3.0.0-rc.1] - 2025-05-08
 
 * chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
