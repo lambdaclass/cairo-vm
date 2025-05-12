@@ -566,11 +566,29 @@ jobs:
         path: lcov-test#4-.info
         key: codecov-cache-test#4--${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib
+    - name: Fetch results for tests without stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std-.info
-        key: codecov-cache-test-no_std--${{ github.sha }}
+        path: lcov-test-no_std#1-.info
+        key: codecov-cache-test-no_std#1--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-.info
+        key: codecov-cache-test-no_std#2--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-.info
+        key: codecov-cache-test-no_std#3--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-.info
+        key: codecov-cache-test-no_std#4--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
       uses: actions/cache/restore@v3
@@ -596,11 +614,29 @@ jobs:
         path: lcov-test#4-extensive_hints.info
         key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/extensive_hints)
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-no_std-extensive_hints.info
-        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
+        path: lcov-test-no_std#1-extensive_hints.info
+        key: codecov-cache-test-no_std#1-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-extensive_hints.info
+        key: codecov-cache-test-no_std#2-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-extensive_hints.info
+        key: codecov-cache-test-no_std#3-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-extensive_hints.info
+        key: codecov-cache-test-no_std#4-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Fetch results for tests with stdlib (w/mod_builtin; part. 1)
@@ -627,11 +663,29 @@ jobs:
         path: lcov-test#4-mod_builtin.info
         key: codecov-cache-test#4-mod_builtin-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/mod_builtin)
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-no_std-mod_builtin.info
-        key: codecov-cache-test-no_std-mod_builtin-${{ github.sha }}
+        path: lcov-test-no_std#1-mod_builtin.info
+        key: codecov-cache-test-no_std#1-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-mod_builtin.info
+        key: codecov-cache-test-no_std#2-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-mod_builtin.info
+        key: codecov-cache-test-no_std#3-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-mod_builtin.info
+        key: codecov-cache-test-no_std#4-mod_builtin-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 1)
@@ -658,11 +712,29 @@ jobs:
         path: lcov-test#4-cairo-0-secp-hints.info
         key: codecov-cache-test#4-cairo-0-secp-hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints)
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-no_std-cairo-0-secp-hints.info
-        key: codecov-cache-test-no_std-cairo-0-secp-hints-${{ github.sha }}
+        path: lcov-test-no_std#1-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#1-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#2-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#3-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#4-cairo-0-secp-hints-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
