@@ -400,7 +400,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Build
       run: cargo b --release -p cairo-vm-cli
-    # We don't read from cache because it should always miss
+    # We don't read from cache because it should always miss
     - name: Store in cache
       uses: actions/cache/save@v3
       with:
