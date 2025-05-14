@@ -5661,6 +5661,42 @@ mod tests {
         assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
     }
 
+    #[test]
+    // TODO(Stav): add another test that checks filling holes in the middle of the segment.
+    fn end_run_fill_middle_holes() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin_hole.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+
+        let end = cairo_runner.initialize(false).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+
+        // Before end run
+        assert!(cairo_runner.vm.segments.memory.data[9][4].is_none());
+
+        assert_matches!(
+            cairo_runner.end_run(false, false, &mut hint_processor),
+            Ok(())
+        );
+
+        // After end run
+        assert!(!cairo_runner.vm.segments.memory.data[9][4].is_none());
+
+        // // Check prover input info
+        let prover_input = cairo_runner
+            .get_prover_input_info()
+            .expect("Failed to get prover input info");
+        assert!(prover_input.relocatable_memory[9][4].is_some());
+        assert!(prover_input.builtins_segments.get(&9) == Some(&BuiltinName::poseidon));
+    }
+
     #[rstest]
     #[case(include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"))]
     #[case(include_bytes!("../../../../cairo_programs/proof_programs/bitwise_output.json"))]
