@@ -13,28 +13,27 @@ def compare_memory_file_contents(cairo_raw_mem, cairo_rs_raw_mem):
     cairo_mem = read_memory_file_contents(cairo_raw_mem)
     cairo_rs_mem = read_memory_file_contents(cairo_rs_raw_mem)
 
-    # TODO(Stav): Uncomment the following lines when moving the logic for filling builtin segment holes into `get_prover_input_info`.
-    # assert len(cairo_mem) == len(cairo_rs_mem), f'len(cairo_mem)={len(cairo_mem)} len(cairo_mem)={len(cairo_rs_mem)}'
-    # if cairo_mem != cairo_rs_mem:
-    #     print(f'Mismatch between cairo_lang and cairo-vm')
-    #     print('keys in cairo_lang but not cairo-vm:')
-    #     for k in cairo_mem:
-    #         if k in cairo_rs_mem:
-    #             continue
-    #     print(f'{k}:{cairo_mem[k]}')
-    #     print('keys in cairo-vm but not cairo_lang:')
-    #     for k in cairo_rs_mem:
-    #         if k in cairo_mem:
-    #             continue
-    #         print(f'{k}:{cairo_rs_mem[k]}')
-    #     print('mismatched values (cairo_lang <-> cairo-vm)):')
-    #     for k in cairo_rs_mem:
-    #         if k not in cairo_mem:
-    #             continue
-    #         if cairo_rs_mem[k] == cairo_mem[k]:
-    #             continue
-    #         print(f'{k}:({cairo_mem[k]} <-> {cairo_rs_mem[k]})')
-    #     exit(1)
+    assert len(cairo_mem) == len(cairo_rs_mem), f'len(cairo_mem)={len(cairo_mem)} len(cairo_mem)={len(cairo_rs_mem)}'
+    if cairo_mem != cairo_rs_mem:
+        print(f'Mismatch between cairo_lang and cairo-vm')
+        print('keys in cairo_lang but not cairo-vm:')
+        for k in cairo_mem:
+            if k in cairo_rs_mem:
+                continue
+        print(f'{k}:{cairo_mem[k]}')
+        print('keys in cairo-vm but not cairo_lang:')
+        for k in cairo_rs_mem:
+            if k in cairo_mem:
+                continue
+            print(f'{k}:{cairo_rs_mem[k]}')
+        print('mismatched values (cairo_lang <-> cairo-vm)):')
+        for k in cairo_rs_mem:
+            if k not in cairo_mem:
+                continue
+            if cairo_rs_mem[k] == cairo_mem[k]:
+                continue
+            print(f'{k}:({cairo_mem[k]} <-> {cairo_rs_mem[k]})')
+        exit(1)
 
 def read_memory_file_contents(raw_mem_content) -> {}:
         mem = {}
