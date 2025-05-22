@@ -5682,7 +5682,7 @@ mod tests {
         assert!(cairo_runner.vm.segments.memory.data[9][4].is_none());
 
         assert_matches!(
-            cairo_runner.end_run(false, false, &mut hint_processor),
+            cairo_runner.end_run(false, false, &mut hint_processor, true),
             Ok(())
         );
 
