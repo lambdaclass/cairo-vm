@@ -74,7 +74,7 @@ jobs:
 
       - name: Install Rust
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: dtolnay/rust-toolchain@1.85.0
+        uses: dtolnay/rust-toolchain@1.86.0
 
       - name: Checkout
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}

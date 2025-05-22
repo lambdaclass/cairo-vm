@@ -159,7 +159,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
       with:
           components: rustfmt, clippy
     - name: Set up cargo cache
@@ -199,7 +199,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -245,7 +245,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -285,7 +285,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -327,7 +327,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
       with:
           components: llvm-tools-preview
     - name: Set up cargo cache
@@ -393,7 +393,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.86.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout

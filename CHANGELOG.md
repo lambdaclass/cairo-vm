@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [2.1.0] - 2025-05-21
+
 * chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
 
 * fix: Use Cairo prime instead of SECP_P in WRITE_DIVMOD_SEGMENT hint [#2078](https://github.com/lambdaclass/cairo-vm/pull/2078)
