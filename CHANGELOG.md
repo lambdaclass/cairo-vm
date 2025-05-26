@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: update Rust required version to 1.87.0  #[2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
+
 #### [3.0.0-rc.1] - 2025-05-08
 
 * chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
