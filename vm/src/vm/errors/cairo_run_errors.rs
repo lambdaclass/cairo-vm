@@ -11,7 +11,6 @@ use crate::vm::errors::{
 // Add it with #[error(transparent)]
 // If not it can cause some performance regressions, like in https://github.com/lambdaclass/cairo-vm/pull/1720
 #[derive(Debug, Error)]
-#[allow(clippy::large_enum_variant)]
 pub enum CairoRunError {
     #[error(transparent)]
     Program(#[from] ProgramError),
