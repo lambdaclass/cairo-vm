@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* chore: update Rust required version to 1.87.0  #[2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
+* chore: update Rust required version to 1.87.0  [#2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
 
 #### [2.1.0] - 2025-05-21
 
