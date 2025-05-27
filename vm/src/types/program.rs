@@ -73,6 +73,12 @@ pub struct SharedProgramData {
     pub reference_manager: Vec<HintReference>,
 }
 
+impl SharedProgramData {
+    pub fn get_main(&self) -> Option<usize> {
+        self.main
+    }
+}
+
 #[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for SharedProgramData {
     /// Create an arbitary [`SharedProgramData`] using `HintsCollection::new` to generate `hints` and
@@ -810,6 +816,27 @@ mod tests {
     fn get_prime() {
         let program = Program::default();
         assert_eq!(PRIME_STR, program.prime());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_main() {
+        let program = Program::default();
+        assert_eq!(None, program.shared_program_data.get_main());
+        let program = Program::new(
+            Vec::new(),
+            Vec::new(),
+            Some(7),
+            HashMap::new(),
+            ReferenceManager {
+                references: Vec::new(),
+            },
+            HashMap::new(),
+            Vec::new(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(Some(7), program.shared_program_data.get_main());
     }
 
     #[test]

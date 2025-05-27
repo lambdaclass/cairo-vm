@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: implement SharedProgramData::get_main() [#2101](https://github.com/lambdaclass/cairo-vm/pull/2101)
+
 #### [2.1.0] - 2025-05-21
 
 * chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
