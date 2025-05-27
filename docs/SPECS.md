@@ -1,0 +1,219 @@
+# Specifications
+
+## Instructions
+### Operations
+Each Cairo instruction represents one of the following operations:
+
+- `AddAP`: Increases the AP register.
+- `AssertEq`: Asserts that two values are equal. Also used to write memory cells.
+- `Call`:  A relative or absolute call.
+- `Jnz`: A conditional jump.
+- `Jump`: An unconditional jump.
+- `Ret`: Returns from a call operation.
+
+However, the binary encoding is not centered around the operation to perform, but around specific aspects of the instruction execution (i.e. how to modify the AP register).
+
+### Encoding
+
+The instruction encoding is specified in the [Cario whitepaper](https://eprint.iacr.org/2021/1063.pdf), page 32.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     off dst (biased representation)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                     off op0 (biased representation)                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                     off op1 (biased representation)                     │
+├─────┬─────┬───────────┬───────┬───────────┬─────────┬──────────────┬────┤
+│ dst │ op0 │  op1 src  │  res  │ pc update │   ap    │    opcode    │ 0  │
+│ reg │ reg │           │ logic │           │ update  │              │    │
+├─────┼─────┼───┬───┬───┼───┬───┼───┬───┬───┼────┬────┼────┬────┬────┼────┤
+│  0  │  1  │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │
+└─────┴─────┴───┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┘
+```
+The figure shows the structure of the 63-bit that form the first word of each instruction.
+- The bits are ordered in a little-endian-like encoding, this implies that `off_dst` is located at bits `[0;15]`, while `dst_reg` is located at bit `48`.
+- The last bit (`63`) is unused.
+- **TODO**: document the opcode extensions.
+
+Each sets of fields determine different aspects of the instruction execution:
+- `off_op0`, `off_op1`, `op0_reg`, `op1_src` determine the location of each operand.
+- `off_dst`, `dst_reg` determine the location of the destionation.
+- `res_logic` determine which operation to compute with the operands.
+- `pc_update` determines how the PC register is updated.
+- `ap_update` determines how the AP register is updated.
+- `opcode` determines both how the FP register is updated, and how some memory cell values are deduced.
+
+> [!NOTE]
+> In our VM:
+> off0 = off_dst
+> off1 = off_op0
+> off2 = off_op1
+
+### Auxiliary Variables
+
+The instruction execution uses four auxiliary variables, that can be computed from the memory values, and the instruction fields:
+- `dst`: Destination.
+- `op0`: First operand.
+- `op1`: Second operand.
+- `res`: Operation result.
+
+Depending on the instruction, the values of `dst`, `op0` and `op1` may be unknown at the start of execution, and will be deduced during it.
+
+### Computing `dst`
+
+The value of `dst` is computed as the value at address `register + off_dst`, where `register` depends on the value of `dst_reg`:
+- `dst_reg == 0`: We use `AP`.
+- `dst_reg == 1`: We use `FP`.
+
+If the value at the specified address is undefined, then it must be deduced instead.
+
+### Computing `op0`
+
+The value of `op0` is computed as the value at address `register + off_op0`, where `register` depends on the value of `op0_reg`:
+- `op0_reg == 0`: We use `AP`
+- `op0_reg == 1`: We use `FP`.
+
+If the value at the specified address is undefined, then it must be deduced instead.
+
+### Computing `op1`
+
+The value of `op1` is computed as the value at address `base + off_op1`, where `base` depends on the value of `op1_src`:
+- `op1_src == 0`: We use `op0`.
+- `op1_src == 1`: We use `pc`.
+- `op1_src == 2`: We use `FP`.
+- `op1_src == 4`: We use `AP`.
+- Otherwise: The instruction is invalid.
+
+If the value at the specified address is undefined, then it must be deduced instead.
+
+> [!NOTE]
+> When `op1_src == 1` we must assert that off_op1 == 1, so that op1 is an immediate value. This constraint is not specified in the whitepaper, but enforced by our VM.
+
+### Computing `res`
+
+The variable `res` computation depends on `res_logic`.
+- `res_logic == 0`:  We set `res = op1`.
+- `res_logic == 1`:  We set `res = op0 + op1`.
+- `res_logic == 2`:  We set `res = op0 * op1`.
+- Otherwise: The instruction is invalid.
+
+> [!NOTE] 
+> The value of `res` won’t always be used. For example, it won’t be used when `pc_update == 4`.
+
+### Additional Constraints
+
+1. When `opcode == 1` (Call), the following conditions must be met:
+- `off_dst == 0`
+- `dst_reg == AP`
+- `off_op0 == 1`
+- `op0_reg == AP`
+- `ap_update == 0` (add 2) 
+
+2. When `opcode == 2` (Return), the following conditions must be met:
+- `off_dst == -2`
+- `dst_reg == FP`
+- `off_op1 == -1`
+- `op1_src == FP`
+- `res_logic == 0` (op1)
+- `pc_update == 1` (absolute jump)
+
+
+> [!NOTE]
+> These constraints are not specified in the whitepaper, but enforced by our VM. If
+> they are not met, then the instruction is **invalid**.
+
+### Deductions
+
+Some values may be undefined because the associated memory locations haven’t been set. In this case, they must be *deduced*, or *asserted*. 
+
+An **assertion** verifies that two values are equal. This implies deducing one of the values if its undefined. When deducing a value, the corresponding memory cell must be updated with the deduced value.
+
+If the memory cell corresponds to a builtin segment, the associated builtin runner should be used to assert the value of that memory cell.
+
+Otherwise, the value will be deduced based on the `opcode`. There are 4 different types of operations:
+
+- `opcode == 0`: A no-op (no operation).
+- `opcode == 1`: A call operation.
+    - Asserts that `op0 == pc + instruction_size`.
+    - Asserts that `dst == fp`.
+- `opcode == 2`: A ret operation.
+- `opcode == 3`: An assert equal operation.
+    - Asserts that `dst == res`. This may imply deducing `op0` value so that `res == dst`, by performing the inverse operation.
+
+The `instruction_size` is always `1`, unless `op1` is an immediate, in which case it will be `2`.
+
+
+> [!NOTE]
+> If a value is undefined and cannot be deduced, the instruction execution must fail.
+> This constraint is not specified in the whitepaper, but enforced by our VM.
+
+### Updating Registers
+
+At the end of the execution, the registers must be updated according to the instruction flags.
+
+### Updating the PC
+
+The updated PC will be denoted by `next_pc`.
+
+When updating the program counter, we depend primarily on the `pc_update` field:
+- `pc_update == 0`: Advance program counter.
+    - Set `next_pc = pc + instruction_size`.
+- `pc_update == 1`: Absolute jump.
+    - Set `next_pc = res`.
+- `pc_update == 2`: Relative jump.
+    - Set `next_pc = pc + res`.
+- `pc_update == 4`: Conditional relative jump.
+    - If `dst == 0`: Set `next_pc = pc + instruction_size`.
+    - If `dst != 0`: Set `next_pc = pc + op1`.
+- Otherwise: The instruction is invalid.
+
+Additionally, when `pc_update == 4`, the following conditions must be met:
+
+- `res_logic == 0`. (op1)
+- `opcode == 0`. (no-op)
+- `ap_update != 1`. (add res)
+
+Otherwise: The instruction is invalid.
+
+> [!NOTE]
+> In our VM:
+> `new_pc` = `next_pc`
+
+### Updating the AP
+
+The updated AP will be denoted by `next_ap`.
+
+When updating the allocation pointer, we depend primarily on the `ap_update` field, but also on the current operation:
+
+- If the `opcode` is *call*, then we must assert that `ap_update == 0`:
+    - Set `next_ap = ap + 2`
+- Else, depending on `ap_update`.
+    - `ap_update == 0`: Set `next_ap = ap`
+    - `ap_update == 1`: Set `next_ap = ap + res`
+    - `ap_update == 2`: Set `next_ap = ap + 1`
+- Otherwise: The instruction is invalid.
+
+> [!NOTE]
+> In our VM:
+> `new_apset` = `next_ap`
+
+### Updating the FP
+
+The updated FP will be denoted by `next_fp`.
+
+When updating the frame pointer, we depend on the `opcode`:
+
+- `opcode == 0`: A no-op (no operation).
+    - Set `next_fp = fp`.
+- `opcode == 1`: A call operation.
+    - Set `next_fp = ap + 2`.
+- `opcode == 2`: A return operation.
+    - Set `next_fp = dst`.
+- `opcode == 3`: An assert equal operation.
+    - Set `next_fp = fp`.
+- Otherwise: The instruction is invalid.
+
+> [!NOTE]
+> In our VM:
+> `new_fp_offset` = `next_fp`
