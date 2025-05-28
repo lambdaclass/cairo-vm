@@ -947,6 +947,17 @@ impl VirtualMachine {
         self.segments.memory.insert_value(key, val)
     }
 
+    /// Removes (unsets) a value from a memory cell that was not accessed by the VM.
+    ///
+    /// This function can be used to implement lazy opening of merkelized contracts. The full
+    /// program is initially loaded into memory via a hint. After execution, any entry points to
+    /// contract segments that were not accessed are replaced with an invalid opcode.
+    ///
+    /// [Use case](https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/core/os/contract_class/compiled_class.cairo#L244-L253)
+    pub fn delete_unaccessed(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
+        self.segments.memory.delete_unaccessed(addr)
+    }
+
     ///Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
@@ -4731,6 +4742,84 @@ mod tests {
         .expect("Could not load data into memory.");
 
         assert_eq!(vm.segments.compute_effective_sizes(), &vec![4]);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_delete_unaccessed() {
+        let mut vm = vm!();
+
+        let segment0 = vm.segments.add();
+        let segment1 = vm.segments.add();
+        let segment2 = vm.segments.add();
+        let segment3 = vm.segments.add();
+        let tmp_segment = vm.add_temporary_segment();
+        assert_eq!(segment0.segment_index, 0);
+        assert_eq!(segment1.segment_index, 1);
+        assert_eq!(segment2.segment_index, 2);
+        assert_eq!(segment3.segment_index, 3);
+        assert_eq!(tmp_segment.segment_index, -1);
+        vm.segments.memory = memory![
+            ((0, 1), 1),
+            ((1, 0), 3),
+            ((1, 1), 4),
+            ((2, 0), 7),
+            ((3, 0), 7),
+            ((-1, 0), 5),
+            ((-1, 1), 5),
+            ((-1, 2), 5)
+        ];
+        vm.run_finished = true;
+
+        vm.mark_address_range_as_accessed((2, 0).into(), 1).unwrap();
+
+        let cell0 = Relocatable::from((0, 0));
+        let cell1 = Relocatable::from((1, 1));
+        let cell2 = Relocatable::from((2, 0));
+        let cell3 = Relocatable::from((3, 7));
+        let cell7 = Relocatable::from((7, 17));
+        let cell_tmp = Relocatable::from((-1, 1));
+        vm.delete_unaccessed(cell0).unwrap();
+        vm.delete_unaccessed(cell1).unwrap();
+        vm.delete_unaccessed(cell_tmp).unwrap();
+
+        // Check that the cells were set to NONE.
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell0)
+            .unwrap()
+            .is_none());
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell1)
+            .unwrap()
+            .is_none());
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell_tmp)
+            .unwrap()
+            .is_none());
+        // Segment 3 cell was out of offset range, so it should not be modified or allocated.
+        assert!(vm.segments.memory.get_cell_for_testing(cell3).is_none());
+        // Segment 2 cell was accessed, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell2).unwrap_err(),
+            MemoryError::UnsetAccessedCell(relocatable) if relocatable == cell2
+        );
+        // Segment 3 is unallocated, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell3).unwrap_err(),
+            MemoryError::UnsetUnallocatedCell(relocatable) if relocatable == cell3
+        );
+        // Segment 7 was not allocated, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell7).unwrap_err(),
+            MemoryError::UnallocatedSegment(boxed)
+            if *boxed == (cell7.segment_index.try_into().unwrap(), vm.segments.memory.data.len())
+        );
     }
 
     #[test]

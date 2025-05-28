@@ -15,6 +15,10 @@ use crate::types::{
 
 #[derive(Debug, PartialEq, Error)]
 pub enum MemoryError {
+    #[error("Cell {0} has already been accessed; it cannot be removed.")]
+    UnsetAccessedCell(Relocatable),
+    #[error("Cell {0} is not allocated; it cannot be removed.")]
+    UnsetUnallocatedCell(Relocatable),
     #[error(transparent)]
     Math(#[from] MathError),
     #[error(transparent)]
