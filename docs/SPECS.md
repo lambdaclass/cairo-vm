@@ -1,7 +1,7 @@
 # Specifications
 
 ## Instructions
-### Operations
+## Operations
 Each Cairo instruction represents one of the following operations:
 
 - `AddAP`: Increases the AP register.
@@ -13,7 +13,7 @@ Each Cairo instruction represents one of the following operations:
 
 However, the binary encoding is not centered around the operation to perform, but around specific aspects of the instruction execution (i.e. how to modify the AP register).
 
-### Encoding
+## Encoding
 
 The instruction encoding is specified in the [Cario whitepaper](https://eprint.iacr.org/2021/1063.pdf), page 32.
 
@@ -46,11 +46,11 @@ Each sets of fields determine different aspects of the instruction execution:
 
 > [!NOTE]
 > In our VM:
-> off0 = off_dst
-> off1 = off_op0
-> off2 = off_op1
+> - `off0` = `off_dst`
+> - `off1` = `off_op0`
+> - `off2` = `off_op1`
 
-### Auxiliary Variables
+## Auxiliary Variables
 
 The instruction execution uses four auxiliary variables, that can be computed from the memory values, and the instruction fields:
 - `dst`: Destination.
@@ -88,7 +88,7 @@ The value of `op1` is computed as the value at address `base + off_op1`, where `
 If the value at the specified address is undefined, then it must be deduced instead.
 
 > [!NOTE]
-> When `op1_src == 1` we must assert that off_op1 == 1, so that op1 is an immediate value. This constraint is not specified in the whitepaper, but enforced by our VM.
+> When `op1_src == 1` we must assert that `off_op1 == 1`, so that `op1` is an immediate value. This constraint is not specified in the whitepaper, but enforced by our VM.
 
 ### Computing `res`
 
@@ -101,7 +101,7 @@ The variable `res` computation depends on `res_logic`.
 > [!NOTE] 
 > The value of `res` won’t always be used. For example, it won’t be used when `pc_update == 4`.
 
-### Additional Constraints
+## Additional Constraints
 
 1. When `opcode == 1` (Call), the following conditions must be met:
 - `off_dst == 0`
@@ -123,7 +123,7 @@ The variable `res` computation depends on `res_logic`.
 > These constraints are not specified in the whitepaper, but enforced by our VM. If
 > they are not met, then the instruction is **invalid**.
 
-### Deductions
+## Deductions
 
 Some values may be undefined because the associated memory locations haven’t been set. In this case, they must be *deduced*, or *asserted*. 
 
@@ -148,7 +148,7 @@ The `instruction_size` is always `1`, unless `op1` is an immediate, in which cas
 > If a value is undefined and cannot be deduced, the instruction execution must fail.
 > This constraint is not specified in the whitepaper, but enforced by our VM.
 
-### Updating Registers
+## Updating Registers
 
 At the end of the execution, the registers must be updated according to the instruction flags.
 
