@@ -4,6 +4,10 @@
 
 * chore: update Rust required version to 1.87.0  [#2103](https://github.com/lambdaclass/cairo-vm/pull/2103)
 
+* feat: implemented delete_unaccessed function [#2099](https://github.com/lambdaclass/cairo-vm/pull/2099)
+
+* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+
 #### [2.1.0] - 2025-05-21
 
 * chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
