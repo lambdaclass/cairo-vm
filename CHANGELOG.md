@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [2.2.0] - 2025-05-28
+
 * chore: update Rust required version to 1.87.0  [#2103](https://github.com/lambdaclass/cairo-vm/pull/2103)
 
 * feat: implemented delete_unaccessed function [#2099](https://github.com/lambdaclass/cairo-vm/pull/2099)
