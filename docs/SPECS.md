@@ -34,7 +34,6 @@ The instruction encoding is specified in the [Cario whitepaper](https://eprint.i
 The figure shows the structure of the 63-bit that form the first word of each instruction.
 - The bits are ordered in a little-endian-like encoding, this implies that `off_dst` is located at bits `[0;15]`, while `dst_reg` is located at bit `48`.
 - The last bit (`63`) is unused.
-- **TODO**: document the opcode extensions.
 
 Each sets of fields determine different aspects of the instruction execution:
 - `off_op0`, `off_op1`, `op0_reg`, `op1_src` determine the location of each operand.
@@ -49,6 +48,39 @@ Each sets of fields determine different aspects of the instruction execution:
 > - `off0` = `off_dst`
 > - `off1` = `off_op0`
 > - `off2` = `off_op1`
+
+## Opcode Extensions
+
+With the realease of Stwo, a new field was introduced named `opcode_extension`. Execution of instructions vary depending on its extension. The 4 types are `Stone`, `Blake`, `BlakeFinalize` and `QM310`.
+
+> [!NOTE]
+> These are not specified on the whitepaper
+
+### Stone
+
+This type is used when `opcode_extension == 0`. Its does not add new behaviour since its the original extension
+
+### Blake & BlakeFinalize
+
+Blake is used when `opcode_extension == 1` and BlakeFinalize is used when `opcode_extension == 2` and they have some constraints, if these are not met while having one of the the blake extensions, the instructions becomes invalid:
+- `opcode == 0` (no operation)
+- `op1_src == 2` (FP) or `op1_src == 4` (AP)
+- `res_logic == 0` (op1)
+- `pc_update == 0` (Regular)
+- `ap_update == 0` (Regular) || `ap_update == 2` (Add1)
+
+After checking the constraints, if we are working with a `Blake` extension the blake2 algorithm is applied. The operands are contained as follows:
+- `op0_addr` points to a sequence of 8  -> represents a state
+- `op1_addr` points to a sequence of 16 felts -> represents a message
+- `dst_addr` holds the value of the counter
+- `ap` points to a sequence of 8 cells which each should either be uninitialised or already contain a value matching that of the output
+
+The output consists of 8 felts that represent the output of the Blake2s compression.
+
+On the other side, if we are working with the `BlakeFinalize` extension the operands are the same as with `Blake` with only one change:
+- `op0_addr` points to a sequence of 9 felts -> first 8 felts represent the state the last one represents the state
+
+The out here represents the Blake2s compression of the last block.
 
 ## Auxiliary Variables
 
