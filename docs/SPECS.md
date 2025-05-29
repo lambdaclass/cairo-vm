@@ -51,7 +51,7 @@ Each sets of fields determine different aspects of the instruction execution:
 
 ## Opcode Extensions
 
-With the realease of Stwo, a new field was introduced named `opcode_extension`. Execution of instructions vary depending on its extension. The 4 types are `Stone`, `Blake`, `BlakeFinalize` and `QM310`.
+With the realease of Stwo, a new field was introduced named `opcode_extension`. Execution of instructions vary depending on its extension. The 4 types are `Stone`, `Blake`, `BlakeFinalize` and `QM31Operation`.
 
 > [!NOTE]
 > These are not specified on the whitepaper
@@ -81,6 +81,14 @@ On the other side, if we are working with the `BlakeFinalize` extension the oper
 - `op0_addr` points to a sequence of 9 felts -> first 8 felts represent the state the last one represents the state
 
 The out here represents the Blake2s compression of the last block.
+
+### QM31
+
+In this case, when `opcode_extension == 3` we are working with the `QM31Operation` which changes how the arithmetic (add, mul, sub, div) works on the VM by doing it with QM31 elements in reduced form. Again there are some constraints, if these are not met the instruction becomes invalid:
+- `res_logic == 1` (Add) || `res_logic == 2` (Mul)
+- `op1_src != 0` (Op0)
+- `pc_update == 0` (Regular)
+- `ap_update == 0` (Regular) || `ap_update == 2` (Add1)
 
 ## Auxiliary Variables
 
