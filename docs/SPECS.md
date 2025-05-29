@@ -208,14 +208,6 @@ When updating the program counter, we depend primarily on the `pc_update` field:
     - If `dst != 0`: Set `next_pc = pc + op1`.
 - Otherwise: The instruction is invalid.
 
-Additionally, when `pc_update == 4`, the following conditions must be met:
-
-- `res_logic == 0`. (op1)
-- `opcode == 0`. (no-op)
-- `ap_update != 1`. (add res)
-
-Otherwise: The instruction is invalid.
-
 > [!NOTE]
 > In our VM:
 > `new_pc` = `next_pc`
