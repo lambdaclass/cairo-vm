@@ -923,10 +923,19 @@ mod tests {
             ),
             Ok(x) if x == mayberelocatable!(0, 0)
         );
+        assert_eq!(
+            memory_segment_manager.memory.data[0],
+            vec![
+                MemoryCell::new(MaybeRelocatable::from((0, 0))),
+                MemoryCell::new(MaybeRelocatable::from((0, 1))),
+                MemoryCell::new(MaybeRelocatable::from((0, 2))),
+                MemoryCell::new(MaybeRelocatable::from((0, 3))),
+            ],
+        );
     }
 
     /// Test that call to .gen_arg() with a Vec<Relocatable> writes its
-    /// contentsinto a new segment and returns a pointer to it.
+    /// contents into a new segment and returns a pointer to it.
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn gen_arg_vec_relocatables() {
@@ -942,6 +951,15 @@ mod tests {
                 ],
             ),
             Ok(x) if x == mayberelocatable!(0, 0)
+        );
+        assert_eq!(
+            memory_segment_manager.memory.data[0],
+            vec![
+                MemoryCell::new(MaybeRelocatable::from((0, 0))),
+                MemoryCell::new(MaybeRelocatable::from((0, 1))),
+                MemoryCell::new(MaybeRelocatable::from((0, 2))),
+                MemoryCell::new(MaybeRelocatable::from((0, 3))),
+            ],
         );
     }
 
