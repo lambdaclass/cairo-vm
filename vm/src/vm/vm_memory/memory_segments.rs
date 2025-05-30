@@ -700,6 +700,18 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn is_valid_memory_value_felt() {
+        let mut segment_manager = MemorySegmentManager::new();
+
+        segment_manager.segment_used_sizes = Some(vec![10]);
+        assert_eq!(
+            segment_manager.is_valid_memory_value(&mayberelocatable!(1)),
+            Ok(true),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_missing_segment_used_sizes() {
         let mut memory_segment_manager = MemorySegmentManager::new();
         memory_segment_manager.memory = memory![((0, 0), 0)];
