@@ -800,36 +800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cairo-lang-starknet"
-version = "2.12.0-dev.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9fa502787b9024015622d9f617a89504af6f50729fee8fb7a0be1f03b679f3b"
-dependencies = [
- "anyhow",
- "cairo-lang-compiler",
- "cairo-lang-defs",
- "cairo-lang-diagnostics",
- "cairo-lang-filesystem",
- "cairo-lang-lowering",
- "cairo-lang-plugins",
- "cairo-lang-semantic",
- "cairo-lang-sierra",
- "cairo-lang-sierra-generator",
- "cairo-lang-starknet-classes",
- "cairo-lang-syntax",
- "cairo-lang-utils",
- "const_format",
- "indent",
- "indoc",
- "itertools 0.14.0",
- "serde",
- "serde_json",
- "smol_str",
- "starknet-types-core",
- "thiserror",
-]
-
-[[package]]
 name = "cairo-lang-starknet-classes"
 version = "2.12.0-dev.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -921,14 +891,12 @@ dependencies = [
  "bincode 2.0.1",
  "bitvec",
  "cairo-lang-casm",
- "cairo-lang-starknet",
  "cairo-lang-starknet-classes",
  "clap",
  "criterion",
  "generic-array",
  "getrandom 0.2.16",
  "hashbrown 0.15.3",
- "hex",
  "iai-callgrind",
  "indoc",
  "keccak",
@@ -982,7 +950,6 @@ dependencies = [
  "serde",
  "thiserror",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
