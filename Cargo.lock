@@ -932,7 +932,6 @@ dependencies = [
  "cairo-vm-tracer",
  "clap",
  "mimalloc",
- "nom",
  "rstest",
  "thiserror",
 ]
@@ -3571,7 +3570,6 @@ version = "3.0.0-rc.1"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
- "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
