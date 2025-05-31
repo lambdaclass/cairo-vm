@@ -3571,7 +3571,6 @@ dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
  "wasm-bindgen",
- "wasm-bindgen-test",
 ]
 
 [[package]]
