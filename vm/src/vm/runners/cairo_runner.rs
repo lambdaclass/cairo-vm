@@ -4989,7 +4989,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-
     fn filter_unused_builtins_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/integration.json"),

@@ -479,15 +479,15 @@ impl ModBuiltinRunner {
 
     /// NOTE: It is advisable to use VirtualMachine::mod_builtin_fill_memory instead of this method directly
     /// when implementing hints to avoid cloning the runners
-
+    ///
     /// Fills the memory with inputs to the builtin instances based on the inputs to the
     /// first instance, pads the offsets table to fit the number of operations writen in the
     /// input to the first instance, and caculates missing values in the values table.
-
+    ///
     /// For each builtin, the given tuple is of the form (builtin_ptr, builtin_runner, n),
     /// where n is the number of operations in the offsets table (i.e., the length of the
     /// offsets table is 3*n).
-
+    ///
     /// The number of operations written to the input of the first instance n' should be at
     /// least n and a multiple of batch_size. Previous offsets are copied to the end of the
     /// offsets table to make its length 3n'.
