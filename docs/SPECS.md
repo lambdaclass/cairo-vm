@@ -1,7 +1,7 @@
 # Specifications
 
 ## Instructions
-## Operations
+### Operations
 Each Cairo instruction represents one of the following operations:
 
 - `AddAP`: Increases the AP register.
@@ -13,7 +13,7 @@ Each Cairo instruction represents one of the following operations:
 
 However, the binary encoding is not centered around the operation to perform, but around specific aspects of the instruction execution (i.e. how to modify the AP register).
 
-## Encoding
+### Encoding
 
 The instruction encoding is specified in the [Cario whitepaper](https://eprint.iacr.org/2021/1063.pdf), page 32.
 
@@ -49,18 +49,18 @@ Each sets of fields determine different aspects of the instruction execution:
 > - `off1` = `off_op0`
 > - `off2` = `off_op1`
 
-## Opcode Extensions
+### Opcode Extensions
 
 With the realease of Stwo, a new field was introduced named `opcode_extension`. Execution of instructions vary depending on its extension. The 4 types are `Stone`, `Blake`, `BlakeFinalize` and `QM31Operation`.
 
 > [!NOTE]
 > These are not specified on the whitepaper
 
-### Stone
+#### Stone
 
 This type is used when `opcode_extension == 0`. Its does not add new behaviour since its the original extension
 
-### Blake & BlakeFinalize
+#### Blake & BlakeFinalize
 
 Blake is used when `opcode_extension == 1` and BlakeFinalize is used when `opcode_extension == 2` and they have some constraints, if these are not met while having one of the the blake extensions, the instructions becomes invalid:
 - `opcode == 0` (no operation)
@@ -82,7 +82,7 @@ On the other side, if we are working with the `BlakeFinalize` extension the oper
 
 The out here represents the Blake2s compression of the last block.
 
-### QM31
+#### QM31
 
 In this case, when `opcode_extension == 3` we are working with the `QM31Operation` which changes how the arithmetic (add, mul, sub, div) works on the VM by doing it with QM31 elements in reduced form. Again there are some constraints, if these are not met the instruction becomes invalid:
 - `res_logic == 1` (Add) || `res_logic == 2` (Mul)
@@ -90,7 +90,7 @@ In this case, when `opcode_extension == 3` we are working with the `QM31Operatio
 - `pc_update == 0` (Regular)
 - `ap_update == 0` (Regular) || `ap_update == 2` (Add1)
 
-## Auxiliary Variables
+### Auxiliary Variables
 
 The instruction execution uses four auxiliary variables, that can be computed from the memory values, and the instruction fields:
 - `dst`: Destination.
@@ -100,7 +100,7 @@ The instruction execution uses four auxiliary variables, that can be computed fr
 
 Depending on the instruction, the values of `dst`, `op0` and `op1` may be unknown at the start of execution, and will be deduced during it.
 
-### Computing `dst`
+#### Computing `dst`
 
 The value of `dst` is computed as the value at address `register + off_dst`, where `register` depends on the value of `dst_reg`:
 - `dst_reg == 0`: We use `AP`.
@@ -108,7 +108,7 @@ The value of `dst` is computed as the value at address `register + off_dst`, whe
 
 If the value at the specified address is undefined, then it must be deduced instead.
 
-### Computing `op0`
+#### Computing `op0`
 
 The value of `op0` is computed as the value at address `register + off_op0`, where `register` depends on the value of `op0_reg`:
 - `op0_reg == 0`: We use `AP`
@@ -116,7 +116,7 @@ The value of `op0` is computed as the value at address `register + off_op0`, whe
 
 If the value at the specified address is undefined, then it must be deduced instead.
 
-### Computing `op1`
+#### Computing `op1`
 
 The value of `op1` is computed as the value at address `base + off_op1`, where `base` depends on the value of `op1_src`:
 - `op1_src == 0`: We use `op0`.
@@ -130,7 +130,7 @@ If the value at the specified address is undefined, then it must be deduced inst
 > [!NOTE]
 > When `op1_src == 1` we must assert that `off_op1 == 1`, so that `op1` is an immediate value. This constraint is not specified in the whitepaper, but enforced by our VM.
 
-### Computing `res`
+#### Computing `res`
 
 The variable `res` computation depends on `res_logic`.
 - `res_logic == 0`:  We set `res = op1`.
@@ -141,7 +141,7 @@ The variable `res` computation depends on `res_logic`.
 > [!NOTE] 
 > The value of `res` won’t always be used. For example, it won’t be used when `pc_update == 4`.
 
-## Additional Constraints
+### Additional Constraints
 
 1. When `opcode == 1` (Call), the following conditions must be met:
 - `off_dst == 0`
@@ -163,7 +163,7 @@ The variable `res` computation depends on `res_logic`.
 > These constraints are not specified in the whitepaper, but enforced by our VM. If
 > they are not met, then the instruction is **invalid**.
 
-## Deductions
+### Deductions
 
 Some values may be undefined because the associated memory locations haven’t been set. In this case, they must be *deduced*, or *asserted*. 
 
@@ -188,11 +188,11 @@ The `instruction_size` is always `1`, unless `op1` is an immediate, in which cas
 > If a value is undefined and cannot be deduced, the instruction execution must fail.
 > This constraint is not specified in the whitepaper, but enforced by our VM.
 
-## Updating Registers
+### Updating Registers
 
 At the end of the execution, the registers must be updated according to the instruction flags.
 
-### Updating the PC
+#### Updating the PC
 
 The updated PC will be denoted by `next_pc`.
 
@@ -212,7 +212,7 @@ When updating the program counter, we depend primarily on the `pc_update` field:
 > In our VM:
 > `new_pc` = `next_pc`
 
-### Updating the AP
+#### Updating the AP
 
 The updated AP will be denoted by `next_ap`.
 
@@ -230,7 +230,7 @@ When updating the allocation pointer, we depend primarily on the `ap_update` fie
 > In our VM:
 > `new_apset` = `next_ap`
 
-### Updating the FP
+#### Updating the FP
 
 The updated FP will be denoted by `next_fp`.
 
