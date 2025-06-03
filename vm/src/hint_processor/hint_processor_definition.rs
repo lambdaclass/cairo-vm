@@ -43,11 +43,14 @@ pub trait HintProcessorLogic {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &[HintReference],
+        // List of accessible scopes in the hint
+        accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
+            accessible_scopes: accessible_scopes.to_vec(),
         }))
     }
 
