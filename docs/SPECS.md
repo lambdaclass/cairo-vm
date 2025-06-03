@@ -254,3 +254,13 @@ When updating the frame pointer, we depend on the `opcode`:
 > [!NOTE]
 > In our VM:
 > `new_fp_offset` = `next_fp`
+
+## Memory Model
+
+### Nondeterministic Memory
+
+Cairo VM uses a Nondeterministic Read-Only memory model. This means - the prover chooses all the values of the memory, and the memory is immutable. The Cairo program may only read from it - Cairo Whitepaper section 2.6. 
+
+### Memory Layout
+
+Requirement 1: given a pair of accessed memory addresses *x and y*, any address *a* which satisfies that *x < a < y* must have also been accessed. This implies that any given set of accessed memory addresses must be contiguous.
