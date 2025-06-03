@@ -1307,7 +1307,6 @@ mod tests {
 
     /// Used for the QM31 tests
     #[cfg(feature = "std")]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[derive(Clone, Copy, Debug)]
     enum Configuration {
         Zero,
@@ -1318,7 +1317,6 @@ mod tests {
 
     /// Necessary strat to use proptest on the QM31 test
     #[cfg(feature = "std")]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn configuration_strat() -> BoxedStrategy<Configuration> {
         prop_oneof![
             Just(Configuration::Zero),
