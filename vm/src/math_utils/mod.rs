@@ -621,7 +621,7 @@ mod tests {
     use num_prime::RandPrime;
 
     #[cfg(feature = "std")]
-    use proptest::prelude::*;
+    use proptest::{array::uniform4, prelude::*};
 
     // Only used in proptest for now
     #[cfg(feature = "std")]
@@ -1307,7 +1307,7 @@ mod tests {
 
     /// Used for the QM31 tests
     #[cfg(feature = "std")]
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Configuration {
         Zero,
         One,
@@ -1332,9 +1332,12 @@ mod tests {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn qm31_packed_reduced_inv_extensive(a in configuration_strat(), b in configuration_strat(), c in configuration_strat(), d in configuration_strat()) {
+        fn qm31_packed_reduced_inv_extensive(configs in uniform4(configuration_strat())
+                                                            .prop_filter("All configs cant be Zero variant",
+                                                            |arr| arr.iter().all(|x| *x == Configuration::Zero))
+        ) {
             let mut rng = SmallRng::seed_from_u64(11480028852697973135);
-            let x_coordinates: [u64; 4] = [a,b,c,d].map(|x| match x {
+            let x_coordinates: [u64; 4] = configs.map(|x| match x {
                     Configuration::Zero => 0,
                     Configuration::One => 1,
                     Configuration::MinusOne => STWO_PRIME - 1,
