@@ -1014,13 +1014,22 @@ impl CairoRunner {
     pub fn get_builtin_segments_info(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
         let mut builtin_segment_info = Vec::new();
 
+        let proof_mode = self.is_proof_mode();
+
         for builtin in &self.vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((
-                index,
-                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
-            ));
+            if proof_mode {
+                // proof‐mode: only push if `stop_ptr` is Some
+                if let Some(stop_ptr) = stop_ptr {
+                    builtin_segment_info.push((index, stop_ptr));
+                }
+            } else {
+                // non‐proof mode: error if `stop_ptr` is None
+                let stop_ptr =
+                    stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?;
+                builtin_segment_info.push((index, stop_ptr));
+            }
         }
 
         Ok(builtin_segment_info)
