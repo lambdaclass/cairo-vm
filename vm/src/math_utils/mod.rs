@@ -1286,56 +1286,6 @@ mod tests {
         assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
     }
 
-    // TODO: Refactor using proptest and separating particular cases
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_qm31_packed_reduced_inv_extensive() {
-        let mut rng = SmallRng::seed_from_u64(11480028852697973135);
-        #[derive(Clone, Copy)]
-        enum Configuration {
-            Zero,
-            One,
-            MinusOne,
-            Random,
-        }
-        let configurations = [
-            Configuration::Zero,
-            Configuration::One,
-            Configuration::MinusOne,
-            Configuration::Random,
-        ];
-        let mut cartesian_product = vec![];
-        for &a in &configurations {
-            for &b in &configurations {
-                for &c in &configurations {
-                    for &d in &configurations {
-                        cartesian_product.push([a, b, c, d]);
-                    }
-                }
-            }
-        }
-
-        for test_case in cartesian_product {
-            let x_coordinates: [u64; 4] = test_case
-                .iter()
-                .map(|&x| match x {
-                    Configuration::Zero => 0,
-                    Configuration::One => 1,
-                    Configuration::MinusOne => STWO_PRIME - 1,
-                    Configuration::Random => rng.gen_range(0..STWO_PRIME),
-                })
-                .collect::<Vec<u64>>()
-                .try_into()
-                .unwrap();
-            if x_coordinates == [0, 0, 0, 0] {
-                continue;
-            }
-            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-            let res = qm31_packed_reduced_inv(x).unwrap();
-            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-        }
-    }
-
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_qm31_packed_reduced_div() {
@@ -1354,6 +1304,7 @@ mod tests {
     }
 
     /// Used for the QM31 tests
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[derive(Clone, Copy, Debug)]
     enum Configuration {
         Zero,
@@ -1363,6 +1314,7 @@ mod tests {
     }
 
     /// Necessary strat to use proptest on the QM31 test
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn configuration_strat() -> BoxedStrategy<Configuration> {
         prop_oneof![
             Just(Configuration::Zero),
@@ -1377,6 +1329,7 @@ mod tests {
     proptest! {
 
         #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn qm31_packed_reduced_inv_extensive(a in configuration_strat(), b in configuration_strat(), c in configuration_strat(), d in configuration_strat()) {
             let mut rng = SmallRng::seed_from_u64(11480028852697973135);
             let x_coordinates: [u64; 4] = [a,b,c,d].map(|x| match x {
