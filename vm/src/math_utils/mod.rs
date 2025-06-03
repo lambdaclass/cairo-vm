@@ -1332,6 +1332,17 @@ mod tests {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn qm31_packed_reduced_inv_random(x_coordinates in uniform4(0u64..STWO_PRIME)
+                                                            .prop_filter("All configs cant be Zero variant",
+                                                            |arr| !arr.iter().all(|x| *x == 0))
+        ) {
+            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+            let res = qm31_packed_reduced_inv(x).unwrap();
+            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn qm31_packed_reduced_inv_extensive(configs in uniform4(configuration_strat())
                                                             .prop_filter("All configs cant be Zero variant",
                                                             |arr| !arr.iter().all(|x| *x == Configuration::Zero))
