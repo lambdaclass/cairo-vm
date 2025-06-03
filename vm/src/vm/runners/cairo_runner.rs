@@ -59,6 +59,11 @@ use super::{
 };
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
+type ProcessBuiltinSegmentClosure<'a> = Box<
+    dyn FnMut(usize, Option<usize>, BuiltinName) -> Result<Option<(usize, usize)>, RunnerError>
+        + 'a,
+>;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
     Single(MaybeRelocatable),
@@ -1012,15 +1017,31 @@ impl CairoRunner {
     // Returns a map from builtin base's segment index to stop_ptr offset
     // Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segments_info(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
-        let mut builtin_segment_info = Vec::new();
+        let proof_mode = self.is_proof_mode();
 
+        // Closure to process each builtin's segment info based on whether we are in proof mode or not.
+        let mut process: ProcessBuiltinSegmentClosure<'_> = if proof_mode {
+            Box::new(|index, stop_ptr, _name| {
+                // In proof‐mode there are builtin runners for all builtins, but only the ones that
+                // are in the program and the layout point to a segment (so `stop_ptr` is set).
+                // Only collect those and silently ignore the rest.
+                Ok(stop_ptr.map(|sp| (index, sp)))
+            })
+        } else {
+            Box::new(|index, stop_ptr, name| {
+                // If non proof mode, only builtins in the program are present and they must
+                // point to a segment (so `stop_ptr` is set). Throw an error if not.
+                let sp = stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(name)))?;
+                Ok(Some((index, sp)))
+            })
+        };
+
+        let mut builtin_segment_info = Vec::new();
         for builtin in &self.vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
-
-            builtin_segment_info.push((
-                index,
-                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
-            ));
+            if let Some(pair) = process(index, stop_ptr, builtin.name())? {
+                builtin_segment_info.push(pair);
+            }
         }
 
         Ok(builtin_segment_info)
