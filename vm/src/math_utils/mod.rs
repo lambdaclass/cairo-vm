@@ -1353,8 +1353,44 @@ mod tests {
         assert_eq!(res, y);
     }
 
+    /// Used for the QM31 tests
+    #[derive(Clone, Copy, Debug)]
+    enum Configuration {
+        Zero,
+        One,
+        MinusOne,
+        Random,
+    }
+
+    /// Necessary strat to use proptest on the QM31 test
+    fn configuration_strat() -> BoxedStrategy<Configuration> {
+        prop_oneof![
+            Just(Configuration::Zero),
+            Just(Configuration::One),
+            Just(Configuration::MinusOne),
+            Just(Configuration::Random),
+        ]
+        .boxed()
+    }
+
     #[cfg(feature = "std")]
     proptest! {
+
+        #[test]
+        fn qm31_packed_reduced_inv_extensive(a in configuration_strat(), b in configuration_strat(), c in configuration_strat(), d in configuration_strat()) {
+            let mut rng = SmallRng::seed_from_u64(11480028852697973135);
+            let x_coordinates: [u64; 4] = [a,b,c,d].map(|x| match x {
+                    Configuration::Zero => 0,
+                    Configuration::One => 1,
+                    Configuration::MinusOne => STWO_PRIME - 1,
+                    Configuration::Random => rng.gen_range(0..STWO_PRIME),
+                });
+
+            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+            let res = qm31_packed_reduced_inv(x).unwrap();
+            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+        }
+
         #[test]
         fn pow2_const_in_range_returns_power_of_2(x in 0..=251u32) {
             prop_assert_eq!(pow2_const(x), Felt252::TWO.pow(x));
