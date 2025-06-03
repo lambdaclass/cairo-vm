@@ -149,6 +149,8 @@ The variable `res` computation depends on `res_logic`.
 - `off_op0 == 1`
 - `op0_reg == AP`
 - `ap_update == 0` (add 2) 
+- `op0 == PC + instruction_size`
+- `FP == dst`
 
 2. When `opcode == 2` (Return), the following conditions must be met:
 - `off_dst == -2`
@@ -157,6 +159,9 @@ The variable `res` computation depends on `res_logic`.
 - `op1_src == FP`
 - `res_logic == 0` (op1)
 - `pc_update == 1` (absolute jump)
+
+3. When `opcode == 4` (AssertEq), the following conditions must be met:
+- `res == dst`
 
 
 > [!NOTE]
