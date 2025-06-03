@@ -212,7 +212,7 @@ mod tests {
         assert_matches::assert_matches,
     };
 
-    #[cfg(any(target_arch = "wasm32", feature = "no_std", not(feature = "std")))]
+    #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
     use crate::alloc::string::ToString;
 
     #[cfg(feature = "std")]

@@ -29,7 +29,6 @@ cairo-1-hints = [
 ]
 tracer = []
 mod_builtin = []
-no_std = []
 alloc = []
 asm = []
 
