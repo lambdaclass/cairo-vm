@@ -613,6 +613,8 @@ mod tests {
     use assert_matches::assert_matches;
 
     use num_traits::Num;
+
+    #[cfg(feature = "std")]
     use rand::Rng;
 
     #[cfg(feature = "std")]
