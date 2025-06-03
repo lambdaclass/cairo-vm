@@ -1334,7 +1334,8 @@ mod tests {
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn qm31_packed_reduced_inv_extensive(configs in uniform4(configuration_strat())
                                                             .prop_filter("All configs cant be Zero variant",
-                                                            |arr| arr.iter().all(|x| *x == Configuration::Zero))
+                                                            |arr| !arr.iter().all(|x| *x == Configuration::Zero))
+                                                            .no_shrink()
         ) {
             let mut rng = SmallRng::seed_from_u64(11480028852697973135);
             let x_coordinates: [u64; 4] = configs.map(|x| match x {
