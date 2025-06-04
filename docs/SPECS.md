@@ -264,3 +264,31 @@ Cairo VM uses a Nondeterministic Read-Only memory model. This means - the prover
 ### Memory Layout
 
 Requirement 1: given a pair of accessed memory addresses *x and y*, any address *a* which satisfies that *x < a < y* must have also been accessed. This implies that any given set of accessed memory addresses must be contiguous.
+
+#### Public Memory
+
+#### Memory Segments Manager
+
+To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
+- `segment_sizes`: A HashMap that contains the size of each segment
+- `segment_used_sizes`: ??????????
+- `memory`: The memory itself, containing the data, temporary data, relocation rules, among other things
+- `public_memory_offsets`: ????????
+- `zero_segment_index`: ????????
+- `zero_segment_size`: ????????
+
+#### Memory
+
+The VM memory containing:
+- `data`: A vector of vectors. Each vector representing a different `segment` with its own data
+- `temp_data`: A vector of vector. Each vector representing a `temporary segment`
+- `relocation_rules`: ??????
+- `validated_addresses`: ??????
+- `validation_rules`: ??????
+
+#### Memory Cell
+
+Represents a unit of data in the memory
+
+
+#### Memory Relocation
