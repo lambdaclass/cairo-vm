@@ -32,7 +32,7 @@ const MUL_MOD_BUILTIN_NAME_WITH_SUFFIX: &str = "mul_mod_builtin";
 
 /// Enum representing the name of a cairo builtin
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash, Ord, PartialOrd)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {
     output,
@@ -179,11 +179,11 @@ impl core::fmt::Display for BuiltinName {
 // Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
 pub(crate) mod serde_generic_map_impl {
     use super::BuiltinName;
-    use crate::stdlib::{collections::HashMap, string::String};
+    use crate::stdlib::{collections::BTreeMap, string::String};
     use serde::{de::Error, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
     pub fn serialize<S, V>(
-        values: &HashMap<BuiltinName, V>,
+        values: &BTreeMap<BuiltinName, V>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
@@ -199,13 +199,13 @@ pub(crate) mod serde_generic_map_impl {
 
     pub fn deserialize<'de, D: Deserializer<'de>, V: Deserialize<'de>>(
         d: D,
-    ) -> Result<HashMap<BuiltinName, V>, D::Error> {
+    ) -> Result<BTreeMap<BuiltinName, V>, D::Error> {
         // First deserialize keys into String
-        let map = HashMap::<String, V>::deserialize(d)?;
+        let map = BTreeMap::<String, V>::deserialize(d)?;
         // Then match keys to BuiltinName and handle invalid names
         map.into_iter()
             .map(|(k, v)| BuiltinName::from_str_with_suffix(&k).map(|k| (k, v)))
-            .collect::<Option<HashMap<_, _>>>()
+            .collect::<Option<BTreeMap<_, _>>>()
             .ok_or(D::Error::custom("Invalid builtin name"))
     }
 }

@@ -1,6 +1,27 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
+
+* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
+
+* chore: update Rust required version to 1.87.0  [#2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
+
+#### [3.0.0-rc.1] - 2025-05-08
+
+* chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
+
+* fix: Use Cairo prime instead of SECP_P in WRITE_DIVMOD_SEGMENT hint [#2078](https://github.com/lambdaclass/cairo-vm/pull/2078)
+
+* feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
+
+* feat(BREAKING): add support for accessible scopes in hint processor [#2042](https://github.com/lambdaclass/cairo-vm/pull/2042)
+
+* dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
+
+* refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
 
 * chore: update Rust required version to 1.87.0  [#2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
 
@@ -43,6 +64,8 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+* feat: Support hints for new blake felt serialization library code [#1994](https://github.com/lambdaclass/cairo-vm/pull/1994)
 
 #### [2.0.1] - 2025-03-17
 
