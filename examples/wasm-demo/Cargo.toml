@@ -17,7 +17,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 serde_json.workspace = true
-wasm-bindgen = "0.2.87"
+wasm-bindgen = "0.2.100"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -28,4 +28,4 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 cairo-vm = { workspace = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+wasm-bindgen-test = "0.3.50"
