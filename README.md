@@ -180,18 +180,7 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `--allow_missing_builtins`: Disables the check that all builtins used by the program need to be included in the selected layout. Enabled by default when in proof_mode.
 
-- `--run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
-
-  ```bash
-  # First, compile a Cairo 0 program and run it to generate a Cairo PIE file
-  cairo-compile cairo_programs/print.cairo --output cairo_programs/print_compiled.json
-  target/release/cairo-vm-cli cairo_programs/print_compiled.json --layout all_cairo --cairo_pie_output print.pie
-  
-  # Then, run the program from the Cairo PIE file
-  target/release/cairo-vm-cli print.pie --run_from_cairo_pie --layout all_cairo --print_output
-  ```
-
-  Note: When using the `--run_from_cairo_pie` flag, the layout specified must be the same as the one used to create the PIE file, otherwise you may encounter compatibility issues.
+- `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
 
 - `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
 

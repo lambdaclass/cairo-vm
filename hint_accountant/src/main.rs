@@ -51,20 +51,12 @@ fn run() {
     }
     let mut vm = VirtualMachine::new(false, false);
     let mut hint_executor = BuiltinHintProcessor::new_empty();
-    let (
-        ap_tracking_data,
-        reference_ids,
-        references,
-        mut exec_scopes,
-        constants,
-        accessible_scopes,
-    ) = (
+    let (ap_tracking_data, reference_ids, references, mut exec_scopes, constants) = (
         ApTracking::default(),
         HashMap::new(),
         Vec::new(),
         ExecutionScopes::new(),
         HashMap::new(),
-        Vec::new(),
     );
     let missing_hints: HashSet<_> = whitelists
         .into_iter()
@@ -72,13 +64,7 @@ fn run() {
         .map(|ahe| ahe.hint_lines.join("\n"))
         .filter(|h| {
             let hint_data = hint_executor
-                .compile_hint(
-                    h,
-                    &ap_tracking_data,
-                    &reference_ids,
-                    &references,
-                    &accessible_scopes,
-                )
+                .compile_hint(h, &ap_tracking_data, &reference_ids, &references)
                 .expect("this implementation is infallible");
             matches!(
                 hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants,),

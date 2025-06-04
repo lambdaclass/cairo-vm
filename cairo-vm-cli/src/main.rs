@@ -172,7 +172,6 @@ fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
     Ok(())
 }
 
-#[allow(clippy::result_large_err)]
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
@@ -305,7 +304,6 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     Ok(())
 }
 
-#[allow(clippy::result_large_err)]
 fn main() -> Result<(), Error> {
     #[cfg(test)]
     return Ok(());

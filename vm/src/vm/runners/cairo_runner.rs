@@ -657,7 +657,6 @@ impl CairoRunner {
                         &hint.flow_tracking_data.ap_tracking,
                         &hint.flow_tracking_data.reference_ids,
                         references,
-                        &hint.accessible_scopes,
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
@@ -1135,7 +1134,6 @@ impl CairoRunner {
         Ok(())
     }
 
-    #[allow(clippy::result_large_err)]
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
@@ -4589,7 +4587,6 @@ mod tests {
                     members: None,
                     cairo_type: None,
                     size: None,
-                    destination: None,
                 },
             )]
             .into_iter()
@@ -4619,7 +4616,6 @@ mod tests {
                         members: None,
                         cairo_type: None,
                         size: None,
-                        destination: None,
                     },
                 ),
                 (
@@ -4632,7 +4628,6 @@ mod tests {
                         members: None,
                         cairo_type: None,
                         size: None,
-                        destination: None,
                     },
                 ),
             ]
@@ -4663,7 +4658,6 @@ mod tests {
                     members: None,
                     cairo_type: None,
                     size: None,
-                    destination: None,
                 },
             )]
             .into_iter()
@@ -5126,6 +5120,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+
     fn filter_unused_builtins_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/integration.json"),

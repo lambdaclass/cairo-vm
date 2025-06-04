@@ -721,7 +721,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -735,7 +734,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -778,7 +776,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -792,7 +789,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -943,7 +939,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -957,7 +952,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1072,7 +1066,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1086,7 +1079,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1140,7 +1132,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1154,7 +1145,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1203,7 +1193,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1216,7 +1205,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1229,7 +1217,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1242,7 +1229,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1255,7 +1241,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
@@ -1312,7 +1297,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1325,7 +1309,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1338,7 +1321,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1351,7 +1333,6 @@ mod tests {
                 members: Some(HashMap::new()),
                 cairo_type: None,
                 size: Some(0),
-                destination: None,
             },
         );
         identifiers.insert(
@@ -1364,7 +1345,6 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
-                destination: None,
             },
         );
 
