@@ -267,9 +267,11 @@ Requirement 1: given a pair of accessed memory addresses *x and y*, any address 
 
 #### Public Memory
 
-Represented by a vector of `PublicMemoryEntry` which contains a value, an address and its page
+After executing the cairo program and relocating the memory of the runner, that relocated memory is used to create a `PublicInput` which contains a vector of `PublicMemoryEntry`. Each of this contains a value, an address and its page, the whole vector represents the public memory.
 
-#### Memory Segments Manager
+### Memory Implementation
+
+#### MemorySegmentManager
 
 To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
 - `segment_sizes`: A HashMap that contains the size of each segment
@@ -288,12 +290,14 @@ The VM memory containing:
 - `validated_addresses`: ??????
 - `validation_rules`: ??????
 
-#### CairoPieMemory
+#### MemoryCell & MaybeRelocatable
 
+`MaybeRelocatable` represents a unit of data that can be a pointer or a felt:
+- `RelocatableValue(Relocatable)`: Contains the segment index and the offset in that segment
+- `Int(Felt252)`: Contains just a value of data 
 
-#### Memory Cell
+`MemoryCell` represents a unit of data in the memory.
 
-Represents a unit of data in the memory
+### Memory relationships
 
-
-#### Memory Relocation
+### Memory Relocation
