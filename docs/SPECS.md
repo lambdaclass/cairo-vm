@@ -267,6 +267,8 @@ Requirement 1: given a pair of accessed memory addresses *x and y*, any address 
 
 #### Public Memory
 
+Represented by a vector of `PublicMemoryEntry` which contains a value, an address and its page
+
 #### Memory Segments Manager
 
 To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
@@ -285,6 +287,9 @@ The VM memory containing:
 - `relocation_rules`: ??????
 - `validated_addresses`: ??????
 - `validation_rules`: ??????
+
+#### CairoPieMemory
+
 
 #### Memory Cell
 
