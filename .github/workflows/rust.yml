@@ -66,8 +66,7 @@ jobs:
       id: cache-programs
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
-        restore-keys: ${{ matrix.program-target }}-cache-
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
 
     # This is not pretty, but we need `make` to see the compiled programs are
     # actually newer than the sources, otherwise it will try to rebuild them
@@ -121,44 +120,38 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
-        fail-on-cache-miss: true
-    - name: Fetch cairo stwo exclusive programs
-      uses: actions/cache/restore@v3
-      with:
-        path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_stwo_exclusive_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch test contracts (Cairo 1)
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch test contracts (Cairo 2)
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Merge caches
       uses: actions/cache/save@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
 
   lint:
     needs: merge-caches
@@ -166,7 +159,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: rustfmt, clippy
     - name: Set up cargo cache
@@ -187,7 +180,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Run clippy
@@ -206,7 +199,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -232,7 +225,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
@@ -252,7 +245,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -279,7 +272,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Check all features (workspace)
@@ -292,7 +285,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
         targets: wasm32-unknown-unknown
 
@@ -314,7 +307,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Check no-std
@@ -334,7 +327,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: llvm-tools-preview
     - name: Set up cargo cache
@@ -351,7 +344,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Install testing tools
@@ -400,7 +393,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
@@ -448,8 +441,7 @@ jobs:
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
           cairo_programs/**/*.pie.zip
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
-        restore-keys: ${{ matrix.program-target }}-reference-trace-cache-
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
 
     - name: Python3 Build
       if: steps.trace-cache.outputs.cache-hit != 'true'
@@ -467,7 +459,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     # This is not pretty, but we need `make` to see the compiled programs are
@@ -520,7 +512,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Generate traces
@@ -574,11 +566,29 @@ jobs:
         path: lcov-test#4-.info
         key: codecov-cache-test#4--${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib
+    - name: Fetch results for tests without stdlib (part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-test-no_std-.info
-        key: codecov-cache-test-no_std--${{ github.sha }}
+        path: lcov-test-no_std#1-.info
+        key: codecov-cache-test-no_std#1--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-.info
+        key: codecov-cache-test-no_std#2--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-.info
+        key: codecov-cache-test-no_std#3--${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-.info
+        key: codecov-cache-test-no_std#4--${{ github.sha }}
         fail-on-cache-miss: true
     - name: Fetch results for tests with stdlib (w/extensive_hints; part. 1)
       uses: actions/cache/restore@v3
@@ -604,11 +614,29 @@ jobs:
         path: lcov-test#4-extensive_hints.info
         key: codecov-cache-test#4-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/extensive_hints)
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-no_std-extensive_hints.info
-        key: codecov-cache-test-no_std-extensive_hints-${{ github.sha }}
+        path: lcov-test-no_std#1-extensive_hints.info
+        key: codecov-cache-test-no_std#1-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-extensive_hints.info
+        key: codecov-cache-test-no_std#2-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-extensive_hints.info
+        key: codecov-cache-test-no_std#3-extensive_hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/extensive_hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-extensive_hints.info
+        key: codecov-cache-test-no_std#4-extensive_hints-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Fetch results for tests with stdlib (w/mod_builtin; part. 1)
@@ -635,11 +663,78 @@ jobs:
         path: lcov-test#4-mod_builtin.info
         key: codecov-cache-test#4-mod_builtin-${{ github.sha }}
         fail-on-cache-miss: true
-    - name: Fetch results for tests without stdlib (w/mod_builtin)
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 1)
       uses: actions/cache/restore@v3
       with:
-        path: lcov-no_std-mod_builtin.info
-        key: codecov-cache-test-no_std-mod_builtin-${{ github.sha }}
+        path: lcov-test-no_std#1-mod_builtin.info
+        key: codecov-cache-test-no_std#1-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-mod_builtin.info
+        key: codecov-cache-test-no_std#2-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-mod_builtin.info
+        key: codecov-cache-test-no_std#3-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/mod_builtin; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-mod_builtin.info
+        key: codecov-cache-test-no_std#4-mod_builtin-${{ github.sha }}
+        fail-on-cache-miss: true
+
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#1-cairo-0-secp-hints.info
+        key: codecov-cache-test#1-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#2-cairo-0-secp-hints.info
+        key: codecov-cache-test#2-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#3-cairo-0-secp-hints.info
+        key: codecov-cache-test#3-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests with stdlib (w/cairo-0-secp-hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test#4-cairo-0-secp-hints.info
+        key: codecov-cache-test#4-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 1)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#1-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#1-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 2)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#2-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#2-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 3)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#3-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#3-cairo-0-secp-hints-${{ github.sha }}
+        fail-on-cache-miss: true
+    - name: Fetch results for tests without stdlib (w/cairo-0-secp-hints; part. 4)
+      uses: actions/cache/restore@v3
+      with:
+        path: lcov-test-no_std#4-cairo-0-secp-hints.info
+        key: codecov-cache-test-no_std#4-cairo-0-secp-hints-${{ github.sha }}
         fail-on-cache-miss: true
 
     - name: Upload coverage to codecov.io
@@ -675,7 +770,7 @@ jobs:
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
           cairo_programs/**/*.pie.zip
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Fetch traces for cairo-vm
@@ -760,7 +855,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Run script
@@ -799,7 +894,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Fetch pie
