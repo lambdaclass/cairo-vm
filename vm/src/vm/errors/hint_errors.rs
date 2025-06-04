@@ -196,8 +196,6 @@ pub enum HintError {
     EmptyNibbles,
     #[error("circuit evalution: {0}")]
     CircuitEvaluationFailed(Box<str>),
-    #[error("high limb magnitude should be smaller than 2 ** 127: {0}")]
-    BlsSplitError(Box<BigInt>),
 }
 
 #[cfg(test)]

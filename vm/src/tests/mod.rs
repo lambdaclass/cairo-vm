@@ -209,7 +209,6 @@ fn run_cairo_1_entrypoint(
 }
 
 #[cfg(feature = "cairo-1-hints")]
-#[allow(clippy::result_large_err)]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
 fn run_cairo_1_entrypoint_with_run_resources(
