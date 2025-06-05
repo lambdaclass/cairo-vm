@@ -615,9 +615,6 @@ mod tests {
     use num_traits::Num;
 
     #[cfg(feature = "std")]
-    use rand::Rng;
-
-    #[cfg(feature = "std")]
     use num_prime::RandPrime;
 
     #[cfg(feature = "std")]
@@ -1305,26 +1302,10 @@ mod tests {
         assert_eq!(res, y);
     }
 
-    /// Used for the QM31 tests
-    #[cfg(feature = "std")]
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    enum Configuration {
-        Zero,
-        One,
-        MinusOne,
-        Random,
-    }
-
     /// Necessary strat to use proptest on the QM31 test
     #[cfg(feature = "std")]
-    fn configuration_strat() -> BoxedStrategy<Configuration> {
-        prop_oneof![
-            Just(Configuration::Zero),
-            Just(Configuration::One),
-            Just(Configuration::MinusOne),
-            Just(Configuration::Random),
-        ]
-        .boxed()
+    fn configuration_strat() -> BoxedStrategy<u64> {
+        prop_oneof![Just(0), Just(1), Just(STWO_PRIME - 1), 0..STWO_PRIME].boxed()
     }
 
     #[cfg(feature = "std")]
@@ -1333,7 +1314,7 @@ mod tests {
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
         fn qm31_packed_reduced_inv_random(x_coordinates in uniform4(0u64..STWO_PRIME)
-                                                            .prop_filter("All configs cant be Zero variant",
+                                                            .prop_filter("All configs cant be 0",
                                                             |arr| !arr.iter().all(|x| *x == 0))
         ) {
             let x = qm31_coordinates_to_packed_reduced(x_coordinates);
@@ -1343,19 +1324,11 @@ mod tests {
 
         #[test]
         #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-        fn qm31_packed_reduced_inv_extensive(configs in uniform4(configuration_strat())
-                                                            .prop_filter("All configs cant be Zero variant",
-                                                            |arr| !arr.iter().all(|x| *x == Configuration::Zero))
+        fn qm31_packed_reduced_inv_extensive(x_coordinates in uniform4(configuration_strat())
+                                                            .prop_filter("All configs cant be 0",
+                                                            |arr| !arr.iter().all(|x| *x == 0))
                                                             .no_shrink()
         ) {
-            let mut rng = SmallRng::seed_from_u64(11480028852697973135);
-            let x_coordinates: [u64; 4] = configs.map(|x| match x {
-                    Configuration::Zero => 0,
-                    Configuration::One => 1,
-                    Configuration::MinusOne => STWO_PRIME - 1,
-                    Configuration::Random => rng.gen_range(0..STWO_PRIME),
-                });
-
             let x = qm31_coordinates_to_packed_reduced(x_coordinates);
             let res = qm31_packed_reduced_inv(x).unwrap();
             assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
