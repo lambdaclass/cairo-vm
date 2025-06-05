@@ -1347,6 +1347,15 @@ fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
 
 #[test]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_negative_points() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-secp-hints-feature/negative_points.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 #[cfg(feature = "cairo-0-data-availability-hints")]
 fn cairo_run_data_availability_reduced_mul() {
     let program_data =
