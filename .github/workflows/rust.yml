@@ -25,9 +25,9 @@ jobs:
 
   # We need to use the same files across all jobs or else hashing will fail
   upload_proof_programs_symlinks:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Create proof_programs symlinks
@@ -50,10 +50,10 @@ jobs:
           cairo_2_test_contracts,
         ]
     name: Build Cairo programs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -63,7 +63,7 @@ jobs:
         path: cairo_programs/proof_programs/
 
     - name: Fetch from cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-programs
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
@@ -107,11 +107,11 @@ jobs:
   # TODO: remove this cache once the workflow finishes
   merge-caches:
     name: Merge Cairo programs cache
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: build-programs
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - uses: actions/download-artifact@master
       with:
@@ -158,7 +158,7 @@ jobs:
   lint:
     needs: build-programs
     name: Run Lints
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
@@ -167,7 +167,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -198,7 +198,7 @@ jobs:
       fail-fast: false
       matrix:
         crate: ["vm", "cairo-vm-cli", "cairo1-run"]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
@@ -216,7 +216,7 @@ jobs:
         tool: cargo-all-features
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -244,7 +244,7 @@ jobs:
       fail-fast: false
       matrix:
         chunk: [1, 2, 3, 4, 5, 6]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
@@ -262,7 +262,7 @@ jobs:
         tool: cargo-all-features
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -284,7 +284,7 @@ jobs:
   smoke-no-std:
     needs: merge-caches
     name: Make sure all builds work (no_std)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
@@ -297,7 +297,7 @@ jobs:
         cache-on-failure: true
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -326,7 +326,7 @@ jobs:
         special_features: ["", "extensive_hints", "mod_builtin"]
         target: [ test#1, test#2, test#3, test#4, test-no_std#1, test-no_std#2, test-no_std#3, test-no_std#4, test-wasm ]
     name: Run tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
@@ -335,7 +335,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -392,14 +392,14 @@ jobs:
 
   build-release:
     name: Build release binary for comparisons
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.76.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Build
       run: cargo b --release -p cairo-vm-cli
     # We don't read from cache because it should always miss
@@ -421,10 +421,10 @@ jobs:
           nprocs: 2
     name: Compute memory and execution traces with cairo-lang
     needs: build-programs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -434,7 +434,7 @@ jobs:
         path: cairo_programs/proof_programs/
 
     - name: Check cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: trace-cache
       with:
         path: |
@@ -488,10 +488,10 @@ jobs:
           extra-args: '--cairo_pie_output {program}.rs.pie.zip'
     name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -534,10 +534,10 @@ jobs:
   upload-coverage:
     name: Upload coverage results to codecov.io
     needs: tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
@@ -615,10 +615,10 @@ jobs:
         program-target: [ cairo_proof_programs, cairo_test_programs ]
     name: Compare memory and execution traces from cairo-lang and cairo-vm
     needs: [ run-cairo-reference, run-cairo-release ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -662,10 +662,10 @@ jobs:
 
   wasm-demo:
     name: Build the wasm demo
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -689,10 +689,10 @@ jobs:
   compare-factorial-outputs-all-layouts:
     name: Compare factorial outputs for all layouts
     needs: [ build-programs, build-release ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Python3 Build
       uses: actions/setup-python@v4
@@ -728,10 +728,10 @@ jobs:
   compare-run-from-cairo-pie-all-outputs:
     name: Compare all outputs from running Cairo PIEs
     needs: [ build-programs, build-release, run-cairo-release ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Python3 Build
       uses: actions/setup-python@v4

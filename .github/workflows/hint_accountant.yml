@@ -9,14 +9,14 @@ env:
 
 jobs:
   run:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@1.76.0
     - name: Set up Cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Check Build
       run: cargo build -p hint_accountant
     - name: Clone cairo-lang repo
@@ -24,7 +24,7 @@ jobs:
     - name: Run the hint accounting script
       run: cargo r -p hint_accountant | tee comment.md
     - name: Update comment in tracking issue
-      uses: peter-evans/create-or-update-comment@v3
+      uses: peter-evans/create-or-update-comment@v4
       with:
         issue-number: 1031
         comment-id: 1518234161
