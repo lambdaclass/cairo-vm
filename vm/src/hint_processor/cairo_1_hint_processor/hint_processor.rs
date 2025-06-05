@@ -1,3 +1,8 @@
+// ark-ff-macros mess workaround
+// can't put this directly above MontConfig derive because Rust can't parse it correctly.
+#![allow(non_local_definitions)]
+#![allow(unexpected_cfgs)]
+
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
