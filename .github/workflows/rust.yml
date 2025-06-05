@@ -25,7 +25,7 @@ jobs:
 
   # We need to use the same files across all jobs or else hashing will fail
   upload_proof_programs_symlinks:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
       with:
@@ -50,7 +50,7 @@ jobs:
           cairo_2_test_contracts,
         ]
     name: Build Cairo programs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -107,7 +107,7 @@ jobs:
   # TODO: remove this cache once the workflow finishes
   merge-caches:
     name: Merge Cairo programs cache
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs: build-programs
     steps:
     - name: Checkout
@@ -158,7 +158,7 @@ jobs:
   lint:
     needs: build-programs
     name: Run Lints
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
@@ -198,7 +198,7 @@ jobs:
       fail-fast: false
       matrix:
         crate: ["vm", "cairo-vm-cli", "cairo1-run"]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
@@ -244,7 +244,7 @@ jobs:
       fail-fast: false
       matrix:
         chunk: [1, 2, 3, 4, 5, 6]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
@@ -284,7 +284,7 @@ jobs:
   smoke-no-std:
     needs: merge-caches
     name: Make sure all builds work (no_std)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
@@ -392,7 +392,7 @@ jobs:
 
   build-release:
     name: Build release binary for comparisons
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
@@ -421,7 +421,7 @@ jobs:
           nprocs: 2
     name: Compute memory and execution traces with cairo-lang
     needs: build-programs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -488,7 +488,7 @@ jobs:
           extra-args: '--cairo_pie_output {program}.rs.pie.zip'
     name: Compute memory and execution traces with cairo-vm
     needs: [ build-programs, build-release ]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -534,7 +534,7 @@ jobs:
   upload-coverage:
     name: Upload coverage results to codecov.io
     needs: tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -615,7 +615,7 @@ jobs:
         program-target: [ cairo_proof_programs, cairo_test_programs ]
     name: Compare memory and execution traces from cairo-lang and cairo-vm
     needs: [ run-cairo-reference, run-cairo-release ]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -662,7 +662,7 @@ jobs:
 
   wasm-demo:
     name: Build the wasm demo
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -689,7 +689,7 @@ jobs:
   compare-factorial-outputs-all-layouts:
     name: Compare factorial outputs for all layouts
     needs: [ build-programs, build-release ]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -728,7 +728,7 @@ jobs:
   compare-run-from-cairo-pie-all-outputs:
     name: Compare all outputs from running Cairo PIEs
     needs: [ build-programs, build-release, run-cairo-release ]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v3
