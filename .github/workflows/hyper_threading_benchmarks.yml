@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout PR
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
 
@@ -50,7 +50,7 @@ jobs:
 
 
     - name: Checkout Main Branch
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: 'main'
 
