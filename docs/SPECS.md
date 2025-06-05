@@ -311,3 +311,26 @@ The memory relocation has the following steps:
 #### Memory Relocation
 
 Segments from the memory are iterated in order and for each cell of a segment the new relocated address and value are calculated. With this, the continuous memory is created.
+
+Each segment gets its index from the order they have in the data of `Memory`. The same happens with the `MemoryCells` in which their offset in the segment is represented by their index. For example:
+
+```
+Memory = [
+    [Cell0, Cell1], # Segment0
+    [Cell2],        # Segment1
+    [Cell3]         # Segment2
+]
+
+Cell0 -> segment = 0 and offset = 0
+Cell1 -> segment = 0 and offset = 1
+Cell3 -> segment = 2 and offset = 0
+```
+
+- First we relocate the address as `relocation_table[segment] + offset`
+- Then we relocate the value by turning a `MaybeRelocatable` into a `Felt252`:
+    - If the cell is a `MaybeRelocatable::Int(n)`, then the new value is `num`.
+    - If the cell is a `MaybeRelocatable::RelocatableValue(relocatable)`, then the new value is `relocation_table[relocatable.segment_index] + relocatable.offset`
+
+> [!NOTE]
+> In our VM:
+> relocation mem starts at index 1
