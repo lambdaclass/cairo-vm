@@ -30,7 +30,6 @@ cairo-1-hints = [
 tracer = []
 mod_builtin = []
 alloc = []
-asm = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
