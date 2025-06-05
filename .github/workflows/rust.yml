@@ -27,7 +27,7 @@ jobs:
   upload_proof_programs_symlinks:
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Create proof_programs symlinks
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -63,7 +63,7 @@ jobs:
         path: cairo_programs/proof_programs/
 
     - name: Fetch from cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-programs
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
@@ -111,7 +111,7 @@ jobs:
     needs: build-programs
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - uses: actions/download-artifact@master
       with:
@@ -167,7 +167,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -216,7 +216,7 @@ jobs:
         tool: cargo-all-features
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -262,7 +262,7 @@ jobs:
         tool: cargo-all-features
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -297,7 +297,7 @@ jobs:
         cache-on-failure: true
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -335,7 +335,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -399,7 +399,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Build
       run: cargo b --release -p cairo-vm-cli
     # We don't read from cache because it should always miss
@@ -424,7 +424,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -434,7 +434,7 @@ jobs:
         path: cairo_programs/proof_programs/
 
     - name: Check cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: trace-cache
       with:
         path: |
@@ -491,7 +491,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -537,7 +537,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch results for tests with stdlib (part. 1)
       uses: actions/cache/restore@v3
@@ -618,7 +618,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -665,7 +665,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -692,7 +692,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Python3 Build
       uses: actions/setup-python@v4
@@ -731,7 +731,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Python3 Build
       uses: actions/setup-python@v4
