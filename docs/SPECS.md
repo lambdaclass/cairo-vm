@@ -300,4 +300,14 @@ The VM memory containing:
 
 ### Memory relationships
 
-### Memory Relocation
+### Relocation
+
+The memory relocation has the following steps:
+- Compute the sizes of the segments in the memory
+- Create the relocation table
+- Relocate the memory (In cairo0 this depends on the config, but in cairo1 is always done)
+- Relocate the trace
+
+#### Memory Relocation
+
+Segments from the memory are iterated in order and for each cell of a segment the new relocated address and value are calculated. With this, the continuous memory is created.
