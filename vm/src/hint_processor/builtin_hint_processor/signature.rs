@@ -1,7 +1,5 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
-use num_integer::Integer;
-
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name},
@@ -29,7 +27,7 @@ pub fn verify_ecdsa_signature(
     }
     if !ecdsa_ptr
         .offset
-        .is_multiple_of(&(CELLS_PER_SIGNATURE as usize))
+        .is_multiple_of(CELLS_PER_SIGNATURE as usize)
     {
         return Err(HintError::AddSignatureNotAPublicKey(Box::new(ecdsa_ptr)));
     }

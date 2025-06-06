@@ -37,7 +37,6 @@ pub enum ProgramHashError {
 /// Computes a hash chain over the data, in the following order:
 ///     h(data[0], h(data[1], h(..., h(data[n-2], data[n-1])))).
 /// [cairo_lang reference](https://github.com/starkware-libs/cairo-lang/blob/efa9648f57568aad8f8a13fbf027d2de7c63c2c0/src/starkware/cairo/common/hash_chain.py#L6)
-
 fn compute_hash_chain<'a, I>(
     data: I,
     hash_func: HashFunction,

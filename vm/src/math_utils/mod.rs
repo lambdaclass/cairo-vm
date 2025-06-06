@@ -56,7 +56,6 @@ pub fn pow2_const_nz(n: u32) -> &'static NonZeroFelt {
 /// let negative = Felt252::MAX;
 /// assert_eq!(signed_felt(negative), BigInt::from(-1));
 /// ```
-
 pub fn signed_felt(felt: Felt252) -> BigInt {
     let biguint = felt.to_biguint();
     if biguint > *SIGNED_FELT_MAX {
