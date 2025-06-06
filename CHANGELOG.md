@@ -4,9 +4,9 @@
 
 #### [1.0.2] - 2025-01-28
 
-* chore: update Rust required version to 1.87.0 [#2112](https://github.com/lambdaclass/cairo-vm/pull/2112)
-
 * refactor: remove unused and duplicated imports [#2121](https://github.com/lambdaclass/cairo-vm/pull/2121)
+
+* chore: update Rust required version to 1.87.0 [#2112](https://github.com/lambdaclass/cairo-vm/pull/2112)
 
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
 
