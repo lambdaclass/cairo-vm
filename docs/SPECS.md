@@ -275,7 +275,7 @@ After executing the cairo program and relocating the memory of the runner, that 
 
 To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
 - `segment_sizes`: A HashMap that contains the size of each segment
-- `segment_used_sizes`: ??????????
+- `segment_used_sizes`: A Vector of each segment size. Item on index i is the segment size of segment i
 - `memory`: The memory itself, containing the data, temporary data, relocation rules, among other things
 - `public_memory_offsets`: ????????
 - `zero_segment_index`: ????????
@@ -296,7 +296,7 @@ The VM memory containing:
 - `RelocatableValue(Relocatable)`: Contains the segment index and the offset in that segment
 - `Int(Felt252)`: Contains just a value of data 
 
-`MemoryCell` represents a unit of data in the memory.
+`MemoryCell` is a `[u64; 4]` that represents a value in the memory. However cells can also represent a part in memory that holds no value and it is just used to fill gaps. This is done by useng a mask -> Cell with no value = `[NONE_MASK, 0, 0, 0]`
 
 ### Memory relationships
 
