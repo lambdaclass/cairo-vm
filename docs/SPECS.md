@@ -308,6 +308,28 @@ The memory relocation has the following steps:
 - Relocate the memory (In cairo0 this depends on the config, but in cairo1 is always done)
 - Relocate the trace
 
+#### Creation of Relocation Table
+
+The relocation table is a `Vec<usize>`, that represents the offsets in the relocated memory for each of the segments in the memory. For its creation, we use the field `segment_used_sizes` of the `MemorySegmentManager` and get the relocation value as `relocation_table[i] + segment_usize` where `i` is the segment index. One thing to take in mind is that since relocated memory starts from index 1, the relocation table starts with a 1 which is the relocation offset of the first segment. 
+
+Example:
+
+```
+segment_used_sizes = [2,4,5]
+relocation_table = [1]
+
+1. Calculate the first segment
+i = 0
+relocation_offset = relocation_table[0] + first_segment_size = 1 + 2 = 3
+
+2. Calculate the second segment
+i = 1
+relocation_offset = relocation_table[1] + second_segment_size = 3 + 4 = 7
+
+### Relocation Table ###
+[1,3,7]
+```
+
 #### Memory Relocation
 
 Segments from the memory are iterated in order and for each cell of a segment the new relocated address and value are calculated. With this, the continuous memory is created.
@@ -331,6 +353,8 @@ Cell3 -> segment = 2 and offset = 0
     - If the cell is a `MaybeRelocatable::Int(n)`, then the new value is `num`.
     - If the cell is a `MaybeRelocatable::RelocatableValue(relocatable)`, then the new value is `relocation_table[relocatable.segment_index] + relocatable.offset`
 
+It can happen that the cell is empty and has no value because it was just filling an unused gap, in that case the relocated memory is also filled with a `None`.
+
 > [!NOTE]
 > In our VM:
-> relocation mem starts at index 1
+> Relocation memory starts at index 1. Index 0 is filled with a `None`
