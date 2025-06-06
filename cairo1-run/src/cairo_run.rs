@@ -1447,8 +1447,8 @@ fn serialize_output_inner<'a>(
                 output_string.push(':');
                 // Serialize the value
                 // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                let value_arr = [value.clone()];
-                let mut value_iter = value_arr.iter().peekable();
+                let value_vec = [value.clone()];
+                let mut value_iter = value_vec.iter().peekable();
                 serialize_output_inner(
                     &mut value_iter,
                     output_string,
@@ -1493,8 +1493,8 @@ fn serialize_output_inner<'a>(
                 output_string.push(':');
                 // Serialize the value
                 // We create a peekable array here in order to use the serialize_output_inner as the value could be a span
-                let value_arr = [value.clone()];
-                let mut value_iter = value_arr.iter().peekable();
+                let value_vec = [value.clone()];
+                let mut value_iter = value_vec.iter().peekable();
                 serialize_output_inner(
                     &mut value_iter,
                     output_string,
