@@ -290,6 +290,22 @@ The VM memory containing:
 - `validated_addresses`: ??????
 - `validation_rules`: ??????
 
+Some methods:
+- `insert(key, val)`: 
+    - Inserts the value into a memory address. If the address is not contiguous with previously inserted data, the memory gaps are filled with `None`. 
+    - To get the value, first gets the segment index and then the offset with `from_relocatable_to_indexes()`
+    - Verifies if that address is already used, in that case it returns a `MemoryError::InconsistencyMemory()`
+    - Validates the memory cell with the validation rule
+
+- `get(key)`: 
+    - Returns a value from memory
+    - Relocates the value
+
+- `relocate_memory()`:
+    - If `relocation_rules` or `temp_data` are empty, it does nothing
+    - The cells from the data and temporary data are relocated
+    - TODO!
+
 #### MemoryCell & MaybeRelocatable
 
 `MaybeRelocatable` represents a unit of data that can be a pointer or a felt:
