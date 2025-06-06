@@ -25,8 +25,8 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
-#[cfg(all(not(feature = "std"), feature = "alloc"))]
-use alloc::{string::String, vec::Vec};
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 
 mod bitwise_test;
 #[cfg(test)]
@@ -206,6 +206,7 @@ fn run_cairo_1_entrypoint(
 }
 
 #[cfg(feature = "cairo-1-hints")]
+#[allow(clippy::result_large_err)]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
 fn run_cairo_1_entrypoint_with_run_resources(

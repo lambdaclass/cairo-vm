@@ -255,9 +255,9 @@ impl CairoPie {
             HashMap::from_iter(segment_sizes.iter().map(|si| (si.index, si.size)));
 
         let validate_addr = |addr: Relocatable| -> Result<(), CairoPieValidationError> {
-            if !segment_sizes
+            if segment_sizes
                 .get(&addr.segment_index)
-                .is_some_and(|size| addr.offset <= *size)
+                .is_none_or(|size| addr.offset > *size)
             {
                 return Err(CairoPieValidationError::InvalidAddress);
             }
@@ -368,12 +368,11 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::HashMap;
     use crate::types::builtin_name::BuiltinName;
-    use num_integer::Integer;
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
     use super::{CairoPieMemory, Pages, PublicMemoryPage, SegmentInfo};
-    #[cfg(any(target_arch = "wasm32", no_std, not(feature = "std")))]
+    #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
     use crate::alloc::string::ToString;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
@@ -620,7 +619,7 @@ pub(super) mod serde_impl {
         }
 
         pub fn from_bytes(bytes: &[u8]) -> Option<CairoPieMemory> {
-            if !bytes.len().is_multiple_of(&CELL_BYTE_LEN) {
+            if !bytes.len().is_multiple_of(CELL_BYTE_LEN) {
                 return None;
             }
 
