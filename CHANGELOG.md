@@ -4,6 +4,8 @@
 
 #### [1.0.2] - 2025-01-28
 
+* refactor: remove unused and duplicated imports [#2121](https://github.com/lambdaclass/cairo-vm/pull/2121)
+
 * refactor: Limit ret opcode decodeing to Cairo0's standards. [#1925](https://github.com/lambdaclass/cairo-vm/pull/1925)
 
 #### [1.0.1] - 2024-08-12
