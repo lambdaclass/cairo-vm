@@ -3,6 +3,7 @@ use thiserror::Error;
 use super::cairo_pie_errors::CairoPieValidationError;
 use super::memory_errors::MemoryError;
 use super::vm_exception::VmException;
+use crate::types::builtin_name::BuiltinName;
 use crate::types::errors::program_errors::ProgramError;
 use crate::vm::errors::{
     runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
@@ -26,4 +27,6 @@ pub enum CairoRunError {
     VmException(#[from] VmException),
     #[error(transparent)]
     CairoPieValidation(#[from] CairoPieValidationError),
+    #[error("Unsupported simulated builtin in Cairo PIE: {0}")]
+    UnsupportedSimulatedBuiltin(BuiltinName),
 }
