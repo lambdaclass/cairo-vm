@@ -864,7 +864,7 @@
 #### [0.5.1] - 2023-6-7
 
 * fix: fix overflow for `QUAD_BIT` and `DI_BIT` hints [#1209](https://github.com/lambdaclass/cairo-vm/pull/1209)
-  Fixes [#1205](https://github.com/lambdaclass/cairo-vm/issue/1205)
+  Fixes [#1205](https://github.com/lambdaclass/cairo-vm/issues/1205)
 
 * fix: fix hints `UINT256_UNSIGNED_DIV_REM` && `UINT256_EXPANDED_UNSIGNED_DIV_REM` [#1203](https://github.com/lambdaclass/cairo-vm/pull/1203)
 
