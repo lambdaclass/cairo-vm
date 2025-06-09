@@ -743,10 +743,7 @@ pub fn split_xx(
         x = &*SPLIT_XX_PRIME - x;
     }
 
-    vm.insert_value(
-        x_addr,
-        Felt252::from(&(&x & &BigUint::from(u128::max_value()))),
-    )?;
+    vm.insert_value(x_addr, Felt252::from(&(&x & &BigUint::from(u128::MAX))))?;
     vm.insert_value((x_addr + 1)?, Felt252::from(&(x >> 128_u32)))?;
 
     Ok(())

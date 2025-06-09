@@ -32,7 +32,8 @@ pub struct ValidationRule(
 /// - BIT63: NONE flag, 1 when the cell is actually empty.
 /// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
 /// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
-/// `Felt252`.
+///   `Felt252`.
+///
 /// `Felt252` values are stored in big-endian order to keep the flag bits free.
 /// `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
 /// and the 4th word storing the offset.
@@ -230,7 +231,7 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<MaybeRelocatable>>
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<'b, MaybeRelocatable>>
     where
         Relocatable: TryFrom<&'a K>,
     {
@@ -435,6 +436,7 @@ impl Memory {
     /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
     /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
     /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
+    ///
     /// Everything else behaves much like `memcmp` in C.
     /// This is meant as an optimization for hints to avoid allocations.
     pub(crate) fn memcmp(
@@ -487,6 +489,7 @@ impl Memory {
     /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
     /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
     /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
+    ///   
     /// Everything else behaves much like `memcmp` in C.
     /// This is meant as an optimization for hints to avoid allocations.
     pub(crate) fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {

@@ -29,6 +29,7 @@ cairo-1-hints = [
 ]
 tracer = []
 mod_builtin = []
+alloc = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
@@ -84,7 +85,7 @@ rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+wasm-bindgen-test = "0.3.50"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.3.1"
