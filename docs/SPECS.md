@@ -319,17 +319,32 @@ Some methods:
 - `RelocatableValue(Relocatable)`: Contains the segment index and the offset in that segment
 - `Int(Felt252)`: Contains just a value of data 
 
-`MemoryCell` is a `[u64; 4]` that represents a value in the memory. However cells can also represent a part in memory that holds no value and it is just used to fill gaps. This is done by useng a mask -> Cell with no value = `[NONE_MASK, 0, 0, 0]`
+`MemoryCell` is a `[u64; 4]` that represents a value in the memory. However cells can also represent a part in memory that holds no value and it is just used to fill gaps. This is done by using a mask -> Cell with no value = `[NONE_MASK, 0, 0, 0]`
 
 ### Memory relationships
 
 ### Relocation
 
 The memory relocation has the following steps:
-- Compute the sizes of the segments in the memory
-- Create the relocation table
+- Relocate temporary data
+- Compute the sizes of the segments in the memory and create the relocation table
 - Relocate the memory (In cairo0 this depends on the config, but in cairo1 is always done)
 - Relocate the trace
+
+#### Temporary Memory Relocation
+
+In this case, we will use the `relocation_rules` that determines to which relocated memory segment a temporary segment will map.
+
+First, the `data` and `temp_data` are iterated searching for any `Relocatable` that needs to have their address relocated. They are differentiated by having their `segment_index < 0`. When one of them is found, it is relocated with the `relocation_rules` in the following way:
+```
+old_cell = Relocatable {segment_index: x, offset: y}
+
+new_cell = relocation_rules[-old_cell.segment_index + 1] + old_cell.offset
+```
+
+Once the addresses are relocated, we start moving the temporary memory into the VM's memory. By iterating the `temp_data` from **right to left**. From the `relocation_rules` we get the the base address for the temporary segment and start adding the cells from that point.
+
+Keep in mind that if a temporary segment does not map to a real memory address (in other words, it does not have its mapping in `relocation_rules`) it won´t be relocated to real memory.
 
 #### Creation of Relocation Table
 
@@ -382,17 +397,4 @@ It can happen that the cell is empty and has no value because it was just fillin
 > In our VM:
 > Relocation memory starts at index 1. Index 0 is filled with a `None`
 
-#### Temporary Memory Relocation
 
-In this case, we will use the `relocation_rules` that determines to which relocated memory segment a temporary segment will map.
-
-First, the `data` and `temp_data` are iterated searching for any `Relocatable` that needs to have their address relocated. They are differentiated by having their `segment_index < 0`. When one of them is found, it is relocated with the `relocation_rules` in the following way:
-```
-old_cell = Relocatable {segment_index: x, offset: y}
-
-new_cell = relocation_rules[-old_cell.segment_index + 1] + old_cell.offset
-```
-
-Once the addresses are relocated, we start moving the temporary memory into the VM's memory. By iterating the `temp_data` from **right to left**. From the `relocation_rules` we get the the base address for the temporary segment and start adding the cells from that point.
-
-Keep in mind that if a temporary segment does not map to a real memory address (in other words, it does not have its mapping in `relocation_rules`) it won´t be relocated to real memory.
