@@ -269,6 +269,13 @@ Requirement 1: given a pair of accessed memory addresses *x and y*, any address 
 
 After executing the cairo program and relocating the memory of the runner, that relocated memory is used to create a `PublicInput` which contains a vector of `PublicMemoryEntry`. Each of this contains a value, an address and its page, the whole vector represents the public memory.
 
+#### Temporary Memory
+
+During execution, temporary segments are stored separated from the memory data and their segment indexes are represented with negative numbers. For their relocation, we use rules that will tell us how to map them to a memory segment.
+
+> [!NOTE]
+> Relocation rules start at index 0 and temp data segment index start at -1. So for the mapping, segment_index = -1 maps to key 0, segment_index = -2 to key 1, and so on.
+
 ### Memory Implementation
 
 #### MemorySegmentManager
@@ -285,8 +292,8 @@ To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we
 
 The VM memory containing:
 - `data`: A vector of vectors. Each vector representing a different `segment` with its own data
-- `temp_data`: A vector of vector. Each vector representing a `temporary segment`
-- `relocation_rules`: ??????
+- `temp_data`: A vector of vectors. Each vector representing a `temporary segment`
+- `relocation_rules`: A hashmap that tells how a temporary segment maps to a to a memory segment
 - `validated_addresses`: ??????
 - `validation_rules`: ??????
 
@@ -374,3 +381,18 @@ It can happen that the cell is empty and has no value because it was just fillin
 > [!NOTE]
 > In our VM:
 > Relocation memory starts at index 1. Index 0 is filled with a `None`
+
+#### Temporary Memory Relocation
+
+In this case, we will use the `relocation_rules` that determines to which relocated memory segment a temporary segment will map.
+
+First, the `data` and `temp_data` are iterated searching for any `Relocatable` that needs to have their address relocated. They are differentiated by having their `segment_index < 0`. When one of them is found, it is relocated with the `relocation_rules` in the following way:
+```
+old_cell = Relocatable {segment_index: x, offset: y}
+
+new_cell = relocation_rules[-old_cell.segment_index + 1] + old_cell.offset
+```
+
+Once the addresses are relocated, we start moving the temporary memory into the VM's memory. By iterating the `temp_data` from **right to left**. From the `relocation_rules` we get the the base address for the temporary segment and start adding the cells from that point.
+
+Keep in mind that if a temporary segment does not map to a real memory address (in other words, it does not have its mapping in `relocation_rules`) it won´t be relocated to real memory.
