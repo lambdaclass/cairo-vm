@@ -271,7 +271,7 @@ After executing the cairo program and relocating the memory of the runner, that 
 
 #### Temporary Memory
 
-During execution, temporary segments are stored separated from the memory data and their segment indexes are represented with negative numbers. For their relocation, we use rules that will tell us how to map them to a memory segment.
+During execution, temporary segments are stored separated from the memory data and their segment indexes are represented with negative numbers. For their relocation, we use rules that will tell us how to map them to a real memory segment.
 
 > [!NOTE]
 > Relocation rules start at index 0 and temp data segment index start at -1. So for the mapping, segment_index = -1 maps to key 0, segment_index = -2 to key 1, and so on.
@@ -284,9 +284,9 @@ To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we
 - `segment_sizes`: A HashMap that contains the size of each segment
 - `segment_used_sizes`: A Vector of each segment size. Item on index i is the segment size of segment i
 - `memory`: The memory itself, containing the data, temporary data, relocation rules, among other things
-- `public_memory_offsets`: ????????
-- `zero_segment_index`: ????????
-- `zero_segment_size`: ????????
+- `public_memory_offsets`: A HashMap that maps a segment index to a list of offsets for memory cells that represent the public memory
+- `zero_segment_index`: The index of the zero segment that is used for builtins
+- `zero_segment_size`: Size of the zero segment
 
 #### Memory
 
@@ -294,8 +294,8 @@ The VM memory containing:
 - `data`: A vector of vectors. Each vector representing a different `segment` with its own data
 - `temp_data`: A vector of vectors. Each vector representing a `temporary segment`
 - `relocation_rules`: A hashmap that tells how a temporary segment maps to a to a memory segment
-- `validated_addresses`: ??????
-- `validation_rules`: ??????
+- `validated_addresses`: A vector of `BitVec`
+- `validation_rules`: A vector containing the validation rules
 
 Some methods:
 - `insert(key, val)`: 
