@@ -1009,18 +1009,32 @@ impl CairoRunner {
         Ok(())
     }
 
-    // Returns a map from builtin base's segment index to stop_ptr offset
-    // Aka the builtin's segment number and its maximum offset
+    /// Returns a tuple of builtin base's segment index and stop_ptr offset
+    /// Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segments_info(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let proof_mode = self.is_proof_mode();
         let mut builtin_segment_info = Vec::new();
 
         for builtin in &self.vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((
-                index,
-                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
-            ));
+            match (proof_mode, stop_ptr) {
+                // Segment present (same handling in both modes).
+                (_, Some(sp)) => builtin_segment_info.push((index, sp)),
+
+                // If non proof-mode, only builtins in the program are present and they must
+                // point to a segment (so `stop_ptr` must be set). Throw an error if not.
+                (false, None) => {
+                    return Err(RunnerError::NoStopPointer(Box::new(
+                        builtin.name().to_owned(),
+                    )));
+                }
+
+                // In proof‐mode there are builtin runners for all builtins in the layout, but only
+                // the ones that are in the program point to a segment (so `stop_ptr` is set).
+                // Only collect those and silently ignore the rest.
+                (true, None) => {}
+            }
         }
 
         Ok(builtin_segment_info)
@@ -3913,6 +3927,44 @@ mod tests {
             cairo_runner.get_builtin_segments_info(),
             Err(RunnerError::NoStopPointer(Box::new(BuiltinName::output))),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_builtin_segments_info_non_proof_mode() {
+        let program_data =
+            include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: LayoutName::small,
+            proof_mode: false,
+            secure_run: Some(true),
+            ..Default::default()
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let runner = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        assert_eq!(runner.get_builtin_segments_info(), Ok(vec![(2, 6)]));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_builtin_segments_info_proof_mode() {
+        let program_data =
+            include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: LayoutName::small,
+            proof_mode: true,
+            secure_run: Some(true),
+            ..Default::default()
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let runner = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        assert_eq!(runner.get_builtin_segments_info(), Ok(vec![(4, 6)]));
     }
 
     #[test]
