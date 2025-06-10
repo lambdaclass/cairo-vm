@@ -288,6 +288,17 @@ To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we
 - `zero_segment_index`: The index of the zero segment that is used for builtins
 - `zero_segment_size`: Size of the zero segment
 
+Some methods:
+- `add()`:
+    - Adds a new segment to the memory by adding an empty vector to the data
+    - It returns a `Relocatable` that represents the starting location of the new segement
+
+- `add_temporary_segment()`:
+    - Similar to the method above, just adds a new vector to the temporary data and again returns its starting location. However, in this case the segment index will be a negative value
+
+- `relocate_segments()`:
+    - Creates the relocation table. This is explained in detail [Creation of Relocation Table](#creation-of-relocation-table)
+
 #### Memory
 
 The VM memory containing:
@@ -309,9 +320,9 @@ Some methods:
     - Relocates the value
 
 - `relocate_memory()`:
+    - Relocates temporary data
     - If `relocation_rules` or `temp_data` are empty, it does nothing
-    - The cells from the data and temporary data are relocated
-    - TODO!
+    - Explained with more detail in [Temporary Memory Relocation](#temporary-memory-relocation)
 
 #### MemoryCell & MaybeRelocatable
 
