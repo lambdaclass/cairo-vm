@@ -414,4 +414,11 @@ It can happen that the cell is empty and has no value because it was just fillin
 
 ## Output
 
+During execution the trace is represented as a vector of `TraceEntry` where each of them has the values of the `pc`, `ap` and `fp`. In the case of the `pc` it is a `Relocatable` the others are just an `usize`. During the execution of each instruction, a new `TraceEntry` is created with the values of the registers (these are updated after).
 
+After execution, the trace needs to be relocated. From a `Vec<TraceEntry>` we get a `Vec<RelocatedTraceEntry>`. This process is simple and does the following:
+- relocated_pc = pc.offset + relocation_table[pc.segment_index]
+- relocated_ap = ap + relocation_table[1]
+- relocated_fp = fp + relocation_table[1]
+
+For `ap` and `fp` we use segment 1 since it is the execution segement
