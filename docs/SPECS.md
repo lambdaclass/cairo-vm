@@ -265,6 +265,10 @@ Cairo VM uses a Nondeterministic Read-Only memory model. This means - the prover
 
 Requirement 1: given a pair of accessed memory addresses *x and y*, any address *a* which satisfies that *x < a < y* must have also been accessed. This implies that any given set of accessed memory addresses must be contiguous.
 
+#### Real Memory
+
+The VM's memory is represented with the struct `Memory` which contains each segment, temporary or not. Segments are represented by a `Vec<MemoryCell>` and their index in the vector represents their segment index which will be then used for relocation. To manage all the segments and their data, we have the `MemorySegmentManager`.
+
 #### Public Memory
 
 After executing the cairo program and relocating the memory of the runner, that relocated memory is used to create a `PublicInput` which contains a vector of `PublicMemoryEntry`. Each of this contains a value, an address and its page, the whole vector represents the public memory.
@@ -407,5 +411,7 @@ It can happen that the cell is empty and has no value because it was just fillin
 > [!NOTE]
 > In our VM:
 > Relocation memory starts at index 1. Index 0 is filled with a `None`
+
+## Output
 
 
