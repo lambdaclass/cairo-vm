@@ -73,21 +73,21 @@ jobs:
     - name: Restore timestamps
       uses: chetan/git-restore-mtime-action@v1
 
-    - name: Python3 Build
+    - name: Install uv
       if: steps.cache-programs.outputs.cache-hit != 'true'
         && matrix.program-target != 'cairo_1_test_contracts'
         && matrix.program-target != 'cairo_2_test_contracts'
-      uses: actions/setup-python@v4
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      if: |
-        steps.cache-programs.outputs.cache-hit != 'true'
+          enable-cache: true
+    - name: Install python deps
+      if: steps.cache-programs.outputs.cache-hit != 'true'
         && matrix.program-target != 'cairo_1_test_contracts'
         && matrix.program-target != 'cairo_2_test_contracts'
-      run: pip install -r requirements.txt
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo 1 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
@@ -443,16 +443,17 @@ jobs:
           cairo_programs/**/*.pie.zip
         key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
 
-    - name: Python3 Build
+    - name: Install uv
       if: steps.trace-cache.outputs.cache-hit != 'true'
-      uses: actions/setup-python@v4
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
+        enable-cache: true
+    - name: Install python deps
       if: steps.trace-cache.outputs.cache-hit != 'true'
-      run: pip install -r requirements.txt
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch programs
       if: steps.trace-cache.outputs.cache-hit != 'true'
@@ -805,15 +806,18 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
+        enable-cache: true
+    - name: Install python deps
       run: |
-        pip install -r requirements.txt
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+    - name: Install wasm-pack dep
+      run: |
         npm install -g wasm-pack
 
     - name: Build wasm-demo
@@ -830,14 +834,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Install python deps
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -869,14 +874,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Install python deps
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
@@ -920,14 +926,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
-
-    - name: Install cairo-lang and deps
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Install python deps
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Fetch release binary
       uses: actions/cache/restore@v3
