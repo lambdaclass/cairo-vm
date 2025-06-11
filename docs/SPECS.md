@@ -414,6 +414,8 @@ It can happen that the cell is empty and has no value because it was just fillin
 
 ## Output
 
+### Trace
+
 During execution the trace is represented as a vector of `TraceEntry` where each of them has the values of the `pc`, `ap` and `fp`. In the case of the `pc` it is a `Relocatable` the others are just an `usize`. During the execution of each instruction, a new `TraceEntry` is created with the values of the registers (these are updated after).
 
 After execution, the trace needs to be relocated. From a `Vec<TraceEntry>` we get a `Vec<RelocatedTraceEntry>`. This process is simple and does the following:
@@ -421,4 +423,12 @@ After execution, the trace needs to be relocated. From a `Vec<TraceEntry>` we ge
 - relocated_ap = ap + relocation_table[1]
 - relocated_fp = fp + relocation_table[1]
 
-For `ap` and `fp` we use segment 1 since it is the execution segement
+For `ap` and `fp` we use segment 1 since it is the execution segment.
+
+### Public Input
+
+Its the output of the of the VM execution and the input for the verifier. For its creation, it uses the VMs public memory information to create a `Vec<PublicMemoryEntry>` which represents the public memory. `PublicMemoryEntry` has an `address`, a `page` and a `value`.
+
+### CairoPie
+
+Like [Public Input](#public-input), this output will also be used as an input in the VM itself. It includes a `CairoPieMemory` which is a simplified version of the VM memory and it is possible to easily create it from it. It is simplified in the sense that it only contains the address-value pairs of the memory, and nothing else.
