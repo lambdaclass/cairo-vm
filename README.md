@@ -431,6 +431,7 @@ StarkWare's STARK Math blog series:
 
 ## ⚖️ License
 
-This project is licensed under the Apache 2.0 license.
+This project is dual-licensed under Apache 2.0 and MIT. You may choose either license.
 
-See [LICENSE](/LICENSE) for more information.
+
+See [Apache 2.0 License](/LICENSE) or [MIT License](/LICENSE-MIT) for more information.
