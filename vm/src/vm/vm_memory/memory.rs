@@ -491,7 +491,7 @@ impl Memory {
     /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
     ///   
     /// Everything else behaves much like `memcmp` in C.
-    ///   This is meant as an optimization for hints to avoid allocations.
+    /// This is meant as an optimization for hints to avoid allocations.
     pub(crate) fn mem_eq(&self, lhs: Relocatable, rhs: Relocatable, len: usize) -> bool {
         if lhs == rhs {
             return true;
