@@ -349,6 +349,19 @@ The memory relocation has the following steps:
 - Relocate the memory (In cairo0 this depends on the config, but in cairo1 is always done)
 - Relocate the trace
 
+```mermaid
+stateDiagram-v2
+    state "Relocate addresses" as iterate_data
+    state "Relocate temporary data into real memory" as into_real_mem
+    [*] --> RelocateTempData
+    state RelocateTempData {
+        iterate_data --> into_real_mem
+    }
+    RelocateTempData --> CreateRelocationTable
+    CreateRelocationTable --> RelocateMemory
+    RelocateMemory --> [*]
+```
+
 #### Temporary Memory Relocation
 
 In this case, we will use the `relocation_rules` that determine to which relocated memory segment a temporary segment will map.
