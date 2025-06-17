@@ -1,6 +1,7 @@
 # Specifications
 
 ## Instructions
+
 ### Operations
 Each Cairo instruction represents one of the following operations:
 
@@ -62,7 +63,7 @@ This type is used when `opcode_extension == 0`. Its does not add new behaviour s
 
 #### Blake & BlakeFinalize
 
-Blake is used when `opcode_extension == 1` and BlakeFinalize is used when `opcode_extension == 2` and they have some constraints, if these are not met while having one of the the blake extensions, the instructions becomes invalid:
+Blake is used when `opcode_extension == 1` and BlakeFinalize is used when `opcode_extension == 2` and they have some constraints, if these are not met while having one of the the blake extensions, the instruction becomes invalid:
 - `opcode == 0` (no operation)
 - `op1_src == 2` (FP) or `op1_src == 4` (AP)
 - `res_logic == 0` (op1)
@@ -70,25 +71,25 @@ Blake is used when `opcode_extension == 1` and BlakeFinalize is used when `opcod
 - `ap_update == 0` (Regular) || `ap_update == 2` (Add1)
 
 After checking the constraints, if we are working with a `Blake` extension the blake2 algorithm is applied. The operands are contained as follows:
-- `op0_addr` points to a sequence of 8  -> represents a state
+- `op0_addr` points to a sequence of 8 felts -> represents a state
 - `op1_addr` points to a sequence of 16 felts -> represents a message
 - `dst_addr` holds the value of the counter
-- `ap` points to a sequence of 8 cells which each should either be uninitialised or already contain a value matching that of the output
+- `ap` points to a sequence of 8 cells where each should either be uninitialised or already contain a value matching that of the output
 
 The output consists of 8 felts that represent the output of the Blake2s compression.
 
 On the other side, if we are working with the `BlakeFinalize` extension the operands are the same as with `Blake` with only one change:
-- `op0_addr` points to a sequence of 9 felts -> first 8 felts represent the state the last one represents the state
+- `op0_addr` points to a sequence of 9 felts -> first 8 felts represent the state and the last one represents a counter
 
-The out here represents the Blake2s compression of the last block.
+The output here represents the Blake2s compression of the last block.
 
 #### QM31
 
 In this case, when `opcode_extension == 3` we are working with the `QM31Operation` which changes how the arithmetic (add, mul, sub, div) works on the VM by doing it with QM31 elements in reduced form. Again there are some constraints, if these are not met the instruction becomes invalid:
-- `res_logic == 1` (Add) || `res_logic == 2` (Mul)
+- `res_logic == 1` (Add) or `res_logic == 2` (Mul)
 - `op1_src != 0` (Op0)
 - `pc_update == 0` (Regular)
-- `ap_update == 0` (Regular) || `ap_update == 2` (Add1)
+- `ap_update == 0` (Regular) or `ap_update == 2` (Add1)
 
 ### Auxiliary Variables
 
@@ -136,7 +137,8 @@ The variable `res` computation depends on `res_logic`.
 - `res_logic == 0`:  We set `res = op1`.
 - `res_logic == 1`:  We set `res = op0 + op1`.
 - `res_logic == 2`:  We set `res = op0 * op1`.
-- Otherwise: The instruction is invalid.
+
+Otherwise: The instruction is invalid.
 
 > [!NOTE] 
 > The value of `res` won’t always be used. For example, it won’t be used when `pc_update == 4`.
@@ -197,7 +199,7 @@ The `instruction_size` is always `1`, unless `op1` is an immediate, in which cas
 
 At the end of the execution, the registers must be updated according to the instruction flags.
 
-#### Updating the PC
+#### Updating the `PC`
 
 The updated PC will be denoted by `next_pc`.
 
@@ -211,13 +213,14 @@ When updating the program counter, we depend primarily on the `pc_update` field:
 - `pc_update == 4`: Conditional relative jump.
     - If `dst == 0`: Set `next_pc = pc + instruction_size`.
     - If `dst != 0`: Set `next_pc = pc + op1`.
-- Otherwise: The instruction is invalid.
+
+Otherwise: The instruction is invalid.
 
 > [!NOTE]
 > In our VM:
 > `new_pc` = `next_pc`
 
-#### Updating the AP
+#### Updating the `AP`
 
 The updated AP will be denoted by `next_ap`.
 
@@ -229,13 +232,14 @@ When updating the allocation pointer, we depend primarily on the `ap_update` fie
     - `ap_update == 0`: Set `next_ap = ap`
     - `ap_update == 1`: Set `next_ap = ap + res`
     - `ap_update == 2`: Set `next_ap = ap + 1`
-- Otherwise: The instruction is invalid.
+
+Otherwise: The instruction is invalid.
 
 > [!NOTE]
 > In our VM:
 > `new_apset` = `next_ap`
 
-#### Updating the FP
+#### Updating the `FP`
 
 The updated FP will be denoted by `next_fp`.
 
@@ -249,7 +253,8 @@ When updating the frame pointer, we depend on the `opcode`:
     - Set `next_fp = dst`.
 - `opcode == 3`: An assert equal operation.
     - Set `next_fp = fp`.
-- Otherwise: The instruction is invalid.
+
+Otherwise: The instruction is invalid.
 
 > [!NOTE]
 > In our VM:
@@ -301,7 +306,7 @@ Some methods:
     - Similar to the method above, just adds a new vector to the temporary data and again returns its starting location. However, in this case the segment index will be a negative value
 
 - `relocate_segments()`:
-    - Creates the relocation table. This is explained in detail [Creation of Relocation Table](#creation-of-relocation-table)
+    - Creates the relocation table. This is explained in detail on [Creation of Relocation Table](#creation-of-relocation-table)
 
 #### Memory
 
@@ -336,8 +341,6 @@ Some methods:
 
 `MemoryCell` is a `[u64; 4]` that represents a value in the memory. However cells can also represent a part in memory that holds no value and it is just used to fill gaps. This is done by using a mask -> Cell with no value = `[NONE_MASK, 0, 0, 0]`
 
-### Memory relationships
-
 ### Relocation
 
 The memory relocation has the following steps:
@@ -348,7 +351,7 @@ The memory relocation has the following steps:
 
 #### Temporary Memory Relocation
 
-In this case, we will use the `relocation_rules` that determines to which relocated memory segment a temporary segment will map.
+In this case, we will use the `relocation_rules` that determine to which relocated memory segment a temporary segment will map.
 
 First, the `data` and `temp_data` are iterated searching for any `Relocatable` that needs to have their address relocated. They are differentiated by having their `segment_index < 0`. When one of them is found, it is relocated with the `relocation_rules` in the following way:
 ```
