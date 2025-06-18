@@ -27,15 +27,24 @@ jobs:
     - name: Set up cargo cache
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       uses: Swatinem/rust-cache@v2
-    - name: Python3 Build
+
+    - name: Install uv
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
-      uses: actions/setup-python@v4
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
+          enable-cache: true
+    - name: Install python deps
+      if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
+      run: |
+          uv python install 3.9.15
+          uv venv --python 3.9.15 cairo-vm-env
+          . cairo-vm-env/bin/activate
+          uv pip install -r requirements.txt
+          echo PATH=$PATH >> $GITHUB_ENV
+
     - name: Install test dependencies
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
       run: |
-        pip install -r requirements.txt
         sudo apt update
         sudo apt install -y valgrind
         cargo install --version 0.3.1 iai-callgrind-runner
@@ -54,13 +63,19 @@ jobs:
       uses: dtolnay/rust-toolchain@1.87.0
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
+          enable-cache: true
+    - name: Install python deps
+      run: |
+          uv python install 3.9.15
+          uv venv --python 3.9.15 cairo-vm-env
+          . cairo-vm-env/bin/activate
+          uv pip install -r requirements.txt
+          echo PATH=$PATH >> $GITHUB_ENV
     - name: Install test dependencies
       run: |
-        pip install -r requirements.txt
         sudo apt update
         sudo apt install -y valgrind
         cargo install --version 0.3.1 iai-callgrind-runner
