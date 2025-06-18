@@ -260,6 +260,55 @@ Otherwise: The instruction is invalid.
 > In our VM:
 > `new_fp_offset` = `next_fp`
 
+### Instruction Execution Flow
+
+#### General Overview
+
+The runner is the one that starts everything with `run_until_pc()` which uses the VM to execute instructions until the 
+PC reaches the end address. For each step done by the VM, an instruction is decoded and executed.
+
+```mermaid
+stateDiagram-v2
+    state "run_until_pc()" as run_steps
+    state "decode_instruction()" as decode
+    state "run_instruction()" as run_instr
+    state end <<choice>>
+
+    [*] --> CairoRunner
+    state CairoRunner {
+        run_steps
+    }
+
+    state VirtualMachine {
+        step_instruction()
+    }
+
+    state step_instruction() {
+        decode --> run_instr
+    }
+
+    CairoRunner --> VirtualMachine
+    VirtualMachine --> end
+    end --> [*] : PC == end_addr
+    end --> CairoRunner : PC != end_addr
+   
+```
+#### Flow of `run_instruction()`
+
+```mermaid
+stateDiagram-v2
+    state "Compute Operands" as compute_ops
+    state "Deduce Operands" as deduce_ops
+    state "Add new TraceEntry" as new_trace_entry
+    state "Update registers" as update_regs
+    [*] --> RunInstruction
+    state RunInstruction {
+        compute_ops --> deduce_ops
+        deduce_ops --> new_trace_entry
+        new_trace_entry --> update_regs
+    }
+```
+
 ## Memory Model
 
 ### Nondeterministic Memory
