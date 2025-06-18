@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* dev: make `VirtualMachine::get_traceback_entries` pub
+
 * chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
 
 * chore: remove unused dependencies [#2111](https://github.com/lambdaclass/cairo-vm/pull/2111)
