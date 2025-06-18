@@ -264,7 +264,7 @@ Otherwise: The instruction is invalid.
 
 #### General Overview
 
-The runner is the one that starts everything with `run_until_pc()` which uses the VM to execute instructions until the 
+The runner is the one that starts everything with [`run_until_pc()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/runners/cairo_runner.rs#L672) which uses the VM to execute instructions until the 
 PC reaches the end address. For each step done by the VM, an instruction is decoded and executed.
 
 ```mermaid
@@ -293,7 +293,7 @@ stateDiagram-v2
     end --> CairoRunner : PC != end_addr
    
 ```
-#### Flow of `run_instruction()`
+#### Flow of [`run_instruction()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_core.rs#L407)
 
 ```mermaid
 stateDiagram-v2
@@ -347,14 +347,14 @@ To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we
 - `zero_segment_size`: Size of the zero segment
 
 Some methods:
-- `add()`:
+- [`add()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory_segments.rs#L49):
     - Adds a new segment to the memory by adding an empty vector to the data
     - It returns a `Relocatable` that represents the starting location of the new segement
 
-- `add_temporary_segment()`:
+- [`add_temporary_segment()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory_segments.rs#L58):
     - Similar to the method above, just adds a new vector to the temporary data and again returns its starting location. However, in this case the segment index will be a negative value
 
-- `relocate_segments()`:
+- [`relocate_segments()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory_segments.rs#L112):
     - Creates the relocation table. This is explained in detail on [Creation of Relocation Table](#creation-of-relocation-table)
 
 #### Memory
@@ -367,17 +367,17 @@ The VM memory containing:
 - `validation_rules`: A vector containing the validation rules
 
 Some methods:
-- `insert(key, val)`: 
+- [`insert(key, val)`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory.rs#L192): 
     - Inserts the value into a memory address. If the address is not contiguous with previously inserted data, the memory gaps are filled with `None`. 
     - To get the value, first gets the segment index and then the offset with `from_relocatable_to_indexes()`
     - Verifies if that address is already used, in that case it returns a `MemoryError::InconsistencyMemory()`
     - Validates the memory cell with the validation rule
 
-- `get(key)`: 
+- [`get(key)`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory.rs#L241): 
     - Returns a value from memory
     - Relocates the value
 
-- `relocate_memory()`:
+- [`relocate_memory()`](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/vm/vm_memory/memory.rs#L291):
     - Relocates temporary data
     - If `relocation_rules` or `temp_data` are empty, it does nothing
     - Explained with more detail in [Temporary Memory Relocation](#temporary-memory-relocation)
@@ -496,4 +496,4 @@ Its the output of the of the VM execution and the input for the verifier. For it
 
 ### CairoPie
 
-Like [Public Input](#public-input), this output will also be used as an input in the VM itself. It includes a `CairoPieMemory` which is a simplified version of the VM memory and it is possible to easily create it from it. It is simplified in the sense that it only contains the address-value pairs of the memory, and nothing else.
+Like [Public Input](#public-input), this output will also be used as an input, in this case in the VM itself (this can be done with [cairo_run_pie()](https://github.com/lambdaclass/cairo-vm/blob/06708faf0e44f4ddae7c3c53a38ce94f70a1966e/vm/src/cairo_run.rs#L154)). It includes a `CairoPieMemory` which is a simplified version of the VM memory and it is possible to easily create it from it. It is simplified in the sense that it only contains the address-value pairs of the memory, and nothing else.
