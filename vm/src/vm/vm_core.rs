@@ -1961,6 +1961,7 @@ mod tests {
             opcode_extension: OpcodeExtension::Stone,
         };
 
+        // hi
         let operands = Operands {
             dst: MaybeRelocatable::Int(Felt252::from(11)),
             res: None,
