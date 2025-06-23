@@ -1506,13 +1506,13 @@ impl CairoRunner {
 
     /// Collects relevant information for the prover from the runner, including the
     /// relocatable form of the trace, memory, public memory, and built-ins.
-    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, ProverInputInfoError> {
+    /// Takes ownership of the trace from the VM.
+    pub fn get_prover_input_info(&mut self) -> Result<ProverInputInfo, ProverInputInfoError> {
         let relocatable_trace = self
             .vm
             .trace
-            .as_ref()
-            .ok_or(ProverInputInfoError::TraceNotEnabled)?
-            .clone();
+            .take()
+            .ok_or(ProverInputInfoError::TraceNotEnabled)?;
 
         let relocatable_memory = self
             .vm
@@ -5565,7 +5565,7 @@ mod tests {
     fn get_prover_input_info() {
         let program_content =
             include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
-        let runner = crate::cairo_run::cairo_run(
+        let mut runner = crate::cairo_run::cairo_run(
             program_content,
             &CairoRunConfig {
                 trace_enabled: true,
@@ -5658,7 +5658,7 @@ mod tests {
     fn test_output_not_builtin_segment() {
         let program_content =
             include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
-        let runner = crate::cairo_run::cairo_run(
+        let mut runner = crate::cairo_run::cairo_run(
             program_content,
             &CairoRunConfig {
                 trace_enabled: true,
@@ -5770,7 +5770,7 @@ mod tests {
             layout: LayoutName::all_cairo_stwo,
             ..Default::default()
         };
-        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let mut runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
         let prover_input_info = runner.get_prover_input_info().unwrap();
 
         // Using bincode.
