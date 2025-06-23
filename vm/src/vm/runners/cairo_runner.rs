@@ -1492,13 +1492,13 @@ impl CairoRunner {
 
     /// Collects relevant information for the prover from the runner, including the
     /// relocatable form of the trace, memory, public memory, and built-ins.
-    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, ProverInputInfoError> {
+    /// Remove the trace from the VM.
+    pub fn get_prover_input_info(&mut self) -> Result<ProverInputInfo, ProverInputInfoError> {
         let relocatable_trace = self
             .vm
             .trace
-            .as_ref()
-            .ok_or(ProverInputInfoError::TraceNotEnabled)?
-            .clone();
+            .take()
+            .ok_or(ProverInputInfoError::TraceNotEnabled)?;
 
         let relocatable_memory = self
             .vm
