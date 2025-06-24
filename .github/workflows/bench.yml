@@ -45,3 +45,13 @@ jobs:
         alert-comment-cc-users: '@unbalancedparentheses'
     - name: Clean benches
       run: make clean
+
+    - name: Build rustdoc
+      run: cargo doc --no-deps --workspace
+
+    - name: Deploy rustdoc to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./target/doc
+        destination_dir: docs
