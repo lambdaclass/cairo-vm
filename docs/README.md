@@ -1,8 +1,10 @@
 # Documentation
 
+This folder contains extended documentation for Cairo VM. For a general overview, see the [main README](../README.md).
+
 * [How does the Cairo VM work?](./vm/)
 * [How does the original Cairo VM work?](./python_vm/)
-* [Benchmarks](./benchmarks/)
+* [Benchmarks](./benchmarks/) ([see results](./benchmarks/criterion_benchmark.pdf), [flamegraph](./benchmarks/flamegraph.svg))
 * [Custom Hint Processor](./hint_processor/)
 * [How to run a cairo program with custom hints](./hint_processor/builtin_hint_processor)
 * [References parsing](./references_parsing/)
