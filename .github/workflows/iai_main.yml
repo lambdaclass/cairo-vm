@@ -15,7 +15,7 @@ jobs:
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
     - name: Install python deps
