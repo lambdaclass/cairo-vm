@@ -1,4 +1,23 @@
-//! # An implementation of the Cairo virtual machine
+//! # Cairo VM
+//!
+//! This crate provides a fast and safe implementation of the Cairo virtual machine in Rust.
+//!
+//! - [Project README](https://github.com/lambdaclass/cairo-vm/blob/main/README.md)
+//! - [Extended documentation](https://github.com/lambdaclass/cairo-vm/blob/main/docs/README.md)
+//!
+//! ## Features
+//! - STARK-friendly execution trace
+//! - Custom hint processor support
+//! - Tracing and debugging tools
+//!
+//! ## Example
+//! ```rust
+//! use cairo_vm::vm::vm_core::VirtualMachine;
+//! // ... usage example ...
+//! ```
+//!
+//! ## Diagrams
+//! Mermaid diagrams are supported in rustdoc via the `aquamarine` dependency.
 //!
 //! ## Feature Flags
 //! - `std`: Enables usage of the [`std`] standard library. Enabled by default.
