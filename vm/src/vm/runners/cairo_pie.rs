@@ -324,19 +324,42 @@ impl CairoPie {
 
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = zip::write::FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .large_file(true);
 
         zip_writer.start_file("version.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &self.version)?;
+        let version_bytes = serde_json::to_vec(&self.version)?;
+        println!("version size: {} bytes", version_bytes.len());
+        zip_writer.write_all(&version_bytes)?;
+        // serde_json::to_writer(&mut zip_writer, &self.version)?;
+
         zip_writer.start_file("metadata.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &metadata)?;
+        let metadata_bytes = serde_json::to_vec(&metadata)?;
+        println!("metadata size: {} bytes", metadata_bytes.len());
+        zip_writer.write_all(&metadata_bytes)?;
+        // serde_json::to_writer(&mut zip_writer, &metadata)?;
+
         zip_writer.start_file("memory.bin", options)?;
-        zip_writer.write_all(&self.memory.to_bytes(segment_offsets))?;
+        let memory_bytes = self.memory.to_bytes(segment_offsets);
+        println!("memory size: {} bytes", memory_bytes.len());
+        zip_writer.write_all(&memory_bytes)?;
+
         zip_writer.start_file("additional_data.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
+        let additional_data_bytes = serde_json::to_vec(&self.additional_data)?;
+        println!(
+            "additional_data size: {} bytes",
+            additional_data_bytes.len()
+        );
+        zip_writer.write_all(&additional_data_bytes)?;
+        // serde_json::to_writer(&mut zip_writer, &self.additional_data)?;
+
         zip_writer.start_file("execution_resources.json", options)?;
-        serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
+        let er_bytes = serde_json::to_vec(&self.execution_resources)?;
+        println!("ER size: {} bytes", er_bytes.len());
+        zip_writer.write_all(&er_bytes)?;
+        // serde_json::to_writer(&mut zip_writer, &self.execution_resources)?;
+
         zip_writer.finish()?;
         Ok(())
     }
