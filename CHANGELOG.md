@@ -1,6 +1,8 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+*  BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)
+
 * Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
 
 * fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
