@@ -66,7 +66,6 @@ pub mod types;
 pub mod utils;
 pub mod vm;
 
-// Using the standardized Felt type from starknet_types_core
 pub use starknet_types_core::felt::Felt;
 // For backwards compatibility - alias Felt252 to Felt
 pub type Felt252 = Felt;
