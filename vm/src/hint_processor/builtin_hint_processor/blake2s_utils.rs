@@ -324,6 +324,51 @@ pub fn blake2s_unpack_felts(
 }
 
 /* Implements Hint:
+offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    for i in range(val_len):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len
+*/
+pub fn blake2s_unpack_felts_le_no_encoding(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let packed_values_len =
+        get_integer_from_var_name("packed_values_len", vm, ids_data, ap_tracking)?;
+    let packed_values = get_ptr_from_var_name("packed_values", vm, ids_data, ap_tracking)?;
+    let unpacked_u32s = get_ptr_from_var_name("unpacked_u32s", vm, ids_data, ap_tracking)?;
+
+    let vals = vm.get_integer_range(packed_values, felt_to_usize(&packed_values_len)?)?;
+    let pow2_32 = BigUint::from(1_u32) << 32;
+
+    // Split value into either 2 or 8 32-bit limbs.
+    let out: Vec<MaybeRelocatable> = vals
+        .into_iter()
+        .map(|val| val.to_biguint())
+        .flat_map(|val| {
+            let mut limbs = vec![BigUint::from(0_u32); 8];
+            let mut val: BigUint = val;
+            for limb in limbs.iter_mut() {
+                let (q, r) = val.div_rem(&pow2_32);
+                *limb = r;
+                val = q;
+            }
+            limbs
+        })
+        .map(Felt252::from)
+        .map(MaybeRelocatable::from)
+        .collect();
+
+    vm.load_data(unpacked_u32s, &out)
+        .map_err(HintError::Memory)?;
+    Ok(())
+}
+
+/* Implements Hint:
     %{
         from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
 
@@ -740,6 +785,7 @@ mod tests {
         check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 
+    // TODO(yuval): add test for blake2s_unpack_felts_le_no_encoding
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_unpack_felts() {

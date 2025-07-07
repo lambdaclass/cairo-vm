@@ -437,6 +437,13 @@ for i in range(ids.packed_values_len):
         val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
     assert val == 0
     offset += val_len"#}),
+(BLAKE2S_UNPACK_FELTS_LE_NO_ENCODING, indoc! {r#"offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    for i in range(val_len):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len"#}),
 (EXAMPLE_BLAKE2S_COMPRESS, indoc! {r#"from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
 
 _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
