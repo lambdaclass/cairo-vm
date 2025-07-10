@@ -85,6 +85,8 @@ pub struct Cairo1RunConfig<'a> {
     pub trace_enabled: bool,
     /// Relocate cairo memory at the end of the run
     pub relocate_mem: bool,
+    /// Relocate the trace at the end of the run
+    pub relocate_trace: bool,
     /// Cairo layout chosen for the run
     pub layout: LayoutName,
     pub dynamic_layout_params: Option<CairoLayoutParams>,
@@ -95,6 +97,14 @@ pub struct Cairo1RunConfig<'a> {
     pub finalize_builtins: bool,
     /// Appends the return and input values to the output segment. This is performed by default when running in proof_mode
     pub append_return_values: bool,
+    /// Disable padding of the trace.
+    /// By default, the trace is padded to accommodate the expected builtins-n_steps relationships
+    /// according to the layout.
+    /// When the padding is disabled:
+    /// - It doesn't modify/pad n_steps.
+    /// - It still pads each builtin segment to the next power of 2 (w.r.t the number of used
+    ///   instances of the builtin) compared to their sizes at the end of the execution.
+    pub disable_trace_padding: bool,
 }
 
 impl Default for Cairo1RunConfig<'_> {
@@ -104,11 +114,13 @@ impl Default for Cairo1RunConfig<'_> {
             serialize_output: false,
             trace_enabled: false,
             relocate_mem: false,
+            relocate_trace: true,
             layout: LayoutName::plain,
             proof_mode: false,
             finalize_builtins: false,
             append_return_values: false,
             dynamic_layout_params: None,
+            disable_trace_padding: false,
         }
     }
 }
@@ -256,7 +268,7 @@ pub fn cairo_run_program(
         cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
         cairo_run_config.trace_enabled,
-        false,
+        cairo_run_config.disable_trace_padding,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
     load_arguments(&mut runner, &cairo_run_config, main_func)?;
@@ -268,7 +280,7 @@ pub fn cairo_run_program(
     }
 
     runner.end_run(
-        false,
+        cairo_run_config.disable_trace_padding,
         false,
         &mut hint_processor,
         cairo_run_config.proof_mode,
@@ -341,7 +353,10 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true, true)?;
+    runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.relocate_trace,
+    )?;
 
     Ok((runner, return_values, serialized_output))
 }
