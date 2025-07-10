@@ -156,6 +156,7 @@ fn test_segment_arena() {
         relocate_mem: true,
         trace_enabled: true,
         proof_mode: false,
+        relocate_trace: true,
         ..Default::default()
     };
     let runner =

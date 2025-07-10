@@ -330,7 +330,7 @@ fn run_deprecated_cc() {
         program_content,
         &CairoRunConfig {
             trace_enabled: true,
-            ..Default::default()
+            relocate_trace: true..Default::default(),
         },
         &mut hint_processor,
     )

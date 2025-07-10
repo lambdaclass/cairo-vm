@@ -197,6 +197,7 @@ mod tests {
             relocate_mem: true,
             trace_enabled: true,
             layout: LayoutName::all_cairo,
+            relocate_trace: true,
             ..Default::default()
         };
         let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();

@@ -36,6 +36,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         layout: LayoutName::all_cairo,
         relocate_mem: true,
         trace_enabled: true,
+        relocate_trace: true,
         ..Default::default()
     };
 
