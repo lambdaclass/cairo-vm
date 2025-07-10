@@ -189,6 +189,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
