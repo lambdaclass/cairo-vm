@@ -433,7 +433,14 @@ for i in range(ids.packed_values_len):
     val_len = 2 if val < 2**63 else 8
     if val_len == 8:
         val += 2**255
-    for i in range(val_len - 1, -1, -1):
+    for i in range(val_len):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len"#}),
+(BLAKE2S_SPLIT_FELTS_TO_U32S, indoc! {r#"offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    for i in range(8):
         val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
     assert val == 0
     offset += val_len"#}),
