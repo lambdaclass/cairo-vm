@@ -268,22 +268,45 @@ pub fn is_less_than_63_bits_and_not_end(
     Ok(())
 }
 
-/* Implements Hint:
+/// Represents the encoding mode for Blake2s packed felts splitting.
+///
+/// - `NoEncoding`: Always splits the value into 8 limbs (u32 words).
+/// - `UseEncoding`: Uses 2 limbs if the value is less than 2^63, otherwise splits
+///                  into 8 limbs after adding 2^255.
+///
+/// This is used to control how packed felts are unpacked into u32 limbs for Blake2s hashing.
+pub enum BlakeEncodingMode {
+    NoEncoding,
+    UseEncoding,
+}
+
+/* If mode is `BlakeEncodingMode::UseEncoding`, implements the following hint:
 offset = 0
 for i in range(ids.packed_values_len):
     val = (memory[ids.packed_values + i] % PRIME)
     val_len = 2 if val < 2**63 else 8
     if val_len == 8:
         val += 2**255
-    for i in range(val_len - 1, -1, -1):
+    for i in range(val_len):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len
+
+   If mode is `BlakeEncodingMode::NoEncoding`, implements the following hint:
+offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    val_len = 8
+    for i in range(val_len):
         val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
     assert val == 0
     offset += val_len
 */
-pub fn blake2s_unpack_felts(
+pub fn split_packed_felts(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    mode: BlakeEncodingMode,
 ) -> Result<(), HintError> {
     let packed_values_len =
         get_integer_from_var_name("packed_values_len", vm, ids_data, ap_tracking)?;
@@ -291,28 +314,42 @@ pub fn blake2s_unpack_felts(
     let unpacked_u32s = get_ptr_from_var_name("unpacked_u32s", vm, ids_data, ap_tracking)?;
 
     let vals = vm.get_integer_range(packed_values, felt_to_usize(&packed_values_len)?)?;
+
     let pow2_32 = BigUint::from(1_u32) << 32;
     let pow2_63 = BigUint::from(1_u32) << 63;
     let pow2_255 = BigUint::from(1_u32) << 255;
 
-    // Split value into either 2 or 8 32-bit limbs.
+    // Split the value into 8 limbs, each of which is a u32.
+    let split_fixed8 = |mut val: BigUint| -> Vec<BigUint> {
+        let mut limbs = vec![BigUint::from(0_u32); 8];
+        for limb in &mut limbs {
+            let (q, r) = val.div_rem(&pow2_32);
+            *limb = r;
+            val = q;
+        }
+        limbs
+    };
+
+    // Split the value into 2 limbs if it is less than 2^63, or 8 limbs after adding 2^255.
+    let split_encoded = |mut val: BigUint| -> Vec<BigUint> {
+        if val < pow2_63 {
+            // Two‑limb representation.
+            let (high, low) = val.div_rem(&pow2_32);
+            vec![low, high]
+        } else {
+            // Eight limbs after adding 2^255.
+            val += &pow2_255;
+            split_fixed8(val)
+        }
+    };
+
+    // Unpack the values into u32 limbs in little-endian order according to the specified mode.
     let out: Vec<MaybeRelocatable> = vals
         .into_iter()
-        .map(|val| val.to_biguint())
-        .flat_map(|val| {
-            if val < pow2_63 {
-                let (high, low) = val.div_rem(&pow2_32);
-                vec![high, low]
-            } else {
-                let mut limbs = vec![BigUint::from(0_u32); 8];
-                let mut val: BigUint = val + &pow2_255;
-                for limb in limbs.iter_mut().rev() {
-                    let (q, r) = val.div_rem(&pow2_32);
-                    *limb = r;
-                    val = q;
-                }
-                limbs
-            }
+        .map(|v| v.to_biguint())
+        .flat_map(|val| match mode {
+            BlakeEncodingMode::NoEncoding => split_fixed8(val),
+            BlakeEncodingMode::UseEncoding => split_encoded(val),
         })
         .map(Felt252::from)
         .map(MaybeRelocatable::from)
@@ -740,22 +777,28 @@ mod tests {
         check_memory![vm.segments.memory, ((1, 3), 0)];
     }
 
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn blake2s_unpack_felts() {
-        let hint_code = hint_code::BLAKE2S_UNPACK_FELTS;
-        //Create vm
+    /// Builds a VM, writes the packed_values_len, packed_values, unpacked_u32s and the
+    /// actual small and big felts to the memory.
+    /// Returns the VM and the ids_data HashMap.
+    fn prepare_vm_for_splitting_felts_for_blake(
+        small_val: i128,
+        big_val: i128,
+    ) -> (VirtualMachine, HashMap<String, HintReference>) {
         let mut vm = vm!();
-        //Insert ids into memory
         vm.segments = segments![
+            // ids.packed_values_len = 2
             ((1, 0), 2),
+            // ids.packed_values = (1,3)
             ((1, 1), (1, 3)),
+            // ids.unpacked_u32s  = (2,0)
             ((1, 2), (2, 0)),
-            ((1, 3), 0x123456781234),
-            ((1, 4), 0x1234abcd5678efab1234abcd)
+            // packed small / big felts
+            ((1, 3), small_val),
+            ((1, 4), big_val)
         ];
         vm.set_fp(5);
         vm.set_ap(5);
+
         let ids_data = ids_data![
             "packed_values_len",
             "packed_values",
@@ -764,21 +807,62 @@ mod tests {
             "big_value"
         ];
         vm.segments.add();
-        //Execute the hint
-        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
-        //Check data ptr
+        (vm, ids_data)
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn blake2s_encode_and_split_felts() {
+        let (mut vm, ids_data) =
+            prepare_vm_for_splitting_felts_for_blake(0x123456781234, 0x1234abcd5678efab1234abcd);
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::BLAKE2S_ENCODE_AND_SPLIT_FELTS),
+            Ok(())
+        );
         check_memory![
             vm.segments.memory,
-            ((2, 0), 0x1234),
-            ((2, 1), 0x56781234),
-            ((2, 2), 0x80000000),
+            ((2, 0), 0x56781234),
+            ((2, 1), 0x1234),
+            ((2, 2), 0x1234abcd),
+            ((2, 3), 0x5678efab),
+            ((2, 4), 0x1234abcd),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 0),
+            ((2, 8), 0),
+            ((2, 9), 0x80000000),
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn blake2s_split_felts_to_u32s() {
+        let (mut vm, ids_data) = prepare_vm_for_splitting_felts_for_blake(
+            0x123456781234,
+            0x1234abcd5678efab1234abcd5678efab,
+        );
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code::BLAKE2S_SPLIT_FELTS_TO_U32S),
+            Ok(())
+        );
+        check_memory![
+            vm.segments.memory,
+            ((2, 0), 0x56781234),
+            ((2, 1), 0x1234),
+            ((2, 2), 0),
             ((2, 3), 0),
             ((2, 4), 0),
             ((2, 5), 0),
             ((2, 6), 0),
-            ((2, 7), 0x1234abcd),
+            ((2, 7), 0),
             ((2, 8), 0x5678efab),
-            ((2, 9), 0x1234abcd)
+            ((2, 9), 0x1234abcd),
+            ((2, 10), 0x5678efab),
+            ((2, 11), 0x1234abcd),
+            ((2, 12), 0),
+            ((2, 13), 0),
+            ((2, 14), 0),
+            ((2, 15), 0),
         ];
     }
 
