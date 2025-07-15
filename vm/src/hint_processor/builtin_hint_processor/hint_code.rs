@@ -427,13 +427,20 @@ MASK = 2 ** 32 - 1
 segments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])
 segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"#}),
 (IS_LESS_THAN_63_BITS_AND_NOT_END, indoc! {r#"memory[ap] = to_felt_or_relocatable((ids.end != ids.packed_values) and (memory[ids.packed_values] < 2**63))"#}),
-(BLAKE2S_UNPACK_FELTS, indoc! {r#"offset = 0
+(BLAKE2S_ENCODE_AND_SPLIT_FELTS, indoc! {r#"offset = 0
 for i in range(ids.packed_values_len):
     val = (memory[ids.packed_values + i] % PRIME)
     val_len = 2 if val < 2**63 else 8
     if val_len == 8:
         val += 2**255
-    for i in range(val_len - 1, -1, -1):
+    for i in range(val_len):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len"#}),
+(BLAKE2S_SPLIT_FELTS_TO_U32S, indoc! {r#"offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    for i in range(8):
         val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
     assert val == 0
     offset += val_len"#}),
