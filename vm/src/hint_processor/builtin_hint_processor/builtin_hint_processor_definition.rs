@@ -23,6 +23,7 @@ use super::{
         pack::*,
     },
 };
+use crate::hint_processor::builtin_hint_processor::blake2s_utils::blake2s_split_felts_to_u32s;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
@@ -365,6 +366,9 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             }
             hint_code::BLAKE2S_UNPACK_FELTS => {
                 blake2s_unpack_felts(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_SPLIT_FELTS_TO_U32S => {
+                blake2s_split_felts_to_u32s(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UNSAFE_KECCAK => {
                 unsafe_keccak(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)

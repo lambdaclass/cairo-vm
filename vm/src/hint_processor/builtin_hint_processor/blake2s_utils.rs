@@ -275,7 +275,7 @@ for i in range(ids.packed_values_len):
     val_len = 2 if val < 2**63 else 8
     if val_len == 8:
         val += 2**255
-    for i in range(val_len - 1, -1, -1):
+    for i in range(val_len):
         val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
     assert val == 0
     offset += val_len
@@ -302,17 +302,62 @@ pub fn blake2s_unpack_felts(
         .flat_map(|val| {
             if val < pow2_63 {
                 let (high, low) = val.div_rem(&pow2_32);
-                vec![high, low]
+                vec![low, high]
             } else {
                 let mut limbs = vec![BigUint::from(0_u32); 8];
                 let mut val: BigUint = val + &pow2_255;
-                for limb in limbs.iter_mut().rev() {
+                for limb in limbs.iter_mut() {
                     let (q, r) = val.div_rem(&pow2_32);
                     *limb = r;
                     val = q;
                 }
                 limbs
             }
+        })
+        .map(Felt252::from)
+        .map(MaybeRelocatable::from)
+        .collect();
+
+    vm.load_data(unpacked_u32s, &out)
+        .map_err(HintError::Memory)?;
+    Ok(())
+}
+
+/* Implements Hint:
+offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    for i in range(8):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len
+*/
+pub fn blake2s_split_felts_to_u32s(
+    vm: &mut VirtualMachine,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let packed_values_len =
+        get_integer_from_var_name("packed_values_len", vm, ids_data, ap_tracking)?;
+    let packed_values = get_ptr_from_var_name("packed_values", vm, ids_data, ap_tracking)?;
+    let unpacked_u32s = get_ptr_from_var_name("unpacked_u32s", vm, ids_data, ap_tracking)?;
+
+    let vals = vm.get_integer_range(packed_values, felt_to_usize(&packed_values_len)?)?;
+    let pow2_32 = BigUint::from(1_u32) << 32;
+
+    // Split value into either 2 or 8 32-bit limbs.
+    let out: Vec<MaybeRelocatable> = vals
+        .into_iter()
+        .map(|val| val.to_biguint())
+        .flat_map(|val| {
+            let mut limbs = vec![BigUint::from(0_u32); 8];
+            let mut val: BigUint = val;
+            for limb in limbs.iter_mut() {
+                let (q, r) = val.div_rem(&pow2_32);
+                *limb = r;
+                val = q;
+            }
+            limbs
         })
         .map(Felt252::from)
         .map(MaybeRelocatable::from)
@@ -769,16 +814,64 @@ mod tests {
         //Check data ptr
         check_memory![
             vm.segments.memory,
-            ((2, 0), 0x1234),
-            ((2, 1), 0x56781234),
-            ((2, 2), 0x80000000),
+            ((2, 0), 0x56781234),
+            ((2, 1), 0x1234),
+            ((2, 2), 0x1234abcd),
+            ((2, 3), 0x5678efab),
+            ((2, 4), 0x1234abcd),
+            ((2, 5), 0),
+            ((2, 6), 0),
+            ((2, 7), 0),
+            ((2, 8), 0),
+            ((2, 9), 0x80000000),
+        ];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn blake2s_split_felts_to_u32s() {
+        let hint_code = hint_code::BLAKE2S_SPLIT_FELTS_TO_U32S;
+        //Create vm
+        let mut vm = vm!();
+        //Insert ids into memory
+        vm.segments = segments![
+            ((1, 0), 2),
+            ((1, 1), (1, 3)),
+            ((1, 2), (2, 0)),
+            ((1, 3), 0x123456781234),
+            ((1, 4), 0x1234abcd5678efab1234abcd5678efab)
+        ];
+        vm.set_fp(5);
+        vm.set_ap(5);
+        let ids_data = ids_data![
+            "packed_values_len",
+            "packed_values",
+            "unpacked_u32s",
+            "small_value",
+            "big_value"
+        ];
+        vm.segments.add();
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        //Check data ptr
+        check_memory![
+            vm.segments.memory,
+            ((2, 0), 0x56781234),
+            ((2, 1), 0x1234),
+            ((2, 2), 0),
             ((2, 3), 0),
             ((2, 4), 0),
             ((2, 5), 0),
             ((2, 6), 0),
-            ((2, 7), 0x1234abcd),
+            ((2, 7), 0),
             ((2, 8), 0x5678efab),
-            ((2, 9), 0x1234abcd)
+            ((2, 9), 0x1234abcd),
+            ((2, 10), 0x5678efab),
+            ((2, 11), 0x1234abcd),
+            ((2, 12), 0),
+            ((2, 13), 0),
+            ((2, 14), 0),
+            ((2, 15), 0),
         ];
     }
 
