@@ -1540,10 +1540,7 @@ impl CairoRunner {
             .iter()
             .filter(|builtin| {
                 // Those segments are not treated as builtins by the prover.
-                !matches!(
-                    builtin,
-                    BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)
-                )
+                !matches!(builtin, BuiltinRunner::SegmentArena(_))
             })
             .map(|builtin| {
                 let (index, _) = builtin.get_memory_segment_addresses();
