@@ -28,6 +28,10 @@ macro_rules! any_box {
 }
 
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
+    if subsequence.is_empty() {
+        return true;
+    }
+    
     let mut subseq_idx = 0;
     for element in sequence {
         match subsequence.get(&subseq_idx) {
@@ -37,7 +41,7 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
                     return true;
                 }
             }
-            None => return true
+            None => return false
         }
     }
     false
