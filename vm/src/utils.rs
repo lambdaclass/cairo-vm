@@ -28,17 +28,16 @@ macro_rules! any_box {
 }
 
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
-    if subsequence.is_empty() {
-        return true;
-    }
-    
     let mut subseq_idx = 0;
     for element in sequence {
-        if element == &subsequence[subseq_idx] {
-            subseq_idx += 1;
-            if subseq_idx == subsequence.len() {
-                return true;
+        match subsequence.get(&subseq_idx) {
+            Some(sub_elem) if element == &sub_elem => {
+                subseq_idx += 1;
+                if subseq_idx == subsequence.len() {
+                    return true;
+                }
             }
+            None => return false
         }
     }
     false
