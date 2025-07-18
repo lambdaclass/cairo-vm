@@ -37,7 +37,7 @@ pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bo
                     return true;
                 }
             }
-            None => return false
+            None => return true
         }
     }
     false
