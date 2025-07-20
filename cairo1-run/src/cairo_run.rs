@@ -341,7 +341,7 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true)?;
+    runner.relocate(true, true)?;
 
     Ok((runner, return_values, serialized_output))
 }

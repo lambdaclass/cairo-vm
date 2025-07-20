@@ -189,6 +189,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        // If trace not enabled, it is not relevant. Otherwise, we need to relocate the trace only if
+        // we need air public input or trace file.
+        relocate_trace: trace_enabled
+            && (args.trace_file.is_some() || args.air_public_input.is_some()),
         layout: args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,

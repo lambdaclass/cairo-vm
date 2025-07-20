@@ -984,9 +984,9 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn relocate(&mut self, relocate_mem: bool) -> Result<(), TraceError> {
+    pub fn relocate(&mut self, relocate_mem: bool, relocate_trace: bool) -> Result<(), TraceError> {
         self.vm.segments.compute_effective_sizes();
-        if !relocate_mem && self.vm.trace.is_none() {
+        if !relocate_mem && (self.vm.trace.is_none() || !relocate_trace) {
             return Ok(());
         }
         // relocate_segments can fail if compute_effective_sizes is not called before.
@@ -1002,7 +1002,7 @@ impl CairoRunner {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        if self.vm.trace.is_some() {
+        if self.vm.trace.is_some() && relocate_trace {
             self.relocate_trace(&relocation_table)?;
         }
         self.vm.relocation_table = Some(relocation_table);
