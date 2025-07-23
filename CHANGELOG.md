@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
+
 #### [2.2.0] - 2025-05-28
 
 * chore: update Rust required version to 1.87.0  [#2103](https://github.com/lambdaclass/cairo-vm/pull/2103)
