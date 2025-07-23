@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
+
 * chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
 
 * chore: remove unused dependencies [#2111](https://github.com/lambdaclass/cairo-vm/pull/2111)
