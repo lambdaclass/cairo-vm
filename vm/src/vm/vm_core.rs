@@ -822,9 +822,9 @@ impl VirtualMachine {
         Ok(())
     }
 
-    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
-    // Returns the most recent call last.
-    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
+    /// Returns the values (fp, pc) corresponding to each call instruction in the traceback.
+    /// Returns the most recent call last.
+    pub fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
         let mut entries = Vec::<(Relocatable, Relocatable)>::new();
         let mut fp = Relocatable::from((1, self.run_context.fp));
         // Fetch the fp and pc traceback entries
