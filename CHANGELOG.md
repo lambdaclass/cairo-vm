@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Pin types-rs version to 0.1.8 [#2146](https://github.com/lambdaclass/cairo-vm/pull/2146)
+
 #### [2.3.0] - 2025-07-28
 
 * dev: make `VirtualMachine::get_traceback_entries` pub [#2144](https://github.com/lambdaclass/cairo-vm/pull/2144)
