@@ -12,6 +12,36 @@
 
 * fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
 
+#### [2.3.1] - 2025-07-29
+
+* chore: Pin types-rs version to 0.1.8 [#2146](https://github.com/lambdaclass/cairo-vm/pull/2146)
+
+#### [2.3.0] - 2025-07-28
+
+* dev: make `VirtualMachine::get_traceback_entries` pub [#2144](https://github.com/lambdaclass/cairo-vm/pull/2144)
+
+* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
+
+#### [2.2.0] - 2025-05-28
+
+* chore: update Rust required version to 1.87.0  [#2103](https://github.com/lambdaclass/cairo-vm/pull/2103)
+
+* feat: implemented delete_unaccessed function [#2099](https://github.com/lambdaclass/cairo-vm/pull/2099)
+
+* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+
+#### [2.1.0] - 2025-05-21
+
+* chore: bump pip `cairo-lang` 0.13.5 [#1959](https://github.com/lambdaclass/cairo-vm/pull/1959)
+
+* fix: Use Cairo prime instead of SECP_P in WRITE_DIVMOD_SEGMENT hint [#2078](https://github.com/lambdaclass/cairo-vm/pull/2078)
+
+* feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
+
+* dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
+
+* refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
+
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
 * chore: update cairo-lang dependencies to 2.12.0-dev.0 #[2040](https://github.com/lambdaclass/cairo-vm/pull/2040)
