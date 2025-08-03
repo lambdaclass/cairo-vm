@@ -60,7 +60,6 @@ pub mod cairo_run;
 pub mod hint_processor;
 pub mod math_utils;
 pub mod program_hash;
-pub mod prover_input_info;
 pub mod serde;
 pub mod typed_operations;
 pub mod types;
