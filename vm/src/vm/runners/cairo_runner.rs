@@ -1,3 +1,4 @@
+use crate::vm::trace::trace_entry::TraceEntry;
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -18,7 +19,6 @@ use crate::{
 
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
-    prover_input_info::{ProverInputInfo, ProverInputInfoError},
     types::{
         errors::{math_errors::MathError, program_errors::ProgramError},
         exec_scope::ExecutionScopes,
@@ -1504,56 +1504,35 @@ impl CairoRunner {
             .collect()
     }
 
-    /// Collects relevant information for the prover from the runner, including the
-    /// relocatable form of the trace, memory, public memory, and built-ins.
-    /// Takes ownership of the trace from the VM.
-    pub fn get_prover_input_info(&mut self) -> Result<ProverInputInfo, ProverInputInfoError> {
-        let relocatable_trace = self
-            .vm
+    /// Returns a reference to the relocatable trace.
+    pub fn get_relocatable_trace(&self) -> Result<&[TraceEntry], RunnerError> {
+        self.vm
             .trace
-            .take()
-            .ok_or(ProverInputInfoError::TraceNotEnabled)?;
+            .as_deref()
+            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))
+    }
 
-        let relocatable_memory = self
-            .vm
+    /// Returns a vector of segments, where each segment is a vector of Option<MaybeRelocatable> values, representing the relocatble memory values.
+    pub fn get_relocatable_memory(&self) -> Vec<Vec<Option<MaybeRelocatable>>> {
+        self.vm
             .segments
             .memory
             .data
             .iter()
             .map(|segment| segment.iter().map(|cell| cell.get_value()).collect())
-            .collect();
+            .collect()
+    }
 
-        let public_memory_offsets = self
-            .vm
-            .segments
-            .public_memory_offsets
-            .iter()
-            .map(|(segment, offset_page)| {
-                let offsets: Vec<usize> = offset_page.iter().map(|(offset, _)| *offset).collect();
-                (*segment, offsets)
-            })
-            .collect();
-
-        let builtins_segments: BTreeMap<usize, BuiltinName> = self
-            .vm
+    /// Returns a map from the builtin segment index into its name.
+    pub fn get_builtin_segments(&self) -> BTreeMap<usize, BuiltinName> {
+        self.vm
             .builtin_runners
             .iter()
-            .filter(|builtin| {
-                // `SegmentArena` isn't treated as a builtin by the prover.
-                !matches!(builtin, BuiltinRunner::SegmentArena(_))
-            })
             .map(|builtin| {
                 let (index, _) = builtin.get_memory_segment_addresses();
                 (index, builtin.name())
             })
-            .collect();
-
-        Ok(ProverInputInfo {
-            relocatable_trace,
-            relocatable_memory,
-            public_memory_offsets,
-            builtins_segments,
-        })
+            .collect()
     }
 }
 
@@ -1664,7 +1643,6 @@ mod tests {
     use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
     use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
-    use rstest::rstest;
 
     use crate::felt_hex;
     use crate::{
@@ -5559,10 +5537,10 @@ mod tests {
     }
 
     #[test]
-    fn get_prover_input_info() {
+    fn test_get_relocatable_trace() {
         let program_content =
             include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
-        let mut runner = crate::cairo_run::cairo_run(
+        let runner = crate::cairo_run::cairo_run(
             program_content,
             &CairoRunConfig {
                 trace_enabled: true,
@@ -5572,7 +5550,7 @@ mod tests {
             &mut BuiltinHintProcessor::new_empty(),
         )
         .unwrap();
-        let prover_info = runner.get_prover_input_info().unwrap();
+        let relocatable_trace = runner.get_relocatable_trace().unwrap();
         let expected_trace = vec![
             TraceEntry {
                 pc: (0, 15).into(),
@@ -5630,51 +5608,53 @@ mod tests {
                 fp: 3,
             },
         ];
-        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
-        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: 2,
-            offset: 0,
-        });
-        assert_eq!(prover_info.relocatable_trace, expected_trace);
-        assert_eq!(
-            prover_info.relocatable_memory[0][3],
-            Some(expected_in_memory_0_3)
-        );
-        assert_eq!(
-            prover_info.relocatable_memory[1][0],
-            Some(expected_in_memory_1_0)
-        );
-        assert!(prover_info.public_memory_offsets.is_empty());
-        assert_eq!(
-            prover_info.builtins_segments,
-            BTreeMap::from([(2, BuiltinName::ecdsa)])
-        );
+        assert_eq!(relocatable_trace, expected_trace);
     }
 
     #[test]
-    fn test_output_not_builtin_segment() {
+    fn test_get_relocatable_memory() {
         let program_content =
-            include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
-        let mut runner = crate::cairo_run::cairo_run(
+            include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
+        let runner = crate::cairo_run::cairo_run(
             program_content,
             &CairoRunConfig {
-                trace_enabled: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             },
             &mut BuiltinHintProcessor::new_empty(),
         )
         .unwrap();
-        let prover_info = runner.get_prover_input_info().unwrap();
+        let relocatable_memory = runner.get_relocatable_memory();
 
-        assert!(!prover_info
-            .builtins_segments
-            .values()
-            .any(|v| *v == BuiltinName::output));
+        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
+        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: 2,
+            offset: 0,
+        });
+
+        assert_eq!(relocatable_memory[0][3], Some(expected_in_memory_0_3));
+        assert_eq!(relocatable_memory[1][0], Some(expected_in_memory_1_0));
     }
 
     #[test]
-    // TODO(Stav): add another test that checks filling holes in the middle of the segment.
+    fn test_get_builtin_segments() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/bitwise_builtin_test.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let builtin_segments = runner.get_builtin_segments();
+
+        assert_eq!(builtin_segments[&2], BuiltinName::bitwise);
+    }
+
+    #[test]
     fn end_run_fill_builtins() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/proof_programs/keccak_uint256.json"),
@@ -5694,6 +5674,7 @@ mod tests {
         // Before end run
         assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE != 0);
         assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK != 0);
+
         assert_matches!(
             cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
             Ok(())
@@ -5705,18 +5686,12 @@ mod tests {
         assert!(cairo_runner.vm.segments.memory.data[6].last().is_some());
         assert!(cairo_runner.vm.segments.memory.data[8].last().is_some());
 
-        // Check prover input info
-        let prover_input = cairo_runner
-            .get_prover_input_info()
-            .expect("Failed to get prover input info");
-        assert!(prover_input.builtins_segments.get(&6) == Some(&BuiltinName::bitwise));
-        assert!(prover_input.builtins_segments.get(&8) == Some(&BuiltinName::keccak));
-        assert!(prover_input.relocatable_memory[6].len() as u32 % CELLS_PER_BITWISE == 0);
-        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
+        let builtin_segments = cairo_runner.get_builtin_segments();
+        assert!(builtin_segments.get(&6) == Some(&BuiltinName::bitwise));
+        assert!(builtin_segments.get(&8) == Some(&BuiltinName::keccak));
     }
 
     #[test]
-    // TODO(Stav): add another test that checks filling holes in the middle of the segment.
     fn end_run_fill_middle_holes() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin_hole.json"),
@@ -5734,7 +5709,6 @@ mod tests {
 
         // Before end run
         assert!(cairo_runner.vm.segments.memory.data[9][4].is_none());
-
         assert_matches!(
             cairo_runner.end_run(false, false, &mut hint_processor, true),
             Ok(())
@@ -5743,55 +5717,7 @@ mod tests {
         // After end run
         assert!(!cairo_runner.vm.segments.memory.data[9][4].is_none());
 
-        // // Check prover input info
-        let prover_input = cairo_runner
-            .get_prover_input_info()
-            .expect("Failed to get prover input info");
-        assert!(prover_input.relocatable_memory[9][4].is_some());
-        assert!(prover_input.builtins_segments.get(&9) == Some(&BuiltinName::poseidon));
-    }
-
-    #[rstest]
-    #[case(include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"))]
-    #[case(include_bytes!("../../../../cairo_programs/proof_programs/bitwise_output.json"))]
-    #[case(include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin.json"))]
-    #[case(include_bytes!("../../../../cairo_programs/proof_programs/relocate_temporary_segment_append.json"))]
-    #[case(include_bytes!("../../../../cairo_programs/proof_programs/pedersen_test.json"))]
-    fn serialize_and_deserialize_prover_input_info(#[case] program_content: &[u8]) {
-        use crate::types::layout_name::LayoutName;
-
-        let config = crate::cairo_run::CairoRunConfig {
-            proof_mode: false,
-            relocate_mem: false,
-            trace_enabled: true,
-            layout: LayoutName::all_cairo_stwo,
-            ..Default::default()
-        };
-        let mut runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
-        let prover_input_info = runner.get_prover_input_info().unwrap();
-
-        // Using bincode.
-        let serialized_prover_input_info = prover_input_info.serialize().unwrap();
-        let (deserialized_prover_input_info, _): (ProverInputInfo, usize) =
-            bincode::serde::decode_from_slice(
-                &serialized_prover_input_info,
-                bincode::config::standard(),
-            )
-            .unwrap();
-
-        assert!(
-            prover_input_info == deserialized_prover_input_info,
-            "Deserialized ProverInputInfo with bincode does not match the original one."
-        );
-
-        // Using json.
-        let serialized_prover_input_info_json = prover_input_info.serialize_json().unwrap();
-        let deserialized_prover_input_info_json: ProverInputInfo =
-            serde_json::from_str(&serialized_prover_input_info_json).unwrap();
-
-        assert!(
-            prover_input_info == deserialized_prover_input_info_json,
-            "Deserialized ProverInputInfo with json does not match the original one."
-        );
+        let builtin_segments = cairo_runner.get_builtin_segments();
+        assert!(builtin_segments.get(&9) == Some(&BuiltinName::poseidon));
     }
 }
