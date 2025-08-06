@@ -613,13 +613,12 @@ mod tests {
     use assert_matches::assert_matches;
 
     use num_traits::Num;
-    use rand::Rng;
 
     #[cfg(feature = "std")]
     use num_prime::RandPrime;
 
     #[cfg(feature = "std")]
-    use proptest::prelude::*;
+    use proptest::{array::uniform4, prelude::*};
 
     // Only used in proptest for now
     #[cfg(feature = "std")]
@@ -1286,56 +1285,6 @@ mod tests {
         assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
     }
 
-    // TODO: Refactor using proptest and separating particular cases
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn test_qm31_packed_reduced_inv_extensive() {
-        let mut rng = SmallRng::seed_from_u64(11480028852697973135);
-        #[derive(Clone, Copy)]
-        enum Configuration {
-            Zero,
-            One,
-            MinusOne,
-            Random,
-        }
-        let configurations = [
-            Configuration::Zero,
-            Configuration::One,
-            Configuration::MinusOne,
-            Configuration::Random,
-        ];
-        let mut cartesian_product = vec![];
-        for &a in &configurations {
-            for &b in &configurations {
-                for &c in &configurations {
-                    for &d in &configurations {
-                        cartesian_product.push([a, b, c, d]);
-                    }
-                }
-            }
-        }
-
-        for test_case in cartesian_product {
-            let x_coordinates: [u64; 4] = test_case
-                .iter()
-                .map(|&x| match x {
-                    Configuration::Zero => 0,
-                    Configuration::One => 1,
-                    Configuration::MinusOne => STWO_PRIME - 1,
-                    Configuration::Random => rng.gen_range(0..STWO_PRIME),
-                })
-                .collect::<Vec<u64>>()
-                .try_into()
-                .unwrap();
-            if x_coordinates == [0, 0, 0, 0] {
-                continue;
-            }
-            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-            let res = qm31_packed_reduced_inv(x).unwrap();
-            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-        }
-    }
-
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_qm31_packed_reduced_div() {
@@ -1353,8 +1302,38 @@ mod tests {
         assert_eq!(res, y);
     }
 
+    /// Necessary strat to use proptest on the QM31 test
+    #[cfg(feature = "std")]
+    fn configuration_strat() -> BoxedStrategy<u64> {
+        prop_oneof![Just(0), Just(1), Just(STWO_PRIME - 1), 0..STWO_PRIME].boxed()
+    }
+
     #[cfg(feature = "std")]
     proptest! {
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn qm31_packed_reduced_inv_random(x_coordinates in uniform4(0u64..STWO_PRIME)
+                                                            .prop_filter("All configs cant be 0",
+                                                            |arr| !arr.iter().all(|x| *x == 0))
+        ) {
+            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+            let res = qm31_packed_reduced_inv(x).unwrap();
+            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+        }
+
+        #[test]
+        #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+        fn qm31_packed_reduced_inv_extensive(x_coordinates in uniform4(configuration_strat())
+                                                            .prop_filter("All configs cant be 0",
+                                                            |arr| !arr.iter().all(|x| *x == 0))
+                                                            .no_shrink()
+        ) {
+            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
+            let res = qm31_packed_reduced_inv(x).unwrap();
+            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
+        }
+
         #[test]
         fn pow2_const_in_range_returns_power_of_2(x in 0..=251u32) {
             prop_assert_eq!(pow2_const(x), Felt252::TWO.pow(x));

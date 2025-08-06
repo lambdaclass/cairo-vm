@@ -33,9 +33,10 @@ pub struct ValidationRule(
 /// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
 /// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
 ///   `Felt252`.
-///   `Felt252` values are stored in big-endian order to keep the flag bits free.
-///   `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
-///   and the 4th word storing the offset.
+///
+/// `Felt252` values are stored in big-endian order to keep the flag bits free.
+/// `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
+/// and the 4th word storing the offset.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
 #[repr(align(32))]
 pub(crate) struct MemoryCell([u64; 4]);
@@ -448,6 +449,19 @@ impl Memory {
         }
     }
 
+    /// Gets the value from memory address as a MaybeRelocatable value.
+    /// Returns an Error if the value at the memory address is missing or not a MaybeRelocatable.
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
+            // Note: the `Borrowed` variant will never occur.
+            Cow::Borrowed(maybe_rel) => Ok(maybe_rel.clone()),
+            Cow::Owned(maybe_rel) => Ok(maybe_rel),
+        }
+    }
+
     /// Inserts a value into memory
     /// Returns an error if the memory cell asignment is invalid
     pub fn insert_value<T: Into<MaybeRelocatable>>(
@@ -507,8 +521,9 @@ impl Memory {
     /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
     /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
     /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
-    ///   Everything else behaves much like `memcmp` in C.
-    ///   This is meant as an optimization for hints to avoid allocations.
+    ///
+    /// Everything else behaves much like `memcmp` in C.
+    /// This is meant as an optimization for hints to avoid allocations.
     pub(crate) fn memcmp(
         &self,
         lhs: Relocatable,
@@ -1191,6 +1206,29 @@ mod memory_tests {
             Err(MemoryError::Math(MathError::Felt252ToU32Conversion(
                 bx
             ))) if *bx == Felt252::from(1_u64 << 32)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_maybe_relocatable_valid_relocatable() {
+        let memory = memory![((0, 0), (1, 0))];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            Relocatable::from((1, 0)).into()
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_valid_integer() {
+        let memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            10.into()
         );
     }
 
