@@ -2,7 +2,45 @@
 
 #### Upcoming Changes
 
-*  BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)
+* BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)
+
+* feat: Replace prover input info with relocated trace and memory getters [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
+
+* feat: Add flag to enable or disable trace relocation [#2133](https://github.com/lambdaclass/cairo-vm/pull/2133)
+
+* feat: Include output builtin in prover input info [#2138](https://github.com/lambdaclass/cairo-vm/pull/2138)
+
+* feat: Add support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
+
+* fix: Remove cairo submodule that was incorrectly added [#2131](https://github.com/lambdaclass/cairo-vm/pull/2131)
+
+* fix: Enable using secure run in proof mode [#2113](https://github.com/lambdaclass/cairo-vm/pull/2113)
+
+* test: Remove tests that compare memory with Python VM [#2086](https://github.com/lambdaclass/cairo-vm/pull/2086)
+
+* test: Add test case for filling builtin holes [#2087](https://github.com/lambdaclass/cairo-vm/pull/2087)
+
+* feat: Add `TraceNotEnabled` error [#2080](https://github.com/lambdaclass/cairo-vm/pull/2080)
+
+* refactor: Move prover input info to seperate file [#2079](https://github.com/lambdaclass/cairo-vm/pull/2079)
+
+* BREAKING CHANGE: Compute missing builtin cells only in proof mode [#2088](https://github.com/lambdaclass/cairo-vm/pull/2088)
+
+* feat: Use `BTreeMap` instead of `HashMap` for deterministic order of PIE keys [#2085](https://github.com/lambdaclass/cairo-vm/pull/2085)
+
+* feat: Make prover_input_info flag to output binary and add prover_input_info_json flag to output JSON format [#2074](https://github.com/lambdaclass/cairo-vm/pull/2074)
+
+* fix: Remove assumption that base offset of output is zero [#2068](https://github.com/lambdaclass/cairo-vm/pull/2068)
+
+* feat: Add perpetual and dex_bitwise layouts [#2067](https://github.com/lambdaclass/cairo-vm/pull/2067)
+
+* fix: Disable trace padding for prover input info [#2066](https://github.com/lambdaclass/cairo-vm/pull/2066)
+
+* feat: Add prover_input_info flag to CLI [#2047](https://github.com/lambdaclass/cairo-vm/pull/2047)
+
+* feat: Support hints for new blake felt serialization library code [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
+
+* feat: Complete missing builtin cells instead of verifying them after execution [#2036](https://github.com/lambdaclass/cairo-vm/pull/2036)
 
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
@@ -53,8 +91,6 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
-
-* feat: Support hints for new blake felt serialization library code [#1994](https://github.com/lambdaclass/cairo-vm/pull/1994)
 
 #### [2.0.1] - 2025-03-17
 
