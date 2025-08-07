@@ -3,7 +3,10 @@ use crate::stdlib::prelude::{String, Vec};
 use crate::types::builtin_name::BuiltinName;
 use crate::vm::errors::cairo_pie_errors::CairoPieValidationError;
 use crate::{
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+    },
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
@@ -125,7 +128,7 @@ impl PartialEq for BuiltinAdditionalData {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieAdditionalData(
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub  HashMap<BuiltinName, BuiltinAdditionalData>,
+    pub  BTreeMap<BuiltinName, BuiltinAdditionalData>,
 );
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -145,7 +148,7 @@ pub struct CairoPieMetadata {
     pub ret_fp_segment: SegmentInfo,
     pub ret_pc_segment: SegmentInfo,
     #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
-    pub builtin_segments: HashMap<BuiltinName, SegmentInfo>,
+    pub builtin_segments: BTreeMap<BuiltinName, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
 }
 
@@ -321,8 +324,9 @@ impl CairoPie {
 
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = zip::write::FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .large_file(true);
 
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
@@ -435,7 +439,7 @@ impl CairoPie {
 }
 
 pub(super) mod serde_impl {
-    use crate::stdlib::collections::HashMap;
+    use crate::stdlib::collections::{BTreeMap, HashMap};
     use crate::types::builtin_name::BuiltinName;
     use num_traits::Num;
 
@@ -840,7 +844,7 @@ pub(super) mod serde_impl {
     }
 
     pub fn serialize_builtin_segments<S>(
-        values: &HashMap<BuiltinName, SegmentInfo>,
+        values: &BTreeMap<BuiltinName, SegmentInfo>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where

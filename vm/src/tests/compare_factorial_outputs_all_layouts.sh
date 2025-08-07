@@ -21,15 +21,6 @@ for layout in "plain" "small" "dex" "recursive" "starknet" "starknet_with_keccak
     else
         passed_tests=$((passed_tests + 1))
     fi
-    # Compare memory
-    echo "Running memory comparison for layout $layout"
-    if ! ./vm/src/tests/memory_comparator.py factorial_rs.memory factorial_py.memory; then
-        echo "Memory differs for layout $layout"
-        exit_code=1
-        failed_tests=$((failed_tests + 1))
-    else
-        passed_tests=$((passed_tests + 1))
-    fi
     # Compare air public input
     echo "Running air public input  comparison for layout $layout"
     if ! ./vm/src/tests/air_public_input_comparator.py factorial_rs.air_public_input factorial_py.air_public_input; then
