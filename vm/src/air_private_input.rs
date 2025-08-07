@@ -191,11 +191,20 @@ impl From<AirPrivateInputSerializable> for AirPrivateInput {
         };
         insert_input(BuiltinName::pedersen, private_input.pedersen);
         insert_input(BuiltinName::range_check, private_input.range_check);
+        insert_input(BuiltinName::range_check96, private_input.range_check96);
         insert_input(BuiltinName::ecdsa, private_input.ecdsa);
         insert_input(BuiltinName::bitwise, private_input.bitwise);
         insert_input(BuiltinName::ec_op, private_input.ec_op);
         insert_input(BuiltinName::keccak, private_input.keccak);
         insert_input(BuiltinName::poseidon, private_input.poseidon);
+        
+        // Handle add_mod and mul_mod as single PrivateInput values
+        if let Some(add_mod) = private_input.add_mod {
+            inputs.insert(BuiltinName::add_mod, vec![add_mod]);
+        }
+        if let Some(mul_mod) = private_input.mul_mod {
+            inputs.insert(BuiltinName::mul_mod, vec![mul_mod]);
+        }
 
         Self(inputs)
     }
@@ -302,6 +311,104 @@ mod tests {
     #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
     use crate::alloc::string::ToString;
 
+    #[test]
+    fn test_from_serializable_with_all_fields() {
+        let serializable_private_input = AirPrivateInputSerializable {
+            trace_path: "trace.bin".to_string(),
+            memory_path: "memory.bin".to_string(),
+            pedersen: Some(vec![PrivateInput::Pair(PrivateInputPair {
+                index: 0,
+                x: Felt252::from(100),
+                y: Felt252::from(200),
+            })]),
+            range_check: Some(vec![PrivateInput::Value(PrivateInputValue {
+                index: 10000,
+                value: Felt252::from(8000),
+            })]),
+            range_check96: Some(vec![PrivateInput::Value(PrivateInputValue {
+                index: 10001,
+                value: Felt252::from(8001),
+            })]),
+            ecdsa: Some(vec![PrivateInput::Signature(PrivateInputSignature {
+                index: 0,
+                pubkey: Felt252::from(123),
+                msg: Felt252::from(456),
+                signature_input: SignatureInput {
+                    r: Felt252::from(654),
+                    w: Felt252::from(321),
+                },
+            })]),
+            bitwise: Some(vec![PrivateInput::Pair(PrivateInputPair {
+                index: 4,
+                x: Felt252::from(7),
+                y: Felt252::from(8),
+            })]),
+            ec_op: Some(vec![PrivateInput::EcOp(PrivateInputEcOp {
+                index: 1,
+                p_x: Felt252::from(10),
+                p_y: Felt252::from(10),
+                m: Felt252::from(100),
+                q_x: Felt252::from(11),
+                q_y: Felt252::from(14),
+            })]),
+            keccak: Some(vec![PrivateInput::KeccakState(PrivateInputKeccakState {
+                index: 0,
+                input_s0: Felt252::from(0),
+                input_s1: Felt252::from(1),
+                input_s2: Felt252::from(2),
+                input_s3: Felt252::from(3),
+                input_s4: Felt252::from(4),
+                input_s5: Felt252::from(5),
+                input_s6: Felt252::from(6),
+                input_s7: Felt252::from(7),
+            })]),
+            poseidon: Some(vec![PrivateInput::PoseidonState(
+                PrivateInputPoseidonState {
+                    index: 42,
+                    input_s0: Felt252::from(1),
+                    input_s1: Felt252::from(2),
+                    input_s2: Felt252::from(3),
+                },
+            )]),
+            add_mod: Some(PrivateInput::Mod(ModInput {
+                instances: vec![],
+                zero_value_address: 0,
+            })),
+            mul_mod: Some(PrivateInput::Mod(ModInput {
+                instances: vec![],
+                zero_value_address: 1,
+            })),
+        };
+
+        let private_input = AirPrivateInput::from(serializable_private_input.clone());
+
+        // Test that all fields are correctly converted
+        assert!(private_input.0.get(&BuiltinName::pedersen).is_some());
+        assert!(private_input.0.get(&BuiltinName::range_check).is_some());
+        assert!(private_input.0.get(&BuiltinName::range_check96).is_some());
+        assert!(private_input.0.get(&BuiltinName::ecdsa).is_some());
+        assert!(private_input.0.get(&BuiltinName::bitwise).is_some());
+        assert!(private_input.0.get(&BuiltinName::ec_op).is_some());
+        assert!(private_input.0.get(&BuiltinName::keccak).is_some());
+        assert!(private_input.0.get(&BuiltinName::poseidon).is_some());
+        assert!(private_input.0.get(&BuiltinName::add_mod).is_some());
+        assert!(private_input.0.get(&BuiltinName::mul_mod).is_some());
+
+        // Test that the values are correctly preserved
+        assert_matches!(private_input.0.get(&BuiltinName::pedersen), data if data == serializable_private_input.pedersen.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::range_check), data if data == serializable_private_input.range_check.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::range_check96), data if data == serializable_private_input.range_check96.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::ecdsa), data if data == serializable_private_input.ecdsa.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::bitwise), data if data == serializable_private_input.bitwise.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::ec_op), data if data == serializable_private_input.ec_op.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::keccak), data if data == serializable_private_input.keccak.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::poseidon), data if data == serializable_private_input.poseidon.as_ref());
+        
+        // Test add_mod and mul_mod are correctly wrapped in vectors
+        assert_eq!(private_input.0.get(&BuiltinName::add_mod).unwrap().len(), 1);
+        assert_eq!(private_input.0.get(&BuiltinName::mul_mod).unwrap().len(), 1);
+    }
+
     #[cfg(feature = "std")]
     #[test]
     fn test_from_serializable() {
@@ -370,6 +477,7 @@ mod tests {
 
         assert_matches!(private_input.0.get(&BuiltinName::pedersen), data if data == serializable_private_input.pedersen.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::range_check), data if data == serializable_private_input.range_check.as_ref());
+        assert_matches!(private_input.0.get(&BuiltinName::range_check96), data if data == serializable_private_input.range_check96.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::ecdsa), data if data == serializable_private_input.ecdsa.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::bitwise), data if data == serializable_private_input.bitwise.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::ec_op), data if data == serializable_private_input.ec_op.as_ref());
