@@ -1,6 +1,29 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: Remove prover input info struct and add getters instead [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
+
+* feat: Added support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
+
+* feat: Disable relocate trace with flag [#2133](https://github.com/lambdaclass/cairo-vm/pull/2133)
+
+* feat: Enable using secure run in proof mode [#2113](https://github.com/lambdaclass/cairo-vm/pull/2113)
+
+* [BREAKING] Compute missing builtin cells only in proof mode [#2088](https://github.com/lambdaclass/cairo-vm/pull/2088)
+
+* test: Add test for filling holes in builtin segments [#2087](https://github.com/lambdaclass/cairo-vm/pull/2087)
+
+* fix: Removed memory comparison test with Python VM in proof mode, since the new hole-filling logic causes divergence.[#2086](https://github.com/lambdaclass/cairo-vm/pull/2086)
+
+* refactor: Use BTreeMap for deterministic order of PIE keys [#2085](https://github.com/lambdaclass/cairo-vm/pull/2085)
+
+* fix: Fix zero offset output base assumption [#2068](https://github.com/lambdaclass/cairo-vm/pull/2068)
+
+* feat: Add perpendicular and dex with bitwise layouts [#2067](https://github.com/lambdaclass/cairo-vm/pull/2067)
+
+* feat: Fill holes in builtins segments to save computation in the prover [#2036](https://github.com/lambdaclass/cairo-vm/pull/2036)
+
+* feat: Added hints felt unpacking for blake [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
 
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
@@ -51,6 +74,8 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+* feat: Support hints for new blake felt serialization library code [#1994](https://github.com/lambdaclass/cairo-vm/pull/1994)
 
 #### [2.0.1] - 2025-03-17
 

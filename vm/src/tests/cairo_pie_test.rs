@@ -9,7 +9,7 @@ use wasm_bindgen_test::*;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    stdlib::collections::HashMap,
+    stdlib::collections::{BTreeMap, HashMap},
     types::relocatable::Relocatable,
     vm::runners::{
         cairo_pie::{
@@ -45,7 +45,7 @@ fn pedersen_test() {
     // ret_pc_segment
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((6, 0)));
     // builtin_segments
-    let expected_builtin_segments = HashMap::from([
+    let expected_builtin_segments = BTreeMap::from([
         (BuiltinName::output, SegmentInfo::from((2, 1))),
         (BuiltinName::pedersen, SegmentInfo::from((3, 3))),
         (BuiltinName::range_check, SegmentInfo::from((4, 0))),
@@ -71,7 +71,7 @@ fn pedersen_test() {
     let expected_execution_resources = ExecutionResources {
         n_steps: 14,
         n_memory_holes: 0,
-        builtin_instance_counter: HashMap::from([
+        builtin_instance_counter: BTreeMap::from([
             (BuiltinName::range_check, 0),
             (BuiltinName::output, 1),
             (BuiltinName::pedersen, 1),
@@ -79,7 +79,7 @@ fn pedersen_test() {
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    let expected_additional_data = HashMap::from([
+    let expected_additional_data = BTreeMap::from([
         (
             BuiltinName::output,
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
@@ -128,7 +128,7 @@ fn common_signature() {
     assert_eq!(pie_metadata.ret_pc_segment, SegmentInfo::from((4, 0)));
     // builtin_segments
     let expected_builtin_segments =
-        HashMap::from([(BuiltinName::ecdsa, SegmentInfo::from((2, 2)))]);
+        BTreeMap::from([(BuiltinName::ecdsa, SegmentInfo::from((2, 2)))]);
     assert_eq!(pie_metadata.builtin_segments, expected_builtin_segments);
     // program_segment
     assert_eq!(pie_metadata.program_segment, SegmentInfo::from((0, 21)));
@@ -150,11 +150,11 @@ fn common_signature() {
     let expected_execution_resources = ExecutionResources {
         n_steps: 11,
         n_memory_holes: 0,
-        builtin_instance_counter: HashMap::from([(BuiltinName::ecdsa, 1)]),
+        builtin_instance_counter: BTreeMap::from([(BuiltinName::ecdsa, 1)]),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
-    let expected_additional_data = HashMap::from([(
+    let expected_additional_data = BTreeMap::from([(
         BuiltinName::ecdsa,
         BuiltinAdditionalData::Signature(HashMap::from([(
             Relocatable::from((2, 0)),
@@ -223,7 +223,7 @@ fn relocate_segments() {
     let expected_execution_resources = ExecutionResources {
         n_steps: 22,
         n_memory_holes: 0,
-        builtin_instance_counter: HashMap::default(),
+        builtin_instance_counter: BTreeMap::default(),
     };
     assert_eq!(cairo_pie.execution_resources, expected_execution_resources);
     // additional_data
