@@ -1,8 +1,30 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+* feat: Remove prover input info struct and add getters instead [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
 
-<<<<<<< HEAD
+* feat: Added support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
+
+* feat: Disable relocate trace with flag [#2133](https://github.com/lambdaclass/cairo-vm/pull/2133)
+
+* feat: Enable using secure run in proof mode [#2113](https://github.com/lambdaclass/cairo-vm/pull/2113)
+
+* [BREAKING] Compute missing builtin cells only in proof mode [#2088](https://github.com/lambdaclass/cairo-vm/pull/2088)
+
+* test: Add test for filling holes in builtin segments [#2087](https://github.com/lambdaclass/cairo-vm/pull/2087)
+
+* fix: Removed memory comparison test with Python VM in proof mode, since the new hole-filling logic causes divergence.[#2086](https://github.com/lambdaclass/cairo-vm/pull/2086)
+
+* refactor: Use BTreeMap for deterministic order of PIE keys [#2085](https://github.com/lambdaclass/cairo-vm/pull/2085)
+
+* fix: Fix zero offset output base assumption [#2068](https://github.com/lambdaclass/cairo-vm/pull/2068)
+
+* feat: Add perpendicular and dex with bitwise layouts [#2067](https://github.com/lambdaclass/cairo-vm/pull/2067)
+
+* feat: Fill holes in builtins segments to save computation in the prover [#2036](https://github.com/lambdaclass/cairo-vm/pull/2036)
+
+* feat: Added hints felt unpacking for blake [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
+
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
@@ -26,17 +48,6 @@
 * dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
 
 * refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
-=======
-* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
-
-*  BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)
-
-* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
-
-* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
-
-* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
->>>>>>> starkware-development
 
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
