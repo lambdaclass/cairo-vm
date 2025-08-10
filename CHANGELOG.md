@@ -2,6 +2,7 @@
 
 #### Upcoming Changes
 
+<<<<<<< HEAD
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
@@ -25,6 +26,17 @@
 * dev: add Memory::get_maybe_relocatable  [#2039](https://github.com/lambdaclass/cairo-vm/pull/2039)
 
 * refactor: remove duplicated get_val function [#2065](https://github.com/lambdaclass/cairo-vm/pull/2065)
+=======
+* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
+
+*  BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)
+
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023] (https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+* fix: Updated the logic for collecting builtin segment data for prover input info, removing dependency on the existence of stop pointers. [#2022](https://github.com/lambdaclass/cairo-vm/pull/2022)
+
+* fix: Keep None values in memory segments for the prover input info [#2021](https://github.com/lambdaclass/cairo-vm/pull/2021)
+>>>>>>> starkware-development
 
 * fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
 
@@ -51,6 +63,8 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+* feat: Support hints for new blake felt serialization library code [#1994](https://github.com/lambdaclass/cairo-vm/pull/1994)
 
 #### [2.0.1] - 2025-03-17
 
