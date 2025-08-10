@@ -45,12 +45,7 @@ num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-<<<<<<< HEAD
 bincode = { workspace = true }
-=======
-hex = { workspace = true }
-bincode = { workspace = true , features = ["alloc"]}
->>>>>>> starkware-development
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
 indoc = { workspace = true }
@@ -62,11 +57,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-<<<<<<< HEAD
 starknet-types-core = { version = "=0.1.8", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
-=======
-starknet-types-core = { version = "=0.1.7", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
->>>>>>> starkware-development
 rust_decimal = { version = "1.35.0", default-features = false }
 
 # only for std
