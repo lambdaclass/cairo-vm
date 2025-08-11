@@ -1,7 +1,7 @@
+use crate::stdlib::borrow::Cow;
 use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
-use std::borrow::Cow;
 
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
