@@ -27,6 +27,8 @@
 
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
+
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
 
 * chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
