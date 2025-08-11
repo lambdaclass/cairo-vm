@@ -9,7 +9,7 @@ use wasm_bindgen_test::*;
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    stdlib::collections::{BTreeMap, HashMap},
+    stdlib::collections::BTreeMap,
     types::relocatable::Relocatable,
     vm::runners::{
         cairo_pie::{
@@ -83,8 +83,8 @@ fn pedersen_test() {
         (
             BuiltinName::output,
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-                pages: HashMap::new(),
-                attributes: HashMap::new(),
+                pages: BTreeMap::new(),
+                attributes: BTreeMap::new(),
             }),
         ),
         (
@@ -156,7 +156,7 @@ fn common_signature() {
     // additional_data
     let expected_additional_data = BTreeMap::from([(
         BuiltinName::ecdsa,
-        BuiltinAdditionalData::Signature(HashMap::from([(
+        BuiltinAdditionalData::Signature(BTreeMap::from([(
             Relocatable::from((2, 0)),
             (
                 felt_str!(

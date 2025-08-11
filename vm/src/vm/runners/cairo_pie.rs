@@ -75,8 +75,8 @@ impl From<&Vec<usize>> for PublicMemoryPage {
 }
 
 // HashMap value based on starknet/core/os/output.cairo usage
-pub type Attributes = HashMap<String, Vec<usize>>;
-pub type Pages = HashMap<usize, PublicMemoryPage>;
+pub type Attributes = BTreeMap<String, Vec<usize>>;
+pub type Pages = BTreeMap<usize, PublicMemoryPage>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OutputBuiltinAdditionalData {
@@ -96,7 +96,7 @@ pub enum BuiltinAdditionalData {
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
     #[serde(with = "serde_impl::signature_additional_data")]
-    Signature(HashMap<Relocatable, (Felt252, Felt252)>),
+    Signature(BTreeMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
 
@@ -765,7 +765,7 @@ pub(super) mod serde_impl {
         use super::*;
 
         pub fn serialize<S>(
-            values: &HashMap<Relocatable, (Felt252, Felt252)>,
+            values: &BTreeMap<Relocatable, (Felt252, Felt252)>,
             serializer: S,
         ) -> Result<S::Ok, S::Error>
         where
@@ -787,30 +787,30 @@ pub(super) mod serde_impl {
 
         pub fn deserialize<'de, D>(
             d: D,
-        ) -> Result<HashMap<Relocatable, (Felt252, Felt252)>, D::Error>
+        ) -> Result<BTreeMap<Relocatable, (Felt252, Felt252)>, D::Error>
         where
             D: Deserializer<'de>,
         {
             let number_map = Vec::<((Number, Number), (Number, Number))>::deserialize(d)?;
-            let mut res = HashMap::with_capacity(number_map.len());
-            for ((index, offset), (r, s)) in number_map.into_iter() {
-                let addr = Relocatable::from((
-                    index
+            number_map
+                .into_iter()
+                .map(|((index, offset), (r, s))| {
+                    let idx = index
                         .as_u64()
                         .ok_or_else(|| D::Error::custom("Invalid address"))?
-                        as isize,
-                    offset
+                        as isize;
+                    let off = offset
                         .as_u64()
                         .ok_or_else(|| D::Error::custom("Invalid address"))?
-                        as usize,
-                ));
-                let r = Felt252::from_dec_str(r.as_str())
-                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
-                let s = Felt252::from_dec_str(s.as_str())
-                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
-                res.insert(addr, (r, s));
-            }
-            Ok(res)
+                        as usize;
+                    let addr = Relocatable::from((idx, off));
+                    let r = Felt252::from_dec_str(r.as_str())
+                        .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                    let s = Felt252::from_dec_str(s.as_str())
+                        .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                    Ok((addr, (r, s)))
+                })
+                .collect::<Result<BTreeMap<_, _>, D::Error>>()
         }
     }
 
