@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::stdlib::{collections::BTreeMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -32,8 +32,8 @@ impl OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
             base_offset: 0,
-            pages: HashMap::default(),
-            attributes: HashMap::default(),
+            pages: BTreeMap::default(),
+            attributes: BTreeMap::default(),
             stop_ptr: None,
             included,
         }
@@ -42,8 +42,8 @@ impl OutputBuiltinRunner {
     pub fn new_state(&mut self, base: usize, base_offset: usize, included: bool) {
         self.base = base;
         self.base_offset = base_offset;
-        self.pages = HashMap::default();
-        self.attributes = HashMap::default();
+        self.pages = BTreeMap::default();
+        self.attributes = BTreeMap::default();
         self.stop_ptr = None;
         self.included = included;
     }
@@ -209,7 +209,6 @@ impl Default for OutputBuiltinRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
-    use crate::stdlib::collections::HashMap;
 
     use crate::{
         utils::test_utils::*,
@@ -477,8 +476,8 @@ mod tests {
         assert_eq!(
             builtin.get_additional_data(),
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-                pages: HashMap::default(),
-                attributes: HashMap::default()
+                pages: BTreeMap::default(),
+                attributes: BTreeMap::default()
             })
         )
     }
@@ -500,8 +499,8 @@ mod tests {
         let new_state = OutputBuiltinState {
             base: 10,
             base_offset: 0,
-            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
         };
         builtin.set_state(new_state.clone());
 
@@ -518,8 +517,8 @@ mod tests {
         let mut builtin = OutputBuiltinRunner {
             base: 10,
             base_offset: 0,
-            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: Some(10),
             included: true,
         };
@@ -553,7 +552,7 @@ mod tests {
 
         assert_eq!(
             builtin.pages,
-            HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 }),])
+            BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 }),])
         )
     }
 
@@ -580,7 +579,7 @@ mod tests {
         let values = vec![0, 12, 30];
         builtin.add_attribute(name.clone(), values.clone());
 
-        assert_eq!(builtin.attributes, HashMap::from([(name, values)]));
+        assert_eq!(builtin.attributes, BTreeMap::from([(name, values)]));
     }
 
     #[test]
@@ -624,8 +623,8 @@ mod tests {
         let builtin_a = OutputBuiltinRunner {
             base: 0,
             base_offset: 0,
-            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: None,
             included: true,
         };

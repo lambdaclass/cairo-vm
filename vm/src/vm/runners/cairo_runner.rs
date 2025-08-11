@@ -1072,7 +1072,7 @@ impl CairoRunner {
             .unwrap_or(self.vm.current_step);
         let n_memory_holes = self.get_memory_holes()?;
 
-        let mut builtin_instance_counter = HashMap::new();
+        let mut builtin_instance_counter = BTreeMap::new();
         for builtin_runner in &self.vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_runner.name(),
@@ -1083,7 +1083,7 @@ impl CairoRunner {
         Ok(ExecutionResources {
             n_steps,
             n_memory_holes,
-            builtin_instance_counter: builtin_instance_counter.into_iter().collect(),
+            builtin_instance_counter,
         })
     }
 
