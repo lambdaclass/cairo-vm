@@ -1128,4 +1128,47 @@ mod tests {
             ])
         );
     }
+
+    #[test]
+    fn test_get_integer() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory_segment_manager
+                .get_integer(Relocatable::from((0, 0)))
+                .unwrap()
+                .as_ref(),
+            &Felt252::from(10)
+        );
+    }
+
+    #[test]
+    fn test_get_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), (0, 1))];
+        assert_eq!(
+            memory_segment_manager
+                .get_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            relocatable!(0, 1)
+        );
+    }
+
+    #[test]
+    fn test_get_maybe_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), (0, 1)), ((0, 1), 10)];
+        assert_eq!(
+            memory_segment_manager
+                .get_maybe_relocatable(relocatable!(0, 0))
+                .unwrap(),
+            mayberelocatable!(0, 1)
+        );
+        assert_eq!(
+            memory_segment_manager
+                .get_maybe_relocatable(relocatable!(0, 1))
+                .unwrap(),
+            mayberelocatable!(10)
+        );
+    }
 }
