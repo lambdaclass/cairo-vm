@@ -75,6 +75,7 @@ fn run_program(
         relocate_mem: true,
         trace_enabled: true,
         proof_mode,
+        fill_holes: proof_mode,
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
