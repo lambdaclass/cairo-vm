@@ -83,6 +83,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     run_from_cairo_pie: bool,
+    #[arg(long)]
+    fill_holes: Option<bool>,
 }
 
 #[derive(Debug, Error)]
@@ -183,6 +185,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
+        fill_holes: args.fill_holes.unwrap_or(args.proof_mode),
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,

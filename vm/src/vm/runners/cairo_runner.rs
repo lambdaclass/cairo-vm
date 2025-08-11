@@ -892,14 +892,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
-        proof_mode: bool,
+        fill_holes: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes, proof_mode)?;
+        self.vm.end_run(&self.exec_scopes, fill_holes)?;
 
         if disable_finalize_all {
             return Ok(());
