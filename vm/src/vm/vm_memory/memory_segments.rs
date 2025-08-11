@@ -1,6 +1,7 @@
 use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
+use std::borrow::Cow;
 
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
@@ -327,6 +328,16 @@ impl MemorySegmentManager {
             self.memory.insert((*si as isize, *so).into(), val)?;
         }
         Ok(())
+    }
+
+    pub fn get_integer(&self, key: Relocatable) -> Result<Felt252, MemoryError> {
+        self.memory.get_integer(key).map(Cow::into_owned)
+    }
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        self.memory.get_relocatable(key)
+    }
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        self.memory.get_maybe_relocatable(key)
     }
 }
 
