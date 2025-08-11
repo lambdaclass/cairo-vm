@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: make `MemorySegmentManager`'s `memory` field private [#2164](https://github.com/lambdaclass/cairo-vm/pull/2164)
+
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
