@@ -298,37 +298,7 @@ Cairo-vm offers a tracer which gives you a visualization of how your memory and 
 
 ## 📊 Benchmarks
 
-Running a [Cairo program](./cairo_programs/benchmarks/big_fibonacci.cairo) that gets the 1.5 millionth Fibonacci number we got the following benchmarks:
-
-- Execution time with [Criterion](./docs/benchmarks/criterion_benchmark.pdf)
-- [Flamegraph](./docs/benchmarks/flamegraph.svg)
-- Github action [results](https://lambdaclass.github.io/cairo-vm/)
-
-Note before running the benchmark suite: the benchmark named [iai_benchmark](https://github.com/lambdaclass/cairo-vm/blob/8dba86dbec935fa04a255e2edf3d5d184950fa22/Cargo.toml#L59) depends on Valgrind. Please make sure it is installed prior to running the `iai_benchmark` benchmark.
-
-Run the complete benchmark suite with cargo:
-
-```bash
-cargo bench
-```
-
-Run only the `criterion_benchmark` benchmark suite with cargo:
-
-```bash
-cargo bench --bench criterion_benchmark
-```
-
-Run only the `iai_benchmark` benchmark suite with cargo:
-
-```bash
-cargo bench --bench iai_benchmark
-```
-
-Benchmark the `cairo-vm` in a hyper-threaded environment with the [`examples/hyper_threading/ crate`](examples/hyper_threading/)
-```bash
-make hyper-threading-benchmarks
-```
-
+Benchmark results are available in [docs/benchmarks/criterion_benchmark.pdf](docs/benchmarks/criterion_benchmark.pdf) and [docs/benchmarks/flamegraph.svg](docs/benchmarks/flamegraph.svg).
 
 ## 📜 Changelog
 
@@ -356,6 +326,8 @@ You can find more detailed instructions in the [CONTRIBUTING.md](CONTRIBUTING.md
 - [cairo-vm-py](https://github.com/lambdaclass/cairo-vm-py): Bindings for using cairo-vm from Python code.
 
 ## 📚 Documentation
+
+See [docs/README.md](docs/README.md) for extended documentation, including architecture, usage, and developer guides.
 
 ### Cairo
 
