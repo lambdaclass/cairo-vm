@@ -14,6 +14,11 @@ use super::hint_utils::{get_integer_from_var_name, insert_value_from_var_name};
 pub const GET_SIMULATED_BUILTIN_BASE: &str =
     "ids.new_ptr = get_simulated_builtin_base(ids.builtin_idx)";
 
+/// Obtains the simulated builtin runner base, at the given index. The simulated
+/// builtin runner must be initialized before the execution.
+///
+/// This hint is not defined in the original VM, and its declared for testing
+/// purposes only.
 pub fn get_simulated_builtin_base(
     vm: &mut VirtualMachine,
     _exec_scopes: &mut ExecutionScopes,
@@ -21,12 +26,13 @@ pub fn get_simulated_builtin_base(
     ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
+    // Obtain the simulated builtin runner from the builtin_idx variable.
     let builtin_idx = get_integer_from_var_name("builtin_idx", vm, ids_data, ap_tracking)?
         .to_usize()
         .ok_or(HintError::BigintToUsizeFail)?;
-
     let builtin_runner = &vm.simulated_builtin_runners[builtin_idx];
 
+    // Set new_ptr with the value of the builtin runner base.
     insert_value_from_var_name(
         "new_ptr",
         Relocatable {

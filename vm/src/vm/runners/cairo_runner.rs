@@ -5739,10 +5739,12 @@ mod tests {
             CairoRunner::new(program, LayoutName::plain, None, false, false, false)
                 .expect("failed to create runner");
 
+        // We allow missing builtins, as we will simulate them later.
         let end = cairo_runner
             .initialize(true)
             .expect("failed to initialize builtins");
 
+        // Initialize the ec_op simulated builtin runner.
         let mut builtin_runner = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(None, true));
         builtin_runner.initialize_segments(&mut cairo_runner.vm.segments);
         cairo_runner
