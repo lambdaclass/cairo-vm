@@ -1,6 +1,9 @@
 ## Cairo-VM Changelog
 
 #### Upcoming Changes
+
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
+
 * feat: Remove prover input info struct and add getters instead [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
 
 * feat: Added support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
@@ -26,8 +29,6 @@
 * feat: Added hints felt unpacking for blake [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
 
 * dev: make `VirtualMachine::get_traceback_entries` pub
-
-* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
 
