@@ -18,7 +18,7 @@ jobs:
       uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: rustfmt, clippy
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Install uv
       uses: astral-sh/setup-uv@v5
       with:

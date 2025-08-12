@@ -16,7 +16,7 @@ jobs:
     - name: Set up Cargo cache
       uses: Swatinem/rust-cache@v2
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Check Build
       run: cargo build -p hint_accountant
     - name: Clone cairo-lang repo
