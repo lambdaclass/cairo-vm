@@ -162,10 +162,10 @@ jobs:
       uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: rustfmt, clippy
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v4
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
 
     - uses: actions/download-artifact@master
       with:
@@ -203,6 +203,9 @@ jobs:
       with:
         targets: wasm32-unknown-unknown
 
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
       with:
@@ -212,9 +215,6 @@ jobs:
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-all-features
-
-    - name: Checkout
-      uses: actions/checkout@v4
 
     - uses: actions/download-artifact@master
       with:
@@ -249,6 +249,9 @@ jobs:
       with:
         targets: wasm32-unknown-unknown
 
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
       with:
@@ -258,9 +261,6 @@ jobs:
       uses: taiki-e/install-action@v2
       with:
         tool: cargo-all-features
-
-    - name: Checkout
-      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -289,13 +289,13 @@ jobs:
       with:
         targets: wasm32-unknown-unknown
 
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Set up cargo cache
       uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-
-    - name: Checkout
-      uses: actions/checkout@v4
 
     - name: Download proof programs symlinks
       uses: actions/download-artifact@master
@@ -330,10 +330,10 @@ jobs:
       uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: llvm-tools-preview
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v4
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
 
     - uses: actions/download-artifact@master
       with:
@@ -394,10 +394,10 @@ jobs:
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.87.0
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
     - name: Checkout
       uses: actions/checkout@v4
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
     - name: Build
       run: cargo b --release -p cairo-vm-cli
     # We don't read from cache because it should always miss
