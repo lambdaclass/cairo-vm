@@ -821,15 +821,25 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner =
-            CairoRunner::new(&program, LayoutName::all_cairo, None, true, false, false).unwrap();
+        let proof_mode = true;
+        let mut runner = CairoRunner::new(
+            &program,
+            LayoutName::all_cairo,
+            None,
+            proof_mode,
+            false,
+            false,
+        )
+        .unwrap();
 
         let end = runner.initialize(false).unwrap();
         // Modify add_mod & mul_mod params
 
         runner.run_until_pc(end, &mut hint_processor).unwrap();
         runner.run_for_steps(1, &mut hint_processor).unwrap();
-        runner.end_run(false, false, &mut hint_processor).unwrap();
+        runner
+            .end_run(false, false, &mut hint_processor, proof_mode)
+            .unwrap();
         runner.read_return_values(false).unwrap();
         runner.finalize_segments().unwrap();
 
