@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)
-
 * dev: make `VirtualMachine::get_traceback_entries` pub
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
