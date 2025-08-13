@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: make `MemorySegmentManager`'s `memory` field private [#2164](https://github.com/lambdaclass/cairo-vm/pull/2164)
+
 * feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)
 
 * feat: Remove prover input info struct and add getters instead [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
