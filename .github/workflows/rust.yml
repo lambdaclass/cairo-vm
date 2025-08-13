@@ -484,10 +484,10 @@ jobs:
         - program-target: cairo_test_programs
           programs-dir: cairo_programs
           extra-args: '--cairo_pie_output {program}.rs.pie.zip'
-        - program-target: cairo_stwo_exclusive_programs
+        - program-target: cairo_proof_programs
           programs-dir: cairo_programs/stwo_exclusive_programs
           extra-args: '--cairo_pie_output {program}.rs.pie.zip'
-        - program-target: cairo_stwo_exclusive_programs_proof_mode
+        - program-target: cairo_proof_programs
           programs-dir: cairo_programs/stwo_exclusive_programs
           extra-args: '--proof_mode --air_public_input {program}.rs.air_public_input --air_private_input {program}.rs.air_private_input '
     name: Compute memory and execution traces with cairo-vm
