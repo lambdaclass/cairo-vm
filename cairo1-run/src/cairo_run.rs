@@ -267,12 +267,7 @@ pub fn cairo_run_program(
         runner.run_for_steps(1, &mut hint_processor)?;
     }
 
-    runner.end_run(
-        false,
-        false,
-        &mut hint_processor,
-        cairo_run_config.proof_mode,
-    )?;
+    runner.end_run(false, false, &mut hint_processor)?;
 
     let result_inner_type_size =
         result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
@@ -341,7 +336,7 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true, true)?;
+    runner.relocate(true)?;
 
     Ok((runner, return_values, serialized_output))
 }
