@@ -282,38 +282,6 @@ impl BuiltinsInstanceDef {
             mul_mod,
         }
     }
-
-    pub(crate) fn perpetual() -> BuiltinsInstanceDef {
-        BuiltinsInstanceDef {
-            output: true,
-            pedersen: Some(PedersenInstanceDef::new(Some(32))),
-            range_check: Some(RangeCheckInstanceDef::new(Some(16))),
-            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
-            bitwise: None,
-            ec_op: None,
-            keccak: None,
-            poseidon: None,
-            range_check96: None,
-            add_mod: None,
-            mul_mod: None,
-        }
-    }
-
-    pub(crate) fn dex_with_bitwise() -> BuiltinsInstanceDef {
-        BuiltinsInstanceDef {
-            output: true,
-            pedersen: Some(PedersenInstanceDef::default()),
-            range_check: Some(RangeCheckInstanceDef::default()),
-            ecdsa: Some(EcdsaInstanceDef::default()),
-            bitwise: Some(BitwiseInstanceDef::new(Some(64))),
-            ec_op: None,
-            keccak: None,
-            poseidon: None,
-            range_check96: None,
-            add_mod: None,
-            mul_mod: None,
-        }
-    }
 }
 
 #[cfg(test)]

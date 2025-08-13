@@ -150,9 +150,7 @@ mod test {
         runner.initialize(false).unwrap();
         // runner.vm.segments.compute_effective_sizes();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        runner
-            .end_run(false, false, &mut hint_processor, false)
-            .unwrap();
+        runner.end_run(false, false, &mut hint_processor).unwrap();
         // At the end of the run, the ret_fp should be the base of the new ret_fp segment we added
         // to the stack at the start of the run.
         runner.vm.run_context.fp = 0;
@@ -217,9 +215,7 @@ mod test {
 
         runner.initialize(false).unwrap();
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        runner
-            .end_run(false, false, &mut hint_processor, false)
-            .unwrap();
+        runner.end_run(false, false, &mut hint_processor).unwrap();
         runner.vm.builtin_runners[0].set_stop_ptr(1);
         // Adding ((1, 1), (3, 0)) to the memory segment to simulate the ret_fp_segment.
         runner.vm.segments.memory = memory![((2, 0), 1), ((1, 1), (3, 0))];

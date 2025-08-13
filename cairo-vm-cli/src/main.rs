@@ -180,13 +180,12 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
-        relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        disable_trace_padding: false,
+        ..Default::default()
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
