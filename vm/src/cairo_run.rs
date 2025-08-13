@@ -27,10 +27,7 @@ pub struct CairoRunConfig<'a> {
     #[cfg_attr(feature = "test_utils", arbitrary(value = "main"))]
     pub entrypoint: &'a str,
     pub trace_enabled: bool,
-    /// Relocate memory if `true`, otherwise memory is not relocated.
     pub relocate_mem: bool,
-    // When `relocate_trace` is set to `false`, the trace will not be relocated even if `trace_enabled` is `true`.
-    pub relocate_trace: bool,
     pub layout: LayoutName,
     /// The `dynamic_layout_params` argument should only be used with dynamic layout.
     /// It is ignored otherwise.
@@ -54,8 +51,6 @@ impl Default for CairoRunConfig<'_> {
             entrypoint: "main",
             trace_enabled: false,
             relocate_mem: false,
-            // Set to true to match expected behavior: trace is relocated only if trace_enabled is true.
-            relocate_trace: true,
             layout: LayoutName::plain,
             proof_mode: false,
             secure_run: None,
@@ -109,9 +104,9 @@ pub fn cairo_run_program_with_initial_scope(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
-        cairo_run_config.proof_mode,
     )?;
 
+    cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments()?;
@@ -119,10 +114,7 @@ pub fn cairo_run_program_with_initial_scope(
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None)?;
     }
-    cairo_runner.relocate(
-        cairo_run_config.relocate_mem,
-        cairo_run_config.relocate_trace,
-    )?;
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
     Ok(cairo_runner)
 }
@@ -221,9 +213,9 @@ pub fn cairo_run_pie(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
-        cairo_run_config.proof_mode,
     )?;
 
+    cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
 
     if secure_run {
@@ -231,10 +223,7 @@ pub fn cairo_run_pie(
         // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE received
         cairo_runner.get_cairo_pie()?.check_pie_compatibility(pie)?;
     }
-    cairo_runner.relocate(
-        cairo_run_config.relocate_mem,
-        cairo_run_config.relocate_trace,
-    )?;
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
     Ok(cairo_runner)
 }
@@ -275,8 +264,9 @@ pub fn cairo_run_fuzzed_program(
 
     res.map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
-    cairo_runner.end_run(false, false, hint_processor, cairo_run_config.proof_mode)?;
+    cairo_runner.end_run(false, false, hint_processor)?;
 
+    cairo_runner.vm.verify_auto_deductions()?;
     cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
         cairo_runner.finalize_segments()?;
@@ -284,10 +274,7 @@ pub fn cairo_run_fuzzed_program(
     if secure_run {
         verify_secure_runner(&cairo_runner, true, None)?;
     }
-    cairo_runner.relocate(
-        cairo_run_config.relocate_mem,
-        cairo_run_config.relocate_trace,
-    )?;
+    cairo_runner.relocate(cairo_run_config.relocate_mem)?;
 
     Ok(cairo_runner)
 }
@@ -388,7 +375,7 @@ mod tests {
 
         let end = cairo_runner.initialize(false).unwrap();
         assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
-        assert!(cairo_runner.relocate(true, true).is_ok());
+        assert!(cairo_runner.relocate(true).is_ok());
         // `main` returns without doing nothing, but `not_main` sets `[ap]` to `1`
         // Memory location was found empirically and simply hardcoded
         assert_eq!(cairo_runner.relocated_memory[2], Some(Felt252::from(123)));
@@ -454,7 +441,7 @@ mod tests {
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
 
-        assert!(cairo_runner.relocate(false, true).is_ok());
+        assert!(cairo_runner.relocate(false).is_ok());
 
         let trace_entries = cairo_runner.relocated_trace.unwrap();
         let mut buffer = [0; 24];
@@ -478,7 +465,7 @@ mod tests {
         let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
 
         // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(true, true).is_ok());
+        assert!(cairo_runner.relocate(true).is_ok());
 
         let mut buffer = [0; 120];
         let mut buff_writer = SliceWriter::new(&mut buffer);
@@ -502,7 +489,7 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
         let end = cairo_runner.initialize(false).unwrap();
         assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
-        assert!(cairo_runner.relocate(false, false).is_ok());
+        assert!(cairo_runner.relocate(false).is_ok());
         assert!(cairo_runner.relocated_trace.is_none());
     }
 

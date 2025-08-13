@@ -1,11 +1,6 @@
 use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
 use crate::math_utils::div_mod;
-use crate::stdlib::{
-    cell::RefCell,
-    collections::{BTreeMap, HashMap},
-    prelude::*,
-    rc::Rc,
-};
+use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::ecdsa_instance_def::CELLS_PER_SIGNATURE;
@@ -167,7 +162,7 @@ impl SignatureBuiltinRunner {
 
     pub fn get_additional_data(&self) -> BuiltinAdditionalData {
         // Convert signatures to Felt tuple
-        let signatures: BTreeMap<Relocatable, (Felt252, Felt252)> = self
+        let signatures: HashMap<Relocatable, (Felt252, Felt252)> = self
             .signatures
             .borrow()
             .iter()
@@ -528,7 +523,7 @@ mod tests {
             },
         )]);
         builtin.signatures = Rc::new(RefCell::new(signatures));
-        let signatures = BTreeMap::from([(
+        let signatures = HashMap::from([(
             Relocatable::from((4, 0)),
             (felt_str!("45678"), felt_str!("1239")),
         )]);

@@ -737,6 +737,7 @@ jobs:
         path: lcov-test-no_std#4-cairo-0-secp-hints.info
         key: codecov-cache-test-no_std#4-cairo-0-secp-hints-${{ github.sha }}
         fail-on-cache-miss: true
+
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:

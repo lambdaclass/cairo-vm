@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::BTreeMap, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -12,7 +12,6 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputBuiltinState {
     pub base: usize,
-    pub base_offset: usize,
     pub pages: Pages,
     pub attributes: Attributes,
 }
@@ -20,7 +19,6 @@ pub struct OutputBuiltinState {
 #[derive(Debug, Clone)]
 pub struct OutputBuiltinRunner {
     base: usize,
-    pub base_offset: usize,
     pub(crate) pages: Pages,
     pub(crate) attributes: Attributes,
     pub(crate) stop_ptr: Option<usize>,
@@ -31,19 +29,17 @@ impl OutputBuiltinRunner {
     pub fn new(included: bool) -> OutputBuiltinRunner {
         OutputBuiltinRunner {
             base: 0,
-            base_offset: 0,
-            pages: BTreeMap::default(),
-            attributes: BTreeMap::default(),
+            pages: HashMap::default(),
+            attributes: HashMap::default(),
             stop_ptr: None,
             included,
         }
     }
 
-    pub fn new_state(&mut self, base: usize, base_offset: usize, included: bool) {
+    pub fn new_state(&mut self, base: usize, included: bool) {
         self.base = base;
-        self.base_offset = base_offset;
-        self.pages = BTreeMap::default();
-        self.attributes = BTreeMap::default();
+        self.pages = HashMap::default();
+        self.attributes = HashMap::default();
         self.stop_ptr = None;
         self.included = included;
     }
@@ -147,7 +143,6 @@ impl OutputBuiltinRunner {
 
     pub fn set_state(&mut self, new_state: OutputBuiltinState) {
         self.base = new_state.base;
-        self.base_offset = new_state.base_offset;
         self.pages = new_state.pages;
         self.attributes = new_state.attributes;
     }
@@ -155,7 +150,6 @@ impl OutputBuiltinRunner {
     pub fn get_state(&mut self) -> OutputBuiltinState {
         OutputBuiltinState {
             base: self.base,
-            base_offset: self.base_offset,
             pages: self.pages.clone(),
             attributes: self.attributes.clone(),
         }
@@ -174,7 +168,7 @@ impl OutputBuiltinRunner {
         self.pages.insert(
             page_id,
             PublicMemoryPage {
-                start: page_start.offset - self.base_offset,
+                start: page_start.offset,
                 size: page_size,
             },
         );
@@ -209,6 +203,7 @@ impl Default for OutputBuiltinRunner {
 mod tests {
     use super::*;
     use crate::relocatable;
+    use crate::stdlib::collections::HashMap;
 
     use crate::{
         utils::test_utils::*,
@@ -476,8 +471,8 @@ mod tests {
         assert_eq!(
             builtin.get_additional_data(),
             BuiltinAdditionalData::Output(OutputBuiltinAdditionalData {
-                pages: BTreeMap::default(),
-                attributes: BTreeMap::default()
+                pages: HashMap::default(),
+                attributes: HashMap::default()
             })
         )
     }
@@ -498,9 +493,8 @@ mod tests {
 
         let new_state = OutputBuiltinState {
             base: 10,
-            base_offset: 0,
-            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
         };
         builtin.set_state(new_state.clone());
 
@@ -516,19 +510,17 @@ mod tests {
     fn new_state() {
         let mut builtin = OutputBuiltinRunner {
             base: 10,
-            base_offset: 0,
-            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: Some(10),
             included: true,
         };
 
         let new_base = 11;
         let new_included = false;
-        builtin.new_state(new_base, 2, new_included);
+        builtin.new_state(new_base, new_included);
 
         assert_eq!(builtin.base, new_base);
-        assert_eq!(builtin.base_offset, 2);
         assert!(builtin.pages.is_empty());
         assert!(builtin.attributes.is_empty());
         assert_eq!(builtin.stop_ptr, None);
@@ -552,7 +544,7 @@ mod tests {
 
         assert_eq!(
             builtin.pages,
-            BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 }),])
+            HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 }),])
         )
     }
 
@@ -579,7 +571,7 @@ mod tests {
         let values = vec![0, 12, 30];
         builtin.add_attribute(name.clone(), values.clone());
 
-        assert_eq!(builtin.attributes, BTreeMap::from([(name, values)]));
+        assert_eq!(builtin.attributes, HashMap::from([(name, values)]));
     }
 
     #[test]
@@ -622,16 +614,14 @@ mod tests {
     fn get_and_extend_additional_data() {
         let builtin_a = OutputBuiltinRunner {
             base: 0,
-            base_offset: 0,
-            pages: BTreeMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
-            attributes: BTreeMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
+            pages: HashMap::from([(1, PublicMemoryPage { start: 0, size: 3 })]),
+            attributes: HashMap::from([("gps_fact_topology".to_string(), vec![0, 2, 0])]),
             stop_ptr: None,
             included: true,
         };
         let additional_data = builtin_a.get_additional_data();
         let mut builtin_b = OutputBuiltinRunner {
             base: 0,
-            base_offset: 0,
             pages: Default::default(),
             attributes: Default::default(),
             stop_ptr: None,
