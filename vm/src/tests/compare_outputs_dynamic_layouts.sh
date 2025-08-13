@@ -207,6 +207,15 @@ for case in "${CASES[@]}"; do
         passed_tests=$((passed_tests + 1))
     fi
 
+    # Compare memory
+    echo "Running memory comparison for case: $case"
+    if ! ./vm/src/tests/memory_comparator.py program_rs.memory program_py.memory; then
+        echo "Memory differs for case: $case"
+        exit_code=1
+        failed_tests=$((failed_tests + 1))
+    else
+        passed_tests=$((passed_tests + 1))
+    fi
 
     # Compare air public input
     echo "Running air public input  comparison for case: $case"
