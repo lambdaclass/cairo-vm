@@ -872,9 +872,9 @@ impl VirtualMachine {
     pub fn end_run(
         &mut self,
         exec_scopes: &ExecutionScopes,
-        proof_mode: bool,
+        fill_holes: bool,
     ) -> Result<(), VirtualMachineError> {
-        if proof_mode {
+        if fill_holes {
             self.complete_builtin_auto_deductions()?;
         } else {
             self.verify_auto_deductions()?;

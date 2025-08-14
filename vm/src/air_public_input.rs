@@ -194,6 +194,7 @@ mod tests {
 
         let config = crate::cairo_run::CairoRunConfig {
             proof_mode: true,
+            fill_holes: true,
             relocate_mem: true,
             trace_enabled: true,
             layout: LayoutName::all_cairo,

@@ -65,7 +65,7 @@ for file in $(ls $tests_path | grep .cairo$ | sed -E 's/\.cairo$//'); do
         fi
     fi
 
-    if $memory && -z $proof_tests_path;  then
+    if $memory; then
         if ! ./memory_comparator.py $path_file.memory $path_file.rs.memory; then
             echo "Memory differs for $file"
             exit_code=1
