@@ -1,3 +1,4 @@
+use crate::stdlib::borrow::Cow;
 use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
@@ -23,7 +24,7 @@ use super::memory::MemoryCell;
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,
-    pub memory: Memory,
+    pub(crate) memory: Memory,
     // A map from segment index to a list of pairs (offset, page_id) that constitute the
     // public memory. Note that the offset is absolute (not based on the page_id).
     pub public_memory_offsets: HashMap<usize, Vec<(usize, usize)>>,
@@ -327,6 +328,16 @@ impl MemorySegmentManager {
             self.memory.insert((*si as isize, *so).into(), val)?;
         }
         Ok(())
+    }
+
+    pub fn get_integer(&self, key: Relocatable) -> Result<Felt252, MemoryError> {
+        self.memory.get_integer(key).map(Cow::into_owned)
+    }
+    pub fn get_relocatable(&self, key: Relocatable) -> Result<Relocatable, MemoryError> {
+        self.memory.get_relocatable(key)
+    }
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        self.memory.get_maybe_relocatable(key)
     }
 }
 
@@ -1115,6 +1126,49 @@ mod tests {
                 MemoryCell::new(MaybeRelocatable::from(0)),
                 MemoryCell::new(MaybeRelocatable::from(0))
             ])
+        );
+    }
+
+    #[test]
+    fn test_get_integer() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory_segment_manager
+                .get_integer(Relocatable::from((0, 0)))
+                .unwrap()
+                .as_ref(),
+            &Felt252::from(10)
+        );
+    }
+
+    #[test]
+    fn test_get_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), (0, 1))];
+        assert_eq!(
+            memory_segment_manager
+                .get_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            relocatable!(0, 1)
+        );
+    }
+
+    #[test]
+    fn test_get_maybe_relocatable() {
+        let mut memory_segment_manager = MemorySegmentManager::new();
+        memory_segment_manager.memory = memory![((0, 0), (0, 1)), ((0, 1), 10)];
+        assert_eq!(
+            memory_segment_manager
+                .get_maybe_relocatable(relocatable!(0, 0))
+                .unwrap(),
+            mayberelocatable!(0, 1)
+        );
+        assert_eq!(
+            memory_segment_manager
+                .get_maybe_relocatable(relocatable!(0, 1))
+                .unwrap(),
+            mayberelocatable!(10)
         );
     }
 }
