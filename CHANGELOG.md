@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
+
 * fix: make `MemorySegmentManager`'s `memory` field private [#2164](https://github.com/lambdaclass/cairo-vm/pull/2164)
 
 * feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)

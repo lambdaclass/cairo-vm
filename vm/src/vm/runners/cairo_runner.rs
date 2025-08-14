@@ -892,14 +892,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
-        proof_mode: bool,
+        fill_holes: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes, proof_mode)?;
+        self.vm.end_run(&self.exec_scopes, fill_holes)?;
 
         if disable_finalize_all {
             return Ok(());
@@ -3917,6 +3917,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::small,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(true),
             ..Default::default()
         };
@@ -3938,6 +3939,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::small,
             proof_mode: true,
+            fill_holes: true,
             secure_run: Some(true),
             ..Default::default()
         };
@@ -3978,6 +3980,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -3996,6 +3999,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -5497,6 +5501,7 @@ mod tests {
             program_content,
             &CairoRunConfig {
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             },

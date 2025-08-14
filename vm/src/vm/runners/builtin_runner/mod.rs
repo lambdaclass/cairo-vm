@@ -917,6 +917,7 @@ mod tests {
             let config_false = CairoRunConfig {
                 disable_trace_padding: false,
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             };
@@ -930,6 +931,7 @@ mod tests {
             let config_true = CairoRunConfig {
                 disable_trace_padding: true,
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             };

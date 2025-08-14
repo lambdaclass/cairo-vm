@@ -521,7 +521,7 @@ jobs:
         ls ${{ matrix.programs-dir }}/*.json | cut -f1 -d'.' | \
         xargs -P 2 -I '{program}' \
         ./target/release/cairo-vm-cli '{program}'.json --layout starknet_with_keccak \
-        --memory_file '{program}'.rs.memory --trace_file '{program}'.rs.trace \
+        --memory_file '{program}'.rs.memory --trace_file '{program}'.rs.trace --fill-holes false \
         ${{ matrix.extra-args }}
     - name: Update cache
       uses: actions/cache/save@v3
