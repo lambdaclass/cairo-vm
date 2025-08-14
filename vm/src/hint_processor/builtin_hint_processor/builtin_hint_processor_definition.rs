@@ -1017,6 +1017,16 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
+            #[cfg(feature = "test_utils")]
+            super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
+                super::simulated_builtins::get_simulated_builtin_base(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                    constants,
+                )
+            }
 
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }

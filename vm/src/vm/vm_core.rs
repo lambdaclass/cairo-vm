@@ -89,6 +89,16 @@ impl DeducedOperands {
 pub struct VirtualMachine {
     pub(crate) run_context: RunContext,
     pub builtin_runners: Vec<BuiltinRunner>,
+    /// A simulated builtin is being verified in the executed Cairo
+    /// code (so proving them only involves proving cairo steps), rather
+    /// than being outputted as their own segment and proven later using
+    /// dedicated AIRs.
+    ///
+    /// These builtins won't be included in the layout, hence the builtin
+    /// segment pointer won't be passed as argument to the program. The program
+    /// needs a mechanism for obtaining the segment pointer. See example
+    /// implementation of this mechanism in `simulated_builtins.cairo`, or
+    /// cairo-lang's `simple_bootloader.cairo`.
     pub simulated_builtin_runners: Vec<BuiltinRunner>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
