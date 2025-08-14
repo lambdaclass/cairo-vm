@@ -27,8 +27,8 @@ func main{ec_op_ptr: EcOpBuiltin*}() {
 //
 // If the builtin is included in the layout, the ec_op_ptr will be valid, and
 // this function will do nothing. If the builtin is not included in the layout,
-// then it will obtain the pointer of the ec_op simulated builtina and return
-// it. For this to work properly, the runner must have the ec_op simualted
+// then it will obtain the pointer of the ec_op simulated builtin and return
+// it. For this to work properly, the runner must have the ec_op simulated
 // builtin runner at index 0.
 func init_ec_op(ec_op_ptr: EcOpBuiltin*) -> (ec_op_ptr: EcOpBuiltin*) {
     if (ec_op_ptr != 0) {
@@ -39,7 +39,7 @@ func init_ec_op(ec_op_ptr: EcOpBuiltin*) -> (ec_op_ptr: EcOpBuiltin*) {
     local builtin_idx = 0;
     local new_ptr;
 
-    // This hint is not defined used in the original VM,
+    // This hint is not defined in the original VM,
     // and its declared for testing purposes only.
     %{ ids.new_ptr = get_simulated_builtin_base(ids.builtin_idx) %}
 
