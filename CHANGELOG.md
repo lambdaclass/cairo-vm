@@ -2,6 +2,38 @@
 
 #### Upcoming Changes
 
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
+
+* feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)
+
+* feat: Remove prover input info struct and add getters instead [#2149](https://github.com/lambdaclass/cairo-vm/pull/2149)
+
+* feat: Added support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
+
+* feat: Disable relocate trace with flag [#2133](https://github.com/lambdaclass/cairo-vm/pull/2133)
+
+* feat: Enable using secure run in proof mode [#2113](https://github.com/lambdaclass/cairo-vm/pull/2113)
+
+* [BREAKING] Compute missing builtin cells only in proof mode [#2088](https://github.com/lambdaclass/cairo-vm/pull/2088)
+
+* test: Add test for filling holes in builtin segments [#2087](https://github.com/lambdaclass/cairo-vm/pull/2087)
+
+* fix: Removed memory comparison test with Python VM in proof mode, since the new hole-filling logic causes divergence.[#2086](https://github.com/lambdaclass/cairo-vm/pull/2086)
+
+* refactor: Use BTreeMap for deterministic order of PIE keys [#2085](https://github.com/lambdaclass/cairo-vm/pull/2085)
+
+* fix: Fix zero offset output base assumption [#2068](https://github.com/lambdaclass/cairo-vm/pull/2068)
+
+* feat: Add perpetual and dex with bitwise layouts [#2067](https://github.com/lambdaclass/cairo-vm/pull/2067)
+
+* feat: Fill holes in builtins segments to save computation in the prover [#2036](https://github.com/lambdaclass/cairo-vm/pull/2036)
+
+* feat: Added hints felt unpacking for blake [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
+
+* dev: make `VirtualMachine::get_traceback_entries` pub [#2126](https://github.com/lambdaclass/cairo-vm/pull/2126)
+
+* chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
+
 * chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
 
 * chore: remove unused dependencies [#2111](https://github.com/lambdaclass/cairo-vm/pull/2111)

@@ -3,6 +3,7 @@ use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
+use crate::vm::vm_memory::memory::MemoryCell;
 use crate::{
     hint_processor::{
         builtin_hint_processor::blake2s_hash::blake2s_compress,
@@ -748,6 +749,66 @@ impl VirtualMachine {
         ))
     }
 
+    /// Updates the memory with missing built-in deductions and verifies the existing ones.
+    pub fn complete_builtin_auto_deductions(&mut self) -> Result<(), VirtualMachineError> {
+        for builtin in self.builtin_runners.iter() {
+            let builtin_index: usize = builtin.base();
+
+            // Output and SegmentArena do not need to be auto-deduced in the memory.
+            if matches!(
+                builtin,
+                BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_)
+            ) {
+                continue;
+            }
+
+            // Extend the segment size to a multiple of the number of cells per instance.
+            let current_builtin_segment = &mut self.segments.memory.data[builtin_index];
+            let len = current_builtin_segment.len();
+            let cells_per_instance = builtin.cells_per_instance() as usize;
+            current_builtin_segment.resize(
+                len.div_ceil(cells_per_instance) * cells_per_instance,
+                MemoryCell::NONE,
+            );
+
+            let mut missing_values: Vec<(usize, MemoryCell)> = vec![];
+
+            for (offset, cell) in self.segments.memory.data[builtin_index].iter().enumerate() {
+                if let Some(deduced_memory_cell) = builtin
+                    .deduce_memory_cell(
+                        Relocatable::from((builtin_index as isize, offset)),
+                        &self.segments.memory,
+                    )
+                    .map_err(VirtualMachineError::RunnerError)?
+                {
+                    match cell.get_value() {
+                        Some(memory_value) => {
+                            // Checks that the value in the memory is correct.
+                            if memory_value != deduced_memory_cell {
+                                return Err(VirtualMachineError::InconsistentAutoDeduction(
+                                    Box::new((
+                                        builtin.name(),
+                                        deduced_memory_cell,
+                                        Some(memory_value),
+                                    )),
+                                ));
+                            }
+                        }
+                        None => {
+                            // Collect value to be stored in memory.
+                            missing_values.push((offset, MemoryCell::new(deduced_memory_cell)));
+                        }
+                    }
+                }
+            }
+
+            for (offset, value) in missing_values {
+                self.segments.memory.data[builtin_index][offset] = value;
+            }
+        }
+        Ok(())
+    }
+
     ///Makes sure that all assigned memory cells are consistent with their auto deduction rules.
     pub fn verify_auto_deductions(&self) -> Result<(), VirtualMachineError> {
         for builtin in self.builtin_runners.iter() {
@@ -798,8 +859,16 @@ impl VirtualMachine {
         Ok(())
     }
 
-    pub fn end_run(&mut self, exec_scopes: &ExecutionScopes) -> Result<(), VirtualMachineError> {
-        self.verify_auto_deductions()?;
+    pub fn end_run(
+        &mut self,
+        exec_scopes: &ExecutionScopes,
+        fill_holes: bool,
+    ) -> Result<(), VirtualMachineError> {
+        if fill_holes {
+            self.complete_builtin_auto_deductions()?;
+        } else {
+            self.verify_auto_deductions()?;
+        }
         self.run_finished = true;
         match exec_scopes.data.len() {
             1 => Ok(()),
@@ -821,9 +890,9 @@ impl VirtualMachine {
         Ok(())
     }
 
-    // Returns the values (fp, pc) corresponding to each call instruction in the traceback.
-    // Returns the most recent call last.
-    pub(crate) fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
+    /// Returns the values (fp, pc) corresponding to each call instruction in the traceback.
+    /// Returns the most recent call last.
+    pub fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
         let mut entries = Vec::<(Relocatable, Relocatable)>::new();
         let mut fp = Relocatable::from((1, self.run_context.fp));
         // Fetch the fp and pc traceback entries
@@ -4560,7 +4629,7 @@ mod tests {
         scopes.enter_scope(HashMap::new());
 
         assert_matches!(
-            vm.end_run(scopes),
+            vm.end_run(scopes, false),
             Err(VirtualMachineError::MainScopeError(
                 ExecScopeError::NoScopeError
             ))
