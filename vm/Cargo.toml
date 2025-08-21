@@ -79,7 +79,7 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 clap = { version = "4.3.10", features = ["derive"], optional = true}
 
 [patch.crates-io]
-starknet-types-core = { git = "https://github.com/starknet-io/types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }
+starknet-types-core = { git = "https://github.com/lambdaclass/types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
