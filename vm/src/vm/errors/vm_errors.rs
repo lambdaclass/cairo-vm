@@ -158,7 +158,7 @@ pub enum VirtualMachineError {
     #[error("QM31 add mul opcode invalid flags {0}")]
     InvalidQM31AddMulFlags(u128),
     #[error(transparent)]
-    InvalidFeltConvertionToQM31(#[from] QM31Error)
+    InvalidFeltConvertionToQM31(#[from] QM31Error),
 }
 
 #[cfg(test)]
