@@ -2400,8 +2400,8 @@ mod tests {
 
         let vm = vm!();
 
-        let op1_coordinates = [STWO_PRIME as u32 - 10, 5, STWO_PRIME as u32 - 5, 1];
-        let dst_coordinates = [STWO_PRIME as u32 - 4, 2, 12, 3];
+        let op1_coordinates = [STWO_PRIME - 10, 5, STWO_PRIME - 5, 1];
+        let dst_coordinates = [STWO_PRIME - 4, 2, 12, 3];
         let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
         let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
@@ -2411,7 +2411,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([6, STWO_PRIME as u32 - 3, 17, 2]).pack_into_felt())) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([6, STWO_PRIME - 3, 17, 2]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2709,7 +2709,7 @@ mod tests {
 
         let vm = vm!();
 
-        let op0_coordinates = [4, STWO_PRIME as u32 - 13, 3, 7];
+        let op0_coordinates = [4, STWO_PRIME - 13, 3, 7];
         let dst_coordinates = [8, 7, 6, 5];
         let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
         let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
@@ -2720,7 +2720,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([4, 20, 3, STWO_PRIME as u32 - 2]).pack_into_felt())) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([4, 20, 3, STWO_PRIME - 2]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2746,7 +2746,7 @@ mod tests {
         let vm = vm!();
 
         let op0_coordinates = [0, 1, 0, 0];
-        let dst_coordinates = [STWO_PRIME as u32 - 1, 0, 0, 0];
+        let dst_coordinates = [STWO_PRIME - 1, 0, 0, 0];
         let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
         let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op0 = MaybeRelocatable::Int(op0_packed);
@@ -2956,7 +2956,7 @@ mod tests {
         let vm = vm!();
 
         let op1_coordinates = [1, 2, 3, 4];
-        let op0_coordinates = [10, 11, STWO_PRIME as u32 - 1, 13];
+        let op0_coordinates = [10, 11, STWO_PRIME - 1, 13];
         let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
         let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
