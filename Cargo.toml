@@ -80,7 +80,7 @@ ark-std = { version = "0.4.0", default-features = false }
 arbitrary = { version = "1.3.0", features = ["derive"] }
 
 [patch.crates-io]
-starknet-types-core = { git = "https://github.com/lambdaclass//types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }
+starknet-types-core = { git = "https://github.com/starknet-io/types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }
 
 [profile.test]
 opt-level = 2
