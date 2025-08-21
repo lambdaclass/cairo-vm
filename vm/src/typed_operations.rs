@@ -21,8 +21,8 @@ pub fn typed_add(
         OpcodeExtension::QM31Operation => {
             if let (MaybeRelocatable::Int(num_x), MaybeRelocatable::Int(num_y)) = (x, y) {
                 Ok(MaybeRelocatable::Int({
-                    let lhs = QM31::unpack_from_felt(num_x)?;
-                    let rhs = QM31::unpack_from_felt(num_y)?;
+                    let lhs = QM31::unpack_from_felt(num_x).map_err(MathError::from)?;
+                    let rhs = QM31::unpack_from_felt(num_y).map_err(MathError::from)?;
                     lhs.add(&rhs).pack_into_felt()
                 }))
             } else {
@@ -52,8 +52,8 @@ pub fn typed_sub(
         OpcodeExtension::QM31Operation => {
             if let (MaybeRelocatable::Int(num_x), MaybeRelocatable::Int(num_y)) = (x, y) {
                 Ok(MaybeRelocatable::Int({
-                    let lhs = QM31::unpack_from_felt(num_x)?;
-                    let rhs = QM31::unpack_from_felt(num_y)?;
+                    let lhs = QM31::unpack_from_felt(num_x).map_err(MathError::from)?;
+                    let rhs = QM31::unpack_from_felt(num_y).map_err(MathError::from)?;
                     lhs.sub(&rhs).pack_into_felt()
                 }))
             } else {
@@ -82,8 +82,8 @@ pub fn typed_mul(
         match opcode_extension {
             OpcodeExtension::Stone => Ok(MaybeRelocatable::Int(num_x * num_y)),
             OpcodeExtension::QM31Operation => Ok(MaybeRelocatable::Int({
-                let lhs = QM31::unpack_from_felt(num_x)?;
-                let rhs = QM31::unpack_from_felt(num_y)?;
+                let lhs = QM31::unpack_from_felt(num_x).map_err(MathError::from)?;
+                let rhs = QM31::unpack_from_felt(num_y).map_err(MathError::from)?;
                 lhs.mul(&rhs).pack_into_felt()
             })),
             _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
@@ -112,8 +112,8 @@ pub fn typed_div(
             Ok(x.field_div(&y.try_into().map_err(|_| MathError::DividedByZero)?))
         }
         OpcodeExtension::QM31Operation => Ok({
-            let lhs = QM31::unpack_from_felt(x)?;
-            let rhs = QM31::unpack_from_felt(y)?;
+            let lhs = QM31::unpack_from_felt(x).map_err(MathError::from)?;
+            let rhs = QM31::unpack_from_felt(y).map_err(MathError::from)?;
             lhs.div(&rhs)
                 .map_err(|_| MathError::DividedByZero)?
                 .pack_into_felt()
