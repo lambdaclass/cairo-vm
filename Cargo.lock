@@ -3071,7 +3071,7 @@ dependencies = [
 [[package]]
 name = "starknet-types-core"
 version = "0.2.0"
-source = "git+https://github.com/starknet-io/types-rs.git?rev=8f0d2fc0059b734909652a7d519171a3ba6e66d7#8f0d2fc0059b734909652a7d519171a3ba6e66d7"
+source = "git+https://github.com/lambdaclass//types-rs.git?rev=8f0d2fc0059b734909652a7d519171a3ba6e66d7#8f0d2fc0059b734909652a7d519171a3ba6e66d7"
 dependencies = [
  "arbitrary",
  "blake2",

@@ -57,7 +57,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-starknet-types-core = { version = "0.2.0", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
+starknet-types-core = { version = "=0.2.0", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
 # only for std
@@ -77,9 +77,6 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 
 # Used to derive clap traits for CLIs
 clap = { version = "4.3.10", features = ["derive"], optional = true}
-
-[patch.crates-io]
-starknet-types-core = { git = "https://github.com/starknet-io/types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
