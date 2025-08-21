@@ -4,6 +4,7 @@
 use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
+use starknet_types_core::qm31::QM31Error;
 use thiserror::Error;
 
 use crate::Felt252;
@@ -156,6 +157,8 @@ pub enum VirtualMachineError {
     InvalidBlake2sFlags(u128),
     #[error("QM31 add mul opcode invalid flags {0}")]
     InvalidQM31AddMulFlags(u128),
+    #[error(transparent)]
+    InvalidFeltConvertionToQM31(#[from] QM31Error)
 }
 
 #[cfg(test)]
@@ -166,6 +169,6 @@ mod tests {
     // Test to catch possible enum size regressions
     fn test_vm_error_size() {
         let size = crate::stdlib::mem::size_of::<VirtualMachineError>();
-        assert!(size <= 32, "{size}")
+        assert!(size <= 48, "{size}")
     }
 }

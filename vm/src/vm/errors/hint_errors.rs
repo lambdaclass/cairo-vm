@@ -228,6 +228,6 @@ mod tests {
     #[test]
     fn test_hint_error_size() {
         let size = crate::stdlib::mem::size_of::<HintError>();
-        assert!(size <= 32, "{size}")
+        assert!(size <= 48, "{size}")
     }
 }
