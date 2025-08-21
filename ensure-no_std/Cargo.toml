@@ -7,3 +7,6 @@ edition = "2021"
 cairo-vm = { path = "../vm", default-features = false }
 
 esp-alloc = "0.3.0"
+
+[patch.crates-io]
+starknet-types-core = { git = "https://github.com/starknet-io/types-rs.git", rev = "8f0d2fc0059b734909652a7d519171a3ba6e66d7" }

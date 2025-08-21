@@ -1433,7 +1433,6 @@ impl VirtualMachineBuilder {
 mod tests {
     use super::*;
     use crate::felt_hex;
-    use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
     use crate::stdlib::collections::HashMap;
     use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
@@ -1456,6 +1455,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
+    use starknet_types_core::qm31::{QM31, STWO_PRIME};
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -2412,8 +2412,8 @@ mod tests {
 
         let op1_coordinates = [STWO_PRIME - 10, 5, STWO_PRIME - 5, 1];
         let dst_coordinates = [STWO_PRIME - 4, 2, 12, 3];
-        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
-        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
+        let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
         let dst = MaybeRelocatable::Int(dst_packed);
         assert_matches!(
@@ -2421,7 +2421,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([6, STWO_PRIME-3, 17, 2]))) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([6, STWO_PRIME - 3, 17, 2]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2448,8 +2448,8 @@ mod tests {
 
         let op1_coordinates = [0, 0, 1, 0];
         let dst_coordinates = [0, 0, 0, 1];
-        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
-        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
+        let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
         let dst = MaybeRelocatable::Int(dst_packed);
         assert_matches!(
@@ -2457,7 +2457,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([0, 1, 0, 0]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2721,8 +2721,8 @@ mod tests {
 
         let op0_coordinates = [4, STWO_PRIME - 13, 3, 7];
         let dst_coordinates = [8, 7, 6, 5];
-        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
-        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
+        let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op0 = MaybeRelocatable::Int(op0_packed);
         let dst = MaybeRelocatable::Int(dst_packed);
         assert_matches!(
@@ -2730,7 +2730,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([4, 20, 3, STWO_PRIME - 2]))) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([4, 20, 3, STWO_PRIME - 2]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2757,8 +2757,8 @@ mod tests {
 
         let op0_coordinates = [0, 1, 0, 0];
         let dst_coordinates = [STWO_PRIME - 1, 0, 0, 0];
-        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
-        let dst_packed = qm31_coordinates_to_packed_reduced(dst_coordinates);
+        let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
+        let dst_packed = QM31::from_coordinates(dst_coordinates).pack_into_felt();
         let op0 = MaybeRelocatable::Int(op0_packed);
         let dst = MaybeRelocatable::Int(dst_packed);
         assert_matches!(
@@ -2766,7 +2766,7 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(qm31_coordinates_to_packed_reduced([0, 1, 0, 0]))) &&
+            )) if x == Some(MaybeRelocatable::Int(QM31::from_coordinates([0, 1, 0, 0]).pack_into_felt())) &&
                     y == Some(MaybeRelocatable::Int(dst_packed))
         );
     }
@@ -2967,15 +2967,15 @@ mod tests {
 
         let op1_coordinates = [1, 2, 3, 4];
         let op0_coordinates = [10, 11, STWO_PRIME - 1, 13];
-        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
-        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
+        let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
         let op0 = MaybeRelocatable::Int(op0_packed);
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == qm31_coordinates_to_packed_reduced([11, 13, 2, 17])
+            ))) if x == QM31::from_coordinates([11, 13, 2, 17]).pack_into_felt()
         );
     }
 
@@ -3001,15 +3001,15 @@ mod tests {
 
         let op1_coordinates = [0, 0, 1, 0];
         let op0_coordinates = [0, 0, 1, 0];
-        let op1_packed = qm31_coordinates_to_packed_reduced(op1_coordinates);
-        let op0_packed = qm31_coordinates_to_packed_reduced(op0_coordinates);
+        let op1_packed = QM31::from_coordinates(op1_coordinates).pack_into_felt();
+        let op0_packed = QM31::from_coordinates(op0_coordinates).pack_into_felt();
         let op1 = MaybeRelocatable::Int(op1_packed);
         let op0 = MaybeRelocatable::Int(op0_packed);
         assert_matches!(
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == qm31_coordinates_to_packed_reduced([2, 1, 0, 0])
+            ))) if x == QM31::from_coordinates([2, 1, 0, 0]).pack_into_felt()
         );
     }
 

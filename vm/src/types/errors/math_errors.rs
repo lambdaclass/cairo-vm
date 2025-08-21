@@ -4,6 +4,7 @@
 use crate::stdlib::boxed::Box;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
+use starknet_types_core::qm31::QM31Error;
 use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -71,6 +72,17 @@ pub enum MathError {
     DivModIgcdexNotZero(Box<(BigInt, BigInt, BigInt)>),
     #[error("Number is not a packing of a QM31 in reduced form: {0})")]
     QM31UnreducedError(Box<Felt252>),
+}
+
+impl From<QM31Error> for MathError {
+    fn from(value: QM31Error) -> Self {
+        match value {
+            QM31Error::FeltTooBig(felt) | QM31Error::UnreducedFelt(felt) => {
+                Self::QM31UnreducedError(Box::new(felt))
+            }
+            QM31Error::InvalidInversion => Self::DividedByZero,
+        }
+    }
 }
 
 #[cfg(test)]
