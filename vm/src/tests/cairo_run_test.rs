@@ -1031,6 +1031,7 @@ fn fibonacci_proof_mode_disable_trace_padding() {
     let program_data = include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
     let config = CairoRunConfig {
         proof_mode: true,
+        fill_holes: true,
         disable_trace_padding: true,
         ..Default::default()
     };
@@ -1125,6 +1126,7 @@ fn run_program_allow_missing_builtins_proof() {
         include_bytes!("../../../cairo_programs/proof_programs/pedersen_extra_builtins.json");
     let config = CairoRunConfig {
         proof_mode: true,
+        fill_holes: true,
         allow_missing_builtins: Some(true),
         layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
@@ -1209,6 +1211,7 @@ fn run_program_with_custom_mod_builtin_params(
     let cairo_run_config = CairoRunConfig {
         layout: LayoutName::all_cairo,
         proof_mode,
+        fill_holes: proof_mode,
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -1241,7 +1244,7 @@ fn run_program_with_custom_mod_builtin_params(
             cairo_run_config.disable_trace_padding,
             false,
             &mut hint_processor,
-            cairo_run_config.proof_mode,
+            cairo_run_config.fill_holes,
         )
         .unwrap();
 

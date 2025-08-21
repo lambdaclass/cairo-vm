@@ -61,7 +61,7 @@ $(TEST_PROOF_DIR)/%.json: $(TEST_PROOF_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_PROOF_DIR):$(PROOF_BENCH_DIR)" $< --output $@ --proof_mode
 
 $(TEST_PROOF_DIR)/%.rs.trace $(TEST_PROOF_DIR)/%.rs.memory $(TEST_PROOF_DIR)/%.rs.air_public_input $(TEST_PROOF_DIR)/%.rs.air_private_input: $(TEST_PROOF_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input --air_private_input $(@D)/$(*F).rs.air_private_input
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout starknet_with_keccak --proof_mode $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --air_public_input $(@D)/$(*F).rs.air_public_input --air_private_input $(@D)/$(*F).rs.air_private_input --fill-holes false
 
 $(TEST_PROOF_DIR)/%.trace $(TEST_PROOF_DIR)/%.memory $(TEST_PROOF_DIR)/%.air_public_input $(TEST_PROOF_DIR)/%.air_private_input: $(TEST_PROOF_DIR)/%.json
 	cairo-run --layout starknet_with_keccak --proof_mode --program $< --trace_file $(@D)/$(*F).trace  --air_public_input $(@D)/$(*F).air_public_input --memory_file $(@D)/$(*F).memory --air_private_input $(@D)/$(*F).air_private_input
@@ -128,7 +128,7 @@ $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory $(TEST_DIR)/%.rs.pie.zip: $(TEST_DIR)/%.json $(RELBIN)
-	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip
+	cargo llvm-cov run -p cairo-vm-cli --release --no-report -- --layout all_cairo $< --trace_file $(@D)/$(*F).rs.trace --memory_file $(@D)/$(*F).rs.memory --cairo_pie_output $(@D)/$(*F).rs.pie.zip --fill-holes false
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory $(TEST_DIR)/%.pie.zip: $(TEST_DIR)/%.json
 	cairo-run --layout starknet_with_keccak --program $< --trace_file $(@D)/$(*F).trace --memory_file $(@D)/$(*F).memory --cairo_pie_output $(@D)/$(*F).pie.zip
