@@ -36,6 +36,7 @@ pub struct CairoRunConfig<'a> {
     /// It is ignored otherwise.
     pub dynamic_layout_params: Option<CairoLayoutParams>,
     pub proof_mode: bool,
+    pub fill_holes: bool,
     pub secure_run: Option<bool>,
     /// Disable padding of the trace.
     /// By default, the trace is padded to accommodate the expected builtins-n_steps relationships
@@ -58,6 +59,7 @@ impl Default for CairoRunConfig<'_> {
             relocate_trace: true,
             layout: LayoutName::plain,
             proof_mode: false,
+            fill_holes: false,
             secure_run: None,
             disable_trace_padding: false,
             allow_missing_builtins: None,
@@ -109,7 +111,7 @@ pub fn cairo_run_program_with_initial_scope(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
-        cairo_run_config.proof_mode,
+        cairo_run_config.fill_holes,
     )?;
 
     cairo_runner.read_return_values(allow_missing_builtins)?;
@@ -221,7 +223,7 @@ pub fn cairo_run_pie(
         cairo_run_config.disable_trace_padding,
         false,
         hint_processor,
-        cairo_run_config.proof_mode,
+        cairo_run_config.fill_holes,
     )?;
 
     cairo_runner.read_return_values(allow_missing_builtins)?;
@@ -275,7 +277,7 @@ pub fn cairo_run_fuzzed_program(
 
     res.map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
-    cairo_runner.end_run(false, false, hint_processor, cairo_run_config.proof_mode)?;
+    cairo_runner.end_run(false, false, hint_processor, cairo_run_config.fill_holes)?;
 
     cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {

@@ -892,14 +892,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
-        proof_mode: bool,
+        fill_holes: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes, proof_mode)?;
+        self.vm.end_run(&self.exec_scopes, fill_holes)?;
 
         if disable_finalize_all {
             return Ok(());
@@ -3917,6 +3917,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::small,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(true),
             ..Default::default()
         };
@@ -3938,6 +3939,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::small,
             proof_mode: true,
+            fill_holes: true,
             secure_run: Some(true),
             ..Default::default()
         };
@@ -3978,6 +3980,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -3996,6 +3999,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -5497,6 +5501,7 @@ mod tests {
             program_content,
             &CairoRunConfig {
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             },
@@ -5725,5 +5730,36 @@ mod tests {
 
         let builtin_segments = cairo_runner.get_builtin_segments();
         assert!(builtin_segments.get(&9) == Some(&BuiltinName::poseidon));
+    }
+
+    #[test]
+    #[cfg(feature = "test_utils")]
+    fn test_simulated_builtins() {
+        let program_bytes = include_bytes!("../../../../cairo_programs/simulated_builtins.json");
+        let program =
+            Program::from_bytes(program_bytes, Some("main")).expect("failed to read program");
+
+        let program: &Program = &program;
+        let mut cairo_runner =
+            CairoRunner::new(program, LayoutName::plain, None, false, false, false)
+                .expect("failed to create runner");
+
+        // We allow missing builtins, as we will simulate them later.
+        let end = cairo_runner
+            .initialize(true)
+            .expect("failed to initialize builtins");
+
+        // Initialize the ec_op simulated builtin runner.
+        let mut builtin_runner = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(None, true));
+        builtin_runner.initialize_segments(&mut cairo_runner.vm.segments);
+        cairo_runner
+            .vm
+            .simulated_builtin_runners
+            .push(builtin_runner);
+
+        let hint_processor: &mut dyn HintProcessor = &mut BuiltinHintProcessor::new_empty();
+        cairo_runner
+            .run_until_pc(end, hint_processor)
+            .expect("failed to run program");
     }
 }

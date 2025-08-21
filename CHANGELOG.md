@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix: make `MemorySegmentManager`'s `memory` field private [#2164](https://github.com/lambdaclass/cairo-vm/pull/2164)
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
 
 * feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)
 
@@ -30,7 +30,7 @@
 
 * feat: Added hints felt unpacking for blake [#2032](https://github.com/lambdaclass/cairo-vm/pull/2032)
 
-* dev: make `VirtualMachine::get_traceback_entries` pub
+* dev: make `VirtualMachine::get_traceback_entries` pub [#2126](https://github.com/lambdaclass/cairo-vm/pull/2126)
 
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
 
