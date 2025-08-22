@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* feat: MMake QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
+* feat: Make QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
 
 * feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
 
