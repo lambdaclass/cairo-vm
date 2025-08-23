@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-22.04, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Cargo cache
         uses: Swatinem/rust-cache@v2
@@ -46,7 +46,7 @@ jobs:
         shell: bash {0}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # we don't use swatinem because rustc isn't installed yet
       - name: Cache Rust dependencies

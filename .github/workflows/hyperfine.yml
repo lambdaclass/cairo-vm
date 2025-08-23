@@ -23,7 +23,7 @@ jobs:
       benchmark-hashes-head: ${{ steps.export-hashes.outputs.benchmark-hashes-head }}
     steps:
       - name: Checkout base commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request[matrix.branch].sha }}
 
@@ -82,7 +82,7 @@ jobs:
 
       - name: Checkout
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request[matrix.branch].sha }}
 
