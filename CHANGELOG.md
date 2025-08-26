@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Bump types-rs to 0.2.0 [#2183](https://github.com/lambdaclass/cairo-vm/pull/2183)
+
 #### [3.0.0-rc.2] - 2025-22-08
 
 * feat: Make QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
