@@ -199,7 +199,7 @@ $(CAIRO_2_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_2_CONTRACTS_TEST_DIR)/%.sierra
 # ======================
 
 CAIRO_2_REPO_DIR = cairo2
-CAIRO_2_VERSION = 2.12.0-dev.0
+CAIRO_2_VERSION = 2.12.0
 
 build-cairo-2-compiler-macos:
 	@if [ ! -d "$(CAIRO_2_REPO_DIR)" ]; then \

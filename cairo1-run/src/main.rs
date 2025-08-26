@@ -4,6 +4,7 @@ use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
+use cairo_lang_filesystem::ids::CrateInput;
 use cairo_vm::types::layout::CairoLayoutParams;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
@@ -193,7 +194,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
                 .skip_auto_withdraw_gas()
                 .build()
                 .unwrap();
-            let main_crate_ids = setup_project(&mut db, &args.filename).unwrap();
+            let main_crate_inputs = setup_project(&mut db, &args.filename).unwrap();
+            let main_crate_ids = CrateInput::into_crate_ids(&db, main_crate_inputs);
             let sierra_program_with_dbg =
                 compile_prepared_db(&db, main_crate_ids, compiler_config).unwrap();
 

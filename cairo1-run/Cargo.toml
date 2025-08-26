@@ -12,7 +12,8 @@ keywords.workspace = true
 cairo-vm = { workspace = true, features = ["std", "cairo-1-hints", "clap"] }
 serde_json = { workspace = true }
 
-cairo-lang-sierra-type-size = { version = "2.12.0-dev.0", default-features = false }
+cairo-lang-sierra-type-size = { git = "https://github.com/starkware-libs/cairo", rev = "e4b99019e201a805511b7f2769e4e7884b7638f5", default-features = false }
+cairo-lang-filesystem = { git = "https://github.com/starkware-libs/cairo", rev = "e4b99019e201a805511b7f2769e4e7884b7638f5", default-features = false }
 cairo-lang-sierra-to-casm.workspace = true
 cairo-lang-compiler.workspace = true
 cairo-lang-sierra.workspace = true
