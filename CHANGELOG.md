@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Bump types-rs to 0.2.0 [#2186](https://github.com/lambdaclass/cairo-vm/pull/2186)
+
 #### [2.3.1] - 2025-07-29
 
 * chore: Pin types-rs version to 0.1.8 [#2146](https://github.com/lambdaclass/cairo-vm/pull/2146)
