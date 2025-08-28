@@ -521,7 +521,7 @@ jobs:
         ls ${{ matrix.programs-dir }}/*.json | cut -f1 -d'.' | \
         xargs -P 2 -I '{program}' \
         ./target/release/cairo-vm-cli '{program}'.json --layout starknet_with_keccak \
-        --memory_file '{program}'.rs.memory --trace_file '{program}'.rs.trace \
+        --memory_file '{program}'.rs.memory --trace_file '{program}'.rs.trace --fill-holes false \
         ${{ matrix.extra-args }}
     - name: Update cache
       uses: actions/cache/save@v3
@@ -737,7 +737,6 @@ jobs:
         path: lcov-test-no_std#4-cairo-0-secp-hints.info
         key: codecov-cache-test-no_std#4-cairo-0-secp-hints-${{ github.sha }}
         fail-on-cache-miss: true
-
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:
