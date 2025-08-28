@@ -110,7 +110,7 @@ fn qm31_packed_reduced_read_coordinates(felt: Felt252) -> Result<[u64; 4], MathE
 /// Reduces four u64 coordinates and packs them into a single Felt252.
 /// STWO_PRIME fits in 36 bits, hence each coordinate can be represented by 36 bits and a QM31
 /// element can be stored in the first 144 bits of a Felt252.
-pub fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
+pub(crate) fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
     let bytes_part1 = ((coordinates[0] % STWO_PRIME) as u128
         + (((coordinates[1] % STWO_PRIME) as u128) << 36))
         .to_le_bytes();
@@ -127,7 +127,10 @@ pub fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the addition of two QM31 elements in reduced form.
 /// Returns an error if either operand is not reduced.
-pub fn qm31_packed_reduced_add(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+pub(crate) fn qm31_packed_reduced_add(
+    felt1: Felt252,
+    felt2: Felt252,
+) -> Result<Felt252, MathError> {
     let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
     let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
     let result_unreduced_coordinates = [
@@ -145,7 +148,8 @@ pub fn qm31_packed_reduced_add(felt1: Felt252, felt2: Felt252) -> Result<Felt252
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the negative of a QM31 element in reduced form.
 /// Returns an error if the input is not reduced.
-pub fn qm31_packed_reduced_neg(felt: Felt252) -> Result<Felt252, MathError> {
+#[allow(dead_code)]
+pub(crate) fn qm31_packed_reduced_neg(felt: Felt252) -> Result<Felt252, MathError> {
     let coordinates = qm31_packed_reduced_read_coordinates(felt)?;
     Ok(qm31_coordinates_to_packed_reduced([
         STWO_PRIME - coordinates[0],
@@ -159,7 +163,10 @@ pub fn qm31_packed_reduced_neg(felt: Felt252) -> Result<Felt252, MathError> {
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the subtraction of two QM31 elements in reduced form.
 /// Returns an error if either operand is not reduced.
-pub fn qm31_packed_reduced_sub(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+pub(crate) fn qm31_packed_reduced_sub(
+    felt1: Felt252,
+    felt2: Felt252,
+) -> Result<Felt252, MathError> {
     let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
     let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
     let result_unreduced_coordinates = [
@@ -177,7 +184,10 @@ pub fn qm31_packed_reduced_sub(felt1: Felt252, felt2: Felt252) -> Result<Felt252
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the multiplication of two QM31 elements in reduced form.
 /// Returns an error if either operand is not reduced.
-pub fn qm31_packed_reduced_mul(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+pub(crate) fn qm31_packed_reduced_mul(
+    felt1: Felt252,
+    felt2: Felt252,
+) -> Result<Felt252, MathError> {
     let coordinates1_u64 = qm31_packed_reduced_read_coordinates(felt1)?;
     let coordinates2_u64 = qm31_packed_reduced_read_coordinates(felt2)?;
     let coordinates1 = coordinates1_u64.map(u128::from);
@@ -214,7 +224,7 @@ pub fn qm31_packed_reduced_mul(felt1: Felt252, felt2: Felt252) -> Result<Felt252
 /// M31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the inverse in the M31 field using Fermat's little theorem, i.e., returns
 /// `v^(STWO_PRIME-2) modulo STWO_PRIME`, which is the inverse of v unless v % STWO_PRIME == 0.
-pub fn pow2147483645(v: u64) -> u64 {
+pub(crate) fn pow2147483645(v: u64) -> u64 {
     let t0 = (sqn(v, 2) * v) % STWO_PRIME;
     let t1 = (sqn(t0, 1) * t0) % STWO_PRIME;
     let t2 = (sqn(t1, 3) * t0) % STWO_PRIME;
@@ -239,7 +249,7 @@ fn sqn(v: u64, n: usize) -> u64 {
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the inverse of a QM31 element in reduced form.
 /// Returns an error if the denominator is zero or either operand is not reduced.
-pub fn qm31_packed_reduced_inv(felt: Felt252) -> Result<Felt252, MathError> {
+pub(crate) fn qm31_packed_reduced_inv(felt: Felt252) -> Result<Felt252, MathError> {
     if felt.is_zero() {
         return Err(MathError::DividedByZero);
     }
@@ -281,7 +291,10 @@ pub fn qm31_packed_reduced_inv(felt: Felt252) -> Result<Felt252, MathError> {
 /// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
 /// Computes the division of two QM31 elements in reduced form.
 /// Returns an error if the input is zero.
-pub fn qm31_packed_reduced_div(felt1: Felt252, felt2: Felt252) -> Result<Felt252, MathError> {
+pub(crate) fn qm31_packed_reduced_div(
+    felt1: Felt252,
+    felt2: Felt252,
+) -> Result<Felt252, MathError> {
     let felt2_inv = qm31_packed_reduced_inv(felt2)?;
     qm31_packed_reduced_mul(felt1, felt2_inv)
 }
