@@ -1,3 +1,9 @@
+// ark-ff-macros mess workaround
+// can't put this directly above MontConfig derive because Rust can't parse it correctly.
+#![allow(non_local_definitions)]
+#![allow(unexpected_cfgs)]
+
+use super::circuit;
 use super::dict_manager::DictManagerExecScope;
 use super::hint_processor_utils::*;
 use crate::any_box;
@@ -10,7 +16,7 @@ use crate::vm::runners::cairo_runner::RunResources;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintProcessorLogic,
-    types::exec_scope::ExecutionScopes,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::errors::vm_errors::VirtualMachineError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -38,9 +44,9 @@ struct MemoryExecScope {
 #[derive(MontConfig)]
 #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
 #[generator = "3"]
-
 /// Returns the Beta value of the Starkware elliptic curve.
 struct FqConfig;
+
 type Fq = Fp256<MontBackend<FqConfig, 4>>;
 
 fn get_beta() -> Felt252 {
@@ -71,7 +77,9 @@ impl Cairo1HintProcessor {
             segment_arena_validations,
         }
     }
-    // Runs a single Hint
+    // Most of the Hints implementations are derived from the `cairo-lang-runner` crate.
+    // https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/casm_run/mod.rs#L1681
+    /// Runs a single Hint
     pub fn execute(
         &self,
         vm: &mut VirtualMachine,
@@ -85,9 +93,12 @@ impl Cairo1HintProcessor {
             Hint::Core(CoreHintBase::Core(CoreHint::TestLessThan { lhs, rhs, dst })) => {
                 self.test_less_than(vm, lhs, rhs, dst)
             }
-            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst })) => {
-                self.test_less_than_or_equal(vm, lhs, rhs, dst)
-            }
+            Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqual { lhs, rhs, dst }))
+            | Hint::Core(CoreHintBase::Core(CoreHint::TestLessThanOrEqualAddress {
+                lhs,
+                rhs,
+                dst,
+            })) => self.test_less_than_or_equal(vm, lhs, rhs, dst),
             Hint::Core(CoreHintBase::Deprecated(DeprecatedHint::Felt252DictRead {
                 dict_ptr,
                 key,
@@ -274,6 +285,12 @@ impl Cairo1HintProcessor {
                 t_or_k0,
                 t_or_k1,
             ),
+            Hint::Core(CoreHintBase::Core(CoreHint::EvalCircuit {
+                n_add_mods,
+                add_mod_builtin,
+                n_mul_mods,
+                mul_mod_builtin,
+            })) => self.eval_circuit(vm, n_add_mods, add_mod_builtin, n_mul_mods, mul_mod_builtin),
             Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
                 let selector = &selector.value.to_bytes_be().1;
                 let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
@@ -457,10 +474,10 @@ impl Cairo1HintProcessor {
         remainder1: &CellRef,
     ) -> Result<(), HintError> {
         let pow_2_128 = BigUint::from(u128::MAX) + 1u32;
-        let dividend0 = get_val(vm, dividend0)?.to_biguint();
-        let dividend1 = get_val(vm, dividend1)?.to_biguint();
-        let divisor0 = get_val(vm, divisor0)?.to_biguint();
-        let divisor1 = get_val(vm, divisor1)?.to_biguint();
+        let dividend0 = res_operand_get_val(vm, dividend0)?.to_biguint();
+        let dividend1 = res_operand_get_val(vm, dividend1)?.to_biguint();
+        let divisor0 = res_operand_get_val(vm, divisor0)?.to_biguint();
+        let divisor1 = res_operand_get_val(vm, divisor1)?.to_biguint();
         let dividend: BigUint = dividend0 + dividend1.shl(128);
         let divisor = divisor0 + divisor1.shl(128);
         let (quotient, remainder) = dividend.div_rem(&divisor);
@@ -1138,10 +1155,10 @@ impl Cairo1HintProcessor {
         t_or_k1: &CellRef,
     ) -> Result<(), HintError> {
         let pow_2_128 = BigInt::from(u128::MAX) + 1u32;
-        let b0 = get_val(vm, b0)?.to_bigint();
-        let b1 = get_val(vm, b1)?.to_bigint();
-        let n0 = get_val(vm, n0)?.to_bigint();
-        let n1 = get_val(vm, n1)?.to_bigint();
+        let b0 = res_operand_get_val(vm, b0)?.to_bigint();
+        let b1 = res_operand_get_val(vm, b1)?.to_bigint();
+        let n0 = res_operand_get_val(vm, n0)?.to_bigint();
+        let n1 = res_operand_get_val(vm, n1)?.to_bigint();
         let b: BigInt = b0.clone() + b1.clone().shl(128);
         let n: BigInt = n0 + n1.shl(128);
         let ExtendedGcd {
@@ -1192,6 +1209,45 @@ impl Cairo1HintProcessor {
         }
         Ok(())
     }
+    fn eval_circuit(
+        &self,
+        vm: &mut VirtualMachine,
+        n_add_mods: &ResOperand,
+        add_mod_builtin_ptr: &ResOperand,
+        n_mul_mods: &ResOperand,
+        mul_mod_builtin_ptr: &ResOperand,
+    ) -> Result<(), HintError> {
+        let n_add_mods = res_operand_get_val(vm, n_add_mods)?;
+        let n_add_mods =
+            n_add_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_add_mods),
+                )))?;
+        let n_mul_mods = res_operand_get_val(vm, n_mul_mods)?;
+        let n_mul_mods =
+            n_mul_mods
+                .to_usize()
+                .ok_or(HintError::Math(MathError::Felt252ToUsizeConversion(
+                    Box::from(n_mul_mods),
+                )))?;
+
+        let (add_mod_builtin_base, add_mod_builtin_offset) = extract_buffer(add_mod_builtin_ptr)?;
+        let (mul_mod_builtin_base, mul_mod_builtin_offset) = extract_buffer(mul_mod_builtin_ptr)?;
+
+        let add_mod_builtin_address = get_ptr(vm, add_mod_builtin_base, &add_mod_builtin_offset)?;
+        let mul_mod_builtin_address = get_ptr(vm, mul_mod_builtin_base, &mul_mod_builtin_offset)?;
+
+        circuit::eval_circuit(
+            vm,
+            n_add_mods,
+            add_mod_builtin_address,
+            n_mul_mods,
+            mul_mod_builtin_address,
+        )?;
+
+        Ok(())
+    }
 }
 
 impl HintProcessorLogic for Cairo1HintProcessor {
@@ -1207,6 +1263,8 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         _reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &[HintReference],
+        // List of accessible scopes in the hint
+        _accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
         .ok_or_else(|| VirtualMachineError::CompileHintFail(

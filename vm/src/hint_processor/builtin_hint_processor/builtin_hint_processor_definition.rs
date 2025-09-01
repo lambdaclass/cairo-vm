@@ -1,5 +1,6 @@
+use super::blake2s_utils::example_blake2s_compress;
 use super::{
-    blake2s_utils::finalize_blake2s_v3,
+    blake2s_utils::{blake2s_unpack_felts, finalize_blake2s_v3, is_less_than_63_bits_and_not_end},
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -23,6 +24,10 @@ use super::{
     },
 };
 use crate::Felt252;
+use crate::{
+    hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
+    utils::CAIRO_PRIME,
+};
 use crate::{
     hint_processor::{
         builtin_hint_processor::secp::ec_utils::{
@@ -115,21 +120,19 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
+#[cfg(feature = "cairo-0-secp-hints")]
+use crate::hint_processor::builtin_hint_processor::secp::cairo0_hints;
 #[cfg(feature = "test_utils")]
-use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
-
-#[cfg(feature = "test_utils")]
-use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
-use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{
-    SECP256R1_ALPHA, SECP256R1_P,
+use crate::hint_processor::builtin_hint_processor::{
+    print::{print_array, print_dict, print_felt},
+    skip_next_instruction::skip_next_instruction,
 };
-
-use super::blake2s_utils::example_blake2s_compress;
 
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
+    pub accessible_scopes: Vec<String>,
 }
 
 impl HintProcessorData {
@@ -138,6 +141,7 @@ impl HintProcessorData {
             code,
             ap_tracking: ApTracking::default(),
             ids_data,
+            accessible_scopes: vec![],
         }
     }
 }
@@ -358,6 +362,12 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
                 blake2s_add_uint256_bigend(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
+            hint_code::IS_LESS_THAN_63_BITS_AND_NOT_END => {
+                is_less_than_63_bits_and_not_end(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_UNPACK_FELTS => {
+                blake2s_unpack_felts(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
             hint_code::UNSAFE_KECCAK => {
                 unsafe_keccak(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -515,6 +525,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &CAIRO_PRIME,
                 &SECP_P,
                 &ALPHA,
             ),
@@ -524,6 +535,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                &CAIRO_PRIME,
                 &SECP_P_V2,
                 &ALPHA_V2,
             ),
@@ -533,6 +545,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "pt",
+                &CAIRO_PRIME,
                 &SECP_P,
                 &ALPHA,
             ),
@@ -542,6 +555,17 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 "point",
+                SECP256R1_P.magnitude(),
+                &SECP256R1_P,
+                &SECP256R1_ALPHA,
+            ),
+            hint_code::EC_DOUBLE_SLOPE_V5 => compute_doubling_slope(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                "point",
+                &CAIRO_PRIME,
                 &SECP256R1_P,
                 &SECP256R1_ALPHA,
             ),
@@ -874,6 +898,136 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 constants,
                 exec_scopes,
             ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_Q_MOD_PRIME => cairo0_hints::compute_q_mod_prime(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_IDS_HIGH_LOW => cairo0_hints::compute_ids_high_low(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X => cairo0_hints::secp_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                SECP256R1_P.magnitude(),
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X_V2 => cairo0_hints::secp_double_assign_new_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                &CAIRO_PRIME,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => cairo0_hints::fast_secp_add_assign_new_y(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::COMPUTE_VALUE_DIV_MOD => cairo0_hints::compute_value_div_mod(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::GENERATE_NIBBLES => cairo0_hints::generate_nibbles(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::WRITE_NIBBLES_TO_MEM => cairo0_hints::write_nibbles_to_mem(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::IS_ON_CURVE_2 => cairo0_hints::is_on_curve_2(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_R1_GET_POINT_FROM_X => cairo0_hints::r1_get_point_from_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                SECP256R1_P.magnitude(),
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_R1_GET_POINT_FROM_X_V2 => cairo0_hints::r1_get_point_from_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                &CAIRO_PRIME,
+            ),
+
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_REDUCE => cairo0_hints::reduce_value(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-secp-hints")]
+            cairo0_hints::SECP_REDUCE_X => cairo0_hints::reduce_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "cairo-0-data-availability-hints")]
+            super::kzg_da::WRITE_DIVMOD_SEGMENT => super::kzg_da::write_div_mod_segment(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+            ),
+            #[cfg(feature = "test_utils")]
+            super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
+                super::simulated_builtins::get_simulated_builtin_base(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                    constants,
+                )
+            }
+
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
     }

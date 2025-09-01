@@ -36,6 +36,7 @@ mod run_deprecated_contract_class_simplified;
 mod cairo_1_run_from_entrypoint_tests;
 mod cairo_run_test;
 mod pedersen_test;
+mod segment_arena_test;
 mod struct_test;
 
 mod cairo_pie_test;
@@ -74,6 +75,7 @@ fn run_program(
         relocate_mem: true,
         trace_enabled: true,
         proof_mode,
+        fill_holes: proof_mode,
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
@@ -114,6 +116,7 @@ fn run_cairo_1_entrypoint(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
         None,
+        false,
         false,
         false,
     )
@@ -207,6 +210,7 @@ fn run_cairo_1_entrypoint(
 }
 
 #[cfg(feature = "cairo-1-hints")]
+#[allow(clippy::result_large_err)]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
 fn run_cairo_1_entrypoint_with_run_resources(
@@ -219,6 +223,7 @@ fn run_cairo_1_entrypoint_with_run_resources(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
         None,
+        false,
         false,
         false,
     )

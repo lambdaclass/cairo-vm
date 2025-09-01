@@ -4,7 +4,7 @@
 use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::Felt252;
 use crate::{
@@ -34,20 +34,18 @@ pub enum VirtualMachineError {
     MainScopeError(#[from] ExecScopeError),
     #[error(transparent)]
     Other(anyhow::Error),
-    #[error("Instruction MSB should be 0")]
-    InstructionNonZeroHighBit,
     #[error("Instruction should be an int")]
     InvalidInstructionEncoding,
     #[error("Invalid op1_register value: {0}")]
-    InvalidOp1Reg(u64),
+    InvalidOp1Reg(u128),
     #[error("In immediate mode, off2 should be 1")]
     ImmShouldBe1,
     #[error("op0 must be known in double dereference")]
     UnknownOp0,
     #[error("Invalid ap_update value: {0}")]
-    InvalidApUpdate(u64),
+    InvalidApUpdate(u128),
     #[error("Invalid pc_update value: {0}")]
-    InvalidPcUpdate(u64),
+    InvalidPcUpdate(u128),
     #[error("Res.UNCONSTRAINED cannot be used with ApUpdate.ADD")]
     UnconstrainedResAdd,
     #[error("Res.UNCONSTRAINED cannot be used with PcUpdate.JUMP")]
@@ -62,6 +60,10 @@ pub enum VirtualMachineError {
         "Failed to compute Res.MUL: Could not complete computation of non pure values {} * {}", (*.0).0, (*.0).1
     )]
     ComputeResRelocatableMul(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error(
+        "Failed to compute operand, attempted to use {0} for an OpcodeExtension that is neither Stone nor QM31Operation"
+    )]
+    InvalidTypedOperationOpcodeExtension(Box<str>),
     #[error("Couldn't compute operand {}. Unknown value for memory cell {}", (*.0).0, (*.0).1)]
     FailedToComputeOperands(Box<(String, Relocatable)>),
     #[error("An ASSERT_EQ instruction failed: {} != {}.", (*.0).0, (*.0).1)]
@@ -73,9 +75,11 @@ pub enum VirtualMachineError {
     #[error("Couldn't get or load dst")]
     NoDst,
     #[error("Invalid res value: {0}")]
-    InvalidRes(u64),
+    InvalidRes(u128),
     #[error("Invalid opcode value: {0}")]
-    InvalidOpcode(u64),
+    InvalidOpcode(u128),
+    #[error("Invalid opcode extension value: {0}")]
+    InvalidOpcodeExtension(u128),
     #[error("This is not implemented")]
     NotImplemented,
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
@@ -136,6 +140,22 @@ pub enum VirtualMachineError {
     RelocationNotFound(usize),
     #[error("{} batch size is not {}", (*.0).0, (*.0).1)]
     ModBuiltinBatchSize(Box<(BuiltinName, usize)>),
+    #[error("Initial FP should have been initialized")]
+    MissingInitialFp,
+    #[error("Return FP address should be in memory: {0}")]
+    MissingReturnFp(Box<Relocatable>),
+    #[error("Return FP { } should equal expected final FP { }", (*.0).0, (*.0).1)]
+    MismatchReturnFP(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP { } offset should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPOffset(Box<(Relocatable, Relocatable)>),
+    #[error("Return FP felt { } should equal expected final FP { } offset", (*.0).0, (*.0).1)]
+    MismatchReturnFPFelt(Box<(Felt252, Relocatable)>),
+    #[error("Blake2s opcode invalid operand: op{0} does not point to {1} u32 numbers.")]
+    Blake2sInvalidOperand(u8, u8),
+    #[error("Blake2s opcode invalid flags {0}")]
+    InvalidBlake2sFlags(u128),
+    #[error("QM31 add mul opcode invalid flags {0}")]
+    InvalidQM31AddMulFlags(u128),
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ use crate::vm::errors::hint_errors::HintError;
 
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint};
-use num_traits::Zero;
+use num_traits::{Num, Zero};
 
 // Constants in package "starkware.cairo.common.cairo_secp.constants".
 pub const BASE_86: &str = "starkware.cairo.common.cairo_secp.constants.BASE";
@@ -66,6 +66,11 @@ lazy_static! {
     pub(crate) static ref SECP256R1_ALPHA: BigInt = BigInt::from_str(
         "115792089210356248762697446949407573530086143415290314195533631308867097853948"
     ).unwrap();
+    pub(crate) static ref SECP256R1_B: BigInt = BigInt::from_str_radix(
+        "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B",
+        16,
+    )
+    .unwrap();
 }
 
 /*
@@ -116,14 +121,14 @@ mod tests {
                 .to_biguint()
                 .expect("Couldn't convert to BigUint"),
         );
-        //TODO, Check SecpSplitutOfRange limit
-        let array_4 = bigint3_split(
-            &bigint_str!(
-                "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-            )
-            .to_biguint()
-            .expect("Couldn't convert to BigUint"),
-        );
+
+        let max_value = &*BASE * &*BASE * &*BASE - BigUint::from(1u32);
+        let over_max_value = &*BASE * &*BASE * &*BASE;
+        let way_over_max_value = &*BASE * &*BASE * &*BASE * &*BASE;
+
+        let array_max = bigint3_split(&max_value);
+        let array_over_max = bigint3_split(&over_max_value);
+        let array_way_over_max = bigint3_split(&way_over_max_value);
 
         assert_matches!(
             array_1,
@@ -153,14 +158,24 @@ mod tests {
                     .expect("Couldn't convert to BigUint")
             ]
         );
-        assert_matches!(
-            array_4,
-            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == bigint_str!(
-                    "773712524553362671811952647737125245533626718119526477371252455336267181195264"
-                )
-                    .to_biguint()
-                    .expect("Couldn't convert to BigUint")
 
+        assert_matches!(
+            array_max,
+            Ok(x) if x == [
+                BASE_MINUS_ONE.clone(),
+                BASE_MINUS_ONE.clone(),
+                BASE_MINUS_ONE.clone()
+            ]
+        );
+
+        assert_matches!(
+            array_over_max,
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == over_max_value
+        );
+
+        assert_matches!(
+            array_way_over_max,
+            Err(HintError::SecpSplitOutOfRange(bx)) if *bx == way_over_max_value
         );
     }
 }

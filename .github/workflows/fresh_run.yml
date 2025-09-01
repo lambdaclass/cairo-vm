@@ -18,7 +18,7 @@ jobs:
             deps_suffix: ''
             os_name: ubuntu-22.04
           - os: macos-latest
-            deps_suffix: '-macos' 
+            deps_suffix: '-macos'
             os_name: macos
     runs-on: ${{ matrix.os_name }}
     name: "Make deps, build & test on fresh ${{ matrix.os_name }} system"
@@ -33,15 +33,17 @@ jobs:
         sudo rm -rf /opt/ghc
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-     
-    - name: Checkout
-      uses: actions/checkout@v3
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.80.0
 
-    - name: Install Pyenv
-      uses: "gabrielfalcao/pyenv-action@v13"
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.87.0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
 
     - name: Install Rosetta
       if: matrix.os_name == 'macos'
@@ -49,7 +51,10 @@ jobs:
 
     - name: Run make deps${{ matrix.deps_suffix }}
       id: deps
-      run: make deps${{ matrix.deps_suffix }}
+      run: |
+          make deps${{ matrix.deps_suffix }}
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Run make build
       id: build
@@ -68,7 +73,7 @@ jobs:
             FAILED_TARGET=deps${{ matrix.deps_suffix }}
         elif [ ${{ steps.build.outcome }} = failure ]; then
             FAILED_TARGET=build
-        else 
+        else
             FAILED_TARGET=test
         fi
         echo "FAILED_TARGET=$FAILED_TARGET" >> $GITHUB_ENV

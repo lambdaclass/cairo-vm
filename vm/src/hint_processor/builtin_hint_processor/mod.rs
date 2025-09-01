@@ -30,6 +30,9 @@ pub mod sha256_utils;
 pub mod signature;
 #[cfg(feature = "test_utils")]
 #[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
+pub mod simulated_builtins;
+#[cfg(feature = "test_utils")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
 pub mod skip_next_instruction;
 pub mod squash_dict_utils;
 pub mod uint256_utils;
@@ -38,3 +41,7 @@ pub mod uint384_extension;
 pub mod uint_utils;
 pub mod usort;
 pub mod vrf;
+
+#[cfg(feature = "cairo-0-data-availability-hints")]
+#[cfg_attr(docsrs, doc(cfg(feature = "cairo-0-data-availability-hints")))]
+pub mod kzg_da;

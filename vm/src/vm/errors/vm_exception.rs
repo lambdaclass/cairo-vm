@@ -7,7 +7,7 @@ use crate::{
     types::relocatable::Relocatable,
 };
 
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::{
     hint_processor::hint_processor_utils::get_maybe_relocatable_from_reference,
@@ -177,7 +177,7 @@ fn get_value_from_simple_reference(
         .get(ref_id)?;
     // Filter ap-based references
     match reference.offset1 {
-        OffsetValue::Reference(Register::AP, _, _) => None,
+        OffsetValue::Reference(Register::AP, _, _, _) => None,
         _ => {
             // Filer complex types (only felt/felt pointers)
             match reference.cairo_type {

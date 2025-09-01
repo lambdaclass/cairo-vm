@@ -77,7 +77,7 @@ It's Turing-complete and it was created by [Starkware](https://starkware.co/) as
 
 These are needed in order to compile and use the project.
 
-- [Rust 1.80.0 or newer](https://www.rust-lang.org/tools/install)
+- [Rust 1.85.0 or newer](https://www.rust-lang.org/tools/install)
 - Cargo
 
 #### Optional
@@ -85,7 +85,13 @@ These are needed in order to compile and use the project.
 These dependencies are only necessary in order to run the original VM, compile Cairo programs, and run tests.
 
 - make
-- PyEnv
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+You can install `uv`, a modern python package and env manager made in Rust with the following command:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 #### Installation script
 
@@ -110,7 +116,7 @@ You can then activate this environment by running
 You can add the following to your rust project's `Cargo.toml`:
 
 ```toml
-cairo-vm = { version = '0.7.0'}
+cairo-vm = { version = '1.0.1'}
 ```
 
 ### Running cairo-vm from CLI
@@ -180,7 +186,18 @@ The cairo-vm-cli supports the following optional arguments:
 
 - `--allow_missing_builtins`: Disables the check that all builtins used by the program need to be included in the selected layout. Enabled by default when in proof_mode.
 
-- `run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
+- `--run_from_cairo_pie`: Runs a Cairo PIE instead of a compiled json file. The name of the file will be the first argument received by the CLI (as if it were to run a normal compiled program). Can only be used if proof_mode is not enabled.
+
+  ```bash
+  # First, compile a Cairo 0 program and run it to generate a Cairo PIE file
+  cairo-compile cairo_programs/print.cairo --output cairo_programs/print_compiled.json
+  target/release/cairo-vm-cli cairo_programs/print_compiled.json --layout all_cairo --cairo_pie_output print.pie
+  
+  # Then, run the program from the Cairo PIE file
+  target/release/cairo-vm-cli print.pie --run_from_cairo_pie --layout all_cairo --print_output
+  ```
+
+  Note: When using the `--run_from_cairo_pie` flag, the layout specified must be the same as the one used to create the PIE file, otherwise you may encounter compatibility issues.
 
 - `cairo_layout_params_file`: Only used with dynamic layout. Receives the name of a json file with the dynamic layout parameters.
 
@@ -243,7 +260,7 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
             &mut hint_processor,
         );
 ```
-### Running cairo 1 programs 
+### Running cairo 1 programs
 
 To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
 
@@ -264,6 +281,15 @@ Now that you have the dependencies necessary to run the test suite you can run:
 
 ```bash
 make test
+```
+
+### Using a Dynamic Layout
+
+A dynamic layout must be specified with a dynamic params file. You can find an example in: `vm/src/tests/cairo_layout_params_file.json`.
+
+To run cairo 0 or 1 programs with a dynamic layout, you must use `--layout dynamic` and the `--cairo_layout_params_file` flag pointing a dynamic params file. For example, run:
+```bash
+cargo run --bin cairo-vm-cli cairo_programs/fibonacci.json --layout dynamic --cairo_layout_params_file vm/src/tests/cairo_layout_params_file.json
 ```
 
 ### Tracer
@@ -405,6 +431,7 @@ StarkWare's STARK Math blog series:
 
 ## ⚖️ License
 
-This project is licensed under the Apache 2.0 license.
+This project is dual-licensed under Apache 2.0 and MIT. You may choose either license.
 
-See [LICENSE](/LICENSE) for more information.
+
+See [Apache 2.0 License](/LICENSE) or [MIT License](/LICENSE-MIT) for more information.

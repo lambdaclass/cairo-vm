@@ -17,11 +17,10 @@ std = [
     "starknet-types-core/std",
     "starknet-crypto/std",
     "dep:num-prime",
-    "thiserror-no-std/std",
+    "thiserror/std",
     "dep:zip",
 ]
 cairo-1-hints = [
-    "dep:cairo-lang-starknet",
     "dep:cairo-lang-casm",
     "dep:cairo-lang-starknet-classes",
     "dep:ark-ff",
@@ -29,6 +28,8 @@ cairo-1-hints = [
 ]
 tracer = []
 mod_builtin = []
+cairo-0-secp-hints = []
+cairo-0-data-availability-hints = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
 test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
@@ -44,10 +45,10 @@ num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-hex = { workspace = true }
 bincode = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
+indoc = { workspace = true }
 lazy_static = { workspace = true }
 nom = { workspace = true }
 sha2 = { workspace = true }
@@ -55,8 +56,8 @@ generic-array = { workspace = true }
 keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
-thiserror-no-std = { workspace = true }
-starknet-types-core = { version = "0.1.2", default-features = false, features = [ "serde", "curve", "num-traits", "hash"] }
+thiserror = { workspace = true }
+starknet-types-core = { version = "=0.1.8", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
 # only for std
@@ -64,7 +65,6 @@ num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
 bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = { workspace = true, optional = true }
 cairo-lang-starknet-classes = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
 
@@ -78,17 +78,15 @@ arbitrary = { workspace = true, features = ["derive"], optional = true }
 # Used to derive clap traits for CLIs
 clap = { version = "4.3.10", features = ["derive"], optional = true}
 
-# Pin wasm-bindgen version to fix ensure-no_std CI workflow
-# It's not used directly
-wasm-bindgen = { version = "= 0.2.92" }
-
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.34"
+wasm-bindgen-test = "0.3.50"
+# The js feature needs to be enabled
+getrandom = { version = "0.2", features = ["js"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.3.1"

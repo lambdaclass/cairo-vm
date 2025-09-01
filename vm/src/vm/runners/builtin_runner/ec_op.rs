@@ -23,7 +23,7 @@ pub struct EcOpBuiltinRunner {
 }
 
 impl EcOpBuiltinRunner {
-    pub(crate) fn new(ratio: Option<u32>, included: bool) -> Self {
+    pub fn new(ratio: Option<u32>, included: bool) -> Self {
         EcOpBuiltinRunner {
             base: 0,
             ratio,

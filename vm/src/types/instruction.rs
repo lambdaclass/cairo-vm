@@ -27,6 +27,7 @@ pub struct Instruction {
     pub ap_update: ApUpdate,
     pub fp_update: FpUpdate,
     pub opcode: Opcode,
+    pub opcode_extension: OpcodeExtension,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -76,6 +77,14 @@ pub enum Opcode {
     Ret,
 }
 
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+pub enum OpcodeExtension {
+    Stone,
+    Blake,
+    BlakeFinalize,
+    QM31Operation,
+}
+
 impl Instruction {
     pub fn size(&self) -> usize {
         match self.op1_addr {
@@ -87,11 +96,11 @@ impl Instruction {
 
 // Returns True if the given instruction looks like a call instruction
 pub(crate) fn is_call_instruction(encoded_instruction: &Felt252) -> bool {
-    let encoded_i64_instruction = match encoded_instruction.to_u64() {
+    let encoded_u128_instruction = match encoded_instruction.to_u128() {
         Some(num) => num,
         None => return false,
     };
-    let instruction = match decode_instruction(encoded_i64_instruction) {
+    let instruction = match decode_instruction(encoded_u128_instruction) {
         Ok(inst) => inst,
         Err(_) => return false,
     };
@@ -134,7 +143,7 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn instruction_size() {
         let encoded_instruction = Felt252::from(1226245742482522112_i64);
-        let instruction = decode_instruction(encoded_instruction.to_u64().unwrap()).unwrap();
+        let instruction = decode_instruction(encoded_instruction.to_u128().unwrap()).unwrap();
         assert_eq!(instruction.size(), 2);
     }
 }

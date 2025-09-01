@@ -86,13 +86,13 @@ impl<'a> Uint256<'a> {
     }
 }
 
-impl<'a> From<&BigUint> for Uint256<'a> {
+impl From<&BigUint> for Uint256<'_> {
     fn from(value: &BigUint) -> Self {
         Self::split(value)
     }
 }
 
-impl<'a> From<Felt252> for Uint256<'a> {
+impl From<Felt252> for Uint256<'_> {
     fn from(value: Felt252) -> Self {
         let (high, low) = value.div_rem(pow2_const_nz(128));
         Self::from_values(low, high)

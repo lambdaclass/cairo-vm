@@ -1,4 +1,4 @@
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use super::cairo_pie_errors::CairoPieValidationError;
 use super::memory_errors::MemoryError;

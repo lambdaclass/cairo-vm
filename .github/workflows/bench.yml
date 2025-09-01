@@ -1,8 +1,8 @@
-name: benchmark 
+name: benchmark
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, starkware-development ]
 
 permissions:
   # deployments permission to deploy GitHub pages website
@@ -12,19 +12,22 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.80.0
+      uses: dtolnay/rust-toolchain@1.87.0
       with:
           components: rustfmt, clippy
-    - uses: actions/checkout@v3
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-    - name: Install test dependencies
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Install python deps
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result

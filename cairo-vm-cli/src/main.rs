@@ -32,55 +32,59 @@ use mimalloc::MiMalloc;
 static ALLOC: MiMalloc = MiMalloc;
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 struct Args {
-    #[clap(value_parser, value_hint=ValueHint::FilePath)]
+    #[arg(value_parser, value_hint=ValueHint::FilePath)]
     filename: PathBuf,
-    #[clap(long = "trace_file", value_parser)]
+    #[arg(long = "trace_file", value_parser)]
     trace_file: Option<PathBuf>,
-    #[structopt(long = "print_output")]
+    #[arg(long = "print_output")]
     print_output: bool,
-    #[structopt(long = "entrypoint", default_value = "main")]
+    #[arg(long = "entrypoint", default_value = "main")]
     entrypoint: String,
-    #[structopt(long = "memory_file")]
+    #[arg(long = "memory_file")]
     memory_file: Option<PathBuf>,
-    /// When using dynamic layout, it's parameters must be specified through a layout params file.
-    #[clap(long = "layout", default_value = "plain", value_enum)]
+    /// When using dynamic layout, its parameters must be specified through a layout params file.
+    #[arg(long = "layout", default_value = "plain", value_enum)]
     layout: LayoutName,
     /// Required when using with dynamic layout.
     /// Ignored otherwise.
-    #[clap(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
+    #[arg(long = "cairo_layout_params_file", required_if_eq("layout", "dynamic"))]
     cairo_layout_params_file: Option<PathBuf>,
-    #[structopt(long = "proof_mode")]
+    #[arg(long = "proof_mode")]
     proof_mode: bool,
-    #[structopt(long = "secure_run")]
+    #[arg(long = "secure_run")]
     secure_run: Option<bool>,
-    #[clap(long = "air_public_input", requires = "proof_mode")]
+    #[arg(long = "air_public_input", requires = "proof_mode")]
     air_public_input: Option<String>,
-    #[clap(
+    #[arg(
         long = "air_private_input",
         requires_all = ["proof_mode", "trace_file", "memory_file"]
     )]
     air_private_input: Option<String>,
-    #[clap(
+    #[arg(
         long = "cairo_pie_output",
         // We need to add these air_private_input & air_public_input or else
         // passing cairo_pie_output + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     cairo_pie_output: Option<String>,
-    #[structopt(long = "allow_missing_builtins")]
+    #[arg(long = "merge_extra_segments")]
+    merge_extra_segments: bool,
+    #[arg(long = "allow_missing_builtins")]
     allow_missing_builtins: Option<bool>,
-    #[structopt(long = "tracer")]
+    #[arg(long = "tracer")]
     #[cfg(feature = "with_tracer")]
     tracer: bool,
-    #[structopt(
+    #[arg(
         long = "run_from_cairo_pie",
         // We need to add these air_private_input & air_public_input or else
         // passing run_from_cairo_pie + either of these without proof_mode will not fail
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     run_from_cairo_pie: bool,
+    #[arg(long)]
+    fill_holes: Option<bool>,
 }
 
 #[derive(Debug, Error)]
@@ -163,6 +167,7 @@ fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
@@ -177,12 +182,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
+        fill_holes: args.fill_holes.unwrap_or(args.proof_mode),
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: false,
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -273,12 +280,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_runner
             .get_cairo_pie()
             .map_err(CairoRunError::Runner)?
-            .write_zip_file(file_path)?
+            .write_zip_file(file_path, args.merge_extra_segments)?
     }
 
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn main() -> Result<(), Error> {
     #[cfg(test)]
     return Ok(());

@@ -17,33 +17,37 @@ jobs:
       matrix:
         branch: [ base, head ]
     name: Build Cairo programs for ${{ matrix.branch }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       benchmark-hashes-base: ${{ steps.export-hashes.outputs.benchmark-hashes-base }}
       benchmark-hashes-head: ${{ steps.export-hashes.outputs.benchmark-hashes-head }}
     steps:
       - name: Checkout base commit
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request[matrix.branch].sha }}
 
       - name: Fetch from cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache
         with:
           path: ${{ matrix.branch }}_programs/*.json
           key: benchmarks-${{ matrix.branch }}-${{ hashFiles( 'cairo_programs/benchmarks/*.cairo' ) }}
           restore-keys: benchmarks-${{ matrix.branch }}-
 
-      - name: Install Python
+      - name: Install uv
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@v4
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.9'
-
-      - name: Install Cairo compiler
+          enable-cache: true
+      - name: Install python deps
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        run: pip install -r requirements.txt
+        run: |
+          uv python install 3.9.15
+          uv venv --python 3.9.15 cairo-vm-env
+          . cairo-vm-env/bin/activate
+          uv pip install -r requirements.txt
+          echo PATH=$PATH >> $GITHUB_ENV
 
       - name: Build programs
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
@@ -63,22 +67,22 @@ jobs:
       matrix:
         branch: [ base, head ]
     name: Build cairo-vm-cli for ${{ matrix.branch }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Populate cache
-        uses: actions/cache@v3
-        id: cache 
+        uses: actions/cache@v4
+        id: cache
         with:
           path: bin/cairo-vm-cli-${{ matrix.branch }}
           key: binary-${{ github.event.pull_request[matrix.branch].sha }}
 
       - name: Install Rust
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: dtolnay/rust-toolchain@1.80.0
+        uses: dtolnay/rust-toolchain@1.87.0
 
       - name: Checkout
         if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request[matrix.branch].sha }}
 
@@ -100,33 +104,33 @@ jobs:
         program_state: [ modified, unmodified ]
     name: Run benchmarks for ${{ matrix.program_state }} programs
     needs: [ build-programs, build-binaries ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Install Hyperfine
       uses: taiki-e/install-action@v2
       with:
-        tool: hyperfine@1.16
+        tool: hyperfine@1.19
 
     - name: Fetch base binary
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: bin/cairo-vm-cli-base
         key: binary-${{ github.event.pull_request.base.sha }}
 
     - name: Fetch HEAD binary
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: bin/cairo-vm-cli-head
         key: binary-${{ github.event.pull_request.head.sha }}
 
     - name: Fetch base programs
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: base_programs/*.json
         key: benchmarks-base-${{ needs.build-programs.outputs.benchmark-hashes-base }}
 
     - name: Fetch head programs
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: head_programs/*.json
         key: benchmarks-head-${{ needs.build-programs.outputs.benchmark-hashes-head }}
@@ -175,7 +179,7 @@ jobs:
 
     - name: Find comment
       if: ${{ steps.run-benchmarks.outputs.benchmark_count != 0 }}
-      uses: peter-evans/find-comment@v2
+      uses: peter-evans/find-comment@v3
       id: fc
       with:
         issue-number: ${{ github.event.pull_request.number }}
@@ -184,14 +188,14 @@ jobs:
 
     - name: Create comment
       if: steps.fc.outputs.comment-id == '' && steps.run-benchmarks.outputs.benchmark_count != 0
-      uses: peter-evans/create-or-update-comment@v3
+      uses: peter-evans/create-or-update-comment@v4
       with:
         issue-number: ${{ github.event.pull_request.number }}
         body-path: comment_body.md
 
     - name: Update comment
       if: steps.fc.outputs.comment-id != '' && steps.run-benchmarks.outputs.benchmark_count != 0
-      uses: peter-evans/create-or-update-comment@v3
+      uses: peter-evans/create-or-update-comment@v4
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         body-path: comment_body.md

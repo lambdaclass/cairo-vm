@@ -140,7 +140,11 @@ impl ModBuiltinRunner {
     }
 
     pub fn ratio(&self) -> Option<u32> {
-        self.instance_def.ratio
+        self.instance_def.ratio.map(|ratio| ratio.numerator)
+    }
+
+    pub fn ratio_den(&self) -> Option<u32> {
+        self.instance_def.ratio.map(|ratio| ratio.denominator)
     }
 
     pub fn batch_size(&self) -> usize {
@@ -258,6 +262,8 @@ impl ModBuiltinRunner {
                 batch,
             });
         }
+
+        instances.sort_by_key(|input| input.index);
 
         vec![PrivateInput::Mod(ModInput {
             instances,
@@ -485,15 +491,15 @@ impl ModBuiltinRunner {
 
     /// NOTE: It is advisable to use VirtualMachine::mod_builtin_fill_memory instead of this method directly
     /// when implementing hints to avoid cloning the runners
-
+    ///
     /// Fills the memory with inputs to the builtin instances based on the inputs to the
     /// first instance, pads the offsets table to fit the number of operations writen in the
     /// input to the first instance, and caculates missing values in the values table.
-
+    ///
     /// For each builtin, the given tuple is of the form (builtin_ptr, builtin_runner, n),
     /// where n is the number of operations in the offsets table (i.e., the length of the
     /// offsets table is 3*n).
-
+    ///
     /// The number of operations written to the input of the first instance n' should be at
     /// least n and a multiple of batch_size. Previous offsets are copied to the end of the
     /// offsets table to make its length 3n'.
@@ -560,8 +566,13 @@ impl ModBuiltinRunner {
                 if let Some((_, mul_mod_runner, _)) = mul_mod {
                     if mul_mod_runner.fill_value(memory, &mul_mod_inputs, mul_mod_index)? {
                         mul_mod_index += 1;
+                        continue;
+                    } else {
+                        return Err(RunnerError::FillMemoryCoudNotFillTable(
+                            add_mod_index,
+                            mul_mod_index,
+                        ));
                     }
-                    continue;
                 }
             }
 
@@ -810,15 +821,25 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner =
-            CairoRunner::new(&program, LayoutName::all_cairo, None, true, false).unwrap();
+        let proof_mode = true;
+        let mut runner = CairoRunner::new(
+            &program,
+            LayoutName::all_cairo,
+            None,
+            proof_mode,
+            false,
+            false,
+        )
+        .unwrap();
 
         let end = runner.initialize(false).unwrap();
         // Modify add_mod & mul_mod params
 
         runner.run_until_pc(end, &mut hint_processor).unwrap();
         runner.run_for_steps(1, &mut hint_processor).unwrap();
-        runner.end_run(false, false, &mut hint_processor).unwrap();
+        runner
+            .end_run(false, false, &mut hint_processor, proof_mode)
+            .unwrap();
         runner.read_return_values(false).unwrap();
         runner.finalize_segments().unwrap();
 

@@ -64,7 +64,6 @@ impl DictManager {
     }
     //Creates a new Cairo dictionary. The values of initial_dict can be integers, tuples or
     //lists. See MemorySegments.gen_arg().
-    //For now, no initial dict will be processed (Assumes initial_dict = None)
     pub fn new_dict(
         &mut self,
         vm: &mut VirtualMachine,

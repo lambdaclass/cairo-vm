@@ -8,6 +8,7 @@ To install the required dependencies(cairo corelib) run
 
 ```bash
 make deps
+make deps
 ```
 
 Now that you have the dependencies necessary to run the tests, you can run:
@@ -69,6 +70,10 @@ The cairo1-run cli supports the following optional arguments:
 * `--cairo_pie_output <CAIRO_PIE_OUTPUT>`: Receives the name of a file and outputs the Cairo PIE into it. Can only be used if proof_mode, is not enabled.
 
 * `--append_return_values`: Adds extra instructions to the program in order to append the return and input values to the output builtin's segment. This is the default behaviour for proof_mode. Only allows `Array<felt252>` as return and input value.
+
+## Running circuits
+
+Circuits in cairo 1 require to enable the `mod_builtin` feature in order for the `AddMod`, `MulMod` and `RangeCheck96` builtins to be taken into account.
 
 # Running scarb projects
 

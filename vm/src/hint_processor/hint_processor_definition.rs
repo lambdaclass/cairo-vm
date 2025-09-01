@@ -43,11 +43,14 @@ pub trait HintProcessorLogic {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &[HintReference],
+        // List of accessible scopes in the hint
+        accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
+            accessible_scopes: accessible_scopes.to_vec(),
         }))
     }
 
@@ -112,7 +115,7 @@ pub struct HintReference {
 impl HintReference {
     pub fn new_simple(offset1: i32) -> Self {
         HintReference {
-            offset1: OffsetValue::Reference(Register::FP, offset1, false),
+            offset1: OffsetValue::Reference(Register::FP, offset1, false, true),
             offset2: OffsetValue::Value(0),
             ap_tracking_data: None,
             outer_dereference: true,
@@ -121,9 +124,15 @@ impl HintReference {
         }
     }
 
-    pub fn new(offset1: i32, offset2: i32, inner_dereference: bool, dereference: bool) -> Self {
+    pub fn new(
+        offset1: i32,
+        offset2: i32,
+        inner_dereference: bool,
+        dereference: bool,
+        is_positive: bool,
+    ) -> Self {
         HintReference {
-            offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference),
+            offset1: OffsetValue::Reference(Register::FP, offset1, inner_dereference, is_positive),
             offset2: OffsetValue::Value(offset2),
             ap_tracking_data: None,
             outer_dereference: dereference,
@@ -145,8 +154,8 @@ impl From<Reference> for HintReference {
                 &reference.value_address.offset1,
                 &reference.value_address.offset2,
             ) {
-                (OffsetValue::Reference(Register::AP, _, _), _)
-                | (_, OffsetValue::Reference(Register::AP, _, _)) => {
+                (OffsetValue::Reference(Register::AP, _, _, _), _)
+                | (_, OffsetValue::Reference(Register::AP, _, _, _)) => {
                     Some(reference.ap_tracking_data.clone())
                 }
                 _ => None,

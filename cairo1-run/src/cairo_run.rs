@@ -11,12 +11,13 @@ use cairo_lang_casm::{
 use cairo_lang_sierra::{
     extensions::{
         bitwise::BitwiseType,
+        circuit::{AddModType, MulModType},
         core::{CoreLibfunc, CoreType},
         ec::EcOpType,
         gas::GasBuiltinType,
         pedersen::PedersenType,
         poseidon::PoseidonType,
-        range_check::RangeCheckType,
+        range_check::{RangeCheck96Type, RangeCheckType},
         segment_arena::SegmentArenaType,
         starknet::syscalls::SystemType,
         ConcreteType, NamedType,
@@ -142,8 +143,6 @@ pub fn cairo_run_program(
 
     let main_func = find_function(sierra_program, "::main")?;
 
-    let initial_gas = u32::MAX as usize;
-
     // Fetch return type data
     let return_type_id = match main_func.signature.ret_types.last() {
         // We need to check if the last return type is indeed the function's return value and not an implicit return value
@@ -204,10 +203,14 @@ pub fn cairo_run_program(
         cairo_run_config.copy_to_output(),
     );
 
-    let data: Vec<MaybeRelocatable> = instructions
-        .flat_map(|inst| inst.assemble().encode())
-        .map(|x| Felt252::from(&x))
-        .map(MaybeRelocatable::from)
+    // The bytecode includes all program instructions plus entry/footer,
+    // plus data from the constants segments.
+    let data: Vec<MaybeRelocatable> = casm_program
+        .assemble_ex(&entry_code.instructions, &libfunc_footer)
+        .bytecode
+        .into_iter()
+        .map(Into::<Felt252>::into)
+        .map(Into::<MaybeRelocatable>::into)
         .collect();
 
     let program = if cairo_run_config.proof_mode {
@@ -253,9 +256,10 @@ pub fn cairo_run_program(
         cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
         cairo_run_config.trace_enabled,
+        false,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func, initial_gas)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -263,7 +267,12 @@ pub fn cairo_run_program(
         runner.run_for_steps(1, &mut hint_processor)?;
     }
 
-    runner.end_run(false, false, &mut hint_processor)?;
+    runner.end_run(
+        false,
+        false,
+        &mut hint_processor,
+        cairo_run_config.proof_mode,
+    )?;
 
     let result_inner_type_size =
         result_inner_type_size(return_type_id, &sierra_program_registry, &type_sizes);
@@ -332,7 +341,7 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true)?;
+    runner.relocate(true, true)?;
 
     Ok((runner, return_values, serialized_output))
 }
@@ -366,6 +375,8 @@ fn build_hints_vec<'b>(
     (hints, program_hints)
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L551-L552
 /// Finds first function ending with `name_suffix`.
 fn find_function<'a>(
     sierra_program: &'a SierraProgram,
@@ -384,6 +395,8 @@ fn find_function<'a>(
         .ok_or_else(|| RunnerError::MissingMain)
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L750
 /// Creates a list of instructions that will be appended to the program's bytecode.
 fn create_code_footer() -> Vec<Instruction> {
     casm! {
@@ -455,7 +468,6 @@ fn load_arguments(
     runner: &mut CairoRunner,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
-    initial_gas: usize,
 ) -> Result<(), Error> {
     let got_gas_builtin = main_func
         .signature
@@ -487,12 +499,7 @@ fn load_arguments(
     if got_segment_arena {
         ap_offset += 4;
     }
-    // Load initial gas if GasBuiltin is present
     if got_gas_builtin {
-        runner.vm.insert_value(
-            (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
-            Felt252::from(initial_gas),
-        )?;
         ap_offset += 1;
     }
     for arg in cairo_run_config.args {
@@ -527,6 +534,8 @@ fn load_arguments(
     Ok(())
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L703
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -605,9 +614,10 @@ fn create_entry_code(
                 ap += 1;
             };
         } else if generic_ty == &GasBuiltinType::ID {
-            // We already loaded the inital gas so we just advance AP
+            // Load initial gas
             casm_build_extend! {ctx,
-                ap += 1;
+                const initial_gas = 9999999999999_usize;
+                tempvar gas = initial_gas;
             };
         } else {
             let ty_size = type_sizes[ty];
@@ -660,6 +670,9 @@ fn create_entry_code(
         BuiltinName::ec_op => builtin_vars[&EcOpType::ID],
         BuiltinName::poseidon => builtin_vars[&PoseidonType::ID],
         BuiltinName::segment_arena => builtin_vars[&SegmentArenaType::ID],
+        BuiltinName::add_mod => builtin_vars[&AddModType::ID],
+        BuiltinName::mul_mod => builtin_vars[&MulModType::ID],
+        BuiltinName::range_check96 => builtin_vars[&RangeCheck96Type::ID],
         _ => unreachable!(),
     };
     if copy_to_output_builtin {
@@ -869,6 +882,8 @@ fn create_entry_code(
     ))
 }
 
+// Function derived from the cairo-lang-runner crate.
+// https://github.com/starkware-libs/cairo/blob/40a7b60687682238f7f71ef7c59c986cc5733915/crates/cairo-lang-runner/src/lib.rs#L577
 fn get_info<'a>(
     sierra_program_registry: &'a ProgramRegistry<CoreType, CoreLibfunc>,
     ty: &'a cairo_lang_sierra::ids::ConcreteTypeId,
@@ -890,6 +905,13 @@ fn get_function_builtins(
     let mut builtin_offset: HashMap<cairo_lang_sierra::ids::GenericTypeId, i16> = HashMap::new();
     let mut current_offset = 3;
     for (debug_name, builtin_name, sierra_id) in [
+        ("MulMod", BuiltinName::mul_mod, MulModType::ID),
+        ("AddMod", BuiltinName::add_mod, AddModType::ID),
+        (
+            "RangeCheck96",
+            BuiltinName::range_check96,
+            RangeCheck96Type::ID,
+        ),
         ("Poseidon", BuiltinName::poseidon, PoseidonType::ID),
         ("EcOp", BuiltinName::ec_op, EcOpType::ID),
         ("Bitwise", BuiltinName::bitwise, BitwiseType::ID),
@@ -950,8 +972,11 @@ fn is_implicit_generic_id(generic_ty: &GenericTypeId) -> bool {
         PedersenType::ID,
         PoseidonType::ID,
         RangeCheckType::ID,
+        RangeCheck96Type::ID,
         SegmentArenaType::ID,
         SystemType::ID,
+        MulModType::ID,
+        AddModType::ID,
     ]
     .contains(generic_ty)
 }
@@ -1146,6 +1171,9 @@ fn finalize_builtins(
                 "Pedersen" => BuiltinName::pedersen,
                 "Output" => BuiltinName::output,
                 "Ecdsa" => BuiltinName::ecdsa,
+                "AddMod" => BuiltinName::add_mod,
+                "MulMod" => BuiltinName::mul_mod,
+                "RangeCheck96" => BuiltinName::range_check96,
                 _ => {
                     stack_pointer.offset += size as usize;
                     continue;
@@ -1570,7 +1598,7 @@ mod tests {
             .and_then(|rt| {
                 rt.debug_name
                     .as_ref()
-                    .map(|n| n.as_ref().starts_with("core::panics::PanicResult::"))
+                    .map(|n| n.as_str().starts_with("core::panics::PanicResult::"))
             })
             .unwrap_or_default()
     }

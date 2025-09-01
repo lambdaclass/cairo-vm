@@ -33,9 +33,10 @@ pub struct ValidationRule(
 /// - BIT62: ACCESS flag, 1 when the cell has been accessed in a way observable to Cairo.
 /// - BIT61: RELOCATABLE flag, 1 when the contained value is a `Relocatable`, 0 when it is a
 ///   `Felt252`.
-///   `Felt252` values are stored in big-endian order to keep the flag bits free.
-///   `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
-///   and the 4th word storing the offset.
+///
+/// `Felt252` values are stored in big-endian order to keep the flag bits free.
+/// `Relocatable` values are stored as native endian, with the 3rd word storing the segment index
+/// and the 4th word storing the offset.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
 #[repr(align(32))]
 pub(crate) struct MemoryCell([u64; 4]);
@@ -158,10 +159,18 @@ impl AddressSet {
 
 pub struct Memory {
     pub(crate) data: Vec<Vec<MemoryCell>>,
+    /// Temporary segments are used when it's necessary to write data, but we
+    /// don't know yet where it will be located. These segments will eventually
+    /// be relocated to the main memory according to the `relocation_rules`. For
+    /// example, dictionaries are required to be contiguous, so each is stored in a
+    /// temporary segment and eventually relocated to a single segment.
     pub(crate) temp_data: Vec<Vec<MemoryCell>>,
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
+    #[cfg(not(feature = "extensive_hints"))]
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
+    #[cfg(feature = "extensive_hints")]
+    pub(crate) relocation_rules: HashMap<usize, MaybeRelocatable>,
     pub validated_addresses: AddressSet,
     validation_rules: Vec<Option<ValidationRule>>,
 }
@@ -230,7 +239,7 @@ impl Memory {
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
-    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<MaybeRelocatable>>
+    pub(crate) fn get<'a, 'b: 'a, K: 'a>(&'b self, key: &'a K) -> Option<Cow<'b, MaybeRelocatable>>
     where
         Relocatable: TryFrom<&'a K>,
     {
@@ -247,6 +256,7 @@ impl Memory {
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
+    #[cfg(not(feature = "extensive_hints"))]
     fn relocate_address(
         addr: Relocatable,
         relocation_rules: &HashMap<usize, Relocatable>,
@@ -256,6 +266,23 @@ impl Memory {
             // comment.
             if let Some(x) = relocation_rules.get(&(-(addr.segment_index + 1) as usize)) {
                 return Ok((*x + addr.offset)?.into());
+            }
+        }
+        Ok(addr.into())
+    }
+    #[cfg(feature = "extensive_hints")]
+    fn relocate_address(
+        addr: Relocatable,
+        relocation_rules: &HashMap<usize, MaybeRelocatable>,
+    ) -> Result<MaybeRelocatable, MemoryError> {
+        if addr.segment_index < 0 {
+            // Adjust the segment index to begin at zero, as per the struct field's
+            // comment.
+            if let Some(x) = relocation_rules.get(&(-(addr.segment_index + 1) as usize)) {
+                return Ok(match x {
+                    MaybeRelocatable::RelocatableValue(r) => (*r + addr.offset)?.into(),
+                    MaybeRelocatable::Int(i) => i.into(),
+                });
             }
         }
         Ok(addr.into())
@@ -289,6 +316,15 @@ impl Memory {
         for index in (0..self.temp_data.len()).rev() {
             if let Some(base_addr) = self.relocation_rules.get(&index) {
                 let data_segment = self.temp_data.remove(index);
+
+                #[cfg(feature = "extensive_hints")]
+                let base_addr = match base_addr {
+                    MaybeRelocatable::RelocatableValue(addr) => addr,
+                    MaybeRelocatable::Int(_) => {
+                        continue;
+                    }
+                };
+
                 // Insert the to-be relocated segment into the real memory
                 let mut addr = *base_addr;
                 if let Some(s) = self.data.get_mut(addr.segment_index as usize) {
@@ -310,13 +346,17 @@ impl Memory {
         self.relocation_rules.clear();
         Ok(())
     }
-
     /// Add a new relocation rule.
+    ///
+    /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
+    /// MaybeRelocatable). Relocating memory to anything other than a `Relocatable` is generally
+    /// not useful, but it does make the implementation consistent with the pythonic version.
     ///
     /// Will return an error if any of the following conditions are not met:
     ///   - Source address's segment must be negative (temporary).
     ///   - Source address's offset must be zero.
     ///   - There shouldn't already be relocation at the source segment.
+    #[cfg(not(feature = "extensive_hints"))]
     pub(crate) fn add_relocation_rule(
         &mut self,
         src_ptr: Relocatable,
@@ -341,6 +381,31 @@ impl Memory {
         self.relocation_rules.insert(segment_index, dst_ptr);
         Ok(())
     }
+    #[cfg(feature = "extensive_hints")]
+    pub(crate) fn add_relocation_rule(
+        &mut self,
+        src_ptr: Relocatable,
+        dst: MaybeRelocatable,
+    ) -> Result<(), MemoryError> {
+        if src_ptr.segment_index >= 0 {
+            return Err(MemoryError::AddressNotInTemporarySegment(
+                src_ptr.segment_index,
+            ));
+        }
+        if src_ptr.offset != 0 {
+            return Err(MemoryError::NonZeroOffset(src_ptr.offset));
+        }
+
+        // Adjust the segment index to begin at zero, as per the struct field's
+        // comment.
+        let segment_index = -(src_ptr.segment_index + 1) as usize;
+        if self.relocation_rules.contains_key(&segment_index) {
+            return Err(MemoryError::DuplicatedRelocation(src_ptr.segment_index));
+        }
+
+        self.relocation_rules.insert(segment_index, dst);
+        Ok(())
+    }
 
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
@@ -353,6 +418,14 @@ impl Memory {
             Cow::Owned(MaybeRelocatable::Int(int)) => Ok(Cow::Owned(int)),
             _ => Err(MemoryError::ExpectedInteger(Box::new(key))),
         }
+    }
+
+    /// Gets a u32 value from memory address.
+    /// Returns an Error if the value at the memory address is missing or not a u32.
+    pub fn get_u32(&self, key: Relocatable) -> Result<u32, MemoryError> {
+        let felt = self.get_integer(key)?.into_owned();
+        felt.to_u32()
+            .ok_or_else(|| MemoryError::Math(MathError::Felt252ToU32Conversion(Box::new(felt))))
     }
 
     /// Gets the value from memory address as a usize.
@@ -373,6 +446,19 @@ impl Memory {
             Cow::Borrowed(MaybeRelocatable::RelocatableValue(rel)) => Ok(*rel),
             Cow::Owned(MaybeRelocatable::RelocatableValue(rel)) => Ok(rel),
             _ => Err(MemoryError::ExpectedRelocatable(Box::new(key))),
+        }
+    }
+
+    /// Gets the value from memory address as a MaybeRelocatable value.
+    /// Returns an Error if the value at the memory address is missing or not a MaybeRelocatable.
+    pub fn get_maybe_relocatable(&self, key: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        match self
+            .get(&key)
+            .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
+        {
+            // Note: the `Borrowed` variant will never occur.
+            Cow::Borrowed(maybe_rel) => Ok(maybe_rel.clone()),
+            Cow::Owned(maybe_rel) => Ok(maybe_rel),
         }
     }
 
@@ -435,8 +521,9 @@ impl Memory {
     /// - `lhs` exists in memory but `rhs` doesn't -> (Ordering::Greater, 0)
     /// - `rhs` exists in memory but `lhs` doesn't -> (Ordering::Less, 0)
     /// - None of `lhs` or `rhs` exist in memory -> (Ordering::Equal, 0)
-    ///   Everything else behaves much like `memcmp` in C.
-    ///   This is meant as an optimization for hints to avoid allocations.
+    ///
+    /// Everything else behaves much like `memcmp` in C.
+    /// This is meant as an optimization for hints to avoid allocations.
     pub(crate) fn memcmp(
         &self,
         lhs: Relocatable,
@@ -564,6 +651,35 @@ impl Memory {
         Ok(values)
     }
 
+    /// Gets a range of u32 memory values from addr to addr + size
+    /// Fails if any of the values inside the range is missing (memory gap) or is not a u32
+    pub fn get_u32_range(&self, addr: Relocatable, size: usize) -> Result<Vec<u32>, MemoryError> {
+        let mut values = Vec::new();
+
+        for i in 0..size {
+            values.push(self.get_u32((addr + i)?)?);
+        }
+
+        Ok(values)
+    }
+
+    fn get_cell(&self, addr: Relocatable) -> Option<&MemoryCell> {
+        let (i, j) = from_relocatable_to_indexes(addr);
+        let data = if addr.segment_index < 0 {
+            &self.temp_data
+        } else {
+            &self.data
+        };
+        data.get(i)?.get(j)
+    }
+
+    pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
+        Ok(self
+            .get_cell(*addr)
+            .ok_or(MemoryError::UnknownMemoryCell(Box::new(*addr)))?
+            .is_accessed())
+    }
+
     pub fn mark_as_accessed(&mut self, addr: Relocatable) {
         let (i, j) = from_relocatable_to_indexes(addr);
         let data = if addr.segment_index < 0 {
@@ -646,6 +762,7 @@ pub(crate) trait RelocateValue<'a, Input: 'a, Output: 'a> {
     fn relocate_value(&self, value: Input) -> Result<Output, MemoryError>;
 }
 
+#[cfg(not(feature = "extensive_hints"))]
 impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
     fn relocate_value(&self, addr: Relocatable) -> Result<Relocatable, MemoryError> {
         if addr.segment_index < 0 {
@@ -659,6 +776,27 @@ impl RelocateValue<'_, Relocatable, Relocatable> for Memory {
             }
         }
         Ok(addr)
+    }
+}
+#[cfg(feature = "extensive_hints")]
+impl RelocateValue<'_, Relocatable, MaybeRelocatable> for Memory {
+    fn relocate_value(&self, addr: Relocatable) -> Result<MaybeRelocatable, MemoryError> {
+        if addr.segment_index < 0 {
+            // Adjust the segment index to begin at zero, as per the struct field's
+            // comment.
+            if let Some(x) = self
+                .relocation_rules
+                .get(&(-(addr.segment_index + 1) as usize))
+            {
+                return Ok(match x {
+                    MaybeRelocatable::RelocatableValue(r) => {
+                        (*r + addr.offset).map_err(MemoryError::Math)?.into()
+                    }
+                    MaybeRelocatable::Int(i) => i.into(),
+                });
+            }
+        }
+        Ok(addr.into())
     }
 }
 
@@ -676,7 +814,12 @@ impl<'a> RelocateValue<'a, &'a MaybeRelocatable, Cow<'a, MaybeRelocatable>> for 
         Ok(match value {
             MaybeRelocatable::Int(_) => Cow::Borrowed(value),
             MaybeRelocatable::RelocatableValue(addr) => {
-                Cow::Owned(self.relocate_value(*addr)?.into())
+                #[cfg(not(feature = "extensive_hints"))]
+                let v = self.relocate_value(*addr)?.into();
+                #[cfg(feature = "extensive_hints")]
+                let v = self.relocate_value(*addr)?;
+
+                Cow::Owned(v)
             }
         })
     }
@@ -1051,6 +1194,46 @@ mod memory_tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_too_big() {
+        let mut segments = MemorySegmentManager::new();
+        segments.add();
+        segments
+            .memory
+            .insert(Relocatable::from((0, 0)), &Felt252::from(1_u64 << 32))
+            .unwrap();
+        assert_matches!(
+            segments.memory.get_u32(Relocatable::from((0, 0))),
+            Err(MemoryError::Math(MathError::Felt252ToU32Conversion(
+                bx
+            ))) if *bx == Felt252::from(1_u64 << 32)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_maybe_relocatable_valid_relocatable() {
+        let memory = memory![((0, 0), (1, 0))];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            Relocatable::from((1, 0)).into()
+        );
+    }
+
+    #[test]
+    fn get_maybe_relocatable_valid_integer() {
+        let memory = memory![((0, 0), 10)];
+        assert_eq!(
+            memory
+                .get_maybe_relocatable(Relocatable::from((0, 0)))
+                .unwrap(),
+            10.into()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_memory() {
         let mem: Memory = Default::default();
         assert_eq!(mem.data.len(), 0);
@@ -1262,6 +1445,35 @@ mod memory_tests {
             memory.get_continuous_range(Relocatable::from((1, 0)), 3),
             Err(MemoryError::GetRangeMemoryGap(Box::new(((1, 0).into(), 3))))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_ok() {
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967295), ((0, 3), 3)];
+        let expected_vector = vec![1, 4294967295];
+        assert_eq!(memory.get_u32_range((0, 1).into(), 2), Ok(expected_vector));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_relocatable() {
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), (0, 0)), ((0, 3), 3)];
+        assert_matches!(memory.get_u32_range((0, 1).into(), 2), Err(MemoryError::ExpectedInteger(bx)) if *bx == (0, 2).into());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_over_32_bits() {
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 2), 4294967296), ((0, 3), 3)];
+        assert_matches!(memory.get_u32_range((0, 1).into(), 2), Err(MemoryError::Math(MathError::Felt252ToU32Conversion(bx))) if *bx == Felt252::from(4294967296_u64));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_u32_range_memory_gap() {
+        let memory = memory![((0, 0), 0), ((0, 1), 1), ((0, 3), 3)];
+        assert_matches!(memory.get_u32_range((0, 1).into(), 3), Err(MemoryError::UnknownMemoryCell(bx)) if *bx == (0, 2).into());
     }
 
     /// Test that relocate_memory() works when there are no relocation rules.
@@ -1614,6 +1826,64 @@ mod memory_tests {
         assert_eq!(
             Memory::relocate_address((1, 1).into(), &memory.relocation_rules).unwrap(),
             MaybeRelocatable::RelocatableValue((1, 1).into()),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg(feature = "extensive_hints")]
+    fn relocate_address_to_integer() {
+        let mut memory = Memory::new();
+        memory
+            .add_relocation_rule((-1, 0).into(), 0.into())
+            .unwrap();
+        memory
+            .add_relocation_rule((-2, 0).into(), 42.into())
+            .unwrap();
+
+        assert_eq!(
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(0.into()),
+        );
+        assert_eq!(
+            Memory::relocate_address((-2, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(42.into()),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg(feature = "extensive_hints")]
+    fn relocate_address_integer_no_duplicates() {
+        let mut memory = Memory::new();
+        memory
+            .add_relocation_rule((-1, 0).into(), 1.into())
+            .unwrap();
+        assert_eq!(
+            memory.add_relocation_rule((-1, 0).into(), 42.into()),
+            Err(MemoryError::DuplicatedRelocation(-1))
+        );
+        assert_eq!(
+            memory.add_relocation_rule((-1, 0).into(), (2, 0).into()),
+            Err(MemoryError::DuplicatedRelocation(-1))
+        );
+
+        assert_eq!(
+            Memory::relocate_address((-1, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::Int(1.into()),
+        );
+
+        memory
+            .add_relocation_rule((-2, 0).into(), (3, 0).into())
+            .unwrap();
+        assert_eq!(
+            memory.add_relocation_rule((-2, 0).into(), 1.into()),
+            Err(MemoryError::DuplicatedRelocation(-2))
+        );
+
+        assert_eq!(
+            Memory::relocate_address((-2, 0).into(), &memory.relocation_rules).unwrap(),
+            MaybeRelocatable::RelocatableValue((3, 0).into()),
         );
     }
 

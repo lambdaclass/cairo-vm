@@ -8,14 +8,17 @@ use super::{
     },
 };
 
-pub(crate) const MEMORY_UNITS_PER_STEP: u32 = 8;
+pub(crate) const DEFAULT_MEMORY_UNITS_PER_STEP: u32 = 8;
+pub(crate) const DEFAULT_CPU_COMPONENT_STEP: u32 = 1;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Serialize, Debug)]
 pub struct CairoLayout {
     pub(crate) name: LayoutName,
+    pub(crate) cpu_component_step: u32,
     pub(crate) rc_units: u32,
+    pub(crate) memory_units_per_step: u32,
     pub(crate) builtins: BuiltinsInstanceDef,
     pub(crate) public_memory_fraction: u32,
     pub(crate) diluted_pool_instance_def: Option<DilutedPoolInstanceDef>,
@@ -26,6 +29,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::plain,
             rc_units: 16,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::plain(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -36,6 +41,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::small,
             rc_units: 16,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::small(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -46,6 +53,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dex,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::dex(),
             public_memory_fraction: 4,
             diluted_pool_instance_def: None,
@@ -56,6 +65,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -66,6 +77,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
@@ -76,6 +89,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::starknet_with_keccak,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::starknet_with_keccak(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -86,6 +101,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_large_output,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_large_output(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -95,6 +112,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::recursive_with_poseidon,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::recursive_with_poseidon(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(8, 4, 16)),
@@ -105,7 +124,21 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_cairo,
             rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_cairo(),
+            public_memory_fraction: 8,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
+        }
+    }
+
+    pub(crate) fn all_cairo_stwo_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::all_cairo_stwo,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::all_cairo_stwo(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
         }
@@ -115,6 +148,8 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::all_solidity,
             rc_units: 8,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
             builtins: BuiltinsInstanceDef::all_solidity(),
             public_memory_fraction: 8,
             diluted_pool_instance_def: Some(DilutedPoolInstanceDef::default()),
@@ -125,12 +160,37 @@ impl CairoLayout {
         CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
+            cpu_component_step: params.cpu_component_step,
+            memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef {
-                units_per_step: 2_u32.pow(params.log_diluted_units_per_step),
-                ..DilutedPoolInstanceDef::default()
-            }),
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::from_log_units_per_step(
+                params.log_diluted_units_per_step,
+            )),
             builtins: BuiltinsInstanceDef::dynamic(params),
+        }
+    }
+
+    pub(crate) fn perpetual_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::perpetual,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::perpetual(),
+            public_memory_fraction: 4,
+            diluted_pool_instance_def: None,
+        }
+    }
+
+    pub(crate) fn dex_with_bitwise_instance() -> CairoLayout {
+        CairoLayout {
+            name: LayoutName::dex_with_bitwise,
+            rc_units: 4,
+            cpu_component_step: DEFAULT_CPU_COMPONENT_STEP,
+            memory_units_per_step: DEFAULT_MEMORY_UNITS_PER_STEP,
+            builtins: BuiltinsInstanceDef::dex_with_bitwise(),
+            public_memory_fraction: 4,
+            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::new(2, 4, 16)),
         }
     }
 }
@@ -143,7 +203,9 @@ use arbitrary::{self, Arbitrary};
 #[serde(try_from = "RawCairoLayoutParams")]
 pub struct CairoLayoutParams {
     pub rc_units: u32,
-    pub log_diluted_units_per_step: u32,
+    pub cpu_component_step: u32,
+    pub memory_units_per_step: u32,
+    pub log_diluted_units_per_step: i32,
     pub pedersen_ratio: u32,
     pub range_check_ratio: u32,
     pub ecdsa_ratio: u32,
@@ -152,14 +214,11 @@ pub struct CairoLayoutParams {
     pub keccak_ratio: u32,
     pub poseidon_ratio: u32,
     pub range_check96_ratio: u32,
-    pub add_mod_ratio: u32,
-    pub mul_mod_ratio: u32,
-    // the following are not used right now
-    pub cpu_component_step: u32,
-    pub memory_units_per_step: u32,
     pub range_check96_ratio_den: u32,
-    pub mul_mod_ratio_den: u32,
+    pub add_mod_ratio: u32,
     pub add_mod_ratio_den: u32,
+    pub mul_mod_ratio: u32,
+    pub mul_mod_ratio_den: u32,
 }
 
 impl CairoLayoutParams {
@@ -178,7 +237,9 @@ impl CairoLayoutParams {
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct RawCairoLayoutParams {
     pub rc_units: u32,
-    pub log_diluted_units_per_step: u32,
+    pub cpu_component_step: u32,
+    pub memory_units_per_step: u32,
+    pub log_diluted_units_per_step: i32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_pedersen_builtin: bool,
     pub pedersen_ratio: u32,
@@ -203,18 +264,15 @@ pub struct RawCairoLayoutParams {
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_range_check96_builtin: bool,
     pub range_check96_ratio: u32,
+    pub range_check96_ratio_den: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_add_mod_builtin: bool,
     pub add_mod_ratio: u32,
+    pub add_mod_ratio_den: u32,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub uses_mul_mod_builtin: bool,
     pub mul_mod_ratio: u32,
-    // the following are not used right now
-    pub cpu_component_step: u32,
-    pub memory_units_per_step: u32,
-    pub range_check96_ratio_den: u32,
     pub mul_mod_ratio_den: u32,
-    pub add_mod_ratio_den: u32,
 }
 
 impl TryFrom<RawCairoLayoutParams> for CairoLayoutParams {
@@ -317,11 +375,12 @@ mod tests {
     use super::*;
     #[cfg(feature = "mod_builtin")]
     use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+
     use crate::types::instance_definitions::{
         bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
         ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
         pedersen_instance_def::PedersenInstanceDef, poseidon_instance_def::PoseidonInstanceDef,
-        range_check_instance_def::RangeCheckInstanceDef,
+        range_check_instance_def::RangeCheckInstanceDef, LowRatio,
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -434,6 +493,20 @@ mod tests {
     }
 
     #[test]
+    fn get_all_cairo_stwo_instance() {
+        let layout = CairoLayout::all_cairo_stwo_instance();
+        let builtins = BuiltinsInstanceDef::all_cairo_stwo();
+        assert_eq!(layout.name, LayoutName::all_cairo_stwo);
+        assert_eq!(layout.rc_units, 4);
+        assert_eq!(layout.builtins, builtins);
+        assert_eq!(layout.public_memory_fraction, 8);
+        assert_eq!(
+            layout.diluted_pool_instance_def,
+            Some(DilutedPoolInstanceDef::default())
+        );
+    }
+
+    #[test]
     fn get_all_solidity_instance() {
         let layout = CairoLayout::all_solidity_instance();
         let builtins = BuiltinsInstanceDef::all_solidity();
@@ -448,10 +521,37 @@ mod tests {
     }
 
     #[test]
+    fn get_perpetual_instance() {
+        let layout = CairoLayout::perpetual_instance();
+        let builtins = BuiltinsInstanceDef::perpetual();
+        assert_eq!(layout.name, LayoutName::perpetual);
+        assert_eq!(layout.rc_units, 4);
+        assert_eq!(layout.builtins, builtins);
+        assert_eq!(layout.public_memory_fraction, 4);
+        assert_eq!(layout.diluted_pool_instance_def, None);
+    }
+
+    #[test]
+    fn get_dex_with_bitwise_instance() {
+        let layout = CairoLayout::dex_with_bitwise_instance();
+        let builtins = BuiltinsInstanceDef::dex_with_bitwise();
+        assert_eq!(layout.name, LayoutName::dex_with_bitwise);
+        assert_eq!(layout.rc_units, 4);
+        assert_eq!(layout.builtins, builtins);
+        assert_eq!(layout.public_memory_fraction, 4);
+        assert_eq!(
+            layout.diluted_pool_instance_def,
+            Some(DilutedPoolInstanceDef::new(2, 4, 16))
+        );
+    }
+
+    #[test]
     fn get_dynamic_instance() {
         // dummy cairo layout params
         let params = CairoLayoutParams {
             rc_units: 32,
+            cpu_component_step: 8,
+            memory_units_per_step: 16,
             log_diluted_units_per_step: 5,
             pedersen_ratio: 32,
             range_check_ratio: 32,
@@ -459,19 +559,21 @@ mod tests {
             bitwise_ratio: 32,
             ec_op_ratio: 32,
             keccak_ratio: 32,
+            poseidon_ratio: 0,
+            range_check96_ratio: 8,
+            range_check96_ratio_den: 16,
+            add_mod_ratio: 8,
+            add_mod_ratio_den: 16,
             mul_mod_ratio: 32,
-            ..Default::default() //
-                                 // cpu_component_step: todo!(),
-                                 // memory_units_per_step: todo!(),
-                                 // range_check96_ratio_den: todo!(),
-                                 // add_mod_ratio_den: todo!(),
-                                 // mul_mod_ratio_den: todo!(),
+            mul_mod_ratio_den: 16,
         };
 
         let layout = CairoLayout::dynamic_instance(params);
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);
+        assert_eq!(layout.cpu_component_step, 8);
+        assert_eq!(layout.memory_units_per_step, 16);
         assert_eq!(layout.public_memory_fraction, 8); // hardcoded
         assert_eq!(
             layout.diluted_pool_instance_def,
@@ -488,7 +590,9 @@ mod tests {
         );
         assert_eq!(
             layout.builtins.range_check,
-            Some(RangeCheckInstanceDef { ratio: Some(32) })
+            Some(RangeCheckInstanceDef {
+                ratio: Some(LowRatio::new_int(32))
+            })
         );
         assert_eq!(
             layout.builtins.ecdsa,
@@ -512,14 +616,19 @@ mod tests {
         );
         assert_eq!(
             layout.builtins.range_check96,
-            Some(RangeCheckInstanceDef { ratio: Some(0) })
+            Some(RangeCheckInstanceDef {
+                ratio: Some(LowRatio::new(8, 16))
+            })
         );
         #[cfg(feature = "mod_builtin")]
         {
             assert_eq!(
                 layout.builtins.mul_mod,
                 Some(ModInstanceDef {
-                    ratio: Some(32),
+                    ratio: Some(LowRatio {
+                        numerator: 32,
+                        denominator: 16
+                    }),
                     word_bit_len: 96, // hardcoded
                     batch_size: 1     // hardcoded
                 }),
@@ -527,7 +636,10 @@ mod tests {
             assert_eq!(
                 layout.builtins.add_mod,
                 Some(ModInstanceDef {
-                    ratio: Some(0),
+                    ratio: Some(LowRatio {
+                        numerator: 8,
+                        denominator: 16
+                    }),
                     word_bit_len: 96, // hardcoded
                     batch_size: 1     // hardcoded
                 })

@@ -1,6 +1,7 @@
 use crate::types::layout::CairoLayoutParams;
 
 use super::mod_instance_def::ModInstanceDef;
+use super::LowRatio;
 use super::{
     bitwise_instance_def::BitwiseInstanceDef, ec_op_instance_def::EcOpInstanceDef,
     ecdsa_instance_def::EcdsaInstanceDef, keccak_instance_def::KeccakInstanceDef,
@@ -178,6 +179,28 @@ impl BuiltinsInstanceDef {
         }
     }
 
+    pub(crate) fn all_cairo_stwo() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(Some(256))),
+            range_check: Some(RangeCheckInstanceDef::default()),
+            ecdsa: None,
+            bitwise: Some(BitwiseInstanceDef::new(Some(16))),
+            ec_op: None,
+            keccak: None,
+            poseidon: Some(PoseidonInstanceDef::new(Some(256))),
+            range_check96: Some(RangeCheckInstanceDef::new(Some(8))),
+            #[cfg(feature = "mod_builtin")]
+            add_mod: Some(ModInstanceDef::new(Some(128), 1, 96)),
+            #[cfg(feature = "mod_builtin")]
+            mul_mod: Some(ModInstanceDef::new(Some(256), 1, 96)),
+            #[cfg(not(feature = "mod_builtin"))]
+            add_mod: None,
+            #[cfg(not(feature = "mod_builtin"))]
+            mul_mod: None,
+        }
+    }
+
     pub(crate) fn all_solidity() -> BuiltinsInstanceDef {
         BuiltinsInstanceDef {
             output: true,
@@ -199,7 +222,7 @@ impl BuiltinsInstanceDef {
             ratio: Some(params.pedersen_ratio),
         });
         let range_check = Some(RangeCheckInstanceDef {
-            ratio: Some(params.range_check_ratio),
+            ratio: Some(LowRatio::new_int(params.range_check_ratio)),
         });
         let ecdsa = Some(EcdsaInstanceDef {
             ratio: Some(params.ecdsa_ratio),
@@ -217,17 +240,26 @@ impl BuiltinsInstanceDef {
             ratio: Some(params.poseidon_ratio),
         });
         let range_check96 = Some(RangeCheckInstanceDef {
-            ratio: Some(params.range_check96_ratio),
+            ratio: Some(LowRatio::new(
+                params.range_check96_ratio,
+                params.range_check96_ratio_den,
+            )),
         });
         #[cfg(feature = "mod_builtin")]
         let add_mod = Some(ModInstanceDef {
-            ratio: Some(params.add_mod_ratio),
+            ratio: Some(LowRatio::new(
+                params.add_mod_ratio,
+                params.add_mod_ratio_den,
+            )),
             word_bit_len: 96,
             batch_size: 1,
         });
         #[cfg(feature = "mod_builtin")]
         let mul_mod = Some(ModInstanceDef {
-            ratio: Some(params.mul_mod_ratio),
+            ratio: Some(LowRatio::new(
+                params.mul_mod_ratio,
+                params.mul_mod_ratio_den,
+            )),
             word_bit_len: 96,
             batch_size: 1,
         });
@@ -248,6 +280,38 @@ impl BuiltinsInstanceDef {
             range_check96,
             add_mod,
             mul_mod,
+        }
+    }
+
+    pub(crate) fn perpetual() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::new(Some(32))),
+            range_check: Some(RangeCheckInstanceDef::new(Some(16))),
+            ecdsa: Some(EcdsaInstanceDef::new(Some(2048))),
+            bitwise: None,
+            ec_op: None,
+            keccak: None,
+            poseidon: None,
+            range_check96: None,
+            add_mod: None,
+            mul_mod: None,
+        }
+    }
+
+    pub(crate) fn dex_with_bitwise() -> BuiltinsInstanceDef {
+        BuiltinsInstanceDef {
+            output: true,
+            pedersen: Some(PedersenInstanceDef::default()),
+            range_check: Some(RangeCheckInstanceDef::default()),
+            ecdsa: Some(EcdsaInstanceDef::default()),
+            bitwise: Some(BitwiseInstanceDef::new(Some(64))),
+            ec_op: None,
+            keccak: None,
+            poseidon: None,
+            range_check96: None,
+            add_mod: None,
+            mul_mod: None,
         }
     }
 }
@@ -365,6 +429,35 @@ mod tests {
         assert!(builtins.ec_op.is_some());
         assert!(builtins.keccak.is_some());
         assert!(builtins.poseidon.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.add_mod.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.mul_mod.is_some());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.add_mod.is_none());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.mul_mod.is_none());
+    }
+
+    #[test]
+    fn get_builtins_all_cairo_stwo() {
+        let builtins = BuiltinsInstanceDef::all_cairo_stwo();
+        assert!(builtins.output);
+        assert!(builtins.pedersen.is_some());
+        assert!(builtins.range_check.is_some());
+        assert!(builtins.ecdsa.is_none());
+        assert!(builtins.bitwise.is_some());
+        assert!(builtins.ec_op.is_none());
+        assert!(builtins.keccak.is_none());
+        assert!(builtins.poseidon.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.add_mod.is_some());
+        #[cfg(feature = "mod_builtin")]
+        assert!(builtins.mul_mod.is_some());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.add_mod.is_none());
+        #[cfg(not(feature = "mod_builtin"))]
+        assert!(builtins.mul_mod.is_none());
     }
 
     #[test]

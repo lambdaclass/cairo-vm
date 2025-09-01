@@ -4,7 +4,7 @@
 use crate::stdlib::boxed::Box;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 
@@ -42,6 +42,10 @@ pub enum MathError {
     RelocatableAddUsizeOffsetExceeded(Box<(Relocatable, usize)>),
     #[error("Operation failed: {} + {}, can't add two relocatable values", (*.0).0, (*.0).1)]
     RelocatableAdd(Box<(Relocatable, Relocatable)>),
+    #[error("Operation failed: {} - {}, can't add a relocatable value as a QM31 element", (*.0).0, (*.0).1)]
+    RelocatableQM31Add(Box<(MaybeRelocatable, MaybeRelocatable)>),
+    #[error("Operation failed: {} - {}, can't subtract a relocatable value or from a relocatable value as a QM31 element", (*.0).0, (*.0).1)]
+    RelocatableQM31Sub(Box<(MaybeRelocatable, MaybeRelocatable)>),
     #[error("Operation failed: {} - {}, can't subtract two relocatable values with different segment indexes", (*.0).0, (*.0).1)]
     RelocatableSubDiffIndex(Box<(Relocatable, Relocatable)>),
     #[error(
@@ -65,6 +69,8 @@ pub enum MathError {
         "Operation failed: divmod({}, {}, {}), igcdex({}, {}) != 1 ", (*.0).0, (*.0).1, (*.0).2, (*.0).1, (*.0).2
     )]
     DivModIgcdexNotZero(Box<(BigInt, BigInt, BigInt)>),
+    #[error("Number is not a packing of a QM31 in reduced form: {0})")]
+    QM31UnreducedError(Box<Felt252>),
 }
 
 #[cfg(test)]

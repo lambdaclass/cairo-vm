@@ -47,7 +47,7 @@ pub use bitwise::BitwiseBuiltinRunner;
 pub use ec_op::EcOpBuiltinRunner;
 pub use hash::HashBuiltinRunner;
 pub use modulo::ModBuiltinRunner;
-use num_integer::div_floor;
+use num_integer::{div_ceil, div_floor};
 pub use output::{OutputBuiltinRunner, OutputBuiltinState};
 pub use poseidon::PoseidonBuiltinRunner;
 pub use range_check::RangeCheckBuiltinRunner;
@@ -55,6 +55,11 @@ pub use segment_arena::SegmentArenaBuiltinRunner;
 pub use signature::SignatureBuiltinRunner;
 
 use super::cairo_pie::BuiltinAdditionalData;
+
+const MIN_N_INSTANCES_IN_BUILTIN_SEGMENT: usize = 16;
+
+// Assert MIN_N_INSTANCES_IN_BUILTIN_SEGMENT is a power of 2.
+const _: () = assert!(MIN_N_INSTANCES_IN_BUILTIN_SEGMENT.is_power_of_two());
 
 /* NB: this enum is no accident: we may need (and cairo-vm-py *does* need)
  * structs containing this to be `Send`. The only two ways to achieve that
@@ -171,6 +176,14 @@ impl BuiltinRunner {
         &self,
         vm: &VirtualMachine,
     ) -> Result<usize, memory_errors::MemoryError> {
+        Ok(self.get_allocated_instances(vm)? * self.cells_per_instance() as usize)
+    }
+
+    ///Returns the builtin's allocated instances
+    pub fn get_allocated_instances(
+        &self,
+        vm: &VirtualMachine,
+    ) -> Result<usize, memory_errors::MemoryError> {
         match *self {
             BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => Ok(0),
             _ => {
@@ -179,23 +192,40 @@ impl BuiltinRunner {
                         // Dynamic layout has the exact number of instances it needs (up to a power of 2).
                         let instances: usize =
                             self.get_used_cells(&vm.segments)? / self.cells_per_instance() as usize;
-                        let components = (instances / self.instances_per_component() as usize)
-                            .next_power_of_two();
-                        Ok(self.cells_per_instance() as usize
-                            * self.instances_per_component() as usize
-                            * components)
+                        let needed_components = instances / self.instances_per_component() as usize;
+
+                        let components = if needed_components > 0 {
+                            needed_components.next_power_of_two()
+                        } else {
+                            0
+                        };
+                        Ok(self.instances_per_component() as usize * components)
                     }
+                    // Dynamic layout allows for builtins with ratio 0
+                    Some(0) => Ok(0),
                     Some(ratio) => {
-                        let min_step = (ratio * self.instances_per_component()) as usize;
+                        let min_step_num = (ratio * self.instances_per_component()) as usize;
+                        let min_step = if let Some(ratio_den) = self.ratio_den() {
+                            div_ceil(min_step_num, ratio_den as usize)
+                        } else {
+                            min_step_num
+                        };
+
                         if vm.current_step < min_step {
                             return Err(InsufficientAllocatedCellsError::MinStepNotReached(
                                 Box::new((min_step, self.name())),
                             )
                             .into());
                         };
-                        let value = safe_div_usize(vm.current_step, ratio as usize)
-                            .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?;
-                        Ok(self.cells_per_instance() as usize * value)
+
+                        let allocated_instances = if let Some(ratio_den) = self.ratio_den() {
+                            safe_div_usize(vm.current_step * ratio_den as usize, ratio as usize)
+                                .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
+                        } else {
+                            safe_div_usize(vm.current_step, ratio as usize)
+                                .map_err(|_| MemoryError::ErrorCalculatingMemoryUnits)?
+                        };
+                        Ok(allocated_instances)
                     }
                 }
             }
@@ -249,6 +279,15 @@ impl BuiltinRunner {
             BuiltinRunner::Signature(ref signature) => signature.ratio(),
             BuiltinRunner::Poseidon(poseidon) => poseidon.ratio(),
             BuiltinRunner::Mod(ref modulo) => modulo.ratio(),
+        }
+    }
+
+    pub fn ratio_den(&self) -> Option<u32> {
+        match self {
+            BuiltinRunner::RangeCheck(range_check) => range_check.ratio_den(),
+            BuiltinRunner::RangeCheck96(range_check) => range_check.ratio_den(),
+            BuiltinRunner::Mod(modulo) => modulo.ratio_den(),
+            _ => None,
         }
     }
 
@@ -362,7 +401,7 @@ impl BuiltinRunner {
         }
     }
 
-    fn cells_per_instance(&self) -> u32 {
+    pub fn cells_per_instance(&self) -> u32 {
         match self {
             BuiltinRunner::Bitwise(_) => CELLS_PER_BITWISE,
             BuiltinRunner::EcOp(_) => CELLS_PER_EC_OP,
@@ -498,17 +537,34 @@ impl BuiltinRunner {
                 Ok((used, used))
             }
             _ => {
-                let used = self.get_used_cells(&vm.segments)?;
-                let size = self.get_allocated_memory_units(vm)?;
-                if used > size {
-                    return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
-                        self.name(),
-                        used,
-                        size,
-                    )))
-                    .into());
+                let used_cells = self.get_used_cells(&vm.segments)?;
+                if vm.disable_trace_padding {
+                    // If trace padding is disabled, we pad the used cells to still ensure that the
+                    // number of instances is a power of 2, and at least
+                    // MIN_N_INSTANCES_IN_BUILTIN_SEGMENT.
+                    let num_instances = self.get_used_instances(&vm.segments)?;
+                    let padded_used_cells = if num_instances > 0 {
+                        let padded_num_instances = core::cmp::max(
+                            MIN_N_INSTANCES_IN_BUILTIN_SEGMENT,
+                            num_instances.next_power_of_two(),
+                        );
+                        padded_num_instances * self.cells_per_instance() as usize
+                    } else {
+                        0
+                    };
+                    Ok((used_cells, padded_used_cells))
+                } else {
+                    let size = self.get_allocated_memory_units(vm)?;
+                    if used_cells > size {
+                        return Err(InsufficientAllocatedCellsError::BuiltinCells(Box::new((
+                            self.name(),
+                            used_cells,
+                            size,
+                        )))
+                        .into());
+                    }
+                    Ok((used_cells, size))
                 }
-                Ok((used, size))
             }
         }
     }
@@ -659,9 +715,13 @@ impl From<ModBuiltinRunner> for BuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::relocatable;
     use crate::types::builtin_name::BuiltinName;
+    use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+    use crate::types::instance_definitions::LowRatio;
+    use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
@@ -839,6 +899,122 @@ mod tests {
             .unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(5));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compare_proof_mode_with_and_without_disable_trace_padding() {
+        const PEDERSEN_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/pedersen_test.json");
+        const BIGINT_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/bigint.json");
+        const POSEIDON_HASH_TEST: &[u8] =
+            include_bytes!("../../../../../cairo_programs/proof_programs/poseidon_hash.json");
+
+        let program_files = vec![PEDERSEN_TEST, BIGINT_TEST, POSEIDON_HASH_TEST];
+
+        for program_data in program_files {
+            let config_false = CairoRunConfig {
+                disable_trace_padding: false,
+                proof_mode: true,
+                fill_holes: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            };
+            let mut hint_processor_false = BuiltinHintProcessor::new_empty();
+            let runner_false =
+                cairo_run(program_data, &config_false, &mut hint_processor_false).unwrap();
+            let last_step_false = runner_false.vm.current_step;
+
+            assert!(last_step_false.is_power_of_two());
+
+            let config_true = CairoRunConfig {
+                disable_trace_padding: true,
+                proof_mode: true,
+                fill_holes: true,
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            };
+            let mut hint_processor_true = BuiltinHintProcessor::new_empty();
+            let runner_true =
+                cairo_run(program_data, &config_true, &mut hint_processor_true).unwrap();
+            let last_step_true = runner_true.vm.current_step;
+
+            // Ensure the last step is not a power of two - true for this specific program, not always.
+            assert!(!last_step_true.is_power_of_two());
+
+            assert!(last_step_true < last_step_false);
+
+            let builtin_runners_false = &runner_false.vm.builtin_runners;
+            let builtin_runners_true = &runner_true.vm.builtin_runners;
+            assert_eq!(builtin_runners_false.len(), builtin_runners_true.len());
+            // Compare allocated instances for each pair of builtin runners.
+            for (builtin_runner_false, builtin_runner_true) in builtin_runners_false
+                .iter()
+                .zip(builtin_runners_true.iter())
+            {
+                assert_eq!(builtin_runner_false.name(), builtin_runner_true.name());
+                match builtin_runner_false {
+                    BuiltinRunner::Output(_) | BuiltinRunner::SegmentArena(_) => {
+                        continue;
+                    }
+                    _ => {}
+                }
+                let (_, allocated_size_false) = builtin_runner_false
+                    .get_used_cells_and_allocated_size(&runner_false.vm)
+                    .unwrap();
+                let (used_cells_true, allocated_size_true) = builtin_runner_true
+                    .get_used_cells_and_allocated_size(&runner_true.vm)
+                    .unwrap();
+                let n_allocated_instances_false = safe_div_usize(
+                    allocated_size_false,
+                    builtin_runner_false.cells_per_instance() as usize,
+                )
+                .unwrap();
+                let n_allocated_instances_true = safe_div_usize(
+                    allocated_size_true,
+                    builtin_runner_true.cells_per_instance() as usize,
+                )
+                .unwrap();
+                assert!(
+                    n_allocated_instances_false.is_power_of_two()
+                        || n_allocated_instances_false == 0
+                );
+                assert!(
+                    n_allocated_instances_true.is_power_of_two() || n_allocated_instances_true == 0
+                );
+                // Assert the builtin segment is padded to at least
+                // `MIN_N_INSTANCES_IN_BUILTIN_SEGMENT`.
+                // Pedersen proof has exactly one pedersen builtin, so this indeed tests the padding
+                // to at least `MIN_N_INSTANCES_IN_BUILTIN_SEGMENT`.
+                assert!(
+                    n_allocated_instances_true >= MIN_N_INSTANCES_IN_BUILTIN_SEGMENT
+                        || n_allocated_instances_true == 0
+                );
+
+                // Checks that the number of allocated instances is different when trace padding is
+                // enabled/disabled. Holds for this specific program, not always (that is, in other
+                // programs, padding may be of size 0, or the same).
+                assert!(
+                    n_allocated_instances_true == 0
+                        || n_allocated_instances_true != n_allocated_instances_false
+                );
+
+                // Since the last instance of the builtin isn't guaranteed to have a full output,
+                // the number of used_cells might not be a multiple of cells_per_instance, so we
+                // make sure that the discrepancy is up to the number of output cells.
+                // This is the same for both cases, so we only check one (true).
+                let n_output_cells = builtin_runner_true.cells_per_instance() as usize
+                    - builtin_runner_true.n_input_cells() as usize;
+                assert!(
+                    used_cells_true + n_output_cells
+                        >= (builtin_runner_true.cells_per_instance() as usize)
+                            * builtin_runner_true
+                                .get_used_instances(&runner_true.vm.segments)
+                                .unwrap()
+                );
+            }
+        }
     }
 
     #[test]
@@ -1051,6 +1227,26 @@ mod tests {
         let mut vm = vm!();
         vm.current_step = 32768;
         assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(256));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_allocated_memory_units_zero_ratio() {
+        let builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(Some(0), true));
+        let vm = vm!();
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_allocated_memory_units_none_ratio() {
+        let mut builtin = BuiltinRunner::Keccak(KeccakBuiltinRunner::new(None, true));
+        let mut vm = vm!();
+
+        builtin.initialize_segments(&mut vm.segments);
+        vm.compute_segments_effective_sizes();
+
+        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(0));
     }
 
     #[test]
@@ -1541,6 +1737,30 @@ mod tests {
         assert_eq!(range_check_builtin.ratio(), (Some(8)),);
         let keccak_builtin: BuiltinRunner = KeccakBuiltinRunner::new(Some(2048), true).into();
         assert_eq!(keccak_builtin.ratio(), (Some(2048)),);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_ratio_den_tests() {
+        let rangecheck_builtin: BuiltinRunner =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new_with_low_ratio(
+                Some(LowRatio::new(1, 2)),
+                true,
+            )
+            .into();
+        assert_eq!(rangecheck_builtin.ratio_den(), (Some(2)),);
+
+        let rangecheck96_builtin: BuiltinRunner =
+            RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new_with_low_ratio(
+                Some(LowRatio::new(1, 4)),
+                true,
+            )
+            .into();
+        assert_eq!(rangecheck96_builtin.ratio_den(), (Some(4)),);
+
+        let mod_builtin: BuiltinRunner =
+            ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(5), 3, 3), true).into();
+        assert_eq!(mod_builtin.ratio_den(), (Some(1)),);
     }
 
     #[test]

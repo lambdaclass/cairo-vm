@@ -1,4 +1,4 @@
-use thiserror_no_std::Error;
+use thiserror::Error;
 
 #[derive(Eq, Hash, PartialEq, Debug, Error)]
 pub enum ExecScopeError {
