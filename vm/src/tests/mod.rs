@@ -75,6 +75,7 @@ fn run_program(
         relocate_mem: true,
         trace_enabled: true,
         proof_mode,
+        fill_holes: proof_mode,
         ..Default::default()
     };
     let res = cairo_run(data, &cairo_run_config, &mut hint_executor);
@@ -209,6 +210,7 @@ fn run_cairo_1_entrypoint(
 }
 
 #[cfg(feature = "cairo-1-hints")]
+#[allow(clippy::result_large_err)]
 /// Equals to fn run_cairo_1_entrypoint
 /// But with run_resources as an input
 fn run_cairo_1_entrypoint_with_run_resources(

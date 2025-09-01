@@ -13,15 +13,10 @@ brew install pyenv
 
 # install gmp
 brew install --force gmp
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Make sure pyenv has been installed correctly
-pyenv -v
+# Make sure uv has been installed correctly
+uv --version
 
 make deps-macos
-
-pyenv local 3.9.15
-
-pip install -r requirements.txt
-
-echo "-- You need to follow these instructions to finish installing pyenv: --"
-pyenv init || true

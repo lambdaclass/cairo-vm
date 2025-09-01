@@ -211,7 +211,7 @@ pub fn get_instruction_encoding(
         return Err(TraceDataError::InstructionIsNone(pc.to_string()));
     }
     let instruction_encoding = memory[pc].unwrap();
-    let prime = BigUint::parse_bytes(prime[2..].as_bytes(), 16).unwrap();
+    let prime = BigUint::parse_bytes(&prime.as_bytes()[2..], 16).unwrap();
 
     let imm_addr = BigUint::from(pc + 1) % prime;
     let imm_addr = usize::try_from(imm_addr.clone())

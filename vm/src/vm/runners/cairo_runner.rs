@@ -1,3 +1,4 @@
+use crate::vm::trace::trace_entry::TraceEntry;
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -11,7 +12,7 @@ use crate::{
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
-        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry},
     },
     Felt252,
 };
@@ -190,6 +191,8 @@ impl CairoRunner {
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
+            LayoutName::perpetual => CairoLayout::perpetual_instance(),
+            LayoutName::dex_with_bitwise => CairoLayout::dex_with_bitwise_instance(),
             LayoutName::dynamic => {
                 let params =
                     dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
@@ -889,13 +892,14 @@ impl CairoRunner {
         disable_trace_padding: bool,
         disable_finalize_all: bool,
         hint_processor: &mut dyn HintProcessor,
+        fill_holes: bool,
     ) -> Result<(), VirtualMachineError> {
         if self.run_ended {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
         self.vm.segments.memory.relocate_memory()?;
-        self.vm.end_run(&self.exec_scopes)?;
+        self.vm.end_run(&self.exec_scopes, fill_holes)?;
 
         if disable_finalize_all {
             return Ok(());
@@ -981,9 +985,9 @@ impl CairoRunner {
         Ok(())
     }
 
-    pub fn relocate(&mut self, relocate_mem: bool) -> Result<(), TraceError> {
+    pub fn relocate(&mut self, relocate_mem: bool, relocate_trace: bool) -> Result<(), TraceError> {
         self.vm.segments.compute_effective_sizes();
-        if !relocate_mem && self.vm.trace.is_none() {
+        if !relocate_mem && (self.vm.trace.is_none() || !relocate_trace) {
             return Ok(());
         }
         // relocate_segments can fail if compute_effective_sizes is not called before.
@@ -999,25 +1003,39 @@ impl CairoRunner {
                 return Err(TraceError::MemoryError(memory_error));
             }
         }
-        if self.vm.trace.is_some() {
+        if self.vm.trace.is_some() && relocate_trace {
             self.relocate_trace(&relocation_table)?;
         }
         self.vm.relocation_table = Some(relocation_table);
         Ok(())
     }
 
-    // Returns a map from builtin base's segment index to stop_ptr offset
-    // Aka the builtin's segment number and its maximum offset
+    /// Returns a tuple of builtin base's segment index and stop_ptr offset
+    /// Aka the builtin's segment number and its maximum offset
     pub fn get_builtin_segments_info(&self) -> Result<Vec<(usize, usize)>, RunnerError> {
+        let proof_mode = self.is_proof_mode();
         let mut builtin_segment_info = Vec::new();
 
         for builtin in &self.vm.builtin_runners {
             let (index, stop_ptr) = builtin.get_memory_segment_addresses();
 
-            builtin_segment_info.push((
-                index,
-                stop_ptr.ok_or_else(|| RunnerError::NoStopPointer(Box::new(builtin.name())))?,
-            ));
+            match (proof_mode, stop_ptr) {
+                // Segment present (same handling in both modes).
+                (_, Some(sp)) => builtin_segment_info.push((index, sp)),
+
+                // If non proof-mode, only builtins in the program are present and they must
+                // point to a segment (so `stop_ptr` must be set). Throw an error if not.
+                (false, None) => {
+                    return Err(RunnerError::NoStopPointer(Box::new(
+                        builtin.name().to_owned(),
+                    )));
+                }
+
+                // In proof‐mode there are builtin runners for all builtins in the layout, but only
+                // the ones that are in the program point to a segment (so `stop_ptr` is set).
+                // Only collect those and silently ignore the rest.
+                (true, None) => {}
+            }
         }
 
         Ok(builtin_segment_info)
@@ -1055,7 +1073,7 @@ impl CairoRunner {
             .unwrap_or(self.vm.current_step);
         let n_memory_holes = self.get_memory_holes()?;
 
-        let mut builtin_instance_counter = HashMap::new();
+        let mut builtin_instance_counter = BTreeMap::new();
         for builtin_runner in &self.vm.builtin_runners {
             builtin_instance_counter.insert(
                 builtin_runner.name(),
@@ -1131,6 +1149,7 @@ impl CairoRunner {
         Ok(())
     }
 
+    #[allow(clippy::result_large_err)]
     /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
     /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
     /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
@@ -1153,7 +1172,7 @@ impl CairoRunner {
 
         self.run_until_pc(end, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, err))?;
-        self.end_run(true, false, hint_processor)?;
+        self.end_run(true, false, hint_processor, self.is_proof_mode())?;
 
         if verify_secure {
             verify_secure_runner(self, false, program_segment_size)?;
@@ -1413,7 +1432,7 @@ impl CairoRunner {
             execution_segment: (execution_base.segment_index, execution_size).into(),
             ret_fp_segment: (return_fp.segment_index, 0).into(),
             ret_pc_segment: (return_pc.segment_index, 0).into(),
-            builtin_segments,
+            builtin_segments: builtin_segments.into_iter().collect(),
             extra_segments,
         };
 
@@ -1487,77 +1506,36 @@ impl CairoRunner {
             .collect()
     }
 
-    /// Collects relevant information for the prover from the runner, including the
-    /// relocatable form of the trace, memory, public memory, and built-ins.
-    pub fn get_prover_input_info(&self) -> Result<ProverInputInfo, RunnerError> {
-        let relocatable_trace = self
-            .vm
+    /// Returns a reference to the relocatable trace.
+    pub fn get_relocatable_trace(&self) -> Result<&[TraceEntry], RunnerError> {
+        self.vm
             .trace
-            .as_ref()
-            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))?
-            .clone();
+            .as_deref()
+            .ok_or(RunnerError::Trace(TraceError::TraceNotEnabled))
+    }
 
-        let relocatable_memory = self
-            .vm
+    /// Returns a vector of segments, where each segment is a vector of Option<MaybeRelocatable> values, representing the relocatble memory values.
+    pub fn get_relocatable_memory(&self) -> Vec<Vec<Option<MaybeRelocatable>>> {
+        self.vm
             .segments
             .memory
             .data
             .iter()
             .map(|segment| segment.iter().map(|cell| cell.get_value()).collect())
-            .collect();
+            .collect()
+    }
 
-        let public_memory_offsets = self
-            .vm
-            .segments
-            .public_memory_offsets
-            .iter()
-            .map(|(segment, offset_page)| {
-                let offsets: Vec<usize> = offset_page.iter().map(|(offset, _)| *offset).collect();
-                (*segment, offsets)
-            })
-            .collect();
-
-        let builtins_segments: BTreeMap<usize, BuiltinName> = self
-            .vm
+    /// Returns a map from the builtin segment index into its name.
+    pub fn get_builtin_segments(&self) -> BTreeMap<usize, BuiltinName> {
+        self.vm
             .builtin_runners
             .iter()
-            .filter(|builtin| {
-                // Those segments are not treated as builtins by the prover.
-                !matches!(
-                    builtin,
-                    BuiltinRunner::SegmentArena(_) | BuiltinRunner::Output(_)
-                )
-            })
             .map(|builtin| {
                 let (index, _) = builtin.get_memory_segment_addresses();
                 (index, builtin.name())
             })
-            .collect();
-
-        Ok(ProverInputInfo {
-            relocatable_trace,
-            relocatable_memory,
-            public_memory_offsets,
-            builtins_segments,
-        })
+            .collect()
     }
-}
-
-//* ----------------------
-//*   ProverInputInfo
-//* ----------------------
-/// This struct contains all relevant data for the prover.
-/// All addresses are relocatable.
-#[derive(Deserialize, Serialize)]
-pub struct ProverInputInfo {
-    /// A vector of trace entries, i.e. pc, ap, fp, where pc is relocatable.
-    pub relocatable_trace: Vec<TraceEntry>,
-    /// A vector of segments, where each segment is a vector of maybe relocatable values or holes (`None`).
-    pub relocatable_memory: Vec<Vec<Option<MaybeRelocatable>>>,
-    /// A map from segment index to a vector of offsets within the segment, representing the public memory addresses.
-    pub public_memory_offsets: BTreeMap<usize, Vec<usize>>,
-    /// A map from the builtin segment index into its name.
-    pub builtins_segments: BTreeMap<usize, BuiltinName>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1575,7 +1553,7 @@ pub struct ExecutionResources {
     pub n_steps: usize,
     pub n_memory_holes: usize,
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub builtin_instance_counter: HashMap<BuiltinName, usize>,
+    pub builtin_instance_counter: BTreeMap<BuiltinName, usize>,
 }
 
 /// Returns a copy of the execution resources where all the builtins with a usage counter
@@ -1664,6 +1642,8 @@ mod tests {
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
     use crate::stdlib::collections::{HashMap, HashSet};
+    use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
+    use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
 
     use crate::felt_hex;
@@ -3850,7 +3830,7 @@ mod tests {
 
         cairo_runner.run_ended = true;
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Err(VirtualMachineError::RunnerError(
                 RunnerError::EndRunCalledTwice
             ))
@@ -3866,14 +3846,14 @@ mod tests {
         let mut cairo_runner = cairo_runner!(program);
 
         assert_matches!(
-            cairo_runner.end_run(true, false, &mut hint_processor),
+            cairo_runner.end_run(true, false, &mut hint_processor, false),
             Ok(())
         );
 
         cairo_runner.run_ended = false;
         cairo_runner.relocated_memory.clear();
         assert_matches!(
-            cairo_runner.end_run(true, true, &mut hint_processor),
+            cairo_runner.end_run(true, true, &mut hint_processor, false),
             Ok(())
         );
         assert!(!cairo_runner.run_ended);
@@ -3887,16 +3867,16 @@ mod tests {
             Some("main"),
         )
         .unwrap();
-
+        let proof_mode = true;
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
 
         let end = cairo_runner.initialize(false).unwrap();
         cairo_runner
             .run_until_pc(end, &mut hint_processor)
             .expect("Call to `CairoRunner::run_until_pc()` failed.");
         assert_matches!(
-            cairo_runner.end_run(false, false, &mut hint_processor),
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
             Ok(())
         );
     }
@@ -3928,6 +3908,51 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_builtin_segments_info_non_proof_mode() {
+        let program_data =
+            include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: LayoutName::small,
+            proof_mode: false,
+            fill_holes: false,
+            secure_run: Some(true),
+            ..Default::default()
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let runner = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        // Only the range_check builtin is used in this program, and in non-proof mode, it will
+        // be the first and only builtin segment initialized (and used).
+        assert_eq!(runner.get_builtin_segments_info(), Ok(vec![(2, 6)]));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_builtin_segments_info_proof_mode() {
+        let program_data =
+            include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: LayoutName::small,
+            proof_mode: true,
+            fill_holes: true,
+            secure_run: Some(true),
+            ..Default::default()
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let runner = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        // Only the range_check builtin is used in this program, and in proof mode, it will
+        // be the first and only builtin segment used, but initialized after the other builtins
+        // in the layout.
+        assert_eq!(runner.get_builtin_segments_info(), Ok(vec![(4, 6)]));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources_trace_not_enabled() {
         let program = program!();
 
@@ -3940,7 +3965,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -3955,6 +3980,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -3973,6 +3999,7 @@ mod tests {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: false,
+            fill_holes: false,
             secure_run: Some(false),
             ..Default::default()
         };
@@ -3995,7 +4022,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new(),
+                builtin_instance_counter: BTreeMap::new(),
             }),
         );
     }
@@ -4020,7 +4047,7 @@ mod tests {
             Ok(ExecutionResources {
                 n_steps: 10,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::output, 4)]),
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::output, 4)]),
             }),
         );
     }
@@ -4968,7 +4995,7 @@ mod tests {
     }
 
     fn setup_execution_resources() -> (ExecutionResources, ExecutionResources) {
-        let mut builtin_instance_counter: HashMap<BuiltinName, usize> = HashMap::new();
+        let mut builtin_instance_counter: BTreeMap<BuiltinName, usize> = BTreeMap::new();
         builtin_instance_counter.insert(BuiltinName::output, 8);
 
         let execution_resources_1 = ExecutionResources {
@@ -5135,7 +5162,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-
     fn filter_unused_builtins_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/integration.json"),
@@ -5160,7 +5186,7 @@ mod tests {
         let execution_resources_1 = ExecutionResources {
             n_steps: 800,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([
+            builtin_instance_counter: BTreeMap::from([
                 (BuiltinName::pedersen, 7),
                 (BuiltinName::range_check, 16),
             ]),
@@ -5171,7 +5197,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 1600,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([
+                builtin_instance_counter: BTreeMap::from([
                     (BuiltinName::pedersen, 14),
                     (BuiltinName::range_check, 32)
                 ])
@@ -5181,7 +5207,7 @@ mod tests {
         let execution_resources_2 = ExecutionResources {
             n_steps: 545,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 17)]),
+            builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 17)]),
         };
 
         assert_eq!(
@@ -5189,14 +5215,14 @@ mod tests {
             ExecutionResources {
                 n_steps: 4360,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::from([(BuiltinName::range_check, 136)])
+                builtin_instance_counter: BTreeMap::from([(BuiltinName::range_check, 136)])
             }
         );
 
         let execution_resources_3 = ExecutionResources {
             n_steps: 42,
             n_memory_holes: 0,
-            builtin_instance_counter: HashMap::new(),
+            builtin_instance_counter: BTreeMap::new(),
         };
 
         assert_eq!(
@@ -5204,7 +5230,7 @@ mod tests {
             ExecutionResources {
                 n_steps: 756,
                 n_memory_holes: 0,
-                builtin_instance_counter: HashMap::new()
+                builtin_instance_counter: BTreeMap::new()
             }
         );
     }
@@ -5475,6 +5501,7 @@ mod tests {
             program_content,
             &CairoRunConfig {
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             },
@@ -5520,7 +5547,7 @@ mod tests {
     }
 
     #[test]
-    fn get_prover_input_info() {
+    fn test_get_relocatable_trace() {
         let program_content =
             include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
         let runner = crate::cairo_run::cairo_run(
@@ -5533,7 +5560,7 @@ mod tests {
             &mut BuiltinHintProcessor::new_empty(),
         )
         .unwrap();
-        let prover_info = runner.get_prover_input_info().unwrap();
+        let relocatable_trace = runner.get_relocatable_trace().unwrap();
         let expected_trace = vec![
             TraceEntry {
                 pc: (0, 15).into(),
@@ -5591,46 +5618,148 @@ mod tests {
                 fp: 3,
             },
         ];
-        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
-        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
-            segment_index: 2,
-            offset: 0,
-        });
-        assert_eq!(prover_info.relocatable_trace, expected_trace);
-        assert_eq!(
-            prover_info.relocatable_memory[0][3],
-            Some(expected_in_memory_0_3)
-        );
-        assert_eq!(
-            prover_info.relocatable_memory[1][0],
-            Some(expected_in_memory_1_0)
-        );
-        assert!(prover_info.public_memory_offsets.is_empty());
-        assert_eq!(
-            prover_info.builtins_segments,
-            BTreeMap::from([(2, BuiltinName::ecdsa)])
-        );
+        assert_eq!(relocatable_trace, expected_trace);
     }
 
     #[test]
-    fn test_output_not_builtin_segment() {
+    fn test_get_relocatable_memory() {
         let program_content =
-            include_bytes!("../../../../cairo_programs/proof_programs/split_felt.json");
+            include_bytes!("../../../../cairo_programs/proof_programs/common_signature.json");
         let runner = crate::cairo_run::cairo_run(
             program_content,
             &CairoRunConfig {
-                trace_enabled: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             },
             &mut BuiltinHintProcessor::new_empty(),
         )
         .unwrap();
-        let prover_info = runner.get_prover_input_info().unwrap();
+        let relocatable_memory = runner.get_relocatable_memory();
 
-        assert!(!prover_info
-            .builtins_segments
-            .values()
-            .any(|v| *v == BuiltinName::output));
+        let expected_in_memory_0_3 = MaybeRelocatable::Int(13.into());
+        let expected_in_memory_1_0 = MaybeRelocatable::RelocatableValue(Relocatable {
+            segment_index: 2,
+            offset: 0,
+        });
+
+        assert_eq!(relocatable_memory[0][3], Some(expected_in_memory_0_3));
+        assert_eq!(relocatable_memory[1][0], Some(expected_in_memory_1_0));
+    }
+
+    #[test]
+    fn test_get_builtin_segments() {
+        let program_content =
+            include_bytes!("../../../../cairo_programs/proof_programs/bitwise_builtin_test.json");
+        let runner = crate::cairo_run::cairo_run(
+            program_content,
+            &CairoRunConfig {
+                layout: LayoutName::all_cairo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        let builtin_segments = runner.get_builtin_segments();
+
+        assert_eq!(builtin_segments[&2], BuiltinName::bitwise);
+    }
+
+    #[test]
+    fn end_run_fill_builtins() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/keccak_uint256.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let proof_mode = true;
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, proof_mode, true);
+
+        let end = cairo_runner.initialize(false).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+
+        // Before end run
+        assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE != 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK != 0);
+
+        assert_matches!(
+            cairo_runner.end_run(false, false, &mut hint_processor, proof_mode),
+            Ok(())
+        );
+
+        // After end run
+        assert!(cairo_runner.vm.segments.memory.data[6].len() as u32 % CELLS_PER_BITWISE == 0);
+        assert!(cairo_runner.vm.segments.memory.data[8].len() as u32 % CELLS_PER_KECCAK == 0);
+        assert!(cairo_runner.vm.segments.memory.data[6].last().is_some());
+        assert!(cairo_runner.vm.segments.memory.data[8].last().is_some());
+
+        let builtin_segments = cairo_runner.get_builtin_segments();
+        assert!(builtin_segments.get(&6) == Some(&BuiltinName::bitwise));
+        assert!(builtin_segments.get(&8) == Some(&BuiltinName::keccak));
+    }
+
+    #[test]
+    fn end_run_fill_middle_holes() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/poseidon_builtin_hole.json"),
+            Some("main"),
+        )
+        .unwrap();
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, true, true);
+
+        let end = cairo_runner.initialize(false).unwrap();
+        cairo_runner
+            .run_until_pc(end, &mut hint_processor)
+            .expect("Call to `CairoRunner::run_until_pc()` failed.");
+
+        // Before end run
+        // In 'poseidon_builtin_hole.cairo' we are not accessing result.s1, so there is a hole in that builtin segment.
+        assert!(cairo_runner.vm.segments.memory.data[9][4].is_none());
+        assert_matches!(
+            cairo_runner.end_run(false, false, &mut hint_processor, true),
+            Ok(())
+        );
+
+        // After end run
+        assert!(!cairo_runner.vm.segments.memory.data[9][4].is_none());
+
+        let builtin_segments = cairo_runner.get_builtin_segments();
+        assert!(builtin_segments.get(&9) == Some(&BuiltinName::poseidon));
+    }
+
+    #[test]
+    #[cfg(feature = "test_utils")]
+    fn test_simulated_builtins() {
+        let program_bytes = include_bytes!("../../../../cairo_programs/simulated_builtins.json");
+        let program =
+            Program::from_bytes(program_bytes, Some("main")).expect("failed to read program");
+
+        let program: &Program = &program;
+        let mut cairo_runner =
+            CairoRunner::new(program, LayoutName::plain, None, false, false, false)
+                .expect("failed to create runner");
+
+        // We allow missing builtins, as we will simulate them later.
+        let end = cairo_runner
+            .initialize(true)
+            .expect("failed to initialize builtins");
+
+        // Initialize the ec_op simulated builtin runner.
+        let mut builtin_runner = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(None, true));
+        builtin_runner.initialize_segments(&mut cairo_runner.vm.segments);
+        cairo_runner
+            .vm
+            .simulated_builtin_runners
+            .push(builtin_runner);
+
+        let hint_processor: &mut dyn HintProcessor = &mut BuiltinHintProcessor::new_empty();
+        cairo_runner
+            .run_until_pc(end, hint_processor)
+            .expect("failed to run program");
     }
 }

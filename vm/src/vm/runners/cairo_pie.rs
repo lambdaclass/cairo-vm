@@ -3,7 +3,10 @@ use crate::stdlib::prelude::{String, Vec};
 use crate::types::builtin_name::BuiltinName;
 use crate::vm::errors::cairo_pie_errors::CairoPieValidationError;
 use crate::{
-    stdlib::{collections::HashMap, prelude::*},
+    stdlib::{
+        collections::{BTreeMap, HashMap},
+        prelude::*,
+    },
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
@@ -72,8 +75,8 @@ impl From<&Vec<usize>> for PublicMemoryPage {
 }
 
 // HashMap value based on starknet/core/os/output.cairo usage
-pub type Attributes = HashMap<String, Vec<usize>>;
-pub type Pages = HashMap<usize, PublicMemoryPage>;
+pub type Attributes = BTreeMap<String, Vec<usize>>;
+pub type Pages = BTreeMap<usize, PublicMemoryPage>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OutputBuiltinAdditionalData {
@@ -93,7 +96,7 @@ pub enum BuiltinAdditionalData {
     Output(OutputBuiltinAdditionalData),
     // Signatures are composed of (r, s) tuples
     #[serde(with = "serde_impl::signature_additional_data")]
-    Signature(HashMap<Relocatable, (Felt252, Felt252)>),
+    Signature(BTreeMap<Relocatable, (Felt252, Felt252)>),
     None,
 }
 
@@ -125,7 +128,7 @@ impl PartialEq for BuiltinAdditionalData {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CairoPieAdditionalData(
     #[serde(with = "crate::types::builtin_name::serde_generic_map_impl")]
-    pub  HashMap<BuiltinName, BuiltinAdditionalData>,
+    pub  BTreeMap<BuiltinName, BuiltinAdditionalData>,
 );
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -145,7 +148,7 @@ pub struct CairoPieMetadata {
     pub ret_fp_segment: SegmentInfo,
     pub ret_pc_segment: SegmentInfo,
     #[serde(serialize_with = "serde_impl::serialize_builtin_segments")]
-    pub builtin_segments: HashMap<BuiltinName, SegmentInfo>,
+    pub builtin_segments: BTreeMap<BuiltinName, SegmentInfo>,
     pub extra_segments: Vec<SegmentInfo>,
 }
 
@@ -321,8 +324,9 @@ impl CairoPie {
 
         let file = File::create(file_path)?;
         let mut zip_writer = ZipWriter::new(file);
-        let options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = zip::write::FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .large_file(true);
 
         zip_writer.start_file("version.json", options)?;
         serde_json::to_writer(&mut zip_writer, &self.version)?;
@@ -435,7 +439,7 @@ impl CairoPie {
 }
 
 pub(super) mod serde_impl {
-    use crate::stdlib::collections::HashMap;
+    use crate::stdlib::collections::{BTreeMap, HashMap};
     use crate::types::builtin_name::BuiltinName;
     use num_traits::Num;
 
@@ -761,7 +765,7 @@ pub(super) mod serde_impl {
         use super::*;
 
         pub fn serialize<S>(
-            values: &HashMap<Relocatable, (Felt252, Felt252)>,
+            values: &BTreeMap<Relocatable, (Felt252, Felt252)>,
             serializer: S,
         ) -> Result<S::Ok, S::Error>
         where
@@ -783,30 +787,30 @@ pub(super) mod serde_impl {
 
         pub fn deserialize<'de, D>(
             d: D,
-        ) -> Result<HashMap<Relocatable, (Felt252, Felt252)>, D::Error>
+        ) -> Result<BTreeMap<Relocatable, (Felt252, Felt252)>, D::Error>
         where
             D: Deserializer<'de>,
         {
             let number_map = Vec::<((Number, Number), (Number, Number))>::deserialize(d)?;
-            let mut res = HashMap::with_capacity(number_map.len());
-            for ((index, offset), (r, s)) in number_map.into_iter() {
-                let addr = Relocatable::from((
-                    index
+            number_map
+                .into_iter()
+                .map(|((index, offset), (r, s))| {
+                    let idx = index
                         .as_u64()
                         .ok_or_else(|| D::Error::custom("Invalid address"))?
-                        as isize,
-                    offset
+                        as isize;
+                    let off = offset
                         .as_u64()
                         .ok_or_else(|| D::Error::custom("Invalid address"))?
-                        as usize,
-                ));
-                let r = Felt252::from_dec_str(r.as_str())
-                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
-                let s = Felt252::from_dec_str(s.as_str())
-                    .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
-                res.insert(addr, (r, s));
-            }
-            Ok(res)
+                        as usize;
+                    let addr = Relocatable::from((idx, off));
+                    let r = Felt252::from_dec_str(r.as_str())
+                        .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                    let s = Felt252::from_dec_str(s.as_str())
+                        .map_err(|_| D::Error::custom("Invalid Felt252 value"))?;
+                    Ok((addr, (r, s)))
+                })
+                .collect::<Result<BTreeMap<_, _>, D::Error>>()
         }
     }
 
@@ -840,7 +844,7 @@ pub(super) mod serde_impl {
     }
 
     pub fn serialize_builtin_segments<S>(
-        values: &HashMap<BuiltinName, SegmentInfo>,
+        values: &BTreeMap<BuiltinName, SegmentInfo>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where

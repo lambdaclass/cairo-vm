@@ -21,7 +21,6 @@ std = [
     "dep:zip",
 ]
 cairo-1-hints = [
-    "dep:cairo-lang-starknet",
     "dep:cairo-lang-casm",
     "dep:cairo-lang-starknet-classes",
     "dep:ark-ff",
@@ -46,7 +45,6 @@ num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-hex = { workspace = true }
 bincode = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
@@ -59,7 +57,7 @@ keccak = { workspace = true }
 hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-starknet-types-core = { version = "0.1.2", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
+starknet-types-core = { version = "=0.1.8", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
 # only for std
@@ -67,7 +65,6 @@ num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
 bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature
-cairo-lang-starknet = { workspace = true, optional = true }
 cairo-lang-starknet-classes = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
 

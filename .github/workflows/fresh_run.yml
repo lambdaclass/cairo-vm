@@ -38,10 +38,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.87.0
 
-    - name: Install Pyenv
-      uses: "gabrielfalcao/pyenv-action@v13"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
 
     - name: Install Rosetta
       if: matrix.os_name == 'macos'
@@ -49,7 +51,10 @@ jobs:
 
     - name: Run make deps${{ matrix.deps_suffix }}
       id: deps
-      run: make deps${{ matrix.deps_suffix }}
+      run: |
+          make deps${{ matrix.deps_suffix }}
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Run make build
       id: build
