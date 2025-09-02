@@ -526,11 +526,10 @@ impl VirtualMachine {
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &[Box<dyn Any>],
-        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         for (hint_index, hint_data) in hint_datas.iter().enumerate() {
             hint_processor
-                .execute_hint(self, exec_scopes, hint_data, constants)
+                .execute_hint(self, exec_scopes, hint_data)
                 .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
         }
         Ok(())
@@ -543,7 +542,6 @@ impl VirtualMachine {
         exec_scopes: &mut ExecutionScopes,
         hint_datas: &mut Vec<Box<dyn Any>>,
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
-        constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         // Check if there is a hint range for the current pc
         if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
@@ -556,7 +554,6 @@ impl VirtualMachine {
                         self,
                         exec_scopes,
                         hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
-                        constants,
                     )
                     .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
                 // Update the hint_ranges & hint_datas with the hints added by the executed hint
@@ -617,7 +614,7 @@ impl VirtualMachine {
         #[cfg(feature = "extensive_hints")] hint_datas: &mut Vec<Box<dyn Any>>,
         #[cfg(not(feature = "extensive_hints"))] hint_datas: &[Box<dyn Any>],
         #[cfg(feature = "extensive_hints")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
-        constants: &HashMap<String, Felt252>,
+        #[cfg(feature = "test_utils")] constants: &HashMap<String, Felt252>,
     ) -> Result<(), VirtualMachineError> {
         self.step_hint(
             hint_processor,
@@ -625,7 +622,6 @@ impl VirtualMachine {
             hint_datas,
             #[cfg(feature = "extensive_hints")]
             hint_ranges,
-            constants,
         )?;
 
         #[cfg(feature = "test_utils")]
@@ -3271,6 +3267,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new(),
             ),
             Ok(())
@@ -3508,6 +3505,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new(),
             ),
             Ok(())
@@ -3592,6 +3590,7 @@ mod tests {
                     &mut Vec::new(),
                     #[cfg(feature = "extensive_hints")]
                     &mut HashMap::new(),
+                    #[cfg(feature = "test_utils")]
                     &HashMap::new()
                 ),
                 Ok(())
@@ -3701,6 +3700,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new()
             ),
             Ok(())
@@ -3724,6 +3724,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new()
             ),
             Ok(())
@@ -3748,6 +3749,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new()
             ),
             Ok(())
@@ -4325,6 +4327,7 @@ mod tests {
                         Relocatable::from((0, 0)),
                         (0_usize, NonZeroUsize::new(1).unwrap())
                     )]),
+                    #[cfg(feature = "test_utils")]
                     &HashMap::new(),
                 ),
                 Ok(())
@@ -5348,6 +5351,7 @@ mod tests {
                 &mut Vec::new(),
                 #[cfg(feature = "extensive_hints")]
                 &mut HashMap::new(),
+                #[cfg(feature = "test_utils")]
                 &HashMap::new()
             ),
             Ok(())
@@ -5435,6 +5439,7 @@ mod tests {
                     &mut Vec::new(),
                     #[cfg(feature = "extensive_hints")]
                     &mut HashMap::new(),
+                    #[cfg(feature = "test_utils")]
                     &HashMap::new()
                 ),
                 Ok(())
