@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(breaking): Resolve constants by full path [#2192](https://github.com/lambdaclass/cairo-vm/pull/2192)
+
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
 
 #### [2.4.0] - 2025-27-29
