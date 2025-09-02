@@ -307,6 +307,7 @@ pub fn vm_load_program(
         &reference_ids,
         &references,
         &accessible_scopes,
+        &HashMap::default(),
     )?;
     // Create the hint extension
     // As the hint from the compiled constract has offset 0, the hint pc will be equal to the loaded contract's program base:

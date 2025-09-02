@@ -78,6 +78,7 @@ fn run() {
                     &reference_ids,
                     &references,
                     &accessible_scopes,
+                    &HashMap::default(),
                 )
                 .expect("this implementation is infallible");
             matches!(

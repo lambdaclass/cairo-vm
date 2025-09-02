@@ -23,6 +23,7 @@ use super::{
         pack::*,
     },
 };
+use crate::serde::deserialize_program::Identifier;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
@@ -133,6 +134,7 @@ pub struct HintProcessorData {
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub accessible_scopes: Vec<String>,
+    pub identifiers: HashMap<String, Identifier>,
 }
 
 impl HintProcessorData {
@@ -142,6 +144,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             accessible_scopes: vec![],
+            identifiers: HashMap::new(),
         }
     }
 }
