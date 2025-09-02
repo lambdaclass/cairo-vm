@@ -64,7 +64,13 @@ fn run() {
         .map(|ahe| ahe.hint_lines.join("\n"))
         .filter(|h| {
             let hint_data = hint_executor
-                .compile_hint(h, &ap_tracking_data, &reference_ids, &references)
+                .compile_hint(
+                    h,
+                    &ap_tracking_data,
+                    &reference_ids,
+                    &references,
+                    &HashMap::default(),
+                )
                 .expect("this implementation is infallible");
             matches!(
                 hint_executor.execute_hint(&mut vm, &mut exec_scopes, &hint_data, &constants,),
