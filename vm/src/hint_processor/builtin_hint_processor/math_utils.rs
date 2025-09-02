@@ -1,8 +1,9 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     math_utils::signed_felt,
+    serde::deserialize_program::Identifier,
     stdlib::{boxed::Box, collections::HashMap, prelude::*},
-    types::errors::math_errors::MathError,
+    types::{errors::math_errors::MathError, program::Program},
 };
 use lazy_static::lazy_static;
 use num_traits::{Signed, Zero};
@@ -384,15 +385,18 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
 ) -> Result<(), HintError> {
     let assert = |b: bool, msg: &str| {
         b.then_some(())
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+
+    let constants = Program::extract_constants(identifiers).unwrap();
+    let max_high = get_constant_from_var_name("MAX_HIGH", &constants)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", &constants)?;
+
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
