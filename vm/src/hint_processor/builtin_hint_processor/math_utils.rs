@@ -391,10 +391,8 @@ pub fn split_felt(
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-
     let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
     let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
-
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
@@ -754,7 +752,6 @@ pub fn split_xx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::rc::Rc;
     use crate::{felt_hex, felt_str};
     use core::ops::Neg;
 
@@ -2065,13 +2062,6 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            (
-                "MAX_HIGH".to_string(),
-                felt_str!("10633823966279327296825105735305134080"),
-            ),
-        ]);
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2079,8 +2069,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
             ),
             Ok(())
         );
@@ -2107,15 +2102,6 @@ mod tests {
         //Create incomplete ids
         //Create ids_data & hint_data
         let ids_data = ids_data!["low"];
-
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            (
-                "MAX_HIGH".to_string(),
-                felt_str!("10633823966279327296825105735305134080"),
-            ),
-        ]);
-
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2123,8 +2109,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
             ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
@@ -2156,14 +2147,6 @@ mod tests {
             ),
         ]);
 
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            (
-                "MAX_HIGH".to_string(),
-                felt_str!("10633823966279327296825105735305134080"),
-            ),
-        ]);
-
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2171,8 +2154,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2208,15 +2196,6 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
-
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            (
-                "MAX_HIGH".to_string(),
-                felt_str!("10633823966279327296825105735305134080"),
-            ),
-        ]);
-
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2224,8 +2203,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2256,13 +2240,6 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            (
-                "MAX_HIGH".to_string(),
-                felt_str!("10633823966279327296825105735305134080"),
-            ),
-        ]);
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2270,8 +2247,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        felt_str!("10633823966279327296825105735305134080")
+                    )
+                ])
             ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
@@ -2334,12 +2316,6 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
-
-        let identifiers = HashMap::from([
-            ("a.MAX_LOW".to_string(), Felt252::from(-1)),
-            ("a.MAX_HIGH".to_string(), Felt252::from(-1)),
-        ]);
-
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2347,8 +2323,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::from(-1)),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::from(-1),
+                    )
+                ])
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
         );
@@ -2379,12 +2360,6 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
-
-        let identifiers = HashMap::from([
-            ("MAX_LOW".to_string(), Felt252::ZERO),
-            ("MAX_HIGH".to_string(), Felt252::ZERO),
-        ]);
-
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2392,8 +2367,13 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::default(),
-                identifiers
+                &HashMap::from([
+                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    (
+                        "MAX_HIGH".to_string(),
+                        Felt252::ZERO,
+                    )
+                ])
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );
