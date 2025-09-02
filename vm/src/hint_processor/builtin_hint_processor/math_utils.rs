@@ -1,9 +1,8 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     math_utils::signed_felt,
-    serde::deserialize_program::Identifier,
     stdlib::{boxed::Box, collections::HashMap, prelude::*},
-    types::{errors::math_errors::MathError, program::Program},
+    types::errors::math_errors::MathError,
 };
 use lazy_static::lazy_static;
 use num_traits::{Signed, Zero};
@@ -385,7 +384,7 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    identifiers: &HashMap<String, Identifier>,
+    constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let assert = |b: bool, msg: &str| {
         b.then_some(())
@@ -393,9 +392,8 @@ pub fn split_felt(
     };
     let bound = pow2_const(128);
 
-    let constants = Program::extract_constants(identifiers).unwrap();
-    let max_high = get_constant_from_var_name("MAX_HIGH", &constants)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", &constants)?;
+    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
 
     assert(
         max_high < &bound && max_low < &bound,
@@ -756,6 +754,7 @@ pub fn split_xx(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::rc::Rc;
     use crate::{felt_hex, felt_str};
     use core::ops::Neg;
 
@@ -2067,31 +2066,10 @@ mod tests {
             ),
         ]);
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
             (
                 "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(felt_str!("10633823966279327296825105735305134080")),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
+                felt_str!("10633823966279327296825105735305134080"),
             ),
         ]);
         //Execute the hint
@@ -2131,31 +2109,10 @@ mod tests {
         let ids_data = ids_data!["low"];
 
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
             (
                 "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(felt_str!("10633823966279327296825105735305134080")),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
+                felt_str!("10633823966279327296825105735305134080"),
             ),
         ]);
 
@@ -2200,31 +2157,10 @@ mod tests {
         ]);
 
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
             (
                 "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(felt_str!("10633823966279327296825105735305134080")),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
+                felt_str!("10633823966279327296825105735305134080"),
             ),
         ]);
 
@@ -2274,31 +2210,10 @@ mod tests {
         ]);
 
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
             (
                 "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(felt_str!("10633823966279327296825105735305134080")),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
+                felt_str!("10633823966279327296825105735305134080"),
             ),
         ]);
 
@@ -2342,31 +2257,10 @@ mod tests {
             ),
         ]);
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
             (
                 "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(felt_str!("10633823966279327296825105735305134080")),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
+                felt_str!("10633823966279327296825105735305134080"),
             ),
         ]);
         //Execute the hint
@@ -2442,32 +2336,8 @@ mod tests {
         ]);
 
         let identifiers = HashMap::from([
-            (
-                "a.MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::from(-1)),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
-            (
-                "a.MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::from(-1)),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("a.MAX_LOW".to_string(), Felt252::from(-1)),
+            ("a.MAX_HIGH".to_string(), Felt252::from(-1)),
         ]);
 
         //Execute the hint
@@ -2511,32 +2381,8 @@ mod tests {
         ]);
 
         let identifiers = HashMap::from([
-            (
-                "MAX_LOW".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
-            (
-                "MAX_HIGH".to_string(),
-                Identifier {
-                    pc: None,
-                    type_: Some("const".to_string()),
-                    value: Some(Felt252::ZERO),
-                    full_name: None,
-                    members: None,
-                    cairo_type: None,
-                    size: None,
-                    destination: None,
-                },
-            ),
+            ("MAX_LOW".to_string(), Felt252::ZERO),
+            ("MAX_HIGH".to_string(), Felt252::ZERO),
         ]);
 
         //Execute the hint

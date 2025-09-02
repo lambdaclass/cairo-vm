@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
 
 use crate::any_box;
+use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
 use crate::serde::deserialize_program::Reference;
-use crate::serde::deserialize_program::{ApTracking, Identifier};
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::relocatable::Relocatable;
@@ -46,14 +48,14 @@ pub trait HintProcessorLogic {
         // List of accessible scopes in the hint
         accessible_scopes: &[String],
         // Identifiers stored in the hint's program.
-        identifiers: &HashMap<String, Identifier>,
+        constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
             accessible_scopes: accessible_scopes.to_vec(),
-            identifiers: identifiers.clone(),
+            constants: constants.clone(),
         }))
     }
 
