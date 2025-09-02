@@ -9,7 +9,6 @@ use super::hint_processor_utils::*;
 use crate::any_box;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::serde::deserialize_program::Identifier;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
@@ -31,6 +30,7 @@ use cairo_lang_casm::{
 };
 use core::any::Any;
 use core::ops::Shl;
+use std::rc::Rc;
 
 use num_bigint::{BigInt, BigUint};
 use num_integer::{ExtendedGcd, Integer};
@@ -1265,7 +1265,7 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         //List of all references (key corresponds to element of the previous dictionary)
         _references: &[HintReference],
         // Identifiers stored in the hint's program.
-        _identifiers: &HashMap<String, Identifier>,
+        _constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
         .ok_or_else(|| VirtualMachineError::CompileHintFail(

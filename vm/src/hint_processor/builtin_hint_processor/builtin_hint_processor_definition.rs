@@ -23,7 +23,6 @@ use super::{
         pack::*,
     },
 };
-use crate::serde::deserialize_program::Identifier;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
@@ -133,7 +132,7 @@ pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
-    pub identifiers: HashMap<String, Identifier>,
+    pub constants: Rc<HashMap<String, Felt252>>,
 }
 
 impl HintProcessorData {
@@ -142,7 +141,7 @@ impl HintProcessorData {
             code,
             ap_tracking: ApTracking::default(),
             ids_data,
-            identifiers: HashMap::new(),
+            constants: Rc::default(),
         }
     }
 }
@@ -270,7 +269,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 vm,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
-                &hint_data.identifiers,
+                &hint_data.constants,
             ),
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)

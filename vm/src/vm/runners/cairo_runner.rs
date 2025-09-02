@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -643,6 +645,8 @@ impl CairoRunner {
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
+        let constants = Rc::new(self.program.constants.clone());
+
         self.program
             .shared_program_data
             .hints_collection
@@ -654,7 +658,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.ap_tracking,
                         &hint.flow_tracking_data.reference_ids,
                         references,
-                        &self.program.shared_program_data.identifiers,
+                        constants.clone(),
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
