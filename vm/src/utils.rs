@@ -473,10 +473,11 @@ pub mod test_utils {
     pub(crate) use exec_scopes_ref;
 
     macro_rules! run_hint {
-        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr, $accessible_scopes:expr) => {{
             let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let constants: &HashMap<String, Felt252> = $constants;
             hint_data.constants = crate::stdlib::rc::Rc::new(constants.clone());
+            hint_data.accessible_scopes = $accessible_scopes.to_vec();
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};

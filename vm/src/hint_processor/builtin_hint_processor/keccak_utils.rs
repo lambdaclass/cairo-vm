@@ -363,7 +363,8 @@ mod tests {
                 ids_data,
                 hint_code::SPLIT_N_BYTES,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))]),
+                &["starkware.cairo.common.builtin_keccak.keccak".to_string()]
             ),
             Ok(())
         );
@@ -382,7 +383,8 @@ mod tests {
                 ids_data,
                 hint_code::SPLIT_OUTPUT_MID_LOW_HIGH,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
+                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))]),
+                &["starkware.cairo.common.builtin_keccak.keccak".to_string()]
             ),
             Ok(())
         );

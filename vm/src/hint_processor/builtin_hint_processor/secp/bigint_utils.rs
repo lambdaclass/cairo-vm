@@ -236,7 +236,8 @@ mod tests {
                 &[(BASE_86, crate::math_utils::pow2_const(86))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_secp.constants".to_string()]
             ),
             Ok(())
         );
