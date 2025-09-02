@@ -2066,6 +2066,34 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(felt_str!("10633823966279327296825105735305134080")),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2073,13 +2101,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Ok(())
         );
@@ -2106,6 +2129,36 @@ mod tests {
         //Create incomplete ids
         //Create ids_data & hint_data
         let ids_data = ids_data!["low"];
+
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(felt_str!("10633823966279327296825105735305134080")),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
+
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2113,13 +2166,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
@@ -2151,6 +2199,35 @@ mod tests {
             ),
         ]);
 
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(felt_str!("10633823966279327296825105735305134080")),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
+
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2158,13 +2235,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2200,6 +2272,36 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(felt_str!("10633823966279327296825105735305134080")),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
+
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2207,13 +2309,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2244,6 +2341,34 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(felt_str!("10633823966279327296825105735305134080")),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2251,13 +2376,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
@@ -2320,6 +2440,36 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+
+        let identifiers = HashMap::from([
+            (
+                "a.MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::from(-1)),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "a.MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::from(-1)),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
+
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2327,13 +2477,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::from(-1)),
-                    (
-                        "MAX_HIGH".to_string(),
-                        Felt252::from(-1),
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
         );
@@ -2364,6 +2509,36 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+
+        let identifiers = HashMap::from([
+            (
+                "MAX_LOW".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+            (
+                "MAX_HIGH".to_string(),
+                Identifier {
+                    pc: None,
+                    type_: Some("const".to_string()),
+                    value: Some(Felt252::ZERO),
+                    full_name: None,
+                    members: None,
+                    cairo_type: None,
+                    size: None,
+                    destination: None,
+                },
+            ),
+        ]);
+
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2371,13 +2546,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        Felt252::ZERO,
-                    )
-                ])
+                &HashMap::default(),
+                identifiers
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );
