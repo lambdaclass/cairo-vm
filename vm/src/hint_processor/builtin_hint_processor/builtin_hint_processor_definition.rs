@@ -133,6 +133,7 @@ pub struct HintProcessorData {
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub constants: Rc<HashMap<String, Felt252>>,
+    pub accessible_scopes: Vec<String>,
 }
 
 impl HintProcessorData {
@@ -142,6 +143,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             constants: Default::default(),
+            accessible_scopes: Default::default(),
         }
     }
 }
