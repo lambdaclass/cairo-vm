@@ -473,16 +473,17 @@ pub mod test_utils {
     pub(crate) use exec_scopes_ref;
 
     macro_rules! run_hint {
-        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr, $identifiers:expr) => {{
-            let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            hint_data.constants = Rc::new($identifiers);
-            let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
-        }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
-            let hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
+            let constants: &HashMap<String, Felt252> = $constants;
+            hint_data.constants = crate::stdlib::rc::Rc::new(constants.clone());
             let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data), $constants)
+            hint_processor.execute_hint(
+                &mut $vm,
+                $exec_scopes,
+                &any_box!(hint_data),
+                &HashMap::default(),
+            )
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
             let hint_data = HintProcessorData::new_default(

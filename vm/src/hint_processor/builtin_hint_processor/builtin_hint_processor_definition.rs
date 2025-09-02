@@ -191,11 +191,12 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, Felt252>,
+        _constants: &HashMap<String, Felt252>,
     ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
+        let constants = hint_data.constants.as_ref();
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -267,12 +268,9 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "continue_loop",
             ),
-            hint_code::SPLIT_FELT => split_felt(
-                vm,
-                &hint_data.ids_data,
-                &hint_data.ap_tracking,
-                &hint_data.constants,
-            ),
+            hint_code::SPLIT_FELT => {
+                split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
+            }
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
