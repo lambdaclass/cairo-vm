@@ -713,6 +713,7 @@ impl CairoRunner {
                     .unwrap_or(&[]),
                 #[cfg(feature = "extensive_hints")]
                 &mut hint_ranges,
+                #[cfg(feature = "test_utils")]
                 &self.program.constants,
             )?;
 
@@ -769,6 +770,7 @@ impl CairoRunner {
                 hint_data,
                 #[cfg(feature = "extensive_hints")]
                 &mut hint_ranges,
+                #[cfg(feature = "test_utils")]
                 &self.program.constants,
             )?;
         }
