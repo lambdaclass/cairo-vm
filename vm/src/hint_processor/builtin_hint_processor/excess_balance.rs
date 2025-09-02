@@ -263,12 +263,14 @@ pub fn excess_balance_hint(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
+    accessible_scopes: &[String],
     exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     // Fetch constants & variables
     let margin_check_type =
         get_integer_from_var_name("margin_check_type", vm, ids_data, ap_tracking)?;
-    let margin_check_initial = get_constant_from_var_name("MARGIN_CHECK_INITIAL", constants)?;
+    let margin_check_initial =
+        get_constant_from_var_name("MARGIN_CHECK_INITIAL", constants, accessible_scopes)?;
     let token_assets_value_d =
         get_integer_from_var_name("token_assets_value_d", vm, ids_data, ap_tracking)?;
     let account = get_integer_from_var_name("account", vm, ids_data, ap_tracking)?;
@@ -593,7 +595,10 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let constants = HashMap::from([(
+            "__main__.main.MARGIN_CHECK_INITIAL".to_string(),
+            Felt252::ONE,
+        )]);
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),                // ids.margin_check_type
@@ -827,6 +832,7 @@ mod tests {
             &ids,
             &ApTracking::default(),
             &constants,
+            &["__main__.main".to_string()],
             &exec_scopes
         )
         .is_ok());
@@ -935,7 +941,10 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let constants = HashMap::from([(
+            "__main__.main.MARGIN_CHECK_INITIAL".to_string(),
+            Felt252::ONE,
+        )]);
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),      // ids.margin_check_type
@@ -1188,14 +1197,15 @@ mod tests {
         exec_scopes.insert_value("dict_manager", Rc::new(RefCell::new(dict_manager)));
 
         // EXECUTION
-        assert!(excess_balance_hint(
+        excess_balance_hint(
             &mut vm,
             &ids,
             &ApTracking::default(),
             &constants,
-            &exec_scopes
+            &["__main__.main".to_string()],
+            &exec_scopes,
         )
-        .is_ok());
+        .unwrap();
 
         // CHECK MEMORY VALUES
         check_memory![

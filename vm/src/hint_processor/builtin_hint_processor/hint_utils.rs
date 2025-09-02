@@ -177,11 +177,12 @@ pub fn get_reference_from_var_name<'a>(
 pub fn get_constant_from_var_name<'a>(
     var_name: &'static str,
     constants: &'a HashMap<String, Felt252>,
+    accessible_scopes: &[String],
 ) -> Result<&'a Felt252, HintError> {
-    constants
+    accessible_scopes
         .iter()
-        .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
-        .map(|(_, n)| n)
+        .rev()
+        .find_map(|scope| constants.get(&format!("{}.{}", scope, var_name)))
         .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
 }
 

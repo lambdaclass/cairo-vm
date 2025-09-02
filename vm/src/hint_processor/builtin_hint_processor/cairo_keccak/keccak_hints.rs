@@ -365,7 +365,6 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
 
     use crate::{
         any_box,
@@ -457,7 +456,8 @@ mod tests {
                 &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_keccak.keccak".to_string()]
             ),
             Ok(())
         );
@@ -486,7 +486,8 @@ mod tests {
                 &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_keccak.keccak".to_string()]
             ),
             Ok(())
         );
@@ -514,7 +515,8 @@ mod tests {
                 &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_keccak.keccak".to_string()]
             ),
             Ok(())
         );

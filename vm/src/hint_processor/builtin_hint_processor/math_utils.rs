@@ -385,14 +385,15 @@ pub fn split_felt(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let assert = |b: bool, msg: &str| {
         b.then_some(())
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+    let max_high = get_constant_from_var_name("MAX_HIGH", constants, accessible_scopes)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", constants, accessible_scopes)?;
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
@@ -522,16 +523,11 @@ pub fn assert_250_bit(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
     //Declare constant values
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", constants, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", constants, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -941,7 +937,8 @@ mod tests {
                 ids_data,
                 hint_code::ASSERT_LE_FELT,
                 &mut exec_scopes,
-                &constants
+                &constants,
+                &["starkware.cairo.common.math.assert_le_felt".to_string()]
             ),
             Ok(())
         );
@@ -1126,7 +1123,14 @@ mod tests {
         add_segments!(vm, 1);
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants,
+                &["starkware.cairo.common.math.assert_le_felt".to_string()]
+            ),
             Err(HintError::NonLeFelt252(bx)) if *bx == (Felt252::from(2), Felt252::ONE)
         );
     }
@@ -1152,7 +1156,14 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants,
+                &["starkware.cairo.common.math.assert_le_felt".to_string()]
+            ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
@@ -1178,7 +1189,14 @@ mod tests {
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code::ASSERT_LE_FELT,
+                &mut exec_scopes,
+                &constants,
+                &["starkware.cairo.common.math.assert_le_felt".to_string()]
+            ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "b"
         );
     }
@@ -1859,8 +1877,8 @@ mod tests {
     fn run_assert_250_bit_valid() {
         let hint_code = hint_code::ASSERT_250_BITS;
         let constants = HashMap::from([
-            ("UPPER_BOUND".to_string(), Felt252::from(15)),
-            ("SHIFT".to_string(), Felt252::from(5)),
+            ("__main__.main.UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("__main__.main.SHIFT".to_string(), Felt252::from(5)),
         ]);
         let mut vm = vm!();
         //Initialize fp
@@ -1871,7 +1889,14 @@ mod tests {
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes_ref!(),
+                &constants,
+                &["__main__.main".to_string()]
+            ),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -1884,8 +1909,8 @@ mod tests {
     fn run_assert_250_bit_invalid() {
         let hint_code = hint_code::ASSERT_250_BITS;
         let constants = HashMap::from([
-            ("UPPER_BOUND".to_string(), Felt252::from(15)),
-            ("SHIFT".to_string(), Felt252::from(5)),
+            ("__main__.main.UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("__main__.main.SHIFT".to_string(), Felt252::from(5)),
         ]);
         let mut vm = vm!();
         //Initialize fp
@@ -1903,7 +1928,14 @@ mod tests {
         let ids_data = ids_data!["value", "high", "low"];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes_ref!(),
+                &constants,
+                &["__main__.main".to_string()]
+            ),
             Err(HintError::ValueOutside250BitRange(bx)) if *bx == pow2_const(251)
         );
     }
@@ -1979,7 +2011,8 @@ mod tests {
                 &[(ADDR_BOUND, addr_bound)]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.starknet.common.storage".to_string()]
             ),
             Ok(())
         );
@@ -2012,7 +2045,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([(ADDR_BOUND.to_string(), addr_bound)])
+                &HashMap::from([(ADDR_BOUND.to_string(), addr_bound)]),
+                &["starkware.starknet.common.storage".to_string()]
             ),
             Err(HintError::AssertionFailed(bx))
                 if bx.as_ref() == "normalize_address() cannot be used with the current constants."
@@ -2070,12 +2104,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Ok(())
         );
@@ -2110,12 +2145,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
@@ -2155,12 +2191,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2204,12 +2241,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2248,12 +2286,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         felt_str!("10633823966279327296825105735305134080")
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
@@ -2324,12 +2363,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::from(-1)),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::from(-1)),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         Felt252::from(-1),
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
         );
@@ -2368,12 +2408,13 @@ mod tests {
                 hint_code,
                 exec_scopes_ref!(),
                 &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
+                    ("__main__.main.MAX_LOW".to_string(), Felt252::ZERO),
                     (
-                        "MAX_HIGH".to_string(),
+                        "__main__.main.MAX_HIGH".to_string(),
                         Felt252::ZERO,
                     )
-                ])
+                ]),
+                &["__main__.main".to_string()]
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );

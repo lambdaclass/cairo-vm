@@ -133,6 +133,7 @@ pub struct HintProcessorData {
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub constants: Rc<HashMap<String, Felt252>>,
+    pub accessible_scopes: Vec<String>,
 }
 
 impl HintProcessorData {
@@ -142,6 +143,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             constants: Default::default(),
+            accessible_scopes: Default::default(),
         }
     }
 }
@@ -194,6 +196,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
         let constants = hint_data.constants.as_ref();
+        let accessible_scopes = hint_data.accessible_scopes.as_slice();
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -221,9 +224,13 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::ASSERT_LE_FELT_EXCLUDED_1 => assert_le_felt_excluded_1(vm, exec_scopes),
             hint_code::ASSERT_LE_FELT_EXCLUDED_0 => assert_le_felt_excluded_0(vm, exec_scopes),
             hint_code::IS_LE_FELT => is_le_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            hint_code::ASSERT_250_BITS => {
-                assert_250_bit(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
-            }
+            hint_code::ASSERT_250_BITS => assert_250_bit(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                accessible_scopes,
+            ),
             hint_code::IS_250_BITS => is_250_bits(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_ADDR_BOUNDED => {
                 is_addr_bounded(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
@@ -265,9 +272,13 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 "continue_loop",
             ),
-            hint_code::SPLIT_FELT => {
-                split_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
-            }
+            hint_code::SPLIT_FELT => split_felt(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                accessible_scopes,
+            ),
             hint_code::UNSIGNED_DIV_REM => {
                 unsigned_div_rem(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -664,12 +675,14 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                accessible_scopes,
             ),
             hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH => sha256_main_arbitrary_input_length(
                 vm,
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                accessible_scopes,
             ),
             hint_code::SHA256_INPUT => {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -796,9 +809,13 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::UINT384_SPLIT_128 => {
                 uint384_split_128(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
-            hint_code::ADD_NO_UINT384_CHECK => {
-                add_no_uint384_check(vm, &hint_data.ids_data, &hint_data.ap_tracking, constants)
-            }
+            hint_code::ADD_NO_UINT384_CHECK => add_no_uint384_check(
+                vm,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                constants,
+                accessible_scopes,
+            ),
             hint_code::UINT384_SQRT => {
                 uint384_sqrt(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
@@ -890,6 +907,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                accessible_scopes,
                 exec_scopes,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
@@ -907,6 +925,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ids_data,
                 &hint_data.ap_tracking,
                 constants,
+                accessible_scopes,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X => cairo0_hints::secp_double_assign_new_x(

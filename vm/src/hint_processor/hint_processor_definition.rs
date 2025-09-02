@@ -43,12 +43,15 @@ pub trait HintProcessorLogic {
         references: &[HintReference],
         // Identifiers stored in the hint's program.
         constants: Rc<HashMap<String, Felt252>>,
+        // List of accessible scopes in the hint
+        accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
             constants,
+            accessible_scopes: accessible_scopes.to_vec(),
         }))
     }
 

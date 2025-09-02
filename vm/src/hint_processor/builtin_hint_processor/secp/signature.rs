@@ -261,7 +261,8 @@ mod tests {
                 &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_secp.constants".to_string()]
             ),
             Ok(())
         )
@@ -291,7 +292,8 @@ mod tests {
                 &[(BETA, Felt252::from(7)),]
                     .into_iter()
                     .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                    .collect(),
+                &["starkware.cairo.common.cairo_secp.constants".to_string()]
             ),
             Ok(())
         );

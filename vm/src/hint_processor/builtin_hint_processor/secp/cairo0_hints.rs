@@ -167,18 +167,13 @@ pub fn compute_ids_high_low(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", constants, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", constants, accessible_scopes)?;
 
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -505,10 +500,10 @@ mod tests {
 
         let constants = HashMap::from([
             (
-                "UPPER_BOUND".to_string(),
+                "__main__.main.UPPER_BOUND".to_string(),
                 Felt252::from(18446744069414584321_u128),
             ),
-            ("SHIFT".to_string(), Felt252::from(12)),
+            ("__main__.main.SHIFT".to_string(), Felt252::from(12)),
         ]);
         compute_ids_high_low(
             &mut vm,
@@ -516,6 +511,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &constants,
+            &["__main__.main".to_string()],
         )
         .expect("compute_ids_high_low() failed");
 
