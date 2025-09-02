@@ -1266,6 +1266,7 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         _references: &[HintReference],
         // Identifiers stored in the hint's program.
         _constants: Rc<HashMap<String, Felt252>>,
+        _accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
         .ok_or_else(|| VirtualMachineError::CompileHintFail(
