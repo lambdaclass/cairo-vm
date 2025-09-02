@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+
 #### [2.3.1] - 2025-07-29
 
 * chore: Pin types-rs version to 0.1.8 [#2146](https://github.com/lambdaclass/cairo-vm/pull/2146)
