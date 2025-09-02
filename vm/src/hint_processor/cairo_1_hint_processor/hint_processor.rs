@@ -9,6 +9,7 @@ use super::hint_processor_utils::*;
 use crate::any_box;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
+use crate::stdlib::rc::Rc;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
@@ -30,7 +31,6 @@ use cairo_lang_casm::{
 };
 use core::any::Any;
 use core::ops::Shl;
-use std::rc::Rc;
 
 use num_bigint::{BigInt, BigUint};
 use num_integer::{ExtendedGcd, Integer};

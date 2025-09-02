@@ -1,6 +1,4 @@
 #![cfg(feature = "extensive_hints")]
-use std::rc::Rc;
-
 /* This file contains a test that runs the program: cairo_programs/starknet_os_deprecated_cc.cairo
    For testsing purposes, the contract ran by this program is hardcoded, with values taken from compiling:
 
@@ -303,7 +301,7 @@ pub fn vm_load_program(
         &reference_ids,
         &references,
         &accessible_scopes,
-        Rc::default(),
+        Default::default(),
     )?;
     // Create the hint extension
     // As the hint from the compiled constract has offset 0, the hint pc will be equal to the loaded contract's program base:

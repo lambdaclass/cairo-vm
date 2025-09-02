@@ -2,7 +2,6 @@
 #![forbid(unsafe_code)]
 use std::fs::{self, File};
 use std::io::BufReader;
-use std::rc::Rc;
 
 use cairo_vm::stdlib::collections::{HashMap, HashSet};
 use cairo_vm::{
@@ -71,7 +70,7 @@ fn run() {
                     &reference_ids,
                     &references,
                     &accessible_scopes,
-                    Rc::default(),
+                    Default::default(),
                 )
                 .expect("this implementation is infallible");
             matches!(

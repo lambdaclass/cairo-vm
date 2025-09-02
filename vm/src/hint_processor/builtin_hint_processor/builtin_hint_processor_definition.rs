@@ -143,7 +143,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             accessible_scopes: vec![],
-            constants: Rc::default(),
+            constants: Default::default(),
         }
     }
 }
@@ -1468,14 +1468,14 @@ mod tests {
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data),),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 2);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data),),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 3);
