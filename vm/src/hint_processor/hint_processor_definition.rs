@@ -1,6 +1,4 @@
-use std::rc::Rc;
-
-use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
@@ -50,7 +48,7 @@ pub trait HintProcessorLogic {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
-            constants: constants.clone(),
+            constants,
         }))
     }
 
