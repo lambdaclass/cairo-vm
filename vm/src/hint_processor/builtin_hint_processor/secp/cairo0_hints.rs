@@ -7,7 +7,7 @@ use crate::stdlib::{
 
 use crate::define_hint_string_map;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, insert_value_from_var_name,
+    get_integer_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -170,15 +170,16 @@ pub fn compute_ids_high_low(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
+    const UPPER_BOUND: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.UPPER_BOUND";
+    const SHIFT: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.SHIFT";
 
     let upper_bound = constants
         .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(UPPER_BOUND)))?;
     let shift = constants
         .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+        .ok_or_else(|| HintError::MissingConstant(Box::new(SHIFT)))?;
+
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
