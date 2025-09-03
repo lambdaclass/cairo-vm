@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [2.4.1] - 2025-09-03
+
 * fix: Fix compute_ids_high_low hint constant path [#2193](https://github.com/lambdaclass/cairo-vm/pull/2193)
 
 #### [2.4.0] - 2025-08-28
