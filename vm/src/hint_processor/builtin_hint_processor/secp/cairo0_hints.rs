@@ -7,7 +7,7 @@ use crate::stdlib::{
 
 use crate::define_hint_string_map;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_integer_from_var_name, insert_value_from_var_name,
+    get_constant_from_var_name, get_integer_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -175,11 +175,10 @@ pub fn compute_ids_high_low(
 
     let upper_bound = constants
         .get(UPPER_BOUND)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(UPPER_BOUND)))?;
+        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
     let shift = constants
         .get(SHIFT)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(SHIFT)))?;
-
+        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
