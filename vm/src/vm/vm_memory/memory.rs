@@ -286,12 +286,95 @@ impl Memory {
         }
         Ok(addr.into())
     }
+    #[cfg(not(feature = "extensive_hints"))]
+    fn flatten_relocation_rules(&mut self) -> Result<(), MemoryError> {
+        let keys: Vec<usize> = self.relocation_rules.keys().copied().collect();
+        let max_hops = self.relocation_rules.len().saturating_add(1);
+        for key in keys {
+            let mut dst = *self
+                .relocation_rules
+                .get(&key)
+                .expect("key taken from keys vec must exist");
+
+            let mut hops = 0usize;
+            while dst.segment_index < 0 {
+                let next_key = (-(dst.segment_index + 1)) as usize;
+                let next = *self.relocation_rules.get(&next_key).ok_or_else(|| {
+                    MemoryError::UnallocatedSegment(Box::new((next_key, self.temp_data.len())))
+                })?;
+                dst = (next + dst.offset).map_err(MemoryError::Math)?;
+                hops += 1;
+                if hops > max_hops {
+                    return Err(MemoryError::Relocation); // cycle guard
+                }
+            }
+            self.relocation_rules.insert(key, dst);
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules(&mut self) -> Result<(), MemoryError> {
+        let keys: Vec<usize> = self.relocation_rules.keys().copied().collect();
+        let max_hops = self.relocation_rules.len().saturating_add(1);
+        for key in keys {
+            let mut dst = self
+                .relocation_rules
+                .get(&key)
+                .expect("key taken from keys vec must exist")
+                .clone();
+
+            let mut hops = 0usize;
+            loop {
+                match dst {
+                    MaybeRelocatable::RelocatableValue(r) if r.segment_index < 0 => {
+                        let next_key = (-(r.segment_index + 1)) as usize;
+                        let next = self
+                            .relocation_rules
+                            .get(&next_key)
+                            .ok_or_else(|| {
+                                MemoryError::UnallocatedSegment(Box::new((
+                                    next_key,
+                                    self.temp_data.len(),
+                                )))
+                            })?
+                            .clone();
+
+                        match next {
+                            MaybeRelocatable::RelocatableValue(nr) => {
+                                dst = MaybeRelocatable::RelocatableValue(
+                                    (nr + r.offset).map_err(MemoryError::Math)?,
+                                );
+                            }
+                            MaybeRelocatable::Int(i) => {
+                                if r.offset != 0 {
+                                    return Err(MemoryError::NonZeroOffset(r.offset));
+                                }
+                                dst = MaybeRelocatable::Int(i);
+                            }
+                        }
+                    }
+                    _ => break,
+                }
+                hops += 1;
+                if hops > max_hops {
+                    return Err(MemoryError::Relocation);
+                }
+            }
+            self.relocation_rules.insert(key, dst);
+        }
+        Ok(())
+    }
 
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
         if self.relocation_rules.is_empty() || self.temp_data.is_empty() {
             return Ok(());
         }
+
+        // flatten chains (temp->temp->...->real).
+        self.flatten_relocation_rules()?;
+
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
             for cell in segment.iter_mut() {
@@ -345,6 +428,7 @@ impl Memory {
         self.relocation_rules.clear();
         Ok(())
     }
+
     /// Add a new relocation rule.
     ///
     /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
