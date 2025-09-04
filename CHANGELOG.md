@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
+
 * chore: Pin types-rs version to the one set in lockfile [#2140](https://github.com/lambdaclass/cairo-vm/pull/2140)
 
 *  BREAKING CHANGE: `get_prover_input_info()` now requires `&mut self` and takes ownershop on the trace instead of cloning it. [#2127](https://github.com/lambdaclass/cairo-vm/pull/2127)

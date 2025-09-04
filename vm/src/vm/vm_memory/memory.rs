@@ -286,12 +286,95 @@ impl Memory {
         }
         Ok(addr.into())
     }
+    #[cfg(not(feature = "extensive_hints"))]
+    fn flatten_relocation_rules(&mut self) -> Result<(), MemoryError> {
+        let keys: Vec<usize> = self.relocation_rules.keys().copied().collect();
+        let max_hops = self.relocation_rules.len().saturating_add(1);
+        for key in keys {
+            let mut dst = *self
+                .relocation_rules
+                .get(&key)
+                .expect("key taken from keys vec must exist");
+
+            let mut hops = 0usize;
+            while dst.segment_index < 0 {
+                let next_key = (-(dst.segment_index + 1)) as usize;
+                let next = *self.relocation_rules.get(&next_key).ok_or_else(|| {
+                    MemoryError::UnallocatedSegment(Box::new((next_key, self.temp_data.len())))
+                })?;
+                dst = (next + dst.offset).map_err(MemoryError::Math)?;
+                hops += 1;
+                if hops > max_hops {
+                    return Err(MemoryError::Relocation); // cycle guard
+                }
+            }
+            self.relocation_rules.insert(key, dst);
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules(&mut self) -> Result<(), MemoryError> {
+        let keys: Vec<usize> = self.relocation_rules.keys().copied().collect();
+        let max_hops = self.relocation_rules.len().saturating_add(1);
+        for key in keys {
+            let mut dst = self
+                .relocation_rules
+                .get(&key)
+                .expect("key taken from keys vec must exist")
+                .clone();
+
+            let mut hops = 0usize;
+            loop {
+                match dst {
+                    MaybeRelocatable::RelocatableValue(r) if r.segment_index < 0 => {
+                        let next_key = (-(r.segment_index + 1)) as usize;
+                        let next = self
+                            .relocation_rules
+                            .get(&next_key)
+                            .ok_or_else(|| {
+                                MemoryError::UnallocatedSegment(Box::new((
+                                    next_key,
+                                    self.temp_data.len(),
+                                )))
+                            })?
+                            .clone();
+
+                        match next {
+                            MaybeRelocatable::RelocatableValue(nr) => {
+                                dst = MaybeRelocatable::RelocatableValue(
+                                    (nr + r.offset).map_err(MemoryError::Math)?,
+                                );
+                            }
+                            MaybeRelocatable::Int(i) => {
+                                if r.offset != 0 {
+                                    return Err(MemoryError::NonZeroOffset(r.offset));
+                                }
+                                dst = MaybeRelocatable::Int(i);
+                            }
+                        }
+                    }
+                    _ => break,
+                }
+                hops += 1;
+                if hops > max_hops {
+                    return Err(MemoryError::Relocation);
+                }
+            }
+            self.relocation_rules.insert(key, dst);
+        }
+        Ok(())
+    }
 
     /// Relocates the memory according to the relocation rules and clears `self.relocaction_rules`.
     pub fn relocate_memory(&mut self) -> Result<(), MemoryError> {
         if self.relocation_rules.is_empty() || self.temp_data.is_empty() {
             return Ok(());
         }
+
+        // flatten chains (temp->temp->...->real).
+        self.flatten_relocation_rules()?;
+
         // Relocate temporary addresses in memory
         for segment in self.data.iter_mut().chain(self.temp_data.iter_mut()) {
             for cell in segment.iter_mut() {
@@ -345,6 +428,7 @@ impl Memory {
         self.relocation_rules.clear();
         Ok(())
     }
+
     /// Add a new relocation rule.
     ///
     /// When using feature "extensive_hints" the destination is allowed to be an Integer (via
@@ -1970,5 +2054,183 @@ mod memory_tests {
                 ((8, 9), MaybeRelocatable::from(3))
             ])
         )
+    }
+
+    #[test]
+    #[cfg(not(feature = "extensive_hints"))]
+    fn flatten_relocation_rules_chain_happy() {
+        let mut mem = Memory::new();
+        // temp segments just to keep indices sensible (not strictly required here)
+        mem.temp_data = vec![vec![], vec![]];
+
+        //  key 0 -> (-2, 3) ; key 1 -> (10, 4)
+        //  after flatten: key 0 -> (10, 7)
+        mem.relocation_rules.insert(0, Relocatable::from((-2, 3)));
+        mem.relocation_rules.insert(1, Relocatable::from((10, 4)));
+        // sanity: an unrelated rule stays as-is
+        mem.relocation_rules.insert(2, Relocatable::from((7, 1)));
+
+        assert_eq!(mem.flatten_relocation_rules(), Ok(()));
+        assert_eq!(
+            *mem.relocation_rules.get(&0).unwrap(),
+            Relocatable::from((10, 7))
+        );
+        assert_eq!(
+            *mem.relocation_rules.get(&1).unwrap(),
+            Relocatable::from((10, 4))
+        );
+        assert_eq!(
+            *mem.relocation_rules.get(&2).unwrap(),
+            Relocatable::from((7, 1))
+        );
+    }
+
+    #[test]
+    #[cfg(not(feature = "extensive_hints"))]
+    fn flatten_relocation_rules_cycle_err() {
+        let mut mem = Memory::new();
+        mem.temp_data = vec![vec![]];
+
+        // Self-loop: key 0 -> (-1, 0)  (i.e., points back to itself)
+        mem.relocation_rules.insert(0, Relocatable::from((-1, 0)));
+
+        assert_eq!(mem.flatten_relocation_rules(), Err(MemoryError::Relocation));
+    }
+
+    #[test]
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules_chain_happy_extensive_reloc_and_int() {
+        let mut mem = Memory::new();
+        mem.temp_data = vec![vec![], vec![], vec![], vec![], vec![]];
+
+        // ---- Chain A (ends at relocatable) ----
+        // key 0 -> (-2, 3)  (=> key 1)
+        // key 1 -> (10, 4)  (real)
+        // Expect: key 0 -> (10, 7)
+        mem.relocation_rules.insert(
+            0,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-2, 3))),
+        );
+        mem.relocation_rules.insert(
+            1,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((10, 4))),
+        );
+
+        // ---- Chain B (ends at int) ----
+        // key 2 -> (-4, 0)  (=> key 3)
+        // key 3 -> (-5, 0)  (=> key 4)
+        // key 4 -> 99       (final Int)
+        // Expect: key 2 -> 99  (offset is zero along the way)
+        mem.relocation_rules.insert(
+            2,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-4, 0))),
+        );
+        mem.relocation_rules.insert(
+            3,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-5, 0))),
+        );
+        mem.relocation_rules
+            .insert(4, MaybeRelocatable::Int(Felt252::from(99)));
+
+        assert_eq!(mem.flatten_relocation_rules(), Ok(()));
+
+        assert_eq!(
+            mem.relocation_rules.get(&0),
+            Some(&MaybeRelocatable::RelocatableValue(Relocatable::from((
+                10, 7
+            ))))
+        );
+        assert_eq!(
+            mem.relocation_rules.get(&1),
+            Some(&MaybeRelocatable::RelocatableValue(Relocatable::from((
+                10, 4
+            ))))
+        );
+        assert_eq!(
+            mem.relocation_rules.get(&2),
+            Some(&MaybeRelocatable::Int(Felt252::from(99)))
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules_int_with_non_zero_offset_err() {
+        let mut mem = Memory::new();
+        // temp_data length only matters for error messages; keep it >= biggest temp key + 1
+        mem.temp_data = vec![vec![], vec![], vec![]];
+
+        // key 0 -> (-2, 5)  (points to key 1, offset 5)
+        // key 1 -> (-3, 0)  (points to key 2, offset 2)
+        // key 2 -> 7        (final Int)
+        mem.relocation_rules.insert(
+            0,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-2, 5))),
+        );
+        mem.relocation_rules.insert(
+            1,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-3, 0))),
+        );
+        mem.relocation_rules
+            .insert(2, MaybeRelocatable::Int(Felt252::from(7)));
+
+        assert_eq!(
+            mem.flatten_relocation_rules(),
+            Err(MemoryError::NonZeroOffset(5))
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules_cycle_err_extensive() {
+        let mut mem = Memory::new();
+        mem.temp_data = vec![vec![], vec![]];
+
+        // 2-cycle:
+        //   key 0 -> (-1, 0)  (points to key 0)
+        //   key 1 -> (-2, 0)  (points to key 1)
+        mem.relocation_rules.insert(
+            0,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-1, 0))),
+        );
+        mem.relocation_rules.insert(
+            1,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-2, 0))),
+        );
+
+        assert_eq!(mem.flatten_relocation_rules(), Err(MemoryError::Relocation));
+    }
+    #[test]
+    #[cfg(not(feature = "extensive_hints"))]
+    fn flatten_relocation_rules_missing_next_err() {
+        let mut mem = Memory::new();
+        mem.temp_data = vec![vec![], vec![], vec![]];
+
+        // key 0 -> (-4, 1)  => next_key = -( -4 + 1 ) = 3
+        // No rule for key 3, so we expect UnallocatedSegment((3, 3)).
+        mem.relocation_rules.insert(0, Relocatable::from((-4, 1)));
+
+        assert_eq!(
+            mem.flatten_relocation_rules(),
+            Err(MemoryError::UnallocatedSegment(Box::new((3, 3))))
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "extensive_hints")]
+    fn flatten_relocation_rules_missing_next_err_extensive() {
+        let mut mem = Memory::new();
+        mem.temp_data = vec![vec![], vec![], vec![]];
+
+        // key 0 -> (-4, 0)  => next_key = 3
+        // No rule for key 3, so we expect UnallocatedSegment((3, 3)).
+        mem.relocation_rules.insert(
+            0,
+            MaybeRelocatable::RelocatableValue(Relocatable::from((-4, 0))),
+        );
+
+        assert_eq!(
+            mem.flatten_relocation_rules(),
+            Err(MemoryError::UnallocatedSegment(Box::new((3, 3))))
+        );
     }
 }
