@@ -108,3 +108,6 @@ harness = false
 name = "custom_hint"
 path = "../examples/custom_hint/src/main.rs"
 required-features = ["std"]
+
+[patch.crates-io]
+starknet-types-core = { git = "https://github.com/tdelabro/types-rs.git", rev = "cbb19e0", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
