@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
+
 * chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
 
 * Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
