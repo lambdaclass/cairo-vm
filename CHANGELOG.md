@@ -4,6 +4,8 @@
 
 #### [3.0.0-rc.3] - 2025-26-08
 
+* chore: update cairo-lang dependencies to 2.12.0-dev.0 [#2197](https://github.com/lambdaclass/cairo-vm/pull/2197)
+
 * chore: Bump types-rs to 0.2.0 [#2183](https://github.com/lambdaclass/cairo-vm/pull/2183)
 
 #### [3.0.0-rc.2] - 2025-22-08
