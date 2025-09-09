@@ -52,9 +52,11 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 #[cfg(test)]
 #[macro_use]
 pub mod test_utils {
+    use crate::serde::deserialize_program::Identifier;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::trace::trace_entry::TraceEntry;
+    use crate::Felt252;
 
     #[macro_export]
     macro_rules! felt_hex {
@@ -472,11 +474,24 @@ pub mod test_utils {
     }
     pub(crate) use exec_scopes_ref;
 
+    pub fn const_identifier(value: impl Into<Felt252>) -> Identifier {
+        Identifier {
+            pc: None,
+            type_: Some(String::from("const")),
+            value: Some(value.into()),
+            full_name: None,
+            members: None,
+            cairo_type: None,
+            size: None,
+            destination: None,
+        }
+    }
+
     macro_rules! run_hint {
-        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
+        ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $identifiers:expr, $accessible_scopes:expr) => {{
             let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let constants: &HashMap<String, Felt252> = $constants;
-            hint_data.constants = crate::stdlib::rc::Rc::new(constants.clone());
+            hint_data.identifiers = crate::stdlib::rc::Rc::new($identifiers);
+            hint_data.accessible_scopes = $accessible_scopes;
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};

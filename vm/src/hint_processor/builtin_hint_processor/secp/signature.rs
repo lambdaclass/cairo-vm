@@ -252,16 +252,19 @@ mod tests {
         ];
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_secp.constants.BETA".to_string(),
+            const_identifier(7),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_secp.constants".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(BETA, Felt252::from(7)),]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         )
@@ -282,16 +285,19 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_secp.constants.BETA".to_string(),
+            const_identifier(7),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_secp.constants".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BETA, Felt252::from(7)),]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

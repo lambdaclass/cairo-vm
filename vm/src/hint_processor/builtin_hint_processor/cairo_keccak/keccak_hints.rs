@@ -366,7 +366,6 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
-
     use crate::{
         any_box,
         hint_processor::{
@@ -448,16 +447,19 @@ mod tests {
 
         run_context!(vm, 0, 1, 1);
         let ids_data = ids_data!["n_bytes"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES".to_string(),
+            const_identifier(136),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_keccak.keccak".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -477,16 +479,19 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES".to_string(),
+            const_identifier(136),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_keccak.keccak".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -505,16 +510,19 @@ mod tests {
         run_context!(vm, 0, 1, 1);
 
         let ids_data = ids_data!["n_bytes"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES".to_string(),
+            const_identifier(136),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_keccak.keccak".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK, Felt252::from(136))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

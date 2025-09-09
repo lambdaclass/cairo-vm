@@ -357,13 +357,21 @@ mod tests {
         vm.segments = segments![((1, 2), 17)];
         vm.set_fp(3);
         let ids_data = ids_data!["n_words_to_copy", "n_bytes_left", "n_bytes"];
+
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD".to_string(),
+            const_identifier(8),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.builtin_keccak.keccak".to_string()];
+
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code::SPLIT_N_BYTES,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -376,13 +384,19 @@ mod tests {
         vm.segments = segments![((1, 0), 72057594037927938)];
         vm.set_fp(4);
         let ids_data = ids_data!["output1", "output1_low", "output1_mid", "output1_high"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD".to_string(),
+            const_identifier(8),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.builtin_keccak.keccak".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code::SPLIT_OUTPUT_MID_LOW_HIGH,
                 exec_scopes_ref!(),
-                &HashMap::from([(String::from(BYTES_IN_WORD), Felt252::from(8))])
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

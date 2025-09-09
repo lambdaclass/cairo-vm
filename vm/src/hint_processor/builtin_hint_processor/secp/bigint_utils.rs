@@ -227,16 +227,19 @@ mod tests {
         run_context!(vm, 0, 6, 6);
         //Create hint_data
         let ids_data = non_continuous_ids_data![("res", 5)];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_secp.constants.BASE".to_string(),
+            const_identifier(crate::math_utils::pow2_const(86)),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_secp.constants".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BASE_86, crate::math_utils::pow2_const(86))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

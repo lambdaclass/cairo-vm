@@ -644,7 +644,7 @@ impl CairoRunner {
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
-        let constants = Rc::new(self.program.constants.clone());
+        let identifiers = Rc::new(self.program.shared_program_data.identifiers.clone());
 
         self.program
             .shared_program_data
@@ -657,7 +657,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.ap_tracking,
                         &hint.flow_tracking_data.reference_ids,
                         references,
-                        constants.clone(),
+                        identifiers.clone(),
                         &hint.accessible_scopes,
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
