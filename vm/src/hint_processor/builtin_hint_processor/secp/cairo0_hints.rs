@@ -1,8 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::Deref,
-    ops::{Add, Mul, Rem},
-    prelude::*,
+use crate::{
+    serde::deserialize_program::Identifier,
+    stdlib::{
+        collections::HashMap,
+        ops::{Add, Deref, Mul, Rem},
+        prelude::*,
+    },
 };
 
 use crate::define_hint_string_map;
@@ -166,19 +168,13 @@ pub fn compute_ids_high_low(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    const UPPER_BOUND: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.SHIFT";
-
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -503,19 +499,21 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
 
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "UPPER_BOUND".to_string(),
-                Felt252::from(18446744069414584321_u128),
+                "__main__.UPPER_BOUND".to_string(),
+                const_identifier(18446744069414584321_u128),
             ),
-            ("SHIFT".to_string(), Felt252::from(12)),
+            ("__main__.SHIFT".to_string(), const_identifier(12)),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         compute_ids_high_low(
             &mut vm,
             &mut exec_scopes,
             &ids_data,
             &ap_tracking,
-            &constants,
+            &identifiers,
+            &accessible_scopes,
         )
         .expect("compute_ids_high_low() failed");
 
