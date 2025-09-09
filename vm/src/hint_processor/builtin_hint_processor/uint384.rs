@@ -488,6 +488,11 @@ mod tests {
             ((1, 4), 17),
             ((1, 5), 8)
         ];
+        let identifiers = HashMap::from([(
+            "path.path.path.SHIFT".to_string(),
+            const_identifier(crate::math_utils::pow2_const(128)),
+        )]);
+        let accessible_scopes = vec!["path.path.path".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -495,10 +500,8 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", crate::math_utils::pow2_const(128))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

@@ -23,6 +23,7 @@ use super::{
         pack::*,
     },
 };
+use crate::serde::deserialize_program::Identifier;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
@@ -132,7 +133,7 @@ pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
-    pub constants: Rc<HashMap<String, Felt252>>,
+    pub identifiers: Rc<HashMap<String, Identifier>>,
     pub accessible_scopes: Vec<String>,
 }
 
@@ -142,7 +143,7 @@ impl HintProcessorData {
             code,
             ap_tracking: ApTracking::default(),
             ids_data,
-            constants: Default::default(),
+            identifiers: Default::default(),
             accessible_scopes: Default::default(),
         }
     }
@@ -195,7 +196,20 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
-        let constants = hint_data.constants.as_ref();
+
+        let identifiers = hint_data.identifiers.as_ref();
+        let owned_constants = identifiers
+            .clone()
+            .into_iter()
+            .filter_map(|(key, identifier)| {
+                if identifier.type_? == "const" {
+                    Some((key, identifier.value?))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let constants = &owned_constants;
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(

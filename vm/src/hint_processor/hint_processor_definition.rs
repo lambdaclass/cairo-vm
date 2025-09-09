@@ -1,9 +1,9 @@
 use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*, rc::Rc};
 
 use crate::any_box;
-use crate::serde::deserialize_program::ApTracking;
 use crate::serde::deserialize_program::OffsetValue;
 use crate::serde::deserialize_program::Reference;
+use crate::serde::deserialize_program::{ApTracking, Identifier};
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::instruction::Register;
 use crate::types::relocatable::Relocatable;
@@ -13,7 +13,6 @@ use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::vm_core::VirtualMachine;
 
 use super::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
-use crate::Felt252;
 
 #[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
@@ -42,7 +41,7 @@ pub trait HintProcessorLogic {
         //List of all references (key corresponds to element of the previous dictionary)
         references: &[HintReference],
         // Identifiers stored in the hint's program.
-        constants: Rc<HashMap<String, Felt252>>,
+        identifiers: Rc<HashMap<String, Identifier>>,
         // List of accessible scopes in the hint
         accessible_scopes: &[String],
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
@@ -50,7 +49,7 @@ pub trait HintProcessorLogic {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
-            constants,
+            identifiers,
             accessible_scopes: accessible_scopes.to_vec(),
         }))
     }
