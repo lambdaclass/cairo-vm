@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::Identifier;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::Felt252;
@@ -53,17 +54,21 @@ fn sha256_main(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
     iv: &mut [u32; 8],
 ) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("sha256_start", vm, ids_data, ap_tracking)?;
 
     // The original code gets it from `ids` in both cases, and this makes it easier
     // to implement the arbitrary length one
-    let input_chunk_size_felts =
-        get_constant_from_var_name("SHA256_INPUT_CHUNK_SIZE_FELTS", constants)?
-            .to_usize()
-            .unwrap_or(100); // Hack: enough to fail the assertion
+    let input_chunk_size_felts = get_constant_from_var_name(
+        "SHA256_INPUT_CHUNK_SIZE_FELTS",
+        identifiers,
+        accessible_scopes,
+    )?
+    .to_usize()
+    .unwrap_or(100); // Hack: enough to fail the assertion
 
     if input_chunk_size_felts >= 100 {
         return Err(HintError::AssertionFailed(
@@ -113,10 +118,18 @@ pub fn sha256_main_constant_input_length(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let mut iv = IV;
-    sha256_main(vm, ids_data, ap_tracking, constants, &mut iv)
+    sha256_main(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        &mut iv,
+    )
 }
 
 /* Implements hint:
@@ -136,11 +149,13 @@ pub fn sha256_main_arbitrary_input_length(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let iv_ptr = get_ptr_from_var_name("state", vm, ids_data, ap_tracking)?;
 
-    let state_size_felt = get_constant_from_var_name("SHA256_STATE_SIZE_FELTS", constants)?;
+    let state_size_felt =
+        get_constant_from_var_name("SHA256_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
 
     let state_size = match state_size_felt.to_usize() {
         Some(size) if size == SHA256_STATE_SIZE_FELTS => size,
@@ -171,7 +186,14 @@ pub fn sha256_main_arbitrary_input_length(
         .try_into()
         .expect("size is constant");
 
-    sha256_main(vm, ids_data, ap_tracking, constants, &mut iv)
+    sha256_main(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        &mut iv,
+    )
 }
 
 pub fn sha256_finalize(

@@ -9,7 +9,7 @@ use crate::hint_processor::hint_processor_utils::{
 use crate::hint_processor::hint_processor_utils::{
     get_integer_from_reference, get_maybe_relocatable_from_reference,
 };
-use crate::serde::deserialize_program::ApTracking;
+use crate::serde::deserialize_program::{ApTracking, Identifier};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
@@ -176,12 +176,20 @@ pub fn get_reference_from_var_name<'a>(
 
 pub fn get_constant_from_var_name<'a>(
     var_name: &'static str,
-    constants: &'a HashMap<String, Felt252>,
+    identifiers: &'a HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<&'a Felt252, HintError> {
-    constants
+    accessible_scopes
         .iter()
-        .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
-        .map(|(_, n)| n)
+        .rev()
+        .find_map(|scope| {
+            let identifier = identifiers.get(&format!("{}.{}", scope, var_name))?;
+            if identifier.type_.as_ref()? == "const" {
+                identifier.value.as_ref()
+            } else {
+                None
+            }
+        })
         .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
 }
 

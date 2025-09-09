@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     math_utils::signed_felt,
+    serde::deserialize_program::Identifier,
     stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::errors::math_errors::MathError,
 };
@@ -90,17 +91,13 @@ pub fn assert_le_felt(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
-    const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
-
-    let prime_over_3_high = constants
-        .get(PRIME_OVER_3_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
-    let prime_over_2_high = constants
-        .get(PRIME_OVER_2_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
+    let prime_over_3_high =
+        get_constant_from_var_name("PRIME_OVER_3_HIGH", identifiers, accessible_scopes)?;
+    let prime_over_2_high =
+        get_constant_from_var_name("PRIME_OVER_2_HIGH", identifiers, accessible_scopes)?;
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
@@ -384,15 +381,16 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let assert = |b: bool, msg: &str| {
         b.then_some(())
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+    let max_high = get_constant_from_var_name("MAX_HIGH", identifiers, accessible_scopes)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", identifiers, accessible_scopes)?;
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
@@ -521,17 +519,12 @@ pub fn assert_250_bit(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
     //Declare constant values
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
