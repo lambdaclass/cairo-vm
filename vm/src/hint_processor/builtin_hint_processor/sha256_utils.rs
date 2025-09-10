@@ -60,23 +60,25 @@ fn sha256_main(
 ) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("sha256_start", vm, ids_data, ap_tracking)?;
 
-    // The original code gets it from `ids` in both cases, and this makes it easier
-    // to implement the arbitrary length one
+    // The code gets the value from `ids.SHA256_INPUT_CHUNK_SIZE_FELTS` in both
+    // constant and arbitrary input length cases.
     let input_chunk_size_felts = get_constant_from_var_name(
         "SHA256_INPUT_CHUNK_SIZE_FELTS",
         identifiers,
         accessible_scopes,
-    )?
-    .to_usize()
-    .unwrap_or(100); // Hack: enough to fail the assertion
+    )?;
 
-    if input_chunk_size_felts >= 100 {
-        return Err(HintError::AssertionFailed(
-            "assert 0 <= _sha256_input_chunk_size_felts < 100"
-                .to_string()
-                .into_boxed_str(),
-        ));
-    }
+    // The input chunk size must be less than 100.
+    let input_chunk_size_felts = match input_chunk_size_felts.to_usize() {
+        Some(size) if size < 100 => size,
+        _ => {
+            return Err(HintError::AssertionFailed(
+                "assert 0 <= _sha256_input_chunk_size_felts < 100"
+                    .to_string()
+                    .into_boxed_str(),
+            ));
+        }
+    };
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * input_chunk_size_felts);
 
