@@ -37,8 +37,6 @@ use super::{
     uint256_utils::Uint256,
 };
 
-const ADDR_BOUND: &str = "starkware.starknet.common.storage.ADDR_BOUND";
-
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
@@ -570,14 +568,13 @@ pub fn is_addr_bounded(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
 
-    let addr_bound = constants
-        .get(ADDR_BOUND)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?
-        .to_biguint();
+    let addr_bound =
+        get_constant_from_var_name("ADDR_BOUND", identifiers, accessible_scopes)?.to_biguint();
 
     let lower_bound = BigUint::one() << 250_usize;
     let upper_bound = BigUint::one() << 251_usize;
@@ -2053,7 +2050,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND
+            Err(HintError::MissingConstant(bx)) if *bx == "ADDR_BOUND"
         );
     }
 

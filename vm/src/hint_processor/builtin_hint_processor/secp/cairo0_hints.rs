@@ -128,7 +128,8 @@ pub fn reduce_value(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("value", x.mod_floor(&SECP256R1_P));
@@ -140,7 +141,8 @@ pub fn reduce_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("x", x.mod_floor(&SECP256R1_P));
@@ -152,7 +154,8 @@ pub fn compute_q_mod_prime(
     _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let val = Uint384::from_var_name("val", vm, ids_data, ap_tracking)?.pack86();
     let (q, r) = val.div_mod_floor(&SECP256R1_P);
@@ -196,7 +199,8 @@ pub fn r1_get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -257,7 +261,8 @@ pub fn is_on_curve_2(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let y: BigInt = exec_scopes.get("y")?;
     let y_square_int: BigInt = exec_scopes.get("y_square_int")?;
@@ -279,7 +284,8 @@ pub fn secp_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -309,7 +315,8 @@ pub fn generate_nibbles(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let num = Uint256::from_var_name("scalar", vm, ids_data, ap_tracking)?.pack();
 
@@ -337,7 +344,8 @@ pub fn fast_secp_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x, new_x, y, secp_p) = (
@@ -359,7 +367,8 @@ pub fn write_nibbles_to_mem(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let nibbles: &mut Vec<Felt252> = exec_scopes.get_mut_list_ref("nibbles")?;
     let nibble = nibbles.pop().ok_or(HintError::EmptyNibbles)?;
@@ -373,7 +382,8 @@ pub fn compute_value_div_mod(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     //Get variables from vm scope
     let x = exec_scopes.get_ref::<BigInt>("x")?;
@@ -419,6 +429,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("is_on_curve2() failed");
 
@@ -447,6 +458,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("compute_q_mod_prime() failed");
 
@@ -559,6 +571,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &constants,
+            &[],
             SECP256R1_P.magnitude(),
         )
         .expect("calculate_value() failed");
@@ -632,6 +645,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("reduce_value() failed");
 
@@ -688,6 +702,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("x() failed");
 

@@ -1,8 +1,12 @@
-use crate::stdlib::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    collections::HashMap,
-    prelude::*,
+use crate::{
+    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
+    serde::deserialize_program::Identifier,
+    stdlib::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        collections::HashMap,
+        prelude::*,
+    },
 };
 use crate::{
     hint_processor::{
@@ -22,21 +26,6 @@ use crate::{
     Felt252,
 };
 use num_traits::ToPrimitive;
-
-// Constants in package "starkware.cairo.common.cairo_keccak.keccak".
-const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
-const KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK: &str =
-    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
-const KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK: &str =
-    "starkware.cairo.common.builtin_keccak.keccak.KECCAK_FULL_RATE_IN_BYTES";
-
-const KECCAK_FULL_RATE_IN_BYTES: &str = "KECCAK_FULL_RATE_IN_BYTES";
-
-const KECCAK_STATE_SIZE_FELTS: &str =
-    "starkware.cairo.common.cairo_keccak.keccak.KECCAK_STATE_SIZE_FELTS";
-
-// Constants in package "starkware.cairo.common.cairo_keccak.packed_keccak".
-const BLOCK_SIZE: &str = "starkware.cairo.common.cairo_keccak.packed_keccak.BLOCK_SIZE";
 
 /*
 Implements hint:
@@ -80,7 +69,8 @@ pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -90,9 +80,8 @@ pub fn compare_bytes_in_word_nondet(
     // making value be 0 (if it can't convert then it's either negative, which can't be in Cairo memory
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // Felt252::from(BYTES_INTO_WORD) into a lazy_static!
-    let bytes_in_word = constants
-        .get(BYTES_IN_WORD)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BYTES_IN_WORD)))?;
+    let bytes_in_word =
+        get_constant_from_var_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
     let value = Felt252::from((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
@@ -109,15 +98,14 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
 
-    let keccak_full_rate_in_bytes = constants
-        .get(KECCAK_FULL_RATE_IN_BYTES_CAIRO_KECCAK)
-        .or_else(|| constants.get(KECCAK_FULL_RATE_IN_BYTES_BUILTIN_KECCAK))
-        .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_FULL_RATE_IN_BYTES)))?;
+    let keccak_full_rate_in_bytes =
+        get_constant_from_var_name("KECCAK_FULL_RATE_IN_BYTES", identifiers, accessible_scopes)?;
     let value = Felt252::from((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
@@ -147,11 +135,11 @@ pub(crate) fn block_permutation_v1(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    let keccak_state_size_felts = constants
-        .get(KECCAK_STATE_SIZE_FELTS)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
+    let keccak_state_size_felts =
+        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             *keccak_state_size_felts,
@@ -214,11 +202,11 @@ pub(crate) fn block_permutation_v2(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    let keccak_state_size_felts = constants
-        .get(KECCAK_STATE_SIZE_FELTS)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
+    let keccak_state_size_felts =
+        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             *keccak_state_size_felts,
@@ -250,15 +238,13 @@ fn cairo_keccak_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
     block_size_limit: usize,
 ) -> Result<(), HintError> {
-    let keccak_state_size_felts = constants
-        .get(KECCAK_STATE_SIZE_FELTS)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(KECCAK_STATE_SIZE_FELTS)))?;
-    let block_size = constants
-        .get(BLOCK_SIZE)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BLOCK_SIZE)))?;
+    let keccak_state_size_felts =
+        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
+    let block_size = get_constant_from_var_name("BLOCK_SIZE", identifiers, accessible_scopes)?;
 
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
@@ -311,9 +297,17 @@ pub(crate) fn cairo_keccak_finalize_v1(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    cairo_keccak_finalize(vm, ids_data, ap_tracking, constants, 10)
+    cairo_keccak_finalize(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        10,
+    )
 }
 
 /* Implements hint:
@@ -332,9 +326,17 @@ pub(crate) fn cairo_keccak_finalize_v2(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    cairo_keccak_finalize(vm, ids_data, ap_tracking, constants, 1000)
+    cairo_keccak_finalize(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        1000,
+    )
 }
 
 // Helper function to transform a vector of MaybeRelocatables into a vector

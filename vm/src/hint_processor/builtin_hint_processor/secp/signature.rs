@@ -1,8 +1,9 @@
-use crate::Felt252;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name;
+use crate::serde::deserialize_program::Identifier;
 use crate::{
     any_box,
     hint_processor::{
-        builtin_hint_processor::{hint_utils::get_integer_from_var_name, secp::secp_utils::BETA},
+        builtin_hint_processor::hint_utils::get_integer_from_var_name,
         hint_processor_definition::HintReference,
     },
     math_utils::{div_mod, safe_div_bigint},
@@ -106,13 +107,11 @@ pub fn get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let beta = constants
-        .get(BETA)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
-        .to_bigint();
+    let beta = get_constant_from_var_name("BETA", identifiers, accessible_scopes)?.to_bigint();
 
     let x_cube_int = Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?
         .pack86()

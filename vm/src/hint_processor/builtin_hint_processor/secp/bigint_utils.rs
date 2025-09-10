@@ -1,14 +1,16 @@
 use core::ops::Shl;
 
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name;
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
+use crate::serde::deserialize_program::Identifier;
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::{
             hint_utils::{get_relocatable_from_var_name, insert_value_from_var_name},
-            secp::secp_utils::{bigint3_split, BASE_86},
+            secp::secp_utils::bigint3_split,
         },
         hint_processor_definition::HintReference,
     },
@@ -151,16 +153,15 @@ pub fn bigint_to_uint256(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let x_struct = get_relocatable_from_var_name("x", vm, ids_data, ap_tracking)?;
     let d0 = vm.get_integer(x_struct)?;
     let d1 = vm.get_integer((x_struct + 1_i32)?)?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
-    let base_86 = constants
-        .get(BASE_86)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BASE_86)))?;
+    let base_86 = get_constant_from_var_name("BASE", identifiers, accessible_scopes)?;
     let mask = pow2_const_nz(128);
     let low = (d0 + (d1 * base_86)).mod_floor(mask);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)

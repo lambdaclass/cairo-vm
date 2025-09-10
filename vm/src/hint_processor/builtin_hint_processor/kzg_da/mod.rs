@@ -3,7 +3,7 @@ use core::str::FromStr;
 use super::{hint_utils::get_relocatable_from_var_name, secp::bigint_utils::BigInt3};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, Identifier},
     types::relocatable::MaybeRelocatable,
     utils::CAIRO_PRIME,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -44,7 +44,8 @@ pub fn write_div_mod_segment(
     _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let a = bls_pack(
         &BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?,

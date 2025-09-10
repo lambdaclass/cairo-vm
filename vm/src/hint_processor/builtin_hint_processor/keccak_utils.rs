@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::Identifier;
 use crate::stdlib::{boxed::Box, cmp, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
@@ -18,9 +19,7 @@ use num_integer::Integer;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
 
-use super::hint_utils::insert_value_from_var_name;
-
-const BYTES_IN_WORD: &str = "starkware.cairo.common.builtin_keccak.keccak.BYTES_IN_WORD";
+use super::hint_utils::{get_constant_from_var_name, insert_value_from_var_name};
 
 /* Implements hint:
    %{
@@ -239,17 +238,19 @@ pub fn split_n_bytes(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let n_bytes =
         get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking).and_then(|x| {
             x.to_u64()
                 .ok_or_else(|| HintError::Math(MathError::Felt252ToU64Conversion(Box::new(x))))
         })?;
-    let bytes_in_word = constants
-        .get(BYTES_IN_WORD)
-        .and_then(|x| x.to_u64())
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BYTES_IN_WORD)))?;
+    let bytes_in_word =
+        get_constant_from_var_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
+    let bytes_in_word = bytes_in_word
+        .to_u64()
+        .ok_or_else(|| MathError::Felt252ToU64Conversion(Box::new(*bytes_in_word)))?;
     let (high, low) = n_bytes.div_mod_floor(&bytes_in_word);
     insert_value_from_var_name(
         "n_words_to_copy",
