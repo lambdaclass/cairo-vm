@@ -53,6 +53,7 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
 #[macro_use]
 pub mod test_utils {
     use crate::serde::deserialize_program::Identifier;
+    use crate::stdlib::string::String;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::MaybeRelocatable;
     use crate::vm::trace::trace_entry::TraceEntry;
