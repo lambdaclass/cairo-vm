@@ -3,10 +3,10 @@ const MAX_LOW = 1;
 
 func main() {
 	let value =1;
-	hint_func(MAX_HIGH, MAX_LOW, value);
+	hint_func(value);
 	return();
 }
-func hint_func(MAX_HIGH: felt, MAX_LOW: felt, value: felt) -> (felt, felt) {
+func hint_func(value: felt) -> (felt, felt) {
 	alloc_locals;
 	local low: felt;
 	local high: felt;
