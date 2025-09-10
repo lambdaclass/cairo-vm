@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+
 #### [2.4.1] - 2025-09-03
 
 * fix: Fix compute_ids_high_low hint constant path [#2193](https://github.com/lambdaclass/cairo-vm/pull/2193)
