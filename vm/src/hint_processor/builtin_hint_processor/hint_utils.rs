@@ -175,22 +175,75 @@ pub fn get_reference_from_var_name<'a>(
 }
 
 pub fn get_constant_from_var_name<'a>(
-    var_name: &'static str,
+    var_name: &str,
     identifiers: &'a HashMap<String, Identifier>,
     accessible_scopes: &[String],
 ) -> Result<&'a Felt252, HintError> {
-    accessible_scopes
-        .iter()
-        .rev()
-        .find_map(|scope| {
-            let identifier = identifiers.get(&format!("{}.{}", scope, var_name))?;
-            if identifier.type_.as_ref()? == "const" {
-                identifier.value.as_ref()
-            } else {
-                None
+    for scope in accessible_scopes.iter().rev() {
+        let full_path = format!("{}.{}", scope, var_name);
+        let identifier = identifiers.get(&full_path);
+
+        let Some(identifier) = identifier else {
+            continue;
+        };
+
+        let identifier_type = identifier
+            .type_
+            .as_ref()
+            .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))?;
+
+        match &identifier_type[..] {
+            "const" => {
+                return identifier
+                    .value
+                    .as_ref()
+                    .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))
             }
-        })
-        .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
+            "alias" => {
+                let destination = identifier
+                    .destination
+                    .as_ref()
+                    .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))?;
+
+                return get_constant_from_alias(destination, identifiers);
+            }
+            _ => return Err(HintError::MissingConstant(Box::new(var_name.to_string()))),
+        }
+    }
+
+    Err(HintError::MissingConstant(Box::new(var_name.to_string())))
+}
+
+pub fn get_constant_from_alias<'a>(
+    destination: &str,
+    identifiers: &'a HashMap<String, Identifier>,
+) -> Result<&'a Felt252, HintError> {
+    let identifier = identifiers
+        .get(destination)
+        .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
+
+    let identifier_type = identifier
+        .type_
+        .as_ref()
+        .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
+
+    match &identifier_type[..] {
+        "const" => identifier
+            .value
+            .as_ref()
+            .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string()))),
+        "alias" => {
+            let destination = identifier
+                .destination
+                .as_ref()
+                .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
+
+            get_constant_from_alias(destination, identifiers)
+        }
+        _ => Err(HintError::MissingConstant(Box::new(
+            destination.to_string(),
+        ))),
+    }
 }
 
 #[cfg(test)]
