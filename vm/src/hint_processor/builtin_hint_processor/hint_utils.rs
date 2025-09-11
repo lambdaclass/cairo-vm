@@ -195,7 +195,9 @@ pub fn get_identifier_from_scoped_name<'a>(
                     .get(&format!("{}.{}", scope, first_component))
                     .is_some()
                 {
-                    break;
+                    return Err(HintError::UnknownIdentifier(
+                        scoped_name.to_string().into_boxed_str(),
+                    ));
                 }
             }
 
