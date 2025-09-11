@@ -246,38 +246,6 @@ pub fn get_constant_from_scoped_name<'a>(
     }
 }
 
-pub fn get_constant_from_alias<'a>(
-    destination: &str,
-    identifiers: &'a HashMap<String, Identifier>,
-) -> Result<&'a Felt252, HintError> {
-    let identifier = identifiers
-        .get(destination)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
-
-    let identifier_type = identifier
-        .type_
-        .as_ref()
-        .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
-
-    match &identifier_type[..] {
-        "const" => identifier
-            .value
-            .as_ref()
-            .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string()))),
-        "alias" => {
-            let destination = identifier
-                .destination
-                .as_ref()
-                .ok_or_else(|| HintError::MissingConstant(Box::new(destination.to_string())))?;
-
-            get_constant_from_alias(destination, identifiers)
-        }
-        _ => Err(HintError::MissingConstant(Box::new(
-            destination.to_string(),
-        ))),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
