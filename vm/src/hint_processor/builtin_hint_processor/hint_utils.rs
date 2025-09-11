@@ -1,6 +1,8 @@
-use hashbrown::HashSet;
-
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{
+    boxed::Box,
+    collections::{HashMap, HashSet},
+    prelude::*,
+};
 
 use crate::Felt252;
 
