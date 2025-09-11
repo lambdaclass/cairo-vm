@@ -174,6 +174,36 @@ pub fn get_reference_from_var_name<'a>(
         .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
+pub fn get_identifier_from_scoped_name<'a>(
+    scoped_name: &str,
+    identifiers: &'a HashMap<String, Identifier>,
+    accessible_scopes: &[String],
+) -> Result<&'a Identifier, HintError> {
+    for scope in accessible_scopes.iter().rev() {
+        let full_path = format!("{}.{}", scope, scoped_name);
+
+        if let Some(identifier) = identifiers.get(&full_path) {
+            return Ok(identifier);
+        }
+
+        // The scoped_name can itself contain multiple components (i.e. a.b.c).
+        // If there is a match for at least the first component, we should
+        // not continue with the next scope.
+        if let Some(first_component) = scoped_name.split('.').next() {
+            if identifiers
+                .get(&format!("{}.{}", scope, first_component))
+                .is_some()
+            {
+                break;
+            }
+        }
+    }
+
+    Err(HintError::UnknownIdentifier(
+        scoped_name.to_string().into_boxed_str(),
+    ))
+}
+
 pub fn get_constant_from_var_name<'a>(
     var_name: &str,
     identifiers: &'a HashMap<String, Identifier>,
@@ -384,6 +414,64 @@ mod tests {
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier_from_scoped_name_valid() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+
+        let identifiers = HashMap::from([(
+            "scope1.scope2.constant1.constant2".to_string(),
+            identifier.clone(),
+        )]);
+
+        assert_matches!(
+            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
+            Ok(id) if id == &identifier
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier_from_scoped_name_invalid() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+
+        let identifiers = HashMap::from([(
+            "scope1.scope2.constant3.constant4".to_string(),
+            identifier.clone(),
+        )]);
+
+        assert_matches!(
+            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier_from_scoped_name_invalid_partial_match() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+
+        let identifiers = HashMap::from([
+            ("scope1.scope2.constant1".to_string(), identifier.clone()),
+            ("scope1.constant1.constant2".to_string(), identifier.clone()),
+            (
+                "scope1.scope2.constant1.constant3".to_string(),
+                identifier.clone(),
+            ),
+        ]);
+
+        assert_matches!(
+            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
         );
     }
 }
