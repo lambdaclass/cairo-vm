@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-#### [2.5.1] - 2025-09-11
+#### [2.5.0] - 2025-09-11
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
 
