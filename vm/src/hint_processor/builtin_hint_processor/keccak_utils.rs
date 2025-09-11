@@ -19,7 +19,7 @@ use num_integer::Integer;
 use num_traits::ToPrimitive;
 use sha3::{Digest, Keccak256};
 
-use super::hint_utils::{get_constant_from_var_name, insert_value_from_var_name};
+use super::hint_utils::{get_constant_from_scoped_name, insert_value_from_var_name};
 
 /* Implements hint:
    %{
@@ -247,7 +247,7 @@ pub fn split_n_bytes(
                 .ok_or_else(|| HintError::Math(MathError::Felt252ToU64Conversion(Box::new(x))))
         })?;
     let bytes_in_word =
-        get_constant_from_var_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
     let bytes_in_word = bytes_in_word
         .to_u64()
         .ok_or_else(|| MathError::Felt252ToU64Conversion(Box::new(*bytes_in_word)))?;

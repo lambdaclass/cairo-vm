@@ -22,7 +22,7 @@ use lazy_static::lazy_static;
 use super::{
     dict_manager::DictManager,
     hint_utils::{
-        get_constant_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
+        get_constant_from_scoped_name, get_integer_from_var_name, get_ptr_from_var_name,
         insert_value_from_var_name,
     },
 };
@@ -270,7 +270,7 @@ pub fn excess_balance_hint(
     let margin_check_type =
         get_integer_from_var_name("margin_check_type", vm, ids_data, ap_tracking)?;
     let margin_check_initial =
-        get_constant_from_var_name("MARGIN_CHECK_INITIAL", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("MARGIN_CHECK_INITIAL", identifiers, accessible_scopes)?;
     let token_assets_value_d =
         get_integer_from_var_name("token_assets_value_d", vm, ids_data, ap_tracking)?;
     let account = get_integer_from_var_name("account", vm, ids_data, ap_tracking)?;

@@ -1,5 +1,5 @@
 use crate::{
-    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
+    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_scoped_name,
     math_utils::signed_felt,
     serde::deserialize_program::Identifier,
     stdlib::{boxed::Box, collections::HashMap, prelude::*},
@@ -93,9 +93,9 @@ pub fn assert_le_felt(
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let prime_over_3_high =
-        get_constant_from_var_name("PRIME_OVER_3_HIGH", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("PRIME_OVER_3_HIGH", identifiers, accessible_scopes)?;
     let prime_over_2_high =
-        get_constant_from_var_name("PRIME_OVER_2_HIGH", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("PRIME_OVER_2_HIGH", identifiers, accessible_scopes)?;
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
@@ -387,8 +387,8 @@ pub fn split_felt(
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-    let max_high = get_constant_from_var_name("MAX_HIGH", identifiers, accessible_scopes)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", identifiers, accessible_scopes)?;
+    let max_high = get_constant_from_scoped_name("MAX_HIGH", identifiers, accessible_scopes)?;
+    let max_low = get_constant_from_scoped_name("MAX_LOW", identifiers, accessible_scopes)?;
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
@@ -521,8 +521,8 @@ pub fn assert_250_bit(
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     //Declare constant values
-    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
-    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
+    let upper_bound = get_constant_from_scoped_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_scoped_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -574,7 +574,7 @@ pub fn is_addr_bounded(
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
 
     let addr_bound =
-        get_constant_from_var_name("ADDR_BOUND", identifiers, accessible_scopes)?.to_biguint();
+        get_constant_from_scoped_name("ADDR_BOUND", identifiers, accessible_scopes)?.to_biguint();
 
     let lower_bound = BigUint::one() << 250_usize;
     let upper_bound = BigUint::one() << 251_usize;
@@ -2050,7 +2050,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(bx)) if *bx == "ADDR_BOUND"
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "ADDR_BOUND"
         );
     }
 
@@ -2319,7 +2319,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
+            Err(HintError::UnknownIdentifier(x)) if x.as_ref() == "MAX_HIGH"
         );
     }
 

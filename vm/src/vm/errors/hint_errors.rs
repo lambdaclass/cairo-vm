@@ -42,6 +42,8 @@ pub enum HintError {
     UnknownIdentifierInternal,
     #[error("Wrong identifier type")]
     WrongIdentifierTypeInternal,
+    #[error("Encountered cyclic aliasing")]
+    CyclicAliasing,
     #[error("Hint Error: {0}")]
     CustomHint(Box<str>),
     #[error("Missing constant: {0}")]

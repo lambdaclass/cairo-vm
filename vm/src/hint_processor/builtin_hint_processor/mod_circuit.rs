@@ -10,7 +10,7 @@ use crate::{
 use num_traits::ToPrimitive;
 
 use super::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, get_ptr_from_var_name,
+    get_constant_from_scoped_name, get_integer_from_var_name, get_ptr_from_var_name,
 };
 /* Implements Hint:
 %{
@@ -54,7 +54,7 @@ pub fn run_p_mod_circuit_with_large_batch_size(
     identifiers: &HashMap<String, Identifier>,
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    let batch_size = get_constant_from_var_name("BATCH_SIZE", identifiers, accessible_scopes)?;
+    let batch_size = get_constant_from_scoped_name("BATCH_SIZE", identifiers, accessible_scopes)?;
     let batch_size = batch_size
         .to_usize()
         .ok_or_else(|| MathError::Felt252ToUsizeConversion(Box::new(*batch_size)))?;

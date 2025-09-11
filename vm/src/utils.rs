@@ -487,6 +487,18 @@ pub mod test_utils {
             destination: None,
         }
     }
+    pub fn alias_identifier(destination: impl Into<String>) -> Identifier {
+        Identifier {
+            pc: None,
+            type_: Some(String::from("alias")),
+            value: None,
+            full_name: None,
+            members: None,
+            cairo_type: None,
+            size: None,
+            destination: Some(destination.into()),
+        }
+    }
 
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $identifiers:expr, $accessible_scopes:expr) => {{

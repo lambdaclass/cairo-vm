@@ -1,5 +1,5 @@
 use crate::{
-    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
+    hint_processor::builtin_hint_processor::hint_utils::get_constant_from_scoped_name,
     serde::deserialize_program::Identifier,
     stdlib::{
         borrow::{Cow, ToOwned},
@@ -81,7 +81,7 @@ pub fn compare_bytes_in_word_nondet(
     // or too big, which also means n_bytes > BYTES_IN_WORD). The other option is to exctract
     // Felt252::from(BYTES_INTO_WORD) into a lazy_static!
     let bytes_in_word =
-        get_constant_from_var_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("BYTES_IN_WORD", identifiers, accessible_scopes)?;
     let value = Felt252::from((n_bytes < bytes_in_word) as usize);
     insert_value_into_ap(vm, value)
 }
@@ -105,7 +105,7 @@ pub fn compare_keccak_full_rate_in_bytes_nondet(
     let n_bytes = n_bytes.as_ref();
 
     let keccak_full_rate_in_bytes =
-        get_constant_from_var_name("KECCAK_FULL_RATE_IN_BYTES", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("KECCAK_FULL_RATE_IN_BYTES", identifiers, accessible_scopes)?;
     let value = Felt252::from((n_bytes >= keccak_full_rate_in_bytes) as usize);
     insert_value_into_ap(vm, value)
 }
@@ -139,7 +139,7 @@ pub(crate) fn block_permutation_v1(
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let keccak_state_size_felts =
-        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             *keccak_state_size_felts,
@@ -206,7 +206,7 @@ pub(crate) fn block_permutation_v2(
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let keccak_state_size_felts =
-        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(
             *keccak_state_size_felts,
@@ -243,8 +243,8 @@ fn cairo_keccak_finalize(
     block_size_limit: usize,
 ) -> Result<(), HintError> {
     let keccak_state_size_felts =
-        get_constant_from_var_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
-    let block_size = get_constant_from_var_name("BLOCK_SIZE", identifiers, accessible_scopes)?;
+        get_constant_from_scoped_name("KECCAK_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
+    let block_size = get_constant_from_scoped_name("BLOCK_SIZE", identifiers, accessible_scopes)?;
 
     if keccak_state_size_felts >= &Felt252::from(100_i32) {
         return Err(HintError::InvalidKeccakStateSizeFelt252s(Box::new(

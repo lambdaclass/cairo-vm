@@ -9,7 +9,7 @@ use crate::{
 
 use crate::define_hint_string_map;
 use crate::hint_processor::builtin_hint_processor::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, insert_value_from_var_name,
+    get_constant_from_scoped_name, get_integer_from_var_name, insert_value_from_var_name,
 };
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -176,8 +176,8 @@ pub fn compute_ids_high_low(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
-    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
+    let upper_bound = get_constant_from_scoped_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_scoped_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,

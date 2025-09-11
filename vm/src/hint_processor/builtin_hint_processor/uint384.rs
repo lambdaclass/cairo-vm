@@ -15,7 +15,7 @@ use crate::{
 };
 
 use super::hint_utils::{
-    get_constant_from_var_name, get_integer_from_var_name, get_relocatable_from_var_name,
+    get_constant_from_scoped_name, get_integer_from_var_name, get_relocatable_from_var_name,
     insert_value_from_var_name, insert_value_into_ap,
 };
 use super::secp::bigint_utils::Uint384;
@@ -109,7 +109,8 @@ pub fn add_no_uint384_check(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?.to_biguint();
+    let shift =
+        get_constant_from_scoped_name("SHIFT", identifiers, accessible_scopes)?.to_biguint();
 
     let sum_d0 = (a.limbs[0].as_ref().to_biguint()) + (b.limbs[0].as_ref().to_biguint());
     let carry_d0 = BigUint::from((sum_d0 >= shift) as usize);
@@ -547,7 +548,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
-            Err(HintError::MissingConstant(bx)) if *bx == "SHIFT"
+            Err(HintError::UnknownIdentifier(x)) if x.as_ref() == "SHIFT"
         );
     }
 

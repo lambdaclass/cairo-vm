@@ -1,3 +1,5 @@
+use hashbrown::HashSet;
+
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::Felt252;
@@ -182,21 +184,42 @@ pub fn get_identifier_from_scoped_name<'a>(
     for scope in accessible_scopes.iter().rev() {
         let full_path = format!("{}.{}", scope, scoped_name);
 
-        if let Some(identifier) = identifiers.get(&full_path) {
-            return Ok(identifier);
+        let Some(mut identifier) = identifiers.get(&full_path) else {
+            // The scoped_name can itself contain multiple components (i.e. a.b.c).
+            // If there is a match for at least the first component, we should
+            // not continue with the next scope.
+            if let Some(first_component) = scoped_name.split('.').next() {
+                if identifiers
+                    .get(&format!("{}.{}", scope, first_component))
+                    .is_some()
+                {
+                    break;
+                }
+            }
+
+            continue;
+        };
+
+        let mut visited_aliases = HashSet::new();
+        visited_aliases.insert(&full_path);
+
+        // If the identifier is of alias type, we resolve the alias.
+        while identifier.type_.as_deref() == Some("alias") {
+            let destination = identifier
+                .destination
+                .as_ref()
+                .ok_or_else(|| HintError::UnknownIdentifierInternal)?;
+
+            if !visited_aliases.insert(destination) {
+                return Err(HintError::CyclicAliasing);
+            }
+
+            identifier = identifiers.get(destination).ok_or_else(|| {
+                HintError::UnknownIdentifier(destination.clone().into_boxed_str())
+            })?;
         }
 
-        // The scoped_name can itself contain multiple components (i.e. a.b.c).
-        // If there is a match for at least the first component, we should
-        // not continue with the next scope.
-        if let Some(first_component) = scoped_name.split('.').next() {
-            if identifiers
-                .get(&format!("{}.{}", scope, first_component))
-                .is_some()
-            {
-                break;
-            }
-        }
+        return Ok(identifier);
     }
 
     Err(HintError::UnknownIdentifier(
@@ -204,44 +227,23 @@ pub fn get_identifier_from_scoped_name<'a>(
     ))
 }
 
-pub fn get_constant_from_var_name<'a>(
-    var_name: &str,
+pub fn get_constant_from_scoped_name<'a>(
+    scoped_name: &str,
     identifiers: &'a HashMap<String, Identifier>,
     accessible_scopes: &[String],
 ) -> Result<&'a Felt252, HintError> {
-    for scope in accessible_scopes.iter().rev() {
-        let full_path = format!("{}.{}", scope, var_name);
-        let identifier = identifiers.get(&full_path);
+    let identifier = get_identifier_from_scoped_name(scoped_name, identifiers, accessible_scopes)?;
 
-        let Some(identifier) = identifier else {
-            continue;
-        };
-
-        let identifier_type = identifier
-            .type_
+    if identifier.type_.as_deref() != Some("const") {
+        Err(HintError::MissingConstant(Box::new(
+            scoped_name.to_string(),
+        )))
+    } else {
+        identifier
+            .value
             .as_ref()
-            .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))?;
-
-        match &identifier_type[..] {
-            "const" => {
-                return identifier
-                    .value
-                    .as_ref()
-                    .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))
-            }
-            "alias" => {
-                let destination = identifier
-                    .destination
-                    .as_ref()
-                    .ok_or_else(|| HintError::MissingConstant(Box::new(var_name.to_string())))?;
-
-                return get_constant_from_alias(destination, identifiers);
-            }
-            _ => return Err(HintError::MissingConstant(Box::new(var_name.to_string()))),
-        }
+            .ok_or_else(|| HintError::MissingConstant(Box::new(scoped_name.to_string())))
     }
-
-    Err(HintError::MissingConstant(Box::new(var_name.to_string())))
 }
 
 pub fn get_constant_from_alias<'a>(
@@ -472,6 +474,44 @@ mod tests {
         assert_matches!(
             get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier_from_scoped_name_with_alias() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+        let alias = alias_identifier("scope3.constant1");
+
+        let identifiers = HashMap::from([
+            ("scope1.scope2.alias1".to_string(), alias.clone()),
+            ("scope3.constant1".to_string(), identifier.clone()),
+        ]);
+
+        assert_matches!(
+            get_identifier_from_scoped_name("alias1", &identifiers, accessible_scopes),
+            Ok(id) if id == &identifier
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_identifier_from_scoped_name_with_cyclic_alias() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let alias1 = alias_identifier("scope3.alias2");
+        let alias2 = alias_identifier("scope1.scope2.alias1");
+
+        let identifiers = HashMap::from([
+            ("scope1.scope2.alias1".to_string(), alias1.clone()),
+            ("scope3.alias2".to_string(), alias2.clone()),
+        ]);
+
+        assert_matches!(
+            get_identifier_from_scoped_name("alias1", &identifiers, accessible_scopes),
+            Err(HintError::CyclicAliasing)
         );
     }
 }
