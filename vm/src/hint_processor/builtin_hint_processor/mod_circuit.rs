@@ -1,5 +1,5 @@
 use crate::serde::deserialize_program::Identifier;
-use crate::stdlib::prelude::String;
+use crate::stdlib::prelude::{Box, String};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
