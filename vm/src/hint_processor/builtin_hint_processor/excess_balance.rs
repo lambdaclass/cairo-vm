@@ -1,6 +1,6 @@
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
-    serde::deserialize_program::ApTracking,
+    serde::deserialize_program::{ApTracking, Identifier},
     stdlib::collections::HashMap,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -262,13 +262,15 @@ pub fn excess_balance_hint(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
     exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     // Fetch constants & variables
     let margin_check_type =
         get_integer_from_var_name("margin_check_type", vm, ids_data, ap_tracking)?;
-    let margin_check_initial = get_constant_from_var_name("MARGIN_CHECK_INITIAL", constants)?;
+    let margin_check_initial =
+        get_constant_from_var_name("MARGIN_CHECK_INITIAL", identifiers, accessible_scopes)?;
     let token_assets_value_d =
         get_integer_from_var_name("token_assets_value_d", vm, ids_data, ap_tracking)?;
     let account = get_integer_from_var_name("account", vm, ids_data, ap_tracking)?;
@@ -593,7 +595,11 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let identifiers = HashMap::from([(
+            "__main__.MARGIN_CHECK_INITIAL".to_string(),
+            const_identifier(1),
+        )]);
+        let accessible_scopes = vec!["__main__".to_string()];
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),                // ids.margin_check_type
@@ -826,7 +832,8 @@ mod tests {
             &mut vm,
             &ids,
             &ApTracking::default(),
-            &constants,
+            &identifiers,
+            &accessible_scopes,
             &exec_scopes
         )
         .is_ok());
@@ -935,7 +942,11 @@ mod tests {
         // SETUP
         let mut vm = vm!();
         // CONSTANTS
-        let constants = HashMap::from([("MARGIN_CHECK_INITIAL".to_string(), Felt252::ONE)]);
+        let identifiers = HashMap::from([(
+            "__main__.MARGIN_CHECK_INITIAL".to_string(),
+            const_identifier(1),
+        )]);
+        let accessible_scopes = vec!["__main__".to_string()];
         // IDS
         vm.segments = segments!(
             ((1, 0), 1),      // ids.margin_check_type
@@ -1192,7 +1203,8 @@ mod tests {
             &mut vm,
             &ids,
             &ApTracking::default(),
-            &constants,
+            &identifiers,
+            &accessible_scopes,
             &exec_scopes
         )
         .is_ok());

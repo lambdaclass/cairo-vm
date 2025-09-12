@@ -1,8 +1,9 @@
-use crate::Felt252;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name;
+use crate::serde::deserialize_program::Identifier;
 use crate::{
     any_box,
     hint_processor::{
-        builtin_hint_processor::{hint_utils::get_integer_from_var_name, secp::secp_utils::BETA},
+        builtin_hint_processor::hint_utils::get_integer_from_var_name,
         hint_processor_definition::HintReference,
     },
     math_utils::{div_mod, safe_div_bigint},
@@ -106,13 +107,11 @@ pub fn get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let beta = constants
-        .get(BETA)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(BETA)))?
-        .to_bigint();
+    let beta = get_constant_from_var_name("BETA", identifiers, accessible_scopes)?.to_bigint();
 
     let x_cube_int = Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?
         .pack86()
@@ -252,16 +251,19 @@ mod tests {
         ];
         vm.run_context.fp = 1;
         let ids_data = non_continuous_ids_data![("v", -1), ("x_cube", 0)];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_secp.constants.BETA".to_string(),
+            const_identifier(7),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_secp.constants".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(BETA, Felt252::from(7)),]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         )
@@ -282,16 +284,19 @@ mod tests {
         vm.run_context.fp = 2;
 
         let ids_data = ids_data!["v", "x_cube"];
+        let identifiers = HashMap::from([(
+            "starkware.cairo.common.cairo_secp.constants.BETA".to_string(),
+            const_identifier(7),
+        )]);
+        let accessible_scopes = vec!["starkware.cairo.common.cairo_secp.constants".to_string()];
         assert_matches!(
             run_hint!(
                 vm,
                 ids_data,
                 hint_code,
                 &mut exec_scopes,
-                &[(BETA, Felt252::from(7)),]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );

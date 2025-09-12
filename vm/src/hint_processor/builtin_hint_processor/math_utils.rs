@@ -1,6 +1,7 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
     math_utils::signed_felt,
+    serde::deserialize_program::Identifier,
     stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::errors::math_errors::MathError,
 };
@@ -35,8 +36,6 @@ use super::{
     hint_utils::{get_maybe_relocatable_from_var_name, get_relocatable_from_var_name},
     uint256_utils::Uint256,
 };
-
-const ADDR_BOUND: &str = "starkware.starknet.common.storage.ADDR_BOUND";
 
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
@@ -90,17 +89,13 @@ pub fn assert_le_felt(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    const PRIME_OVER_3_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH";
-    const PRIME_OVER_2_HIGH: &str = "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH";
-
-    let prime_over_3_high = constants
-        .get(PRIME_OVER_3_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_3_HIGH)))?;
-    let prime_over_2_high = constants
-        .get(PRIME_OVER_2_HIGH)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(PRIME_OVER_2_HIGH)))?;
+    let prime_over_3_high =
+        get_constant_from_var_name("PRIME_OVER_3_HIGH", identifiers, accessible_scopes)?;
+    let prime_over_2_high =
+        get_constant_from_var_name("PRIME_OVER_2_HIGH", identifiers, accessible_scopes)?;
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?.to_biguint();
     let b = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?.to_biguint();
     let range_check_ptr = get_ptr_from_var_name("range_check_ptr", vm, ids_data, ap_tracking)?;
@@ -384,15 +379,16 @@ pub fn split_felt(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let assert = |b: bool, msg: &str| {
         b.then_some(())
             .ok_or_else(|| HintError::AssertionFailed(msg.to_string().into_boxed_str()))
     };
     let bound = pow2_const(128);
-    let max_high = get_constant_from_var_name("MAX_HIGH", constants)?;
-    let max_low = get_constant_from_var_name("MAX_LOW", constants)?;
+    let max_high = get_constant_from_var_name("MAX_HIGH", identifiers, accessible_scopes)?;
+    let max_low = get_constant_from_var_name("MAX_LOW", identifiers, accessible_scopes)?;
     assert(
         max_high < &bound && max_low < &bound,
         "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128",
@@ -521,17 +517,12 @@ pub fn assert_250_bit(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
     //Declare constant values
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -577,14 +568,13 @@ pub fn is_addr_bounded(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
 
-    let addr_bound = constants
-        .get(ADDR_BOUND)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(ADDR_BOUND)))?
-        .to_biguint();
+    let addr_bound =
+        get_constant_from_var_name("ADDR_BOUND", identifiers, accessible_scopes)?.to_biguint();
 
     let lower_bound = BigUint::one() << 250_usize;
     let upper_bound = BigUint::one() << 251_usize;
@@ -916,15 +906,6 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_le_felt_valid() {
-        let mut constants = HashMap::new();
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_hex!("4000000000000088000000000000001"),
-        );
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
-        );
         let mut vm = vm_with_range_check!();
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
@@ -934,6 +915,17 @@ mod tests {
         add_segments!(vm, 1);
         //Create ids_data & hint_data
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
+        let identifiers = HashMap::from([
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+                const_identifier(felt_hex!("4000000000000088000000000000001")),
+            ),
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+                const_identifier(felt_hex!("2AAAAAAAAAAAAB05555555555555556")),
+            ),
+        ]);
+        let accessible_scopes = vec!["starkware.cairo.common.math.assert_le_felt".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -941,7 +933,8 @@ mod tests {
                 ids_data,
                 hint_code::ASSERT_LE_FELT,
                 &mut exec_scopes,
-                &constants
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -1108,15 +1101,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_invalid() {
         let mut vm = vm_with_range_check!();
-        let mut constants = HashMap::new();
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_hex!("4000000000000088000000000000001"),
-        );
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
-        );
         let mut exec_scopes = scope![("excluded", Felt252::ONE)];
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1124,9 +1108,20 @@ mod tests {
         vm.segments = segments![((1, 0), 2), ((1, 1), 1), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
         add_segments!(vm, 1);
+        let identifiers = HashMap::from([
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+                const_identifier(felt_hex!("4000000000000088000000000000001")),
+            ),
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+                const_identifier(felt_hex!("2AAAAAAAAAAAAB05555555555555556")),
+            ),
+        ]);
+        let accessible_scopes = vec!["starkware.cairo.common.math.assert_le_felt".to_string()];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, identifiers, accessible_scopes),
             Err(HintError::NonLeFelt252(bx)) if *bx == (Felt252::from(2), Felt252::ONE)
         );
     }
@@ -1135,24 +1130,26 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_a_is_not_integer() {
         let mut vm = vm_with_range_check!();
-        let mut constants = HashMap::new();
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_hex!("4000000000000088000000000000001"),
-        );
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
-        );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.segments = segments![((1, 0), (1, 0)), ((1, 1), 1), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_ptr"];
+        let identifiers = HashMap::from([
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+                const_identifier(felt_hex!("4000000000000088000000000000001")),
+            ),
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+                const_identifier(felt_hex!("2AAAAAAAAAAAAB05555555555555556")),
+            ),
+        ]);
+        let accessible_scopes = vec!["starkware.cairo.common.math.assert_le_felt".to_string()];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, identifiers, accessible_scopes),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "a"
         );
     }
@@ -1161,24 +1158,26 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_is_assert_le_felt_b_is_not_integer() {
         let mut vm = vm_with_range_check!();
-        let mut constants = HashMap::new();
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
-            felt_hex!("4000000000000088000000000000001"),
-        );
-        constants.insert(
-            "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
-            felt_hex!("2AAAAAAAAAAAAB05555555555555556"),
-        );
         let mut exec_scopes = scope![("excluded", 1)];
         //Initialize fp
         vm.run_context.fp = 3;
         //Insert ids into memory
         vm.segments = segments![((1, 0), 1), ((1, 1), (1, 0)), ((1, 2), (2, 0))];
         let ids_data = ids_data!["a", "b", "range_check_builtin"];
+        let identifiers = HashMap::from([
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_3_HIGH".to_string(),
+                const_identifier(felt_hex!("4000000000000088000000000000001")),
+            ),
+            (
+                "starkware.cairo.common.math.assert_le_felt.PRIME_OVER_2_HIGH".to_string(),
+                const_identifier(felt_hex!("2AAAAAAAAAAAAB05555555555555556")),
+            ),
+        ]);
+        let accessible_scopes = vec!["starkware.cairo.common.math.assert_le_felt".to_string()];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, &constants),
+            run_hint!(vm, ids_data, hint_code::ASSERT_LE_FELT, &mut exec_scopes, identifiers, accessible_scopes),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "b"
         );
     }
@@ -1858,10 +1857,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_valid() {
         let hint_code = hint_code::ASSERT_250_BITS;
-        let constants = HashMap::from([
-            ("UPPER_BOUND".to_string(), Felt252::from(15)),
-            ("SHIFT".to_string(), Felt252::from(5)),
-        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1869,9 +1864,21 @@ mod tests {
         vm.segments = segments![((1, 0), 1)];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
+        let identifiers = HashMap::from([
+            ("__main__.UPPER_BOUND".to_string(), const_identifier(15)),
+            ("__main__.SHIFT".to_string(), const_identifier(5)),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            run_hint!(
+                vm,
+                ids_data,
+                hint_code,
+                &mut exec_scopes_ref!(),
+                identifiers,
+                accessible_scopes
+            ),
             Ok(())
         );
         //Hint would return an error if the assertion fails
@@ -1883,10 +1890,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_assert_250_bit_invalid() {
         let hint_code = hint_code::ASSERT_250_BITS;
-        let constants = HashMap::from([
-            ("UPPER_BOUND".to_string(), Felt252::from(15)),
-            ("SHIFT".to_string(), Felt252::from(5)),
-        ]);
         let mut vm = vm!();
         //Initialize fp
         vm.run_context.fp = 3;
@@ -1901,9 +1904,14 @@ mod tests {
         )];
         //Create ids
         let ids_data = ids_data!["value", "high", "low"];
+        let identifiers = HashMap::from([
+            ("__main__.UPPER_BOUND".to_string(), const_identifier(15)),
+            ("__main__.SHIFT".to_string(), const_identifier(5)),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
-            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), identifiers, accessible_scopes),
             Err(HintError::ValueOutside250BitRange(bx)) if *bx == pow2_const(251)
         );
     }
@@ -1969,6 +1977,11 @@ mod tests {
         ),];
         //Create ids
         let ids_data = ids_data!["addr", "is_small"];
+        let identifiers = HashMap::from([(
+            "starkware.starknet.common.storage.ADDR_BOUND".to_string(),
+            const_identifier(addr_bound),
+        )]);
+        let accessible_scopes = vec!["starkware.starknet.common.storage".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -1976,10 +1989,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &[(ADDR_BOUND, addr_bound)]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -2005,6 +2016,11 @@ mod tests {
         ),];
         //Create ids
         let ids_data = ids_data!["addr", "is_small"];
+        let identifiers = HashMap::from([(
+            "starkware.starknet.common.storage.ADDR_BOUND".to_string(),
+            const_identifier(addr_bound),
+        )]);
+        let accessible_scopes = vec!["starkware.starknet.common.storage".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2012,7 +2028,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([(ADDR_BOUND.to_string(), addr_bound)])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::AssertionFailed(bx))
                 if bx.as_ref() == "normalize_address() cannot be used with the current constants."
@@ -2033,7 +2050,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(bx)) if *bx == ADDR_BOUND
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "ADDR_BOUND"
         );
     }
 
@@ -2062,6 +2079,14 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            (
+                "__main__.MAX_HIGH".to_string(),
+                const_identifier(felt_str!("10633823966279327296825105735305134080")),
+            ),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2069,13 +2094,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -2102,6 +2122,14 @@ mod tests {
         //Create incomplete ids
         //Create ids_data & hint_data
         let ids_data = ids_data!["low"];
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            (
+                "__main__.MAX_HIGH".to_string(),
+                const_identifier(felt_str!("10633823966279327296825105735305134080")),
+            ),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2109,13 +2137,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "value"
         );
@@ -2146,6 +2169,14 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            (
+                "__main__.MAX_HIGH".to_string(),
+                const_identifier(felt_str!("10633823966279327296825105735305134080")),
+            ),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
 
         //Execute the hint
         assert_matches!(
@@ -2154,13 +2185,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2196,6 +2222,14 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            (
+                "__main__.MAX_HIGH".to_string(),
+                const_identifier(felt_str!("10633823966279327296825105735305134080")),
+            ),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2203,13 +2237,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::Memory(
                 MemoryError::InconsistentMemory(bx)
@@ -2240,6 +2269,14 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            (
+                "__main__.MAX_HIGH".to_string(),
+                const_identifier(felt_str!("10633823966279327296825105735305134080")),
+            ),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2247,13 +2284,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        felt_str!("10633823966279327296825105735305134080")
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
         );
@@ -2287,7 +2319,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code),
-            Err(HintError::MissingConstant(x)) if (*x) == "MAX_HIGH"
+            Err(HintError::UnknownIdentifier(x)) if x.as_ref() == "MAX_HIGH"
         );
     }
 
@@ -2316,6 +2348,11 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(-1)),
+            ("__main__.MAX_HIGH".to_string(), const_identifier(-1)),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2323,13 +2360,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::from(-1)),
-                    (
-                        "MAX_HIGH".to_string(),
-                        Felt252::from(-1),
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert ids.MAX_HIGH < 2**128 and ids.MAX_LOW < 2**128"
         );
@@ -2360,6 +2392,11 @@ mod tests {
                 HintReference::new(-3, 1, true, true, true),
             ),
         ]);
+        let identifiers = HashMap::from([
+            ("__main__.MAX_LOW".to_string(), const_identifier(0)),
+            ("__main__.MAX_HIGH".to_string(), const_identifier(0)),
+        ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -2367,13 +2404,8 @@ mod tests {
                 ids_data,
                 hint_code,
                 exec_scopes_ref!(),
-                &HashMap::from([
-                    ("MAX_LOW".to_string(), Felt252::ZERO),
-                    (
-                        "MAX_HIGH".to_string(),
-                        Felt252::ZERO,
-                    )
-                ])
+                identifiers,
+                accessible_scopes
             ),
             Err(HintError::AssertionFailed(x)) if &(*x) == "assert PRIME - 1 == ids.MAX_HIGH * 2**128 + ids.MAX_LOW"
         );

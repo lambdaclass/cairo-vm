@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::Identifier;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
 use crate::Felt252;
@@ -53,25 +54,31 @@ fn sha256_main(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
     iv: &mut [u32; 8],
 ) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("sha256_start", vm, ids_data, ap_tracking)?;
 
-    // The original code gets it from `ids` in both cases, and this makes it easier
-    // to implement the arbitrary length one
-    let input_chunk_size_felts =
-        get_constant_from_var_name("SHA256_INPUT_CHUNK_SIZE_FELTS", constants)?
-            .to_usize()
-            .unwrap_or(100); // Hack: enough to fail the assertion
+    // The code gets the value from `ids.SHA256_INPUT_CHUNK_SIZE_FELTS` in both
+    // constant and arbitrary input length cases.
+    let input_chunk_size_felts = get_constant_from_var_name(
+        "SHA256_INPUT_CHUNK_SIZE_FELTS",
+        identifiers,
+        accessible_scopes,
+    )?;
 
-    if input_chunk_size_felts >= 100 {
-        return Err(HintError::AssertionFailed(
-            "assert 0 <= _sha256_input_chunk_size_felts < 100"
-                .to_string()
-                .into_boxed_str(),
-        ));
-    }
+    // The input chunk size must be less than 100.
+    let input_chunk_size_felts = match input_chunk_size_felts.to_usize() {
+        Some(size) if size < 100 => size,
+        _ => {
+            return Err(HintError::AssertionFailed(
+                "assert 0 <= _sha256_input_chunk_size_felts < 100"
+                    .to_string()
+                    .into_boxed_str(),
+            ));
+        }
+    };
 
     let mut message: Vec<u8> = Vec::with_capacity(4 * input_chunk_size_felts);
 
@@ -113,10 +120,18 @@ pub fn sha256_main_constant_input_length(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let mut iv = IV;
-    sha256_main(vm, ids_data, ap_tracking, constants, &mut iv)
+    sha256_main(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        &mut iv,
+    )
 }
 
 /* Implements hint:
@@ -136,11 +151,13 @@ pub fn sha256_main_arbitrary_input_length(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let iv_ptr = get_ptr_from_var_name("state", vm, ids_data, ap_tracking)?;
 
-    let state_size_felt = get_constant_from_var_name("SHA256_STATE_SIZE_FELTS", constants)?;
+    let state_size_felt =
+        get_constant_from_var_name("SHA256_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
 
     let state_size = match state_size_felt.to_usize() {
         Some(size) if size == SHA256_STATE_SIZE_FELTS => size,
@@ -171,7 +188,14 @@ pub fn sha256_main_arbitrary_input_length(
         .try_into()
         .expect("size is constant");
 
-    sha256_main(vm, ids_data, ap_tracking, constants, &mut iv)
+    sha256_main(
+        vm,
+        ids_data,
+        ap_tracking,
+        identifiers,
+        accessible_scopes,
+        &mut iv,
+    )
 }
 
 pub fn sha256_finalize(
@@ -287,12 +311,20 @@ mod tests {
         ];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["sha256_start", "output"];
-        let constants = HashMap::from([(
-            "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
-            Felt252::from(SHA256_INPUT_CHUNK_SIZE_FELTS),
+        let identifiers = HashMap::from([(
+            "__main__.SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
+            const_identifier(SHA256_INPUT_CHUNK_SIZE_FELTS),
         )]);
+        let accessible_scopes = vec!["__main__".to_string()];
         assert_matches!(
-            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
+            run_hint!(
+                &mut vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                identifiers,
+                accessible_scopes
+            ),
             Ok(())
         );
 
@@ -347,18 +379,26 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["sha256_start", "output", "state"];
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
-                Felt252::from(SHA256_INPUT_CHUNK_SIZE_FELTS),
+                "__main__.SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
+                const_identifier(SHA256_INPUT_CHUNK_SIZE_FELTS),
             ),
             (
-                "SHA256_STATE_SIZE_FELTS".to_string(),
-                Felt252::from(SHA256_STATE_SIZE_FELTS),
+                "__main__.SHA256_STATE_SIZE_FELTS".to_string(),
+                const_identifier(SHA256_STATE_SIZE_FELTS),
             ),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         assert_matches!(
-            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
+            run_hint!(
+                &mut vm,
+                ids_data,
+                hint_code,
+                exec_scopes_ref!(),
+                identifiers,
+                accessible_scopes
+            ),
             Ok(())
         );
         check_memory![
@@ -396,18 +436,19 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["sha256_start", "output", "state"];
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
-                Felt252::from(100),
+                "__main__.SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
+                const_identifier(100),
             ),
             (
-                "SHA256_STATE_SIZE_FELTS".to_string(),
-                Felt252::from(SHA256_STATE_SIZE_FELTS),
+                "__main__.SHA256_STATE_SIZE_FELTS".to_string(),
+                const_identifier(SHA256_STATE_SIZE_FELTS),
             ),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         assert_matches!(
-            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
+            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), identifiers, accessible_scopes),
             Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= _sha256_input_chunk_size_felts < 100"
         );
     }
@@ -433,15 +474,19 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["sha256_start", "output", "state"];
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
-                Felt252::from(SHA256_INPUT_CHUNK_SIZE_FELTS),
+                "__main__.SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
+                const_identifier(SHA256_INPUT_CHUNK_SIZE_FELTS),
             ),
-            ("SHA256_STATE_SIZE_FELTS".to_string(), Felt252::from(100)),
+            (
+                "__main__.SHA256_STATE_SIZE_FELTS".to_string(),
+                const_identifier(100),
+            ),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         assert_matches!(
-            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
+            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), identifiers, accessible_scopes),
             Err(HintError::AssertionFailed(bx)) if bx.as_ref() == "assert 0 <= _sha256_state_size_felts < 100"
         );
     }
@@ -468,16 +513,20 @@ mod tests {
         ];
         vm.run_context.fp = 3;
         let ids_data = ids_data!["sha256_start", "output", "state"];
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
-                Felt252::from(SHA256_INPUT_CHUNK_SIZE_FELTS),
+                "__main__.SHA256_INPUT_CHUNK_SIZE_FELTS".to_string(),
+                const_identifier(SHA256_INPUT_CHUNK_SIZE_FELTS),
             ),
-            ("SHA256_STATE_SIZE_FELTS".to_string(), state_size),
+            (
+                "__main__.SHA256_STATE_SIZE_FELTS".to_string(),
+                const_identifier(state_size),
+            ),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         let expected_size = Felt252::from(SHA256_STATE_SIZE_FELTS);
         assert_matches!(
-            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), &constants),
+            run_hint!(&mut vm, ids_data, hint_code, exec_scopes_ref!(), identifiers, accessible_scopes),
             Err(HintError::InvalidValue(bx))
                 if *bx == ("SHA256_STATE_SIZE_FELTS", state_size, expected_size)
         );

@@ -1,8 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::Deref,
-    ops::{Add, Mul, Rem},
-    prelude::*,
+use crate::{
+    serde::deserialize_program::Identifier,
+    stdlib::{
+        collections::HashMap,
+        ops::{Add, Deref, Mul, Rem},
+        prelude::*,
+    },
 };
 
 use crate::define_hint_string_map;
@@ -126,7 +128,8 @@ pub fn reduce_value(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("value", x.mod_floor(&SECP256R1_P));
@@ -138,7 +141,8 @@ pub fn reduce_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("x", x.mod_floor(&SECP256R1_P));
@@ -150,7 +154,8 @@ pub fn compute_q_mod_prime(
     _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let val = Uint384::from_var_name("val", vm, ids_data, ap_tracking)?.pack86();
     let (q, r) = val.div_mod_floor(&SECP256R1_P);
@@ -166,19 +171,13 @@ pub fn compute_ids_high_low(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    const UPPER_BOUND: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.SHIFT";
-
-    let upper_bound = constants
-        .get(UPPER_BOUND)
-        .map_or_else(|| get_constant_from_var_name("UPPER_BOUND", constants), Ok)?;
-    let shift = constants
-        .get(SHIFT)
-        .map_or_else(|| get_constant_from_var_name("SHIFT", constants), Ok)?;
+    let upper_bound = get_constant_from_var_name("UPPER_BOUND", identifiers, accessible_scopes)?;
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?;
     let value = Felt252::from(&signed_felt(get_integer_from_var_name(
         "value",
         vm,
@@ -200,7 +199,8 @@ pub fn r1_get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -261,7 +261,8 @@ pub fn is_on_curve_2(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let y: BigInt = exec_scopes.get("y")?;
     let y_square_int: BigInt = exec_scopes.get("y_square_int")?;
@@ -283,7 +284,8 @@ pub fn secp_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -313,7 +315,8 @@ pub fn generate_nibbles(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let num = Uint256::from_var_name("scalar", vm, ids_data, ap_tracking)?.pack();
 
@@ -341,7 +344,8 @@ pub fn fast_secp_add_assign_new_y(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x, new_x, y, secp_p) = (
@@ -363,7 +367,8 @@ pub fn write_nibbles_to_mem(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let nibbles: &mut Vec<Felt252> = exec_scopes.get_mut_list_ref("nibbles")?;
     let nibble = nibbles.pop().ok_or(HintError::EmptyNibbles)?;
@@ -377,7 +382,8 @@ pub fn compute_value_div_mod(
     exec_scopes: &mut ExecutionScopes,
     _ids_data: &HashMap<String, HintReference>,
     _ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
+    _identifiers: &HashMap<String, Identifier>,
+    _accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     //Get variables from vm scope
     let x = exec_scopes.get_ref::<BigInt>("x")?;
@@ -423,6 +429,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("is_on_curve2() failed");
 
@@ -451,6 +458,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("compute_q_mod_prime() failed");
 
@@ -503,19 +511,21 @@ mod tests {
 
         let mut exec_scopes = ExecutionScopes::new();
 
-        let constants = HashMap::from([
+        let identifiers = HashMap::from([
             (
-                "UPPER_BOUND".to_string(),
-                Felt252::from(18446744069414584321_u128),
+                "__main__.UPPER_BOUND".to_string(),
+                const_identifier(18446744069414584321_u128),
             ),
-            ("SHIFT".to_string(), Felt252::from(12)),
+            ("__main__.SHIFT".to_string(), const_identifier(12)),
         ]);
+        let accessible_scopes = vec!["__main__".to_string()];
         compute_ids_high_low(
             &mut vm,
             &mut exec_scopes,
             &ids_data,
             &ap_tracking,
-            &constants,
+            &identifiers,
+            &accessible_scopes,
         )
         .expect("compute_ids_high_low() failed");
 
@@ -561,6 +571,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &constants,
+            &[],
             SECP256R1_P.magnitude(),
         )
         .expect("calculate_value() failed");
@@ -634,6 +645,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("reduce_value() failed");
 
@@ -690,6 +702,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &Default::default(),
+            &[],
         )
         .expect("x() failed");
 
