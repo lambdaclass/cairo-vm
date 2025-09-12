@@ -1,6 +1,6 @@
 use core::ops::Shl;
 
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_scoped_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name;
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
 use crate::serde::deserialize_program::Identifier;
@@ -161,7 +161,7 @@ pub fn bigint_to_uint256(
     let d1 = vm.get_integer((x_struct + 1_i32)?)?;
     let d0 = d0.as_ref();
     let d1 = d1.as_ref();
-    let base_86 = get_constant_from_scoped_name("BASE", identifiers, accessible_scopes)?;
+    let base_86 = get_constant_from_var_name("BASE", identifiers, accessible_scopes)?;
     let mask = pow2_const_nz(128);
     let low = (d0 + (d1 * base_86)).mod_floor(mask);
     insert_value_from_var_name("low", low, vm, ids_data, ap_tracking)

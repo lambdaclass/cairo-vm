@@ -1,4 +1,4 @@
-use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_scoped_name;
+use crate::hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name;
 use crate::serde::deserialize_program::Identifier;
 use crate::{
     any_box,
@@ -111,7 +111,7 @@ pub fn get_point_from_x(
     accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
-    let beta = get_constant_from_scoped_name("BETA", identifiers, accessible_scopes)?.to_bigint();
+    let beta = get_constant_from_var_name("BETA", identifiers, accessible_scopes)?.to_bigint();
 
     let x_cube_int = Uint384::from_var_name("x_cube", vm, ids_data, ap_tracking)?
         .pack86()

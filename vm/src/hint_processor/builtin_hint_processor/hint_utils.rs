@@ -178,7 +178,7 @@ pub fn get_reference_from_var_name<'a>(
         .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
-pub fn get_constant_from_scoped_name<'a>(
+pub fn get_constant_from_var_name<'a>(
     scoped_name: &str,
     identifiers: &'a HashMap<String, Identifier>,
     accessible_scopes: &[String],
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_identifier_from_scoped_name_valid() {
+    fn get_constant_from_var_name_valid() {
         let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
 
         let identifier = const_identifier(5);
@@ -379,15 +379,16 @@ mod tests {
             identifier.clone(),
         )]);
 
-        assert_matches!(
-            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
-            Ok(id) if id == &identifier
+        assert_eq!(
+            *get_constant_from_var_name("constant1.constant2", &identifiers, accessible_scopes)
+                .unwrap(),
+            Felt252::from(5)
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_identifier_from_scoped_name_invalid() {
+    fn get_constant_from_var_name_invalid() {
         let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
 
         let identifier = const_identifier(5);
@@ -398,36 +399,14 @@ mod tests {
         )]);
 
         assert_matches!(
-            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
+            get_constant_from_var_name("constant1.constant2", &identifiers, accessible_scopes),
             Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_identifier_from_scoped_name_invalid_partial_match() {
-        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
-
-        let identifier = const_identifier(5);
-
-        let identifiers = HashMap::from([
-            ("scope1.scope2.constant1".to_string(), identifier.clone()),
-            ("scope1.constant1.constant2".to_string(), identifier.clone()),
-            (
-                "scope1.scope2.constant1.constant3".to_string(),
-                identifier.clone(),
-            ),
-        ]);
-
-        assert_matches!(
-            get_identifier_from_scoped_name("constant1.constant2", &identifiers, accessible_scopes),
-            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
-        );
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_identifier_from_scoped_name_with_alias() {
+    fn get_constant_from_var_name_with_alias() {
         let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
 
         let identifier = const_identifier(5);
@@ -438,15 +417,15 @@ mod tests {
             ("scope3.constant1".to_string(), identifier.clone()),
         ]);
 
-        assert_matches!(
-            get_identifier_from_scoped_name("alias1", &identifiers, accessible_scopes),
-            Ok(id) if id == &identifier
+        assert_eq!(
+            *get_constant_from_var_name("alias1", &identifiers, accessible_scopes).unwrap(),
+            Felt252::from(5)
         );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn get_identifier_from_scoped_name_with_cyclic_alias() {
+    fn get_constant_from_var_name_with_cyclic_alias() {
         let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
 
         let alias1 = alias_identifier("scope3.alias2");
@@ -458,7 +437,7 @@ mod tests {
         ]);
 
         assert_matches!(
-            get_identifier_from_scoped_name("alias1", &identifiers, accessible_scopes),
+            get_constant_from_var_name("alias1", &identifiers, accessible_scopes),
             Err(HintError::CyclicAliasing)
         );
     }

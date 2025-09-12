@@ -20,7 +20,7 @@ use sha2::compress256;
 
 use crate::hint_processor::hint_processor_definition::HintReference;
 
-use super::hint_utils::get_constant_from_scoped_name;
+use super::hint_utils::get_constant_from_var_name;
 
 const SHA256_STATE_SIZE_FELTS: usize = 8;
 const BLOCK_SIZE: usize = 7;
@@ -62,7 +62,7 @@ fn sha256_main(
 
     // The code gets the value from `ids.SHA256_INPUT_CHUNK_SIZE_FELTS` in both
     // constant and arbitrary input length cases.
-    let input_chunk_size_felts = get_constant_from_scoped_name(
+    let input_chunk_size_felts = get_constant_from_var_name(
         "SHA256_INPUT_CHUNK_SIZE_FELTS",
         identifiers,
         accessible_scopes,
@@ -157,7 +157,7 @@ pub fn sha256_main_arbitrary_input_length(
     let iv_ptr = get_ptr_from_var_name("state", vm, ids_data, ap_tracking)?;
 
     let state_size_felt =
-        get_constant_from_scoped_name("SHA256_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
+        get_constant_from_var_name("SHA256_STATE_SIZE_FELTS", identifiers, accessible_scopes)?;
 
     let state_size = match state_size_felt.to_usize() {
         Some(size) if size == SHA256_STATE_SIZE_FELTS => size,
