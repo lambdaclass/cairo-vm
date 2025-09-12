@@ -178,29 +178,16 @@ pub fn get_reference_from_var_name<'a>(
         .ok_or_else(|| HintError::UnknownIdentifier(Box::<str>::from(var_name)))
 }
 
-pub fn get_identifier_from_scoped_name<'a>(
+pub fn get_constant_from_scoped_name<'a>(
     scoped_name: &str,
     identifiers: &'a HashMap<String, Identifier>,
     accessible_scopes: &[String],
-) -> Result<&'a Identifier, HintError> {
+) -> Result<&'a Felt252, HintError> {
+    // Inner scopes override outer scopes.
     for scope in accessible_scopes.iter().rev() {
         let full_path = format!("{}.{}", scope, scoped_name);
 
         let Some(mut identifier) = identifiers.get(&full_path) else {
-            // The scoped_name can itself contain multiple components (i.e. a.b.c).
-            // If there is a match for at least the first component, we should
-            // not continue with the next scope.
-            if let Some(first_component) = scoped_name.split('.').next() {
-                if identifiers
-                    .get(&format!("{}.{}", scope, first_component))
-                    .is_some()
-                {
-                    return Err(HintError::UnknownIdentifier(
-                        scoped_name.to_string().into_boxed_str(),
-                    ));
-                }
-            }
-
             continue;
         };
 
@@ -223,31 +210,20 @@ pub fn get_identifier_from_scoped_name<'a>(
             })?;
         }
 
-        return Ok(identifier);
+        // As are only looking for constants, we ignore any other identifiers.
+        if identifier.type_.as_deref() != Some("const") {
+            continue;
+        }
+
+        return identifier
+            .value
+            .as_ref()
+            .ok_or_else(|| HintError::UnknownIdentifierInternal);
     }
 
     Err(HintError::UnknownIdentifier(
         scoped_name.to_string().into_boxed_str(),
     ))
-}
-
-pub fn get_constant_from_scoped_name<'a>(
-    scoped_name: &str,
-    identifiers: &'a HashMap<String, Identifier>,
-    accessible_scopes: &[String],
-) -> Result<&'a Felt252, HintError> {
-    let identifier = get_identifier_from_scoped_name(scoped_name, identifiers, accessible_scopes)?;
-
-    if identifier.type_.as_deref() != Some("const") {
-        Err(HintError::MissingConstant(Box::new(
-            scoped_name.to_string(),
-        )))
-    } else {
-        identifier
-            .value
-            .as_ref()
-            .ok_or_else(|| HintError::MissingConstant(Box::new(scoped_name.to_string())))
-    }
 }
 
 #[cfg(test)]
