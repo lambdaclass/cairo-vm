@@ -109,8 +109,7 @@ pub fn add_no_uint384_check(
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let shift =
-        get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?.to_biguint();
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?.to_biguint();
 
     let sum_d0 = (a.limbs[0].as_ref().to_biguint()) + (b.limbs[0].as_ref().to_biguint());
     let carry_d0 = BigUint::from((sum_d0 >= shift) as usize);
