@@ -28,14 +28,23 @@ macro_rules! any_box {
 }
 
 pub fn is_subsequence<T: PartialEq>(subsequence: &[T], mut sequence: &[T]) -> bool {
-    for search in subsequence {
-        if let Some(index) = sequence.iter().position(|element| search == element) {
-            sequence = &sequence[index + 1..];
-        } else {
-            return false;
+    if subsequence.is_empty() {
+        return true;
+    }
+    
+    let mut subseq_idx = 0;
+    for element in sequence {
+        match subsequence.get(&subseq_idx) {
+            Some(sub_elem) if element == &sub_elem => {
+                subseq_idx += 1;
+                if subseq_idx == subsequence.len() {
+                    return true;
+                }
+            }
+            None => return false
         }
     }
-    true
+    false
 }
 
 pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
