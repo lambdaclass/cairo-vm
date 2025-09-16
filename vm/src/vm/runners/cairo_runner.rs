@@ -1,4 +1,5 @@
 use crate::vm::trace::trace_entry::TraceEntry;
+
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
@@ -8,6 +9,7 @@ use crate::{
         collections::{BTreeMap, HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
+        rc::Rc,
     },
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
@@ -646,6 +648,8 @@ impl CairoRunner {
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
+        let constants = Rc::new(self.program.constants.clone());
+
         self.program
             .shared_program_data
             .hints_collection
@@ -658,6 +662,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.reference_ids,
                         references,
                         &hint.accessible_scopes,
+                        constants.clone(),
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
@@ -708,6 +713,7 @@ impl CairoRunner {
                     .unwrap_or(&[]),
                 #[cfg(feature = "extensive_hints")]
                 &mut hint_ranges,
+                #[cfg(feature = "test_utils")]
                 &self.program.constants,
             )?;
 
@@ -764,6 +770,7 @@ impl CairoRunner {
                 hint_data,
                 #[cfg(feature = "extensive_hints")]
                 &mut hint_ranges,
+                #[cfg(feature = "test_utils")]
                 &self.program.constants,
             )?;
         }
