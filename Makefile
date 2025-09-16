@@ -278,7 +278,7 @@ test-no_std: cairo_proof_programs cairo_test_programs
 test-wasm: cairo_proof_programs cairo_test_programs
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
-test-extensive_hints: cairo_proof_programs cairo_test_programs
+test-extensive_hints: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, cairo-0-secp-hints, cairo-0-data-availability-hints, extensive_hints"
 
 check-fmt:
