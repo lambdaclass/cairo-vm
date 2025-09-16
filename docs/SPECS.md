@@ -32,14 +32,14 @@ The instruction encoding is specified in the [Cario whitepaper](https://eprint.i
 │  0  │  1  │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │ 10 │ 11 │ 12 │ 13 │ 14 │ 15 │
 └─────┴─────┴───┴───┴───┴───┴───┴───┴───┴───┴────┴────┴────┴────┴────┴────┘
 ```
-The figure shows the structure of the 63-bit that form the first word of each instruction.
+The figure shows the structure of the 63-bits that form the first word of each instruction.
 - The bits are ordered in a little-endian-like encoding, this implies that `off_dst` is located at bits `[0;15]`, while `dst_reg` is located at bit `48`.
 - The last bit (`63`) is unused.
 
 Each sets of fields determine different aspects of the instruction execution:
 - `off_op0`, `off_op1`, `op0_reg`, `op1_src` determine the location of each operand.
-- `off_dst`, `dst_reg` determine the location of the destionation.
-- `res_logic` determine which operation to compute with the operands.
+- `off_dst`, `dst_reg` determine the location of the destination.
+- `res_logic` determines which operation to compute with the operands.
 - `pc_update` determines how the PC register is updated.
 - `ap_update` determines how the AP register is updated.
 - `opcode` determines both how the FP register is updated, and how some memory cell values are deduced.
@@ -317,7 +317,7 @@ Cairo VM uses a Nondeterministic Read-Only memory model. This means - the prover
 
 ### Memory Layout
 
-Requirement 1: given a pair of accessed memory addresses *x and y*, any address *a* which satisfies that *x < a < y* must have also been accessed. This implies that any given set of accessed memory addresses must be contiguous.
+Requirement: given a pair of accessed memory addresses *x and y*, any address *a* which satisfies that *x < a < y* must have also been accessed. This implies that any given set of accessed memory addresses must be contiguous.
 
 #### Real Memory
 
@@ -338,7 +338,7 @@ During execution, temporary segments are stored separated from the memory data a
 
 #### MemorySegmentManager
 
-To satisfy requirement 1, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
+To satisfy the memory requirement, Cairo organizes its memory into segments. In our VM we have the `MemorySegmentManager` which contains everything to manage this special parts of the memory.
 - `segment_sizes`: A HashMap that contains the size of each segment
 - `segment_used_sizes`: A Vector of each segment size. Item on index i is the segment size of segment i
 - `memory`: The memory itself, containing the data, temporary data, relocation rules, among other things
