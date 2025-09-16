@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+
 #### [3.0.0-rc.3] - 2025-26-08
 
 * chore: Bump types-rs to 0.2.0 [#2183](https://github.com/lambdaclass/cairo-vm/pull/2183)
