@@ -1,7 +1,5 @@
-use crate::math_utils::{
-    qm31_packed_reduced_add, qm31_packed_reduced_div, qm31_packed_reduced_mul,
-    qm31_packed_reduced_sub,
-};
+use starknet_types_core::qm31::QM31;
+
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, instruction::OpcodeExtension};
@@ -22,9 +20,12 @@ pub fn typed_add(
         OpcodeExtension::Stone => Ok(x.add(y)?),
         OpcodeExtension::QM31Operation => {
             if let (MaybeRelocatable::Int(num_x), MaybeRelocatable::Int(num_y)) = (x, y) {
-                Ok(MaybeRelocatable::Int(qm31_packed_reduced_add(
-                    *num_x, *num_y,
-                )?))
+                let x_qm31 = QM31::unpack_from_felt(num_x)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let y_qm31 = QM31::unpack_from_felt(num_y)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let res = x_qm31 + y_qm31;
+                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
             } else {
                 Err(VirtualMachineError::Math(MathError::RelocatableQM31Add(
                     Box::new((x.clone(), y.clone())),
@@ -51,9 +52,12 @@ pub fn typed_sub(
         OpcodeExtension::Stone => Ok(x.sub(y)?),
         OpcodeExtension::QM31Operation => {
             if let (MaybeRelocatable::Int(num_x), MaybeRelocatable::Int(num_y)) = (x, y) {
-                Ok(MaybeRelocatable::Int(qm31_packed_reduced_sub(
-                    *num_x, *num_y,
-                )?))
+                let x_qm31 = QM31::unpack_from_felt(num_x)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let y_qm31 = QM31::unpack_from_felt(num_y)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let res = x_qm31 - y_qm31;
+                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
             } else {
                 Err(VirtualMachineError::Math(MathError::RelocatableQM31Sub(
                     Box::new((x.clone(), y.clone())),
@@ -79,9 +83,14 @@ pub fn typed_mul(
     if let (MaybeRelocatable::Int(num_x), MaybeRelocatable::Int(num_y)) = (x, y) {
         match opcode_extension {
             OpcodeExtension::Stone => Ok(MaybeRelocatable::Int(num_x * num_y)),
-            OpcodeExtension::QM31Operation => Ok(MaybeRelocatable::Int(qm31_packed_reduced_mul(
-                *num_x, *num_y,
-            )?)),
+            OpcodeExtension::QM31Operation => {
+                let x_qm31 = QM31::unpack_from_felt(num_x)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let y_qm31 = QM31::unpack_from_felt(num_y)
+                    .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+                let res = x_qm31 * y_qm31;
+                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
+            }
             _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
                 "typed_mul".to_owned().into_boxed_str(),
             )),
@@ -107,7 +116,14 @@ pub fn typed_div(
         OpcodeExtension::Stone => {
             Ok(x.field_div(&y.try_into().map_err(|_| MathError::DividedByZero)?))
         }
-        OpcodeExtension::QM31Operation => Ok(qm31_packed_reduced_div(*x, *y)?),
+        OpcodeExtension::QM31Operation => {
+            let x_qm31 = QM31::unpack_from_felt(x)
+                .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+            let y_qm31 = QM31::unpack_from_felt(y)
+                .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
+            let res = (x_qm31 / y_qm31).map_err(|_| MathError::DividedByZero)?;
+            Ok(res.pack_into_felt())
+        }
         _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
             "typed_div".to_owned().into_boxed_str(),
         )),
