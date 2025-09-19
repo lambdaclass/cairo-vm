@@ -82,7 +82,7 @@ cairo_run(
     .expect("Couldn't run program");
 ```
 #### Final notes:
-The example used in this guide can be found [here](../../../custom_hint_example/).
+The example used in this guide can be found [here](../../../examples/custom_hint/).
 The example can be ran using `make example`
 
 ### How to code your hint implementation:
@@ -99,11 +99,14 @@ In order to code your custom hints you need to take into account the accessible 
 These last two structures are used by helper functions to manage variables from the Cairo scope, and can be overlooked when coding your custom hint implementations. Just note that will have to be passed as arguments to some helper functions.
 
 ### Helper functions
-There are many helper functions available [here](../../../src/hint_processor/builtin_hint_processor/hint_utils.rs), that will allow you to easily manage cairo variables:
+There are many helper functions available [here](../../../vm/src/hint_processor/builtin_hint_processor/hint_utils.rs), that will allow you to easily manage cairo variables:
 
 * **get_integer_from_var_name**: gets the value from memory of a integer variable.
 * **get_ptr_from_var_name**: gets the value from memory of a pointer variable. 
-* **compute_addr_from_var_name**: gets the address of a given variable.
+* **get_address_from_var_name**: gets the address of a given variable as a MaybeRelocatable.
+* **get_relocatable_from_var_name**: gets the address of a given variable as a Relocatable.
+* **get_maybe_relocatable_from_var_name**: gets the value from memorya of a variable as a MaybeRelocatable.
+* **get_constant_from_var_name**: gets the value of a constant.
 * **insert_value_from_var_name**: assigns a value to a Cairo variable. 
 * **insert_value_into_ap**: inserts a value to the memory cell pointed to by the ap register.
 
@@ -113,13 +116,13 @@ Note: When handling pointer type variables, computing the address and using it t
 
 Note: Cairo's memory is write-once, read-only, so when using `insert_value_from_var_name` its important to first make sure that the variable doesnt contain any value (for example, it may be defined as local but never written) to avoid inconsistent memory errors.
 
-There are also some helpers that dont depend on the hint processor used that can also be used to simplify coding hints [here](../../../src/hint_processor/hint_processor_utils.rs):
+There are also some helpers that dont depend on the hint processor used that can also be used to simplify coding hints [here](../../../vm/src/hint_processor/hint_processor_utils.rs):
 
-* get_range_check_builtin
-* bigint_to_usize
-* bigint_to_u32
+* get_offset_value
+* felt_to_usize
+* felt_to_u32
 
-You can also find plenty of example implementations in the [builtin hint processor folder](../../../src/hint_processor/builtin_hint_processor).
+You can also find plenty of example implementations in the [builtin hint processor folder](../../../vm/src/hint_processor/builtin_hint_processor).
 
 ### Error Handling
 This API uses VirtualMachineError as error return type for hint functions, while its not possible to add error types to VirtualMachineError, you can use VirtualMachineError::CustomHint which receives a string and prints an error message with the format: "Hint Error: [your message]".
