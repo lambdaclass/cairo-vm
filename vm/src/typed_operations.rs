@@ -89,6 +89,7 @@ pub fn typed_mul(
                 let y_qm31 = QM31::unpack_from_felt(num_y)
                     .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
                 let res = x_qm31 * y_qm31;
+
                 Ok(MaybeRelocatable::Int(res.pack_into_felt()))
             }
             _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
@@ -122,6 +123,13 @@ pub fn typed_div(
             let y_qm31 = QM31::unpack_from_felt(y)
                 .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
             let res = (x_qm31 / y_qm31).map_err(|_| MathError::DividedByZero)?;
+            // let res = res.to_coefficients();
+            // let res = QM31::from_coefficients(
+            //     res.0 % STWO_PRIME,
+            //     res.1 % STWO_PRIME,
+            //     res.2 % STWO_PRIME,
+            //     res.3 % STWO_PRIME,
+            // );
             Ok(res.pack_into_felt())
         }
         _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(

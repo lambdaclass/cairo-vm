@@ -2417,8 +2417,8 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coefficients(6, STWO_PRIME - 3, 17, 2).pack_into_felt())) &&
-                    y == Some(MaybeRelocatable::Int(dst_qm31.pack_into_felt()))
+            )) if  QM31::unpack_from_felt(x.clone().unwrap().get_int_ref().unwrap()).unwrap() == QM31::from_coefficients(6, STWO_PRIME - 3, 17, 2) &&
+                     QM31::unpack_from_felt(y.clone().unwrap().get_int_ref().unwrap()).unwrap() == dst_qm31
         );
     }
 
@@ -2451,8 +2451,8 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coefficients(0, 1, 0, 0).pack_into_felt())) &&
-                    y == Some(MaybeRelocatable::Int(dst_qm31.pack_into_felt()))
+            )) if QM31::unpack_from_felt(x.clone().unwrap().get_int_ref().unwrap()).unwrap() == QM31::from_coefficients(0, 1, 0, 0) &&
+                    QM31::unpack_from_felt(y.clone().unwrap().get_int_ref().unwrap()).unwrap() == dst_qm31
         );
     }
 
@@ -2722,8 +2722,8 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coefficients(4, 20, 3, STWO_PRIME - 2).pack_into_felt())) &&
-                    y == Some(MaybeRelocatable::Int(dst_qm31.pack_into_felt()))
+            )) if  QM31::unpack_from_felt(x.clone().unwrap().get_int_ref().unwrap()).unwrap() == QM31::from_coefficients(4, 20, 3, STWO_PRIME - 2) &&
+                     QM31::unpack_from_felt(y.clone().unwrap().get_int_ref().unwrap()).unwrap() == dst_qm31
         );
     }
 
@@ -2756,8 +2756,8 @@ mod tests {
             Ok::<(Option<MaybeRelocatable>, Option<MaybeRelocatable>), VirtualMachineError>((
                 x,
                 y
-            )) if x == Some(MaybeRelocatable::Int(QM31::from_coefficients(0, 1, 0, 0).pack_into_felt())) &&
-                    y == Some(MaybeRelocatable::Int(dst_qm31.pack_into_felt()))
+            )) if QM31::unpack_from_felt(x.clone().unwrap().get_int_ref().unwrap()).unwrap() == QM31::from_coefficients(0, 1, 0, 0) &&
+                    QM31::unpack_from_felt(y.clone().unwrap().get_int_ref().unwrap()).unwrap() == dst_qm31
         );
     }
 
@@ -2963,7 +2963,7 @@ mod tests {
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == QM31::from_coefficients(11, 13, 2, 17).pack_into_felt()
+            ))) if QM31::unpack_from_felt(&x).unwrap() == QM31::from_coefficients(11, 13, 2, 17)
         );
     }
 
@@ -2995,7 +2995,7 @@ mod tests {
             vm.compute_res(&instruction, &op0, &op1),
             Ok::<Option<MaybeRelocatable>, VirtualMachineError>(Some(MaybeRelocatable::Int(
                 x
-            ))) if x == QM31::from_coefficients(2, 1, 0, 0).pack_into_felt()
+            ))) if QM31::unpack_from_felt(&x).unwrap() == QM31::from_coefficients(2, 1, 0, 0)
         );
     }
 
