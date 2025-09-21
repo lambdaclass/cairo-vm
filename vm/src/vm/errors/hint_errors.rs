@@ -42,10 +42,12 @@ pub enum HintError {
     UnknownIdentifierInternal,
     #[error("Wrong identifier type")]
     WrongIdentifierTypeInternal,
+    #[error("Encountered cyclic aliasing")]
+    CyclicAliasing,
     #[error("Hint Error: {0}")]
     CustomHint(Box<str>),
     #[error("Missing constant: {0}")]
-    MissingConstant(Box<&'static str>),
+    MissingConstant(Box<String>),
     #[error("Fail to get constants for hint execution")]
     FailedToGetConstant,
     #[error("Arc too big, {} must be <= {} and {} <= {}", (*.0).0, (*.0).1, (*.0).2, (*.0).3)]

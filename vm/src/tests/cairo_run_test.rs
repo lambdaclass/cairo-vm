@@ -1370,3 +1370,10 @@ fn cairo_run_data_availability_reduced_mul() {
         include_bytes!("../../../cairo_programs/cairo-0-kzg-da-hints/reduced_mul.json");
     run_program_simple(program_data.as_slice());
 }
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn constant_collision() {
+    let program_data = include_bytes!("../../../cairo_programs/constant_collision.json");
+    run_program_simple(program_data.as_slice());
+}

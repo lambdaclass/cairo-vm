@@ -1,3 +1,4 @@
+use crate::serde::deserialize_program::Identifier;
 use crate::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -102,12 +103,13 @@ pub fn add_no_uint384_check(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    constants: &HashMap<String, Felt252>,
+    identifiers: &HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<(), HintError> {
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?;
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?;
     // This hint is not from the cairo commonlib, and its lib can be found under different paths, so we cant rely on a full path name
-    let shift = get_constant_from_var_name("SHIFT", constants)?.to_biguint();
+    let shift = get_constant_from_var_name("SHIFT", identifiers, accessible_scopes)?.to_biguint();
 
     let sum_d0 = (a.limbs[0].as_ref().to_biguint()) + (b.limbs[0].as_ref().to_biguint());
     let carry_d0 = BigUint::from((sum_d0 >= shift) as usize);
@@ -488,6 +490,11 @@ mod tests {
             ((1, 4), 17),
             ((1, 5), 8)
         ];
+        let identifiers = HashMap::from([(
+            "path.path.path.SHIFT".to_string(),
+            const_identifier(crate::math_utils::pow2_const(128)),
+        )]);
+        let accessible_scopes = vec!["path.path.path".to_string()];
         //Execute the hint
         assert_matches!(
             run_hint!(
@@ -495,10 +502,8 @@ mod tests {
                 ids_data,
                 hint_code::ADD_NO_UINT384_CHECK,
                 &mut exec_scopes_ref!(),
-                &[("path.path.path.SHIFT", crate::math_utils::pow2_const(128))]
-                    .into_iter()
-                    .map(|(k, v)| (k.to_string(), v))
-                    .collect()
+                identifiers,
+                accessible_scopes
             ),
             Ok(())
         );
@@ -542,7 +547,7 @@ mod tests {
         //Execute the hint
         assert_matches!(
             run_hint!(vm, ids_data, hint_code::ADD_NO_UINT384_CHECK),
-            Err(HintError::MissingConstant(bx)) if *bx == "SHIFT"
+            Err(HintError::UnknownIdentifier(x)) if x.as_ref() == "SHIFT"
         );
     }
 

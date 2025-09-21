@@ -1,4 +1,8 @@
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{
+    boxed::Box,
+    collections::{HashMap, HashSet},
+    prelude::*,
+};
 
 use crate::Felt252;
 
@@ -9,7 +13,7 @@ use crate::hint_processor::hint_processor_utils::{
 use crate::hint_processor::hint_processor_utils::{
     get_integer_from_reference, get_maybe_relocatable_from_reference,
 };
-use crate::serde::deserialize_program::ApTracking;
+use crate::serde::deserialize_program::{ApTracking, Identifier};
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
@@ -175,14 +179,51 @@ pub fn get_reference_from_var_name<'a>(
 }
 
 pub fn get_constant_from_var_name<'a>(
-    var_name: &'static str,
-    constants: &'a HashMap<String, Felt252>,
+    scoped_name: &str,
+    identifiers: &'a HashMap<String, Identifier>,
+    accessible_scopes: &[String],
 ) -> Result<&'a Felt252, HintError> {
-    constants
-        .iter()
-        .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
-        .map(|(_, n)| n)
-        .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
+    // Inner scopes override outer scopes.
+    for scope in accessible_scopes.iter().rev() {
+        let full_path = format!("{}.{}", scope, scoped_name);
+
+        let Some(mut identifier) = identifiers.get(&full_path) else {
+            continue;
+        };
+
+        let mut visited_aliases = HashSet::new();
+        visited_aliases.insert(&full_path);
+
+        // If the identifier is of alias type, we resolve the alias.
+        while identifier.type_.as_deref() == Some("alias") {
+            let destination = identifier
+                .destination
+                .as_ref()
+                .ok_or_else(|| HintError::UnknownIdentifierInternal)?;
+
+            if !visited_aliases.insert(destination) {
+                return Err(HintError::CyclicAliasing);
+            }
+
+            identifier = identifiers.get(destination).ok_or_else(|| {
+                HintError::UnknownIdentifier(destination.clone().into_boxed_str())
+            })?;
+        }
+
+        // As are only looking for constants, we ignore any other identifiers.
+        if identifier.type_.as_deref() != Some("const") {
+            continue;
+        }
+
+        return identifier
+            .value
+            .as_ref()
+            .ok_or_else(|| HintError::UnknownIdentifierInternal);
+    }
+
+    Err(HintError::UnknownIdentifier(
+        scoped_name.to_string().into_boxed_str(),
+    ))
 }
 
 #[cfg(test)]
@@ -323,6 +364,81 @@ mod tests {
         assert_matches!(
             get_integer_from_var_name("value", &vm, &ids_data, &ApTracking::new()),
             Err(HintError::IdentifierNotInteger(bx)) if bx.as_ref() == "value"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_constant_from_var_name_valid() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+
+        let identifiers = HashMap::from([(
+            "scope1.scope2.constant1.constant2".to_string(),
+            identifier.clone(),
+        )]);
+
+        assert_eq!(
+            *get_constant_from_var_name("constant1.constant2", &identifiers, accessible_scopes)
+                .unwrap(),
+            Felt252::from(5)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_constant_from_var_name_invalid() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+
+        let identifiers = HashMap::from([(
+            "scope1.scope2.constant3.constant4".to_string(),
+            identifier.clone(),
+        )]);
+
+        assert_matches!(
+            get_constant_from_var_name("constant1.constant2", &identifiers, accessible_scopes),
+            Err(HintError::UnknownIdentifier(bx)) if bx.as_ref() == "constant1.constant2"
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_constant_from_var_name_with_alias() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let identifier = const_identifier(5);
+        let alias = alias_identifier("scope3.constant1");
+
+        let identifiers = HashMap::from([
+            ("scope1.scope2.alias1".to_string(), alias.clone()),
+            ("scope3.constant1".to_string(), identifier.clone()),
+        ]);
+
+        assert_eq!(
+            *get_constant_from_var_name("alias1", &identifiers, accessible_scopes).unwrap(),
+            Felt252::from(5)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_constant_from_var_name_with_cyclic_alias() {
+        let accessible_scopes = &["scope1".to_string(), "scope1.scope2".to_string()];
+
+        let alias1 = alias_identifier("scope3.alias2");
+        let alias2 = alias_identifier("scope1.scope2.alias1");
+
+        let identifiers = HashMap::from([
+            ("scope1.scope2.alias1".to_string(), alias1.clone()),
+            ("scope3.alias2".to_string(), alias2.clone()),
+        ]);
+
+        assert_matches!(
+            get_constant_from_var_name("alias1", &identifiers, accessible_scopes),
+            Err(HintError::CyclicAliasing)
         );
     }
 }
