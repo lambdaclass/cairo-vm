@@ -8,6 +8,11 @@ source "$HOME/.cargo/env"
 # Make sure Rust has been installed correctly
 rustc --version
 
+# Install pyenv
+brew install pyenv
+
+# install gmp
+brew install --force gmp
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
