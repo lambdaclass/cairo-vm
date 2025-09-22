@@ -115,7 +115,7 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc},
+    stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc, sync::Arc},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -132,7 +132,7 @@ pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
-    pub constants: Rc<HashMap<String, Felt252>>,
+    pub constants: Arc<HashMap<String, Felt252>>,
 }
 
 impl HintProcessorData {
