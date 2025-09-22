@@ -80,7 +80,7 @@ fn get_ids_data(
     reference_ids: &HashMap<String, usize>,
     references: &[HintReference],
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
-    let mut ids_data = HashMap::<String, HintReference>::new();
+    let mut ids_data = HashMap::<String, HintReference>::with_capacity(reference_ids.len());
     for (path, ref_id) in reference_ids {
         let name = path
             .rsplit('.')
