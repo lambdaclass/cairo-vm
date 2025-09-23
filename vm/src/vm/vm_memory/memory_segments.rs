@@ -70,10 +70,8 @@ impl MemorySegmentManager {
         ptr: Relocatable,
         data: &[MaybeRelocatable],
     ) -> Result<Relocatable, MemoryError> {
-        // Starting from the end ensures any necessary resize
-        // is performed once with enough room for everything
-        for (num, value) in data.iter().enumerate().rev() {
-            self.memory.insert((ptr + num)?, value)?;
+        if !data.is_empty() {
+            self.memory.insert_all(ptr, data)?;
         }
         (ptr + data.len()).map_err(MemoryError::Math)
     }

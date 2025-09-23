@@ -744,6 +744,53 @@ impl Memory {
         self.mark_as_accessed(key);
         Ok(())
     }
+
+    /// Inserts multiple values into contiguous memory addresses.
+    ///
+    /// If the address isn't contiguous with previously inserted data, memory gaps will be represented by NONE values
+    ///
+    /// Returns an error if:
+    /// - The segment index given by the address corresponds to a non-allocated segment.
+    /// - An inserted value is inconsistent with the current value at the memory cell
+    pub fn insert_all(
+        &mut self,
+        key: Relocatable,
+        vals: &[MaybeRelocatable],
+    ) -> Result<(), MemoryError> {
+        let segment = self.get_segment(key)?;
+        let (_, value_offset) = from_relocatable_to_indexes(key);
+
+        // Allocate space for all new elements.
+        if segment.len() < value_offset + vals.len() {
+            segment.reserve(value_offset + vals.len() - segment.len());
+        }
+        // Fill middle with NONE.
+        if segment.len() < value_offset {
+            segment.resize(value_offset, MemoryCell::NONE);
+        }
+        // Insert new elements.
+        let last_element_to_replace = segment.len().min(value_offset + vals.len());
+        let replaced = segment.splice(
+            value_offset..last_element_to_replace,
+            vals.iter().map(|v| MemoryCell::new(v.clone())),
+        );
+
+        // Check for inconsistencies.
+        let inconsistent_cell = replaced.enumerate().find(|(idx, replaced)| {
+            replaced
+                .get_value()
+                .is_some_and(|replaced| replaced != vals[*idx])
+        });
+        if let Some((insertions_idx, current_value)) = inconsistent_cell {
+            return Err(MemoryError::InconsistentMemory(Box::new((
+                (key + insertions_idx)?,
+                current_value.into(),
+                vals[insertions_idx].clone(),
+            ))));
+        }
+
+        Ok(())
+    }
 }
 
 impl From<&Memory> for CairoPieMemory {
