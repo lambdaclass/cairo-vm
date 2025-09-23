@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* opt(breaking): Optimize Cairo 0 Execution [#2206](https://github.com/lambdaclass/cairo-vm/pull/2206)
+
 #### [2.5.0] - 2025-09-11
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
