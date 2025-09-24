@@ -54,6 +54,10 @@ use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
+const SEGMENT_ARENA_GAPS: usize = 4;
+const GAS_BUILTIN_GAPS: usize = 1;
+const SYSTEM_BUILTIN_GAPS: usize = 1;
+
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
 #[derive(Debug, Clone)]
@@ -490,13 +494,13 @@ fn load_arguments(
         ap_offset += runner.get_program().builtins_len() - 1;
     }
     if got_segment_arena {
-        ap_offset += 4;
+        ap_offset += SEGMENT_ARENA_GAPS;
     }
     if got_gas_builtin {
-        ap_offset += 1;
+        ap_offset += GAS_BUILTIN_GAPS;
     }
     if got_system_builtin {
-        ap_offset += 1;
+        ap_offset += SYSTEM_BUILTIN_GAPS;
     }
     for arg in cairo_run_config.args {
         match arg {
