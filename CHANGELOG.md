@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Fix bug affecting cairo1 programs with input and Sysem builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
+
 * fix: Added `cairo_1_test_contracts` and `cairo_2_test_contracts` as dependencies for `test-extensive_hints` target [#2201](https://github.com/lambdaclass/cairo-vm/pull/2201)
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
