@@ -454,6 +454,13 @@ mod tests {
         None,
         None
     )]
+    #[case(
+        "with_input/implicit_system_builtin.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
+    )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
