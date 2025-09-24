@@ -557,6 +557,11 @@ fn create_entry_code(
             .map(|x| x.long_id.generic_id == GasBuiltinType::ID)
             .unwrap_or_default()
     });
+    let got_system_builtin = signature.param_types.iter().any(|ty| {
+        get_info(sierra_program_registry, ty)
+            .map(|x| x.long_id.generic_id == SystemType::ID)
+            .unwrap_or_default()
+    });
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
@@ -741,7 +746,8 @@ fn create_entry_code(
             // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin)
             let offset = (2 * builtins.len() - 1
                 + 4 * got_segment_arena as usize
-                + got_gas_builtin as usize) as i16;
+                + got_gas_builtin as usize
+                + got_system_builtin as usize) as i16;
             let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
             let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
             casm_build_extend! {ctx,
