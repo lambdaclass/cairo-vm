@@ -462,6 +462,20 @@ mod tests {
         Some("[1 2]"),
         Some("[1 2]")
     )]
+    #[case(
+        "with_input/implicit_gas_builtin.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
+    )]
+    #[case(
+        "with_input/system_segment_gas.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
+    )]
     fn test_run_program(
         #[case] program: &str,
         #[case] expected_output: &str,
