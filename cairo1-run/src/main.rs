@@ -454,6 +454,7 @@ mod tests {
         None,
         None
     )]
+    #[case("implicit_system_builtin.cairo", "[1]", "[1]", None, None)]
     #[case(
         "with_input/implicit_system_builtin.cairo",
         "[1 2]",
