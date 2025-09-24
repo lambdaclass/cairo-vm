@@ -469,20 +469,13 @@ fn load_arguments(
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
-    let got_gas_builtin = main_func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
+    let got_gas_builtin = got_implicit_builtin(main_func, "GasBuiltin");
     if cairo_run_config.args.is_empty() && !got_gas_builtin {
         // Nothing to be done
         return Ok(());
     }
-    let got_segment_arena = main_func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
+    let got_segment_arena = got_implicit_builtin(main_func, "SegmentArena");
+    let got_system_builtin = got_implicit_builtin(main_func, "System");
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
     // These include:
     // * The builtin bases (not including output)
@@ -500,6 +493,9 @@ fn load_arguments(
         ap_offset += 4;
     }
     if got_gas_builtin {
+        ap_offset += 1;
+    }
+    if got_system_builtin {
         ap_offset += 1;
     }
     for arg in cairo_run_config.args {
@@ -1007,6 +1003,13 @@ fn check_only_array_felt_return_type(
         }
         _ => false,
     }
+}
+fn got_implicit_builtin(main_func: &Function, builtin_name: &str) -> bool {
+    main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == builtin_name))
 }
 
 fn is_panic_result(return_type_id: Option<&ConcreteTypeId>) -> bool {
