@@ -118,7 +118,6 @@ Note: Cairo's memory is write-once, read-only, so when using `insert_value_from_
 
 There are also some helpers that dont depend on the hint processor used that can also be used to simplify coding hints [here](../../../vm/src/hint_processor/hint_processor_utils.rs):
 
-* get_offset_value
 * felt_to_usize
 * felt_to_u32
 
