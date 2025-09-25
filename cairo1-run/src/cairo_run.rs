@@ -732,7 +732,8 @@ fn create_entry_code(
             // We lost the output_ptr var after re-scoping, so we need to create it again
             // The last instruction will write the last output ptr so we can find it in [ap - 1]
             let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
-            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin)
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr +
+            // info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin) + (system_builtin)
             let offset = (2 * builtins.len() - 1
                 + 4 * got_segment_arena as usize
                 + got_gas_builtin as usize
