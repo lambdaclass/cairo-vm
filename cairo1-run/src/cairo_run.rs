@@ -1003,7 +1003,7 @@ fn check_only_array_felt_return_type(
         _ => false,
     }
 }
-fn got_implicit_builtin(param_types: &Vec<ConcreteTypeId>, builtin_name: &str) -> bool {
+fn got_implicit_builtin(param_types: &[ConcreteTypeId], builtin_name: &str) -> bool {
     param_types
         .iter()
         .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == builtin_name))
