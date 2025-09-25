@@ -54,6 +54,7 @@ use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
 use std::{collections::HashMap, iter::Peekable};
 
+// Necessary memory gaps for the values created on the entry code of each implicit builtin
 const SEGMENT_ARENA_GAPS: usize = 4;
 const GAS_BUILTIN_GAPS: usize = 1;
 const SYSTEM_BUILTIN_GAPS: usize = 1;
