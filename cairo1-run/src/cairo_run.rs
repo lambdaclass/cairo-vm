@@ -473,13 +473,13 @@ fn load_arguments(
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
-    let got_gas_builtin = got_implicit_builtin(main_func, "GasBuiltin");
+    let got_gas_builtin = got_implicit_builtin(&main_func.signature.param_types, "GasBuiltin");
     if cairo_run_config.args.is_empty() && !got_gas_builtin {
         // Nothing to be done
         return Ok(());
     }
-    let got_segment_arena = got_implicit_builtin(main_func, "SegmentArena");
-    let got_system_builtin = got_implicit_builtin(main_func, "System");
+    let got_segment_arena = got_implicit_builtin(&main_func.signature.param_types, "SegmentArena");
+    let got_system_builtin = got_implicit_builtin(&main_func.signature.param_types, "System");
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
     // These include:
     // * The builtin bases (not including output)
@@ -547,21 +547,9 @@ fn create_entry_code(
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.copy_to_output();
     let signature = &func.signature;
-    let got_segment_arena = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
-    });
-    let got_gas_builtin = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == GasBuiltinType::ID)
-            .unwrap_or_default()
-    });
-    let got_system_builtin = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SystemType::ID)
-            .unwrap_or_default()
-    });
+    let got_segment_arena = got_implicit_builtin(&signature.param_types, "SegmentArena");
+    let got_gas_builtin = got_implicit_builtin(&signature.param_types, "GasBuiltin");
+    let got_system_builtin = got_implicit_builtin(&signature.param_types, "System");
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
@@ -1014,10 +1002,8 @@ fn check_only_array_felt_return_type(
         _ => false,
     }
 }
-fn got_implicit_builtin(main_func: &Function, builtin_name: &str) -> bool {
-    main_func
-        .signature
-        .param_types
+fn got_implicit_builtin(param_types: &Vec<ConcreteTypeId>, builtin_name: &str) -> bool {
+    param_types
         .iter()
         .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == builtin_name))
 }
