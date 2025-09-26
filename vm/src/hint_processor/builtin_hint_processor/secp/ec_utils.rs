@@ -21,10 +21,10 @@ use crate::{
 };
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
-
-use num_traits::{One, ToPrimitive, Zero};
+use std::ops::{Add, Mul, Rem};
 
 use super::secp_utils::SECP256R1_P;
+use num_traits::{One, ToPrimitive, Zero};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct EcPoint<'a> {
@@ -477,6 +477,79 @@ pub fn quad_bit(
 ) -> Result<(), HintError> {
     n_pair_bits(vm, ids_data, ap_tracking, "quad_bit", 2)
 }
+
+/*
+Implements hint:
+%{
+    from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+    from starkware.python.math_utils import y_squared_from_x
+
+    y_square_int = y_squared_from_x(
+        x=pack(ids.x, PRIME),
+        alpha=SECP256R1.alpha,
+        beta=SECP256R1.beta,
+        field_prime=SECP256R1.prime,
+    )
+
+    # Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+    #   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+    #   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+    #   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+    y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+    # We need to decide whether to take y or prime - y.
+    if ids.v % 2 == y % 2:
+        value = y
+    else:
+        value = (-y) % SECP256R1.prime
+%}
+*/
+pub fn try_get_point_from_x(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    secp256r1_prime: &BigInt,
+    secp256r1_alpha: &BigInt,
+    secp256r1_beta: &BigInt,
+) -> Result<(), HintError> {
+    // exec_scopes.insert_value("SECP256R1", secp256r1.clone());
+
+    let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86(); // TODO: CHECK IF ITS OKEY TO HAVE A BIGINT3
+    let y_square_int = y_squared_from_x(&x, secp256r1_alpha, secp256r1_beta, secp256r1_prime); // TODO: CHECK HOW TO GET THE BETA,ALPHA AND PRIME OUT OF THE SECP256R1
+    let exponent = secp256r1_prime.to_u32().unwrap() + 1; // TODO: REMOVE UNWRAP AND GET PRIME CORRECTLY
+    let y = y_square_int.pow(exponent);
+
+    let bound = BigInt::from(2);
+    let v = BigInt3::from_var_name("v", vm, ids_data, ap_tracking)?.pack86(); // TODO: CHECK IF ITS OKEY TO HAVE A BIGINT3;
+    let (_, v_remainder) = v.div_rem(&bound);
+    let (_, y_remainder) = y.div_rem(&bound);
+
+    if v_remainder == y_remainder {
+        exec_scopes.insert_value("value", y.clone());
+    } else {
+        let value = (-y).mod_floor(secp256r1_prime);
+        exec_scopes.insert_value("value", value);
+    }
+    Ok(())
+}
+
+// def y_squared_from_x(x: int, alpha: int, beta: int, field_prime: int) -> int:
+// """
+// Computes y^2 using the curve equation:
+// y^2 = x^3 + alpha * x + beta (mod field_prime)
+// """
+// return (pow(x, 3, field_prime) + alpha * x + beta) % field_prime
+fn y_squared_from_x(x: &BigInt, alpha: &BigInt, beta: &BigInt, field_prime: &BigInt) -> BigInt {
+    // Compute x^3 (mod field_prime)
+    let x_cubed = x.modpow(&BigInt::from(3), field_prime);
+
+    // Compute alpha * x
+    let alpha_x = alpha.mul(x);
+
+    // Compute y^2 = (x^3 + alpha * x + beta) % field_prime
+    x_cubed.add(&alpha_x).add(beta).rem(field_prime)
+} // TODO: I DUPLICATED THIS FUNCTION JUST TO TRY, CHECK WHERE TO FINALLY PUT IT
 
 /*
 Implements hint:
