@@ -1296,5 +1296,26 @@ res = excess_balance_func(ids, memory, __dict_manager)
 ids.check_account_value = res["account_value"]
 ids.check_excess_balance = res["excess_balance"]
 ids.check_margin_requirement_d = res["margin_requirement"]
-ids.check_unrealized_pnl_d = res["unrealized_pnl"]"#})
+ids.check_unrealized_pnl_d = res["unrealized_pnl"]"#}),
+(TRY_GET_POINT_FROM_X, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+from starkware.python.math_utils import y_squared_from_x
+
+y_square_int = y_squared_from_x(
+    x=pack(ids.x, PRIME),
+    alpha=SECP256R1.alpha,
+    beta=SECP256R1.beta,
+    field_prime=SECP256R1.prime,
+)
+
+# Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+#   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+#   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+#   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+# We need to decide whether to take y or prime - y.
+if ids.v % 2 == y % 2:
+    value = y
+else:
+    value = (-y) % SECP256R1.prime"#})
 }

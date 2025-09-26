@@ -516,8 +516,8 @@ pub fn try_get_point_from_x(
     // exec_scopes.insert_value("SECP256R1", secp256r1.clone());
 
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86(); // TODO: CHECK IF ITS OKEY TO HAVE A BIGINT3
-    let y_square_int = y_squared_from_x(&x, secp256r1_alpha, secp256r1_beta, secp256r1_prime); // TODO: CHECK HOW TO GET THE BETA,ALPHA AND PRIME OUT OF THE SECP256R1
-    let exponent = secp256r1_prime.to_u32().unwrap() + 1; // TODO: REMOVE UNWRAP AND GET PRIME CORRECTLY
+    let y_square_int = y_squared_from_x(&x, secp256r1_alpha, secp256r1_beta, secp256r1_prime);
+    let exponent = secp256r1_prime.to_u32().unwrap() + 1; // TODO: REMOVE UNWRAP
     let y = y_square_int.pow(exponent);
 
     let bound = BigInt::from(2);

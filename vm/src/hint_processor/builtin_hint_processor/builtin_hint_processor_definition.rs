@@ -23,9 +23,12 @@ use super::{
         pack::*,
     },
 };
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::try_get_point_from_x;
 use crate::Felt252;
 use crate::{
-    hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
+    hint_processor::builtin_hint_processor::secp::secp_utils::{
+        SECP256R1_ALPHA, SECP256R1_B, SECP256R1_P,
+    },
     utils::CAIRO_PRIME,
 };
 use crate::{
@@ -899,6 +902,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
                 exec_scopes,
+            ),
+            hint_code::TRY_GET_POINT_FROM_X => try_get_point_from_x(
+                vm,
+                exec_scopes,
+                &hint_data.ids_data,
+                &hint_data.ap_tracking,
+                &SECP256R1_P,
+                &SECP256R1_ALPHA,
+                &SECP256R1_B,
             ),
             #[cfg(feature = "cairo-0-secp-hints")]
             cairo0_hints::COMPUTE_Q_MOD_PRIME => cairo0_hints::compute_q_mod_prime(
