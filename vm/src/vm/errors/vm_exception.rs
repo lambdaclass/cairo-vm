@@ -749,7 +749,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
             end_line: 5,
             end_col: 2,
             input_file: InputFile {
-                filename: String::from("cairo_programs/bad_prtypoograms/bad_usort.cairo"),
+                filename: String::from("cairo_programs/bad_programs/bad_usort.cairo"),
             },
             parent_location: None,
             start_line: 5,
@@ -759,7 +759,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         assert_eq!(
             location.to_string_with_content(&message),
             String::from(
-                "cairo_programs/bad_prtypoograms/bad_usort.cairo:5:1: Error at pc=0:75:\n"
+                "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\n"
             )
         )
     }
