@@ -107,7 +107,8 @@ There are many helper functions available [here](../../../vm/src/hint_processor/
 * **get_relocatable_from_var_name**: gets the address of a given variable as a Relocatable.
 * **get_maybe_relocatable_from_var_name**: gets the value from memorya of a variable as a MaybeRelocatable.
 * **get_constant_from_var_name**: gets the value of a constant.
-* **insert_value_from_var_name**: assigns a value to a Cairo variable. 
+* **get_reference_from_var_name**: gets the value of a var name as a HintReference.
+* **insert_value_from_var_name**: assigns a value to a Cairo variable.
 * **insert_value_into_ap**: inserts a value to the memory cell pointed to by the ap register.
 
 These methods take the name of the ids variable along with vm, ids_data and ap_tracking.
