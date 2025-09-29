@@ -2,6 +2,18 @@
 
 #### Upcoming Changes
 
+* fix: Added `cairo_1_test_contracts` and `cairo_2_test_contracts` as dependencies for `test-extensive_hints` target [#2201](https://github.com/lambdaclass/cairo-vm/pull/2201)
+
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+
+#### [3.0.0-rc.3] - 2025-26-08
+
+* chore: Bump types-rs to 0.2.0 [#2183](https://github.com/lambdaclass/cairo-vm/pull/2183)
+
+#### [3.0.0-rc.2] - 2025-22-08
+
+* feat: Make QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
+
 * feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
 
 * feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)

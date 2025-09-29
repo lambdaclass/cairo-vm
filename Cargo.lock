@@ -365,6 +365,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "blake2"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe"
+dependencies = [
+ "digest",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -708,7 +717,7 @@ dependencies = [
  "serde_json",
  "sha3",
  "smol_str",
- "starknet-types-core",
+ "starknet-types-core 0.1.8",
  "thiserror",
 ]
 
@@ -785,7 +794,7 @@ dependencies = [
  "itertools 0.14.0",
  "num-bigint",
  "num-traits",
- "starknet-types-core",
+ "starknet-types-core 0.1.8",
  "thiserror",
 ]
 
@@ -818,7 +827,7 @@ dependencies = [
  "serde_json",
  "sha3",
  "smol_str",
- "starknet-types-core",
+ "starknet-types-core 0.1.8",
  "thiserror",
 ]
 
@@ -881,7 +890,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -916,7 +925,7 @@ dependencies = [
  "sha2",
  "sha3",
  "starknet-crypto",
- "starknet-types-core",
+ "starknet-types-core 0.2.0",
  "thiserror",
  "wasm-bindgen-test",
  "zip",
@@ -924,7 +933,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "assert_matches",
  "bincode 2.0.1",
@@ -938,7 +947,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-tracer"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "axum",
  "cairo-vm",
@@ -956,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "assert_matches",
  "bincode 2.0.1",
@@ -1608,7 +1617,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -1698,7 +1707,7 @@ dependencies = [
 
 [[package]]
 name = "hyper_threading"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "cairo-vm",
  "rayon",
@@ -2971,9 +2980,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starknet-crypto"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "039a3bad70806b494c9e6b21c5238a6c8a373d66a26071859deb0ccca6f93634"
+checksum = "0f2ca44b93bd42b743256c4063de76a1dc3ac8240cf05059ca9e0106f2284f24"
 dependencies = [
  "crypto-bigint",
  "hex",
@@ -2984,17 +2993,17 @@ dependencies = [
  "rfc6979",
  "sha2",
  "starknet-curve",
- "starknet-types-core",
+ "starknet-types-core 0.2.0",
  "zeroize",
 ]
 
 [[package]]
 name = "starknet-curve"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcde6bd74269b8161948190ace6cf069ef20ac6e79cd2ba09b320efa7500b6de"
+checksum = "22c898ae81b6409532374cf237f1bd752d068b96c6ad500af9ebbd0d9bb712f6"
 dependencies = [
- "starknet-types-core",
+ "starknet-types-core 0.2.0",
 ]
 
 [[package]]
@@ -3003,7 +3012,6 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4037bcb26ce7c508448d221e570d075196fd4f6912ae6380981098937af9522a"
 dependencies = [
- "arbitrary",
  "lambdaworks-crypto",
  "lambdaworks-math",
  "lazy_static",
@@ -3012,6 +3020,24 @@ dependencies = [
  "num-traits",
  "serde",
  "size-of",
+ "zeroize",
+]
+
+[[package]]
+name = "starknet-types-core"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fa3d91e38f091dbc543d33589eb7716bed2a8eb1c20879e484561977832b60a"
+dependencies = [
+ "arbitrary",
+ "blake2",
+ "digest",
+ "lambdaworks-crypto",
+ "lambdaworks-math",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
  "zeroize",
 ]
 
@@ -3567,7 +3593,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.3"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
