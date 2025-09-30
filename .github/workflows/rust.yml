@@ -819,6 +819,22 @@ jobs:
         cd examples/wasm-demo
         wasm-pack build --target=web
 
+  wasm-demo-cairo1: 
+    name: Build the wasm demo cairo1
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Install cairo-lang and deps
+      run: |
+        
+        npm install -g wasm-pack 
+    - name: Build wasm-demo-cairo1
+      run: |
+        cd examples/wasm-demo-cairo1
+        wasm-pack build --target=web
+
   compare-factorial-outputs-all-layouts:
     name: Compare factorial outputs for all layouts
     needs: [ build-programs, build-release ]
