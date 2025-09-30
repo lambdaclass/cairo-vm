@@ -683,7 +683,10 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 sha256_input(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::SHA256_FINALIZE => {
-                sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+                sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, false)
+            }
+            hint_code::SHA256_FINALIZE_V2 => {
+                sha256_finalize(vm, &hint_data.ids_data, &hint_data.ap_tracking, true)
             }
             hint_code::CAIRO_KECCAK_INPUT_IS_FULL_WORD => {
                 cairo_keccak_is_full_word(vm, &hint_data.ids_data, &hint_data.ap_tracking)

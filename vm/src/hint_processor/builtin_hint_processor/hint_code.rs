@@ -748,6 +748,23 @@ w = compute_message_schedule(message)
 output = sha2_compress_function(IV, w)
 padding = (message + IV + output) * (_block_size - 1)
 segments.write_arg(ids.sha256_ptr_end, padding)"#}),
+(SHA256_FINALIZE_V2, indoc! {r#"# Add dummy pairs of input and output.
+from starkware.cairo.common.cairo_sha256.sha256_utils import (
+    IV,
+    compute_message_schedule,
+    sha2_compress_function,
+)
+
+number_of_missing_blocks = (-ids.n) % ids.BATCH_SIZE
+assert 0 <= number_of_missing_blocks < 20
+_sha256_input_chunk_size_felts = ids.SHA256_INPUT_CHUNK_SIZE_FELTS
+assert 0 <= _sha256_input_chunk_size_felts < 100
+
+message = [0] * _sha256_input_chunk_size_felts
+w = compute_message_schedule(message)
+output = sha2_compress_function(IV, w)
+padding = (message + IV + output) * number_of_missing_blocks
+segments.write_arg(ids.sha256_ptr_end, padding)"#}),
 (KECCAK_WRITE_ARGS, indoc! {r#"segments.write_arg(ids.inputs, [ids.low % 2 ** 64, ids.low // 2 ** 64])
 segments.write_arg(ids.inputs + 2, [ids.high % 2 ** 64, ids.high // 2 ** 64])"#}),
 (COMPARE_BYTES_IN_WORD_NONDET, indoc! {r#"memory[ap] = to_felt_or_relocatable(ids.n_bytes < ids.BYTES_IN_WORD)"#}),

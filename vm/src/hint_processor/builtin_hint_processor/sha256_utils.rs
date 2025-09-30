@@ -23,6 +23,7 @@ use super::hint_utils::get_constant_from_var_name;
 
 const SHA256_STATE_SIZE_FELTS: usize = 8;
 const BLOCK_SIZE: usize = 7;
+const BATCH_SIZE: usize = 10;
 const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
 ];
@@ -178,6 +179,7 @@ pub fn sha256_finalize(
     vm: &mut VirtualMachine,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    is_v2: bool,
 ) -> Result<(), HintError> {
     let message: Vec<u8> = vec![0; 64];
 
@@ -199,7 +201,16 @@ pub fn sha256_finalize(
     let mut padding: Vec<MaybeRelocatable> = Vec::new();
     let zero_vector_message: Vec<MaybeRelocatable> = vec![Felt252::ZERO.into(); 16];
 
-    for _ in 0..BLOCK_SIZE - 1 {
+    let block_size = if is_v2 {
+        let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
+            .to_usize()
+            .ok_or(HintError::WrongHintData)?;
+        n % BATCH_SIZE
+    } else {
+        BLOCK_SIZE
+    };
+
+    for _ in 0..block_size {
         padding.extend_from_slice(zero_vector_message.as_slice());
         padding.extend_from_slice(iv_static.as_slice());
         padding.extend_from_slice(output.as_slice());
