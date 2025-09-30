@@ -3592,7 +3592,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm-demo-cairo0"
+name = "wasm-demo"
 version = "3.0.0-rc.3"
 dependencies = [
  "cairo-vm",
