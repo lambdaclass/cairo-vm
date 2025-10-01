@@ -232,8 +232,8 @@ jobs:
     - name: Check all features (${{ matrix.crate }})
       run: |
         cd ${{ matrix.crate }}
-        cargo check-all-features
-        cargo check-all-features --workspace --all-targets
+        cargo all-features check
+        cargo all-features check --workspace --all-targets
 
   smoke-workspace:
     needs: merge-caches
@@ -277,7 +277,7 @@ jobs:
 
     - name: Check all features (workspace)
       run: |
-        cargo check-all-features --n-chunks 6 --chunk ${{ matrix.chunk }} --workspace --all-targets
+        cargo all-features check --n-chunks 6 --chunk ${{ matrix.chunk }} --workspace --all-targets
 
   smoke-no-std:
     needs: merge-caches
