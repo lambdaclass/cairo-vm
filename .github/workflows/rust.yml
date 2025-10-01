@@ -826,13 +826,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       
-    - name: Install cairo-lang and deps
-      run: |
-        
-        npm install -g wasm-pack 
+    - name: Install wasm-pack dep
+      run: npm install -g wasm-pack 
+    
+    - name: Make deps
+      run: make deps
+
     - name: Build wasm-demo-cairo1
       run: |
+        mv cairo2/ examples/wasm-demo-cairo1
         cd examples/wasm-demo-cairo1
+        cairo2/bin/cairo-compile -rs bitwise.cairo bitwise.sierra
         wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:
