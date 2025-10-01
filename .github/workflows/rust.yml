@@ -825,6 +825,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       
     - name: Install wasm-pack dep
       run: npm install -g wasm-pack 
@@ -836,7 +838,7 @@ jobs:
       run: |
         mv cairo2/ examples/wasm-demo-cairo1
         cd examples/wasm-demo-cairo1
-        cairo2/bin/cairo-compile -rs bitwise.cairo bitwise.sierra
+        cairo2/bin/cairo-compile -rs ../../cairo_programs/cairo-1-programs/bitwise.cairo ../../cairo_programs/cairo-1-programs/bitwise.sierra
         wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:

@@ -34,8 +34,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    let program_str =
-        include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
+    let program_str = include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
 
     let sierra_program = ProgramParser::new().parse(program_str)?;
 
