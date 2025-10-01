@@ -97,7 +97,7 @@ mod tests {
     use super::*;
 
     use crate::stdlib::{collections::HashMap, string::ToString};
-    use crate::utils::test_utils::*;
+    use crate::utils::no_name_utils::{bigint, bigint_str};
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
 

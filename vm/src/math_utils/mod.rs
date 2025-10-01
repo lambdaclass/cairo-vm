@@ -621,7 +621,7 @@ pub(crate) fn is_quad_residue(a: &BigUint, p: &BigUint) -> Result<bool, MathErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test_utils::*;
+    use crate::utils::no_name_utils::*;
     use crate::utils::CAIRO_PRIME;
     use assert_matches::assert_matches;
 
