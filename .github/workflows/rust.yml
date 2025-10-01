@@ -19,6 +19,7 @@ env:
     cairo_prgrams/cairo-1-programs/bitwise.sierra
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
+    cairo_programs/cairo-1-programs/bitwise.sierra
   TEST_COLLECT_COVERAGE: 1
   PROPTEST_CASES: 100
 
@@ -49,6 +50,7 @@ jobs:
         - cairo_test_programs
         - cairo_1_test_contracts
         - cairo_2_test_contracts
+        - wasm_cairo_1_example
     name: Build Cairo programs
     runs-on: ubuntu-24.04
     steps:
@@ -95,11 +97,15 @@ jobs:
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts' && matrix.program-target == 'wasm_cairo_1_example'
       run: make build-cairo-2-compiler
 
+    - name: Build Cairo 1 WASM example
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'wasm_cairo_1_example'
+      run: cairo2/bin/cairo-compile -rs cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
+
     - name: Build programs
-      if: steps.cache-programs.outputs.cache-hit != 'true'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'wasm_cairo_1_example'
       run: make -j ${{ matrix.program-target }}
 
   # NOTE: used to reduce the amount of cache steps we need in later jobs
@@ -837,7 +843,6 @@ jobs:
 
     - name: Build wasm-demo-cairo1
       run: |
-        ./cairo2/bin/cairo-compile -rs cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
         cd examples/wasm-demo-cairo1
         wasm-pack build --target=web
 
