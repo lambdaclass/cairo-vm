@@ -1,7 +1,7 @@
 mod utils;
 
 use cairo1_run::Cairo1RunConfig;
-use cairo_lang_sierra::{ProgramParser};
+use cairo_lang_sierra::ProgramParser;
 use cairo_vm::types::layout_name::LayoutName;
 use wasm_bindgen::prelude::*;
 
@@ -34,7 +34,8 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    let program_str = include_str!("../../../cairo_programs/cairo-1-programs/serialized_output/bitwise.sierra");
+    let program_str =
+        include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
 
     let sierra_program = ProgramParser::new().parse(program_str)?;
 

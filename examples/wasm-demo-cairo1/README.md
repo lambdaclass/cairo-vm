@@ -23,7 +23,7 @@ To compile and run the example you need:
 To build the example, first you need to compile your Cairo Program, using either cairo 1 or cairo 2 compiler:
 
 ```sh
-cairo-compile -rs ../../cairo_programs/cairo-1-programs/serialized_output/bitwise.cairo ../../cairo_programs/cairo-1-programs/serialized_output/bitwise.sierra
+cairo-compile -rs ../../cairo_programs/cairo-1-programs/bitwise.cairo ../../cairo_programs/cairo-1-programs/bitwise.sierra
 ```
 
 > WARNING: This example uses `cairo1-run::cairo_run_program` which expectes the program to be compiled with debug names. By default, `cairo-compile` does not include debug names in sierra. Due to this, the flag `-r` or `--replace-ids` is needed.

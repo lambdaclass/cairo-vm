@@ -35,10 +35,10 @@ use cairo_lang_utils::{
     bigint::BigIntAsHex, casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap,
 };
 use cairo_vm::{
-    stdlib::{collections::HashMap, iter::Peekable},
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
+    stdlib::{collections::HashMap, iter::Peekable},
     types::{
         builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
         program::Program, relocatable::MaybeRelocatable,
