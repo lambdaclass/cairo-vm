@@ -101,7 +101,7 @@ jobs:
 
     - name: Build Cairo 1 WASM example
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'wasm_cairo_1_example'
-      run: ./cairo1/bin/cairo-compile -rs cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
+      run: ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
 
     - name: Build programs
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'wasm_cairo_1_example'
