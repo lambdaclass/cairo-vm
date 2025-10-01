@@ -16,7 +16,6 @@ env:
   CAIRO_PROGRAMS_PATH: |
     cairo_programs/**/*.casm
     cairo_programs/**/*.json
-    cairo_prgrams/cairo-1-programs/bitwise.sierra
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
     cairo_programs/cairo-1-programs/bitwise.sierra
@@ -93,11 +92,11 @@ jobs:
           echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo 1 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && (matrix.program-target == 'cairo_1_test_contracts' || matrix.program-target == 'wasm_cairo_1_example')
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts' && matrix.program-target == 'wasm_cairo_1_example'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
       run: make build-cairo-2-compiler
 
     - name: Build Cairo 1 WASM example
