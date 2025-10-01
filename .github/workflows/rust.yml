@@ -161,7 +161,9 @@ jobs:
     - name: Merge caches
       uses: actions/cache/save@v3
       with:
-        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        path: |
+         ${{ env.CAIRO_PROGRAMS_PATH }} 
+         cairo_programs/cairo-1-programs/bitwise.sierra
         key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'cairo_programs/cairo-1-programs/bitwise.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
 
   lint:
