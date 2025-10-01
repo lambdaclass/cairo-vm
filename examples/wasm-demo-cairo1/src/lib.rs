@@ -34,9 +34,10 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    let program_str = include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
-
-    let sierra_program = ProgramParser::new().parse(program_str)?;
+    let sierra_program = {
+        let program_str = include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
+        ProgramParser::new().parse(program_str)?
+    };
 
     let (_, _, serialized_output) = wrap_error!(cairo1_run::cairo_run_program(
         &sierra_program,
@@ -47,5 +48,5 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
     log(&output);
 
-    Ok(output)
+    Ok("output".to_string())
 }

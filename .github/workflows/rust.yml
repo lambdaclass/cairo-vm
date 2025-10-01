@@ -16,6 +16,7 @@ env:
   CAIRO_PROGRAMS_PATH: |
     cairo_programs/**/*.casm
     cairo_programs/**/*.json
+    cairo_prgrams/cairo-1-programs/bitwise.sierra
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
   TEST_COLLECT_COVERAGE: 1
@@ -836,9 +837,8 @@ jobs:
 
     - name: Build wasm-demo-cairo1
       run: |
-        mv cairo2/ examples/wasm-demo-cairo1
+        ./cairo2/bin/cairo-compile -rs cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
         cd examples/wasm-demo-cairo1
-        cairo2/bin/cairo-compile -rs ../../cairo_programs/cairo-1-programs/bitwise.cairo ../../cairo_programs/cairo-1-programs/bitwise.sierra
         wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:

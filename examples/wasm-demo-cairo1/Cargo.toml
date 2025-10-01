@@ -28,4 +28,4 @@ serde_json ={ workspace = true }
 
 cairo-lang-sierra = { workspace = true }
 cairo-vm = { workspace = true }
-cairo1-run = { workspace = true, default-features = false }
+cairo1-run = { path = "../../cairo1-run", default-features = false }
