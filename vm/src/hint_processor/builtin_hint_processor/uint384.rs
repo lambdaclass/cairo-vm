@@ -243,7 +243,6 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
 
-    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -256,6 +255,7 @@ mod tests {
         utils::test_utils::*,
         vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
+    use crate::{check_memory, felt_str};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

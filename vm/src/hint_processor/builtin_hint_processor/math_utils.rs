@@ -752,7 +752,7 @@ pub fn split_xx(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{felt_hex, felt_str};
+    use crate::{check_memory, felt_hex, felt_str};
     use core::ops::Neg;
 
     use crate::{

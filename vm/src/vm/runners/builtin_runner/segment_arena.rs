@@ -88,6 +88,7 @@ fn gen_arg(segments: &mut MemorySegmentManager, data: &[MaybeRelocatable; 3]) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::runner_errors::RunnerError;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};

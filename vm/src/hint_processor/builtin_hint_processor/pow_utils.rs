@@ -36,6 +36,7 @@ pub fn pow(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::types::relocatable::Relocatable;
 
     use crate::{

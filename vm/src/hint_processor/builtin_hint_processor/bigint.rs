@@ -99,12 +99,13 @@ pub fn bigint_safe_div_hint(
 #[cfg(test)]
 mod test {
     use crate::any_box;
+    use crate::bigint_str;
+    use crate::check_memory;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::{HintProcessorLogic, HintReference};
     use crate::types::exec_scope::ExecutionScopes;
-    use crate::utils::no_name_utils::bigint_str;
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;

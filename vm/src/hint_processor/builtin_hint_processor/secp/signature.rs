@@ -164,9 +164,9 @@ pub fn pack_modn_div_modn(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bigint_str;
     use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
-    use crate::utils::no_name_utils::bigint_str;
 
     use crate::{
         any_box,

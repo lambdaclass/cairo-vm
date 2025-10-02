@@ -836,7 +836,7 @@ mod memory_tests {
 
     use super::*;
     use crate::{
-        felt_hex, relocatable,
+        check_memory, felt_hex, relocatable,
         utils::test_utils::*,
         vm::{
             runners::builtin_runner::{

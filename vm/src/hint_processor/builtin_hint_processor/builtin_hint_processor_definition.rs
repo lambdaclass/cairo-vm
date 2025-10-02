@@ -1056,6 +1056,7 @@ impl ResourceTracker for BuiltinHintProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
 

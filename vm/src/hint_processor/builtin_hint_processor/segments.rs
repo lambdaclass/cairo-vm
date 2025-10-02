@@ -76,7 +76,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        any_box,
+        any_box, check_memory,
         hint_processor::{
             builtin_hint_processor::{
                 builtin_hint_processor_definition::{BuiltinHintProcessor, HintProcessorData},

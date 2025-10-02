@@ -301,7 +301,6 @@ pub fn squash_dict(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::felt_str;
     use crate::{
         any_box,
         hint_processor::{
@@ -314,6 +313,7 @@ mod tests {
         utils::test_utils::*,
         vm::vm_core::VirtualMachine,
     };
+    use crate::{check_memory, felt_str};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

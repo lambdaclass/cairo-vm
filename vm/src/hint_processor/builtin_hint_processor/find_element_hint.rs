@@ -130,6 +130,7 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::stdlib::string::ToString;
     use crate::types::relocatable::Relocatable;
     use crate::{

@@ -254,6 +254,7 @@ pub fn dict_squash_update_ptr(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;

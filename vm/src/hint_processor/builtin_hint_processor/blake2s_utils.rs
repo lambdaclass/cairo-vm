@@ -371,6 +371,7 @@ pub fn example_blake2s_compress(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::check_memory;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::types::errors::math_errors::MathError;
     use crate::{
