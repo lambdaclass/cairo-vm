@@ -508,7 +508,7 @@ mod tests {
         },
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+        vm::errors::memory_errors::MemoryError,
     };
     use crate::{check_memory, felt_str};
     use assert_matches::assert_matches;

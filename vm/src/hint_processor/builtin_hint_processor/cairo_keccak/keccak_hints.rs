@@ -375,9 +375,7 @@ mod tests {
             },
             hint_processor_definition::{HintProcessorLogic, HintReference},
         },
-        types::relocatable::Relocatable,
         utils::test_utils::*,
-        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
     use rstest::*;

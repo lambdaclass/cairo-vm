@@ -83,7 +83,7 @@ pub mod test_utils {
         ($( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             {
                 let mut segments = $crate::vm::vm_memory::memory_segments::MemorySegmentManager::new();
-                segments.memory = memory!($( (($si, $off), $val) ),*);
+                segments.memory = $crate::memory!($( (($si, $off), $val) ),*);
                 segments
             }
 
@@ -107,7 +107,7 @@ pub mod test_utils {
     macro_rules! check_memory {
         ( $mem: expr, $( (($si:expr, $off:expr), $val:tt) ),* $(,)? ) => {
             $(
-                check_memory_address!($mem, ($si, $off), $val);
+                $crate::check_memory_address!($mem, ($si, $off), $val);
             )*
         };
     }
@@ -116,14 +116,18 @@ pub mod test_utils {
     macro_rules! check_memory_address {
         ($mem:expr, ($si:expr, $off:expr), ($sival:expr, $offval: expr)) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)).unwrap().as_ref(),
-                &mayberelocatable!($sival, $offval)
+                $mem.get(&$crate::mayberelocatable!($si, $off))
+                    .unwrap()
+                    .as_ref(),
+                &$crate::mayberelocatable!($sival, $offval)
             )
         };
         ($mem:expr, ($si:expr, $off:expr), $val:expr) => {
             assert_eq!(
-                $mem.get(&mayberelocatable!($si, $off)).unwrap().as_ref(),
-                &mayberelocatable!($val)
+                $mem.get(&$crate::mayberelocatable!($si, $off))
+                    .unwrap()
+                    .as_ref(),
+                &$crate::mayberelocatable!($val)
             )
         };
     }
@@ -143,7 +147,7 @@ pub mod test_utils {
     #[macro_export]
     macro_rules! vm_with_range_check {
         () => {{
-            let mut vm = VirtualMachine::new(false, false);
+            let mut vm = $crate::vm::vm_core::VirtualMachine::new(false, false);
             vm.builtin_runners = vec![
                 $crate::vm::runners::builtin_runner::RangeCheckBuiltinRunner::<8>::new(
                     Some(8),
@@ -208,25 +212,25 @@ pub mod test_utils {
     macro_rules! program {
         //Empty program
         () => {
-            Program::default()
+            $crate::types::program::Program::default()
         };
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {{
-            let shared_program_data = SharedProgramData {
+            let shared_program_data = $crate::types::program::SharedProgramData {
                 data: $crate::stdlib::vec::Vec::new(),
-                hints_collection: HintsCollection::new(&$crate::stdlib::collections::BTreeMap::new(), 0).unwrap(),
+                hints_collection: $crate::types::program::HintsCollection::new(&$crate::stdlib::collections::BTreeMap::new(), 0).unwrap(),
                 main: None,
                 start: None,
                 end: None,
                 error_message_attributes: $crate::stdlib::vec::Vec::new(),
                 instruction_locations: None,
                 identifiers: $crate::stdlib::collections::HashMap::new(),
-                reference_manager: Program::get_reference_list(&ReferenceManager {
+                reference_manager: $crate::types::program::Program::get_reference_list(&$crate::serde::deserialize_program::ReferenceManager {
                     references: $crate::stdlib::vec::Vec::new(),
                 }),
             };
-            Program {
-                shared_program_data: Arc::new(shared_program_data),
+            $crate::types::program::Program {
+                shared_program_data: $crate::stdlib::sync::Arc::new(shared_program_data),
                 constants: $crate::stdlib::collections::HashMap::new(),
                 builtins: vec![$( $builtin_name ),*],
             }
@@ -331,7 +335,7 @@ pub mod test_utils {
     #[macro_export]
     macro_rules! run_context {
         ( $vm: expr, $pc: expr, $ap: expr, $fp: expr ) => {
-            $vm.run_context.pc = Relocatable::from((0, $pc));
+            $vm.run_context.pc = $crate::types::relocatable::Relocatable::from((0, $pc));
             $vm.run_context.ap = $ap;
             $vm.run_context.fp = $fp;
         };
@@ -358,9 +362,9 @@ pub mod test_utils {
     macro_rules! non_continuous_ids_data {
         ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
-                let mut ids_data = $crate::stdlib::collections::HashMap::<$crate::stdlib::string::String, HintReference>::new();
+                let mut ids_data = $crate::stdlib::collections::HashMap::<$crate::stdlib::string::String, $crate::hint_processor::hint_processor_definition::HintReference>::new();
                 $(
-                    ids_data.insert($crate::stdlib::string::String::from($name), HintReference::new_simple($offset));
+                    ids_data.insert($crate::stdlib::string::String::from($name), $crate::hint_processor::hint_processor_definition::HintReference::new_simple($offset));
                 )*
                 ids_data
             }
@@ -426,10 +430,10 @@ pub mod test_utils {
 
     #[macro_export]
     macro_rules! scope {
-        () => { ExecutionScopes::new() };
+        () => { $crate::types::exec_scope::ExecutionScopes::new() };
         (  $( ($name: expr, $val: expr)),* $(,)?  ) => {
             {
-                let mut exec_scopes = ExecutionScopes::new();
+                let mut exec_scopes = $crate::types::exec_scope::ExecutionScopes::new();
                 $(
                     exec_scopes.assign_or_update_variable(
                         $name,
@@ -494,13 +498,13 @@ pub mod test_utils {
         #[macro_export]
         macro_rules! memory_from_memory {
         ($mem: expr, ( $( (($si:expr, $off:expr), $val:tt) ),* )) => {
-            {
-                $(
-                    $crate::memory_inner!($mem, ($si, $off), $val);
-                )*
-            }
-        };
-    }
+                {
+                    $(
+                        $crate::memory_inner!($mem, ($si, $off), $val);
+                    )*
+                }
+            };
+        }
 
         #[macro_export]
         macro_rules! memory_inner {
@@ -539,10 +543,17 @@ pub mod test_utils {
         #[macro_export]
         macro_rules! references {
             ($num: expr) => {{
-                let mut references =
-                    $crate::stdlib::collections::HashMap::<usize, HintReference>::new();
+                let mut references = $crate::stdlib::collections::HashMap::<
+                    usize,
+                    $crate::hint_processor::hint_processor_definition::HintReference,
+                >::new();
                 for i in 0..$num {
-                    references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
+                    references.insert(
+                        i as usize,
+                        $crate::hint_processor::hint_processor_definition::HintReference::new_simple(
+                            (i as i32 - $num),
+                        ),
+                    );
                 }
                 references
             }};

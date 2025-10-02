@@ -48,7 +48,7 @@ mod tests {
         },
         types::relocatable::MaybeRelocatable,
         utils::test_utils::*,
-        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
+        vm::errors::memory_errors::MemoryError,
     };
     use assert_matches::assert_matches;
 
