@@ -654,7 +654,7 @@ pub mod test_utils {
 
 #[cfg(test)]
 mod test {
-    use std::collections::BTreeMap;
+    use crate::stdlib::collections::BTreeMap;
 
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
