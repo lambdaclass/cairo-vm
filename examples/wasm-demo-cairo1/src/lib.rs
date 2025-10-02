@@ -16,16 +16,14 @@ pub fn start() {
     crate::utils::set_panic_hook();
 }
 
-// TODO: check why this is needed. Seems wasm-bindgen expects us to use
-// `std::error::Error` even if it's not yet in `core`
 macro_rules! wrap_error {
     ($xp: expr) => {
-        $xp.map_err(|e| JsError::new(&format!("Error from CairoRunner: {}", e.to_string())))
+        $xp.map_err(|e| JsValue::from_str(&format!("Error from CairoRunner: {}", e.to_string())))
     };
 }
 
 #[wasm_bindgen(js_name = runCairoProgram)]
-pub fn run_cairo_program() -> Result<String, JsError> {
+pub fn run_cairo_program() -> Result<String, JsValue> {
     let cairo_run_config = Cairo1RunConfig {
         layout: LayoutName::all_cairo,
         relocate_mem: true,
@@ -36,7 +34,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
     let sierra_program = {
         let program_str = include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
-        ProgramParser::new().parse(program_str)?
+        wrap_error!(ProgramParser::new().parse(program_str))?
     };
 
     let (_, _, serialized_output) = wrap_error!(cairo1_run::cairo_run_program(
@@ -48,5 +46,5 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
     log(&output);
 
-    Ok("output".to_string())
+    Ok(output)
 }

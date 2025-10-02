@@ -1,9 +1,10 @@
-# Demo of `cairo-vm` on WebAssembly
+# Demo of `cairo-vm` on WebAssembly (Cairo 1)
 
 While cairo-vm is compatible with WebAssembly, it doesn't implement any bindings to it.
-Instead, create a new WebAssembly crate with cairo-vm as a dependency and implement the required functionality there.
+Instead, create a new WebAssembly crate with cairo-vm and cairo1-run as dependencies and implement the required functionality there.
 
-Since mimalloc is not automatically compilable to WebAssembly, the cairo-vm dependency should disable the default features, which will in turn disable mimalloc.
+Since mimalloc is not automatically compilable to WebAssembly, the cairo-vm dependency should disable the default features, which will in turn disable mimalloc. Simliar to this, WebAssembly is
+not compatible with rust standard library. For this reason, cairo1-run should also disable the default features.
 
 A working example is provided in this repository.
 
@@ -22,8 +23,16 @@ To compile and run the example you need:
 
 To build the example, first you need to compile your Cairo Program, using either cairo 1 or cairo 2 compiler:
 
+If cairo 1 is used:
+
 ```sh
 cairo-compile -rs ../../cairo_programs/cairo-1-programs/bitwise.cairo ../../cairo_programs/cairo-1-programs/bitwise.sierra
+```
+
+If cairo 2 is used:
+
+```sh
+cairo-compile -r ../../cairo_programs/cairo-1-programs/bitwise.cairo ../../cairo_programs/cairo-1-programs/bitwise.sierra
 ```
 
 > WARNING: This example uses `cairo1-run::cairo_run_program` which expectes the program to be compiled with debug names. By default, `cairo-compile` does not include debug names in sierra. Due to this, the flag `-r` or `--replace-ids` is needed.
