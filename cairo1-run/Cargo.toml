@@ -32,3 +32,8 @@ getrandom = { version = "0.2.16", features = ["js"]}
 default = ["std"]
 mod_builtin = ["cairo-vm/mod_builtin"]
 std = ["cairo-vm/std"]
+
+[[bin]]
+name = "cairo1-run"
+path = "./src/main.rs"
+required-features = ["std"]

@@ -848,6 +848,7 @@ jobs:
 
     - name: Build wasm-demo-cairo1
       run: |
+        ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
         cd examples/wasm-demo-cairo1
         wasm-pack build --target=web
 
