@@ -311,6 +311,7 @@ mod tests {
         },
         types::exec_scope::ExecutionScopes,
         utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
     use crate::{check_memory, felt_str};
     use assert_matches::assert_matches;

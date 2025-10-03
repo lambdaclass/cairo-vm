@@ -224,6 +224,7 @@ mod tests {
             hint_processor_definition::{HintProcessorLogic, HintReference},
         },
         utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 

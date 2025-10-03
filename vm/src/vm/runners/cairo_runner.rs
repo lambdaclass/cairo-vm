@@ -1657,7 +1657,9 @@ mod tests {
     use crate::{check_memory, felt_hex};
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        relocatable, serde::deserialize_program::Identifier, utils::test_utils::*,
+        relocatable,
+        serde::deserialize_program::{Identifier, ReferenceManager},
+        utils::test_utils::*,
         vm::trace::trace_entry::TraceEntry,
     };
     use assert_matches::assert_matches;

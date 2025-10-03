@@ -765,9 +765,10 @@ mod tests {
             hint_processor_definition::HintProcessorLogic,
         },
         relocatable,
+        types::exec_scope::ExecutionScopes,
         types::relocatable::Relocatable,
         utils::test_utils::*,
-        vm::errors::memory_errors::MemoryError,
+        vm::{errors::memory_errors::MemoryError, vm_core::VirtualMachine},
     };
     use assert_matches::assert_matches;
 

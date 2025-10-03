@@ -65,7 +65,7 @@ mod tests {
             },
             hint_processor_definition::HintProcessorLogic,
         },
-        types::relocatable::MaybeRelocatable,
+        types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
         utils::test_utils::*,
         vm::errors::memory_errors::MemoryError,
     };

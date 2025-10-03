@@ -276,6 +276,7 @@ mod tests {
             hint_processor_definition::HintProcessorLogic,
         },
         utils::test_utils::*,
+        vm::vm_core::VirtualMachine,
     };
     use assert_matches::assert_matches;
 
