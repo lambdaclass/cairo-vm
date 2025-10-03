@@ -1,4 +1,4 @@
-use crate::stdlib::prelude::*;
+use crate::stdlib::{ops::Deref, prelude::*};
 use crate::types::relocatable::Relocatable;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
@@ -46,6 +46,32 @@ pub fn from_relocatable_to_indexes(relocatable: Relocatable) -> (usize, usize) {
         )
     } else {
         (relocatable.segment_index as usize, relocatable.offset)
+    }
+}
+
+/// Like [Cow], but doesn't require the type to implement [ToOwned].
+///
+/// Useful for storing values that may be either a reference, or an owned value,
+/// but are only ever used as a reference.
+///
+/// [Cow]: std::borrow::Cow
+/// [ToOwned]: std::borrow::ToOwned
+pub enum MaybeOwned<'a, T> {
+    Owned(T),
+    Borrowed(&'a T),
+}
+
+impl<'a, T> Deref for MaybeOwned<'a, T>
+where
+    T: Deref,
+{
+    type Target = T::Target;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            MaybeOwned::Owned(v) => v,
+            MaybeOwned::Borrowed(v) => v,
+        }
     }
 }
 
