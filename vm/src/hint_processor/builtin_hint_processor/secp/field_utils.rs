@@ -212,7 +212,7 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code::{self, REDUCE_V2};
     use crate::stdlib::string::ToString;
-    use crate::utils::no_name_utils::{bigint, bigint_str};
+
     use crate::{
         any_box,
         hint_processor::{

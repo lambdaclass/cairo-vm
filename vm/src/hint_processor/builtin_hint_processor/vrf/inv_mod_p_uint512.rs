@@ -61,6 +61,8 @@ mod tests {
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::mayberelocatable;
     use crate::utils::test_utils::memory;
+    use crate::utils::test_utils::memory_from_memory;
+    use crate::utils::test_utils::memory_inner;
     use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::hint_code::INV_MOD_P_UINT512,

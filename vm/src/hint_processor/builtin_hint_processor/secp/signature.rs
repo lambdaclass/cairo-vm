@@ -166,7 +166,6 @@ mod tests {
     use super::*;
     use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
-    use crate::utils::no_name_utils::bigint_str;
 
     use crate::{
         any_box,

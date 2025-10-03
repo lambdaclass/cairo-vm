@@ -849,6 +849,9 @@ mod memory_tests {
 
     use crate::vm::errors::memory_errors::MemoryError;
 
+    use crate::utils::test_utils::memory_from_memory;
+    use crate::utils::test_utils::memory_inner;
+
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

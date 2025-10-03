@@ -1434,7 +1434,6 @@ mod tests {
     use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
-    use crate::utils::no_name_utils::trace_check;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
