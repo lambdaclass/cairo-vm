@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
+use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, mem::replace, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
@@ -38,7 +38,7 @@ pub struct ValidationRule(
 ///   and the 4th word storing the offset.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd, Debug)]
 #[repr(align(32))]
-pub(crate) struct MemoryCell([u64; 4]);
+pub struct MemoryCell([u64; 4]);
 
 impl MemoryCell {
     pub const NONE_MASK: u64 = 1 << 63;
@@ -106,6 +106,7 @@ impl From<MemoryCell> for MaybeRelocatable {
     }
 }
 
+#[derive(Clone)]
 pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
@@ -185,7 +186,28 @@ impl Memory {
         }
     }
 
-    fn get_segment(&mut self, key: Relocatable) -> Result<&mut Vec<MemoryCell>, MemoryError> {
+    pub fn replace_segment(
+        &mut self,
+        key: Relocatable,
+        segment: Vec<MemoryCell>,
+    ) -> Result<(), MemoryError> {
+        let (value_index, _) = from_relocatable_to_indexes(key);
+        let data = if key.segment_index.is_negative() {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+        let data_len = data.len();
+        let _ = replace(
+            data.get_mut(value_index).ok_or_else(|| {
+                MemoryError::UnallocatedSegment(Box::new((value_index, data_len)))
+            })?,
+            segment,
+        );
+        Ok(())
+    }
+
+    pub fn get_segment(&mut self, key: Relocatable) -> Result<&mut Vec<MemoryCell>, MemoryError> {
         let (value_index, _) = from_relocatable_to_indexes(key);
         let data = if key.segment_index.is_negative() {
             &mut self.temp_data
