@@ -391,9 +391,9 @@ pub fn compute_value_div_mod(
 #[cfg(test)]
 mod tests {
 
-    use crate::utils::no_name_utils::bigint_str;
-    use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
+
+    use crate::utils::test_utils::*;
 
     use super::*;
 
