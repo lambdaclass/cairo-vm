@@ -59,6 +59,9 @@ use super::{
 };
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
+#[cfg(not(feature = "extensive_hints"))]
+use crate::{stdlib::sync::Arc, utils::MaybeOwned};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
     Single(MaybeRelocatable),
@@ -159,6 +162,8 @@ pub struct CairoRunner {
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
+    #[cfg(not(feature = "extensive_hints"))]
+    compiled_hints: Option<Arc<Vec<Box<dyn Any>>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -220,6 +225,8 @@ impl CairoRunner {
                 None
             },
             relocated_trace: None,
+            #[cfg(not(feature = "extensive_hints"))]
+            compiled_hints: None,
         })
     }
 
@@ -672,6 +679,28 @@ impl CairoRunner {
         &self.program.builtins
     }
 
+    /// Sets the compiled hints to be used when executing the program.
+    ///
+    /// If this function is not called, all the hints are compiled on the
+    /// fly when running the program. This implies that the same hints are
+    /// recomputed even if the same program is called multiple times. With this
+    /// function we allow the hints to be compiled once, and reused each time
+    /// the same program is run.
+    ///
+    /// Only available without the `extensive_hints` feature as that feature
+    /// requires to modify the hint data vector, so adding support for a
+    /// read-only hint cache doesn't make sense.
+    ///
+    /// ## Safety
+    ///
+    /// The hint processor used when compiling this hints must be the same as
+    /// the hint processor used when running the program. Othewise, the compiled
+    /// hints may be invalid.
+    #[cfg(not(feature = "extensive_hints"))]
+    pub fn set_hint_data(&mut self, compiled_hints: Arc<Vec<Box<dyn Any>>>) {
+        self.compiled_hints = Some(compiled_hints)
+    }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -679,7 +708,10 @@ impl CairoRunner {
     ) -> Result<(), VirtualMachineError> {
         let references = &self.program.shared_program_data.reference_manager;
         #[cfg(not(feature = "extensive_hints"))]
-        let hint_data = self.get_hint_data(references, hint_processor)?;
+        let hint_data = match self.compiled_hints.as_ref() {
+            Some(hint_data) => MaybeOwned::Borrowed(hint_data.as_ref()),
+            None => MaybeOwned::Owned(self.get_hint_data(references, hint_processor)?),
+        };
         #[cfg(feature = "extensive_hints")]
         let mut hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
