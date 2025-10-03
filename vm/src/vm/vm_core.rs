@@ -1428,12 +1428,13 @@ impl VirtualMachineBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::felt_hex;
     use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
     use crate::stdlib::collections::HashMap;
     use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
-    use crate::utils::test_utils::no_name_utils::trace_check;
+    use crate::utils::no_name_utils::trace_check;
     use crate::{
         any_box,
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::{
@@ -1450,7 +1451,6 @@ mod tests {
             runners::builtin_runner::{BitwiseBuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner},
         },
     };
-    use crate::{check_memory, felt_hex};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

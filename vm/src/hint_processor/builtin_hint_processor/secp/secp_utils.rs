@@ -96,10 +96,8 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
 mod tests {
     use super::*;
 
-    use crate::{
-        bigint, bigint_str,
-        stdlib::{collections::HashMap, string::ToString},
-    };
+    use crate::stdlib::{collections::HashMap, string::ToString};
+    use crate::utils::no_name_utils::{bigint, bigint_str};
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
 

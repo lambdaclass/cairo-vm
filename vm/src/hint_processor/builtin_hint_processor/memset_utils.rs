@@ -55,7 +55,6 @@ pub fn memset_step_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::check_memory;
     use crate::types::relocatable::Relocatable;
     use crate::{
         any_box,

@@ -264,7 +264,6 @@ pub fn uint384_div(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::check_memory;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::{

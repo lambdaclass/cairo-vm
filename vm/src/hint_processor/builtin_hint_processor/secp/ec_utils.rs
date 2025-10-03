@@ -557,7 +557,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::stdlib::string::ToString;
-    use crate::{bigint_str, check_memory};
+    use crate::utils::no_name_utils::bigint_str;
 
     use crate::{
         any_box,

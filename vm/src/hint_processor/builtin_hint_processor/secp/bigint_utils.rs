@@ -201,8 +201,9 @@ mod tests {
     use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::types::relocatable::Relocatable;
+    use crate::utils::no_name_utils::{bigint, bigint_str};
     use crate::utils::test_utils::*;
-    use crate::{any_box, bigint, bigint_str, check_memory, felt_str};
+    use crate::{any_box, felt_str};
 
     use crate::vm::vm_core::VirtualMachine;
 

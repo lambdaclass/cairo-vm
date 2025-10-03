@@ -287,7 +287,7 @@ pub fn split_output_mid_low_high(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{any_box, check_memory};
+    use crate::any_box;
     use crate::{
         hint_processor::{
             builtin_hint_processor::{

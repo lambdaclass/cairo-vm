@@ -214,8 +214,6 @@ mod tests {
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok(#[case] hint_code: &str) {
-        use crate::check_memory;
-
         let mut vm = vm_with_range_check!();
         //Initialize fp
         vm.run_context.fp = 17;

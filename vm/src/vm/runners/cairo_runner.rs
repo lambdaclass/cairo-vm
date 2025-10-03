@@ -1651,10 +1651,10 @@ mod tests {
     use crate::stdlib::collections::{HashMap, HashSet};
     use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
     use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
-    use crate::utils::test_utils::no_name_utils::trace_check;
+    use crate::utils::no_name_utils::trace_check;
     use crate::vm::vm_memory::memory::MemoryCell;
 
-    use crate::{check_memory, felt_hex};
+    use crate::felt_hex;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
         relocatable,

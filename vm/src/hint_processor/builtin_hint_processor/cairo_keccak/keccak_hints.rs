@@ -395,8 +395,6 @@ mod tests {
     #[case(usize::MAX as i128, 1)]
     #[case(i128::MAX, 1)]
     fn cairo_keccak_is_full_word(#[case] n_bytes: i128, #[case] full_bytes: usize) {
-        use crate::check_memory;
-
         let hint_code = "ids.full_word = int(ids.n_bytes >= 8)";
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), n_bytes)];

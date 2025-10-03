@@ -441,10 +441,7 @@ pub fn excess_balance_hint(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        check_memory,
-        stdlib::{cell::RefCell, rc::Rc},
-    };
+    use crate::stdlib::{cell::RefCell, rc::Rc};
     use core::str::FromStr;
 
     use super::*;
