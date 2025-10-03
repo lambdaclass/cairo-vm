@@ -789,6 +789,11 @@ impl Memory {
             ))));
         }
 
+        // Validate inserted memory cells
+        for i in 0..vals.len() {
+            self.validate_memory_cell((key + i)?)?;
+        }
+
         Ok(())
     }
 }
