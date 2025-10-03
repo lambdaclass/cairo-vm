@@ -1,6 +1,7 @@
 RELBIN:=target/release/cairo-vm-run
 DBGBIN:=target/debug/cairo-vm-run
 
+CAIRO_1_COMPILE=cairo1/bin/cairo-compile
 STARKNET_COMPILE_CAIRO_1:=cairo1/bin/starknet-compile
 STARKNET_SIERRA_COMPILE_CAIRO_1:=cairo1/bin/starknet-sierra-compile
 
@@ -146,6 +147,7 @@ $(PRINT_TEST_DIR)/%.json: $(PRINT_TEST_DIR)/%.cairo
 # Test Cairo 1 Contracts
 # ======================
 
+CAIRO_1_PROGRAMS_TEST_DIR=cairo_programs/cairo-1-programs
 CAIRO_1_CONTRACTS_TEST_DIR=cairo_programs/cairo-1-contracts
 CAIRO_1_CONTRACTS_TEST_CAIRO_FILES:=$(wildcard $(CAIRO_1_CONTRACTS_TEST_DIR)/*.cairo)
 CAIRO_1_COMPILED_SIERRA_CONTRACTS:=$(patsubst $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo, $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra, $(CAIRO_1_CONTRACTS_TEST_CAIRO_FILES))
@@ -156,6 +158,10 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	$(STARKNET_SIERRA_COMPILE_CAIRO_1) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
+
+# This is needed so that wasm with cairo 1 doen't complain.
+$(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.sierra: $(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.cairo
+	$(CAIRO_1_COMPILE) -r $< $@
 
 # ======================
 # Setup Cairo 1 Compiler
@@ -259,6 +265,7 @@ cairo_proof_programs: $(COMPILED_PROOF_TESTS) $(COMPILED_MOD_BUILTIN_PROOF_TESTS
 cairo_bench_programs: $(COMPILED_BENCHES)
 cairo_1_test_contracts: $(CAIRO_1_COMPILED_CASM_CONTRACTS)
 cairo_2_test_contracts: $(CAIRO_2_COMPILED_CASM_CONTRACTS)
+cairo_1_program: $(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.sierra
 
 cairo_proof_trace: $(CAIRO_TRACE_PROOF) $(CAIRO_MEM_PROOF) $(CAIRO_AIR_PUBLIC_INPUT) $(CAIRO_AIR_PRIVATE_INPUT)
 cairo-vm_proof_trace: $(CAIRO_RS_TRACE_PROOF) $(CAIRO_RS_MEM_PROOF) $(CAIRO_RS_AIR_PUBLIC_INPUT) $(CAIRO_RS_AIR_PRIVATE_INPUT)
@@ -271,14 +278,14 @@ ifdef TEST_COLLECT_COVERAGE
 	TEST_COMMAND:=cargo llvm-cov nextest --no-report
 endif
 
-test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts cairo_1_program
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
-test-no_std: cairo_proof_programs cairo_test_programs
+test-no_std: cairo_proof_programs cairo_test_programs cairo_1_program
 	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
-test-wasm: cairo_proof_programs cairo_test_programs
+test-wasm: cairo_proof_programs cairo_test_programs cairo_1_program
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features
-test-extensive_hints: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+test-extensive_hints: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_1_program cairo_2_test_contracts 
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, cairo-0-secp-hints, cairo-0-data-availability-hints, extensive_hints"
 
 check-fmt:
@@ -289,7 +296,7 @@ clippy:
 	cargo clippy --workspace --all-features --benches --examples --tests -- -D warnings
 	cargo clippy --manifest-path fuzzer/Cargo.toml --all-targets
 
-coverage: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts
+coverage: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_1_program cairo_2_test_contracts
 	cargo llvm-cov --html --workspace --features "test_utils, cairo-1-hints"
 
 coverage-clean:
@@ -365,6 +372,7 @@ clean:
 	rm -f $(PRINT_TEST_DIR)/*.json
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_1_CONTRACTS_TEST_DIR)/*.casm
+	rm -f $(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.sierra
 	rm -f $(TEST_PROOF_DIR)/*.cairo
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.sierra
 	rm -f $(CAIRO_2_CONTRACTS_TEST_DIR)/*.casm
