@@ -20,6 +20,7 @@ use crate::{
 
 use super::memory::MemoryCell;
 
+#[derive(Clone)]
 pub struct MemorySegmentManager {
     pub segment_sizes: HashMap<usize, usize>,
     pub segment_used_sizes: Option<Vec<usize>>,

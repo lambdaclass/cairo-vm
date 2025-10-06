@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub(crate) struct DilutedPoolInstanceDef {
     pub(crate) units_per_step: u32, // 2 ^ log_units_per_step (for cairo_lang comparison)
     pub(crate) fractional_units_per_step: bool, // true when log_units_per_step is negative

@@ -96,7 +96,7 @@ impl SignatureBuiltinRunner {
     pub fn add_validation_rule(&self, memory: &mut Memory) {
         let cells_per_instance = CELLS_PER_SIGNATURE;
         let signatures = Rc::clone(&self.signatures);
-        let rule: ValidationRule = ValidationRule(Box::new(
+        let rule: ValidationRule = ValidationRule(Rc::new(
             move |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let cell_index = addr.offset % cells_per_instance as usize;
 

@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
+use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*, rc::Rc};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
@@ -12,9 +12,10 @@ use bitvec::prelude as bv;
 use core::cmp::Ordering;
 use num_traits::ToPrimitive;
 
+#[derive(Clone)]
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
+    pub  Rc<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
 /// [`MemoryCell`] represents an optimized storage layout for the VM memory.
@@ -106,6 +107,7 @@ impl From<MemoryCell> for MaybeRelocatable {
     }
 }
 
+#[derive(Clone)]
 pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
@@ -156,6 +158,7 @@ impl AddressSet {
     }
 }
 
+#[derive(Clone)]
 pub struct Memory {
     pub(crate) data: Vec<Vec<MemoryCell>>,
     /// Temporary segments are used when it's necessary to write data, but we
