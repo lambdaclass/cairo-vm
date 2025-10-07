@@ -1,5 +1,5 @@
 use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
-
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{get_integer_from_var_name, insert_value_into_ap},
@@ -11,7 +11,13 @@ use crate::{
 };
 
 //Implements hint: memory[ap] = segments.add()
-pub fn add_segment(vm: &mut VirtualMachine) -> Result<(), HintError> {
+pub fn add_segment(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     let new_segment_base = vm.add_memory_segment();
     insert_value_into_ap(vm, new_segment_base)
 }
@@ -24,7 +30,13 @@ pub fn enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
 
 //  Implements hint:
 //  %{ vm_exit_scope() %}
-pub fn exit_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn exit_scope(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.exit_scope().map_err(HintError::FromScopeError)
 }
 
@@ -35,6 +47,7 @@ pub fn memcpy_enter_scope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let len: Box<dyn Any> = Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), len)]));

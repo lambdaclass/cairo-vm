@@ -52,6 +52,7 @@ pub trait HintProcessorLogic {
             ids_data: get_ids_data(reference_ids, references)?,
             accessible_scopes: accessible_scopes.to_vec(),
             constants,
+            f: Box::new(|_, _, _, _, _| {}), // TODO: Check what to do here
         }))
     }
 
@@ -79,7 +80,8 @@ pub type HintExtension = HashMap<Relocatable, Vec<Box<dyn Any>>>;
 pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
 impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
 
-fn get_ids_data(
+// TODO: Check how to not make it public
+pub fn get_ids_data(
     reference_ids: &HashMap<String, usize>,
     references: &[HintReference],
 ) -> Result<HashMap<String, HintReference>, VirtualMachineError> {
