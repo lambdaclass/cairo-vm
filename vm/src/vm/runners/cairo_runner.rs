@@ -13,6 +13,7 @@ use crate::{
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        vm_memory::memory_segments::MemorySegmentManager,
     },
     Felt252,
 };
@@ -138,6 +139,264 @@ impl ResourceTracker for RunResources {
 
     fn run_resources(&self) -> &RunResources {
         self
+    }
+}
+
+#[derive(Clone)]
+pub struct CairoRunnerBuilder {
+    program: Program,
+    layout: CairoLayout,
+    runner_mode: RunnerMode,
+    // Flags.
+    enable_trace: bool,
+    disable_trace_padding: bool,
+    allow_missing_builtins: bool,
+    // Set after initializing builtin runners.
+    builtin_runners: Vec<BuiltinRunner>,
+    // Set after initializing segments.
+    program_base: Option<Relocatable>,
+    execution_base: Option<Relocatable>,
+    memory: MemorySegmentManager,
+    // Set after loading instruction cache.
+    // instructions: Vec<Option<Instruction>>,
+    // Set after compiling hints.
+    // hints: Vec<Rc<dyn Any>>,
+}
+
+impl CairoRunnerBuilder {
+    pub fn new(
+        program: &Program,
+        layout_name: LayoutName,
+        dynamic_layout_params: Option<CairoLayoutParams>,
+        runner_mode: RunnerMode,
+    ) -> Result<CairoRunnerBuilder, RunnerError> {
+        let layout = match layout_name {
+            LayoutName::plain => CairoLayout::plain_instance(),
+            LayoutName::small => CairoLayout::small_instance(),
+            LayoutName::dex => CairoLayout::dex_instance(),
+            LayoutName::recursive => CairoLayout::recursive_instance(),
+            LayoutName::starknet => CairoLayout::starknet_instance(),
+            LayoutName::starknet_with_keccak => CairoLayout::starknet_with_keccak_instance(),
+            LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
+            LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
+            LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
+            LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
+            LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
+            LayoutName::dynamic => {
+                let params =
+                    dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
+                CairoLayout::dynamic_instance(params)
+            }
+        };
+
+        Ok(CairoRunnerBuilder {
+            program: program.clone(),
+            layout,
+            enable_trace: false,
+            disable_trace_padding: false,
+            allow_missing_builtins: false,
+            runner_mode,
+            builtin_runners: Vec::new(),
+            program_base: None,
+            execution_base: None,
+            memory: MemorySegmentManager::new(),
+        })
+    }
+
+    pub fn enable_trace(&mut self, v: bool) {
+        self.enable_trace = v;
+    }
+    pub fn disable_trace_padding(&mut self, v: bool) {
+        self.disable_trace_padding = v;
+    }
+    pub fn allow_missing_builtins(&mut self, v: bool) {
+        self.allow_missing_builtins = v;
+    }
+
+    fn is_proof_mode(&self) -> bool {
+        self.runner_mode == RunnerMode::ProofModeCanonical
+            || self.runner_mode == RunnerMode::ProofModeCairo1
+    }
+
+    fn add_memory_segment(&mut self) -> Relocatable {
+        self.memory.add()
+    }
+
+    pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
+        let builtin_ordered_list = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
+            BuiltinName::range_check96,
+            BuiltinName::add_mod,
+            BuiltinName::mul_mod,
+        ];
+        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+            return Err(RunnerError::DisorderedBuiltins);
+        };
+        let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
+
+        if self.layout.builtins.output {
+            let included = program_builtins.remove(&BuiltinName::output);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(OutputBuiltinRunner::new(included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::pedersen);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(HashBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check);
+            if included || self.is_proof_mode() {
+                self.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new_with_low_ratio(
+                        instance_def.ratio,
+                        included,
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::ecdsa);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(SignatureBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::bitwise);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(BitwiseBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::ec_op);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(EcOpBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::keccak);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(KeccakBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.poseidon.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::poseidon);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check96.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check96);
+            if included || self.is_proof_mode() {
+                self.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new_with_low_ratio(
+                        instance_def.ratio,
+                        included,
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::add_mod);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::mul_mod);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
+            }
+        }
+
+        if !program_builtins.is_empty() && !self.allow_missing_builtins {
+            return Err(RunnerError::NoBuiltinForInstance(Box::new((
+                program_builtins.iter().map(|n| **n).collect(),
+                self.layout.name,
+            ))));
+        }
+
+        Ok(())
+    }
+
+    pub fn initialize_segments(&mut self) {
+        self.program_base = Some(self.add_memory_segment());
+        self.execution_base = Some(self.add_memory_segment());
+        for builtin_runner in self.builtin_runners.iter_mut() {
+            builtin_runner.initialize_segments(&mut self.memory);
+        }
+    }
+
+    pub fn load_program(&mut self) -> Result<(), RunnerError> {
+        let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        self.memory
+            .load_data(program_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
+        for i in 0..self.program.shared_program_data.data.len() {
+            self.memory.memory.mark_as_accessed((program_base + i)?);
+        }
+        Ok(())
+    }
+
+    pub fn build(self) -> Result<CairoRunner, RunnerError> {
+        let mut vm = VirtualMachine::new(self.enable_trace, self.disable_trace_padding);
+
+        vm.builtin_runners = self.builtin_runners;
+        vm.segments = self.memory;
+
+        Ok(CairoRunner {
+            vm,
+            layout: self.layout,
+            program_base: self.program_base,
+            execution_base: self.execution_base,
+            entrypoint: self.program.shared_program_data.main,
+            initial_ap: None,
+            initial_fp: None,
+            initial_pc: None,
+            final_pc: None,
+            run_ended: false,
+            segments_finalized: false,
+            execution_public_memory: if self.runner_mode != RunnerMode::ExecutionMode {
+                Some(Vec::new())
+            } else {
+                None
+            },
+            runner_mode: self.runner_mode,
+            relocated_memory: Vec::new(),
+            exec_scopes: ExecutionScopes::new(),
+            relocated_trace: None,
+            program: self.program,
+        })
     }
 }
 
