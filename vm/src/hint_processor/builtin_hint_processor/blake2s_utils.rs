@@ -2,6 +2,7 @@ use crate::hint_processor::hint_processor_utils::felt_to_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -67,8 +68,10 @@ fn compute_blake2s_func(vm: &mut VirtualMachine, output_ptr: Relocatable) -> Res
 */
 pub fn compute_blake2s(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     compute_blake2s_func(vm, output)
@@ -98,8 +101,10 @@ pub fn compute_blake2s(
 */
 pub fn finalize_blake2s(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     const N_PACKED_INSTANCES: usize = 7;
     let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", vm, ids_data, ap_tracking)?;
@@ -146,8 +151,10 @@ pub fn finalize_blake2s(
 */
 pub fn finalize_blake2s_v3(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     const N_PACKED_INSTANCES: usize = 7;
     let blake2s_ptr_end = get_ptr_from_var_name("blake2s_ptr_end", vm, ids_data, ap_tracking)?;
@@ -178,8 +185,10 @@ pub fn finalize_blake2s_v3(
 */
 pub fn blake2s_add_uint256(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get variables from ids
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
@@ -214,8 +223,10 @@ pub fn blake2s_add_uint256(
 */
 pub fn blake2s_add_uint256_bigend(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get variables from ids
     let data_ptr = get_ptr_from_var_name("data", vm, ids_data, ap_tracking)?;
@@ -250,8 +261,10 @@ memory[ap] = (ids.end != ids.packed_values) and (memory[ids.packed_values] < 2**
 */
 pub fn is_less_than_63_bits_and_not_end(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let end = get_ptr_from_var_name("end", vm, ids_data, ap_tracking)?;
     let packed_values = get_ptr_from_var_name("packed_values", vm, ids_data, ap_tracking)?;
@@ -282,8 +295,10 @@ for i in range(ids.packed_values_len):
 */
 pub fn blake2s_unpack_felts(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let packed_values_len =
         get_integer_from_var_name("packed_values_len", vm, ids_data, ap_tracking)?;
@@ -346,8 +361,10 @@ Note: This hint belongs to the blake2s lib in cario_examples
 */
 pub fn example_blake2s_compress(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let blake2s_start = get_ptr_from_var_name("blake2s_start", vm, ids_data, ap_tracking)?;
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;

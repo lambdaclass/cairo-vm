@@ -1,6 +1,7 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
 use crate::stdlib::prelude::String;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
@@ -31,8 +32,10 @@ Implements hint:
 */
 pub fn inv_mod_p_uint512(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = Uint512::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
 

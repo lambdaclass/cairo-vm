@@ -1,3 +1,4 @@
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
@@ -145,6 +146,26 @@ pub fn uint256_add(
     insert_value_from_var_name("carry_low", carry_low, vm, ids_data, ap_tracking)
 }
 
+pub fn uint256_add_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    uint256_add(vm, ids_data, ap_tracking, false)
+}
+
+pub fn uint256_add_low_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    uint256_add(vm, ids_data, ap_tracking, true)
+}
+
 /*
 Implements hint:
 %{
@@ -154,8 +175,10 @@ Implements hint:
 */
 pub fn uint128_add(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let shift = pow2_const(128);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
@@ -196,8 +219,10 @@ Implements hint:
 
 pub fn uint256_sub(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?.pack();
@@ -240,8 +265,10 @@ Implements hint:
 */
 pub fn split_64(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let digits = a.to_le_digits();
@@ -302,14 +329,36 @@ pub fn uint256_sqrt(
     Ok(())
 }
 
+pub fn uint256_sqrt_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    uint256_sqrt(vm, ids_data, ap_tracking, false)
+}
+
+pub fn uint256_sqrt_felt_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    uint256_sqrt(vm, ids_data, ap_tracking, true)
+}
+
 /*
 Implements hint:
 %{ memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0 %}
 */
 pub fn uint256_signed_nn(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a_high = vm.get_integer((a_addr + 1_usize)?)?;
@@ -339,8 +388,10 @@ Implements hint:
 */
 pub fn uint256_unsigned_div_rem(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 0, 1)
 }
@@ -360,8 +411,10 @@ Implements hint:
 */
 pub fn uint256_expanded_unsigned_div_rem(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     uint256_offseted_unsigned_div_rem(vm, ids_data, ap_tracking, 1, 3)
 }
@@ -425,8 +478,10 @@ ids.remainder.high = remainder >> 128
 */
 pub fn uint256_mul_div_mod(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     // Extract variables
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;

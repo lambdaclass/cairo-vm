@@ -52,7 +52,7 @@ pub trait HintProcessorLogic {
             ids_data: get_ids_data(reference_ids, references)?,
             accessible_scopes: accessible_scopes.to_vec(),
             constants,
-            f: Box::new(|_, _, _, _, _| {}), // TODO: Check what to do here
+            f: None, // TODO: Check what to do here
         }))
     }
 

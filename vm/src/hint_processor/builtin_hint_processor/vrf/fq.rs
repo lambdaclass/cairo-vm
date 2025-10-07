@@ -1,15 +1,15 @@
 //! Fq stands for "a finite field of q elements"
 
+use crate::Felt252;
 use crate::{
-    hint_processor::builtin_hint_processor::uint256_utils::Uint256,
     hint_processor::{
-        builtin_hint_processor::secp::bigint_utils::Uint512,
+        builtin_hint_processor::{secp::bigint_utils::Uint512, uint256_utils::Uint256},
         hint_processor_definition::HintReference,
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
-    types::errors::math_errors::MathError,
+    types::{errors::math_errors::MathError, exec_scope::ExecutionScopes},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, ToBigInt};
@@ -51,8 +51,10 @@ use num_traits::{One, Zero};
 /// ```
 pub fn uint512_unsigned_div_rem(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = Uint512::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
     let div = Uint256::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
@@ -94,8 +96,10 @@ pub fn uint512_unsigned_div_rem(
 /// ```
 pub fn inv_mod_p_uint256(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     // 'a' is not used here or in following hints, so we skip it
     let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?

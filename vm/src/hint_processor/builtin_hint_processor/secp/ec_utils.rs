@@ -1,3 +1,5 @@
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{ALPHA, ALPHA_V2, SECP_P_V2};
+use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -82,6 +84,7 @@ pub fn ec_negate_import_secp_p(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     ec_negate(vm, exec_scopes, ids_data, ap_tracking, SECP_P.clone())
 }
@@ -102,6 +105,7 @@ pub fn ec_negate_embedded_secp_p(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let secp_p = (BigInt::one() << 255) - 19;
     ec_negate(vm, exec_scopes, ids_data, ap_tracking, secp_p)
@@ -147,6 +151,100 @@ pub fn compute_doubling_slope(
     Ok(())
 }
 
+pub fn compute_doubling_slope_v1_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_doubling_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point",
+        &CAIRO_PRIME,
+        &SECP_P,
+        &ALPHA,
+    )
+}
+
+pub fn compute_doubling_slope_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_doubling_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point",
+        &CAIRO_PRIME,
+        &SECP_P_V2,
+        &ALPHA_V2,
+    )
+}
+
+pub fn compute_doubling_slope_v3_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_doubling_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "pt",
+        &CAIRO_PRIME,
+        &SECP_P,
+        &ALPHA,
+    )
+}
+
+pub fn compute_doubling_slope_v4_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_doubling_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point",
+        SECP256R1_P.magnitude(),
+        &SECP256R1_P,
+        &SECP256R1_ALPHA,
+    )
+}
+
+pub fn compute_doubling_slope_v5_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_doubling_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point",
+        &CAIRO_PRIME,
+        &SECP256R1_P,
+        &SECP256R1_ALPHA,
+    )
+}
 /*
 Implements hint:
 %{
@@ -164,6 +262,7 @@ pub fn compute_doubling_slope_external_consts(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
@@ -211,6 +310,60 @@ pub fn compute_slope_and_assing_secp_p(
     )
 }
 
+pub fn compute_slope_and_assing_secp_p_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_slope_and_assing_secp_p(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point0",
+        "point1",
+        &SECP_P,
+    )
+}
+
+pub fn compute_slope_and_assing_secp_p_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_slope_and_assing_secp_p(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point0",
+        "point1",
+        &SECP_P_V2,
+    )
+}
+
+pub fn compute_slope_and_assing_secp_p_whitelist_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_slope_and_assing_secp_p(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "pt0",
+        "pt1",
+        &SECP_P,
+    )
+}
+
 pub fn compute_slope(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -237,6 +390,42 @@ pub fn compute_slope(
     Ok(())
 }
 
+pub fn compute_slope_v1_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point0",
+        "point1",
+        "SECP_P",
+    )
+}
+
+pub fn compute_slope_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    compute_slope(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        "point0",
+        "point1",
+        "SECP256R1_P",
+    )
+}
+
 /*
 Implements hint:
 %{from starkware.cairo.common.cairo_secp.secp_utils import pack
@@ -254,6 +443,7 @@ pub fn square_slope_minus_xs(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get::<BigInt>("SECP_P")?;
     let point0 = EcPoint::from_var_name("point0", vm, ids_data, ap_tracking)?;
@@ -286,6 +476,16 @@ pub fn ec_double_assign_new_x_v2(
 ) -> Result<(), HintError> {
     let secp_p: BigInt = exec_scopes.get("SECP_P")?;
     ec_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &secp_p, point_alias)
+}
+
+pub fn ec_double_assign_new_x_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    ec_double_assign_new_x_v2(vm, exec_scopes, ids_data, ap_tracking, "point")
 }
 
 /*
@@ -329,11 +529,47 @@ pub fn ec_double_assign_new_x(
     Ok(())
 }
 
+pub fn ec_double_assign_new_x_v1_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    ec_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &SECP_P, "point")
+}
+
+pub fn ec_double_assign_new_x_v3_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    ec_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &SECP_P_V2, "point")
+}
+
+pub fn ec_double_assign_new_x_v4_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    ec_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &SECP_P, "pt")
+}
+
 /*
 Implements hint:
 %{ value = new_y = (slope * (x - new_x) - y) % SECP_P %}
 */
-pub fn ec_double_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn ec_double_assign_new_y(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x, new_x, y, secp_p) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -395,11 +631,71 @@ pub fn fast_ec_add_assign_new_x(
     Ok(())
 }
 
+pub fn fast_ec_add_assign_new_x_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    fast_ec_add_assign_new_x(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        &SECP_P,
+        "point0",
+        "point1",
+    )
+}
+
+pub fn fast_ec_add_assign_new_x_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    fast_ec_add_assign_new_x(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        &SECP_P_V2,
+        "point0",
+        "point1",
+    )
+}
+
+pub fn fast_ec_add_assign_new_x_v3_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    fast_ec_add_assign_new_x(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        &SECP_P,
+        "pt0",
+        "pt1",
+    )
+}
+
 /*
 Implements hint:
 %{ value = new_y = (slope * (x0 - new_x) - y0) % SECP_P %}
 */
-pub fn fast_ec_add_assign_new_y(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn fast_ec_add_assign_new_y(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     //Get variables from vm scope
     let (slope, x0, new_x, y0, secp_p) = (
         exec_scopes.get::<BigInt>("slope")?,
@@ -421,8 +717,10 @@ Implements hint:
 */
 pub fn ec_mul_inner(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //(ids.scalar % PRIME) % 2
     let scalar = get_integer_from_var_name("scalar", vm, ids_data, ap_tracking)?
@@ -435,7 +733,13 @@ pub fn ec_mul_inner(
 Implements hint:
 %{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA as ALPHA %}
 */
-pub fn import_secp256r1_alpha(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn import_secp256r1_alpha(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.insert_value("ALPHA", SECP256R1_ALPHA.clone());
     Ok(())
 }
@@ -444,7 +748,13 @@ pub fn import_secp256r1_alpha(exec_scopes: &mut ExecutionScopes) -> Result<(), H
 Implements hint:
 %{ from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_N as N %}
 */
-pub fn import_secp256r1_n(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn import_secp256r1_n(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.insert_value("N", SECP256R1_N.clone());
     Ok(())
 }
@@ -455,7 +765,13 @@ Implements hint:
 from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P as SECP_P
 %}
 */
-pub fn import_secp256r1_p(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn import_secp256r1_p(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP256R1_P.clone());
     Ok(())
 }
@@ -472,8 +788,10 @@ Implements hint:
 */
 pub fn quad_bit(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     n_pair_bits(vm, ids_data, ap_tracking, "quad_bit", 2)
 }
@@ -484,8 +802,10 @@ Implements hint:
 */
 pub fn di_bit(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     n_pair_bits(vm, ids_data, ap_tracking, "dibit", 1)
 }

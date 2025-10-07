@@ -1,3 +1,4 @@
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use num_bigint::{BigUint, ToBigInt};
 use num_integer::Integer;
@@ -64,8 +65,10 @@ use crate::{
 */
 pub fn u384_get_square_root(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let generator = Uint384::from_var_name("generator", vm, ids_data, ap_tracking)?.pack();
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
@@ -156,8 +159,10 @@ pub fn u384_get_square_root(
 //  to merge this with u384_get_square_root
 pub fn u256_get_square_root(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let generator = Uint256::from_var_name("generator", vm, ids_data, ap_tracking)?.pack();
     let x = Uint256::from_var_name("x", vm, ids_data, ap_tracking)?.pack();
@@ -238,8 +243,10 @@ pub fn u256_get_square_root(
  */
 pub fn uint384_div(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     // Note: ids.a is not used here, nor is it used by following hints, so we dont need to extract it.
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?

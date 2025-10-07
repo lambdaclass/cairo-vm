@@ -1,7 +1,7 @@
 use crate::stdlib::{
     any::Any, boxed::Box, cell::RefCell, collections::HashMap, prelude::*, rc::Rc,
 };
-
+use crate::Felt252;
 use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
@@ -49,6 +49,9 @@ is not available
 pub fn dict_new(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get initial dictionary from scope (defined by an earlier hint)
     let initial_dict = copy_initial_dict(exec_scopes).ok_or(HintError::NoInitialDict)?;
@@ -79,6 +82,7 @@ pub fn default_dict_new(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     let default_value =
@@ -109,6 +113,7 @@ pub fn dict_read(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
     let dict_ptr = get_ptr_from_var_name("dict_ptr", vm, ids_data, ap_tracking)?;
@@ -131,6 +136,7 @@ pub fn dict_write(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
     let new_value = get_maybe_relocatable_from_var_name("new_value", vm, ids_data, ap_tracking)?;
@@ -170,6 +176,7 @@ pub fn dict_update(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let key = get_maybe_relocatable_from_var_name("key", vm, ids_data, ap_tracking)?;
     let prev_value = get_maybe_relocatable_from_var_name("prev_value", vm, ids_data, ap_tracking)?;
@@ -210,6 +217,7 @@ pub fn dict_squash_copy_dict(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let dict_accesses_end = get_ptr_from_var_name("dict_accesses_end", vm, ids_data, ap_tracking)?;
     let dict_manager_ref = exec_scopes.get_dict_manager()?;
@@ -239,6 +247,7 @@ pub fn dict_squash_update_ptr(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let squashed_dict_start =
         get_ptr_from_var_name("squashed_dict_start", vm, ids_data, ap_tracking)?;

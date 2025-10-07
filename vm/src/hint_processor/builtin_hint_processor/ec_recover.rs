@@ -1,7 +1,6 @@
-use num_integer::Integer;
-
 use super::secp::bigint_utils::BigInt3;
 use crate::stdlib::{collections::HashMap, prelude::*};
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::div_mod,
@@ -10,6 +9,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigInt;
+use num_integer::Integer;
 use num_traits::Zero;
 
 /* Implements Hint:
@@ -28,6 +28,7 @@ pub fn ec_recover_divmod_n_packed(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n = BigInt3::from_var_name("n", vm, ids_data, ap_tracking)?.pack86();
     if n.is_zero() {
@@ -61,6 +62,7 @@ pub fn ec_recover_sub_a_b(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?.pack86();
     let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?.pack86();
@@ -89,6 +91,7 @@ pub fn ec_recover_product_mod(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = BigInt3::from_var_name("a", vm, ids_data, ap_tracking)?.pack86();
     let b = BigInt3::from_var_name("b", vm, ids_data, ap_tracking)?.pack86();
@@ -111,7 +114,13 @@ pub fn ec_recover_product_mod(
     value = k = product // m
 %}
  */
-pub fn ec_recover_product_div_m(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn ec_recover_product_div_m(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     let product: &BigInt = exec_scopes.get_ref("product")?;
     let m: &BigInt = exec_scopes.get_ref("m")?;
     if m.is_zero() {

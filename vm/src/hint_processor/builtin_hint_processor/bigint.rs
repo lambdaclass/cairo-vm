@@ -35,6 +35,7 @@ pub fn bigint_pack_div_mod_hint(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let p: BigInt = BigInt3::from_var_name("P", vm, ids_data, ap_tracking)?.pack86();
 
@@ -76,6 +77,7 @@ pub fn bigint_safe_div_hint(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let res = exec_scopes.get::<BigInt>("res")?;
     let y = exec_scopes.get::<BigInt>("y")?;

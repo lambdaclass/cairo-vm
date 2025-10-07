@@ -15,7 +15,13 @@ use crate::{
 
 use num_traits::ToPrimitive;
 
-pub fn usort_enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn usort_enter_scope(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     if let Ok(usort_max_size) = exec_scopes.get::<Felt252>("usort_max_size") {
         let boxed_max_size: Box<dyn Any> = Box::new(usort_max_size);
         exec_scopes.enter_scope(HashMap::from([(
@@ -33,6 +39,7 @@ pub fn usort_body(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let input_ptr = get_ptr_from_var_name("input", vm, ids_data, ap_tracking)?;
     let usort_max_size = exec_scopes.get::<u64>("usort_max_size");
@@ -97,6 +104,7 @@ pub fn verify_usort(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let mut positions = exec_scopes
@@ -109,7 +117,13 @@ pub fn verify_usort(
     Ok(())
 }
 
-pub fn verify_multiplicity_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn verify_multiplicity_assert(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     let positions_len = exec_scopes.get_list_ref::<u64>("positions")?.len();
     if positions_len == 0 {
         Ok(())
@@ -123,6 +137,7 @@ pub fn verify_multiplicity_body(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let current_pos = exec_scopes
         .get_mut_list_ref::<u64>("positions")?
@@ -159,7 +174,16 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn usort_with_max_size() {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
-        assert_matches!(usort_enter_scope(&mut exec_scopes), Ok(()));
+        assert_matches!(
+            usort_enter_scope(
+                &mut vm!(),
+                &mut exec_scopes,
+                &HashMap::default(),
+                &ApTracking::default(),
+                &HashMap::default()
+            ),
+            Ok(())
+        );
     }
 
     #[test]
