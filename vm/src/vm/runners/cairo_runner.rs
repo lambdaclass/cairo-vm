@@ -157,6 +157,8 @@ pub struct CairoRunnerBuilder {
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     memory: MemorySegmentManager,
+    // Set after loading program.
+    loaded_program: bool,
     // Set after loading instruction cache.
     // instructions: Vec<Option<Instruction>>,
     // Set after compiling hints.
@@ -200,6 +202,7 @@ impl CairoRunnerBuilder {
             program_base: None,
             execution_base: None,
             memory: MemorySegmentManager::new(),
+            loaded_program: false,
         })
     }
 
@@ -365,6 +368,7 @@ impl CairoRunnerBuilder {
         for i in 0..self.program.shared_program_data.data.len() {
             self.memory.memory.mark_as_accessed((program_base + i)?);
         }
+        self.loaded_program = true;
         Ok(())
     }
 
@@ -396,6 +400,7 @@ impl CairoRunnerBuilder {
             exec_scopes: ExecutionScopes::new(),
             relocated_trace: None,
             program: self.program,
+            loaded_program: self.loaded_program,
         })
     }
 }
@@ -418,6 +423,7 @@ pub struct CairoRunner {
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
+    loaded_program: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -479,6 +485,7 @@ impl CairoRunner {
                 None
             },
             relocated_trace: None,
+            loaded_program: false,
         })
     }
 
@@ -745,13 +752,16 @@ impl CairoRunner {
         let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
         self.initial_pc = Some((prog_base + entrypoint)?);
-        self.vm
-            .load_data(prog_base, &self.program.shared_program_data.data)
-            .map_err(RunnerError::MemoryInitializationError)?;
+        if !self.loaded_program {
+            self.vm
+                .load_data(prog_base, &self.program.shared_program_data.data)
+                .map_err(RunnerError::MemoryInitializationError)?;
 
-        // Mark all addresses from the program segment as accessed
-        for i in 0..self.program.shared_program_data.data.len() {
-            self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+            // Mark all addresses from the program segment as accessed
+            for i in 0..self.program.shared_program_data.data.len() {
+                self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+            }
+            self.loaded_program = true
         }
         self.vm
             .segments
