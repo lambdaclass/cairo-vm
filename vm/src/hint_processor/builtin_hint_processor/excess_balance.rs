@@ -260,10 +260,10 @@ fn balances_list(
 
 pub fn excess_balance_hint(
     vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
-    exec_scopes: &ExecutionScopes,
 ) -> Result<(), HintError> {
     // Fetch constants & variables
     let margin_check_type =
@@ -824,10 +824,10 @@ mod tests {
         // EXECUTION
         assert!(excess_balance_hint(
             &mut vm,
+            &mut exec_scopes,
             &ids,
             &ApTracking::default(),
             &constants,
-            &exec_scopes
         )
         .is_ok());
 
@@ -1190,10 +1190,10 @@ mod tests {
         // EXECUTION
         assert!(excess_balance_hint(
             &mut vm,
+            &mut exec_scopes,
             &ids,
             &ApTracking::default(),
             &constants,
-            &exec_scopes
         )
         .is_ok());
 

@@ -1,7 +1,3 @@
-use num_bigint::BigInt;
-use num_integer::Integer;
-use num_traits::One;
-
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt3;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
 use crate::hint_processor::hint_processor_definition::HintReference;
@@ -12,6 +8,10 @@ use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
+use crate::Felt252;
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::One;
 
 /// Implements hint:
 /// ```python
@@ -25,6 +25,7 @@ pub fn ed25519_is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("x", x.mod_floor(&SECP_P_V2));
@@ -45,6 +46,7 @@ pub fn ed25519_reduce(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = BigInt3::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
     exec_scopes.insert_value("value", x.mod_floor(&SECP_P_V2));
@@ -61,7 +63,11 @@ pub fn ed25519_reduce(
 /// value = x_inv = div_mod(1, x, SECP_P)
 /// ```
 pub fn ed25519_is_zero_assign_scope_vars(
+    _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = exec_scopes.get::<BigInt>("x")?;
     let x_inv = div_mod(&BigInt::one(), &x, &SECP_P_V2)?;

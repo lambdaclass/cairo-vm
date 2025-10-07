@@ -48,6 +48,7 @@ pub fn squash_dict_inner_first_iteration(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that access_indices and key are in scope
     let key = exec_scopes.get::<Felt252>("key")?;
@@ -78,6 +79,7 @@ pub fn squash_dict_inner_skip_loop(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
@@ -106,6 +108,7 @@ pub fn squash_dict_inner_check_access_index(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that current_access_indices and current_access_index are in scope
     let current_access_index = exec_scopes.get::<Felt252>("current_access_index")?;
@@ -130,6 +133,7 @@ pub fn squash_dict_inner_continue_loop(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that ids contains the reference id for each variable used by the hint
     //Get addr for ids variables
@@ -150,7 +154,13 @@ pub fn squash_dict_inner_continue_loop(
 }
 
 // Implements Hint: assert len(current_access_indices) == 0
-pub fn squash_dict_inner_len_assert(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn squash_dict_inner_len_assert(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let current_access_indices = exec_scopes.get_list_ref::<Felt252>("current_access_indices")?;
     if !current_access_indices.is_empty() {
@@ -165,6 +175,7 @@ pub fn squash_dict_inner_used_accesses_assert(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let key = exec_scopes.get::<Felt252>("key")?;
     let n_used_accesses = get_integer_from_var_name("n_used_accesses", vm, ids_data, ap_tracking)?;
@@ -186,7 +197,11 @@ pub fn squash_dict_inner_used_accesses_assert(
 
 // Implements Hint: assert len(keys) == 0
 pub fn squash_dict_inner_assert_len_keys(
+    _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let keys = exec_scopes.get_list_ref::<Felt252>("keys")?;
@@ -204,6 +219,7 @@ pub fn squash_dict_inner_next_key(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Check that current_access_indices is in scope
     let keys = exec_scopes.get_mut_list_ref::<Felt252>("keys")?;
@@ -241,6 +257,7 @@ pub fn squash_dict(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get necessary variables addresses from ids
     let address = get_ptr_from_var_name("dict_accesses", vm, ids_data, ap_tracking)?;

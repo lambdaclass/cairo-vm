@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -16,8 +17,10 @@ use num_traits::{ToPrimitive, Zero};
 
 pub fn set_add(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let set_ptr = get_ptr_from_var_name("set_ptr", vm, ids_data, ap_tracking)?;
     let elm_size =

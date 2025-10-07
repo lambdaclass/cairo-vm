@@ -6,8 +6,10 @@ use crate::hint_processor::{
     hint_processor_definition::HintReference,
 };
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
+use crate::Felt252;
 
 /*
 Implements hint:
@@ -15,8 +17,10 @@ Implements hint:
 */
 pub fn relocate_segment(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let src_ptr = get_ptr_from_var_name("src_ptr", vm, ids_data, ap_tracking)?;
     // Bugfix: this is a workaround for an issue in the vm related to the way it computes
@@ -62,8 +66,10 @@ Implements hint:
 */
 pub fn temporary_array(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let temp_segment = vm.add_temporary_segment();
     insert_value_from_var_name("temporary_array", temp_segment, vm, ids_data, ap_tracking)?;

@@ -1,5 +1,6 @@
 use crate::stdlib::{collections::HashMap, string::String};
 
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 
 use crate::{
@@ -14,8 +15,10 @@ use num_traits::ToPrimitive;
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 10)"
 pub fn n_greater_than_10(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
         .to_usize()
@@ -27,8 +30,10 @@ pub fn n_greater_than_10(
 // Implements hint: "memory[ap] = to_felt_or_relocatable(ids.n >= 2)"
 pub fn n_greater_than_2(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n = get_integer_from_var_name("n", vm, ids_data, ap_tracking)?
         .to_usize()
@@ -48,6 +53,26 @@ pub fn elements_over_x(
     let elements = get_ptr_from_var_name("elements", vm, ids_data, ap_tracking)?;
     let value = Felt252::from(((elements_end - elements)? >= x) as usize);
     insert_value_into_ap(vm, value)
+}
+
+pub fn elements_over_ten_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    elements_over_x(vm, ids_data, ap_tracking, 10)
+}
+
+pub fn elements_over_two_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    elements_over_x(vm, ids_data, ap_tracking, 2)
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use crate::stdlib::collections::HashMap;
 use crate::stdlib::prelude::String;
-
+use crate::types::exec_scope::ExecutionScopes;
+use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
@@ -16,8 +17,10 @@ use super::hint_utils::{get_integer_from_var_name, insert_value_from_var_name};
 /// ```
 pub fn get_felt_bitlenght(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
     insert_value_from_var_name("bit_length", x.bits(), vm, ids_data, ap_tracking)

@@ -50,6 +50,7 @@ pub fn unsafe_keccak(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let length = get_integer_from_var_name("length", vm, ids_data, ap_tracking)?;
 
@@ -129,8 +130,10 @@ Implements hint:
  */
 pub fn unsafe_keccak_finalize(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     /* -----------------------------
     Just for reference (cairo code):
@@ -212,6 +215,26 @@ pub fn split_output(
     )
 }
 
+pub fn split_output_0_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_output(vm, ids_data, ap_tracking, 0)
+}
+
+pub fn split_output_1_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_output(vm, ids_data, ap_tracking, 1)
+}
+
 // Implements hints of type: ids.high{input_key}, ids.low{input_key} = divmod(memory[ids.inputs + {input_key}], 256 ** {exponent})
 pub fn split_input(
     vm: &mut VirtualMachine,
@@ -234,9 +257,60 @@ pub fn split_input(
     insert_value_from_var_name(&format!("low{}", input_key), low, vm, ids_data, ap_tracking)
 }
 
+pub fn split_input_3_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_input(vm, ids_data, ap_tracking, 3, 1)
+}
+
+pub fn split_input_6_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_input(vm, ids_data, ap_tracking, 6, 2)
+}
+
+pub fn split_input_9_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_input(vm, ids_data, ap_tracking, 9, 3)
+}
+
+pub fn split_input_12_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_input(vm, ids_data, ap_tracking, 12, 4)
+}
+
+pub fn split_input_15_wrapper(
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    split_input(vm, ids_data, ap_tracking, 15, 5)
+}
+
 // Implements hint: ids.n_words_to_copy, ids.n_bytes_left = divmod(ids.n_bytes, ids.BYTES_IN_WORD)
 pub fn split_n_bytes(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -272,8 +346,10 @@ pub fn split_n_bytes(
 // ids.output1_high, ids.output1_mid = divmod(tmp, 2 ** 128)
 pub fn split_output_mid_low_high(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let binding = get_integer_from_var_name("output1", vm, ids_data, ap_tracking)?;
     let output1 = binding.as_ref();

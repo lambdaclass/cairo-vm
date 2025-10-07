@@ -1,4 +1,5 @@
 use crate::stdlib::prelude::String;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
@@ -26,8 +27,10 @@ use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
 */
 pub fn run_p_mod_circuit(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     run_p_mod_circuit_inner(vm, ids_data, ap_tracking, 1)
 }
@@ -48,6 +51,7 @@ pub fn run_p_mod_circuit(
 #[allow(unused_variables)]
 pub fn run_p_mod_circuit_with_large_batch_size(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,

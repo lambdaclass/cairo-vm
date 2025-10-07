@@ -1,4 +1,5 @@
 use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
+use crate::types::exec_scope::ExecutionScopes;
 use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use crate::{
@@ -57,8 +58,10 @@ impl EcPoint<'_> {
 
 pub fn random_ec_point_hint(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let p = EcPoint::from_var_name("p", vm, ids_data, ap_tracking)?;
     let q = EcPoint::from_var_name("q", vm, ids_data, ap_tracking)?;
@@ -104,8 +107,10 @@ pub fn random_ec_point_hint(
 //     ids.s.x, ids.s.y = random_ec_point(FIELD_PRIME, ALPHA, BETA, seed)"
 pub fn chained_ec_op_random_ec_point_hint(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_elms = get_integer_from_var_name("len", vm, ids_data, ap_tracking)?;
     if n_elms.is_zero() || n_elms.to_usize().is_none() {
@@ -138,8 +143,10 @@ pub fn chained_ec_op_random_ec_point_hint(
 // ids.p.y = recover_y(ids.x, ALPHA, BETA, FIELD_PRIME)
 pub fn recover_y_hint(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let p_x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
     let p_addr = get_relocatable_from_var_name("p", vm, ids_data, ap_tracking)?;

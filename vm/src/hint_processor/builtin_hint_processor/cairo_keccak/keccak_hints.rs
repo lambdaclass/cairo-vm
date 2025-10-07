@@ -1,9 +1,3 @@
-use crate::stdlib::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    collections::HashMap,
-    prelude::*,
-};
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -20,6 +14,15 @@ use crate::{
         vm_core::VirtualMachine,
     },
     Felt252,
+};
+use crate::{
+    stdlib::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        collections::HashMap,
+        prelude::*,
+    },
+    types::exec_scope::ExecutionScopes,
 };
 use num_traits::ToPrimitive;
 
@@ -47,8 +50,10 @@ Implements hint:
 */
 pub fn keccak_write_args(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let inputs_ptr = get_ptr_from_var_name("inputs", vm, ids_data, ap_tracking)?;
 
@@ -78,6 +83,7 @@ Implements hint:
 */
 pub fn compare_bytes_in_word_nondet(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -107,6 +113,7 @@ Implements hint:
 */
 pub fn compare_keccak_full_rate_in_bytes_nondet(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -145,6 +152,7 @@ Implements hints:
 */
 pub(crate) fn block_permutation_v1(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -189,8 +197,10 @@ Implements hint:
 */
 pub(crate) fn cairo_keccak_is_full_word(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?
         .to_usize()
@@ -212,6 +222,7 @@ Implements hint:
 */
 pub(crate) fn block_permutation_v2(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -309,6 +320,7 @@ fn cairo_keccak_finalize(
 */
 pub(crate) fn cairo_keccak_finalize_v1(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -330,6 +342,7 @@ pub(crate) fn cairo_keccak_finalize_v1(
 */
 pub(crate) fn cairo_keccak_finalize_v2(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
