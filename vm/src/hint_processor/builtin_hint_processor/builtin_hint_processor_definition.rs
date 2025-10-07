@@ -23,7 +23,7 @@ use super::{
         pack::*,
     },
 };
-use crate::Felt252;
+use crate::{any_box, Felt252};
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
     utils::CAIRO_PRIME,
@@ -206,7 +206,25 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 constants,
             );
         }
-        match &*hint_data.code {
+    }
+
+    fn compile_hint(
+        &self,
+        //Block of hint code as String
+        hint_code: &str,
+        //Ap Tracking Data corresponding to the Hint
+        ap_tracking_data: &ApTracking,
+        //Map from variable name to reference id number
+        //(may contain other variables aside from those used by the hint)
+        reference_ids: &HashMap<String, usize>,
+        //List of all references (key corresponds to element of the previous dictionary)
+        references: &[HintReference],
+        // List of accessible scopes in the hint
+        accessible_scopes: &[String],
+        // Identifiers stored in the hint's program.
+        constants: Rc<HashMap<String, Felt252>>,
+    ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
+        match hint_code {
             hint_code::ADD_SEGMENT => add_segment(vm),
             hint_code::IS_NN => is_nn(vm, &hint_data.ids_data, &hint_data.ap_tracking),
             hint_code::IS_NN_OUT_OF_RANGE => {
@@ -1032,6 +1050,14 @@ impl HintProcessorLogic for BuiltinHintProcessor {
 
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
+
+        Ok(any_box!(HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ap_tracking_data.clone(),
+            ids_data: get_ids_data(reference_ids, references)?,
+            accessible_scopes: accessible_scopes.to_vec(),
+            constants,
+        }))
     }
 }
 
