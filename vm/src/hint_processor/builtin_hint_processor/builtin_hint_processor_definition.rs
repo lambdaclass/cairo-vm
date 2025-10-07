@@ -1,8 +1,114 @@
 use crate::hint_processor::builtin_hint_processor::bigint::{
     bigint_pack_div_mod_hint, bigint_safe_div_hint,
 };
+use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
+    blake2s_add_uint256, blake2s_add_uint256_bigend, blake2s_unpack_felts, compute_blake2s,
+    example_blake2s_compress, finalize_blake2s, finalize_blake2s_v3,
+    is_less_than_63_bits_and_not_end,
+};
+use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
+    block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
+    cairo_keccak_is_full_word, compare_bytes_in_word_nondet,
+    compare_keccak_full_rate_in_bytes_nondet, keccak_write_args,
+};
+use crate::hint_processor::builtin_hint_processor::dict_hint_utils::{
+    default_dict_new, dict_new, dict_read, dict_squash_copy_dict, dict_squash_update_ptr,
+    dict_update, dict_write,
+};
+use crate::hint_processor::builtin_hint_processor::ec_recover::{
+    ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
+    ec_recover_sub_a_b,
+};
+use crate::hint_processor::builtin_hint_processor::ec_utils::{
+    chained_ec_op_random_ec_point_hint, random_ec_point_hint, recover_y_hint,
+};
+use crate::hint_processor::builtin_hint_processor::excess_balance::excess_balance_hint;
+use crate::hint_processor::builtin_hint_processor::field_arithmetic::{
+    u256_get_square_root, u384_get_square_root, uint384_div,
+};
+use crate::hint_processor::builtin_hint_processor::find_element_hint::{
+    find_element, search_sorted_lower,
+};
+use crate::hint_processor::builtin_hint_processor::garaga::get_felt_bitlenght;
+use crate::hint_processor::builtin_hint_processor::keccak_utils::{
+    split_input_12_wrapper, split_input_15_wrapper, split_input_3_wrapper, split_input_6_wrapper,
+    split_input_9_wrapper, split_n_bytes, split_output_0_wrapper, split_output_1_wrapper,
+    split_output_mid_low_high, unsafe_keccak, unsafe_keccak_finalize,
+};
+use crate::hint_processor::builtin_hint_processor::memcpy_hint_utils::enter_scope;
 use crate::hint_processor::builtin_hint_processor::memset_utils::{
     memset_step_loop_copying_wrapper, memset_step_loop_wrapper,
+};
+use crate::hint_processor::builtin_hint_processor::mod_circuit::{
+    run_p_mod_circuit, run_p_mod_circuit_with_large_batch_size,
+};
+use crate::hint_processor::builtin_hint_processor::poseidon_utils::{
+    elements_over_ten_wrapper, elements_over_two_wrapper, n_greater_than_10, n_greater_than_2,
+};
+use crate::hint_processor::builtin_hint_processor::pow_utils::pow;
+#[cfg(feature = "test_utils")]
+use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
+use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::{
+    bigint_to_uint256, hi_max_bitlen, nondet_bigint3,
+};
+use crate::hint_processor::builtin_hint_processor::secp::ec_utils::{
+    compute_doubling_slope_external_consts, compute_doubling_slope_v1_wrapper,
+    compute_doubling_slope_v2_wrapper, compute_doubling_slope_v3_wrapper,
+    compute_doubling_slope_v4_wrapper, compute_doubling_slope_v5_wrapper,
+    compute_slope_and_assing_secp_p_v2_wrapper, compute_slope_and_assing_secp_p_whitelist_wrapper,
+    compute_slope_and_assing_secp_p_wrapper, compute_slope_v1_wrapper, compute_slope_v2_wrapper,
+    di_bit, ec_double_assign_new_x_v1_wrapper, ec_double_assign_new_x_v2_wrapper,
+    ec_double_assign_new_x_v3_wrapper, ec_double_assign_new_x_v4_wrapper, ec_double_assign_new_y,
+    ec_mul_inner, ec_negate_embedded_secp_p, ec_negate_import_secp_p,
+    fast_ec_add_assign_new_x_v2_wrapper, fast_ec_add_assign_new_x_v3_wrapper,
+    fast_ec_add_assign_new_x_wrapper, fast_ec_add_assign_new_y, import_secp256r1_alpha,
+    import_secp256r1_n, import_secp256r1_p, quad_bit, square_slope_minus_xs,
+};
+use crate::hint_processor::builtin_hint_processor::secp::field_utils::{
+    is_zero_assign_scope_variables, is_zero_assign_scope_variables_external_const, is_zero_nondet,
+    is_zero_pack, is_zero_pack_external_secp, reduce_v1, reduce_v2,
+    verify_zero_with_external_const, verify_zero_wrapper, verify_zero_wrapper_v2,
+};
+use crate::hint_processor::builtin_hint_processor::secp::signature::{
+    div_mod_n_packed_divmod, div_mod_n_packed_external_n, div_mod_n_safe_div_plus_one_wrapper,
+    div_mod_n_safe_div_wrapper, div_mod_n_safe_div_xs_wrapper, get_point_from_x,
+    pack_modn_div_modn,
+};
+use crate::hint_processor::builtin_hint_processor::segments::{relocate_segment, temporary_array};
+use crate::hint_processor::builtin_hint_processor::set::set_add;
+use crate::hint_processor::builtin_hint_processor::sha256_utils::{
+    sha256_finalize, sha256_input, sha256_main_arbitrary_input_length,
+    sha256_main_constant_input_length,
+};
+use crate::hint_processor::builtin_hint_processor::signature::verify_ecdsa_signature;
+#[cfg(feature = "test_utils")]
+use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
+use crate::hint_processor::builtin_hint_processor::squash_dict_utils::{
+    squash_dict, squash_dict_inner_assert_len_keys, squash_dict_inner_check_access_index,
+    squash_dict_inner_continue_loop, squash_dict_inner_first_iteration,
+    squash_dict_inner_len_assert, squash_dict_inner_next_key, squash_dict_inner_skip_loop,
+    squash_dict_inner_used_accesses_assert,
+};
+use crate::hint_processor::builtin_hint_processor::uint256_utils::{
+    split_64, uint128_add, uint256_add_low_wrapper, uint256_add_wrapper,
+    uint256_expanded_unsigned_div_rem, uint256_mul_div_mod, uint256_signed_nn,
+    uint256_sqrt_felt_wrapper, uint256_sqrt_wrapper, uint256_sub, uint256_unsigned_div_rem,
+};
+use crate::hint_processor::builtin_hint_processor::uint384::{
+    add_no_uint384_check, sub_reduced_a_and_reduced_b, uint384_signed_nn, uint384_split_128,
+    uint384_sqrt, uint384_unsigned_div_rem,
+};
+use crate::hint_processor::builtin_hint_processor::uint384_extension::unsigned_div_rem_uint768_by_uint384;
+use crate::hint_processor::builtin_hint_processor::usort::{
+    usort_body, usort_enter_scope, verify_multiplicity_assert, verify_multiplicity_body,
+    verify_usort,
+};
+use crate::hint_processor::builtin_hint_processor::vrf::fq::{
+    inv_mod_p_uint256, uint512_unsigned_div_rem,
+};
+use crate::hint_processor::builtin_hint_processor::vrf::inv_mod_p_uint512::inv_mod_p_uint512;
+use crate::hint_processor::builtin_hint_processor::vrf::pack::{
+    ed25519_is_zero_assign_scope_vars, ed25519_is_zero_pack, ed25519_reduce,
 };
 use crate::hint_processor::hint_processor_definition::get_ids_data;
 use crate::{any_box, Felt252};
@@ -43,13 +149,15 @@ pub struct HintProcessorData {
     //         &HashMap<String, Felt252>,
     //     ),
     // >,
-    pub f: fn(
-        &mut VirtualMachine,
-        &mut ExecutionScopes,
-        &HashMap<String, HintReference>,
-        &ApTracking,
-        &HashMap<String, Felt252>,
-    ) -> Result<(), HintError>,
+    pub f: Option<
+        fn(
+            &mut VirtualMachine,
+            &mut ExecutionScopes,
+            &HashMap<String, HintReference>,
+            &ApTracking,
+            &HashMap<String, Felt252>,
+        ) -> Result<(), HintError>,
+    >,
 }
 
 impl HintProcessorData {
