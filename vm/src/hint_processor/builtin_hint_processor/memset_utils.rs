@@ -20,6 +20,7 @@ pub fn memset_enter_scope(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n: Box<dyn Any> = Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
@@ -50,6 +51,26 @@ pub fn memset_step_loop(
     // Reassign `n` with `n - 1`
     // we do it at the end of the function so that the borrow checker doesn't complain
     Ok(())
+}
+
+pub fn memset_step_loop_copying_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    memset_step_loop(vm, exec_scopes, ids_data, ap_tracking, "continue_copying")
+}
+
+pub fn memset_step_loop_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    memset_step_loop(vm, exec_scopes, ids_data, ap_tracking, "continue_loop")
 }
 
 #[cfg(test)]

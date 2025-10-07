@@ -21,7 +21,7 @@ std = [
     "dep:zip",
 ]
 cairo-1-hints = [
-    "dep:cairo-lang-starknet",
+    "dep:cairo-lang-compiler",
     "dep:cairo-lang-casm",
     "dep:cairo-lang-starknet-classes",
     "dep:ark-ff",
@@ -70,6 +70,7 @@ bitvec = { workspace = true }
 cairo-lang-starknet = { workspace = true, optional = true }
 cairo-lang-starknet-classes = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
+cairo-lang-compiler = { workspace = true, optional = true }
 
 # TODO: check these dependencies for wasm compatibility
 ark-ff = { workspace = true, optional = true }

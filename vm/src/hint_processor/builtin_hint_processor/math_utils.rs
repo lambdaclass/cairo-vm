@@ -41,8 +41,10 @@ const ADDR_BOUND: &str = "starkware.starknet.common.storage.ADDR_BOUND";
 //Implements hint: memory[ap] = 0 if 0 <= (ids.a % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let range_check_bound = vm.get_range_check_builtin()?.bound();
@@ -53,8 +55,10 @@ pub fn is_nn(
 //Implements hint: memory[ap] = 0 if 0 <= ((-ids.a - 1) % PRIME) < range_check_builtin.bound else 1
 pub fn is_nn_out_of_range(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a = a.as_ref();
@@ -173,7 +177,13 @@ pub fn assert_le_felt_v_0_8(
     insert_value_from_var_name("small_inputs", small_inputs, vm, ids_data, ap_tracking)
 }
 
-pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn assert_le_felt_excluded_2(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
     if excluded != Felt252::from(2_i32) {
@@ -186,6 +196,9 @@ pub fn assert_le_felt_excluded_2(exec_scopes: &mut ExecutionScopes) -> Result<()
 pub fn assert_le_felt_excluded_1(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
@@ -199,6 +212,9 @@ pub fn assert_le_felt_excluded_1(
 pub fn assert_le_felt_excluded_0(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let excluded: Felt252 = exec_scopes.get("excluded")?;
 
@@ -213,8 +229,10 @@ pub fn assert_le_felt_excluded_0(
 //    memory[ap] = 0 if (ids.a % PRIME) <= (ids.b % PRIME) else 1
 pub fn is_le_felt(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a_mod = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let b_mod = get_integer_from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -236,8 +254,10 @@ pub fn is_le_felt(
 //        assert (ids.a - ids.b) % PRIME != 0, f'assert_not_equal failed: {ids.a} = {ids.b}.'
 pub fn assert_not_equal(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let maybe_rel_a = get_maybe_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let maybe_rel_b = get_maybe_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
@@ -275,8 +295,10 @@ pub fn assert_not_equal(
 // %}
 pub fn assert_nn(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
     let range_check_builtin = vm.get_range_check_builtin()?;
@@ -297,8 +319,10 @@ pub fn assert_nn(
 // %}
 pub fn assert_not_zero(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     if value.is_zero() {
@@ -313,8 +337,10 @@ pub fn assert_not_zero(
 //Implements hint: assert ids.value == 0, 'split_int(): value is out of range.'
 pub fn split_int_assert_range(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //Main logic (assert value == 0)
@@ -328,8 +354,10 @@ pub fn split_int_assert_range(
 //        assert res < ids.bound, f'split_int(): Limb {res} is out of range.'
 pub fn split_int(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let base = get_integer_from_var_name("base", vm, ids_data, ap_tracking)?;
@@ -353,8 +381,10 @@ pub fn split_int(
 //    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0
 pub fn is_positive(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     let value_as_int = signed_felt(value);
@@ -419,8 +449,10 @@ pub fn split_felt(
 //        ids.root = isqrt(value)
 pub fn sqrt(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
     //This is equal to mod_value > Felt252::from(2).pow(250)
@@ -519,6 +551,7 @@ pub fn unsigned_div_rem(
 //        ids.high, ids.low = divmod(ids.value, ids.SHIFT)
 pub fn assert_250_bit(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -551,8 +584,10 @@ pub fn assert_250_bit(
 // %{ ids.is_250 = 1 if ids.addr < 2**250 else 0 %}
 pub fn is_250_bits(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let addr = get_integer_from_var_name("addr", vm, ids_data, ap_tracking)?;
 
@@ -575,6 +610,7 @@ Implements hint:
 */
 pub fn is_addr_bounded(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -640,8 +676,10 @@ pub fn assert_lt_felt(
 
 pub fn is_quad_residue(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
 
