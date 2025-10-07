@@ -1,3 +1,4 @@
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -52,8 +53,10 @@ use super::secp::bigint_utils::Uint384;
 */
 pub fn uint384_unsigned_div_rem(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
     let div = Uint384::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
@@ -78,8 +81,10 @@ pub fn uint384_unsigned_div_rem(
 */
 pub fn uint384_split_128(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let bound = pow2_const_nz(128);
     let a = get_integer_from_var_name("a", vm, ids_data, ap_tracking)?;
@@ -100,6 +105,7 @@ pub fn uint384_split_128(
  */
 pub fn add_no_uint384_check(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -161,8 +167,10 @@ pub fn add_no_uint384_check(
  */
 pub fn uint384_sqrt(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
 
@@ -182,8 +190,10 @@ pub fn uint384_sqrt(
 */
 pub fn uint384_signed_nn(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
     let a_d2 = vm.get_integer((a_addr + 2)?).map_err(|_| {
@@ -222,8 +232,10 @@ pub fn uint384_signed_nn(
 */
 pub fn sub_reduced_a_and_reduced_b(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let a = Uint384::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
     let b = Uint384::from_var_name("b", vm, ids_data, ap_tracking)?.pack();

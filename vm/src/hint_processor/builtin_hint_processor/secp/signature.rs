@@ -51,6 +51,7 @@ pub fn div_mod_n_packed_divmod(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     exec_scopes.assign_or_update_variable("N", any_box!(N.clone()));
     div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &N)
@@ -61,6 +62,7 @@ pub fn div_mod_n_packed_external_n(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n = exec_scopes.get::<BigInt>("N")?;
     div_mod_n_packed(vm, exec_scopes, ids_data, ap_tracking, &n)
@@ -84,6 +86,36 @@ pub fn div_mod_n_safe_div(
 
     exec_scopes.insert_value("value", value);
     Ok(())
+}
+
+pub fn div_mod_n_safe_div_wrapper(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    div_mod_n_safe_div(exec_scopes, "a", "b", 0)
+}
+
+pub fn div_mod_n_safe_div_plus_one_wrapper(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    div_mod_n_safe_div(exec_scopes, "a", "b", 0)
+}
+
+pub fn div_mod_n_safe_div_xs_wrapper(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    div_mod_n_safe_div(exec_scopes, "x", "s", 0)
 }
 
 /* Implements hint:
@@ -144,6 +176,7 @@ pub fn pack_modn_div_modn(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?
         .pack86()

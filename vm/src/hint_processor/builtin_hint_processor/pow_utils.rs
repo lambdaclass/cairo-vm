@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -18,8 +19,10 @@ Implements hint:
 */
 pub fn pow(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let prev_locs_exp = vm
         .get_integer(

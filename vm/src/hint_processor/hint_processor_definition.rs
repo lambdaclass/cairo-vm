@@ -49,7 +49,7 @@ pub trait HintProcessorLogic {
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
             constants,
-            f: Box::new(|_, _, _, _, _| {}), // TODO: Check what to do here
+            f: None, // TODO: Check what to do here
         }))
     }
 

@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
-
+use crate::types::exec_scope::ExecutionScopes;
+use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name},
@@ -15,8 +16,10 @@ use crate::{
 
 pub fn verify_ecdsa_signature(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let signature_r = get_integer_from_var_name("signature_r", vm, ids_data, ap_tracking)?;
     let signature_s = get_integer_from_var_name("signature_s", vm, ids_data, ap_tracking)?;

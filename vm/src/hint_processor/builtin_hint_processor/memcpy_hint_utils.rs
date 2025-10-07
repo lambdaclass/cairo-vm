@@ -23,7 +23,13 @@ pub fn add_segment(
 }
 
 //Implements hint: vm_enter_scope()
-pub fn enter_scope(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn enter_scope(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.enter_scope(HashMap::new());
     Ok(())
 }

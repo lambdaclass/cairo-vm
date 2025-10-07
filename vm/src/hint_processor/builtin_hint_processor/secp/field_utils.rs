@@ -1,3 +1,4 @@
+use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -44,6 +45,26 @@ pub fn verify_zero(
     insert_value_from_var_name("q", Felt252::from(&q), vm, ids_data, ap_tracking)
 }
 
+pub fn verify_zero_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    verify_zero(vm, exec_scopes, ids_data, ap_tracking, &SECP_P)
+}
+
+pub fn verify_zero_wrapper_v2(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    verify_zero(vm, exec_scopes, ids_data, ap_tracking, &SECP_P_V2)
+}
+
 /*
 Implements hint:
 %{
@@ -59,6 +80,7 @@ pub fn verify_zero_with_external_const(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
     let val = Uint384::from_var_name("val", vm, ids_data, ap_tracking)?.pack86();
@@ -83,6 +105,7 @@ pub fn reduce_v1(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let value = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
@@ -102,6 +125,7 @@ pub fn reduce_v2(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
     let value = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
@@ -122,6 +146,7 @@ pub fn is_zero_pack(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     let x_packed = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
@@ -135,6 +160,7 @@ pub fn is_zero_pack_external_secp(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let secp_p = exec_scopes.get_ref("SECP_P")?;
     let x_packed = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?.pack86();
@@ -154,6 +180,9 @@ On .json compiled program
 pub fn is_zero_nondet(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
@@ -175,7 +204,13 @@ Implements hint:
     value = x_inv = div_mod(1, x, SECP_P)
 %}
 */
-pub fn is_zero_assign_scope_variables(exec_scopes: &mut ExecutionScopes) -> Result<(), HintError> {
+pub fn is_zero_assign_scope_variables(
+    _vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
     exec_scopes.insert_value("SECP_P", SECP_P.clone());
     //Get `x` variable from vm scope
     let x = exec_scopes.get::<BigInt>("x")?;
@@ -195,7 +230,11 @@ Implements hint:
 %}
 */
 pub fn is_zero_assign_scope_variables_external_const(
+    _vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
+    _ids_data: &HashMap<String, HintReference>,
+    _ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     //Get variables from vm scope
     let secp_p = exec_scopes.get_ref::<BigInt>("SECP_P")?;

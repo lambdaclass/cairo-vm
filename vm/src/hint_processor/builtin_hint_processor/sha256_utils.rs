@@ -1,5 +1,6 @@
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 
+use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -29,8 +30,10 @@ const IV: [u32; SHA256_STATE_SIZE_FELTS] = [
 
 pub fn sha256_input(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let n_bytes = get_integer_from_var_name("n_bytes", vm, ids_data, ap_tracking)?;
     let n_bytes = n_bytes.as_ref();
@@ -111,6 +114,7 @@ segments.write_arg(ids.output, new_state)
  */
 pub fn sha256_main_constant_input_length(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -134,6 +138,7 @@ segments.write_arg(ids.output, new_state)
  */
 pub fn sha256_main_arbitrary_input_length(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
@@ -176,8 +181,10 @@ pub fn sha256_main_arbitrary_input_length(
 
 pub fn sha256_finalize(
     vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let message: Vec<u8> = vec![0; 64];
 
@@ -241,7 +248,16 @@ mod tests {
         vm.segments = segments![((1, 1), 7)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(
+            sha256_input(
+                &mut vm,
+                &mut scope!(),
+                &ids_data,
+                &ApTracking::new(),
+                &HashMap::default()
+            ),
+            Ok(())
+        );
 
         check_memory![vm.segments.memory, ((1, 0), 1)];
     }
@@ -253,7 +269,16 @@ mod tests {
         vm.segments = segments![((1, 1), 3)];
         vm.run_context.fp = 2;
         let ids_data = ids_data!["full_word", "n_bytes"];
-        assert_matches!(sha256_input(&mut vm, &ids_data, &ApTracking::new()), Ok(()));
+        assert_matches!(
+            sha256_input(
+                &mut vm,
+                &mut scope!(),
+                &ids_data,
+                &ApTracking::new(),
+                &HashMap::default()
+            ),
+            Ok(())
+        );
 
         check_memory![vm.segments.memory, ((1, 0), 0)];
     }

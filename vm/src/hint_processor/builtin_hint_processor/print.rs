@@ -18,9 +18,11 @@ use crate::{
 };
 
 pub fn print_felt(
-    vm: &VirtualMachine,
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     let val = get_integer_from_var_name("x", vm, ids_data, ap_tracking)?;
     println!("{val}");
@@ -40,9 +42,11 @@ fn print_name(
 }
 
 pub fn print_array(
-    vm: &VirtualMachine,
+    vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     print_name(vm, ids_data, ap_tracking)?;
 
@@ -75,10 +79,11 @@ impl Debug for DictValue {
 }
 
 pub fn print_dict(
-    vm: &VirtualMachine,
-    exec_scopes: &ExecutionScopes,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
     print_name(vm, ids_data, ap_tracking)?;
 
