@@ -871,7 +871,6 @@ dependencies = [
  "bincode",
  "bitvec",
  "cairo-lang-casm",
- "cairo-lang-compiler",
  "cairo-lang-starknet-classes",
  "clap",
  "criterion",
