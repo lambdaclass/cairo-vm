@@ -233,8 +233,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             );
         }
 
-        println!("{}", hint_data.code);
-
         let hint_func = hint_data.f.unwrap(); // TODO: Remove unwrap
 
         hint_func(
@@ -524,7 +522,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 super::simulated_builtins::get_simulated_builtin_base
             }
             code => {
-                println!("#################################");
                 return Err(
                     crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(
                         code.to_string().into_boxed_str(),
