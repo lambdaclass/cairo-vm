@@ -1,3 +1,4 @@
+use crate::hint_processor::hint_processor_utils::felt_to_usize;
 use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
 
 use crate::types::errors::math_errors::MathError;
@@ -18,9 +19,11 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
+use num_bigint::BigUint;
+use num_integer::Integer;
 use num_traits::ToPrimitive;
 
-use super::hint_utils::get_integer_from_var_name;
+use super::hint_utils::{get_integer_from_var_name, insert_value_into_ap};
 
 fn get_fixed_size_u32_array<const T: usize>(
     h_range: &Vec<Cow<Felt252>>,

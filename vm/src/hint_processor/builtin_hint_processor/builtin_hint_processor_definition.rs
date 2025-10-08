@@ -2,9 +2,8 @@ use crate::hint_processor::builtin_hint_processor::bigint::{
     bigint_pack_div_mod_hint, bigint_safe_div_hint,
 };
 use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
-    blake2s_add_uint256, blake2s_add_uint256_bigend, blake2s_unpack_felts, compute_blake2s,
-    example_blake2s_compress, finalize_blake2s, finalize_blake2s_v3,
-    is_less_than_63_bits_and_not_end,
+    blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, example_blake2s_compress,
+    finalize_blake2s, finalize_blake2s_v3,
 };
 use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
     block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
@@ -253,8 +252,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         reference_ids: &HashMap<String, usize>,
         //List of all references (key corresponds to element of the previous dictionary)
         references: &[HintReference],
-        // List of accessible scopes in the hint
-        accessible_scopes: &[String],
         // Identifiers stored in the hint's program.
         constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
@@ -266,7 +263,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 code: hint_code.to_string(),
                 ap_tracking: ap_tracking_data.clone(),
                 ids_data,
-                accessible_scopes: accessible_scopes.to_vec(),
                 constants,
                 f: None
             }));
@@ -327,8 +323,8 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::BLAKE2S_FINALIZE_V3 => finalize_blake2s_v3,
             hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256,
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => blake2s_add_uint256_bigend,
-            hint_code::IS_LESS_THAN_63_BITS_AND_NOT_END => is_less_than_63_bits_and_not_end,
-            hint_code::BLAKE2S_UNPACK_FELTS => blake2s_unpack_felts,
+            // hint_code::IS_LESS_THAN_63_BITS_AND_NOT_END => is_less_than_63_bits_and_not_end,
+            // hint_code::BLAKE2S_UNPACK_FELTS => blake2s_unpack_felts,
             hint_code::UNSAFE_KECCAK => unsafe_keccak,
             hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize,
             hint_code::SQUASH_DICT_INNER_SKIP_LOOP => squash_dict_inner_skip_loop,
@@ -515,10 +511,10 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             cairo0_hints::SECP_REDUCE_X => cairo0_hints::reduce_x,
             #[cfg(feature = "cairo-0-data-availability-hints")]
             super::kzg_da::WRITE_DIVMOD_SEGMENT => super::kzg_da::write_div_mod_segment,
-            #[cfg(feature = "test_utils")]
-            super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
-                super::simulated_builtins::get_simulated_builtin_base
-            }
+            // #[cfg(feature = "test_utils")]
+            // super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
+            //     super::simulated_builtins::get_simulated_builtin_base
+            // }
             code => {
                 return Err(
                     crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(
@@ -532,7 +528,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),
             ids_data,
-            accessible_scopes: accessible_scopes.to_vec(),
             constants,
             f: Some(f)
         }))

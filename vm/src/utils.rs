@@ -478,14 +478,12 @@ pub mod test_utils {
             let ap_tracking = ApTracking::default();
             let reference_ids = HashMap::new();
             let references = Vec::new();
-            let accessible_scopes = Vec::new();
             let hint_processor = BuiltinHintProcessor::new_empty();
             let hint_data_ref = hint_processor.compile_hint(
                 $hint_code,
                 &ap_tracking,
                 &reference_ids,
                 &references,
-                &accessible_scopes,
                 crate::stdlib::rc::Rc::new(constants.clone()),
             );
             (hint_data_ref, hint_processor) // TODO: Check if the processor can be passed as a reference so we dont have to return it
@@ -520,7 +518,6 @@ pub mod test_utils {
             let ap_tracking = ApTracking::default();
             let reference_ids = HashMap::new();
             let references = Vec::new();
-            let accessible_scopes = Vec::new();
             let constants = crate::stdlib::rc::Rc::new(HashMap::new());
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let hint_data_ref = hint_processor
@@ -529,7 +526,6 @@ pub mod test_utils {
                     &ap_tracking,
                     &reference_ids,
                     &references,
-                    &accessible_scopes,
                     constants,
                 )
                 .unwrap(); // TODO: Remove unwrap
@@ -541,7 +537,6 @@ pub mod test_utils {
             let ap_tracking = ApTracking::default();
             let reference_ids = HashMap::new();
             let references = Vec::new();
-            let accessible_scopes = Vec::new();
             let constants = crate::stdlib::rc::Rc::new(HashMap::new());
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             let hint_data_ref = hint_processor
@@ -550,7 +545,6 @@ pub mod test_utils {
                     &ap_tracking,
                     &reference_ids,
                     &references,
-                    &accessible_scopes,
                     constants,
                 )
                 .unwrap(); // TODO: Remove unwrap
