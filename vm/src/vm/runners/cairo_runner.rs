@@ -1523,6 +1523,38 @@ impl CairoRunner {
         Ok(())
     }
 
+    #[allow(clippy::result_large_err)]
+    /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
+    /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
+    /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
+    pub fn run_from_entrypoint_v2(
+        &mut self,
+        entrypoint: usize,
+        args: &[&CairoArg],
+        verify_secure: bool,
+        program_segment_size: Option<usize>,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), CairoRunError> {
+        let stack = args
+            .iter()
+            .map(|arg| self.vm.segments.gen_cairo_arg(arg))
+            .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(entrypoint, stack, return_fp)?;
+
+        self.initialize_vm()?;
+
+        self.run_until_pc_v2(end, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, err))?;
+        self.end_run(true, false, hint_processor)?;
+
+        if verify_secure {
+            verify_secure_runner(self, false, program_segment_size)?;
+        }
+
+        Ok(())
+    }
+
     // Returns Ok(()) if there are enough allocated cells for the builtins.
     // If not, the number of steps should be increased or a different layout should be used.
     pub fn check_used_cells(&self) -> Result<(), VirtualMachineError> {
