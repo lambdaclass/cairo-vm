@@ -796,7 +796,6 @@ impl CairoRunner {
             for i in 0..self.program.shared_program_data.data.len() {
                 self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
             }
-            self.loaded_program = true
         }
         self.vm
             .segments
