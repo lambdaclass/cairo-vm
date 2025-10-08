@@ -5,6 +5,7 @@ use crate::{
     stdlib::{
         any::Any,
         collections::{BTreeMap, HashMap, HashSet},
+        mem,
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
         rc::Rc,
@@ -380,7 +381,7 @@ impl CairoRunnerBuilder {
         &mut self,
         hint_processor: &mut dyn HintProcessor,
     ) -> Result<(), VirtualMachineError> {
-        let constants = Rc::new(self.program.constants.clone());
+        let constants = Rc::new(mem::take(&mut self.program.constants));
         let references = &self.program.shared_program_data.reference_manager;
         let compiled_hints = self
             .program
