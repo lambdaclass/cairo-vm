@@ -2,7 +2,9 @@
 
 #### Upcoming Changes
 
-#### [2.5.0] - 2025-09-11
+* refactor: Move hint code match from execute_hint to compile_hint [#2224](https://github.com/lambdaclass/cairo-vm/pull/2224)
+
+* fix: Added `cairo_1_test_contracts` and `cairo_2_test_contracts` as dependencies for `test-extensive_hints` target [#2201](https://github.com/lambdaclass/cairo-vm/pull/2201)
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
 
