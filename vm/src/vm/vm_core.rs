@@ -1362,6 +1362,7 @@ impl VirtualMachineBuilder {
 mod tests {
     use super::*;
     use crate::felt_hex;
+    use crate::hint_processor::builtin_hint_processor::memcpy_hint_utils::add_segment;
     use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
     use crate::stdlib::collections::HashMap;
     use crate::types::instruction::OpcodeExtension;
@@ -4270,10 +4271,12 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_step_for_preset_memory_with_alloc_hint() {
         let mut vm = vm!(true);
-        let hint_data = vec![any_box!(HintProcessorData::new_default(
+        let mut hint_processor_data = HintProcessorData::new_default(
             "memory[ap] = segments.add()".to_string(),
             HashMap::new(),
-        ))];
+        );
+        hint_processor_data.f = Some(add_segment);
+        let hint_data = vec![any_box!(hint_processor_data)];
 
         //Initialzie registers
         run_context!(vm, 3, 2, 2);
