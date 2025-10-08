@@ -1,5 +1,5 @@
 use crate::math_utils::signed_felt;
-use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
+use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*, rc::Rc};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
@@ -535,6 +535,21 @@ impl VirtualMachine {
         Ok(())
     }
 
+    #[cfg(not(feature = "extensive_hints"))]
+    pub fn step_hint_v2(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_datas: &[Rc<Box<dyn Any>>],
+    ) -> Result<(), VirtualMachineError> {
+        for (hint_index, hint_data) in hint_datas.iter().enumerate() {
+            hint_processor
+                .execute_hint(self, exec_scopes, hint_data.as_ref())
+                .map_err(|err| VirtualMachineError::Hint(Box::new((hint_index, err))))?
+        }
+        Ok(())
+    }
+
     #[cfg(feature = "extensive_hints")]
     pub fn step_hint(
         &mut self,
@@ -561,6 +576,39 @@ impl VirtualMachine {
                     if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
                         hint_ranges.insert(hint_pc, (hint_datas.len(), len));
                         hint_datas.extend(hints);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "extensive_hints")]
+    pub fn step_hint_v2(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        hint_datas: &mut Vec<Rc<Box<dyn Any>>>,
+        hint_ranges: &mut HashMap<Relocatable, HintRange>,
+    ) -> Result<(), VirtualMachineError> {
+        // Check if there is a hint range for the current pc
+        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+            // Re-binding to avoid mutability problems
+            let s = *s;
+            // Execute each hint for the given range
+            for idx in s..(s + l.get()) {
+                let hint_data = hint_datas
+                    .get(idx)
+                    .ok_or(VirtualMachineError::Unexpected)?
+                    .as_ref();
+                let hint_extension = hint_processor
+                    .execute_hint_extensive(self, exec_scopes, hint_data)
+                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                // Update the hint_ranges & hint_datas with the hints added by the executed hint
+                for (hint_pc, hints) in hint_extension {
+                    if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
+                        hint_ranges.insert(hint_pc, (hint_datas.len(), len));
+                        hint_datas.extend(hints.into_iter().map(Rc::new));
                     }
                 }
             }
@@ -629,6 +677,27 @@ impl VirtualMachine {
         self.step_instruction()?;
         #[cfg(feature = "test_utils")]
         self.execute_post_step_instruction(hint_processor, exec_scopes, hint_datas, constants)?;
+
+        Ok(())
+    }
+
+    pub fn step_v2(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+        exec_scopes: &mut ExecutionScopes,
+        #[cfg(feature = "extensive_hints")] hint_datas: &mut Vec<Rc<Box<dyn Any>>>,
+        #[cfg(not(feature = "extensive_hints"))] hint_datas: &[Rc<Box<dyn Any>>],
+        #[cfg(feature = "extensive_hints")] hint_ranges: &mut HashMap<Relocatable, HintRange>,
+    ) -> Result<(), VirtualMachineError> {
+        self.step_hint_v2(
+            hint_processor,
+            exec_scopes,
+            hint_datas,
+            #[cfg(feature = "extensive_hints")]
+            hint_ranges,
+        )?;
+
+        self.step_instruction()?;
 
         Ok(())
     }

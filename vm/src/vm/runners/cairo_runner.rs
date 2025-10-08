@@ -162,7 +162,7 @@ pub struct CairoRunnerBuilder {
     // Set after loading instruction cache.
     // instructions: Vec<Option<Instruction>>,
     // Set after compiling hints.
-    // hints: Vec<Rc<dyn Any>>,
+    hints: Option<Vec<Rc<Box<dyn Any>>>>,
 }
 
 impl CairoRunnerBuilder {
@@ -203,6 +203,7 @@ impl CairoRunnerBuilder {
             execution_base: None,
             memory: MemorySegmentManager::new(),
             loaded_program: false,
+            hints: None,
         })
     }
 
@@ -221,7 +222,7 @@ impl CairoRunnerBuilder {
             || self.runner_mode == RunnerMode::ProofModeCairo1
     }
 
-    fn add_memory_segment(&mut self) -> Relocatable {
+    pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add()
     }
 
@@ -352,9 +353,12 @@ impl CairoRunnerBuilder {
         Ok(())
     }
 
-    pub fn initialize_segments(&mut self) {
+    pub fn initialize_base_segments(&mut self) {
         self.program_base = Some(self.add_memory_segment());
         self.execution_base = Some(self.add_memory_segment());
+    }
+
+    pub fn initialize_builtin_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.memory);
         }
@@ -369,6 +373,33 @@ impl CairoRunnerBuilder {
             self.memory.memory.mark_as_accessed((program_base + i)?);
         }
         self.loaded_program = true;
+        Ok(())
+    }
+
+    pub fn compile_hints(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let constants = Rc::new(self.program.constants.clone());
+        let references = &self.program.shared_program_data.reference_manager;
+        let compiled_hints = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .iter_hints()
+            .map(|hint| {
+                let hint = hint_processor.compile_hint(
+                    &hint.code,
+                    &hint.flow_tracking_data.ap_tracking,
+                    &hint.flow_tracking_data.reference_ids,
+                    references,
+                    constants.clone(),
+                )?;
+
+                Ok(Rc::new(hint))
+            })
+            .collect::<Result<Vec<Rc<Box<dyn Any>>>, VirtualMachineError>>()?;
+        self.hints = Some(compiled_hints);
         Ok(())
     }
 
@@ -401,6 +432,7 @@ impl CairoRunnerBuilder {
             relocated_trace: None,
             program: self.program,
             loaded_program: self.loaded_program,
+            hints: self.hints,
         })
     }
 }
@@ -424,6 +456,7 @@ pub struct CairoRunner {
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
     loaded_program: bool,
+    hints: Option<Vec<Rc<Box<dyn Any>>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -486,6 +519,7 @@ impl CairoRunner {
             },
             relocated_trace: None,
             loaded_program: false,
+            hints: None,
         })
     }
 
@@ -979,6 +1013,57 @@ impl CairoRunner {
                 &mut hint_ranges,
                 #[cfg(feature = "test_utils")]
                 &self.program.constants,
+            )?;
+
+            hint_processor.consume_step();
+        }
+
+        if self.vm.get_pc() != address {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
+
+        Ok(())
+    }
+
+    pub fn run_until_pc_v2(
+        &mut self,
+        address: Relocatable,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = &self.program.shared_program_data.reference_manager;
+        #[cfg_attr(not(feature = "extensive_hints"), allow(unused_mut))]
+        let mut hint_data = if let Some(hints) = self.hints.take() {
+            hints
+        } else {
+            self.get_hint_data(references, hint_processor)?
+                .into_iter()
+                .map(Rc::new)
+                .collect()
+        };
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
+        while self.vm.get_pc() != address && !hint_processor.consumed() {
+            self.vm.step_v2(
+                hint_processor,
+                &mut self.exec_scopes,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_data,
+                #[cfg(not(feature = "extensive_hints"))]
+                self.program
+                    .shared_program_data
+                    .hints_collection
+                    .get_hint_range_for_pc(self.vm.get_pc().offset)
+                    .and_then(|range| {
+                        range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                    })
+                    .unwrap_or(&[]),
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_ranges,
             )?;
 
             hint_processor.consume_step();
