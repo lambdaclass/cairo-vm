@@ -160,13 +160,15 @@ pub struct CairoRunnerBuilder {
     memory: MemorySegmentManager,
     // Set after loading program.
     loaded_program: bool,
-    // Set after loading instruction cache.
-    // instructions: Vec<Option<Instruction>>,
     // Set after compiling hints.
     hints: Option<Vec<Rc<Box<dyn Any>>>>,
+    // TODO: Set after loading instruction cache.
+    // instructions: Vec<Option<Instruction>>,
 }
 
 impl CairoRunnerBuilder {
+    // TODO: Determine if these fields should be set with different functions,
+    // instead of passing them to `new`.
     pub fn new(
         program: &Program,
         layout_name: LayoutName,
@@ -227,6 +229,8 @@ impl CairoRunnerBuilder {
         self.memory.add()
     }
 
+    // TODO: Cloning the builder after calling this function leads to bad
+    // behaviour (transactions revert). Why?
     pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -377,6 +381,20 @@ impl CairoRunnerBuilder {
         Ok(())
     }
 
+    /// Precompiles the program's hints using the given executor.
+    ///
+    /// # Safety
+    ///
+    /// Use the v2 variants of the execution functions (run_until_pc_v2 or
+    /// run_from_entrypoint_v2), as those function make use of the precompiled
+    /// hints.
+    ///
+    /// This function consumes the program's constants, so not doing so can
+    /// lead to errors during execution (missing constants). This was done for
+    /// performance reasons.
+    ///
+    /// The user must make sure to use the same implementation of the
+    /// HintProcessor for execution.
     pub fn compile_hints(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
