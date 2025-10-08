@@ -105,7 +105,7 @@ pub fn div_mod_n_safe_div_plus_one_wrapper(
     _ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    div_mod_n_safe_div(exec_scopes, "a", "b", 0)
+    div_mod_n_safe_div(exec_scopes, "a", "b", 1)
 }
 
 pub fn div_mod_n_safe_div_xs_wrapper(

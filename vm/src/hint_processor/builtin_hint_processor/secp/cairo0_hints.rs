@@ -1,8 +1,10 @@
-use crate::stdlib::{
-    collections::HashMap,
-    ops::Deref,
-    ops::{Add, Mul, Rem},
-    prelude::*,
+use crate::{
+    stdlib::{
+        collections::HashMap,
+        ops::{Add, Deref, Mul, Rem},
+        prelude::*,
+    },
+    utils::CAIRO_PRIME,
 };
 
 use crate::define_hint_string_map;
@@ -200,7 +202,6 @@ pub fn r1_get_point_from_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -256,6 +257,32 @@ pub fn r1_get_point_from_x(
     Ok(())
 }
 
+pub fn r1_get_point_from_x_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    r1_get_point_from_x(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        SECP256R1_P.magnitude(),
+    )
+}
+
+pub fn r1_get_point_from_x_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    r1_get_point_from_x(vm, exec_scopes, ids_data, ap_tracking, &CAIRO_PRIME)
+}
+
 pub fn is_on_curve_2(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
@@ -283,7 +310,6 @@ pub fn secp_double_assign_new_x(
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
-    _constants: &HashMap<String, Felt252>,
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
@@ -306,6 +332,32 @@ pub fn secp_double_assign_new_x(
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_x", value);
     Ok(())
+}
+
+pub fn secp_double_assign_new_x_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    secp_double_assign_new_x(
+        vm,
+        exec_scopes,
+        ids_data,
+        ap_tracking,
+        SECP256R1_P.magnitude(),
+    )
+}
+
+pub fn secp_double_assign_new_x_v2_wrapper(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+    _constants: &HashMap<String, Felt252>,
+) -> Result<(), HintError> {
+    secp_double_assign_new_x(vm, exec_scopes, ids_data, ap_tracking, &CAIRO_PRIME)
 }
 
 pub fn generate_nibbles(
@@ -560,7 +612,6 @@ mod tests {
             &mut exec_scopes,
             &ids_data,
             &ap_tracking,
-            &constants,
             SECP256R1_P.magnitude(),
         )
         .expect("calculate_value() failed");

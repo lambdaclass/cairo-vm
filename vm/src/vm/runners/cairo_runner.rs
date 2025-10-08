@@ -651,6 +651,7 @@ impl CairoRunner {
             .hints_collection
             .iter_hints()
             .map(|hint| {
+                println!("{:?}", hint.code);
                 hint_executor
                     .compile_hint(
                         &hint.code,
