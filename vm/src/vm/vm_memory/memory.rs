@@ -12,10 +12,9 @@ use bitvec::prelude as bv;
 use core::cmp::Ordering;
 use num_traits::ToPrimitive;
 
-#[derive(Clone)]
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Rc<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
+    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 
 /// [`MemoryCell`] represents an optimized storage layout for the VM memory.
@@ -174,7 +173,7 @@ pub struct Memory {
     #[cfg(feature = "extensive_hints")]
     pub(crate) relocation_rules: HashMap<usize, MaybeRelocatable>,
     pub validated_addresses: AddressSet,
-    validation_rules: Vec<Option<ValidationRule>>,
+    validation_rules: Vec<Option<Rc<ValidationRule>>>,
 }
 
 impl Memory {
@@ -501,7 +500,8 @@ impl Memory {
             self.validation_rules
                 .resize_with(segment_index + 1, || None);
         }
-        self.validation_rules.insert(segment_index, Some(rule));
+        self.validation_rules
+            .insert(segment_index, Some(Rc::new(rule)));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {

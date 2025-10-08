@@ -3,7 +3,6 @@ use crate::{
     stdlib::{
         cmp::{max, min},
         prelude::*,
-        rc::Rc,
     },
     types::{builtin_name::BuiltinName, instance_definitions::LowRatio},
 };
@@ -107,7 +106,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
     }
 
     pub fn add_validation_rule(&self, memory: &mut Memory) {
-        let rule = ValidationRule(Rc::new(
+        let rule = ValidationRule(Box::new(
             |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
                 let num = memory
                     .get_integer(address)
