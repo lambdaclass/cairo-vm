@@ -472,29 +472,91 @@ pub mod test_utils {
     }
     pub(crate) use exec_scopes_ref;
 
+    macro_rules! compile_hint {
+        ($hint_code:expr, $constants:expr) => {{
+            let constants: &HashMap<String, Felt252> = $constants;
+            let ap_tracking = ApTracking::default();
+            let reference_ids = HashMap::new();
+            let references = Vec::new();
+            let accessible_scopes = Vec::new();
+            let hint_processor = BuiltinHintProcessor::new_empty();
+            let hint_data_ref = hint_processor.compile_hint(
+                $hint_code,
+                &ap_tracking,
+                &reference_ids,
+                &references,
+                &accessible_scopes,
+                crate::stdlib::rc::Rc::new(constants.clone()),
+            );
+            (hint_data_ref, hint_processor) // TODO: Check if the processor can be passed as a reference so we dont have to return it
+        }};
+    }
+    pub(crate) use compile_hint;
+
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
-            let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
-            let constants: &HashMap<String, Felt252> = $constants;
-            hint_data.constants = crate::stdlib::rc::Rc::new(constants.clone());
-            let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
+            // let constants: &HashMap<String, Felt252> = $constants;
+            // let ap_tracking = ApTracking::default();
+            // let reference_ids = HashMap::new();
+            // let references = Vec::new();
+            // let accessible_scopes = Vec::new();
+            // let mut hint_processor = BuiltinHintProcessor::new_empty();
+            // let hint_data_ref = hint_processor
+            //     .compile_hint(
+            //         $hint_code,
+            //         &ap_tracking,
+            //         &reference_ids,
+            //         &references,
+            //         &accessible_scopes,
+            //         crate::stdlib::rc::Rc::new(constants.clone()),
+            //     )
+            //     .unwrap(); // TODO: Remove unwrap
+            let (hint_data_ref, mut hint_processor) = compile_hint!($hint_code, $constants);
+            let mut hint_data = hint_data_ref.expect("Failed to compile_hint").downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+            hint_data.ids_data = $ids_data;
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(*hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
-            let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
-                $ids_data,
-            );
+            let ap_tracking = ApTracking::default();
+            let reference_ids = HashMap::new();
+            let references = Vec::new();
+            let accessible_scopes = Vec::new();
+            let constants = crate::stdlib::rc::Rc::new(HashMap::new());
             let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
+            let hint_data_ref = hint_processor
+                .compile_hint(
+                    $hint_code,
+                    &ap_tracking,
+                    &reference_ids,
+                    &references,
+                    &accessible_scopes,
+                    constants,
+                )
+                .unwrap(); // TODO: Remove unwrap
+            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+            hint_data.ids_data = $ids_data;
+            hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(*hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
-            let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
-                $ids_data,
-            );
+            let ap_tracking = ApTracking::default();
+            let reference_ids = HashMap::new();
+            let references = Vec::new();
+            let accessible_scopes = Vec::new();
+            let constants = crate::stdlib::rc::Rc::new(HashMap::new());
             let mut hint_processor = BuiltinHintProcessor::new_empty();
-            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
+            let hint_data_ref = hint_processor
+                .compile_hint(
+                    $hint_code,
+                    &ap_tracking,
+                    &reference_ids,
+                    &references,
+                    &accessible_scopes,
+                    constants,
+                )
+                .unwrap(); // TODO: Remove unwrap
+            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+            hint_data.ids_data = $ids_data;
+            hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(*hint_data))
         }};
     }
     pub(crate) use run_hint;
@@ -639,6 +701,7 @@ pub mod test_utils {
 #[cfg(test)]
 mod test {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
+    use crate::serde::deserialize_program::ApTracking;
     use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::HintsCollection;
