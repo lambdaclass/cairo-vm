@@ -10,10 +10,14 @@ use crate::{
         prelude::*,
         rc::Rc,
     },
-    types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
+    types::{
+        builtin_name::BuiltinName, instruction::Instruction, layout::CairoLayoutParams,
+        layout_name::LayoutName,
+    },
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        vm_core::VirtualMachineBuilder,
         vm_memory::memory_segments::MemorySegmentManager,
     },
     Felt252,
@@ -162,8 +166,8 @@ pub struct CairoRunnerBuilder {
     loaded_program: bool,
     // Set after compiling hints.
     hints: Option<Vec<Rc<Box<dyn Any>>>>,
-    // TODO: Set after loading instruction cache.
-    // instructions: Vec<Option<Instruction>>,
+    // Set after loading instruction cache.
+    instructions: Vec<Option<Instruction>>,
 }
 
 impl CairoRunnerBuilder {
@@ -207,6 +211,7 @@ impl CairoRunnerBuilder {
             memory: MemorySegmentManager::new(),
             loaded_program: false,
             hints: None,
+            instructions: Vec::new(),
         })
     }
 
@@ -229,8 +234,15 @@ impl CairoRunnerBuilder {
         self.memory.add()
     }
 
-    // TODO: Cloning the builder after calling this function leads to bad
-    // behaviour (transactions revert). Why?
+    /// *Initializes* all the builtin supported by the current layout, but only
+    /// *includes* the builtins required by the program.
+    ///
+    /// Note that *initializing* a builtin implies creating a runner for it,
+    /// and *including* a builtin refers to enabling the builtin runner flag:
+    /// `included`.
+    ///
+    /// TODO: Cloning the builder after calling this function leads to bad
+    /// behaviour (transactions revert). Why?
     pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -363,21 +375,49 @@ impl CairoRunnerBuilder {
         self.execution_base = Some(self.add_memory_segment());
     }
 
+    /// Initializing the builtin segments.
+    ///
+    /// Depends on:
+    /// - [initialize_base_segments](Self::initialize_base_segments)
+    /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout)
     pub fn initialize_builtin_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.memory);
         }
     }
 
+    /// Loads the program into the program segment.
+    ///
+    /// If this function is not called, the program will be loaded
+    /// automataically when initializing the entrypoint.
     pub fn load_program(&mut self) -> Result<(), RunnerError> {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let program_data = &self.program.shared_program_data.data;
         self.memory
-            .load_data(program_base, &self.program.shared_program_data.data)
+            .load_data(program_base, program_data)
             .map_err(RunnerError::MemoryInitializationError)?;
         for i in 0..self.program.shared_program_data.data.len() {
             self.memory.memory.mark_as_accessed((program_base + i)?);
         }
         self.loaded_program = true;
+        self.instructions.resize(program_data.len(), None);
+        Ok(())
+    }
+
+    /// Predecodes the program's instructions.
+    ///
+    /// # Safety
+    ///
+    /// The decoded instructions must belong the the associated program. To
+    /// obtain them, call [VirtualMachine::take_instruction_cache] at the end of
+    /// the execution.
+    ///
+    /// [VirtualMachine::take_instruction_cache]: crate::vm::vm_core::VirtualMachine::take_instruction_cache
+    pub fn load_cached_instructions(
+        &mut self,
+        instructions: Vec<Option<Instruction>>,
+    ) -> Result<(), RunnerError> {
+        self.instructions = instructions;
         Ok(())
     }
 
@@ -423,10 +463,11 @@ impl CairoRunnerBuilder {
     }
 
     pub fn build(self) -> Result<CairoRunner, RunnerError> {
-        let mut vm = VirtualMachine::new(self.enable_trace, self.disable_trace_padding);
-
-        vm.builtin_runners = self.builtin_runners;
-        vm.segments = self.memory;
+        let vm = VirtualMachineBuilder::default()
+            .builtin_runners(self.builtin_runners)
+            .segments(self.memory)
+            .instruction_cache(self.instructions)
+            .build();
 
         Ok(CairoRunner {
             vm,

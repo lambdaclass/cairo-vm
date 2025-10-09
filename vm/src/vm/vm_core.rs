@@ -1,5 +1,5 @@
 use crate::math_utils::signed_felt;
-use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*, rc::Rc};
+use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, mem, prelude::*, rc::Rc};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
@@ -1326,6 +1326,10 @@ impl VirtualMachine {
                 .finalize(Some(info.size), info.index as usize, None)
         }
     }
+
+    pub fn take_instruction_cache(&mut self) -> Vec<Option<Instruction>> {
+        mem::take(&mut self.instruction_cache)
+    }
 }
 
 pub struct VirtualMachineBuilder {
@@ -1334,6 +1338,7 @@ pub struct VirtualMachineBuilder {
     pub(crate) segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
+    instruction_cache: Vec<Option<Instruction>>,
     skip_instruction_execution: bool,
     run_finished: bool,
     #[cfg(feature = "test_utils")]
@@ -1358,6 +1363,7 @@ impl Default for VirtualMachineBuilder {
             run_finished: false,
             #[cfg(feature = "test_utils")]
             hooks: Default::default(),
+            instruction_cache: Vec::new(),
         }
     }
 }
@@ -1407,6 +1413,14 @@ impl VirtualMachineBuilder {
         self
     }
 
+    pub fn instruction_cache(
+        mut self,
+        instruction_cache: Vec<Option<Instruction>>,
+    ) -> VirtualMachineBuilder {
+        self.instruction_cache = instruction_cache;
+        self
+    }
+
     pub fn build(self) -> VirtualMachine {
         VirtualMachine {
             run_context: self.run_context,
@@ -1418,7 +1432,7 @@ impl VirtualMachineBuilder {
             segments: self.segments,
             rc_limits: None,
             run_finished: self.run_finished,
-            instruction_cache: Vec::new(),
+            instruction_cache: self.instruction_cache,
             #[cfg(feature = "test_utils")]
             hooks: self.hooks,
             relocation_table: None,
