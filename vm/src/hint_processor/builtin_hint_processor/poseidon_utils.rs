@@ -83,7 +83,6 @@ mod tests {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::serde::deserialize_program::ApTracking;
-    use std::collections::HashMap;
 
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;
