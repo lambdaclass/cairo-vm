@@ -250,7 +250,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
     ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
         let ids_data = get_ids_data(reference_ids, references)?;
 
-        if self.extra_hints.get(hint_code).is_some() {
+        if self.extra_hints.contains_key(hint_code) {
             // TODO: This is to handle the extra_hints. Handle this case nicely
             return Ok(any_box!(HintProcessorData {
                 code: hint_code.to_string(),
