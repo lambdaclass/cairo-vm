@@ -165,6 +165,9 @@ pub struct CairoRunnerBuilder {
     // Set after loading program.
     loaded_program: bool,
     // Set after compiling hints.
+    // NOTE: To avoid breaking the API, we are wrapping the hint in an
+    // Rc<Box<T>>. This is because the current API expects a Box, but we need an
+    // Rc to make it clonable
     hints: Option<Vec<Rc<Box<dyn Any>>>>,
     // Set after loading instruction cache.
     instructions: Vec<Option<Instruction>>,
