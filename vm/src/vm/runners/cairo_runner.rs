@@ -4,6 +4,7 @@ use crate::{
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
+        cell::RefCell,
         collections::{BTreeMap, HashMap, HashSet},
         mem,
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
@@ -55,6 +56,7 @@ use crate::{
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
+use starknet_crypto::Signature;
 
 use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
@@ -147,7 +149,13 @@ impl ResourceTracker for RunResources {
     }
 }
 
-#[derive(Clone)]
+/// Handles the creation of a CairoRunner
+///
+/// This structure can be cloned. This allows to compute the initial state once,
+/// and execute it many times. The following elements can be cached:
+/// - Compiled hints
+/// - Decoded instructions
+/// - Loaded program segment
 pub struct CairoRunnerBuilder {
     program: Program,
     layout: CairoLayout,
@@ -243,9 +251,6 @@ impl CairoRunnerBuilder {
     /// Note that *initializing* a builtin implies creating a runner for it,
     /// and *including* a builtin refers to enabling the builtin runner flag:
     /// `included`.
-    ///
-    /// TODO: Cloning the builder after calling this function leads to bad
-    /// behaviour (transactions revert). Why?
     pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -497,6 +502,47 @@ impl CairoRunnerBuilder {
             loaded_program: self.loaded_program,
             hints: self.hints,
         })
+    }
+}
+
+impl Clone for CairoRunnerBuilder {
+    fn clone(&self) -> Self {
+        let builtin_runners = self
+            .builtin_runners
+            .iter()
+            .cloned()
+            .map(|mut builtin_runner| {
+                // The SignatureBuiltinRunner contains an `Rc`, so deriving clone implies that
+                // all runners built will share state. To workaround this, clone was implemented
+                // manually.
+                if let BuiltinRunner::Signature(signature) = &mut builtin_runner {
+                    let signatures = signature
+                        .signatures
+                        .as_ref()
+                        .borrow()
+                        .iter()
+                        .map(|(k, v)| (*k, Signature { r: v.r, s: v.s }))
+                        .collect();
+                    signature.signatures = Rc::new(RefCell::new(signatures))
+                }
+                builtin_runner
+            })
+            .collect();
+        Self {
+            program: self.program.clone(),
+            layout: self.layout.clone(),
+            runner_mode: self.runner_mode.clone(),
+            enable_trace: self.enable_trace,
+            disable_trace_padding: self.disable_trace_padding,
+            allow_missing_builtins: self.allow_missing_builtins,
+            builtin_runners,
+            program_base: self.program_base,
+            execution_base: self.execution_base,
+            memory: self.memory.clone(),
+            loaded_program: self.loaded_program,
+            hints: self.hints.clone(),
+            instructions: self.instructions.clone(),
+        }
     }
 }
 
