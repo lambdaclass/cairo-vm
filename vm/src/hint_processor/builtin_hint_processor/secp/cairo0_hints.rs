@@ -605,8 +605,6 @@ mod tests {
         let x = BigInt::from(18446744069414584321u128); // Example x value
         let v = BigInt::from(1); // Example v value (must be 0 or 1 for even/odd check)
 
-        let constants: std::collections::HashMap<K, V> = HashMap::new();
-
         r1_get_point_from_x(
             &mut vm,
             &mut exec_scopes,
