@@ -135,30 +135,23 @@ use crate::{
 #[cfg(feature = "cairo-0-secp-hints")]
 use crate::hint_processor::builtin_hint_processor::secp::cairo0_hints;
 
+type HintFuncPointer = Option<
+    fn(
+        &mut VirtualMachine,
+        &mut ExecutionScopes,
+        &HashMap<String, HintReference>,
+        &ApTracking,
+        &HashMap<String, Felt252>,
+    ) -> Result<(), HintError>,
+>;
+
 pub struct HintProcessorData {
     pub code: String,
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub accessible_scopes: Vec<String>,
     pub constants: Rc<HashMap<String, Felt252>>,
-    // pub f: Box<
-    //     dyn FnMut(
-    //         &mut VirtualMachine,
-    //         &mut ExecutionScopes,
-    //         &HashMap<String, HintReference>,
-    //         &ApTracking,
-    //         &HashMap<String, Felt252>,
-    //     ),
-    // >,
-    pub f: Option<
-        fn(
-            &mut VirtualMachine,
-            &mut ExecutionScopes,
-            &HashMap<String, HintReference>,
-            &ApTracking,
-            &HashMap<String, Felt252>,
-        ) -> Result<(), HintError>,
-    >,
+    pub f: HintFuncPointer,
 }
 
 impl HintProcessorData {
@@ -240,7 +233,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             exec_scopes,
             &hint_data.ids_data,
             &hint_data.ap_tracking,
-            &constants,
+            constants,
         )
     }
 
@@ -262,7 +255,7 @@ impl HintProcessorLogic for BuiltinHintProcessor {
     ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
         let ids_data = get_ids_data(reference_ids, references)?;
 
-        if let Some(_) = self.extra_hints.get(hint_code) {
+        if self.extra_hints.get(hint_code).is_some() {
             // TODO: This is to handle the extra_hints. Handle this case nicely
             return Ok(any_box!(HintProcessorData {
                 code: hint_code.to_string(),
