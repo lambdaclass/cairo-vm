@@ -226,7 +226,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             );
         }
 
-        let hint_func = hint_data.f.unwrap(); // TODO: Remove unwrap
+        let hint_func = match hint_data.f {
+            Some(f) => f,
+            None => {
+                return Err(HintError::UnknownHint(
+                    // TODO: Check if we want to continue to return this error. If not, keep in mind that SimplifiedOsHintProcessor depends on this error (check execute_hint_extensive)
+                    hint_data.code.to_string().into_boxed_str(),
+                ));
+            }
+        };
 
         hint_func(
             vm,
