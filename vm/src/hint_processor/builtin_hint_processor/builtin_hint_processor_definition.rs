@@ -2,9 +2,8 @@ use crate::hint_processor::builtin_hint_processor::bigint::{
     bigint_pack_div_mod_hint, bigint_safe_div_hint,
 };
 use crate::hint_processor::builtin_hint_processor::blake2s_utils::{
-    blake2s_add_uint256, blake2s_add_uint256_bigend, blake2s_unpack_felts, compute_blake2s,
-    example_blake2s_compress, finalize_blake2s, finalize_blake2s_v3,
-    is_less_than_63_bits_and_not_end,
+    blake2s_add_uint256, blake2s_add_uint256_bigend, compute_blake2s, example_blake2s_compress,
+    finalize_blake2s, finalize_blake2s_v3,
 };
 use crate::hint_processor::builtin_hint_processor::cairo_keccak::keccak_hints::{
     block_permutation_v1, block_permutation_v2, cairo_keccak_finalize_v1, cairo_keccak_finalize_v2,
