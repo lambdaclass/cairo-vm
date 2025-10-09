@@ -541,7 +541,7 @@ impl VirtualMachine {
     ///
     /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     #[cfg(not(feature = "extensive_hints"))]
-    pub fn step_hint_v2(
+    pub(crate) fn step_hint_v2(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
@@ -594,7 +594,7 @@ impl VirtualMachine {
     ///
     /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     #[cfg(feature = "extensive_hints")]
-    pub fn step_hint_v2(
+    pub(crate) fn step_hint_v2(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,
@@ -699,7 +699,7 @@ impl VirtualMachine {
     /// `test_utils` features, as doing so would imply breaking the hook API.
     ///
     /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
-    pub fn step_v2(
+    pub(crate) fn step_v2(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
         exec_scopes: &mut ExecutionScopes,

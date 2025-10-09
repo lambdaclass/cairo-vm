@@ -407,7 +407,7 @@ impl CairoRunnerBuilder {
         Ok(())
     }
 
-    /// Predecodes the program's instructions.
+    /// Loads decoded program instructions.
     ///
     /// # Safety
     ///
@@ -415,7 +415,7 @@ impl CairoRunnerBuilder {
     /// obtain them, call [VirtualMachine::take_instruction_cache] at the end of
     /// the execution.
     ///
-    /// [VirtualMachine::take_instruction_cache]: crate::vm::vm_core::VirtualMachine::take_instruction_cache
+    /// [VirtualMachine::take_instruction_cache]: VirtualMachine::take_instruction_cache
     pub fn load_cached_instructions(
         &mut self,
         instructions: Vec<Option<Instruction>>,
