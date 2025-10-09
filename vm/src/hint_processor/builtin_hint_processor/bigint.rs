@@ -110,7 +110,6 @@ mod test {
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
-    use std::collections::HashMap;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
