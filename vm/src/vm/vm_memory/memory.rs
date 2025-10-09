@@ -429,7 +429,7 @@ impl Memory {
 
     /// Gets the value from memory address as a Felt252 value.
     /// Returns an Error if the value at the memory address is missing or not a Felt252.
-    pub fn get_integer(&'_ self, key: Relocatable) -> Result<Cow<'_, Felt252>, MemoryError> {
+    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
         match self
             .get(&key)
             .ok_or_else(|| MemoryError::UnknownMemoryCell(Box::new(key)))?
@@ -624,11 +624,7 @@ impl Memory {
 
     /// Gets a range of memory values from addr to addr + size
     /// The outputed range may contain gaps if the original memory has them
-    pub fn get_range(
-        &'_ self,
-        addr: Relocatable,
-        size: usize,
-    ) -> Vec<Option<Cow<'_, MaybeRelocatable>>> {
+    pub fn get_range(&self, addr: Relocatable, size: usize) -> Vec<Option<Cow<MaybeRelocatable>>> {
         let mut values = Vec::new();
 
         for i in 0..size {
@@ -661,10 +657,10 @@ impl Memory {
     /// Fails if there if any of the values inside the range is missing (memory gap),
     /// or is not a Felt252
     pub fn get_integer_range(
-        &'_ self,
+        &self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<'_, Felt252>>, MemoryError> {
+    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
         let mut values = Vec::new();
 
         for i in 0..size {
