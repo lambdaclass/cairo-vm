@@ -695,6 +695,9 @@ impl VirtualMachine {
     /// [CairoRunner::run_until_pc_v2] for documentation on why the signature
     /// had to be changed.
     ///
+    /// Also, this new function does not call step hooks from the
+    /// `test_utils` features, as doing so would imply breaking the hook API.
+    ///
     /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     pub fn step_v2(
         &mut self,

@@ -1093,6 +1093,9 @@ impl CairoRunner {
     /// To make the hints clonable (and cacheable), the hint data type had to
     /// be changed. To avoid breaking the API, new v2 functions were added that
     /// accept the new hint data.
+    ///
+    /// Also, this new function does not call instruction hooks from the
+    /// `test_utils` features, as doing so would imply breaking the hook API.
     pub fn run_until_pc_v2(
         &mut self,
         address: Relocatable,
