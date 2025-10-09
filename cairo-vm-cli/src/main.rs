@@ -189,6 +189,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
+        println!("1");
         let pie = CairoPie::read_zip_file(&args.filename)?;
         let mut hint_processor = BuiltinHintProcessor::new(
             Default::default(),
@@ -196,9 +197,12 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         );
         cairo_run::cairo_run_pie(&pie, &cairo_run_config, &mut hint_processor)
     } else {
+        println!("2");
         let program_content = std::fs::read(args.filename).map_err(Error::IO)?;
         let mut hint_processor = BuiltinHintProcessor::new_empty();
-        cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_processor)
+        let temp = cairo_run::cairo_run(&program_content, &cairo_run_config, &mut hint_processor);
+        println!("Se runeo");
+        temp
     } {
         Ok(runner) => runner,
         Err(error) => {
@@ -207,11 +211,15 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         }
     };
 
+    println!("A");
+
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();
         cairo_runner.vm.write_output(&mut output_buffer)?;
         print!("{output_buffer}");
     }
+
+    println!("B");
 
     if let Some(ref trace_path) = args.trace_file {
         let relocated_trace = cairo_runner
@@ -226,6 +234,8 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
+
+    println!("C");
 
     if let Some(ref memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
