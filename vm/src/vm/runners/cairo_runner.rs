@@ -1087,6 +1087,12 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Like [run_until_pc](Self::run_until_pc), but makes use of cached compiled hints, which are
+    /// available after calling [CairoRunnerBuilder::compile_hints].
+    ///
+    /// To make the hints clonable (and cacheable), the hint data type had to
+    /// be changed. To avoid breaking the API, new v2 functions were added that
+    /// accept the new hint data.
     pub fn run_until_pc_v2(
         &mut self,
         address: Relocatable,
@@ -1584,10 +1590,9 @@ impl CairoRunner {
         Ok(())
     }
 
+    /// Like [run_from_entrypoint](Self::run_from_entrypoint), but calls
+    /// [run_until_pc_v2](Self::run_until_pc_v2) instead.
     #[allow(clippy::result_large_err)]
-    /// Runs a cairo program from a give entrypoint, indicated by its pc offset, with the given arguments.
-    /// If `verify_secure` is set to true, [verify_secure_runner] will be called to run extra verifications.
-    /// `program_segment_size` is only used by the [verify_secure_runner] function and will be ignored if `verify_secure` is set to false.
     pub fn run_from_entrypoint_v2(
         &mut self,
         entrypoint: usize,

@@ -535,6 +535,11 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Like [step_hint](Self::step_hint), but with a different signature. See
+    /// [CairoRunner::run_until_pc_v2] for documentation on why the signature
+    /// had to be changed.
+    ///
+    /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     #[cfg(not(feature = "extensive_hints"))]
     pub fn step_hint_v2(
         &mut self,
@@ -583,6 +588,11 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Like [step_hint](Self::step_hint), but with a different signature. See
+    /// [CairoRunner::run_until_pc_v2] for documentation on why the signature
+    /// had to be changed.
+    ///
+    /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     #[cfg(feature = "extensive_hints")]
     pub fn step_hint_v2(
         &mut self,
@@ -681,6 +691,11 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Like [step](Self::step), but with a different signature. See
+    /// [CairoRunner::run_until_pc_v2] for documentation on why the signature
+    /// had to be changed.
+    ///
+    /// [CairoRunner::run_until_pc_v2]: crate::vm::runners::cairo_runner::CairoRunner::run_until_pc_v2
     pub fn step_v2(
         &mut self,
         hint_processor: &mut dyn HintProcessor,
