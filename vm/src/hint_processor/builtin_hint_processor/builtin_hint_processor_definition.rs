@@ -510,12 +510,14 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             cairo0_hints::SECP_REDUCE_X => cairo0_hints::reduce_x,
             #[cfg(feature = "cairo-0-data-availability-hints")]
             super::kzg_da::WRITE_DIVMOD_SEGMENT => super::kzg_da::write_div_mod_segment,
-            code => {
-                return Err(
-                    crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(
-                        code.to_string().into_boxed_str(),
-                    ),
-                );
+            _code => {
+                return Ok(any_box!(HintProcessorData {
+                    code: hint_code.to_string(),
+                    ap_tracking: ap_tracking_data.clone(),
+                    ids_data,
+                    constants,
+                    f: None
+                }))
             }
         };
 
