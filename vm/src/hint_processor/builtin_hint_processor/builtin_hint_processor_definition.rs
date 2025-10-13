@@ -522,12 +522,15 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
                 super::simulated_builtins::get_simulated_builtin_base
             }
-            code => {
-                return Err(
-                    crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(
-                        code.to_string().into_boxed_str(),
-                    ),
-                );
+            _code => {
+                return Ok(any_box!(HintProcessorData {
+                    code: hint_code.to_string(),
+                    ap_tracking: ap_tracking_data.clone(),
+                    ids_data,
+                    accessible_scopes: accessible_scopes.to_vec(),
+                    constants,
+                    f: None
+                }))
             }
         };
 
