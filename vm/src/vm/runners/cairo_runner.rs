@@ -1,6 +1,7 @@
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
+    // hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData,
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
@@ -672,6 +673,13 @@ impl CairoRunner {
         &self.program.builtins
     }
 
+    // fn print_hint_datas(&self, hs: &Vec<Box<dyn Any>>) {
+    //     for b in hs {
+    //         let temp = b.downcast_ref::<HintProcessorData>().unwrap();
+    //         println!("{:?}: {:?}", temp.code, temp.f);
+    //     }
+    // }
+
     pub fn run_until_pc(
         &mut self,
         address: Relocatable,
@@ -682,6 +690,7 @@ impl CairoRunner {
         let hint_data = self.get_hint_data(references, hint_processor)?;
         #[cfg(feature = "extensive_hints")]
         let mut hint_data = self.get_hint_data(references, hint_processor)?;
+        // self.print_hint_datas(&hint_data);
         #[cfg(feature = "extensive_hints")]
         let mut hint_ranges = self
             .program
