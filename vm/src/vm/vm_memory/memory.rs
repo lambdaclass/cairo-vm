@@ -747,6 +747,22 @@ impl Memory {
         self.mark_as_accessed(key);
         Ok(())
     }
+
+    /// Preallocates memory for `n` more elements in the given segment.
+    ///
+    /// Why not using using `reserve`? When cloning a vector, the capacity
+    /// of the clone is not necessary equal to the capacity of the original.
+    /// Because of this, to actually preallocate memory in the builder, we need
+    /// to insert empty memory cells.
+    pub fn preallocate_segment(
+        &mut self,
+        segment: Relocatable,
+        n: usize,
+    ) -> Result<(), MemoryError> {
+        let segment = self.get_segment(segment)?;
+        segment.extend((0..n).map(|_| MemoryCell::NONE));
+        Ok(())
+    }
 }
 
 impl From<&Memory> for CairoPieMemory {

@@ -241,6 +241,10 @@ impl CairoRunnerBuilder {
             || self.runner_mode == RunnerMode::ProofModeCairo1
     }
 
+    pub fn get_program_base(&self) -> Option<Relocatable> {
+        self.program_base
+    }
+
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add()
     }
@@ -378,6 +382,41 @@ impl CairoRunnerBuilder {
         Ok(())
     }
 
+    /// *Initializes* and *includes* all the given builtins.
+    ///
+    /// Doesn't take the current layout into account.
+    pub fn initialize_builtin_runners(
+        &mut self,
+        builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError> {
+        for builtin_name in builtins {
+            let builtin_runner = match builtin_name {
+                BuiltinName::pedersen => HashBuiltinRunner::new(Some(32), true).into(),
+                BuiltinName::range_check => {
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(1), true).into()
+                }
+                BuiltinName::output => OutputBuiltinRunner::new(true).into(),
+                BuiltinName::ecdsa => SignatureBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::bitwise => BitwiseBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::ec_op => EcOpBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::keccak => KeccakBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::poseidon => PoseidonBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::segment_arena => SegmentArenaBuiltinRunner::new(true).into(),
+                BuiltinName::range_check96 => {
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(Some(1), true).into()
+                }
+                BuiltinName::add_mod => {
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true).into()
+                }
+                BuiltinName::mul_mod => {
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true).into()
+                }
+            };
+            self.builtin_runners.push(builtin_runner);
+        }
+        Ok(())
+    }
+
     pub fn initialize_base_segments(&mut self) {
         self.program_base = Some(self.add_memory_segment());
         self.execution_base = Some(self.add_memory_segment());
@@ -409,6 +448,16 @@ impl CairoRunnerBuilder {
         }
         self.loaded_program = true;
         self.instructions.resize(program_data.len(), None);
+        Ok(())
+    }
+
+    /// Preallocates memory for `n` more elements in the given segment.
+    pub fn preallocate_segment(
+        &mut self,
+        segment: Relocatable,
+        n: usize,
+    ) -> Result<(), RunnerError> {
+        self.memory.memory.preallocate_segment(segment, n)?;
         Ok(())
     }
 
