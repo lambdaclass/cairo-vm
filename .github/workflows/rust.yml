@@ -192,9 +192,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-          components: rustfmt
       - name: Machete
         uses: bnjbvr/cargo-machete@main
 
