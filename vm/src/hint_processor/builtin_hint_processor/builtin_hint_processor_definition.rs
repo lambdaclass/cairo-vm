@@ -638,9 +638,10 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unknown_hint() {
         let hint_code = "random_invalid_code";
-        let (err, _) = compile_hint!(hint_code, &HashMap::new());
+        let mut vm = vm!();
         assert_matches!(
-            err,Err(crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(bx)) if bx.as_ref() == hint_code
+            run_hint!(vm, HashMap::new(), hint_code),
+            Err(HintError::UnknownHint(bx)) if bx.as_ref() == hint_code
         );
     }
 
