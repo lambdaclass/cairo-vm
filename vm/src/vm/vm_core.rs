@@ -564,18 +564,20 @@ impl VirtualMachine {
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
     ) -> Result<(), VirtualMachineError> {
         // Check if there is a hint range for the current pc
-        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+        if let Some((start_hint_idx, n_hints)) = hint_ranges.get(&self.run_context.pc) {
             // Re-binding to avoid mutability problems
-            let s = *s;
+            let start_hint_idx = *start_hint_idx;
             // Execute each hint for the given range
-            for idx in s..(s + l.get()) {
+            for idx in start_hint_idx..(start_hint_idx + n_hints.get()) {
                 let hint_extension = hint_processor
                     .execute_hint_extensive(
                         self,
                         exec_scopes,
                         hint_datas.get(idx).ok_or(VirtualMachineError::Unexpected)?,
                     )
-                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                    .map_err(|err| {
+                        VirtualMachineError::Hint(Box::new((idx - start_hint_idx, err)))
+                    })?;
                 // Update the hint_ranges & hint_datas with the hints added by the executed hint
                 for (hint_pc, hints) in hint_extension {
                     if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
@@ -602,18 +604,20 @@ impl VirtualMachine {
         hint_ranges: &mut HashMap<Relocatable, HintRange>,
     ) -> Result<(), VirtualMachineError> {
         // Check if there is a hint range for the current pc
-        if let Some((s, l)) = hint_ranges.get(&self.run_context.pc) {
+        if let Some((start_hint_idx, n_hints)) = hint_ranges.get(&self.run_context.pc) {
             // Re-binding to avoid mutability problems
-            let s = *s;
+            let start_hint_idx = *start_hint_idx;
             // Execute each hint for the given range
-            for idx in s..(s + l.get()) {
+            for idx in start_hint_idx..(start_hint_idx + n_hints.get()) {
                 let hint_data = hint_datas
                     .get(idx)
                     .ok_or(VirtualMachineError::Unexpected)?
                     .as_ref();
                 let hint_extension = hint_processor
                     .execute_hint_extensive(self, exec_scopes, hint_data)
-                    .map_err(|err| VirtualMachineError::Hint(Box::new((idx - s, err))))?;
+                    .map_err(|err| {
+                        VirtualMachineError::Hint(Box::new((idx - start_hint_idx, err)))
+                    })?;
                 // Update the hint_ranges & hint_datas with the hints added by the executed hint
                 for (hint_pc, hints) in hint_extension {
                     if let Ok(len) = NonZeroUsize::try_from(hints.len()) {
