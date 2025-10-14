@@ -1,52 +1,51 @@
 %builtins range_check
 
-from starkware.cairo.common.secp256r1.ec import (
-    EcPoint,
-)
-from starkware.cairo.common.secp256r1.bigint import nondet_bigint3
-from starkware.cairo.common.cairo_secp.bigint3 import BigInt3
+from starkware.cairo.common.uint256 import Uint256
 
-func main{range_check_ptr: felt}() {
-    recursive_hint(0);
+const P_low = 201385395114098847380338600778089168199;
+const P_high = 64323764613183177041862057485226039389;
 
-    return ();
+struct Uint512 {
+    d0: felt,
+    d1: felt,
+    d2: felt,
+    d3: felt,
 }
 
-func recursive_hint{range_check_ptr}(n: felt) {
-    if (n == 100000) {
+func inv_mod_p_uint512{range_check_ptr}(x: Uint512) -> Uint256 {
+    alloc_locals;
+    local x_inverse_mod_p: Uint256;
+    local p: Uint256 = Uint256(P_low, P_high);
+    // To whitelist
+    %{
+        def pack_512(u, num_bits_shift: int) -> int:
+            limbs = (u.d0, u.d1, u.d2, u.d3)
+            return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
+
+        x = pack_512(ids.x, num_bits_shift = 128)
+        p = ids.p.low + (ids.p.high << 128)
+        x_inverse_mod_p = pow(x,-1, p)
+
+        x_inverse_mod_p_split = (x_inverse_mod_p & ((1 << 128) - 1), x_inverse_mod_p >> 128)
+
+        ids.x_inverse_mod_p.low = x_inverse_mod_p_split[0]
+        ids.x_inverse_mod_p.high = x_inverse_mod_p_split[1]
+    %}
+
+    return x_inverse_mod_p;
+}
+
+func recursive_hint{range_check_ptr: felt}(n: felt) {
+    if (n == 1000000) {
         return ();
     }
-
-    let y = BigInt3(-1,-2,-3);
-    let z = try_get_point_from_x_prime(y, 0);
+    let x = Uint512(101, 2, 15, 61);
+    let y = inv_mod_p_uint512(x);
 
     return recursive_hint(n + 1);
 }
 
-func try_get_point_from_x_prime{range_check_ptr}(x: BigInt3, v: felt) -> BigInt3 {
-    %{
-        from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
-        from starkware.python.math_utils import y_squared_from_x
-
-        y_square_int = y_squared_from_x(
-            x=pack(ids.x, PRIME),
-            alpha=SECP256R1.alpha,
-            beta=SECP256R1.beta,
-            field_prime=SECP256R1.prime,
-        )
-
-        # Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
-        #   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
-        #   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
-        #   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
-        y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
-
-        # We need to decide whether to take y or prime - y.
-        if ids.v % 2 == y % 2:
-            value = y
-        else:
-            value = (-y) % SECP256R1.prime
-    %}
-    let (y: BigInt3) = nondet_bigint3();
-    return y;
+func main{range_check_ptr: felt}() {
+    recursive_hint(0);
+    return ();
 }

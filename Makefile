@@ -306,7 +306,7 @@ iai-benchmark-action: cairo_bench_programs
 	cargo bench --bench iai_benchmark
 
 cairo0-benchmark: cairo_bench_programs
-	cargo bench --bench cairo0_benchmark 
+	cargo bench --bench cairo0_benchmark --features cairo-0-secp-hints 
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench

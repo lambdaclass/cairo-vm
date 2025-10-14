@@ -108,7 +108,6 @@ harness = false
 path = "../bench/cairo0_benchmark.rs"
 name = "cairo0_benchmark"
 harness = false
-features = ["cairo-0-secp-hints"]
 
 [[example]]
 name = "custom_hint"

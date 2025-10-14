@@ -327,7 +327,7 @@ cargo bench --bench iai_benchmark
 Run only the `cairo0_benchmark` benchmark suite with cargo:
 
 ```bash
-cargo bench --bench cairo0_benchmark
+cargo bench --bench cairo0_benchmark --features cairo-0-secp-hints
 ```
 
 Benchmark the `cairo-vm` in a hyper-threaded environment with the [`examples/hyper_threading/ crate`](examples/hyper_threading/)
