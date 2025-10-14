@@ -324,8 +324,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             hint_code::BLAKE2S_FINALIZE_V3 => finalize_blake2s_v3,
             hint_code::BLAKE2S_ADD_UINT256 => blake2s_add_uint256,
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => blake2s_add_uint256_bigend,
-            // hint_code::IS_LESS_THAN_63_BITS_AND_NOT_END => is_less_than_63_bits_and_not_end,
-            // hint_code::BLAKE2S_UNPACK_FELTS => blake2s_unpack_felts,
             hint_code::UNSAFE_KECCAK => unsafe_keccak,
             hint_code::UNSAFE_KECCAK_FINALIZE => unsafe_keccak_finalize,
             hint_code::SQUASH_DICT_INNER_SKIP_LOOP => squash_dict_inner_skip_loop,
@@ -512,10 +510,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             cairo0_hints::SECP_REDUCE_X => cairo0_hints::reduce_x,
             #[cfg(feature = "cairo-0-data-availability-hints")]
             super::kzg_da::WRITE_DIVMOD_SEGMENT => super::kzg_da::write_div_mod_segment,
-            // #[cfg(feature = "test_utils")]
-            // super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
-            //     super::simulated_builtins::get_simulated_builtin_base
-            // }
             code => {
                 return Err(
                     crate::vm::errors::vm_errors::VirtualMachineError::CompileHintFail(
