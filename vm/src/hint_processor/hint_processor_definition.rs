@@ -49,7 +49,7 @@ pub trait HintProcessorLogic {
             ap_tracking: ap_tracking_data.clone(),
             ids_data: get_ids_data(reference_ids, references)?,
             constants,
-            f: None, // TODO: Check what to do here
+            f: None,
         }))
     }
 
@@ -77,7 +77,6 @@ pub type HintExtension = HashMap<Relocatable, Vec<Box<dyn Any>>>;
 pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
 impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
 
-// TODO: Check how to not make it public
 pub fn get_ids_data(
     reference_ids: &HashMap<String, usize>,
     references: &[HintReference],

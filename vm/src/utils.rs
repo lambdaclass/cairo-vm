@@ -486,7 +486,7 @@ pub mod test_utils {
                 &references,
                 crate::stdlib::rc::Rc::new(constants.clone()),
             );
-            (hint_data_ref, hint_processor) // TODO: Check if the processor can be passed as a reference so we dont have to return it
+            (hint_data_ref, hint_processor)
         }};
     }
     pub(crate) use compile_hint;
@@ -494,7 +494,10 @@ pub mod test_utils {
     macro_rules! run_hint {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let (hint_data_ref, mut hint_processor) = compile_hint!($hint_code, $constants);
-            let mut hint_data = hint_data_ref.expect("Failed to compile_hint").downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+            let mut hint_data = hint_data_ref
+                .expect("Failed to compile_hint")
+                .downcast::<HintProcessorData>()
+                .unwrap();
             hint_data.ids_data = $ids_data;
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(*hint_data))
         }};
@@ -512,8 +515,8 @@ pub mod test_utils {
                     &references,
                     constants,
                 )
-                .unwrap(); // TODO: Remove unwrap
-            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+                .unwrap();
+            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap();
             hint_data.ids_data = $ids_data;
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(*hint_data))
         }};
@@ -531,8 +534,8 @@ pub mod test_utils {
                     &references,
                     constants,
                 )
-                .unwrap(); // TODO: Remove unwrap
-            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap(); // TODO: Remove unwrap
+                .unwrap();
+            let mut hint_data = hint_data_ref.downcast::<HintProcessorData>().unwrap();
             hint_data.ids_data = $ids_data;
             hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(*hint_data))
         }};
