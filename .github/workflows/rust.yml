@@ -192,7 +192,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Machete
-        uses: bnjbvr/cargo-machete@v9.0.1
+        uses: bnjbvr/cargo-machete@v0.9.1
 
   # NOTE: the term "smoke test" comes from electronics design: the minimal
   # expectations anyone has in their device is to not catch fire on boot.
