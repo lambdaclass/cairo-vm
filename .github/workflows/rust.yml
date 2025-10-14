@@ -187,7 +187,7 @@ jobs:
       run: make clippy
 
   # Check for unnecessary dependencies.
-  udeps:
+  machete:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
