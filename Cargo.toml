@@ -54,7 +54,7 @@ lazy_static = { version = "1.4.0", default-features = false, features = [
 ] }
 nom = { version = "7", default-features = false }
 sha2 = { version = "0.10.7", features = ["compress"], default-features = false }
-generic-array = { version = "0.14.7", default-features = false }
+generic-array = { version = "=0.14.7", default-features = false }
 keccak = { version = "0.1.2", default-features = false }
 hashbrown = { version = "0.15.2", features = ["serde"] }
 anyhow = { version = "1.0.94", default-features = false }
