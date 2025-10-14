@@ -104,6 +104,12 @@ path = "../bench/criterion_benchmark.rs"
 name = "criterion_benchmark"
 harness = false
 
+[[bench]]
+path = "../bench/cairo0_benchmark.rs"
+name = "cairo0_benchmark"
+harness = false
+features = ["cairo-0-secp-hints"]
+
 [[example]]
 name = "custom_hint"
 path = "../examples/custom_hint/src/main.rs"
