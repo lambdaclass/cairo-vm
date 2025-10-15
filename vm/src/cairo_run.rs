@@ -187,16 +187,26 @@ pub fn cairo_run_pie(
     let allow_missing_builtins = cairo_run_config.allow_missing_builtins.unwrap_or_default();
 
     let program = Program::from_stripped_program(&pie.metadata.program);
-    let mut cairo_runner = CairoRunner::new(
+
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
         cairo_run_config.dynamic_layout_params.clone(),
-        false,
-        cairo_run_config.trace_enabled,
-        cairo_run_config.disable_trace_padding,
+        RunnerMode::ExecutionMode,
     )?;
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.disable_trace_padding(cairo_run_config.disable_trace_padding);
+    runner_builder.allow_missing_builtins(allow_missing_builtins);
+    runner_builder.initialize_builtin_runners_for_layout()?;
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program()?;
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_validation_rules()?;
 
-    let end = cairo_runner.initialize(allow_missing_builtins)?;
+    let mut cairo_runner = runner_builder.build()?;
+
     cairo_runner.vm.finalize_segments_by_cairo_pie(pie);
     // Load builtin additional data
     for (name, data) in pie.additional_data.0.iter() {
