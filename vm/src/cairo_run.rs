@@ -272,16 +272,27 @@ pub fn cairo_run_fuzzed_program(
         .allow_missing_builtins
         .unwrap_or(cairo_run_config.proof_mode);
 
-    let mut cairo_runner = CairoRunner::new(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
         cairo_run_config.dynamic_layout_params.clone(),
-        cairo_run_config.proof_mode,
-        cairo_run_config.trace_enabled,
-        cairo_run_config.disable_trace_padding,
+        if cairo_run_config.proof_mode {
+            RunnerMode::ProofModeCanonical
+        } else {
+            RunnerMode::ExecutionMode
+        },
     )?;
-
-    let _end = cairo_runner.initialize(allow_missing_builtins)?;
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.allow_missing_builtins(allow_missing_builtins);
+    runner_builder.disable_trace_padding(cairo_run_config.disable_trace_padding);
+    runner_builder.initialize_builtin_runners_for_layout()?;
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program()?;
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let _end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_validation_rules()?;
+    let mut cairo_runner = runner_builder.build()?;
 
     let res = match cairo_runner.run_until_steps(steps_limit, hint_processor) {
         Err(VirtualMachineError::EndOfProgram(_remaining)) => Ok(()), // program ran OK but ended before steps limit
