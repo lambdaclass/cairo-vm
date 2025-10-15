@@ -16,7 +16,6 @@ use crate::{
     },
     Felt252,
 };
-
 use crate::{
     hint_processor::hint_processor_definition::{HintProcessor, HintReference},
     types::{
@@ -644,7 +643,13 @@ impl CairoRunner {
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
-        let constants = Rc::new(self.program.constants.clone());
+        let mut constants = HashMap::new();
+        for (k, v) in &self.program.constants {
+            let new_k = k.rsplit(".").next().unwrap().to_string();
+            constants.insert(new_k, v.clone());
+        }
+
+        let constants = Rc::new(constants);
 
         self.program
             .shared_program_data

@@ -44,6 +44,7 @@ pub trait HintProcessorLogic {
         // Identifiers stored in the hint's program.
         constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
+        println!("Constants: {:?}", constants);
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),
             ap_tracking: ap_tracking_data.clone(),

@@ -178,10 +178,13 @@ pub fn get_constant_from_var_name<'a>(
     var_name: &'static str,
     constants: &'a HashMap<String, Felt252>,
 ) -> Result<&'a Felt252, HintError> {
+    // constants
+    //     .iter()
+    //     .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
+    //     .map(|(_, n)| n)
+    //     .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
     constants
-        .iter()
-        .find(|(k, _)| k.rsplit('.').next() == Some(var_name))
-        .map(|(_, n)| n)
+        .get(var_name)
         .ok_or_else(|| HintError::MissingConstant(Box::new(var_name)))
 }
 
