@@ -811,7 +811,7 @@ mod tests {
             hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
             types::layout_name::LayoutName,
             utils::test_utils::Program,
-            vm::runners::cairo_runner::CairoRunner,
+            vm::runners::cairo_runner::{CairoRunnerBuilder, RunnerMode},
             Felt252,
         };
 
@@ -821,11 +821,24 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner =
-            CairoRunner::new(&program, LayoutName::all_cairo, None, true, false, false).unwrap();
 
-        let end = runner.initialize(false).unwrap();
-        // Modify add_mod & mul_mod params
+        let mut runner_builder = CairoRunnerBuilder::new(
+            &program,
+            LayoutName::all_cairo,
+            None,
+            RunnerMode::ProofModeCanonical,
+        )
+        .unwrap();
+        runner_builder
+            .initialize_builtin_runners_for_layout()
+            .unwrap();
+        runner_builder.initialize_base_segments();
+        runner_builder.load_program().unwrap();
+        runner_builder.initialize_builtin_segments();
+        runner_builder.initialize_builtin_zero_segments();
+        let end = runner_builder.initialize_main_entrypoint().unwrap();
+        runner_builder.initialize_validation_rules().unwrap();
+        let mut runner = runner_builder.build().unwrap();
 
         runner.run_until_pc(end, &mut hint_processor).unwrap();
         runner.run_for_steps(1, &mut hint_processor).unwrap();
