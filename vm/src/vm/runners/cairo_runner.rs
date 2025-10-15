@@ -436,7 +436,7 @@ impl CairoRunnerBuilder {
     /// Loads the program into the program segment.
     ///
     /// If this function is not called, the program will be loaded
-    /// automataically when initializing the entrypoint.
+    /// automatically when initializing the entrypoint.
     pub fn load_program(&mut self) -> Result<(), RunnerError> {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let program_data = &self.program.shared_program_data.data;
