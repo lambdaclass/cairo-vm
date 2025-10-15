@@ -257,10 +257,17 @@ pub fn cairo_run_program(
         runner_mode,
     )?;
     runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.allow_missing_builtins(cairo_run_config.proof_mode);
+    runner_builder.initialize_builtin_runners_for_layout()?;
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program()?;
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_validation_rules()?;
 
     let mut runner = runner_builder.build()?;
 
-    let end = runner.initialize(cairo_run_config.proof_mode)?;
     load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode

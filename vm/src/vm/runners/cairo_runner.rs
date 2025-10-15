@@ -170,6 +170,12 @@ pub struct CairoRunnerBuilder {
     program_base: Option<Relocatable>,
     execution_base: Option<Relocatable>,
     memory: MemorySegmentManager,
+    // Set after initializing entrypoint.
+    initial_pc: Option<Relocatable>,
+    initial_fp: Option<Relocatable>,
+    initial_ap: Option<Relocatable>,
+    final_pc: Option<Relocatable>,
+    execution_public_memory: Option<Vec<usize>>,
     // Set after loading program.
     loaded_program: bool,
     // Set after compiling hints.
@@ -215,7 +221,7 @@ impl CairoRunnerBuilder {
             enable_trace: false,
             disable_trace_padding: false,
             allow_missing_builtins: false,
-            runner_mode,
+            runner_mode: runner_mode.clone(),
             builtin_runners: Vec::new(),
             program_base: None,
             execution_base: None,
@@ -223,6 +229,15 @@ impl CairoRunnerBuilder {
             loaded_program: false,
             hints: None,
             instructions: Vec::new(),
+            initial_pc: None,
+            initial_fp: None,
+            initial_ap: None,
+            final_pc: None,
+            execution_public_memory: if runner_mode != RunnerMode::ExecutionMode {
+                Some(Vec::new())
+            } else {
+                None
+            },
         })
     }
 
@@ -427,10 +442,162 @@ impl CairoRunnerBuilder {
     /// Depends on:
     /// - [initialize_base_segments](Self::initialize_base_segments)
     /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout)
+    ///   or [initialize_builtin_runners](Self::initialize_builtin_runners)
     pub fn initialize_builtin_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.memory);
         }
+    }
+
+    /// Initializing the builtin segments.
+    ///
+    /// Depends on:
+    /// - [initialize_builtin_segments](Self::initialize_builtin_segments)
+    pub fn initialize_builtin_zero_segments(&mut self) {
+        for builtin_runner in self.builtin_runners.iter_mut() {
+            if let BuiltinRunner::Mod(runner) = builtin_runner {
+                runner.initialize_zero_segment(&mut self.memory);
+            }
+        }
+    }
+
+    pub fn initialize_validation_rules(&mut self) -> Result<(), RunnerError> {
+        for builtin in self.builtin_runners.iter() {
+            builtin.add_validation_rule(&mut self.memory.memory);
+        }
+
+        self.memory
+            .memory
+            .validate_existing_memory()
+            .map_err(RunnerError::MemoryValidationError)
+    }
+
+    pub fn initialize_main_entrypoint(&mut self) -> Result<Relocatable, RunnerError> {
+        let mut stack = Vec::new();
+        {
+            let builtin_runners = self
+                .builtin_runners
+                .iter()
+                .map(|b| (b.name(), b))
+                .collect::<HashMap<_, _>>();
+            for builtin_name in &self.program.builtins {
+                if let Some(builtin_runner) = builtin_runners.get(builtin_name) {
+                    stack.append(&mut builtin_runner.initial_stack());
+                } else {
+                    stack.push(Felt252::ZERO.into())
+                }
+            }
+        }
+
+        if self.is_proof_mode() {
+            // In canonical proof mode, add the dummy last fp and pc to the public memory, so that the verifier can enforce
+
+            // canonical offset should be 2 for Cairo 0
+            let mut target_offset = 2;
+
+            // Cairo1 is not adding data to check [fp - 2] = fp, and has a different initialization of the stack. This should be updated.
+            // Cairo0 remains canonical
+
+            if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
+                target_offset = stack.len() + 2;
+
+                // This values shouldn't be needed with a canonical proof mode
+                let return_fp = self.add_memory_segment();
+                let end = self.add_memory_segment();
+                stack.append(&mut vec![
+                    MaybeRelocatable::RelocatableValue(return_fp),
+                    MaybeRelocatable::RelocatableValue(end),
+                ]);
+
+                self.initialize_state(
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack,
+                )?;
+            } else {
+                let mut stack_prefix = vec![
+                    Into::<MaybeRelocatable>::into(
+                        (self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?,
+                    ),
+                    MaybeRelocatable::from(Felt252::zero()),
+                ];
+                stack_prefix.extend(stack.clone());
+
+                self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
+
+                self.initialize_state(
+                    self.program
+                        .shared_program_data
+                        .start
+                        .ok_or(RunnerError::NoProgramStart)?,
+                    stack_prefix.clone(),
+                )?;
+            }
+
+            self.initial_fp =
+                Some((self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?);
+
+            self.initial_ap = self.initial_fp;
+            return Ok((self.program_base.ok_or(RunnerError::NoProgBase)?
+                + self
+                    .program
+                    .shared_program_data
+                    .end
+                    .ok_or(RunnerError::NoProgramEnd)?)?);
+        }
+
+        let return_fp = self.add_memory_segment();
+        if let Some(main) = self.program.shared_program_data.main {
+            let main_clone = main;
+            Ok(self.initialize_function_entrypoint(
+                main_clone,
+                stack,
+                MaybeRelocatable::RelocatableValue(return_fp),
+            )?)
+        } else {
+            Err(RunnerError::MissingMain)
+        }
+    }
+
+    fn initialize_function_entrypoint(
+        &mut self,
+        entrypoint: usize,
+        mut stack: Vec<MaybeRelocatable>,
+        return_fp: MaybeRelocatable,
+    ) -> Result<Relocatable, RunnerError> {
+        let end = self.add_memory_segment();
+        stack.append(&mut vec![
+            return_fp,
+            MaybeRelocatable::RelocatableValue(end),
+        ]);
+        if let Some(base) = &self.execution_base {
+            self.initial_fp = Some(Relocatable {
+                segment_index: base.segment_index,
+                offset: base.offset + stack.len(),
+            });
+            self.initial_ap = self.initial_fp;
+        } else {
+            return Err(RunnerError::NoExecBase);
+        }
+        self.initialize_state(entrypoint, stack)?;
+        self.final_pc = Some(end);
+        Ok(end)
+    }
+
+    fn initialize_state(
+        &mut self,
+        entrypoint: usize,
+        stack: Vec<MaybeRelocatable>,
+    ) -> Result<(), RunnerError> {
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_pc = Some((prog_base + entrypoint)?);
+        self.memory
+            .load_data(exec_base, &stack)
+            .map_err(RunnerError::MemoryInitializationError)?;
+        Ok(())
     }
 
     /// Loads the program into the program segment.
@@ -520,7 +687,7 @@ impl CairoRunnerBuilder {
     }
 
     pub fn build(self) -> Result<CairoRunner, RunnerError> {
-        let vm = VirtualMachineBuilder::default()
+        let mut vm = VirtualMachineBuilder::default()
             .builtin_runners(self.builtin_runners)
             .segments(self.memory)
             .instruction_cache(self.instructions)
@@ -532,23 +699,29 @@ impl CairoRunnerBuilder {
             })
             .build();
 
+        if let Some(initial_pc) = self.initial_pc {
+            vm.run_context.pc = initial_pc;
+        }
+        if let Some(initial_fp) = self.initial_fp {
+            vm.run_context.fp = initial_fp.offset;
+        }
+        if let Some(initial_ap) = self.initial_ap {
+            vm.run_context.ap = initial_ap.offset;
+        }
+
         Ok(CairoRunner {
             vm,
             layout: self.layout,
             program_base: self.program_base,
             execution_base: self.execution_base,
             entrypoint: self.program.shared_program_data.main,
-            initial_ap: None,
-            initial_fp: None,
-            initial_pc: None,
-            final_pc: None,
+            initial_ap: self.initial_ap,
+            initial_fp: self.initial_fp,
+            initial_pc: self.initial_pc,
+            final_pc: self.final_pc,
             run_ended: false,
             segments_finalized: false,
-            execution_public_memory: if self.runner_mode != RunnerMode::ExecutionMode {
-                Some(Vec::new())
-            } else {
-                None
-            },
+            execution_public_memory: self.execution_public_memory,
             runner_mode: self.runner_mode,
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
@@ -597,6 +770,11 @@ impl Clone for CairoRunnerBuilder {
             loaded_program: self.loaded_program,
             hints: self.hints.clone(),
             instructions: self.instructions.clone(),
+            initial_pc: self.initial_pc,
+            initial_fp: self.initial_fp,
+            initial_ap: self.initial_ap,
+            final_pc: self.final_pc,
+            execution_public_memory: self.execution_public_memory.clone(),
         }
     }
 }
